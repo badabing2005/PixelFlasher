@@ -78,7 +78,7 @@
         Please scrutinze the script before using.
 
     .LINK
-        https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/
+        https://github.com/badabing2005/PixelFlasher
 #>
 
 [CmdletBinding()]

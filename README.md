@@ -16,7 +16,7 @@ The script automates the following steps:
 - Transfers stock boot.img to the phone
 - Launches Magisk
 - Waits for the user to complete the patch on the phone
-  - TODO: automate the previous step to magisk patch programatically
+  - TODO: automate the previous step to magisk patch programmatically
 - Transfers patched boot.img to the PC
 - Replaces stock boot.img with patched boot.img
 - Repackages the image zip with patched boot.img
@@ -40,3 +40,6 @@ The easiest way to run this
 
 Optionally pass arguments to the script to specify the various options.
 See `./PixelFlasher.ps1 -help` for usage.
+
+## Notice
+This script should theoretically work for any Pixel phone by passing the `phoneModel` parameter, however I have only tested it on Pixel 6 (oriole) which is set as the default.

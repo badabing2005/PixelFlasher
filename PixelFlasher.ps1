@@ -17,7 +17,7 @@
           - Transfers stock boot.img to the phone
           - Launches Magisk
           - Waits for the user to complete the patch on the phone
-              TODO: automate the previous step to magisk patch programatically
+              TODO: automate the previous step to magisk patch programmatically
           - Transfers patched boot.img to the PC
           - Replaces stock boot.img with patched boot.img
           - Repackages the image zip with patched boot.img

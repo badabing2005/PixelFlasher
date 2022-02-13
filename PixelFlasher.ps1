@@ -24,23 +24,35 @@
           - Reboots to bootloader and pauses
           - Launches flash_all.bat to update the phone
 
-    .PARAMETER  h | help
+    .PARAMETER  help
+        Alias: h
         Show Usage Help
 
-    .PARAMETER f | factoryFile
-        Factory image zip file, example: oriole-sq1d.220205.003-factory-a5a63f2a.zip, not required if it is in current directory
+    .PARAMETER factoryFile
+        Alias: f
+        Factory image zip file, example: oriole-sq1d.220205.003-factory-a5a63f2a.zip,
+        not required if it is in current directory
 
-    .PARAMETER p | phoneModel
-        Factory image zip file, example: oriole-sq1d.220205.003-factory-a5a63f2a.zip, default: oriole
+    .PARAMETER phoneModel
+        Alias: p
+        Factory image zip file, example: oriole-sq1d.220205.003-factory-a5a63f2a.zip,
+        default: oriole
 
-    .PARAMETER t | transferPath
-        Where stock boot.img file will be copied to (on the phone), default:  /storage/emulated/0/Download
+    .PARAMETER transferPath
+        Alias: t
+        Where stock boot.img file will be copied to (on the phone),
+        default: /storage/emulated/0/Download
 
-    .PARAMETER z | zip
-        Specify path to 7zip.exe, default: C:\Program Files\7-Zip\7z.exe, not required if it is in the path or current directory
+    .PARAMETER zip
+        Alias: z
+        Specify path to 7zip.exe,
+        default: C:\Program Files\7-Zip\7z.exe,
+        not required if it is in the path or current directory
 
-    .PARAMETER s | sdk
-        Specify path to Android SDK Platform-Tools, not required if it is in the path or current directory
+    .PARAMETER sdk
+        Alias: s
+        Specify path to Android SDK Platform-Tools,
+        not required if it is in the path or current directory
 
     .EXAMPLE
         ./PixelFlasher.ps1

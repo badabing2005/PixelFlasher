@@ -529,10 +529,15 @@ else
 #----------------------------
 # Display a message and pause
 #----------------------------
+Write-Host "If you need guidance about using magisk to pacth boot.img check this excellent thread"
+Write-Host "https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/"
+Write-Host
 Write-Host "------------------------------------------"
 Write-Host "Magisk should now be running on your phone"
-Write-Host "If it is not, Start magisk on your phone, "
-Write-Host "patch boot.img found in Download folder:  "
+Write-Host "If it is not, it is probably set to be    "
+Write-Host "hidden, in any case start magisk manually "
+Write-Host "on your phone, and patch boot.img found in"
+Write-Host "Download folder:                          "
 Write-Host "$transferPath                             "
 Write-Host "and then come back here to continue       "
 Write-Host "CTRL+C to abort                           "

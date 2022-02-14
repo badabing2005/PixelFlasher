@@ -32,8 +32,8 @@ The script automates the following steps:
 - Download or clone the repository
 - Make sure the prerequisities are met
 
-The easiest way to run this 
-- copy the factory image into the script directory, 
+The easiest way to run this
+- copy the factory image into the script directory,
 - make sure, adb.exe, fastboot.exe, and 7z.exe are in the environment path
 - start powershell in the script directory
 - run `./PixelFlasher.ps1` and follow the prompts.
@@ -43,3 +43,9 @@ See `./PixelFlasher.ps1 -help` for usage.
 
 ## Notice
 This script should theoretically work for any Pixel phone by passing the `phoneModel` parameter, however I have only tested it on Pixel 6 (oriole) which is set as the default.
+
+## Troubleshooting
+If your run into issues executing this Powershell script, it is probably due to the Powershell Execution Policy.
+By default, PowerShell's execution policy is set to Restricted; this means that scripts will not run.
+You can check [this](https://www.mssqltips.com/sqlservertip/2702/setting-the-powershell-execution-policy/) article to learn how to allow the script to run.
+You can also check [this](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.2) document to learn all about Powershell Execution policy.

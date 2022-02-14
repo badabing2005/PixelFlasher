@@ -15,7 +15,8 @@
           - Checks and validates phone connection
           - Checks and validates that the phone model matches the factory image
           - Transfers stock boot.img to the phone
-          - Launches Magisk
+          - Detects if Magisk is installed and not hidden
+          - Launches Magisk if it is not hidden
           - Waits for the user to complete the patch on the phone
               TODO: automate the previous step to magisk patch programmatically
           - Transfers patched boot.img to the PC
@@ -45,13 +46,18 @@
 
     .PARAMETER zip
         Alias: z
-        Specify path to 7zip.exe,
-        default: C:\Program Files\7-Zip\7z.exe,
+        Specify path to 7zip.exe
+        default: C:\Program Files\7-Zip\7z.exe
         not required if it is in the path or current directory
+
+    .PARAMETER magisk
+        Alias: m
+        When Magisk is hidden, you can specify the package name so that the script can launch it,
+        default: com.topjohnwu.magisk
 
     .PARAMETER sdk
         Alias: s
-        Specify path to Android SDK Platform-Tools,
+        Specify path to Android SDK Platform-Tools
         not required if it is in the path or current directory
 
     .EXAMPLE
@@ -99,6 +105,7 @@ Param(
     [Alias("p")][string]$phoneModel = "oriole",
     [Alias("t")][string]$transferPath = "/storage/emulated/0/Download",
     [Alias("z")][string]$zip = "C:\Program Files\7-Zip\7z.exe",
+    [Alias("m")][string]$magisk = "com.topjohnwu.magisk",
     [Alias("s")][string]$sdk = "",
     [Alias("h")][switch]$help
 )
@@ -522,28 +529,46 @@ else
     Exit 1
 }
 
-#---------------------
+#---------------------------
+# See if Magisk is installed
+#---------------------------
+Write-Host "  Checking to see if Magisk is installed [$magisk] ..." -f DarkGray
+$magiskInstalled = (& $adb shell pm list packages $magisk)
+if ([string]::IsNullOrEmpty($magiskInstalled))
+{
+    Write-Host "WARNING: Magisk [$magisk] is not found on the phone" -f yellow
+    Write-Host "         This could be either because it is hidden, or it is not installed" -f yellow
+    Write-Host "         if it is hidden, optionally you can specify the package name with -m parameter" -f yellow
+    Write-Host "         to avoid launching it manually" -f yellow
+    Write-Host "Please Launch Magisk manually now." -f red
+    Read-Host -Prompt "Press any key to continue"
+}
+else
+{
 # Try to Launch Magisk
-#---------------------
-& $adb shell monkey -p com.topjohnwu.magisk -c android.intent.category.LAUNCHER 1
+    Write-Host "  Launching Magisk [$magisk] ..." -f DarkGray
+    & $adb shell monkey -p $magisk -c android.intent.category.LAUNCHER 1
+}
 
 #----------------------------
 # Display a message and pause
 #----------------------------
-Write-Host "If you need guidance about using magisk to pacth boot.img check this excellent thread"
-Write-Host "https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/"
 Write-Host
 Write-Host "------------------------------------------"
 Write-Host "Magisk should now be running on your phone"
-Write-Host "If it is not, it is probably set to be    "
-Write-Host "hidden, in any case start magisk manually "
-Write-Host "on your phone, and patch boot.img found in"
+Write-Host "If it is not, you probably should abort as"
+Write-Host "that could be sign of issues, otherwise   "
+Write-Host "please patch boot.img found in            "
 Write-Host "Download folder:                          "
 Write-Host "$transferPath                             "
 Write-Host "and then come back here to continue       "
 Write-Host "CTRL+C to abort                           "
 Write-Host "------------------------------------------"
-pause >nul
+Write-Host
+Write-Host "If you need guidance about using magisk to patch boot.img check this excellent thread"
+Write-Host "https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/"
+Write-Host
+Read-Host -Prompt "Press any key to continue"
 
 #------------------------------------------
 # Delete old patched_boot file if it exists
@@ -655,7 +680,7 @@ else
     Write-Host "Aborted!" -f red
     Exit 1
 }
-pause >nul
+Read-Host -Prompt "Press any key to continue"
 
 #------------------
 # Run flash_all.bat

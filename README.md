@@ -14,7 +14,8 @@ The script automates the following steps:
 - Checks and validates phone connection
 - Checks and validates that the phone model matches the factory image
 - Transfers stock boot.img to the phone
-- Launches Magisk
+- Detects if Magisk is installed and not hidden
+- Launches Magisk if it is not hidden
 - Waits for the user to complete the patch on the phone
   - TODO: automate the previous step to magisk patch programmatically
 - Transfers patched boot.img to the PC

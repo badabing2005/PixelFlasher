@@ -376,6 +376,7 @@ if ($help)
 #------------------------------------------
 $cwd = (Get-Item -Path ".\" -Verbose).FullName
 $scriptPath = $PSScriptRoot
+$env:path += ";."
 
 $commandLine = "$($MyInvocation.MyCommand.Name) "
 Write-Host "$commandLine " -NoNewline -f 'Gray' -b 'yellow'

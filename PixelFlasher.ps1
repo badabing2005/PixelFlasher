@@ -391,6 +391,7 @@ ShowDisclaimer
 #------
 if ($help)
 {
+    Test-ScriptFileInfo -Path ".\$($MyInvocation.MyCommand.Name)"
     Get-Help $MyInvocation.InvocationName | Out-String
     Exit
 }
@@ -545,9 +546,31 @@ if ($response -eq 0)
     # Delete boot.img
     Write-Host "  Deleting $transferPath/boot.img ..." -f DarkGray
     & $adb shell rm -f $transferPath/boot.img
+
+    # Make sure boot.img is deleted
+    Write-Host "  Making sure $transferPath/boot.img is deleted ..." -f DarkGray
+    $check = (& $adb shell ls -l $transferPath/boot.img)
+    if (! [string]::IsNullOrEmpty($check))
+    {
+        Write-Host "ERROR: $transferPath/boot.img could not be deleted." -f red
+        Write-Host "Aborting ..."
+        Exit 1
+    }
+
     # Delete magisk_patched-*.img
     Write-Host "  Deleting $transferPath/magisk_patched-*.img ..." -f DarkGray
     & $adb shell rm -f $transferPath/magisk_patched-*.img
+
+    # Make sure magisk_patched-*.img is deleted
+    Write-Host "  Making sure magisk_patched-*.img is deleted ..." -f DarkGray
+    $check = (& $adb shell ls -l magisk_patched-*.img)
+    if (! [string]::IsNullOrEmpty($check))
+    {
+        Write-Host "ERROR: magisk_patched-*.img could not be deleted." -f red
+        Write-Host "Aborting ..."
+        Exit 1
+    }
+
     # push boot.img to phone
     Write-Host "  Pushing $transferPath/boot.img ..." -f DarkGray
     & $adb push boot.img $transferPath/boot.img

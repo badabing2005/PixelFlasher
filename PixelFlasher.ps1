@@ -1,9 +1,26 @@
+<#PSScriptInfo
+    .VERSION 1.0
+    .GUID 50786e59-138e-4962-a1b0-4246504b5bf0
+    .AUTHOR badabing2005@hotmail.com
+    .COMPANYNAME
+    .COPYRIGHT
+    .TAGS
+    .LICENSEURI https://github.com/badabing2005/PixelFlasher/blob/main/LICENSE
+    .PROJECTURI https://github.com/badabing2005/PixelFlasher
+    .ICONURI
+    .EXTERNALMODULEDEPENDENCIES
+    .REQUIREDSCRIPTS
+    .EXTERNALSCRIPTDEPENDENCIES
+    .RELEASENOTES
+    .PRIVATEDATA
+#>
+
 <#
     .SYNOPSIS
         This is a Powershell script is to update a rooted Pixel phone with new factory image and retain root.
 
     .DESCRIPTION
-        This is a Powershell script is to update a rooted Pixel phone with new factory image and retain root.
+        This is a Powershell script to update a rooted Pixel phone with new factory image and retain root.
         The script automates the following steps:
           - Checks for the factory image
           - Unpacks factory image
@@ -517,11 +534,23 @@ $newContent | Set-Content -Path "$unzippedFolder/flash-all.bat"
 #-------------------------------------
 # Transfer stock boot.img to the phone
 #-------------------------------------
+Write-Host "Warning: If you answer yes to the next question." -f yellow
+Write-Host "         The following files will be deleted." -f yellow
+Write-Host "         $transferPath/boot.img" -f yellow
+Write-Host "         $transferPath/magisk_patched-*.img" -f yellow
 $response = ConfirmYesNo('Do you want to transfer stock boot.img to the phone?', "It will be copied to: $transferPath")
 if ($response -eq 0)
 {
     CheckPhoneConnection
-    & $adb push boot.img /storage/emulated/0/Download/boot.img
+    # Delete boot.img
+    Write-Host "  Deleting $transferPath/boot.img ..." -f DarkGray
+    & $adb shell rm -f $transferPath/boot.img
+    # Delete magisk_patched-*.img
+    Write-Host "  Deleting $transferPath/magisk_patched-*.img ..." -f DarkGray
+    & $adb shell rm -f $transferPath/magisk_patched-*.img
+    # push boot.img to phone
+    Write-Host "  Pushing $transferPath/boot.img ..." -f DarkGray
+    & $adb push boot.img $transferPath/boot.img
 }
 else
 {
@@ -554,19 +583,21 @@ else
 # Display a message and pause
 #----------------------------
 Write-Host
-Write-Host "------------------------------------------"
-Write-Host "Magisk should now be running on your phone"
-Write-Host "If it is not, you probably should abort as"
-Write-Host "that could be sign of issues, otherwise   "
-Write-Host "please patch boot.img found in            "
-Write-Host "Download folder:                          "
-Write-Host "$transferPath                             "
-Write-Host "and then come back here to continue       "
-Write-Host "CTRL+C to abort                           "
-Write-Host "------------------------------------------"
+Write-Host "=====================================================================================" -f yellow
+Write-Host "Magisk should now be running on your phone." -f yellow
+Write-Host "If it is not, you probably should abort as that could be a sign of issues." -f yellow
+Write-Host "Otherwise Please patch boot.img found in the following path:" -f yellow
+Write-Host "$transferPath" -f yellow
+Write-Host
+Write-Host "Please make sure the magisk-patched file is in the following path:" -f yellow
+Write-Host "$transferPath" -f yellow
+Write-Host
+Write-Host "When completed, come back here to continue" -f yellow
+Write-Host "CTRL+C to abort" -f yellow
+Write-Host "=====================================================================================" -f yellow
 Write-Host
 Write-Host "If you need guidance about using magisk to patch boot.img check this excellent thread"
-Write-Host "https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/"
+Write-Host "https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/" -f blue
 Write-Host
 Read-Host -Prompt "Press any key to continue"
 
@@ -586,7 +617,7 @@ $response = ConfirmYesNo('Do you want to copy patched boot.img from the phone?',
 if ($response -eq 0)
 {
     CheckPhoneConnection
-    $patchedBoot = (& $adb shell ls  /storage/emulated/0/Download/magisk_patched-*.img)
+    $patchedBoot = (& $adb shell ls  $transferPath/magisk_patched-*.img)
     if ([string]::IsNullOrEmpty($patchedBoot))
     {
         Write-Host "ERROR: magisk_patched-*.img is not found on the phone"
@@ -608,7 +639,7 @@ if (-not (Test-Path -Path "patched_boot.img"))
     if ($response -eq 0)
     {
         CheckPhoneConnection
-        $patchedBoot = (& $adb shell ls  /storage/emulated/0/Download/magisk_patched-*.img)
+        $patchedBoot = (& $adb shell ls  $transferPath/magisk_patched-*.img)
         if ([string]::IsNullOrEmpty($patchedBoot))
         {
             Write-Host "ERROR: magisk_patched-*.img is not found on the phone"
@@ -689,7 +720,7 @@ $response = ConfirmYesNo -title "Do you want to run flash_all.bat" -message "and
 if ($response -eq 0)
 {
     CheckPhoneConnection -deviceMode "fastboot"
-    $patchedBoot = (& $adb shell ls  /storage/emulated/0/Download/magisk_patched-*.img)
+    $patchedBoot = (& $adb shell ls  $transferPath/magisk_patched-*.img)
     $response = ConfirmYesNo -title "Sorry for Asking again, are you really sure you want to run flash_all.bat" -message "and update the phone?" -defaultChoice 1
     if ($response -eq 0)
     {

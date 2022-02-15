@@ -743,13 +743,12 @@ $response = ConfirmYesNo -title "Do you want to run flash_all.bat" -message "and
 if ($response -eq 0)
 {
     CheckPhoneConnection -deviceMode "fastboot"
-    $patchedBoot = (& $adb shell ls  $transferPath/magisk_patched-*.img)
     $response = ConfirmYesNo -title "Sorry for Asking again, are you really sure you want to run flash_all.bat" -message "and update the phone?" -defaultChoice 1
     if ($response -eq 0)
     {
         # At this point flash_all.bat will be executed and the phone updated
         Write-Host "Executing $unzippedFolder/flash_all.bat ..." -f DarkGreen
-        & "$unzippedFolder/flash_all.bat"
+        & "$unzippedFolder/flash-all.bat"
     }
     else
     {

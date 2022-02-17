@@ -747,8 +747,11 @@ if ($response -eq 0)
     if ($response -eq 0)
     {
         # At this point flash_all.bat will be executed and the phone updated
-        Write-Host "Executing $unzippedFolder/flash_all.bat ..." -f DarkGreen
-        & "$unzippedFolder/flash-all.bat"
+        Write-Host "Changing current Directory to: $unzippedFolder ..." -f DarkGreen
+        Push-Location "$unzippedFolder"
+        Write-Host "Executing flash_all.bat ..." -f DarkGreen
+        & "./flash-all.bat"
+        Pop-Location
     }
     else
     {

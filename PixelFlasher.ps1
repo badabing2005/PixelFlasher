@@ -1,5 +1,5 @@
 <#PSScriptInfo
-    .VERSION 1.0
+    .VERSION 1.1
     .GUID 50786e59-138e-4962-a1b0-4246504b5bf0
     .AUTHOR badabing2005@hotmail.com
     .COMPANYNAME
@@ -42,30 +42,19 @@
           - Reboots to bootloader and pauses
           - Launches flash_all.bat to update the phone
 
-    .PARAMETER  help
-        Alias: h
-        Show Usage Help
-
     .PARAMETER factoryFile
         Alias: f
         Factory image zip file, example: oriole-sq1d.220205.003-factory-a5a63f2a.zip,
         not required if it is in current directory
 
+    .PARAMETER  help
+        Alias: h
+        Show Usage Help
+
     .PARAMETER phoneModel
         Alias: p
         Factory image zip file, example: oriole-sq1d.220205.003-factory-a5a63f2a.zip,
         default: oriole
-
-    .PARAMETER transferPath
-        Alias: t
-        Where stock boot.img file will be copied to (on the phone),
-        default: /storage/emulated/0/Download
-
-    .PARAMETER zip
-        Alias: z
-        Specify path to 7zip.exe
-        default: C:\Program Files\7-Zip\7z.exe
-        not required if it is in the path or current directory
 
     .PARAMETER magisk
         Alias: m
@@ -77,8 +66,31 @@
         Specify path to Android SDK Platform-Tools
         not required if it is in the path or current directory
 
+    .PARAMETER transferPath
+        Alias: t
+        Where stock boot.img file will be copied to (on the phone),
+        default: /storage/emulated/0/Download
+
+    .PARAMETER lessPrompts
+        Alias: y
+        Less Prompting, automatic answer with the correct choices to proceed.
+
+    .PARAMETER zip
+        Alias: z
+        Specify path to 7zip.exe
+        default: C:\Program Files\7-Zip\7z.exe
+        not required if it is in the path or current directory
+
     .EXAMPLE
         ./PixelFlasher.ps1
+           Expects the factory image to be in the current directory
+           Expects adb to be in the path or current directory
+           Expects fastboot to be in the path or current directory
+           Expects 7z.exe to be in the path or current directory or installed in default location: C:\Program Files\7-Zip\7z.exe
+
+    .EXAMPLE
+        ./PixelFlasher.ps1 -y
+           Less prompts, auto answer to run faster.
            Expects the factory image to be in the current directory
            Expects adb to be in the path or current directory
            Expects fastboot to be in the path or current directory
@@ -124,6 +136,7 @@ Param(
     [Alias("z")][string]$zip = "C:\Program Files\7-Zip\7z.exe",
     [Alias("m")][string]$magisk = "com.topjohnwu.magisk",
     [Alias("s")][string]$sdk = "",
+    [Alias("y")][switch]$lessPrompts,
     [Alias("h")][switch]$help
 )
 
@@ -289,9 +302,18 @@ Function CheckPhoneConnection($deviceMode = "adb")
     Write-Host "A  = Abort"
     Write-Host "---------------------------"
     Write-Host "Please make a selection > " -NoNewline
-    $key = $Host.UI.RawUI.ReadKey()
-    Write-Host
-    $prompt = [string]$key.Character
+
+    if ($lessPrompts)
+    {
+        $prompt = "c"
+        Write-Host "  [lessPrompt] option is selected: Bypassing Prompt ..." -f DarkGray
+    }
+    else
+    {
+        $key = $Host.UI.RawUI.ReadKey()
+        Write-Host
+        $prompt = [string]$key.Character
+    }
 
     if ($prompt.toLower() -eq "a")
     {
@@ -366,16 +388,24 @@ Function CheckPhoneConnection($deviceMode = "adb")
 #-----------------------------------------------------------------------------
 function ConfirmYesNo($title, $message, $defaultChoice = 0)
 {
-    $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", `
-        "Accepts the action."
+    if ($lessPrompts)
+    {
+        Write-Host "  [lessPrompt] option is selected: Bypassing Prompt ..." -f DarkGray
+        return 0
+    }
+    else
+    {
+        $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", `
+            "Accepts the action."
 
-    $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No", `
-        "Aborts the process."
+        $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No", `
+            "Aborts the process."
 
-    $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+        $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
 
-    $result = $host.ui.PromptForChoice($title, $message, $options, $defaultChoice)
-    return $result
+        $result = $host.ui.PromptForChoice($title, $message, $options, $defaultChoice)
+        return $result
+    }
 }
 
 
@@ -399,12 +429,13 @@ if ($help)
 #------------------------------------------
 # get script path and invocation parameters
 #------------------------------------------
+$dtmStart = Get-Date
 $cwd = (Get-Item -Path ".\" -Verbose).FullName
 $scriptPath = $PSScriptRoot
 $env:path += ";."
 
 $commandLine = "$($MyInvocation.MyCommand.Name) "
-Write-Host "$commandLine " -NoNewline -f 'Gray' -b 'yellow'
+Write-Host "$commandLine " -NoNewline -f 'red' -b 'yellow'
 foreach ($key in $PSBoundParameters.Keys)
 {
     Write-Host ("-$($key) $($PSBoundParameters[$key]) ") -NoNewline -f 'black' -b 'yellow'
@@ -536,7 +567,7 @@ $newContent | Set-Content -Path "$unzippedFolder/flash-all.bat"
 # Transfer stock boot.img to the phone
 #-------------------------------------
 Write-Host "Warning: If you answer yes to the next question." -f yellow
-Write-Host "         The following files will be deleted." -f yellow
+Write-Host "         The following files will be deleted from your phone." -f yellow
 Write-Host "         $transferPath/boot.img" -f yellow
 Write-Host "         $transferPath/magisk_patched-*.img" -f yellow
 $response = ConfirmYesNo('Do you want to transfer stock boot.img to the phone?', "It will be copied to: $transferPath")
@@ -597,7 +628,7 @@ if ([string]::IsNullOrEmpty($magiskInstalled))
 }
 else
 {
-# Try to Launch Magisk
+    # Try to Launch Magisk
     Write-Host "  Launching Magisk [$magisk] ..." -f DarkGray
     & $adb shell monkey -p $magisk -c android.intent.category.LAUNCHER 1
 }
@@ -727,6 +758,7 @@ Pop-Location
 $response = ConfirmYesNo('Do you want to reboot the phone into bootloader mode', "and pause?")
 if ($response -eq 0)
 {
+    Write-Host "  Rebooting into bootloader mode ..." -f DarkGray
     & $adb reboot bootloader
 }
 else
@@ -734,7 +766,14 @@ else
     Write-Host "Aborted!" -f red
     Exit 1
 }
-Read-Host -Prompt "Press any key to continue"
+if ($lessPrompts)
+{
+    Start-Sleep -s 5
+}
+else
+{
+    Read-Host -Prompt "Press any key to continue"
+}
 
 #------------------
 # Run flash_all.bat
@@ -771,3 +810,7 @@ else
 #----------
 Write-Host ""
 Write-Host "Done!" -f DarkGreen
+$dtmEnd = Get-Date
+$elapsedTime = ($dtmEnd - $dtmStart)
+Write-Host ("PixelFlasher Total Elapsed Time: ", $elapsedTime)
+Write-Host

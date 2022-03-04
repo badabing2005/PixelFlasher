@@ -1,5 +1,5 @@
 <#PSScriptInfo
-    .VERSION 1.1
+    .VERSION 1.2
     .GUID 50786e59-138e-4962-a1b0-4246504b5bf0
     .AUTHOR badabing2005@hotmail.com
     .COMPANYNAME

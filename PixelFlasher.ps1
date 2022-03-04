@@ -612,48 +612,60 @@ else
     Exit 1
 }
 
-#---------------------------
-# See if Magisk is installed
-#---------------------------
-Write-Host "  Checking to see if Magisk is installed [$magisk] ..." -f DarkGray
-$magiskInstalled = (& $adb shell pm list packages $magisk)
-if ([string]::IsNullOrEmpty($magiskInstalled))
+#---------------------------------
+# See if Magisk Tools is installed
+#---------------------------------
+Write-Host "  Checking to see if Magisk Tools is installed ..." -f DarkGray
+$bootPatchExists = (& $adb shell "su -c 'ls -l /data/adb/magisk/boot_patch.sh'")
+if (![string]::IsNullOrEmpty($bootPatchExists))
 {
-    Write-Host "WARNING: Magisk [$magisk] is not found on the phone" -f yellow
-    Write-Host "         This could be either because it is hidden, or it is not installed" -f yellow
-    Write-Host "         if it is hidden, optionally you can specify the package name with -m parameter" -f yellow
-    Write-Host "         to avoid launching it manually" -f yellow
-    Write-Host "Please Launch Magisk manually now." -f red
-    Read-Host -Prompt "Press any key to continue"
+    $randId = -join ((48..57) + (97..122) | Get-Random -Count 8 | ForEach-Object {[char]$_})
+    & $adb shell "su -c 'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched-$($randId).img'"
 }
 else
 {
-    # Try to Launch Magisk
-    Write-Host "  Launching Magisk [$magisk] ..." -f DarkGray
-    & $adb shell monkey -p $magisk -c android.intent.category.LAUNCHER 1
+    Write-Host "Magisk Tools is not found on the phone, can not do automatic patching." -f yellow
+    Write-Host "  Checking to see if Magisk is installed [$magisk] ..." -f DarkGray
+    $magiskInstalled = (& $adb shell pm list packages $magisk)
+    if ([string]::IsNullOrEmpty($magiskInstalled))
+    {
+        Write-Host "WARNING: Magisk [$magisk] is not found on the phone" -f yellow
+        Write-Host "         This could be either because it is hidden, or it is not installed" -f yellow
+        Write-Host "         if it is hidden, (optionally you can specify the package name with -m parameter" -f yellow
+        Write-Host "         to avoid launching it manually)" -f yellow
+        Write-Host "Please Launch Magisk manually now." -f red
+        Read-Host -Prompt "Press any key to continue"
+    }
+    else
+    {
+        # Try to Launch Magisk for manual patching
+        Write-Host "  Launching Magisk [$magisk] ..." -f DarkGray
+        & $adb shell monkey -p $magisk -c android.intent.category.LAUNCHER 1
+    }
+
+    #----------------------------
+    # Display a message and pause
+    #----------------------------
+    Write-Host
+    Write-Host "=====================================================================================" -f yellow
+    Write-Host "Magisk should now be running on your phone." -f yellow
+    Write-Host "If it is not, you probably should abort as that could be a sign of issues." -f yellow
+    Write-Host "Otherwise Please patch boot.img found in the following path:" -f yellow
+    Write-Host "$transferPath" -f yellow
+    Write-Host
+    Write-Host "Please make sure the magisk-patched file is in the following path:" -f yellow
+    Write-Host "$transferPath" -f yellow
+    Write-Host
+    Write-Host "When completed, come back here to continue" -f yellow
+    Write-Host "CTRL+C to abort" -f yellow
+    Write-Host "=====================================================================================" -f yellow
+    Write-Host
+    Write-Host "If you need guidance about using magisk to patch boot.img check this excellent thread"
+    Write-Host "https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/" -f blue
+    Write-Host
+    Read-Host -Prompt "Press any key to continue"
 }
 
-#----------------------------
-# Display a message and pause
-#----------------------------
-Write-Host
-Write-Host "=====================================================================================" -f yellow
-Write-Host "Magisk should now be running on your phone." -f yellow
-Write-Host "If it is not, you probably should abort as that could be a sign of issues." -f yellow
-Write-Host "Otherwise Please patch boot.img found in the following path:" -f yellow
-Write-Host "$transferPath" -f yellow
-Write-Host
-Write-Host "Please make sure the magisk-patched file is in the following path:" -f yellow
-Write-Host "$transferPath" -f yellow
-Write-Host
-Write-Host "When completed, come back here to continue" -f yellow
-Write-Host "CTRL+C to abort" -f yellow
-Write-Host "=====================================================================================" -f yellow
-Write-Host
-Write-Host "If you need guidance about using magisk to patch boot.img check this excellent thread"
-Write-Host "https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/" -f blue
-Write-Host
-Read-Host -Prompt "Press any key to continue"
 
 #------------------------------------------
 # Delete old patched_boot file if it exists

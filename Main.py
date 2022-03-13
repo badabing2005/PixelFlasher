@@ -223,7 +223,7 @@ class PixelFlasher(wx.Frame):
                 self._config.adb_id = None
                 self._config.adb_model = None
             else:
-                print("Please set Android Platform Tools Path first.")
+                print("Please set Android platform tools path first.")
 
         def on_select_platform_tools(event):
             self._config.platform_tools_path = event.GetPath().replace("'", "")
@@ -287,22 +287,22 @@ class PixelFlasher(wx.Frame):
 
             # Make sure factory image is selected
             if not self._config.firmware_model:
-                print("ERROR: Select a Valid Factory Image.")
+                print("ERROR: Select a valid factory image.")
                 return
 
             # Make sure platform-tools is set and adb.exe and fastboot.exe are found
             if not self._config.platform_tools_path:
-                print("ERROR: Select Android Platform Tools (adb)")
+                print("ERROR: Select Android platform tools (ADB)")
                 return
 
             # Make sure Phone is connected
             if not self._config.device:
-                print("ERROR: Select an adb connection (phone)")
+                print("ERROR: Select an ADB connection (phone)")
                 return
 
             # Make sure Phone model matches firmware model
             if self._config.firmware_model != self._config.adb_model:
-                print("ERROR: Android Device Model %s does not match Firmaware Model %s" % (self._config.adb_model, self._config.firmware_model))
+                print("ERROR: Android device model %s does not match firmaware model %s" % (self._config.adb_model, self._config.firmware_model))
                 return
 
             wait = wx.BusyCursor()
@@ -490,7 +490,7 @@ class PixelFlasher(wx.Frame):
                 # expect ret 1
                 if res.returncode != 1:
                     print(res.stdout)
-                    print("ERROR: boot.img Delete Failed!")
+                    print("ERROR: boot.img delete failed!")
                     print("Aborting ...")
                     del wait
                     return
@@ -515,27 +515,27 @@ class PixelFlasher(wx.Frame):
                 res = runShell(theCmd)
                 # expect 0
                 if res.returncode != 0:
-                    print("ERROR: boot.img is not Found!")
+                    print("ERROR: boot.img is not found!")
                     print(res.stderr)
                     print("Aborting ...")
                     del wait
                     return
 
                 # See if magisk tools is installed
-                print("Checking to see if Magisk Tools is installed on the phone ...")
+                print("Checking to see if Magisk tools is installed on the phone ...")
                 theCmd = self._config.adb + " -s " + self._config.adb_id + " shell \"su -c \'ls -l /data/adb/magisk/\'\""
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode != 0:
-                    print("Magisk Tools not found on the phone")
+                    print("Magisk tools not found on the phone")
                     # Check to is if Magisk is installed
-                    print("Looking for Magisk App ...")
+                    print("Looking for Magisk app ...")
                     theCmd = self._config.adb + " -s " + self._config.adb_id + " shell pm list packages " + self._config.magisk
                     res = runShell(theCmd)
                     if res.stdout.strip() != "package:" + self._config.magisk:
                         print("Unable to find magisk on the phone, perhaps it is hidden?")
                         # Message to Launch Manually and Patch
-                        title = "Magisk Not Found"
+                        title = "Magisk not found"
                         message =  "WARNING: Magisk is not found on the phone\n\n"
                         message += "This could be either because it is hidden, or it is not installed\n\n"
                         message += "Please manually launch Magisk on your phone.\n"
@@ -544,13 +544,13 @@ class PixelFlasher(wx.Frame):
                         message += "- select boot.img in %s \n" % self._config.phone_path
                         message += "- Then hit `LET's GO`\n\n"
                         message += "Click OK when done to continue.\n"
-                        message += "Hit CANCEL to Abort."
+                        message += "Hit CANCEL to abort."
                         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
                         result = dlg.ShowModal()
                         if result == wx.ID_OK:
-                            print("User Pressed Ok.")
+                            print("User pressed OK.")
                         else:
-                            print("User Pressed Cancel.")
+                            print("User pressed cancel.")
                             print("Aborting ...")
                             del wait
                             return
@@ -560,35 +560,35 @@ class PixelFlasher(wx.Frame):
                         theCmd = self._config.adb + " -s " + self._config.adb_id + " shell monkey -p " + self._config.magisk + " -c android.intent.category.LAUNCHER 1"
                         res = runShell(theCmd)
                         if res.returncode != 0:
-                            print("ERROR: Magisk Could not be Launched")
+                            print("ERROR: Magisk could not be launched")
                             print(res.stderr)
-                            print("Please Launch Magisk manually.")
+                            print("Please launch Magisk manually.")
                         else:
                             print("Magisk should now be running on the phone.")
                         # Message Dialog Here to Patch Manually
-                        title = "Magisk Found"
+                        title = "Magisk found"
                         message =  "Magisk should now be running on your phone.\n\n"
                         message += "If it is not, you  can try starting in manually\n\n"
-                        message += "Please Follow these steps in Magisk.\n"
+                        message += "Please follow these steps in Magisk.\n"
                         message += "- Click on `Install` and choose\n"
-                        message += "- `Select and Patch a File`\n"
+                        message += "- `Select and patch a file`\n"
                         message += "- select boot.img in %s \n" % self._config.phone_path
                         message += "- Then hit `LET's GO`\n\n"
                         message += "Click OK when done to continue.\n"
-                        message += "Hit CANCEL to Abort."
+                        message += "Hit CANCEL to abort."
                         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
                         result = dlg.ShowModal()
                         if result == wx.ID_OK:
-                            print("User Pressed Ok.")
+                            print("User pressed OK.")
                         else:
-                            print("User Pressed Cancel.")
+                            print("User pressed cancel.")
                             print("Aborting ...")
                             del wait
                             return
                 else:
                     startPatch = time.time()
-                    print("Magisk Tools Detected.")
-                    print("Creating Patched boot.img ...")
+                    print("Magisk tools detected.")
+                    print("Creating patched boot.img ...")
                     theCmd = self._config.adb + " -s " + self._config.adb_id + " shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched.img\'\""
                     res = runShell2(theCmd)
                     endPatch = time.time()
@@ -601,7 +601,7 @@ class PixelFlasher(wx.Frame):
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode == 1:
-                    print("ERROR: magisk_patched*.img Not Found")
+                    print("ERROR: magisk_patched*.img not found")
                     print(res.stderr)
                     print("Aborting ...")
                     del wait
@@ -652,7 +652,7 @@ class PixelFlasher(wx.Frame):
                 flash_button.Enable()
 
             end = time.time()
-            print("Total Elapsed time: %s"%(end - start,))
+            print("Total elapsed time: %s"%(end - start,))
             del wait
 
         # ---------------
@@ -672,9 +672,9 @@ class PixelFlasher(wx.Frame):
 
                 title = "Package State"
                 message =  "WARNING: The prepared package is of the following state.\n\n"
-                message += "Patch Boot: %s\n" % p_patch_boot
-                message += "Custom Rom: %s\n" % p_custom_rom
-                message += "Flash Mode: %s\n\n" % self._config.flash_mode
+                message += "Patch boot: %s\n" % p_patch_boot
+                message += "Custom ROM: %s\n" % p_custom_rom
+                message += "Flash mode: %s\n\n" % self._config.flash_mode
                 message += "If this is what you want to flash\n"
                 message += "Press OK to continue.\n"
                 message += "or CANCEL to abort.\n"
@@ -684,7 +684,7 @@ class PixelFlasher(wx.Frame):
                 if result == wx.ID_OK:
                     print("User Pressed Ok.")
                 else:
-                    print("User Pressed Cancel.")
+                    print("User pressed cancel.")
                     print("Aborting ...")
                     del wait
                     return
@@ -693,7 +693,7 @@ class PixelFlasher(wx.Frame):
                     if self._config.adb_id:
                         # Make sure Phone model matches firmware model
                         if self._config.firmware_model != self._config.adb_model:
-                            print("ERROR: Android Device Model %s does not match Firmaware Model %s" % (self._config.adb_model, self._config.firmware_model))
+                            print("ERROR: Android device model %s does not match firmaware model %s" % (self._config.adb_model, self._config.firmware_model))
                             return
                         print("")
                         print("==============================================================================")
@@ -717,38 +717,38 @@ class PixelFlasher(wx.Frame):
                         # Start flashing
                         cwd = os.getcwd()
                         if self._config.flash_mode == 'dryRun':
-                            print("Flash Mode: Dry Run")
+                            print("Flash Mode: Dry run")
                             theCmd = os.path.join(cwd, self._config.firmware_id, "flash-dry-run.bat")
                         elif self._config.flash_mode == 'keepData':
-                            print("Flash Mode: Keep Data")
+                            print("Flash Mode: Keep data")
                             theCmd = os.path.join(cwd, self._config.firmware_id, "flash-keep-data.bat")
                         elif self._config.flash_mode == 'wipeData':
-                            print("Flash Mode: Wipe Data")
+                            print("Flash mode: Wipe data")
                             dlg = wx.MessageDialog(None, "You have selected to WIPE data\nAre you sure want to continue?",'Wipe Data',wx.YES_NO | wx.ICON_EXCLAMATION)
                             result = dlg.ShowModal()
                             if result == wx.ID_YES:
                                 pass
                             else:
-                                print("User Canceled Flashing.")
+                                print("User canceled flashing.")
                                 return
                             theCmd = os.path.join(cwd, self._config.firmware_id, "flash-wipe-data.bat")
                         else:
-                            print("Flash Mode: UNKNOWN [%s]" % self._config.flash_mode)
+                            print("Flash mode: UNKNOWN [%s]" % self._config.flash_mode)
                             print("Aborting ...")
                             return
                         os.chdir(self._config.firmware_id)
                         runShell2(theCmd)
                         print("Done!")
                         endFlash = time.time()
-                        print("Flashing Elapsed time: %s"%(endFlash - startFlash,))
+                        print("Flashing elapsed time: %s"%(endFlash - startFlash,))
                         os.chdir(cwd)
                     else:
-                        print("ERROR: You must first select a valid adb device.")
+                        print("ERROR: You must first select a valid ADB device.")
                 else:
-                    print("ERROR: Android Platform Tools must be set.")
+                    print("ERROR: Android platform tools must be set.")
             else:
-                print("ERROR: You must first Prepare a patched Firmware package.")
-                print("       Press the `Prepare Package` Button!")
+                print("ERROR: You must first Prepare a patched firmware package.")
+                print("       Press the `Prepare package` button!")
                 print("")
             del wait
 
@@ -778,11 +778,11 @@ class PixelFlasher(wx.Frame):
 
         reload_button = wx.Button(panel, label="Reload")
         reload_button.Bind(wx.EVT_BUTTON, on_reload)
-        reload_button.SetToolTip("Reload adb device list")
+        reload_button.SetToolTip("Reload ADB device list")
 
         file_picker = wx.FilePickerCtrl(panel, style=wx.FLP_USE_TEXTCTRL)
         file_picker.Bind(wx.EVT_FILEPICKER_CHANGED, on_select_firmware)
-        file_picker.SetToolTip("Select Pixel Firmware")
+        file_picker.SetToolTip("Select Pixel firmware")
         if self._config.firmware_path:
             if os.path.exists(self._config.firmware_path):
                 file_picker.SetPath(self._config.firmware_path)
@@ -797,7 +797,7 @@ class PixelFlasher(wx.Frame):
 
         dir_picker = wx.DirPickerCtrl(panel, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
         dir_picker.Bind(wx.EVT_DIRPICKER_CHANGED, on_select_platform_tools)
-        dir_picker.SetToolTip("Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
+        dir_picker.SetToolTip("Select Android platform tools folder\nwhere ADB and fastboot are located.")
         if self._config.platform_tools_path and self._config.adb and self._config.fastboot:
             dir_picker.SetPath(self._config.platform_tools_path)
 
@@ -805,14 +805,14 @@ class PixelFlasher(wx.Frame):
         device_boxsizer.Add(self.choice, 1, wx.EXPAND)
         device_boxsizer.Add(reload_button, flag=wx.LEFT, border=10)
 
-        custom_rom_checkbox = wx.CheckBox( panel, wx.ID_ANY, u"Apply Custom ROM", wx.DefaultPosition, wx.DefaultSize, 0 )
+        custom_rom_checkbox = wx.CheckBox( panel, wx.ID_ANY, u"Apply custom ROM", wx.DefaultPosition, wx.DefaultSize, 0 )
         custom_rom_checkbox.Bind( wx.EVT_CHECKBOX, on_custom_rom )
         custom_rom_checkbox.SetValue(self._config.custom_rom)
         custom_rom_checkbox.SetToolTip("Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
 
         custom_rom = wx.FilePickerCtrl(panel, style=wx.FLP_USE_TEXTCTRL)
         custom_rom.Bind(wx.EVT_FILEPICKER_CHANGED, on_select_custom_rom)
-        custom_rom.SetToolTip("Select Custom ROM")
+        custom_rom.SetToolTip("Select custom ROM")
         if self._config.custom_rom_path:
             if os.path.exists(self._config.custom_rom_path):
                 custom_rom.SetPath(self._config.custom_rom_path)
@@ -829,22 +829,22 @@ class PixelFlasher(wx.Frame):
         mode_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         mode = self._config.flash_mode
         # add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
-        add_mode_radio_button(mode_boxsizer, 0, 'keepData', "Keep Data", "Data will be kept intact.")
-        add_mode_radio_button(mode_boxsizer, 1, 'wipeData', "WIPE all data", "CAUTION: This will WIPE your data")
-        add_mode_radio_button(mode_boxsizer, 2, 'dryRun', "Dry Run", "Dry Run, No flashing will be done\nthe phone will reboot to fastboot and then \nback to normal.\nThis is for testing.")
+        add_mode_radio_button(mode_boxsizer, 0, 'keepData', "Keep data", "Data will be kept intact.")
+        add_mode_radio_button(mode_boxsizer, 1, 'wipeData', "Wipe all data", "CAUTION: This will wipe your data!")
+        add_mode_radio_button(mode_boxsizer, 2, 'dryRun', "Dry run", "Dry run, no flashing will be done\nthe phone will reboot to fastboot and then \nback to normal.\nThis is for testing.")
 
-        flash_button = wx.Button(panel, -1, "Flash Pixel Phone", wx.DefaultPosition, wx.Size( -1,50 ))
+        flash_button = wx.Button(panel, -1, "Flash Pixel phone", wx.DefaultPosition, wx.Size( -1,50 ))
         flash_button.Bind(wx.EVT_BUTTON, on_flash)
-        flash_button.SetToolTip("Flashes (with Flash Mode Settings) the selected phone with the prepared Image.")
+        flash_button.SetToolTip("Flashes (with flash mode settings) the selected phone with the prepared image.")
         if self._config.firmware_id:
             if os.path.exists(os.path.join(self._config.firmware_id, "Package_Ready.json")):
                 flash_button.Enable()
             else:
                 flash_button.Disable()
 
-        prepare_button = wx.Button(panel, -1, "Prepare Package", wx.DefaultPosition, wx.Size( -1,50 ))
+        prepare_button = wx.Button(panel, -1, "Prepare package", wx.DefaultPosition, wx.Size( -1,50 ))
         prepare_button.Bind(wx.EVT_BUTTON, on_prepare)
-        prepare_button.SetToolTip("Prepares a Patched Factory Image for later Flashing")
+        prepare_button.SetToolTip("Prepares a patched factory image for later flashing")
 
 
         self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY )
@@ -854,14 +854,14 @@ class PixelFlasher(wx.Frame):
         self.console_ctrl.SetForegroundColour(wx.BLUE)
         self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
-        device_label = wx.StaticText(panel, label="ADB Connected Devices")
-        file_label = wx.StaticText(panel, label="Pixel Phone Factory Image")
-        platform_tools_label = wx.StaticText(panel, label="Android Platform Tools")
+        device_label = wx.StaticText(panel, label="ADB connected devices")
+        file_label = wx.StaticText(panel, label="Pixel phone factory image")
+        platform_tools_label = wx.StaticText(panel, label="Android platform tools")
 
-        mode_label = wx.StaticText(panel, label="Flash Mode")
+        mode_label = wx.StaticText(panel, label="Flash mode")
         console_label = wx.StaticText(panel, label="Console")
 
-        clear_button = wx.Button(panel, -1, "Clear Console")
+        clear_button = wx.Button(panel, -1, "Clear console")
         clear_button.Bind(wx.EVT_BUTTON, on_clear)
 
         fgs.AddMany([
@@ -943,7 +943,7 @@ def getConnectedDevices(cls, mode):
             theCmd = cls._config.fastboot + " devices"
             lookFor = '\tfastboot'
         else:
-            print("ERROR: Unknown Device mode: [%s]" % mode)
+            print("ERROR: Unknown device mode: [%s]" % mode)
             return devices
         response = runShell2(theCmd)
 
@@ -968,7 +968,7 @@ def getConnectedDevices(cls, mode):
                         fingerprint = ''.join(fingerprint.stdout.split())
                         build = fingerprint.split('/')[3]
                     else:
-                        print("Error: adb is not found in system path")
+                        print("Error: ADB is not found in system path")
                     # Format with padding
                     devices.append("{:<25}{:<12}{}".format(deviceID[0], hardware, build))
                 else:

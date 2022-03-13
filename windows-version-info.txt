@@ -32,13 +32,13 @@ VSVersionInfo(
         u'040904B0',
         [StringStruct(u'CompanyName', u''),
         StringStruct(u'FileDescription', u'PixelFlasher'),
-        StringStruct(u'FileVersion', u'1.0.0.0'),
+        StringStruct(u'FileVersion', u'1.0.1.0'),
         StringStruct(u'InternalName', u'PixelFlasher'),
         StringStruct(u'LegalCopyright', u''),
         StringStruct(u'OriginalFilename', u'PixelFlasher.exe'),
         StringStruct(u'ProductName', u'PixelFlasher'),
-        StringStruct(u'ProductVersion', u'1.0.0.0')])
-      ]), 
+        StringStruct(u'ProductVersion', u'1.0.1.0')])
+      ]),
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
 )

@@ -1,4 +1,4 @@
-![Image of PixelFlasher Icon](/images/icon-256.png)
+![Image of PixelFlasher Icon](/images/icon-128.png)
 # PixelFlasher [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 This is a follow up to [PixelFlasher](/scripts/PixelFlasher.ps1) `Powershell™` script (which is now moved to `scripts` directory).
 This is a total rewrite in Python™ using [wxPython](https://www.wxpython.org/) to provide a UI interface.

@@ -17,10 +17,17 @@ import re
 import time
 import ntpath
 
+import ctypes
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(True)
+except:
+    pass
+
+
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __width__ = 1200
 __height__ = 800
 
@@ -848,8 +855,7 @@ class PixelFlasher(wx.Frame):
 
 
         self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY )
-        self.console_ctrl.SetFont(wx.Font((0, 13), wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,
-                                          wx.FONTWEIGHT_NORMAL))
+        self.console_ctrl.SetFont(wx.Font(8, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         self.console_ctrl.SetBackgroundColour(wx.WHITE)
         self.console_ctrl.SetForegroundColour(wx.BLUE)
         self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
@@ -881,22 +887,6 @@ class PixelFlasher(wx.Frame):
         panel.SetSizer(hbox)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(wx.EVT_SIZE, self.OnResize)
-
-
-# ============================================================================
-#                               Class App
-# ============================================================================
-class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
-    def OnInit(self):
-        # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
-        self.ResetLocale()
-        # wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
-        self.SetAppName("PixelFlasher")
-
-        frame = PixelFlasher(None, "PixelFlasher")
-        frame.Show()
-
-        return True
 
 
 # ============================================================================
@@ -1059,6 +1049,24 @@ def which(program):
                 return exe_file
 
     return None
+
+
+# ============================================================================
+#                               Class App
+# ============================================================================
+class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
+    def OnInit(self):
+        # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
+        self.ResetLocale()
+        # wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
+        self.SetAppName("PixelFlasher")
+
+        frame = PixelFlasher(None, "PixelFlasher")
+        # frame.SetClientSize(frame.FromDIP(wx.Size(__width__, __height__)))
+        # frame.SetClientSize(wx.Size(__width__, __height__))
+        frame.Show()
+
+        return True
 
 
 # ============================================================================

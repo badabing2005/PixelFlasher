@@ -693,7 +693,7 @@ class PixelFlasher(wx.Frame):
                     if self._config.adb_id:
                         # Make sure Phone model matches firmware model
                         if self._config.firmware_model != self._config.adb_model:
-                            print("ERROR: Android device model %s does not match firmaware model %s" % (self._config.adb_model, self._config.firmware_model))
+                            print("ERROR: Android device model %s does not match firmware model %s" % (self._config.adb_model, self._config.firmware_model))
                             return
                         print("")
                         print("==============================================================================")

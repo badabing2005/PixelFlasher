@@ -133,3 +133,6 @@ sojus*/
 
 # wxPython Wheel
 wxPython-4.1.2a1.dev5308+2258f215-cp310-cp310-win_amd64.whl
+
+# psd files
+images/*.psd

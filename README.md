@@ -12,7 +12,7 @@ The benefits of this application are:
 - Fully Automated.
 - Ability to pre-patch factory image with magisk (without user interaction) and perform upgrades without loosing root.
 No more multiple reboots, or setting airplane mode and clearing storage to retain Safetynet passing.
-(This Assumes that the phone was proviously rooted with magisk and setup to pass safetynet)
+(This Assumes that the phone was previously rooted with magisk and setup to pass safetynet)
 - Ability to flash custom ROM
 
 ## Prerequisites
@@ -70,11 +70,12 @@ Otherwise the PixelFlasher will launch Magisk on the phone and wait for the user
     - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (ie reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
     This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
 7. **Flash Pixel Phone** This is the final step, to actually execute / flash the prepared package in the selected `Flash Mode`.
-PixelFlasher will first present you the package content prepared in step 6, and ask for you confirmation if you want to proceed with flashing. Please keep in mind that if you change options after you prepare a package, those options are not applied unless you update the package.
-*For example if you create a package with patching selected, and then change that option before flashing, flashing will still apply the patch. For this reason the flashing step first presents you the package choices and ask for your confirmation.*
+PixelFlasher will first present you the package content prepared in step 6, and ask for your confirmation if you want to proceed with flashing.
+Please keep in mind that if you change options after you prepare a package, those options are not applied unless you update the package.
+*For example if you create a package with patching selected, and then change that option before flashing, flashing will still apply the patch. For this reason the flashing step first presents you the package choices and asks for your confirmation.*
 
 **Apply Custom ROM**:
-This is for advanced users, please make sure to read documentation of the chosen ROM, as each custom ROM instructions could be different.
+This is for advanced users, please make sure to read the documentation of the chosen ROM, as each custom ROM instructions could be different.
 To be clear, this is what PixelFlasher does internally when this mode is selected, please understand it, and don't use it if the selected ROM guide does not fit the bill, you've been warned.
 - Keeps stock bootloader and radio images.
 - Replaces the stock ROM image with the selected custom ROM image.

@@ -720,7 +720,7 @@ class PixelFlasher(wx.Frame):
                             print("Flash Mode: Dry run")
                             theCmd = os.path.join(cwd, self._config.firmware_id, "flash-dry-run.bat")
                         elif self._config.flash_mode == 'keepData':
-                            print("Flash Mode: Keep data")
+                            print("Flash mode: Keep data")
                             theCmd = os.path.join(cwd, self._config.firmware_id, "flash-keep-data.bat")
                         elif self._config.flash_mode == 'wipeData':
                             print("Flash mode: Wipe data")
@@ -747,7 +747,7 @@ class PixelFlasher(wx.Frame):
                 else:
                     print("ERROR: Android platform tools must be set.")
             else:
-                print("ERROR: You must first Prepare a patched firmware package.")
+                print("ERROR: You must first prepare a patched firmware package.")
                 print("       Press the `Prepare package` button!")
                 print("")
             del wait

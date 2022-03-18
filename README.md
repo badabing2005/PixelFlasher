@@ -14,7 +14,7 @@ The benefits of this application are:
 No more multiple reboots, or setting airplane mode and clearing storage to retain Safetynet passing.
 (This Assumes that the phone was previously rooted with Magisk)
 - Ability to flash custom ROM (without or without patching boot.img)
-- Ability to flash vbmeta (experimental) without or without disabling verity and or verification.
+- Ability to flash vbmeta (experimental) with or without disabling verity and or verification.
 (Currently supported only through preferences file.)
 
 ## Prerequisites

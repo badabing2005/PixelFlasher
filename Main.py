@@ -27,7 +27,7 @@ except:
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 __width__ = 1200
 __height__ = 800
 
@@ -43,6 +43,7 @@ class Config():
         self.phone_model = None
         self.adb_id = None
         self.adb_model = None
+        self.rooted = None
         self.firmware_id = None
         self.firmware_model = None
         self.phone_path = '/storage/emulated/0/Download'
@@ -213,8 +214,13 @@ class PixelFlasher(wx.Frame):
             # replace multiple spaces with a single space and then split on space
             deviceID = ' '.join(self._config.device.split())
             deviceID = deviceID.split()
-            self._config.adb_id = deviceID[0]
-            self._config.adb_model = deviceID[1]
+            isRooted = deviceID[0]
+            if isRooted == '✓':
+                self._config.rooted = True
+            else:
+                self._config.rooted = False
+            self._config.adb_id = deviceID[1]
+            self._config.adb_model = deviceID[2]
         else:
             self._config.adb_id = None
             self._config.adb_model = None
@@ -233,8 +239,13 @@ class PixelFlasher(wx.Frame):
             # replace multiple spaces with a single space and then split on space
             deviceID = ' '.join(self._config.device.split())
             deviceID = deviceID.split()
-            self._config.adb_id = deviceID[0]
-            self._config.adb_model = deviceID[1]
+            isRooted = deviceID[0]
+            if isRooted == '✓':
+                self._config.rooted = True
+            else:
+                self._config.rooted = False
+            self._config.adb_id = deviceID[1]
+            self._config.adb_model = deviceID[2]
 
         def on_reload(event):
             if self._config.adb:
@@ -647,13 +658,14 @@ class PixelFlasher(wx.Frame):
                     return
 
                 # See if magisk tools is installed
-                print("Checking to see if Magisk Tools is installed on the phone ...")
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " shell \"su -c \'ls -l /data/adb/magisk/\'\""
-                res = runShell(theCmd)
-                # expect ret 0
-                if res.returncode != 0:
+                # print("Checking to see if Magisk Tools is installed on the phone ...")
+                # theCmd = self._config.adb + " -s " + self._config.adb_id + " shell \"su -c \'ls -l /data/adb/magisk/\'\""
+                # res = runShell(theCmd)
+                # # expect ret 0
+                # if res.returncode != 0:
+                if not self._config.rooted:
                     print("Magisk Tools not found on the phone")
-                    # Check to is if Magisk is installed
+                    # Check to see if Magisk is installed
                     print("Looking for Magisk app ...")
                     theCmd = self._config.adb + " -s " + self._config.adb_id + " shell pm list packages " + self._config.magisk
                     res = runShell(theCmd)
@@ -1097,10 +1109,18 @@ def getConnectedDevices(cls, mode):
                         # remove any whitespace including tab and newline
                         fingerprint = ''.join(fingerprint.stdout.split())
                         build = fingerprint.split('/')[3]
+                        # See if magisk tools is installed
+                        theCmd = cls._config.adb + " -s %s shell \"su -c \'ls -l /data/adb/magisk/\'\"" % deviceID[0]
+                        res = runShell(theCmd)
+                        # expect ret 0
+                        if res.returncode == 0:
+                            magiskTools = '✓'
+                        else:
+                            magiskTools = '✗'
                     else:
                         print("Error: ADB is not found in system path")
                     # Format with padding
-                    devices.append("{:<25}{:<12}{}".format(deviceID[0], hardware, build))
+                    devices.append("{:<4}{:<25}{:<12}{:<25}".format(magiskTools, deviceID[0], hardware, build))
                 else:
                     devices.append(deviceID[0])
         del wait

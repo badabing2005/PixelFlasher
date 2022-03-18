@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
-             binaries=[],
+             binaries=[( 'bin/7z.exe', 'bin' )],
              datas=[("images", "images")],
              hiddenimports=[],
              hookspath=[],

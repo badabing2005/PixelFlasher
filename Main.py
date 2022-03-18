@@ -27,7 +27,7 @@ except:
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 __width__ = 1200
 __height__ = 800
 
@@ -54,6 +54,11 @@ class Config():
         self.patch_boot = True
         self.custom_rom = False
         self.custom_rom_path = None
+        self.disable_verification = False
+        self.disable_verity = False
+        self.flash_vbmeta = False
+        self.version = __version__
+        self.custom_rom_id = None
 
     @classmethod
     def load(cls, file_path):
@@ -73,6 +78,10 @@ class Config():
                 conf.patch_boot = data['patch_boot']
                 conf.custom_rom = data['custom_rom']
                 conf.custom_rom_path = data['custom_rom_path']
+                conf.disable_verification = data['disable_verification']
+                conf.disable_verity = data['disable_verity']
+                conf.flash_vbmeta = data['flash_vbmeta']
+                conf.version = data['version']
         except Exception as e:
             os.remove(file_path)
         return conf
@@ -89,10 +98,15 @@ class Config():
             'height': self.height,
             'patch_boot': self.patch_boot,
             'custom_rom': self.custom_rom,
-            'custom_rom_path': self.custom_rom_path
+            'custom_rom_path': self.custom_rom_path,
+            'disable_verification': self.disable_verification,
+            'disable_verity': self.disable_verity,
+            'flash_vbmeta': self.flash_vbmeta,
+            'version': __version__
         }
         with open(file_path, 'w') as f:
-            json.dump(data, f)
+            # json.dump(data, f, indent=4, sort_keys=True)
+            json.dump(data, f, indent=4)
 
 
 # ============================================================================
@@ -249,6 +263,8 @@ class PixelFlasher(wx.Frame):
 
         def on_select_custom_rom(event):
             self._config.custom_rom_path = event.GetPath().replace("'", "")
+            rom_file = ntpath.basename(self._config.custom_rom_path)
+            self._config.custom_rom_id = os.path.splitext(rom_file)[0]
 
         def on_mode_changed(event):
             radio_button = event.GetEventObject()
@@ -315,144 +331,246 @@ class PixelFlasher(wx.Frame):
             wait = wx.BusyCursor()
             start = time.time()
             cwd = os.getcwd()
+            package_dir = self._config.firmware_id
+            package_dir_full = os.path.join(cwd, self._config.firmware_id)
 
             # disable Flash Button
             flash_button.Disable()
-            # delete previously created `Package_Ready.json` `boot.img` `magisk_patched` `flash*` and `.orig` Files
-            src = os.path.join(cwd, self._config.firmware_id, "Package_Ready.json")
-            if os.path.exists(src):
-                os.remove(src)
-            src = os.path.join(cwd, self._config.firmware_id, "boot.img")
-            if os.path.exists(src):
-                os.remove(src)
-            src = os.path.join(cwd, self._config.firmware_id, "magisk_patched.img")
-            if os.path.exists(src):
-                os.remove(src)
-            src = os.path.join(self._config.firmware_id, "image-" + self._config.firmware_id + ".zip")
-            if os.path.exists(src):
-                os.remove(src)
-            src = os.path.join(self._config.firmware_id, "image-" + self._config.firmware_id + ".zip.orig")
-            if os.path.exists(src):
-                os.remove(src)
-            src = os.path.join(cwd, self._config.firmware_id)
-            if os.path.exists(src):
-                regex = "^flash.*$"
-                purge(src, regex)
+
+            # Delete the previous folder if it exists
+            if os.path.exists(package_dir_full):
+                try:
+                    print("Found a previous package %s deleting ..." % package_dir)
+                    shutil.rmtree(package_dir_full)
+                except OSError as e:
+                    print("Error: %s - %s." % (e.filename, e.strerror))
+                    print("ERROR: Could not delete the previous package.")
+                    print("Aborting ...")
+                    return
+
+            # See if the bundled 7zip is found.
+            path_to_7z = (resource_path(os.path.join('bin', '7z.exe')))
+            #print("\nResource Dir: %s" % path_to_7z)
+            if os.path.exists(path_to_7z):
+                print("Found Bundled 7zip.\nzip/unzip operations will be faster")
+            else:
+                print("Could not find bundled 7zip.\nzip/unzip operations will be slower")
+                path_to_7z = None
 
             # Unzip the factory image
             startUnzip1 = time.time()
             print("Unzipping Image: %s into %s ..." % (self._config.firmware_path, cwd))
-            try:
-                with zipfile.ZipFile(self._config.firmware_path, 'r') as zip_ref:
-                    zip_ref.extractall(cwd)
-            except Exception as e:
-                del wait
-                raise e
+            if path_to_7z:
+                theCmd = [path_to_7z, 'x', "-bd", "-y", self._config.firmware_path]
+                res = runShell(theCmd)
+            else:
+                try:
+                    with zipfile.ZipFile(self._config.firmware_path, 'r') as zip_ref:
+                        zip_ref.extractall(cwd)
+                except Exception as e:
+                    del wait
+                    raise e
             endUnzip1 = time.time()
             print("Unzip time1: %s"%(endUnzip1 - startUnzip1,))
 
-            # check if unpacked directory exists, this should match firmware_id from factory image name
-            if os.path.exists(self._config.firmware_id):
-                print("Unzipped into %s folder." %(self._config.firmware_id))
+            # double check if unpacked directory exists, this should match firmware_id from factory image name
+            if os.path.exists(package_dir):
+                print("Unzipped into %s folder." % package_dir)
             else:
-                print("ERROR: Unzipped folder %s not found." %(self._config.firmware_id))
+                print("ERROR: Unzipped folder %s not found." % package_dir)
                 print("Aborting ...")
                 del wait
                 return
 
             # delete flash-all.sh and flash-base.sh
-            os.remove(os.path.join(self._config.firmware_id, "flash-all.sh"))
-            os.remove(os.path.join(self._config.firmware_id, "flash-base.sh"))
+            os.remove(os.path.join(package_dir_full, "flash-all.sh"))
+            os.remove(os.path.join(package_dir_full, "flash-base.sh"))
 
             # if custom rom is selected, copy it to the flash folder
             if self._config.custom_rom:
-                rom_file = ntpath.basename(self._config.custom_rom_path)
-                if os.path.exists(self._config.custom_rom_path):
-                    shutil.copy(self._config.custom_rom_path, os.path.join(self._config.firmware_id, rom_file), follow_symlinks=True)
+                if self._config.custom_rom_path:
+                    rom_file = ntpath.basename(self._config.custom_rom_path)
+                    rom_file_full = os.path.join(package_dir_full, rom_file)
+                    image_file = rom_file
+                    image_file_full = rom_file_full
+                    image_id = self._config.custom_rom_id
+                    if os.path.exists(self._config.custom_rom_path):
+                        shutil.copy(self._config.custom_rom_path, rom_file_full, follow_symlinks=True)
+                    else:
+                        print("ERROR: Custom ROM file: %s is not found" % self._config.custom_rom_path)
+                        print("Aborting ...")
+                        return
+                else:
+                    print("ERROR: Custom ROM file is not set")
+                    print("Aborting ...")
+                    return
+            else:
+                image_id = 'image-' + self._config.firmware_id
+                image_file = image_id + ".zip"
+                image_file_full = os.path.join(package_dir_full, image_file)
 
+            #
+            # If flash_vbmeta is enabled, extract vbmeta.img to the flash folder
+            # This is special use case condition and should not be used in normal cases.
+            # skip_reboot is only needed for special cases like flashing vbmeta with verification disabled
+            #
+            skip_reboot = ''
+            if self._config.flash_vbmeta:
+                skip_reboot = ' --skip-reboot '
+                print("Extracting vbmeta.img from %s ..." % (image_file))
+                if os.path.exists(path_to_7z):
+                    theCmd = [path_to_7z, 'x', "-bd", "-y", "-o" + package_dir_full, image_file_full, 'vbmeta.img']
+                    res = runShell(theCmd)
+                else:
+                    with zipfile.ZipFile(os.path.join(package_dir_full, "image-" + self._config.firmware_id + ".zip"), 'r') as zip_ref:
+                        zip_ref.extract('vbmeta.img', package_dir_full)
+                if not os.path.exists(os.path.join(package_dir_full, 'vbmeta.img')):
+                    print("ERROR: Could not extract vbmeta.img")
+                    print("Aborting ...")
+                    return
+
+            # ---------------------------
             # create flash flash-wipe.bat
-            src = os.path.join(self._config.firmware_id, "flash-all.bat")
-            dest = os.path.join(self._config.firmware_id, "flash-wipe-data.bat")
+            # ---------------------------
+            src = os.path.join(package_dir_full, "flash-all.bat")
+            dest = os.path.join(package_dir_full, "flash-wipe-data.bat")
             fin = open(src, "rt")
             data = fin.read()
-            data = data.replace('fastboot', self._config.fastboot + ' -s ' + self._config.adb_id)
-            data = data.replace('pause >nul', '')
-            data = data.replace('echo Press any key to exit...', '')
+
+            if self._config.flash_vbmeta:
+                flash_vbmeta = 'fastboot flash vbmeta '
+                if self._config.disable_verity:
+                    flash_vbmeta += '--disable-verity '
+                if self._config.disable_verification:
+                    flash_vbmeta += '--disable-verification '
+                flash_vbmeta += 'vbmeta.img'
+                data = data.replace('echo Press any key to exit...', flash_vbmeta)
+                data = data.replace('pause >nul', 'fastboot reboot')
+            else:
+                data = data.replace('echo Press any key to exit...', '')
+                data = data.replace('pause >nul', '')
+
             if self._config.custom_rom:
                 rom_src = 'update image-' + self._config.firmware_id + '.zip'
-                rom_dst = 'update ' + rom_file
+                rom_dst = skip_reboot + 'update ' + rom_file
                 data = data.replace(rom_src, rom_dst)
+            else:
+                data = data.replace('update', skip_reboot + 'update')
+
+            data = data.replace('fastboot', self._config.fastboot + ' -s ' + self._config.adb_id)
+
             fin.close()
             fin = open(dest, "wt")
             fin.write(data)
             fin.close()
 
+            # ------------------------------
             # create flash file-keepData.bat
+            # ------------------------------
             fin = open(src, "rt")
             data = fin.read()
+
             data = data.replace('fastboot -w update', 'fastboot update')
-            data = data.replace('fastboot', self._config.fastboot + ' -s ' + self._config.adb_id)
-            data = data.replace('pause >nul', '')
-            data = data.replace('echo Press any key to exit...', '')
+
+            if self._config.flash_vbmeta:
+                flash_vbmeta = 'fastboot flash vbmeta '
+                if self._config.disable_verity:
+                    flash_vbmeta += '--disable-verity '
+                if self._config.disable_verification:
+                    flash_vbmeta += '--disable-verification '
+                flash_vbmeta += 'vbmeta.img'
+                data = data.replace('echo Press any key to exit...', flash_vbmeta)
+                data = data.replace('pause >nul', 'fastboot reboot')
+            else:
+                data = data.replace('echo Press any key to exit...', '')
+                data = data.replace('pause >nul', '')
+
             if self._config.custom_rom:
                 rom_src = 'update image-' + self._config.firmware_id + '.zip'
-                rom_dst = 'update ' + rom_file
+                rom_dst = skip_reboot + 'update ' + rom_file
                 data = data.replace(rom_src, rom_dst)
+            else:
+                data = data.replace('update', skip_reboot + 'update')
+
+            data = data.replace('fastboot', self._config.fastboot + ' -s ' + self._config.adb_id)
+
             fin.close()
-            fin = open(os.path.join(self._config.firmware_id, "flash-keep-data.bat"), "wt")
+            fin = open(os.path.join(package_dir_full, "flash-keep-data.bat"), "wt")
             fin.write(data)
             fin.close()
 
+            # ----------------------------
             # create flash file-dryRun.bat
+            # ----------------------------
             fin = open(src, "rt")
             data = fin.read()
+
             data = data.replace('fastboot flash', 'echo fastboot flash')
             data = data.replace('fastboot -w update', 'echo fastboot update')
             data = data.replace('pause >nul', 'fastboot reboot')
-            data = data.replace('echo Press any key to exit...', '')
-            data = data.replace('fastboot reboot-bootloader', self._config.fastboot + ' -s ' + self._config.adb_id + ' reboot-bootloader')
+
+            if self._config.flash_vbmeta:
+                flash_vbmeta = 'echo fastboot flash vbmeta '
+                if self._config.disable_verity:
+                    flash_vbmeta += '--disable-verity '
+                if self._config.disable_verification:
+                    flash_vbmeta += '--disable-verification '
+                flash_vbmeta += 'vbmeta.img'
+                data = data.replace('echo Press any key to exit...', flash_vbmeta)
+            else:
+                data = data.replace('echo Press any key to exit...', '')
+
+            data = data.replace('fastboot reboot', self._config.fastboot + ' -s ' + self._config.adb_id + ' reboot')
+
             if self._config.custom_rom:
                 rom_src = 'update image-' + self._config.firmware_id + '.zip'
-                rom_dst = 'update ' + rom_file
+                rom_dst = skip_reboot + 'update ' + rom_file
                 data = data.replace(rom_src, rom_dst)
+            else:
+                data = data.replace('update', skip_reboot + 'update')
+
             fin.close()
-            fin = open(os.path.join(self._config.firmware_id, "flash-dry-run.bat"), "wt")
+            fin = open(os.path.join(package_dir_full, "flash-dry-run.bat"), "wt")
             fin.write(data)
             fin.close()
 
+            #
             # delete flash-all.bat
-            os.remove(os.path.join(self._config.firmware_id, "flash-all.bat"))
+            #
+            os.remove(os.path.join(package_dir_full, "flash-all.bat"))
 
             # Do this only if patch is checked.
             if self._config.patch_boot:
-                # unzip image-*
+                # unzip image (we only need to unzip the full image if we cannot find 7zip)
+                # with 7zip we extract a single file, and then put it back later, without full unzip
                 startUnzip2 = time.time()
-                print("Extracting %s ..." % ("image-" + self._config.firmware_id + ".zip"))
-                boot_img_folder = os.path.join(cwd, self._config.firmware_id, "image-" + self._config.firmware_id)
-                try:
-                    with zipfile.ZipFile(os.path.join(self._config.firmware_id, "image-" + self._config.firmware_id + ".zip"), 'r') as zip_ref:
-                        zip_ref.extractall(boot_img_folder)
-                except Exception as e:
-                    del wait
-                    raise e
-                    return
+                boot_img_folder = os.path.join(package_dir_full, image_id)
+                if path_to_7z:
+                    print("Extracting boot.img from %s ..." % (image_file))
+                    theCmd = [path_to_7z, 'x', "-bd", "-y", "-o" + package_dir_full, image_file_full, 'boot.img']
+                    res = runShell(theCmd)
+                else:
+                    try:
+                        print("Extracting %s ..." % (image_file))
+                        with zipfile.ZipFile(image_file_full, 'r') as zip_ref:
+                            zip_ref.extractall(boot_img_folder)
+                    except Exception as e:
+                        del wait
+                        raise e
+                    # check if unpacked directory exists, mv boot.img
+                    if os.path.exists(boot_img_folder):
+                        print("Unzipped into %s folder." %(boot_img_folder))
+                        src = os.path.join(boot_img_folder, "boot.img")
+                        dest = os.path.join(package_dir_full, "boot.img")
+                        os.rename(src, dest)
+                        os.rename(image_file_full, image_file_full + ".orig")
+                    else:
+                        print("ERROR: Unzipped folder %s not found." %(boot_img_folder))
+                        print("Aborting ...")
+                        del wait
+                        return
                 endUnzip2 = time.time()
                 print("Unzip time2: %s"%(endUnzip2 - startUnzip2,))
-
-                # check if unpacked directory exists, mv boot.img
-                if os.path.exists(boot_img_folder):
-                    print("Unzipped into %s folder." %(boot_img_folder))
-                    src = os.path.join(boot_img_folder, "boot.img")
-                    dest = os.path.join(self._config.firmware_id, "boot.img")
-                    os.rename(src, dest)
-                    src = os.path.join(self._config.firmware_id, "image-" + self._config.firmware_id + ".zip")
-                    dest = os.path.join(self._config.firmware_id, "image-" + self._config.firmware_id + ".zip.orig")
-                    os.rename(src, dest)
-                else:
-                    print("ERROR: Unzipped folder %s not found." %(boot_img_folder))
-                    print("Aborting ...")
-                    del wait
-                    return
 
                 # delete existing boot.img
                 print("Deleting boot.img from phone in %s ..." % (self._config.phone_path))
@@ -504,7 +622,7 @@ class PixelFlasher(wx.Frame):
 
                 # Transfer boot.img to the phone
                 print("Transfering boot.img to the phone in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " push %s/boot.img %s/boot.img" % (self._config.firmware_id, self._config.phone_path)
+                theCmd = self._config.adb + " -s " + self._config.adb_id + " push %s/boot.img %s/boot.img" % (package_dir_full, self._config.phone_path)
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode != 0:
@@ -619,7 +737,7 @@ class PixelFlasher(wx.Frame):
 
                 # Transfer back boot.img
                 print("Pulling %s from the phone ..." % (magisk_patched))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " pull " + magisk_patched + " " + self._config.firmware_id + "/magisk_patched.img"
+                theCmd = self._config.adb + " -s " + self._config.adb_id + " pull " + magisk_patched + " " + package_dir_full + "/magisk_patched.img"
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode == 1:
@@ -631,20 +749,34 @@ class PixelFlasher(wx.Frame):
 
                 # Replace Boot.img and create a zip file
                 print("Replacing boot.img with patched version ...")
-                src = os.path.join(cwd, self._config.firmware_id, "magisk_patched.img")
-                dest = os.path.join(cwd, self._config.firmware_id, "image-" + self._config.firmware_id, "boot.img")
-                shutil.copy(src, dest, follow_symlinks=True)
-                dir_name = os.path.join(self._config.firmware_id, "image-" + self._config.firmware_id)
-                dest = os.path.join(self._config.firmware_id, "image-" + self._config.firmware_id + ".zip")
-                print("")
-                print("Zipping  %s ..." % dir_name)
-                print("Please be patient as this is a slow process and could take some time.")
                 startZip = time.time()
-                shutil.make_archive(dir_name, 'zip', dir_name)
+                if path_to_7z:
+                    # ren boot.img to boot.img.orig
+                    src = os.path.join(package_dir_full, "boot.img")
+                    dest = os.path.join(package_dir_full, "boot.img.orig")
+                    shutil.copy(src, dest, follow_symlinks=True)
+                    # copy magisk_patched to boot.img
+                    src = os.path.join(package_dir_full, "magisk_patched.img")
+                    dest = os.path.join(package_dir_full, "boot.img")
+                    shutil.copy(src, dest, follow_symlinks=True)
+                    theCmd = [path_to_7z, 'a', image_file_full, 'boot.img']
+                    os.chdir(package_dir_full)
+                    res = runShell(theCmd)
+                    os.chdir(cwd)
+                else:
+                    src = os.path.join(package_dir_full, "magisk_patched.img")
+                    dest = os.path.join(package_dir_full, image_id, "boot.img")
+                    shutil.copy(src, dest, follow_symlinks=True)
+                    dir_name = os.path.join(self._config.firmware_id, image_id)
+                    dest = os.path.join(package_dir_full, image_file)
+                    print("")
+                    print("Zipping  %s ..." % dir_name)
+                    print("Please be patient as this is a slow process and could take some time.")
+                    shutil.make_archive(dir_name, 'zip', dir_name)
                 if os.path.exists(dest):
                     print("Package is successfully created!")
                     # create a marker file to confirm successful package creation, this will be checked by Flash command
-                    src = os.path.join(cwd, self._config.firmware_id, "Package_Ready.json")
+                    src = os.path.join(package_dir_full, "Package_Ready.json")
                     package_ready(self, src)
                     flash_button.Enable()
                 else:
@@ -654,7 +786,7 @@ class PixelFlasher(wx.Frame):
                 print("Zip time: %s"%(endZip - startZip,))
             else:
                 print("Package is successfully created!")
-                src = os.path.join(cwd, self._config.firmware_id, "Package_Ready.json")
+                src = os.path.join(package_dir_full, "Package_Ready.json")
                 package_ready(self, src)
                 flash_button.Enable()
 
@@ -676,12 +808,19 @@ class PixelFlasher(wx.Frame):
                 p_patch_boot = data['patch_boot']
                 p_custom_rom = data['custom_rom']
                 p_custom_rom_path = data['custom_rom_path']
-
+                p_flash_vbmeta = data['flash_vbmeta']
+                p_disable_verity = data['disable_verity']
+                p_disable_verification = data['disable_verification']
                 title = "Package State"
                 message =  "WARNING: The prepared package is of the following state.\n\n"
                 message += "Patch Boot: %s\n" % p_patch_boot
                 message += "Custom Rom: %s\n" % p_custom_rom
-                message += "Flash Mode: %s\n\n" % self._config.flash_mode
+                message += "Flash Mode: %s\n" % self._config.flash_mode
+                if p_flash_vbmeta:
+                    message += "Flash vbmeta: %s\n" % p_flash_vbmeta
+                    message += "Disable Verity: %s\n" % p_disable_verity
+                    message += "Disable Verification: %s\n" % p_disable_verification
+                message += "\n"
                 message += "If this is what you want to flash\n"
                 message += "Press OK to continue.\n"
                 message += "or CANCEL to abort.\n"
@@ -823,6 +962,7 @@ class PixelFlasher(wx.Frame):
         if self._config.custom_rom_path:
             if os.path.exists(self._config.custom_rom_path):
                 custom_rom.SetPath(self._config.custom_rom_path)
+                self._config.custom_rom_id = os.path.splitext(ntpath.basename(self._config.custom_rom_path))[0]
         if self._config.custom_rom:
             custom_rom.Enable()
         else:
@@ -975,10 +1115,15 @@ def package_ready(self, file_path):
         'device': self._config.device,
         'patch_boot': self._config.patch_boot,
         'custom_rom': self._config.custom_rom,
-        'custom_rom_path': self._config.custom_rom_path
+        'custom_rom_path': self._config.custom_rom_path,
     }
+    if self._config.flash_vbmeta:
+        data['flash_vbmeta'] = self._config.flash_vbmeta
+        data['disable_verity'] = self._config.disable_verity
+        data['disable_verification'] = self._config.disable_verification
+
     with open(file_path, 'w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 
 # ============================================================================
@@ -1028,6 +1173,21 @@ def runShell2(cmd):
     proc.wait()
     response.stdout = stdout
     return response
+
+
+# ============================================================================
+#                               Function resource_path
+# ============================================================================
+# https://stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 # ============================================================================

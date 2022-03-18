@@ -12,8 +12,10 @@ The benefits of this application are:
 - Fully Automated.
 - Ability to pre-patch factory image with Magisk (without user interaction) and perform upgrades without loosing root.
 No more multiple reboots, or setting airplane mode and clearing storage to retain Safetynet passing.
-(This Assumes that the phone was previously rooted with Magisk and setup to pass safetynet)
-- Ability to flash custom ROM
+(This Assumes that the phone was previously rooted with Magisk)
+- Ability to flash custom ROM (without or without patching boot.img)
+- Ability to flash vbmeta (experimental) without or without disabling verity and or verification.
+(Currently supported only through preferences file.)
 
 ## Prerequisites
 - [Android SDK Platform-Tools](https://developer.android.com/studio/releases/platform-tools.html)
@@ -85,8 +87,6 @@ To be clear, this is what PixelFlasher does internally when this mode is selecte
 
 
 ## What's Next
-- I want to speed up the zipping/unzipping process, as it currently takes about 3 minutes on my system to prepare an oriole patched package.
-I have few ideas on how it can be improved, if you know how or have done similar work, please do reach out to me or submit a pull request.
 - Although this project can be build for other platforms, it is currently not possible as it makes some basic windows assumptions. This could easily be addressed, however I do not have a Mac to build and or test.
 - I'll eventually add Github Pipeline Actions to have the assets build automatically.
 

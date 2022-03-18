@@ -88,7 +88,7 @@ To be clear, this is what PixelFlasher does internally when this mode is selecte
 
 ## What's Next
 - Although this project can be build for other platforms, it is currently not possible as it makes some basic windows assumptions. This could easily be addressed, however I do not have a Mac to build and or test.
-- I'll eventually add Github Pipeline Actions to have the assets build automatically.
+
 
 
 ## Credits

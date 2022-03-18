@@ -27,7 +27,7 @@ except:
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
 
-__version__ = "1.1.1"
+__version__ = "1.1.3"
 __width__ = 1200
 __height__ = 800
 
@@ -820,9 +820,14 @@ class PixelFlasher(wx.Frame):
                 p_patch_boot = data['patch_boot']
                 p_custom_rom = data['custom_rom']
                 p_custom_rom_path = data['custom_rom_path']
-                p_flash_vbmeta = data['flash_vbmeta']
-                p_disable_verity = data['disable_verity']
-                p_disable_verification = data['disable_verification']
+                try:
+                    p_flash_vbmeta = data['flash_vbmeta']
+                    p_disable_verity = data['disable_verity']
+                    p_disable_verification = data['disable_verification']
+                except:
+                    p_flash_vbmeta = False
+                    p_disable_verity = False
+                    p_disable_verification = False
                 title = "Package State"
                 message =  "WARNING: The prepared package is of the following state.\n\n"
                 message += "Patch Boot: %s\n" % p_patch_boot

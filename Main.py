@@ -27,7 +27,7 @@ except:
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 __width__ = 1200
 __height__ = 800
 
@@ -468,7 +468,8 @@ class PixelFlasher(wx.Frame):
             else:
                 data = data.replace('update', skip_reboot + 'update')
 
-            data = data.replace('fastboot', self._config.fastboot + ' -s ' + self._config.adb_id)
+            data = data.replace('fastboot', "\"%s\" -s %s" % (self._config.fastboot, self._config.adb_id))
+
 
             fin.close()
             fin = open(dest, "wt")
@@ -503,7 +504,7 @@ class PixelFlasher(wx.Frame):
             else:
                 data = data.replace('update', skip_reboot + 'update')
 
-            data = data.replace('fastboot', self._config.fastboot + ' -s ' + self._config.adb_id)
+            data = data.replace('fastboot', "\"%s\" -s %s" % (self._config.fastboot, self._config.adb_id))
 
             fin.close()
             fin = open(os.path.join(package_dir_full, "flash-keep-data.bat"), "wt")
@@ -531,7 +532,7 @@ class PixelFlasher(wx.Frame):
             else:
                 data = data.replace('echo Press any key to exit...', '')
 
-            data = data.replace('fastboot reboot', self._config.fastboot + ' -s ' + self._config.adb_id + ' reboot')
+            data = data.replace('fastboot reboot', "\"%s\" -s %s reboot" % (self._config.fastboot, self._config.adb_id))
 
             if self._config.custom_rom:
                 rom_src = 'update image-' + self._config.firmware_id + '.zip'
@@ -585,7 +586,7 @@ class PixelFlasher(wx.Frame):
 
                 # delete existing boot.img
                 print("Deleting boot.img from phone in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " shell rm -f %s/boot.img" % (self._config.phone_path)
+                theCmd = "\"%s\" -s %s shell rm -f %s/boot.img" % (self._config.adb, self._config.adb_id, self._config.phone_path)
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode != 0:
@@ -597,7 +598,7 @@ class PixelFlasher(wx.Frame):
 
                 # check if delete worked.
                 print("Making sure boot.img is not on the phone in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " shell ls -l %s/boot.img" % (self._config.phone_path)
+                theCmd = "\"%s\" -s %s shell ls -l %s/boot.img" % (self._config.adb, self._config.adb_id, self._config.phone_path)
                 res = runShell(theCmd)
                 # expect ret 1
                 if res.returncode != 1:
@@ -609,7 +610,7 @@ class PixelFlasher(wx.Frame):
 
                 # delete existing magisk_patched.img
                 print("Deleting magisk_patched.img from phone in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " shell rm -f %s/magisk_patched*.img" % (self._config.phone_path)
+                theCmd = "\"%s\" -s %s shell rm -f %s/magisk_patched*.img" % (self._config.adb, self._config.adb_id, self._config.phone_path)
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode != 0:
@@ -621,7 +622,7 @@ class PixelFlasher(wx.Frame):
 
                 # check if delete worked.
                 print("Making sure magisk_patched.img is not on the phone in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " shell ls -l %s/magisk_patched*.img" % (self._config.phone_path)
+                theCmd = "\"%s\" -s %s shell ls -l %s/magisk_patched*.img" % (self._config.adb, self._config.adb_id, self._config.phone_path)
                 res = runShell(theCmd)
                 # expect ret 1
                 if res.returncode != 1:
@@ -633,7 +634,8 @@ class PixelFlasher(wx.Frame):
 
                 # Transfer boot.img to the phone
                 print("Transfering boot.img to the phone in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " push %s/boot.img %s/boot.img" % (package_dir_full, self._config.phone_path)
+                theCmd = "\"%s\" -s %s push \"%s\" %s/boot.img" % (self._config.adb, self._config.adb_id, os.path.join(package_dir_full, "boot.img"), self._config.phone_path)
+                # print("debug: %s" % theCmd)
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode != 0:
@@ -647,7 +649,7 @@ class PixelFlasher(wx.Frame):
 
                 # check if transfer worked.
                 print("Making sure boot.img is found on the phone in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " shell ls -l %s/boot.img" % (self._config.phone_path)
+                theCmd = "\"%s\" -s %s shell ls -l %s/boot.img" % (self._config.adb, self._config.adb_id, self._config.phone_path)
                 res = runShell(theCmd)
                 # expect 0
                 if res.returncode != 0:
@@ -657,17 +659,11 @@ class PixelFlasher(wx.Frame):
                     del wait
                     return
 
-                # See if magisk tools is installed
-                # print("Checking to see if Magisk Tools is installed on the phone ...")
-                # theCmd = self._config.adb + " -s " + self._config.adb_id + " shell \"su -c \'ls -l /data/adb/magisk/\'\""
-                # res = runShell(theCmd)
-                # # expect ret 0
-                # if res.returncode != 0:
                 if not self._config.rooted:
                     print("Magisk Tools not found on the phone")
                     # Check to see if Magisk is installed
                     print("Looking for Magisk app ...")
-                    theCmd = self._config.adb + " -s " + self._config.adb_id + " shell pm list packages " + self._config.magisk
+                    theCmd = "\"%s\" -s %s shell pm list packages %s" % (self._config.adb, self._config.adb_id, self._config.magisk)
                     res = runShell(theCmd)
                     if res.stdout.strip() != "package:" + self._config.magisk:
                         print("Unable to find magisk on the phone, perhaps it is hidden?")
@@ -694,7 +690,7 @@ class PixelFlasher(wx.Frame):
                     else:
                         print("Found Magisk app on the phone.")
                         print("Launching Magisk ...")
-                        theCmd = self._config.adb + " -s " + self._config.adb_id + " shell monkey -p " + self._config.magisk + " -c android.intent.category.LAUNCHER 1"
+                        theCmd = "\"%s\" -s %s shell monkey -p %s -c android.intent.category.LAUNCHER 1" % (self._config.adb, self._config.adb_id, self._config.magisk)
                         res = runShell(theCmd)
                         if res.returncode != 0:
                             print("ERROR: Magisk could not be launched")
@@ -726,7 +722,7 @@ class PixelFlasher(wx.Frame):
                     startPatch = time.time()
                     print("Magisk Tools detected.")
                     print("Creating patched boot.img ...")
-                    theCmd = self._config.adb + " -s " + self._config.adb_id + " shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched.img\'\""
+                    theCmd = "\"%s\" -s %s shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched.img\'\"" % (self._config.adb, self._config.adb_id)
                     res = runShell2(theCmd)
                     endPatch = time.time()
                     print("Patch time: %s"%(endPatch - startPatch,))
@@ -734,7 +730,7 @@ class PixelFlasher(wx.Frame):
                 # check if magisk_patched.img got created.
                 print("")
                 print("Looking for magisk_patched.img in %s ..." % (self._config.phone_path))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " shell ls %s/magisk_patched*.img" % (self._config.phone_path)
+                theCmd = "\"%s\" -s %s shell ls %s/magisk_patched*.img" % (self._config.adb, self._config.adb_id, self._config.phone_path)
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode == 1:
@@ -749,7 +745,8 @@ class PixelFlasher(wx.Frame):
 
                 # Transfer back boot.img
                 print("Pulling %s from the phone ..." % (magisk_patched))
-                theCmd = self._config.adb + " -s " + self._config.adb_id + " pull " + magisk_patched + " " + package_dir_full + "/magisk_patched.img"
+                theCmd = "\"%s\" -s %s pull %s \"%s\""  % (self._config.adb, self._config.adb_id, magisk_patched, os.path.join(package_dir_full, "magisk_patched.img"))
+                # print("debug: %s" % theCmd)
                 res = runShell(theCmd)
                 # expect ret 0
                 if res.returncode == 1:
@@ -865,7 +862,7 @@ class PixelFlasher(wx.Frame):
                         startFlash = time.time()
                         # Reboot to bootloader
                         print("Rebooting the phone into bootloader mode ...")
-                        theCmd = self._config.adb + " -s " + self._config.adb_id + " reboot bootloader"
+                        theCmd = "\"%s\" -s %s reboot bootloader" % (self._config.adb, self._config.adb_id)
                         res = runShell(theCmd)
                         # expect ret 0
                         if res.returncode != 0:
@@ -900,6 +897,7 @@ class PixelFlasher(wx.Frame):
                             print("Aborting ...")
                             return
                         os.chdir(self._config.firmware_id)
+                        theCmd = "\"%s\"" % theCmd
                         runShell2(theCmd)
                         print("Done!")
                         endFlash = time.time()
@@ -1084,10 +1082,10 @@ def getConnectedDevices(cls, mode):
     if cls._config.adb:
         wait = wx.BusyCursor()
         if mode == 'adb':
-            theCmd = cls._config.adb + " devices"
+            theCmd = "\"%s\" devices" % cls._config.adb
             lookFor = '\tdevice'
         elif mode == 'fastboot':
-            theCmd = cls._config.fastboot + " devices"
+            theCmd =  "\"%s\" devices" % cls._config.fastboot
             lookFor = '\tfastboot'
         else:
             print("ERROR: Unknown device mode: [%s]" % mode)
@@ -1105,17 +1103,17 @@ def getConnectedDevices(cls, mode):
                 # get adb info about the device
                 if mode == 'adb':
                     if cls._config.platform_tools_path:
-                        theCmd = cls._config.adb + " -s %s shell getprop ro.hardware" % deviceID[0]
+                        theCmd = "\"%s\" -s %s shell getprop ro.hardware" % (cls._config.adb, deviceID[0])
                         hardware = runShell(theCmd)
                         # remove any whitespace including tab and newline
                         hardware = ''.join(hardware.stdout.split())
-                        theCmd = cls._config.adb + " -s %s shell getprop ro.build.fingerprint" % deviceID[0]
+                        theCmd = "\"%s\" -s %s shell getprop ro.build.fingerprint" % (cls._config.adb, deviceID[0])
                         fingerprint = runShell(theCmd)
                         # remove any whitespace including tab and newline
                         fingerprint = ''.join(fingerprint.stdout.split())
                         build = fingerprint.split('/')[3]
                         # See if magisk tools is installed
-                        theCmd = cls._config.adb + " -s %s shell \"su -c \'ls -l /data/adb/magisk/\'\"" % deviceID[0]
+                        theCmd = "\"%s\" -s %s shell \"su -c \'ls -l /data/adb/magisk/\'\"" % (cls._config.adb, deviceID[0])
                         res = runShell(theCmd)
                         # expect ret 0
                         if res.returncode == 0:

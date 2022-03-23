@@ -27,7 +27,7 @@ except:
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 __width__ = 1200
 __height__ = 800
 
@@ -372,7 +372,8 @@ class PixelFlasher(wx.Frame):
             startUnzip1 = time.time()
             print("Unzipping Image: %s into %s ..." % (self._config.firmware_path, cwd))
             if path_to_7z:
-                theCmd = [path_to_7z, 'x', "-bd", "-y", self._config.firmware_path]
+                theCmd = "\"%s\" x -bd -y \"%s\"" % (path_to_7z, self._config.firmware_path)
+                # print("debug: %s" % theCmd)
                 res = runShell(theCmd)
             else:
                 try:
@@ -389,9 +390,35 @@ class PixelFlasher(wx.Frame):
                 print("Unzipped into %s folder." % package_dir)
             else:
                 print("ERROR: Unzipped folder %s not found." % package_dir)
-                print("Aborting ...")
-                del wait
-                return
+                # if bundled 7zip fails, let's try with Python libraries and see if that works.
+                if path_to_7z:
+                    # print("debug: returncode is: %s" %res.returncode)
+                    # print("debug: stdout is: %s" %res.stdout)
+                    # print("debug: stderr is: %s" %res.stderr)
+                    print("Disabling bundled 7zip ...")
+                    path_to_7z = None
+                    print("Trying unzip again with python libraries ...")
+                    startUnzip1 = time.time()
+                    try:
+                        with zipfile.ZipFile(self._config.firmware_path, 'r') as zip_ref:
+                            zip_ref.extractall(cwd)
+                    except Exception as e:
+                        del wait
+                        raise e
+                    endUnzip1 = time.time()
+                    print("Unzip time1.1: %s"%(endUnzip1 - startUnzip1,))
+                    # double check if unpacked directory exists, this should match firmware_id from factory image name
+                    if os.path.exists(package_dir):
+                        print("Unzipped into %s folder." % package_dir)
+                    else:
+                        print("ERROR: Unzipped folder %s not found again." % package_dir)
+                        print("Aborting ...")
+                        del wait
+                        return
+                else:
+                    print("Aborting ...")
+                    del wait
+                    return
 
             # delete flash-all.sh and flash-base.sh
             os.remove(os.path.join(package_dir_full, "flash-all.sh"))
@@ -430,7 +457,8 @@ class PixelFlasher(wx.Frame):
                 skip_reboot = ' --skip-reboot '
                 print("Extracting vbmeta.img from %s ..." % (image_file))
                 if os.path.exists(path_to_7z):
-                    theCmd = [path_to_7z, 'x', "-bd", "-y", "-o" + package_dir_full, image_file_full, 'vbmeta.img']
+                    theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" vbmeta.img" % (path_to_7z, package_dir_full, image_file_full)
+                    # print("debug: %s" % theCmd)
                     res = runShell(theCmd)
                 else:
                     with zipfile.ZipFile(os.path.join(package_dir_full, "image-" + self._config.firmware_id + ".zip"), 'r') as zip_ref:
@@ -559,7 +587,8 @@ class PixelFlasher(wx.Frame):
                 boot_img_folder = os.path.join(package_dir_full, image_id)
                 if path_to_7z:
                     print("Extracting boot.img from %s ..." % (image_file))
-                    theCmd = [path_to_7z, 'x', "-bd", "-y", "-o" + package_dir_full, image_file_full, 'boot.img']
+                    theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" boot.img" % (path_to_7z, package_dir_full, image_file_full)
+                    # print("debug: %s" % theCmd)
                     res = runShell(theCmd)
                 else:
                     try:
@@ -768,7 +797,8 @@ class PixelFlasher(wx.Frame):
                     src = os.path.join(package_dir_full, "magisk_patched.img")
                     dest = os.path.join(package_dir_full, "boot.img")
                     shutil.copy(src, dest, follow_symlinks=True)
-                    theCmd = [path_to_7z, 'a', image_file_full, 'boot.img']
+                    theCmd = "\"%s\" a \"%s\" boot.img" % (path_to_7z, image_file_full)
+                    # print("debug: %s" % theCmd)
                     os.chdir(package_dir_full)
                     res = runShell(theCmd)
                     os.chdir(cwd)

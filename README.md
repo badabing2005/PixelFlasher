@@ -13,9 +13,11 @@ The benefits of this application are:
 - Ability to pre-patch factory image with Magisk (without user interaction) and perform upgrades without loosing root.
 No more multiple reboots, or setting airplane mode and clearing storage to retain Safetynet passing.
 (This Assumes that the phone was previously rooted with Magisk)
-- Ability to flash custom ROM (without or without patching boot.img)
-- Ability to flash vbmeta (experimental) with or without disabling verity and or verification.
+- Ability to flash custom ROM (with or without patching boot.img)
+- Option to flash to both slots.
+- Options to disable verity and or verification.
 (Currently supported only through preferences file.)
+- Ability to flash even if multiple devices are connected to the computer.
 
 ## Prerequisites
 - [Android SDK Platform-Tools](https://developer.android.com/studio/releases/platform-tools.html)
@@ -61,8 +63,10 @@ Otherwise you'd have to select where it is installed.
 If you have multiple versions, you can select another version, although it is best to always use the most recent version.
 3. If you already have your phone connected to the PC, the application will detect all ADB connected devices and populate the combo Box.
 Otherwise connect your phone to your PC, and hit the `Reload` button, then select your device from the list in the combo box.
+Rooted devices will be identified with a checkmark ✓.
 4. Select this option if you want to pre-patch the image with Magisk, assuming that Magisk is already installed on your phone.
 This would be the typical choice for monthly updates.
+This option will allow updating the phone without losing root.
 5. **Prepare Package**: Based on the choices made in the previous 4 steps, this step creates the proper package file to be flashed later.
 If the phone is already rooted, the whole process is without user interaction.
 Otherwise the PixelFlasher will launch Magisk on the phone and wait for the user to select stock boot.img which would already be transferred to the phone by the PixelFlasher and guide the user to make the proper choices in Magisk to create a patched boot.img before continuing for PixelFlasher to do the rest of the work.

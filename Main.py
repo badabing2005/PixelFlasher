@@ -27,7 +27,7 @@ except:
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
 
-__version__ = "1.1.5"
+__version__ = "1.2.0.1"
 __width__ = 1200
 __height__ = 800
 verbose = False
@@ -1182,10 +1182,16 @@ class PixelFlasher(wx.Frame):
 
         self.verbose_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.verbose_checkBox.Bind(wx.EVT_CHECKBOX, on_verbose)
-        self.verbose_checkBox.SetValue(self._config.verbose)
+        try:
+            self.verbose_checkBox.SetValue(self._config.verbose)
+        except:
+            pass
         self.verbose_checkBox.SetToolTip("Enable Verbose Messages")
         global verbose
-        verbose = self._config.verbose
+        try:
+            verbose = self._config.verbose
+        except:
+            pass
 
         fgs.AddMany([
                     file_label, (file_picker, 1, wx.EXPAND),

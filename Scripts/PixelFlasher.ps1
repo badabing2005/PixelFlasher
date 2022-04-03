@@ -348,9 +348,9 @@ Function CheckPhoneConnection($deviceMode = "adb")
         {
             # Check if a Pixel is connected and get some basic info
             Write-Host "Checking if the phone is connected and getting basic information ..." -f yellow
-            $args = @('shell', 'getprop', 'ro.product.model')
-            & "$adb"  $args
-            $productModel = (& "$adb"  $args)
+            $theargs = @('shell', 'getprop', 'ro.product.model')
+            & "$adb"  $theargs
+            $productModel = (& "$adb"  $theargs)
             if ([string]::IsNullOrEmpty($productModel))
             {
                 Write-Host "Phone is not connected or more than one device is connected" -f red
@@ -471,7 +471,7 @@ if ([string]::IsNullOrEmpty($factoryFile))
     Write-Host "  Assuming Factory File to be $factoryFile" -f DarkGray
 }
 Write-Host "  Looking for $factoryFile File" -f DarkGray
-$factoryFileName = (dir $factoryFile).Name
+$factoryFileName = (Get-ChildItem $factoryFile).Name
 if ($factoryFile -eq "$($phoneModel)-*.zip")
 {
     $factoryFile = $factoryFileName
@@ -619,7 +619,7 @@ Write-Host "  Checking to see if Magisk Tools is installed ..." -f DarkGray
 $bootPatchExists = (& $adb shell "su -c 'ls -l /data/adb/magisk/boot_patch.sh'")
 if (![string]::IsNullOrEmpty($bootPatchExists))
 {
-    $randId = -join ((48..57) + (97..122) | Get-Random -Count 8 | ForEach-Object {[char]$_})
+    $randId = -join ((48..57) + (97..122) | Get-Random -Count 8 | ForEach-Object { [char]$_ })
     & $adb shell "su -c 'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched-$($randId).img'"
 }
 else
@@ -760,8 +760,8 @@ if (-not (Test-Path "$unzippedFolder/image_unzipped/boot.img"))
 #----------------
 Write-Host "  Repackaging $imageZip ..." -f DarkGray
 Push-Location "$unzippedFolder/image_unzipped"
-$args = @('a', '-tzip', '-mx=1', "../../$imageZip")
-& "$zip"  $args
+$theargs = @('a', '-tzip', '-mx=1', "../../$imageZip")
+& "$zip"  $theargs
 Pop-Location
 
 #------------------------------

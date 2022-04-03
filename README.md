@@ -13,7 +13,7 @@ The application has two modes, normal mode (basic) and advanced mode (expert).
 
 - Simple UI interface, click and go. No more command line.
 - Fully Automated, pre-patch factory image with Magisk (without user interaction) and perform upgrades without losing root.
-No more manually extracting files tranfering to the phone, patching / reflashing and doing multiple reboots.
+No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.
 No more setting airplane mode and clearing storage to retain Safetynet passing.
 (This Assumes that the phone was previously rooted with Magisk)
 - Choose to keep data or wipe data.
@@ -22,8 +22,8 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - id
   - hardware
   - current installed firmware.
-  - if it is rooted with magisk.
-  - magisk version
+  - if it is rooted with Magisk.
+  - Magisk version
   - connection mode.
 - Display Android Platform Tools (SDK) version.
 - Advanced features are hidden to keep the interface simple and easy to follow.
@@ -35,7 +35,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 - Option to flash to both slots.
 - Options to disable verity and or verification.
 - Ability to change the active slot.
-- Abililty to live boot to custom boot.img (temporary root).
+- Ability to live boot to custom boot.img (temporary root).
 - Ability to boot to recovery.
 - Ability to flash custom image: boot, recovery, radio, kernel, ...
 
@@ -132,7 +132,7 @@ To enable the export mode use the **File Menu | Advanced Configuration**
 ![Image of PixelFlasher GUI](/images/advanced-options.png)
 ![Image of PixelFlasher GUI](/images/advanced-gui.png)
 
-In this mode the following aditional options are exposed, below notes are more for enumeration than a guide, as they should be trivial and obvious to an expert.
+In this mode the following additional options are exposed, below notes are more for enumeration than a guide, as they should be trivial and obvious to an expert.
 
 1. Option to Change the Active Slot (the inactive slot is automatically selected).
 Option to reboot to Recovery.

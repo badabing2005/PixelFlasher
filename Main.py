@@ -4,18 +4,15 @@ import wx
 import wx.adv
 import wx.lib.inspection
 import wx.lib.mixins.inspection
-import subprocess
 
 import sys
 import os
-import json
 import images as images
 import locale
-import zipfile
-import shutil
-import re
-import time
 import ntpath
+import json
+from datetime import datetime
+from modules import debug
 
 import ctypes
 try:
@@ -23,167 +20,19 @@ try:
 except:
     pass
 
+from runtime import *
+from config import Config
+from config import VERSION
+from phone import get_connected_devices
+from modules import check_platform_tools
+from modules import prepare_package
+from modules import flash_phone
+from modules import select_firmware
+from modules import set_flash_button_state
+from advanced_settings import AdvancedSettings
 
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
-
-__version__ = "1.2.0.1"
-__width__ = 1200
-__height__ = 800
-verbose = False
-
-
-# ============================================================================
-#                               Class Config
-# ============================================================================
-class Config():
-    def __init__(self):
-        self.flash_mode = 'dryRun'
-        self.firmware_path = None
-        self.platform_tools_path = None
-        self.device = None
-        self.phone_path = '/storage/emulated/0/Download'
-        self.magisk = 'com.topjohnwu.magisk'
-        self.fastboot = None
-        self.width = __width__
-        self.height = __height__
-        self.patch_boot = True
-        self.custom_rom = False
-        self.custom_rom_path = None
-        self.disable_verification = False
-        self.disable_verity = False
-        self.flash_options = False
-        self.version = __version__
-        self.flash_both_slots = False
-
-    @classmethod
-    def load(cls, file_path):
-        conf = cls()
-        try:
-            if os.path.exists(file_path):
-                with open(file_path, 'r') as f:
-                    data = json.load(f)
-                conf.device = data['device']
-                conf.firmware_path = data['firmware_path']
-                conf.platform_tools_path = data['platform_tools_path']
-                conf.flash_mode = data['mode']
-                conf.phone_path = data['phone_path']
-                conf.magisk = data['magisk']
-                conf.width = data['width']
-                conf.height = data['height']
-                conf.patch_boot = data['patch_boot']
-                conf.custom_rom = data['custom_rom']
-                conf.custom_rom_path = data['custom_rom_path']
-                conf.disable_verification = data['disable_verification']
-                conf.disable_verity = data['disable_verity']
-                conf.flash_options = data['flash_options']
-                conf.version = data['version']
-                conf.flash_both_slots = data['flash_both_slots']
-                conf.verbose = data['verbose']
-        except Exception as e:
-            os.remove(file_path)
-        return conf
-
-    def save(self, file_path):
-        data = {
-            'device': self.device,
-            'firmware_path': self.firmware_path,
-            'platform_tools_path': self.platform_tools_path,
-            'mode': self.flash_mode,
-            'phone_path': self.phone_path,
-            'magisk': self.magisk,
-            'width': self.width,
-            'height': self.height,
-            'patch_boot': self.patch_boot,
-            'custom_rom': self.custom_rom,
-            'custom_rom_path': self.custom_rom_path,
-            'disable_verification': self.disable_verification,
-            'disable_verity': self.disable_verity,
-            'flash_options': self.flash_options,
-            'version': __version__,
-            'flash_both_slots': self.flash_both_slots,
-            'verbose': verbose
-        }
-        with open(file_path, 'w') as f:
-            # json.dump(data, f, indent=4, sort_keys=True)
-            json.dump(data, f, indent=4)
-
-
-# ============================================================================
-#                               Class AdvancedSettings
-# ============================================================================
-class AdvancedSettings(wx.Dialog):
-    def __init__(self, config, *args, **kwargs):
-        wx.Dialog.__init__(self, *args, **kwargs)
-        self.config = config
-        self.SetTitle("Advanced Configuration Settings")
-        self.SetSize(600, 500)
-
-        vSizer = wx.BoxSizer( wx.VERTICAL )
-        warning_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        self.warning_label = wx.StaticText( self, wx.ID_ANY, u"WARNING!\nThis is advanced configuration.\nUnless you know what you are doing,\nyou should not be touching anything in here.\n\nThese advanced settings potentially can mess up your device.\nYou have been warned. You are on your own.", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL )
-        self.warning_label.Wrap( -1 )
-        self.warning_label.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_INFOBK ) )
-        warning_sizer.Add( self.warning_label, 1, wx.ALL, 10 )
-
-        vSizer.Add( warning_sizer, 1, wx.EXPAND, 5 )
-
-        flash_options_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        flash_options_sizer.Add( ( 20, 0), 0, 0, 5 )
-        self.flash_options_checkbox = wx.CheckBox( self, wx.ID_ANY, u"Flash Options", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.flash_options_checkbox.SetValue(self.config.flash_options)
-        self.flash_options_checkbox.SetToolTip( u"Enable Flash Options" )
-        flash_options_sizer.Add( self.flash_options_checkbox, 0, wx.ALL, 5 )
-        vSizer.Add( flash_options_sizer, 0, wx.EXPAND, 5 )
-
-        advanced_flashing_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        advanced_flashing_sizer.SetMinSize( wx.Size( -1,20 ) )
-        advanced_flashing_sizer.Add( ( 20, 0), 0, wx.EXPAND, 5 )
-        self.advanced_flashing_checkBox = wx.CheckBox( self, wx.ID_ANY, u"Enable Advanced Flashing Pane (TODO)", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.advanced_flashing_checkBox.Enable( False )
-        advanced_flashing_sizer.Add( self.advanced_flashing_checkBox, 0, wx.ALL, 5 )
-
-        vSizer.Add( advanced_flashing_sizer, 1, wx.EXPAND, 5 )
-        reset_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        reset_sizer.Add( ( 20, 0), 1, wx.EXPAND, 5 )
-        self.reset_button = wx.Button( self, wx.ID_ANY, u"Reset", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.reset_button.SetToolTip( u"Reset to default values." )
-        reset_sizer.Add( self.reset_button, 0, wx.ALL, 5 )
-        vSizer.Add( reset_sizer, 1, wx.EXPAND, 5 )
-
-        buttons_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        buttons_sizer.Add( ( 100, 0), 0, 0, 5 )
-        self.ok_button = wx.Button( self, wx.ID_ANY, u"OK", wx.Point( -1,-1 ), wx.DefaultSize, 0 )
-        buttons_sizer.Add( self.ok_button, 0, wx.ALL, 5 )
-        buttons_sizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
-
-        self.cancel_button = wx.Button( self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.cancel_button.SetDefault()
-        buttons_sizer.Add( self.cancel_button, 0, wx.ALL, 5 )
-        buttons_sizer.Add( ( 100, 0), 0, 0, 5 )
-        vSizer.Add( buttons_sizer, 1, wx.EXPAND, 5 )
-
-        self.SetSizer( vSizer )
-        self.Layout()
-
-        # Connect Events
-        self.ok_button.Bind( wx.EVT_BUTTON, self.onOk )
-        self.cancel_button.Bind( wx.EVT_BUTTON, self.onCancel )
-        self.reset_button.Bind( wx.EVT_BUTTON, self.onReset )
-
-    def onReset(self, e):
-        self.config.flash_options = False
-        self.flash_options_checkbox.SetValue( False )
-
-    def onCancel(self, e):
-        self.EndModal(wx.ID_CANCEL)
-
-    def onOk(self, e):
-        self.config.flash_options = self.flash_options_checkbox.GetValue()
-        self.EndModal(wx.ID_OK)
-
-    def GetAdvancedSettings(self):
-        return self.config
 
 
 # ============================================================================
@@ -195,6 +44,7 @@ class RedirectText():
         cwd = os.getcwd()
         logfile = os.path.join(cwd, "PixelFlasher.log")
         self.logfile = open(logfile, "w")
+        set_logfile(logfile)
 
     def write(self,string):
         self.out.WriteText(string)
@@ -208,20 +58,12 @@ class RedirectText():
 #                               Class PixelFlasher
 # ============================================================================
 class PixelFlasher(wx.Frame):
-    adb_id = None
-    adb_model = None
-    rooted = None
-    firmware_id = None
-    firmware_model = None
-    adb = None
-    adb_version = None
-    custom_rom_id = None
-
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, -1, title, size=(__width__, __height__),
+        self.config = Config.load(self._get_config_file_path())
+        set_magisk_package(self.config.magisk)
+        wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
                           style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
-        self._config = Config.load(self._get_config_file_path())
-        checkPlatformTools(self)
+        check_platform_tools(self)
 
         self._build_status_bar()
         self._set_icons()
@@ -233,7 +75,23 @@ class PixelFlasher(wx.Frame):
 
         self.Centre(wx.BOTH)
         self.Show(True)
-        print("Connect your device")
+
+        # stuff after the window is displayed
+        print(f"PixelFlasher {VERSION} started on {datetime.now():%Y-%m-%d %H:%M:%S}")
+        if os.path.exists(get_config_path()):
+            try:
+                with open(get_config_path(), 'r') as f:
+                    data = json.load(f)
+                    f.close()
+            except Exception as e:
+                print(e)
+                pass
+            debug(f"Loading configuration file: {get_config_path()} ...")
+            debug(f"{json.dumps(data, indent=4, sort_keys=True)}")
+
+        # set the state of flash button.
+        set_flash_button_state(self)
+        self._update_custom_flash_options()
 
     def _set_icons(self):
         self.SetIcon(images.Icon.GetIcon())
@@ -241,7 +99,7 @@ class PixelFlasher(wx.Frame):
     def _build_status_bar(self):
         self.statusBar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusBar.SetStatusWidths([-2, -1])
-        status_text = "Welcome to PixelFlasher %s" % __version__
+        status_text = "Welcome to PixelFlasher %s" % VERSION
         self.statusBar.SetStatusText(status_text, 0)
 
     def _build_menu_bar(self):
@@ -267,17 +125,17 @@ class PixelFlasher(wx.Frame):
         self.SetMenuBar(self.menuBar)
 
     def _on_close(self, event):
-        self._config.save(self._get_config_file_path())
+        self.config.save(self._get_config_file_path())
         wx.Exit()
 
     def _on_resize(self, event):
-        self._config.width = self.Rect.Width
-        self._config.height = self.Rect.Height
+        self.config.width = self.Rect.Width
+        self.config.height = self.Rect.Height
         event.Skip(True)
 
     # Menu methods
     def _on_exit_app(self, event):
-        self._config.save(self._get_config_file_path())
+        self.config.save(self._get_config_file_path())
         self.Close(True)
 
     def _on_help_about(self, event):
@@ -287,1165 +145,628 @@ class PixelFlasher(wx.Frame):
         about.Destroy()
 
     def _on_advanced_config( self, event ):
-        advanced_setting_dialog = AdvancedSettings(self._config, self)
+        advanced_setting_dialog = AdvancedSettings(self)
         advanced_setting_dialog.CentreOnParent(wx.BOTH)
         res = advanced_setting_dialog.ShowModal()
         if res == wx.ID_OK:
-            self._config = advanced_setting_dialog.GetAdvancedSettings()
+            self.config.advanced_options = get_advanced_options()
         advanced_setting_dialog.Destroy()
-        # Enable / disable controls
-        if self._config.flash_options:
-            self.flash_both_slots_checkBox.Enable()
-            self.disable_verity_checkBox.Enable()
-            self.disable_verification_checkBox.Enable()
-        else:
-            self.flash_both_slots_checkBox.Disable()
-            self.disable_verity_checkBox.Disable()
-            self.disable_verification_checkBox.Disable()
+        # show / hide advanced settings
+        self._advanced_options_hide(not get_advanced_options())
+        set_flash_button_state(self)
 
-    def _select_configured_device(self):
-        count = 0
-        for item in self.choice.GetItems():
-            if item == self._config.device:
-                self.choice.Select(count)
-                break
-            count += 1
-        if self.choice.StringSelection == '':
-            self._config.device = None
-            self.adb_id = None
-            self.adb_model = None
-            self.rooted = False
+    def _advanced_options_hide(self, value):
+        if value:
+            # flash options
+            self.advanced_options_label.Hide()
+            self.flash_both_slots_checkBox.Hide()
+            self.disable_verity_checkBox.Hide()
+            self.disable_verification_checkBox.Hide()
+            # slot options
+            self.a_radio_button.Hide()
+            self.b_radio_button.Hide()
+            self.reboot_recovery_button.Hide()
+            self.set_active_slot_button.Hide()
+            # ROM options
+            self.custom_rom_checkbox.Hide()
+            self.custom_rom.Hide()
+            # Custom Flash Radio Button
+            # if we're turning off advanced options, and the current mode is customFlash, hide, it
+            self.mode_radio_button.LastInGroup.Hide()
+            # Custom Flash Image options
+            self.live_boot_radio_button.Hide()
+            self.flash_radio_button.Hide()
+            self.image_choice.Hide()
+            self.image_file_picker.Hide()
+            a = self.mode_radio_button.Name
+            # if we're turning off advanced options, and the current mode is customFlash, change it to dryRun
+            if self.mode_radio_button.Name == 'mode-customFlash' and self.mode_radio_button.GetValue():
+                self.mode_radio_button.PreviousInGroup.SetValue(True)
+                self.config.flash_mode = 'dryRun'
         else:
-            if self._config.device:
-                # replace multiple spaces with a single space and then split on space
-                deviceID = ' '.join(self._config.device.split())
-                deviceID = deviceID.split()
-                isRooted = deviceID[0]
-                if isRooted == '✓':
-                    self.rooted = True
+            # flash options
+            self.advanced_options_label.Show()
+            self.flash_both_slots_checkBox.Show()
+            self.disable_verity_checkBox.Show()
+            self.disable_verification_checkBox.Show()
+            # slot options
+            self.a_radio_button.Show()
+            self.b_radio_button.Show()
+            self.reboot_recovery_button.Show()
+            self.set_active_slot_button.Show()
+            # ROM options
+            self.custom_rom_checkbox.Show()
+            self.custom_rom.Show()
+            # Custom Flash Radio Button
+            self.mode_radio_button.LastInGroup.Show()
+            # Custom Flash Image options
+            self.live_boot_radio_button.Show()
+            self.flash_radio_button.Show()
+            self.image_choice.Show()
+            self.image_file_picker.Show()
+        # Update UI (need to do this resize to get the UI properly refreshed.)
+        self.Update()
+        self.Layout()
+        w, h = self.Size
+        h = h + 100
+        self.Size = (w, h)
+        h = h - 100
+        self.Size = (w, h)
+        self.Refresh()
+
+    def _update_custom_flash_options(self):
+        image_mode = get_image_mode()
+        image_path = get_image_path()
+        if self.config.flash_mode == 'customFlash':
+            self.image_file_picker.Enable(True)
+            self.image_choice.Enable(True)
+        else:
+            # disable custom_flash_options
+            self.flash_radio_button.Enable(False)
+            self.live_boot_radio_button.Enable(False)
+            self.image_file_picker.Enable(False)
+            self.image_choice.Enable(False)
+            return
+        self.live_boot_radio_button.Enable(False)
+        self.flash_radio_button.Enable(False)
+        self.flash_button.Enable(False)
+        try:
+            if image_path:
+                filename, extension = os.path.splitext(image_path)
+                extension = extension.lower()
+                if image_mode == 'boot':
+                    if extension == '.img':
+                        self.live_boot_radio_button.Enable(True)
+                        self.flash_radio_button.Enable(True)
+                        self.flash_button.Enable(True)
+                    else:
+                        print("ERROR: Selected file is not of type .img")
+                elif image_mode == 'image':
+                    if extension == '.zip':
+                        self.live_boot_radio_button.Enable(False)
+                        self.flash_radio_button.Enable(True)
+                        self.flash_button.Enable(True)
+                        self.flash_radio_button.SetValue( True )
+                    else:
+                        print("ERROR: Selected file is not of type .zip")
                 else:
-                    self.rooted = False
-                self.adb_id = deviceID[1]
-                self.adb_model = deviceID[2]
-            else:
-                self._config.device = None
-                self.adb_id = None
-                self.adb_model = None
-                self.rooted = False
+                    if extension == '.img':
+                        self.live_boot_radio_button.Enable(False)
+                        self.flash_radio_button.Enable(True)
+                        self.flash_button.Enable(True)
+                        self.flash_radio_button.SetValue( True )
+                    else:
+                        print("ERROR: Selected file is not of type .img")
+        except:
+            pass
 
     @staticmethod
     def _get_config_file_path():
-        return wx.StandardPaths.Get().GetUserConfigDir() + "/PixelFlasher.json"
+        config_path = os.path.join(wx.StandardPaths.Get().GetUserConfigDir(), 'PixelFlasher.json').strip()
+        set_config_path(config_path)
+        return config_path
 
     #-----------------------------------------------------------------------------
     #                                   _init_ui
     #-----------------------------------------------------------------------------
     def _init_ui(self):
-        def add_mode_radio_button(sizer, index, flash_mode, label, tooltip):
+        def _add_mode_radio_button(sizer, index, flash_mode, label, tooltip):
             style = wx.RB_GROUP if index == 0 else 0
-            radio_button = wx.RadioButton(panel, name="mode-%s" % flash_mode, label="%s" % label, style=style)
-            radio_button.Bind(wx.EVT_RADIOBUTTON, on_mode_changed)
-            radio_button.mode = flash_mode
-            if flash_mode == self._config.flash_mode:
-                radio_button.SetValue(True)
+            self.mode_radio_button = wx.RadioButton(panel, name="mode-%s" % flash_mode, label="%s" % label, style=style)
+            self.mode_radio_button.Bind(wx.EVT_RADIOBUTTON, _on_mode_changed)
+            self.mode_radio_button.mode = flash_mode
+            if flash_mode == self.config.flash_mode:
+                self.mode_radio_button.SetValue(True)
             else:
-                radio_button.SetValue(False)
-            radio_button.SetToolTip(tooltip)
-            sizer.Add(radio_button)
+                self.mode_radio_button.SetValue(False)
+            self.mode_radio_button.SetToolTip(tooltip)
+            sizer.Add(self.mode_radio_button)
             sizer.AddSpacer(10)
 
-        def on_select_device(event):
-            choice = event.GetEventObject()
-            self._config.device = choice.GetString(choice.GetSelection())
-            # replace multiple spaces with a single space and then split on space
-            deviceID = ' '.join(self._config.device.split())
-            deviceID = deviceID.split()
-            isRooted = deviceID[0]
-            if isRooted == '✓':
-                self.rooted = True
-            else:
-                self.rooted = False
-            self.adb_id = deviceID[1]
-            self.adb_model = deviceID[2]
+        def _select_configured_device(self):
+            count = 0
+            if self.config.device:
+                for device in get_phones():
+                    if device.id == self.config.device:
+                        self.device_choice.Select(count)
+                        set_phone(device)
+                    count += 1
+            if self.device_choice.StringSelection == '':
+                set_phone(None)
+                self.device_label.Label = "ADB Connected Devices"
+                self.config.device = None
+            _reflect_slots(self)
 
-        def on_reload(event):
-            if self.adb:
+        def _on_select_device(event):
+            choice = event.GetEventObject()
+            device = choice.GetString(choice.GetSelection())
+            # replace multiple spaces with a single space and then split on space
+            id = ' '.join(device.split())
+            id = id.split()
+            id = id[2]
+            self.config.device = id
+            for device in get_phones():
+                if device.id == id:
+                    set_phone(device)
+                    print(f"Selected Device:")
+                    print(f"    Device ID:          {device.id}")
+                    print(f"    Device Model:       {device.hardware}")
+                    print(f"    Device is Rooted:   {device.rooted}")
+                    print(f"    Device Build:       {device.build}")
+                    print(f"    Device Active Slot: {device.active_slot}")
+                    print(f"    Device Mode:        {device.mode}")
+                    if device.unlocked:
+                        print(f"    Device Unlocked:{device.magisk_version}")
+                    if device.rooted:
+                        print(f"    Magisk Version:     {device.magisk_version}")
+                    else:
+                        print('')
+            _reflect_slots(self)
+
+        def _reflect_slots(self):
+            device = get_phone()
+            if device:
+                if device.active_slot == 'a':
+                    self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
+                    self.a_radio_button.Enable(False)
+                    self.b_radio_button.Enable(True)
+                    self.b_radio_button.SetValue(True)
+                    self.set_active_slot_button.Enable(True)
+                elif device.active_slot == 'b':
+                    self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [B]"
+                    self.a_radio_button.Enable(True)
+                    self.b_radio_button.Enable(False)
+                    self.a_radio_button.SetValue(True)
+                    self.set_active_slot_button.Enable(True)
+                else:
+                    self.device_label.Label = "ADB Connected Devices"
+                    self.a_radio_button.Enable(False)
+                    self.b_radio_button.Enable(False)
+                    self.a_radio_button.SetValue(False)
+                    self.b_radio_button.SetValue(False)
+                    self.set_active_slot_button.Enable(False)
+            else:
+                self.device_label.Label = "ADB Connected Devices"
+                self.a_radio_button.Enable(False)
+                self.b_radio_button.Enable(False)
+                self.a_radio_button.SetValue(False)
+                self.b_radio_button.SetValue(False)
+                self.set_active_slot_button.Enable(False)
+
+        def _on_reload(event):
+            if get_adb():
                 print("")
-                self.choice.SetItems(getConnectedDevices(self, 'adb'))
-                self._config.device = None
-                self.adb_id = None
-                self.adb_model = None
+                wait = wx.BusyCursor()
+                self.device_choice.SetItems(get_connected_devices())
+                self.config.device = None
+                del wait
             else:
                 print("Please set Android Platform Tools Path first.")
 
-        def on_select_platform_tools(event):
-            self._config.platform_tools_path = event.GetPath().replace("'", "")
-            checkPlatformTools(self)
-            if self.adb_version:
-                self.platform_tools_label.SetLabel("Android Platform Tools\nVersion %s" % self.adb_version)
-                pass
+        def _on_select_platform_tools(event):
+            self.config.platform_tools_path = event.GetPath().replace("'", "")
+            check_platform_tools(self)
+            if get_sdk_version():
+                self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
             else:
                 self.platform_tools_label.SetLabel("Android Platform Tools")
-                pass
 
-        def on_select_firmware(event):
-            self._config.firmware_path = event.GetPath().replace("'", "")
-            firmware = ntpath.basename(self._config.firmware_path)
-            firmware = firmware.split("-")
-            try:
-                self.firmware_model = firmware[0]
-                self.firmware_id = firmware[0] + "-" + firmware[1]
-            except Exception as e:
-                self.firmware_model = None
-                self.firmware_id = None
+        def _on_select_firmware(event):
+            self.config.firmware_path = event.GetPath().replace("'", "")
+            select_firmware(self)
 
-        def on_select_custom_rom(event):
-            self._config.custom_rom_path = event.GetPath().replace("'", "")
-            rom_file = ntpath.basename(self._config.custom_rom_path)
-            self.custom_rom_id = os.path.splitext(rom_file)[0]
+        def _on_image_choice( event ):
+            choice = event.GetEventObject()
+            set_image_mode(choice.GetString(choice.GetSelection()))
+            self._update_custom_flash_options()
 
-        def on_mode_changed(event):
-            radio_button = event.GetEventObject()
-            if radio_button.GetValue():
-                self._config.flash_mode = radio_button.mode
+        def _on_image_select( event ):
+            image_path = event.GetPath().replace("'", "")
+            filename, extension = os.path.splitext(image_path)
+            extension = extension.lower()
+            if extension == '.zip' or extension == '.img':
+                set_image_path(image_path)
+                self._update_custom_flash_options()
+            else:
+                print(f"ERROR: The selected file {image_path} is not img or zip file.")
+                self.image_file_picker.SetPath('')
 
-        def on_patch_boot(event):
+        def _on_select_custom_rom(event):
+            custom_rom_path = event.GetPath().replace("'", "")
+            filename, extension = os.path.splitext(custom_rom_path)
+            extension = extension.lower()
+            if extension == '.zip':
+                self.config.custom_rom_path = custom_rom_path
+                rom_file = ntpath.basename(custom_rom_path)
+                set_custom_rom_id(os.path.splitext(rom_file)[0])
+            else:
+                print(f"ERROR: The selected file {custom_rom_path} is not a zip file.")
+                self.custom_rom.SetPath('')
+
+        def _on_mode_changed(event):
+            self.mode_radio_button = event.GetEventObject()
+            if self.mode_radio_button.GetValue():
+                self.config.flash_mode = self.mode_radio_button.mode
+                print(f"Flash mode changed to: {self.config.flash_mode}")
+            if self.config.flash_mode != 'customFlash':
+                set_flash_button_state(self)
+            self._update_custom_flash_options()
+
+        def _on_patch_boot(event):
             patch_checkBox = event.GetEventObject()
             status = patch_checkBox.GetValue()
-            self._config.patch_boot = status
+            self.config.patch_boot = status
 
-        def on_flash_both_slots(event):
-            patch_checkBox = event.GetEventObject()
+        def _on_flash_both_slots(event):
+            self.patch_checkBox = event.GetEventObject()
             status = self.flash_both_slots_checkBox.GetValue()
-            self._config.flash_both_slots = status
+            self.config.flash_both_slots = status
 
-        def on_disable_verity(event):
-            patch_checkBox = event.GetEventObject()
+        def _on_disable_verity(event):
+            self.patch_checkBox = event.GetEventObject()
             status = self.disable_verity_checkBox.GetValue()
-            self._config.disable_verity = status
+            self.config.disable_verity = status
 
-        def on_disable_verification(event):
+        def _on_disable_verification(event):
             patch_checkBox = event.GetEventObject()
             status = self.disable_verification_checkBox.GetValue()
-            self._config.disable_verification = status
+            self.config.disable_verification = status
 
-        def on_verbose(event):
-            global verbose
-            verbose_checkBox = event.GetEventObject()
+        def _on_verbose(event):
+            self.verbose_checkBox = event.GetEventObject()
             status = self.verbose_checkBox.GetValue()
-            self._config.verbose = status
-            verbose = status
+            self.config.verbose = status
+            set_verbose(status)
 
-        def on_custom_rom(event):
-            custom_rom_checkBox = event.GetEventObject()
-            status = custom_rom_checkBox.GetValue()
-            self._config.custom_rom = status
+        def _on_reboot_recovery(event):
+            wait = wx.BusyCursor()
+            device = get_phone()
+            device.reboot_recovery()
+            del wait
+
+        def _on_reboot_system(event):
+            wait = wx.BusyCursor()
+            device = get_phone()
+            device.reboot_system()
+            del wait
+
+        def _on_reboot_bootloader(event):
+            wait = wx.BusyCursor()
+            device = get_phone()
+            device.reboot_bootloader(fastboot_included = True)
+            del wait
+
+        def _on_set_active_slot(event):
+            wait = wx.BusyCursor()
+            if self.a_radio_button.GetValue():
+                slot = 'a'
+            elif self.b_radio_button.GetValue():
+                slot = 'b'
+            else:
+                print("ERROR: Please first select a slot.")
+                del wait
+                return
+            device = get_phone()
+            device.set_active_slot(slot)
+            del wait
+
+        def _on_custom_rom(event):
+            self.custom_rom_checkbox = event.GetEventObject()
+            status = self.custom_rom_checkbox.GetValue()
+            self.config.custom_rom = status
             if status:
-                custom_rom.Enable()
+                self.custom_rom.Enable()
             else:
-                custom_rom.Disable()
+                self.custom_rom.Disable()
 
-
-        # -----------------
-        # Prepare Operation
-        # -----------------
-        def on_prepare(event):
-            print("")
-            print("==============================================================================")
-            print("  PixelFlasher %s             Preparing Package                               " % __version__)
-            print("==============================================================================")
-
-            # Make sure factory image is selected
-            if not self.firmware_model:
-                print("ERROR: Select a valid factory image.")
-                return
-
-            # Make sure platform-tools is set and adb.exe and fastboot.exe are found
-            if not self._config.platform_tools_path:
-                print("ERROR: Select Android Platform Tools (ADB)")
-                return
-
-            # Make sure Phone is connected
-            if not self._config.device:
-                print("ERROR: Select an ADB connection (phone)")
-                return
-
-            # Make sure Phone model matches firmware model
-            if self.firmware_model != self.adb_model:
-                print("ERROR: Android device model %s does not match firmware model %s" % (self.adb_model, self.firmware_model))
-                return
-
+        def _on_prepare(event):
             wait = wx.BusyCursor()
-            start = time.time()
-            cwd = os.getcwd()
-            package_dir = self.firmware_id
-            package_dir_full = os.path.join(cwd, self.firmware_id)
-
-            # disable Flash Button
-            flash_button.Disable()
-
-            # Delete the previous folder if it exists
-            if os.path.exists(package_dir_full):
-                try:
-                    print("Found a previous package %s deleting ..." % package_dir)
-                    shutil.rmtree(package_dir_full)
-                except OSError as e:
-                    print("Error: %s - %s." % (e.filename, e.strerror))
-                    print("ERROR: Could not delete the previous package.")
-                    print("Aborting ...")
-                    return
-
-            # See if the bundled 7zip is found.
-            path_to_7z = (resource_path(os.path.join('bin', '7z.exe')))
-            debug("Resource Dir: %s" % path_to_7z)
-            if os.path.exists(path_to_7z):
-                print("Found Bundled 7zip.\nzip/unzip operations will be faster")
-            else:
-                print("Could not find bundled 7zip.\nzip/unzip operations will be slower")
-                path_to_7z = None
-
-            # Unzip the factory image
-            startUnzip1 = time.time()
-            print("Unzipping Image: %s into %s ..." % (self._config.firmware_path, cwd))
-            if path_to_7z:
-                theCmd = "\"%s\" x -bd -y \"%s\"" % (path_to_7z, self._config.firmware_path)
-                debug("%s" % theCmd)
-                res = runShell(theCmd)
-            else:
-                try:
-                    with zipfile.ZipFile(self._config.firmware_path, 'r') as zip_ref:
-                        zip_ref.extractall(cwd)
-                except Exception as e:
-                    del wait
-                    raise e
-            endUnzip1 = time.time()
-            print("Unzip time1: %s"%(endUnzip1 - startUnzip1,))
-
-            # double check if unpacked directory exists, this should match firmware_id from factory image name
-            if os.path.exists(package_dir):
-                print("Unzipped into %s folder." % package_dir)
-            else:
-                print("ERROR: Unzipped folder %s not found." % package_dir)
-                # if bundled 7zip fails, let's try with Python libraries and see if that works.
-                if path_to_7z:
-                    debug("returncode is: %s" %res.returncode)
-                    debug("stdout is: %s" %res.stdout)
-                    debug("stderr is: %s" %res.stderr)
-                    print("Disabling bundled 7zip ...")
-                    path_to_7z = None
-                    print("Trying unzip again with python libraries ...")
-                    startUnzip1 = time.time()
-                    try:
-                        with zipfile.ZipFile(self._config.firmware_path, 'r') as zip_ref:
-                            zip_ref.extractall(cwd)
-                    except Exception as e:
-                        del wait
-                        raise e
-                    endUnzip1 = time.time()
-                    print("Unzip time1.1: %s"%(endUnzip1 - startUnzip1,))
-                    # double check if unpacked directory exists, this should match firmware_id from factory image name
-                    if os.path.exists(package_dir):
-                        print("Unzipped into %s folder." % package_dir)
-                    else:
-                        print("ERROR: Unzipped folder %s not found again." % package_dir)
-                        print("Aborting ...")
-                        del wait
-                        return
-                else:
-                    print("Aborting ...")
-                    del wait
-                    return
-
-            # delete flash-all.sh and flash-base.sh
-            os.remove(os.path.join(package_dir_full, "flash-all.sh"))
-            os.remove(os.path.join(package_dir_full, "flash-base.sh"))
-
-            # if custom rom is selected, copy it to the flash folder
-            if self._config.custom_rom:
-                if self._config.custom_rom_path:
-                    rom_file = ntpath.basename(self._config.custom_rom_path)
-                    rom_file_full = os.path.join(package_dir_full, rom_file)
-                    image_file = rom_file
-                    image_file_full = rom_file_full
-                    image_id = self.custom_rom_id
-                    if os.path.exists(self._config.custom_rom_path):
-                        shutil.copy(self._config.custom_rom_path, rom_file_full, follow_symlinks=True)
-                    else:
-                        print("ERROR: Custom ROM file: %s is not found" % self._config.custom_rom_path)
-                        print("Aborting ...")
-                        return
-                else:
-                    print("ERROR: Custom ROM file is not set")
-                    print("Aborting ...")
-                    return
-            else:
-                image_id = 'image-' + self.firmware_id
-                image_file = image_id + ".zip"
-                image_file_full = os.path.join(package_dir_full, image_file)
-
-            # Initialize fastboot_option
-            fastboot_options = "-s %s " % self.adb_id
-
-            if self._config.flash_options:
-                if self._config.flash_both_slots:
-                    fastboot_options += '--slot all '
-                if self._config.disable_verity:
-                    fastboot_options += '--disable-verity '
-                if self._config.disable_verification:
-                    fastboot_options += '--disable-verification '
-
-            # ---------------------------
-            # create flash flash-wipe.bat
-            # ---------------------------
-            src = os.path.join(package_dir_full, "flash-all.bat")
-            dest = os.path.join(package_dir_full, "flash-wipe-data.bat")
-            fin = open(src, "rt")
-            data = fin.read()
-
-            data = data.replace('pause >nul', '')
-
-            if self._config.custom_rom:
-                rom_src = 'update image-' + self.firmware_id + '.zip'
-                rom_dst = 'update ' + rom_file
-                data = data.replace(rom_src, rom_dst)
-
-            data = data.replace('fastboot', "\"%s\" %s" % (self._config.fastboot, fastboot_options))
-
-            fin.close()
-            fin = open(dest, "wt")
-            fin.write(data)
-            fin.close()
-
-            # ------------------------------
-            # create flash file-keepData.bat
-            # ------------------------------
-            fin = open(src, "rt")
-            data = fin.read()
-
-            data = data.replace('fastboot -w update', 'fastboot update')
-            data = data.replace('pause >nul', '')
-
-            if self._config.custom_rom:
-                rom_src = 'update image-' + self.firmware_id + '.zip'
-                rom_dst = 'update ' + rom_file
-                data = data.replace(rom_src, rom_dst)
-
-            data = data.replace('fastboot', "\"%s\" %s" % (self._config.fastboot, fastboot_options))
-
-            fin.close()
-            fin = open(os.path.join(package_dir_full, "flash-keep-data.bat"), "wt")
-            fin.write(data)
-            fin.close()
-
-            # ----------------------------
-            # create flash file-dryRun.bat
-            # ----------------------------
-            fin = open(src, "rt")
-            data = fin.read()
-
-            data = data.replace('fastboot flash', "echo \"%s\" %s flash" % (self._config.fastboot, fastboot_options))
-            data = data.replace('fastboot -w update', "echo \"%s\" %s update" % (self._config.fastboot, fastboot_options))
-            data = data.replace('pause >nul', 'fastboot reboot')
-
-            if self._config.custom_rom:
-                rom_src = 'update image-' + self.firmware_id + '.zip'
-                rom_dst = 'update ' + rom_file
-                data = data.replace(rom_src, rom_dst)
-
-            data = data.replace('fastboot reboot', "\"%s\" -s %s reboot" % (self._config.fastboot, self.adb_id))
-
-            fin.close()
-            fin = open(os.path.join(package_dir_full, "flash-dry-run.bat"), "wt")
-            fin.write(data)
-            fin.close()
-
-            #
-            # delete flash-all.bat
-            #
-            os.remove(os.path.join(package_dir_full, "flash-all.bat"))
-
-            # Do this only if patch is checked.
-            if self._config.patch_boot:
-                # unzip image (we only need to unzip the full image if we cannot find 7zip)
-                # with 7zip we extract a single file, and then put it back later, without full unzip
-                startUnzip2 = time.time()
-                boot_img_folder = os.path.join(package_dir_full, image_id)
-                if path_to_7z:
-                    print("Extracting boot.img from %s ..." % (image_file))
-                    theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" boot.img" % (path_to_7z, package_dir_full, image_file_full)
-                    debug("%s" % theCmd)
-                    res = runShell(theCmd)
-                else:
-                    try:
-                        print("Extracting %s ..." % (image_file))
-                        with zipfile.ZipFile(image_file_full, 'r') as zip_ref:
-                            zip_ref.extractall(boot_img_folder)
-                    except Exception as e:
-                        del wait
-                        raise e
-                    # check if unpacked directory exists, move boot.img
-                    if os.path.exists(boot_img_folder):
-                        print("Unzipped into %s folder." %(boot_img_folder))
-                        src = os.path.join(boot_img_folder, "boot.img")
-                        dest = os.path.join(package_dir_full, "boot.img")
-                        os.rename(src, dest)
-                        os.rename(image_file_full, image_file_full + ".orig")
-                    else:
-                        print("ERROR: Unzipped folder %s not found." %(boot_img_folder))
-                        print("Aborting ...")
-                        del wait
-                        return
-                endUnzip2 = time.time()
-                print("Unzip time2: %s"%(endUnzip2 - startUnzip2,))
-
-                # delete existing boot.img
-                print("Deleting boot.img from phone in %s ..." % (self._config.phone_path))
-                theCmd = "\"%s\" -s %s shell rm -f %s/boot.img" % (self.adb, self.adb_id, self._config.phone_path)
-                res = runShell(theCmd)
-                # expect ret 0
-                if res.returncode != 0:
-                    print("ERROR: Encountered an error.")
-                    print(res.stderr)
-                    print("Aborting ...")
-                    del wait
-                    return
-
-                # check if delete worked.
-                print("Making sure boot.img is not on the phone in %s ..." % (self._config.phone_path))
-                theCmd = "\"%s\" -s %s shell ls -l %s/boot.img" % (self.adb, self.adb_id, self._config.phone_path)
-                res = runShell(theCmd)
-                # expect ret 1
-                if res.returncode != 1:
-                    print("ERROR: boot.img Delete Failed!")
-                    print(res.stdout)
-                    print("Aborting ...")
-                    del wait
-                    return
-
-                # delete existing magisk_patched.img
-                print("Deleting magisk_patched.img from phone in %s ..." % (self._config.phone_path))
-                theCmd = "\"%s\" -s %s shell rm -f %s/magisk_patched*.img" % (self.adb, self.adb_id, self._config.phone_path)
-                res = runShell(theCmd)
-                # expect ret 0
-                if res.returncode != 0:
-                    print("ERROR: Encountered an error.")
-                    print(res.stderr)
-                    print("Aborting ...")
-                    del wait
-                    return
-
-                # check if delete worked.
-                print("Making sure magisk_patched.img is not on the phone in %s ..." % (self._config.phone_path))
-                theCmd = "\"%s\" -s %s shell ls -l %s/magisk_patched*.img" % (self.adb, self.adb_id, self._config.phone_path)
-                res = runShell(theCmd)
-                # expect ret 1
-                if res.returncode != 1:
-                    print(res.stdout)
-                    print("ERROR: boot.img delete failed!")
-                    print("Aborting ...")
-                    del wait
-                    return
-
-                # Transfer boot.img to the phone
-                print("Transfering boot.img to the phone in %s ..." % (self._config.phone_path))
-                theCmd = "\"%s\" -s %s push \"%s\" %s/boot.img" % (self.adb, self.adb_id, os.path.join(package_dir_full, "boot.img"), self._config.phone_path)
-                debug("%s" % theCmd)
-                res = runShell(theCmd)
-                # expect ret 0
-                if res.returncode != 0:
-                    print("ERROR: Encountered an error.")
-                    print(res.stderr)
-                    print("Aborting ...")
-                    del wait
-                    return
-                else:
-                    print(res.stdout)
-
-                # check if transfer worked.
-                print("Making sure boot.img is found on the phone in %s ..." % (self._config.phone_path))
-                theCmd = "\"%s\" -s %s shell ls -l %s/boot.img" % (self.adb, self.adb_id, self._config.phone_path)
-                res = runShell(theCmd)
-                # expect 0
-                if res.returncode != 0:
-                    print("ERROR: boot.img is not found!")
-                    print(res.stderr)
-                    print("Aborting ...")
-                    del wait
-                    return
-
-                if not self.rooted:
-                    print("Magisk Tools not found on the phone")
-                    # Check to see if Magisk is installed
-                    print("Looking for Magisk app ...")
-                    theCmd = "\"%s\" -s %s shell pm list packages %s" % (self.adb, self.adb_id, self._config.magisk)
-                    res = runShell(theCmd)
-                    if res.stdout.strip() != "package:" + self._config.magisk:
-                        print("Unable to find magisk on the phone, perhaps it is hidden?")
-                        # Message to Launch Manually and Patch
-                        title = "Magisk not found"
-                        message =  "WARNING: Magisk is not found on the phone\n\n"
-                        message += "This could be either because it is hidden, or it is not installed\n\n"
-                        message += "Please manually launch Magisk on your phone.\n"
-                        message += "- Click on `Install` and choose\n"
-                        message += "- `Select and Patch a File`\n"
-                        message += "- select boot.img in %s \n" % self._config.phone_path
-                        message += "- Then hit `LET's GO`\n\n"
-                        message += "Click OK when done to continue.\n"
-                        message += "Hit CANCEL to abort."
-                        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                        result = dlg.ShowModal()
-                        if result == wx.ID_OK:
-                            print("User pressed ok.")
-                        else:
-                            print("User pressed cancel.")
-                            print("Aborting ...")
-                            del wait
-                            return
-                    else:
-                        print("Found Magisk app on the phone.")
-                        print("Launching Magisk ...")
-                        theCmd = "\"%s\" -s %s shell monkey -p %s -c android.intent.category.LAUNCHER 1" % (self.adb, self.adb_id, self._config.magisk)
-                        res = runShell(theCmd)
-                        if res.returncode != 0:
-                            print("ERROR: Magisk could not be launched")
-                            print(res.stderr)
-                            print("Please launch Magisk manually.")
-                        else:
-                            print("Magisk should now be running on the phone.")
-                        # Message Dialog Here to Patch Manually
-                        title = "Magisk found"
-                        message =  "Magisk should now be running on your phone.\n\n"
-                        message += "If it is not, you  can try starting in manually\n\n"
-                        message += "Please follow these steps in Magisk.\n"
-                        message += "- Click on `Install` and choose\n"
-                        message += "- `Select and patch a file`\n"
-                        message += "- select boot.img in %s \n" % self._config.phone_path
-                        message += "- Then hit `LET's GO`\n\n"
-                        message += "Click OK when done to continue.\n"
-                        message += "Hit CANCEL to abort."
-                        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                        result = dlg.ShowModal()
-                        if result == wx.ID_OK:
-                            print("User Pressed Ok.")
-                        else:
-                            print("User Pressed Cancel.")
-                            print("Aborting ...")
-                            del wait
-                            return
-                else:
-                    startPatch = time.time()
-                    print("Magisk Tools detected.")
-                    print("Creating patched boot.img ...")
-                    theCmd = "\"%s\" -s %s shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched.img\'\"" % (self.adb, self.adb_id)
-                    res = runShell2(theCmd)
-                    endPatch = time.time()
-                    print("Patch time: %s"%(endPatch - startPatch,))
-
-                # check if magisk_patched.img got created.
-                print("")
-                print("Looking for magisk_patched.img in %s ..." % (self._config.phone_path))
-                theCmd = "\"%s\" -s %s shell ls %s/magisk_patched*.img" % (self.adb, self.adb_id, self._config.phone_path)
-                res = runShell(theCmd)
-                # expect ret 0
-                if res.returncode == 1:
-                    print("ERROR: magisk_patched*.img not found")
-                    print(res.stderr)
-                    print("Aborting ...")
-                    del wait
-                    return
-                else:
-                    magisk_patched = res.stdout.strip()
-                    print("Found %s" %magisk_patched)
-
-                # Transfer back boot.img
-                print("Pulling %s from the phone ..." % (magisk_patched))
-                theCmd = "\"%s\" -s %s pull %s \"%s\""  % (self.adb, self.adb_id, magisk_patched, os.path.join(package_dir_full, "magisk_patched.img"))
-                debug("%s" % theCmd)
-                res = runShell(theCmd)
-                # expect ret 0
-                if res.returncode == 1:
-                    print("ERROR: Unable to pull magisk_patched.img from phone.")
-                    print(res.stderr)
-                    print("Aborting ...")
-                    del wait
-                    return
-
-                # Replace Boot.img and create a zip file
-                print("Replacing boot.img with patched version ...")
-                startZip = time.time()
-                if path_to_7z:
-                    # ren boot.img to boot.img.orig
-                    src = os.path.join(package_dir_full, "boot.img")
-                    dest = os.path.join(package_dir_full, "boot.img.orig")
-                    shutil.copy(src, dest, follow_symlinks=True)
-                    # copy magisk_patched to boot.img
-                    src = os.path.join(package_dir_full, "magisk_patched.img")
-                    dest = os.path.join(package_dir_full, "boot.img")
-                    shutil.copy(src, dest, follow_symlinks=True)
-                    theCmd = "\"%s\" a \"%s\" boot.img" % (path_to_7z, image_file_full)
-                    debug("%s" % theCmd)
-                    os.chdir(package_dir_full)
-                    res = runShell(theCmd)
-                    os.chdir(cwd)
-                else:
-                    src = os.path.join(package_dir_full, "magisk_patched.img")
-                    dest = os.path.join(package_dir_full, image_id, "boot.img")
-                    shutil.copy(src, dest, follow_symlinks=True)
-                    dir_name = os.path.join(self.firmware_id, image_id)
-                    dest = os.path.join(package_dir_full, image_file)
-                    print("")
-                    print("Zipping  %s ..." % dir_name)
-                    print("Please be patient as this is a slow process and could take some time.")
-                    shutil.make_archive(dir_name, 'zip', dir_name)
-                if os.path.exists(dest):
-                    print("Package is successfully created!")
-                    # create a marker file to confirm successful package creation, this will be checked by Flash command
-                    src = os.path.join(package_dir_full, "Package_Ready.json")
-                    package_ready(self, src)
-                    flash_button.Enable()
-                else:
-                    print("ERROR: Encountered an error while preparing the package.")
-                    print("Aborting ...")
-                endZip = time.time()
-                print("Zip time: %s"%(endZip - startZip,))
-            else:
-                print("Package is successfully created!")
-                src = os.path.join(package_dir_full, "Package_Ready.json")
-                package_ready(self, src)
-                flash_button.Enable()
-
-            end = time.time()
-            print("Total elapsed time: %s"%(end - start,))
+            prepare_package(self)
             del wait
 
-        # ---------------
-        # Flash Operation
-        # ---------------
-        def on_flash(event):
+        def _on_flash(event):
             wait = wx.BusyCursor()
-            src = os.path.join(self.firmware_id, "Package_Ready.json")
-            if os.path.exists(src):
-                # Load Package_Ready.json
-                with open(src, 'r') as f:
-                    data = json.load(f)
-                p_device = data['device']
-                p_patch_boot = data['patch_boot']
-                p_custom_rom = data['custom_rom']
-                p_custom_rom_path = data['custom_rom_path']
-                try:
-                    p_flash_options = data['flash_options']
-                    p_disable_verity = data['disable_verity']
-                    p_disable_verification = data['disable_verification']
-                    p_flash_both_slots = data['flash_both_slots']
-                except:
-                    p_flash_options = False
-                    p_disable_verity = False
-                    p_disable_verification = False
-                    p_flash_both_slots = False
-                title = "Package State"
-                message =  "WARNING: The prepared package is of the following state.\n\n"
-                message += "Patch Boot: %s\n" % p_patch_boot
-                message += "Custom Rom: %s\n" % p_custom_rom
-                message += "Flash Mode: %s\n" % self._config.flash_mode
-                if p_flash_options:
-                    message += "Flash Options: %s\n" % p_flash_options
-                    message += "Disable Verity: %s\n" % p_disable_verity
-                    message += "Disable Verification: %s\n" % p_disable_verification
-                    message += "Flash Both Slots: %s\n" % p_flash_both_slots
-                message += "\n"
-                message += "If this is what you want to flash\n"
-                message += "Press OK to continue.\n"
-                message += "or CANCEL to abort.\n"
-                print(message)
-                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                result = dlg.ShowModal()
-                if result == wx.ID_OK:
-                    print("User Pressed Ok.")
-                else:
-                    print("User Pressed Cancel.")
-                    print("Aborting ...")
-                    del wait
-                    return
-
-                if self.adb:
-                    if self.adb_id:
-                        # Make sure Phone model matches firmware model
-                        if self.firmware_model != self.adb_model:
-                            print("ERROR: Android device model %s does not match firmware Model %s" % (self.adb_model, self.firmware_model))
-                            return
-                        print("")
-                        print("==============================================================================")
-                        print(" PixelFlasher %s              Flashing Phone                                  " % __version__)
-                        print("==============================================================================")
-                        startFlash = time.time()
-                        # Reboot to bootloader
-                        print("Rebooting the phone into bootloader mode ...")
-                        theCmd = "\"%s\" -s %s reboot bootloader" % (self.adb, self.adb_id)
-                        res = runShell(theCmd)
-                        # expect ret 0
-                        if res.returncode != 0:
-                            # First check if the device is already in fastboot mode
-                            devices = getConnectedDevices(self, 'fastboot')
-                            if self.adb_id not in devices:
-                                print("ERROR: Encountered an error.")
-                                print(res.stderr)
-                                print("Aborting ...")
-                                return
-                        print(res.stdout)
-                        # Start flashing
-                        cwd = os.getcwd()
-                        if self._config.flash_mode == 'dryRun':
-                            print("Flash Mode: Dry Run")
-                            theCmd = os.path.join(cwd, self.firmware_id, "flash-dry-run.bat")
-                        elif self._config.flash_mode == 'keepData':
-                            print("Flash Mode: Keep Data")
-                            theCmd = os.path.join(cwd, self.firmware_id, "flash-keep-data.bat")
-                        elif self._config.flash_mode == 'wipeData':
-                            print("Flash Mode: Wipe Data")
-                            dlg = wx.MessageDialog(None, "You have selected to WIPE data\nAre you sure want to continue?",'Wipe Data',wx.YES_NO | wx.ICON_EXCLAMATION)
-                            result = dlg.ShowModal()
-                            if result == wx.ID_YES:
-                                pass
-                            else:
-                                print("User canceled flashing.")
-                                return
-                            theCmd = os.path.join(cwd, self.firmware_id, "flash-wipe-data.bat")
-                        else:
-                            print("Flash Mode: UNKNOWN [%s]" % self._config.flash_mode)
-                            print("Aborting ...")
-                            return
-                        os.chdir(self.firmware_id)
-                        theCmd = "\"%s\"" % theCmd
-                        runShell2(theCmd)
-                        print("Done!")
-                        endFlash = time.time()
-                        print("Flashing elapsed time: %s"%(endFlash - startFlash,))
-                        os.chdir(cwd)
-                    else:
-                        print("ERROR: You must first select a valid adb device.")
-                else:
-                    print("ERROR: Android Platform Tools must be set.")
-            else:
-                print("ERROR: You must first prepare a patched firmware package.")
-                print("       Press the `Prepare Package` Button!")
-                print("")
+            flash_phone(self)
             del wait
 
-        # ---------------
-        # Clear Operation
-        # ---------------
-        def on_clear(event):
+        def _on_clear(event):
             self.console_ctrl.SetValue("")
 
 
         # ==============
         # UI Setup Here
         # ==============
-        self.SetSize(self._config.width, self._config.height)
         panel = wx.Panel(self)
+        hbox = wx.BoxSizer(wx.VERTICAL)
 
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        NUMROWS = 15
+        fgs1 = wx.FlexGridSizer(NUMROWS, 2, 10, 10)
 
-        # 10 rows, 2 columns, 10 hgap, 10 vgap
-        fgs = wx.FlexGridSizer(12, 2, 10, 10)
+        # 1st row widgets
+        firmware_label = wx.StaticText(panel, label=u"Pixel Phone Factory Image")
+        self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
 
-        self.choice = wx.Choice(panel, choices=getConnectedDevices(self, 'adb'))
-        self.choice.SetFont( wx.Font( 9, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Consolas" ) )
+        # 2nd row widgets
+        self.platform_tools_label = wx.StaticText(panel, label=u"Android Platform Tools")
+        self.platform_tools_picker = wx.DirPickerCtrl(panel, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
+        self.platform_tools_picker.SetToolTip(u"Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
 
-        self.choice.Bind(wx.EVT_CHOICE, on_select_device)
-        self._select_configured_device()
+        # 3rd row widgets
+        self.device_label = wx.StaticText(panel, label=u"ADB Connected Devices")
+        self.device_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, [], 0 )
+        self.device_choice.SetSelection(0)
+        self.device_choice.SetFont( wx.Font( 9, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Consolas" ) )
+        reload_button = wx.Button(panel, label=u"Reload")
+        reload_button.SetToolTip(u"Reload adb device list")
+        device_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        device_sizer.Add(self.device_choice, 1, wx.EXPAND)
+        device_sizer.Add(reload_button, flag=wx.LEFT, border=10)
 
-        reload_button = wx.Button(panel, label="Reload")
-        reload_button.Bind(wx.EVT_BUTTON, on_reload)
-        reload_button.SetToolTip("Reload adb device list")
+        # 4th row
+        active_slot_sizer = wx.BoxSizer( wx.HORIZONTAL )
+        self.a_radio_button = wx.RadioButton( panel, wx.ID_ANY, u"A", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.b_radio_button = wx.RadioButton( panel, wx.ID_ANY, u"B", wx.DefaultPosition, wx.DefaultSize, 0 )
+        active_slot_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+        active_slot_sizer.Add( self.a_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5 )
+        active_slot_sizer.Add( self.b_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5 )
+        self.reboot_recovery_button = wx.Button( panel, wx.ID_ANY, u" Reboot to Recovery  ", wx.DefaultPosition, wx.DefaultSize, 0 )
+        reboot_system_button = wx.Button( panel, wx.ID_ANY, u"Reboot to System", wx.DefaultPosition, wx.DefaultSize, 0 )
+        reboot_bootloader_button = wx.Button( panel, wx.ID_ANY, u"Reboot to Bootloader", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.set_active_slot_button = wx.Button( panel, wx.ID_ANY, u"Set Active Slot", wx.DefaultPosition, wx.DefaultSize, 0 )
+        reboot_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        reboot_sizer.Add(self.set_active_slot_button, 1, wx.EXPAND)
+        reboot_sizer.Add(self.reboot_recovery_button, 1, wx.EXPAND)
+        reboot_sizer.Add(reboot_system_button, 1, wx.EXPAND)
+        reboot_sizer.Add(reboot_bootloader_button, 1, wx.EXPAND)
+        reboot_sizer.Add( ( 120, 0), 0, wx.EXPAND, 5 )
 
-        file_picker = wx.FilePickerCtrl(panel, style=wx.FLP_USE_TEXTCTRL)
-        file_picker.Bind(wx.EVT_FILEPICKER_CHANGED, on_select_firmware)
-        file_picker.SetToolTip("Select Pixel Firmware")
-        if self._config.firmware_path:
-            if os.path.exists(self._config.firmware_path):
-                file_picker.SetPath(self._config.firmware_path)
-                firmware = ntpath.basename(self._config.firmware_path)
-                firmware = firmware.split("-")
-                try:
-                    self.firmware_model = firmware[0]
-                    self.firmware_id = firmware[0] + "-" + firmware[1]
-                except Exception as e:
-                    self.firmware_model = None
-                    self.firmware_id = None
+        # 5th row, empty row, static line
+        self.staticline1 = wx.StaticLine( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        self.staticline2 = wx.StaticLine( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        self.staticline2.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_HIGHLIGHT ) )
 
-        self.dir_picker = wx.DirPickerCtrl(panel, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
-        self.dir_picker.Bind(wx.EVT_DIRPICKER_CHANGED, on_select_platform_tools)
-        self.dir_picker.SetToolTip("Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
-        if self._config.platform_tools_path and self.adb and self._config.fastboot:
-            self.dir_picker.SetPath(self._config.platform_tools_path)
+        # 6th row widgets, custom_rom
+        self.custom_rom_checkbox = wx.CheckBox( panel, wx.ID_ANY, u"Apply Custom ROM", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.custom_rom_checkbox.SetValue(self.config.custom_rom)
+        self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
+        self.custom_rom = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"ROM files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
+        self.custom_rom.SetToolTip(u"Select Custom ROM")
 
-        device_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
-        device_boxsizer.Add(self.choice, 1, wx.EXPAND)
-        device_boxsizer.Add(reload_button, flag=wx.LEFT, border=10)
-
-        custom_rom_checkbox = wx.CheckBox( panel, wx.ID_ANY, u"Apply Custom ROM", wx.DefaultPosition, wx.DefaultSize, 0 )
-        custom_rom_checkbox.Bind( wx.EVT_CHECKBOX, on_custom_rom )
-        custom_rom_checkbox.SetValue(self._config.custom_rom)
-        custom_rom_checkbox.SetToolTip("Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
-
-        custom_rom = wx.FilePickerCtrl(panel, style=wx.FLP_USE_TEXTCTRL)
-        custom_rom.Bind(wx.EVT_FILEPICKER_CHANGED, on_select_custom_rom)
-        custom_rom.SetToolTip("Select Custom ROM")
-        if self._config.custom_rom_path:
-            if os.path.exists(self._config.custom_rom_path):
-                custom_rom.SetPath(self._config.custom_rom_path)
-                self.custom_rom_id = os.path.splitext(ntpath.basename(self._config.custom_rom_path))[0]
-        if self._config.custom_rom:
-            custom_rom.Enable()
-        else:
-            custom_rom.Disable()
-
+        # 7th row widgets
         patch_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Patch boot.img\nusing Magisk", wx.DefaultPosition, wx.DefaultSize, 0 )
-        patch_checkBox.Bind( wx.EVT_CHECKBOX, on_patch_boot )
-        patch_checkBox.SetValue(self._config.patch_boot)
-        patch_checkBox.SetToolTip("This requires Magisk installed on the phone")
-
-        mode_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
-        mode = self._config.flash_mode
-        # add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
-        add_mode_radio_button(mode_boxsizer, 0, 'keepData', "Keep Data", "Data will be kept intact.")
-        add_mode_radio_button(mode_boxsizer, 1, 'wipeData', "WIPE all data", "CAUTION: This will wipe your data")
-        add_mode_radio_button(mode_boxsizer, 2, 'dryRun', "Dry Run", "Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
-
-        # flash options
-        self.flash_both_slots_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Flash on both slots", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.flash_both_slots_checkBox.Bind( wx.EVT_CHECKBOX, on_flash_both_slots )
-        self.flash_both_slots_checkBox.SetValue(self._config.flash_both_slots)
-
-        self.disable_verity_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Disable Verity", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.disable_verity_checkBox.Bind( wx.EVT_CHECKBOX, on_disable_verity )
-        self.disable_verity_checkBox.SetValue(self._config.disable_verity)
-
-        self.disable_verification_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Disable Verification", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.disable_verification_checkBox.Bind( wx.EVT_CHECKBOX, on_disable_verification )
-        self.disable_verification_checkBox.SetValue(self._config.disable_verification)
-
-        # enable / disable flash_options
-        if self._config.flash_options:
-            self.flash_both_slots_checkBox.Enable()
-            self.disable_verity_checkBox.Enable()
-            self.disable_verification_checkBox.Enable()
-        else:
-            self.flash_both_slots_checkBox.Disable()
-            self.disable_verity_checkBox.Disable()
-            self.disable_verification_checkBox.Disable()
-
-        # Add the checkbox for flash to all slots
-        flash_options_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
-        flash_options_boxsizer.Add(self.flash_both_slots_checkBox)
-        flash_options_boxsizer.AddSpacer(10)
-
-        flash_options_boxsizer.Add(self.disable_verity_checkBox)
-        flash_options_boxsizer.AddSpacer(10)
-
-        flash_options_boxsizer.Add(self.disable_verification_checkBox)
-        flash_options_boxsizer.AddSpacer(10)
-
-        flash_button = wx.Button(panel, -1, "Flash Pixel Phone", wx.DefaultPosition, wx.Size( -1,50 ))
-        flash_button.Bind(wx.EVT_BUTTON, on_flash)
-        flash_button.SetToolTip("Flashes (with Flash Mode Settings) the selected phone with the prepared Image.")
-        if self.firmware_id:
-            if os.path.exists(os.path.join(self.firmware_id, "Package_Ready.json")):
-                flash_button.Enable()
-            else:
-                flash_button.Disable()
-
+        patch_checkBox.SetValue(self.config.patch_boot)
+        patch_checkBox.SetToolTip(u"This requires Magisk installed on the phone")
         prepare_button = wx.Button(panel, -1, "Prepare Package", wx.DefaultPosition, wx.Size( -1,50 ))
-        prepare_button.Bind(wx.EVT_BUTTON, on_prepare)
-        prepare_button.SetToolTip("Prepares a Patched Factory Image for later Flashing")
+        prepare_button.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
+        prepare_button.SetToolTip(u"Prepares a Patched Factory Image for later Flashing")
 
+        # 8th row, empty row, static line
+        self.staticline3 = wx.StaticLine( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        self.staticline4 = wx.StaticLine( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
 
+        # 9th row widgets
+        mode_label = wx.StaticText(panel, label=u"Flash Mode")
+        mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # _add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
+        _add_mode_radio_button(mode_sizer, 0, 'keepData', "Keep Data", "Data will be kept intact.")
+        _add_mode_radio_button(mode_sizer, 1, 'wipeData', "WIPE all data", "CAUTION: This will wipe your data")
+        _add_mode_radio_button(mode_sizer, 2, 'dryRun', "Dry Run", "Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
+        _add_mode_radio_button(mode_sizer, 3, 'customFlash', "Custom Flash", "Custom Flash, Advanced option to flash a single file.\nThis will not flash the prepared package.\It will flash the single selected file.")
+
+        # 10th row widgets (custom flash)
+        custom_advanced_options_sizer = wx.BoxSizer( wx.HORIZONTAL )
+        self.live_boot_radio_button = wx.RadioButton( panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, wx.RB_GROUP )
+        self.live_boot_radio_button.Enable( False )
+        self.live_boot_radio_button.SetToolTip( u"Live Boot to selected boot.img" )
+        self.flash_radio_button = wx.RadioButton( panel, wx.ID_ANY, u"Flash", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.flash_radio_button.SetValue( True )
+        self.flash_radio_button.Enable( False )
+        self.flash_radio_button.SetToolTip( u"Flashes the selected boot.img" )
+        custom_advanced_options_sizer.Add( self.live_boot_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 0 )
+        custom_advanced_options_sizer.Add( self.flash_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 0 )
+        # 2nd column
+        custom_flash_sizer = wx.BoxSizer( wx.HORIZONTAL )
+        image_choices = [ u"boot", u"vbmeta", u"recovery", u"radio", u"bootloader", u"dtbo", u"vendor", u"vendor_dlkm", u"image" ]
+        self.image_choice = wx.Choice( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, image_choices, 0 )
+        self.image_choice.SetSelection( 0 )
+        custom_flash_sizer.Add( self.image_choice, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5 )
+        self.image_file_picker = wx.FilePickerCtrl( panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Flashable files (*.img;*.zip)|*.img;*.zip", wx.DefaultPosition, wx.DefaultSize, wx.FLP_USE_TEXTCTRL )
+        custom_flash_sizer.Add( self.image_file_picker, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 0 )
+
+        # 11th row widgets, Flash options
+        self.advanced_options_label = wx.StaticText(panel, label=u"Flash Options")
+        self.flash_both_slots_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Flash on both slots", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.disable_verity_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Disable Verity", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.disable_verification_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Disable Verification", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.advanced_options_sizer.Add(self.flash_both_slots_checkBox)
+        self.advanced_options_sizer.AddSpacer(10)
+        self.advanced_options_sizer.Add(self.disable_verity_checkBox)
+        self.advanced_options_sizer.AddSpacer(10)
+        self.advanced_options_sizer.Add(self.disable_verification_checkBox)
+        self.advanced_options_sizer.AddSpacer(10)
+
+        # 12th row widgets, Flash button
+        self.flash_button = wx.Button(panel, -1, "Flash Pixel Phone", wx.DefaultPosition, wx.Size( -1,50 ))
+        self.flash_button.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
+        self.flash_button.SetToolTip(u"Flashes (with Flash Mode Settings) the selected phone with the prepared Image.")
+
+        # 13th row, empty row, static line
+        self.staticline5 = wx.StaticLine( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        self.staticline6 = wx.StaticLine( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+
+        # 14th row widgets, console
+        console_label = wx.StaticText(panel, label=u"Console")
         self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY )
         self.console_ctrl.SetFont(wx.Font(8, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         self.console_ctrl.SetBackgroundColour(wx.WHITE)
         self.console_ctrl.SetForegroundColour(wx.BLUE)
         self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
-        device_label = wx.StaticText(panel, label="ADB Connected Devices")
-        file_label = wx.StaticText(panel, label="Pixel Phone Factory Image")
-        self.platform_tools_label = wx.StaticText(panel, label="Android Platform Tools")
-        if self.adb_version:
-            self.platform_tools_label.SetLabel("Android Platform Tools\nVersion %s" % self.adb_version)
-
-        mode_label = wx.StaticText(panel, label="Flash Mode")
-        flash_options_label = wx.StaticText(panel, label="Flash Options")
-        console_label = wx.StaticText(panel, label="Console")
-
-        clear_button = wx.Button(panel, -1, "Clear Console")
-        clear_button.Bind(wx.EVT_BUTTON, on_clear)
-
+        # 15th row widgets, verbose and clear button
         self.verbose_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.verbose_checkBox.Bind(wx.EVT_CHECKBOX, on_verbose)
-        try:
-            self.verbose_checkBox.SetValue(self._config.verbose)
-        except:
-            pass
-        self.verbose_checkBox.SetToolTip("Enable Verbose Messages")
-        global verbose
-        try:
-            verbose = self._config.verbose
-        except:
-            pass
+        self.verbose_checkBox.SetToolTip(u"Enable Verbose Messages")
+        clear_button = wx.Button(panel, -1, "Clear Console")
 
-        fgs.AddMany([
-                    file_label, (file_picker, 1, wx.EXPAND),
-                    self.platform_tools_label, (self.dir_picker, 1, wx.EXPAND),
-                    device_label, (device_boxsizer, 1, wx.EXPAND),
-                    (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
-                    custom_rom_checkbox, (custom_rom, 1, wx.EXPAND),
-                    patch_checkBox, (prepare_button, 1, wx.EXPAND),
-                    mode_label, mode_boxsizer,
-                    flash_options_label, flash_options_boxsizer,
-                    (wx.StaticText(panel, label="")), (flash_button, 1, wx.EXPAND),
+        # add the rows to flexgrid
+        fgs1.AddMany([
+                    (firmware_label, 0, wx.ALIGN_CENTER_VERTICAL, 5 ), (self.firmware_picker, 1, wx.EXPAND),
+                    (self.platform_tools_label, 0, wx.ALIGN_CENTER_VERTICAL, 5 ), (self.platform_tools_picker, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (self.device_label, 0, wx.ALIGN_CENTER_VERTICAL, 5 ), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (active_slot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5 ), (reboot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
+                    self.staticline1, (self.staticline2, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20 ),
+                    (self.custom_rom_checkbox, 0, wx.ALIGN_CENTER_VERTICAL, 5 ), (self.custom_rom, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (patch_checkBox, 0, wx.ALIGN_CENTER_VERTICAL, 5 ), (prepare_button, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
+                    self.staticline3, (self.staticline4, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20 ),
+                    (mode_label, 0, wx.ALIGN_CENTER_VERTICAL, 5 ), (mode_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (custom_advanced_options_sizer, 0, wx.ALIGN_CENTER_VERTICAL, 5 ), (custom_flash_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    self.advanced_options_label, self.advanced_options_sizer,
+                    (wx.StaticText(panel, label="")), (self.flash_button, 1, wx.EXPAND),
+                    # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
+                    self.staticline5, (self.staticline6, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20 ),
                     (console_label, 1, wx.EXPAND), (self.console_ctrl, 1, wx.EXPAND),
                     (self.verbose_checkBox), (clear_button, 1, wx.EXPAND)])
-        fgs.AddGrowableRow(9, 1)
-        fgs.AddGrowableCol(1, 1)
-        hbox.Add(fgs, proportion=2, flag=wx.ALL | wx.EXPAND, border=15)
+        # this makes the second column expandable (index starts at 0)
+        fgs1.AddGrowableCol(1, 1)
+        # this makes the console row expandable (index starts at 0)
+        fgs1.AddGrowableRow(NUMROWS - 2, 1)
+
+        # add flexgrid to hbox
+        hbox.Add(fgs1, proportion=2, flag=wx.ALL | wx.EXPAND, border=15)
+
+        # set the panel
         panel.SetSizer(hbox)
+
+        # Connect Events
+        self.device_choice.Bind(wx.EVT_CHOICE, _on_select_device)
+        reload_button.Bind(wx.EVT_BUTTON, _on_reload)
+        self.firmware_picker.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_firmware)
+        self.platform_tools_picker.Bind(wx.EVT_DIRPICKER_CHANGED, _on_select_platform_tools)
+        self.custom_rom_checkbox.Bind( wx.EVT_CHECKBOX, _on_custom_rom )
+        self.custom_rom.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_custom_rom)
+        self.disable_verification_checkBox.Bind( wx.EVT_CHECKBOX, _on_disable_verification )
+        patch_checkBox.Bind( wx.EVT_CHECKBOX, _on_patch_boot )
+        prepare_button.Bind(wx.EVT_BUTTON, _on_prepare)
+        self.flash_both_slots_checkBox.Bind( wx.EVT_CHECKBOX, _on_flash_both_slots )
+        self.disable_verity_checkBox.Bind( wx.EVT_CHECKBOX, _on_disable_verity )
+        self.flash_button.Bind(wx.EVT_BUTTON, _on_flash)
+        self.verbose_checkBox.Bind(wx.EVT_CHECKBOX, _on_verbose)
+        clear_button.Bind(wx.EVT_BUTTON, _on_clear)
+        self.reboot_recovery_button.Bind(wx.EVT_BUTTON, _on_reboot_recovery)
+        reboot_system_button.Bind(wx.EVT_BUTTON, _on_reboot_system)
+        reboot_bootloader_button.Bind(wx.EVT_BUTTON, _on_reboot_bootloader)
+        self.set_active_slot_button.Bind(wx.EVT_BUTTON, _on_set_active_slot)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_SIZE, self._on_resize)
+        self.image_file_picker.Bind( wx.EVT_FILEPICKER_CHANGED, _on_image_select )
+        self.image_choice.Bind( wx.EVT_CHOICE, _on_image_choice )
 
+        # initial setup
+        self.SetSize(self.config.width, self.config.height)
 
-# ============================================================================
-#                               Function checkPlatformTools
-# ============================================================================
-def checkPlatformTools(cls):
-    if cls._config.platform_tools_path:
-        cls.adb = os.path.join(cls._config.platform_tools_path, "adb.exe")
-        cls._config.fastboot = os.path.join(cls._config.platform_tools_path, "fastboot.exe")
-        if os.path.exists(cls._config.fastboot) and os.path.exists(cls.adb):
-            cls.adb = os.path.join(cls._config.platform_tools_path, "adb.exe")
-            cls._config.fastboot = os.path.join(cls._config.platform_tools_path, "fastboot.exe")
-            cls.adb_version = getAdbVerison(cls)
-            return
+        # Populate device list
+        self.device_choice.AppendItems(get_connected_devices())
+
+        # select configured device
+        _select_configured_device(self)
+        device_tooltip = '''[root status] [device mode] [device id] [device model] [device firmware]
+
+✓ Rooted with Magisk.
+✗ Probably Not Root (Magisk Tools not found).
+?  Unable to determine the root status.
+
+(adb) device is in adb mode
+(f.b) device is in fastboot mode
+'''
+        self.device_choice.SetToolTip(device_tooltip)
+
+        # extract firmware info
+        if self.config.firmware_path:
+            if os.path.exists(self.config.firmware_path):
+                self.firmware_picker.SetPath(self.config.firmware_path)
+                firmware = ntpath.basename(self.config.firmware_path)
+                firmware = firmware.split("-")
+                try:
+                    set_firmware_model(firmware[0])
+                    set_firmware_id(firmware[0] + "-" + firmware[1])
+                except Exception as e:
+                    set_firmware_model(None)
+                    set_firmware_id(None)
+
+        # load platform tools value
+        if self.config.platform_tools_path and get_adb() and get_fastboot():
+            self.platform_tools_picker.SetPath(self.config.platform_tools_path)
+
+        # if adb is found, display the version
+        if get_sdk_version():
+            self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+
+        # load custom_rom settings
+        if self.config.custom_rom_path:
+            if os.path.exists(self.config.custom_rom_path):
+                self.custom_rom.SetPath(self.config.custom_rom_path)
+                set_custom_rom_id(os.path.splitext(ntpath.basename(self.config.custom_rom_path))[0])
+        if self.config.custom_rom:
+            self.custom_rom.Enable()
         else:
-            print("ERROR: The selected path %s does not have adb and or fastboot" % cls._config.platform_tools_path)
-            cls._config.platform_tools_path = None
-            cls.adb = None
-            cls._config.fastboot = None
+            self.custom_rom.Disable()
 
-    if not cls._config.platform_tools_path:
-        print("Looking for Android Platform Tools in system PATH environment ...")
-        adb = which("adb.exe")
-        if adb:
-            folder_path = os.path.dirname(adb)
-            print("Found Android Platform Tools in %s" % folder_path)
-            cls.adb = os.path.join(folder_path, "adb.exe")
-            cls._config.fastboot = os.path.join(folder_path, "fastboot.exe")
-            if os.path.exists(cls._config.fastboot):
-                cls._config.platform_tools_path = folder_path
+        # set the flash mode
+        mode = self.config.flash_mode
+
+        # set flash option
+        self.flash_both_slots_checkBox.SetValue(self.config.flash_both_slots)
+        self.disable_verity_checkBox.SetValue(self.config.disable_verity)
+        self.disable_verification_checkBox.SetValue(self.config.disable_verification)
+
+        # enable / disable advanced_options
+        set_advanced_options(self.config.advanced_options)
+        if self.config.advanced_options:
+            self._advanced_options_hide(False)
+        else:
+            self._advanced_options_hide(True)
+
+        # enable / disable flash button
+        if get_firmware_id():
+            if os.path.exists(os.path.join(get_firmware_id(), "Package_Ready.json")):
+                self.flash_button.Enable()
             else:
-                cls._config.platform_tools_path = None
-                cls.adb = None
-                cls._config.fastboot = None
-        else:
-            print("Android Platform Tools is not found.")
-    try:
-        if cls._config.platform_tools_path:
-            cls.dir_picker.SetPath(cls._config.platform_tools_path)
-        else:
-            cls.dir_picker.SetPath('')
-    except:
-        pass
-    cls.adb_version = getAdbVerison(cls)
+                self.flash_button.Disable()
 
+        # load verbose settings
+        if self.config.verbose:
+            self.verbose_checkBox.SetValue(self.config.verbose)
+            set_verbose(self.config.verbose)
 
-# ============================================================================
-#                               Function getAdbVerison
-# ============================================================================
-def getAdbVerison(cls):
-    adb_version = None
-    # Let's grab the adb version
-    if cls.adb:
-        theCmd = "\"%s\" --version" % cls.adb
-        response = runShell(theCmd)
-        for line in response.stdout.split('\n'):
-            if 'Version' in line:
-                adb_version = line.split()[1]
-                print("Found ADB Version: %s in %s" % (adb_version, cls._config.platform_tools_path))
+        # get the image choice and update UI
+        set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
+        self._update_custom_flash_options()
 
-    return adb_version
-
-
-# ============================================================================
-#                               Function getConnectedDevices
-# ============================================================================
-def getConnectedDevices(cls, mode):
-    devices = []
-    if cls.adb:
-        wait = wx.BusyCursor()
-        if mode == 'adb':
-            theCmd = "\"%s\" devices" % cls.adb
-            lookFor = '\tdevice'
-        elif mode == 'fastboot':
-            theCmd =  "\"%s\" devices" % cls._config.fastboot
-            lookFor = '\tfastboot'
-        else:
-            print("ERROR: Unknown device mode: [%s]" % mode)
-            return devices
-        response = runShell2(theCmd)
-
-        #iterate through the output and select only the devices that are online
-        # Split on newline
-        for device in response.stdout.split('\n'):
-            # Look for tab + device to exclude 'List of devices attached' string
-            if lookFor in device:
-                # split on tab
-                deviceID = device.split("\t")
-                # get adb info about the device
-                if mode == 'adb':
-                    if cls._config.platform_tools_path:
-                        theCmd = "\"%s\" -s %s shell getprop ro.hardware" % (cls.adb, deviceID[0])
-                        hardware = runShell(theCmd)
-                        # remove any whitespace including tab and newline
-                        hardware = ''.join(hardware.stdout.split())
-                        theCmd = "\"%s\" -s %s shell getprop ro.build.fingerprint" % (cls.adb, deviceID[0])
-                        fingerprint = runShell(theCmd)
-                        # remove any whitespace including tab and newline
-                        fingerprint = ''.join(fingerprint.stdout.split())
-                        build = fingerprint.split('/')[3]
-                        # See if magisk tools is installed
-                        theCmd = "\"%s\" -s %s shell \"su -c \'ls -l /data/adb/magisk/\'\"" % (cls.adb, deviceID[0])
-                        res = runShell(theCmd)
-                        # expect ret 0
-                        if res.returncode == 0:
-                            magiskTools = '✓'
-                        else:
-                            magiskTools = '✗'
-                    else:
-                        print("Error: ADB is not found in system path")
-                    # Format with padding
-                    devices.append("{:<4}{:<25}{:<12}{:<25}".format(magiskTools, deviceID[0], hardware, build))
-                else:
-                    devices.append(deviceID[0])
-        del wait
-    return devices
-
-
-# ============================================================================
-#                               Function package_ready
-# ============================================================================
-def package_ready(self, file_path):
-    data = {
-        'device': self._config.device,
-        'patch_boot': self._config.patch_boot,
-        'custom_rom': self._config.custom_rom,
-        'custom_rom_path': self._config.custom_rom_path,
-    }
-    if self._config.flash_options:
-        data['flash_options'] = self._config.flash_options
-        data['disable_verity'] = self._config.disable_verity
-        data['disable_verification'] = self._config.disable_verification
-        data['flash_both_slots'] = self._config.flash_both_slots
-
-    with open(file_path, 'w') as f:
-        json.dump(data, f, indent=4)
-
-
-# ============================================================================
-#                               Function purge
-# ============================================================================
-# This function delete multiple files matching a pattern
-def purge(dir, pattern):
-    for f in os.listdir(dir):
-        if re.search(pattern, f):
-            os.remove(os.path.join(dir, f))
-
-
-# ============================================================================
-#                               Function debug
-# ============================================================================
-# We use this when we want to capture the returncode and also selectively
-# output what we want to console. Nothing is sent to console, both stdout and
-# stderr are only available when the call is completed.
-def debug(message):
-    if verbose:
-        print("debug: %s" % message)
-
-
-# ============================================================================
-#                               Function RunShell
-# ============================================================================
-# We use this when we want to capture the returncode and also selectively
-# output what we want to console. Nothing is sent to console, both stdout and
-# stderr are only available when the call is completed.
-def runShell(cmd):
-    try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        return response
-    except Exception as e:
-        raise e
-
-
-# ============================================================================
-#                               Function RunShell2
-# ============================================================================
-# This one pipes the stdout and stderr to Console text widget in realtime,
-# no returncode is available.
-def runShell2(cmd):
-    class obj(object):
-        pass
-
-    response = obj()
-    proc = subprocess.Popen("%s" % cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    print
-    stdout = ''
-    while True:
-        line = proc.stdout.readline()
-        wx.Yield()
-        if line.strip() == "":
-            pass
-        else:
-            print(line.strip())
-            stdout += line
-        if not line: break
-    proc.wait()
-    response.stdout = stdout
-    return response
-
-
-# ============================================================================
-#                               Function resource_path
-# ============================================================================
-# https://stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
-
-
-# ============================================================================
-#                               Function Which
-# ============================================================================
-def which(program):
-    import os
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    return None
-
+        # Update UI
+        self.Layout()
 
 # ============================================================================
 #                               Class App
@@ -1458,10 +779,9 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
         self.SetAppName("PixelFlasher")
 
         frame = PixelFlasher(None, "PixelFlasher")
-        # frame.SetClientSize(frame.FromDIP(wx.Size(__width__, __height__)))
-        # frame.SetClientSize(wx.Size(__width__, __height__))
+        # frame.SetClientSize(frame.FromDIP(wx.Size(WIDTH, HEIGHT)))
+        # frame.SetClientSize(wx.Size(WIDTH, HEIGHT))
         frame.Show()
-
         return True
 
 
@@ -1470,10 +790,13 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
 # ============================================================================
 def main():
     app = App(False)
+    # For troubleshooting, uncomment next line to launch WIT
+    # wx.lib.inspection.InspectionTool().Show()
+
     app.MainLoop()
 
 
-# ---------------------------------------------------------------------------3
+# ---------------------------------------------------------------------------
 if __name__ == '__main__':
     __name__ = 'Main'
     main()

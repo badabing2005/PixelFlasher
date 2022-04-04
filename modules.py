@@ -735,8 +735,8 @@ def flash_phone(self):
     message = ''
 
     # if advanced options is set, and we have flash options ...
+    fastboot_options = ''
     if self.config.advanced_options:
-        fastboot_options = ''
         if self.config.flash_both_slots:
             fastboot_options += '--slot all '
         if self.config.disable_verity:

@@ -41,8 +41,7 @@ locale.setlocale(locale.LC_ALL, 'C')
 class RedirectText():
     def __init__(self,aWxTextCtrl):
         self.out=aWxTextCtrl
-        cwd = os.getcwd()
-        logfile = os.path.join(cwd, "PixelFlasher.log")
+        logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
         self.logfile = open(logfile, "w")
         set_logfile(logfile)
 
@@ -59,7 +58,9 @@ class RedirectText():
 # ============================================================================
 class PixelFlasher(wx.Frame):
     def __init__(self, parent, title):
-        self.config = Config.load(self._get_config_file_path())
+        init_config_path()
+        config_file = get_config_file_path()
+        self.config = Config.load(config_file)
         set_magisk_package(self.config.magisk)
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
                           style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
@@ -76,22 +77,47 @@ class PixelFlasher(wx.Frame):
         self.Centre(wx.BOTH)
         self.Show(True)
 
+        #------------------------------------
         # stuff after the window is displayed
         print(f"PixelFlasher {VERSION} started on {datetime.now():%Y-%m-%d %H:%M:%S}")
-        if os.path.exists(get_config_path()):
+        if os.path.exists(config_file):
             try:
-                with open(get_config_path(), 'r') as f:
+                with open(config_file, 'r') as f:
                     data = json.load(f)
                     f.close()
             except Exception as e:
                 print(e)
                 pass
-            debug(f"Loading configuration file: {get_config_path()} ...")
+            debug(f"Loading configuration file: {config_file} ...")
             debug(f"{json.dumps(data, indent=4, sort_keys=True)}")
 
         # set the state of flash button.
         set_flash_button_state(self)
         self._update_custom_flash_options()
+
+        # print sdk path / version
+        print(f"Android Platform Tools: {self.config.platform_tools_path}")
+        print(f"SDK Version: {get_sdk_version()}")
+
+        # print selected device.
+        device = get_phone()
+        if device:
+            print(f"Selected Device:")
+            print(f"    Device ID:          {device.id}")
+            print(f"    Device Model:       {device.hardware}")
+            print(f"    Device is Rooted:   {device.rooted}")
+            print(f"    Device Build:       {device.build}")
+            print(f"    Device Active Slot: {device.active_slot}")
+            print(f"    Device Mode:        {device.mode}")
+            if device.unlocked:
+                print(f"    Device Unlocked:{device.magisk_version}")
+            if device.rooted:
+                print(f"    Magisk Version:     {device.magisk_version}")
+            else:
+                print('')
+        else:
+            print("No device is selected.")
+
 
     def _set_icons(self):
         self.SetIcon(images.Icon.GetIcon())
@@ -125,7 +151,7 @@ class PixelFlasher(wx.Frame):
         self.SetMenuBar(self.menuBar)
 
     def _on_close(self, event):
-        self.config.save(self._get_config_file_path())
+        self.config.save(get_config_file_path())
         wx.Exit()
 
     def _on_resize(self, event):
@@ -135,7 +161,7 @@ class PixelFlasher(wx.Frame):
 
     # Menu methods
     def _on_exit_app(self, event):
-        self.config.save(self._get_config_file_path())
+        self.config.save(get_config_file_path())
         self.Close(True)
 
     def _on_help_about(self, event):
@@ -260,11 +286,6 @@ class PixelFlasher(wx.Frame):
         except:
             pass
 
-    @staticmethod
-    def _get_config_file_path():
-        config_path = os.path.join(wx.StandardPaths.Get().GetUserConfigDir(), 'PixelFlasher.json').strip()
-        set_config_path(config_path)
-        return config_path
 
     #-----------------------------------------------------------------------------
     #                                   _init_ui
@@ -364,23 +385,30 @@ class PixelFlasher(wx.Frame):
                 print("Please set Android Platform Tools Path first.")
 
         def _on_select_platform_tools(event):
+            wait = wx.BusyCursor()
             self.config.platform_tools_path = event.GetPath().replace("'", "")
             check_platform_tools(self)
             if get_sdk_version():
                 self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
             else:
                 self.platform_tools_label.SetLabel("Android Platform Tools")
+            del wait
 
         def _on_select_firmware(event):
             self.config.firmware_path = event.GetPath().replace("'", "")
+            wait = wx.BusyCursor()
             select_firmware(self)
+            del wait
 
         def _on_image_choice( event ):
+            wait = wx.BusyCursor()
             choice = event.GetEventObject()
             set_image_mode(choice.GetString(choice.GetSelection()))
             self._update_custom_flash_options()
+            del wait
 
         def _on_image_select( event ):
+            wait = wx.BusyCursor()
             image_path = event.GetPath().replace("'", "")
             filename, extension = os.path.splitext(image_path)
             extension = extension.lower()
@@ -390,8 +418,10 @@ class PixelFlasher(wx.Frame):
             else:
                 print(f"ERROR: The selected file {image_path} is not img or zip file.")
                 self.image_file_picker.SetPath('')
+            del wait
 
         def _on_select_custom_rom(event):
+            wait = wx.BusyCursor()
             custom_rom_path = event.GetPath().replace("'", "")
             filename, extension = os.path.splitext(custom_rom_path)
             extension = extension.lower()
@@ -402,6 +432,7 @@ class PixelFlasher(wx.Frame):
             else:
                 print(f"ERROR: The selected file {custom_rom_path} is not a zip file.")
                 self.custom_rom.SetPath('')
+            del wait
 
         def _on_mode_changed(event):
             self.mode_radio_button = event.GetEventObject()

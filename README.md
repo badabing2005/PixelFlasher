@@ -97,6 +97,8 @@ Otherwise connect your phone to your PC, and hit the `Reload` button.
 4. Select your device from the list in the combo box.
 The following information about the connected device is displayed.
     - (1st field) Rooted devices will be identified with a checkmark ✓.
+    **Note:** If you want PixelFlasher to detect root, or automatically use Magisk to patch boot.img, you need to grant root permissions to `shell` in Magisk.
+    ![Image of shell root access](/images/shell-root.png)
     - (1st field) Non-Rooted devices will be identified with a ✗.
     - (1st field) Devices in fastboot mode will be identified with a ? (in fastboot mode, root status cannot be determined).
     - (2nd field) (adb) or (f.b) to indicate connection mode adb / fastboot.
@@ -110,6 +112,7 @@ Preparing a package. Based on the choices made in stage 1, this stage creates th
 5. Select this option if you want to pre-patch the image with Magisk, assuming that Magisk is already installed on your phone.
 This would be the typical choice for monthly updates.
 This option will allow updating the phone without losing root (not even temporarily).
+**Note:** See note above for granting root permissions to `shell`.
 
 6. Prepare the package.
 If the phone is already rooted, the whole process is without user interaction.

@@ -3,9 +3,10 @@
 import os
 import json
 
-VERSION = "2.0.1.0"
+VERSION = "2.1.0.0"
 WIDTH = 1200
 HEIGHT = 800
+
 
 # ============================================================================
 #                               Class Config

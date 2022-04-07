@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 
+import os
+from platformdirs import *
+import sys
+
+APPNAME = 'PixelFlasher'
+CONFIG_FILE_NAME = 'PixelFlasher.json'
+
 verbose = False
 adb = None
 fastboot = None
@@ -14,7 +21,6 @@ sdk_version = None
 magisk_package = None
 image_mode = None
 image_path = None
-config_path = None
 
 # ============================================================================
 #                               Function get_verbose
@@ -244,15 +250,58 @@ def set_image_path(value):
 #                               Function get_config_path
 # ============================================================================
 def get_config_path():
-    global config_path
+    config_path = user_data_dir(APPNAME, appauthor=False, roaming=True)
     return config_path
 
 
 # ============================================================================
-#                               Function set_config_path
+#                               Function init_config_path
 # ============================================================================
-def set_config_path(value):
-    global config_path
-    config_path = value
+def init_config_path():
+    config_path = get_config_path()
+    if not os.path.exists(os.path.join(config_path, 'logs')):
+        os.makedirs(os.path.join(config_path, 'logs'), exist_ok=True)
+    if not os.path.exists(os.path.join(config_path, 'factory_images')):
+        os.makedirs(os.path.join(config_path, 'factory_images'), exist_ok=True)
+    if not os.path.exists(os.path.join(config_path, 'boot_images')):
+            os.makedirs(os.path.join(config_path, 'boot_images'), exist_ok=True)
+
+
+# ============================================================================
+#                               Function get_config_file_path
+# ============================================================================
+def get_config_file_path():
+    return os.path.join(get_config_path(), CONFIG_FILE_NAME).strip()
+
+
+# ============================================================================
+#                               Function get_path_to_7z
+# ============================================================================
+def get_path_to_7z():
+    if sys.platform == "win32":
+        path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7z.exe')
+    else:
+        path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zzs')
+
+    if not os.path.exists(path_to_7z):
+        print(f"ERROR: {path_to_7z} is not found")
+        return None
+    return path_to_7z
+
+
+# ============================================================================
+#                               Function get_bundle_dir
+# ============================================================================
+# set by PyInstaller, see http://pyinstaller.readthedocs.io/en/v3.2/runtime-information.html
+# https://stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
+def get_bundle_dir():
+    if getattr(sys, 'frozen', False):
+        # noinspection PyUnresolvedReferences,PyProtectedMember
+        # running in a bundle
+        return sys._MEIPASS
+    else:
+        # running live
+        return os.path.dirname(os.path.abspath(__file__))
+
 
 

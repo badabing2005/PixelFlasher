@@ -27,10 +27,12 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 '''
         self.warning_label = wx.StaticText( self, wx.ID_ANY, warning_text, wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL )
         self.warning_label.Wrap( -1 )
-        self.warning_label.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_INFOBK ) )
+        self.warning_label.SetForegroundColour( wx.Colour( 255, 0, 0 ) )
         warning_sizer.Add( self.warning_label, 1, wx.ALL, 10 )
+        staticline = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
 
         vSizer.Add( warning_sizer, 1, wx.EXPAND, 5 )
+        vSizer.Add( staticline, 0, wx.EXPAND, 5 )
         vSizer.Add( ( 0, 20), 0, 0, 5 )
 
         advanced_options_sizer = wx.BoxSizer( wx.HORIZONTAL )

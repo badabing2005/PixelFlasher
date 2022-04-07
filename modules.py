@@ -11,10 +11,12 @@ import zipfile
 import ntpath
 import sys
 import math
+import hashlib
+# import sqlite3 as sl
 
 from config import VERSION
-from phone import Device
 from runtime import *
+from platformdirs import *
 
 
 # ============================================================================
@@ -191,18 +193,14 @@ def run_shell2(cmd):
 
 
 # ============================================================================
-#                               Function get_bundle_dir
+#                               Function md5
 # ============================================================================
-# set by PyInstaller, see http://pyinstaller.readthedocs.io/en/v3.2/runtime-information.html
-# https://stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
-def get_bundle_dir():
-    if getattr(sys, 'frozen', False):
-        # noinspection PyUnresolvedReferences,PyProtectedMember
-        # running in a bundle
-        return sys._MEIPASS
-    else:
-        # running live
-        return os.path.dirname(os.path.abspath(__file__))
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
 # ============================================================================
@@ -258,13 +256,13 @@ def set_flash_button_state(self):
         src = os.path.join(get_firmware_id(), "Package_Ready.json")
         if os.path.exists(src):
             self.flash_button.Enable()
-            print("\nPrevious flashable package is found for the selected firmware!")
+            print(f"\nPrevious flashable package is found for the firmware:\n{self.config.firmware_path}")
             message = get_package_ready(self, src, includeTitle=True)
             print(message)
         else:
             self.flash_button.Disable()
             if self.config.firmware_path:
-                print("\nNo previous flashable package is found for the selected firmware!")
+                print(f"\nNo previous flashable package is found for the firmware:\n{self.config.firmware_path}")
     except:
         self.flash_button.Disable()
 
@@ -321,8 +319,8 @@ def prepare_package(self):
             return
 
     # See if the bundled 7zip is found.
-    path_to_7z = os.path.join(get_bundle_dir(),'bin', '7z.exe')
-    debug(f"Resource Dir: {path_to_7z}")
+    path_to_7z = get_path_to_7z()
+    debug(f"7Zip Path: {path_to_7z}")
     if os.path.exists(path_to_7z):
         print("Found Bundled 7zip.\nzip/unzip operations will be faster")
     else:
@@ -416,6 +414,7 @@ def prepare_package(self):
     fin = open(src, "rt")
     data = fin.read()
 
+    data = data.replace('fastboot', "##FB-PLACEHOLDER##")
     data = data.replace('pause >nul', '')
 
     if self.config.custom_rom:
@@ -423,7 +422,7 @@ def prepare_package(self):
         rom_dst = 'update ' + rom_file
         data = data.replace(rom_src, rom_dst)
 
-    data = data.replace('fastboot', "\"%s\" %s" % (get_fastboot(), fastboot_options))
+    data = data.replace('##FB-PLACEHOLDER##', f"\"{get_fastboot()}\" {fastboot_options}")
 
     fin.close()
     fin = open(dest, "wt")
@@ -438,13 +437,14 @@ def prepare_package(self):
 
     data = data.replace('fastboot -w update', 'fastboot update')
     data = data.replace('pause >nul', '')
+    data = data.replace('fastboot', "##FB-PLACEHOLDER##")
 
     if self.config.custom_rom:
         rom_src = 'update image-' + package_dir + '.zip'
         rom_dst = 'update ' + rom_file
         data = data.replace(rom_src, rom_dst)
 
-    data = data.replace('fastboot', "\"%s\" %s" % (get_fastboot(), fastboot_options))
+    data = data.replace('##FB-PLACEHOLDER##', f"\"{get_fastboot()}\" {fastboot_options}")
 
     fin.close()
     fin = open(os.path.join(package_dir_full, "flash-keep-data.txt"), "wt")
@@ -457,8 +457,8 @@ def prepare_package(self):
     fin = open(src, "rt")
     data = fin.read()
 
-    data = data.replace('fastboot flash', "echo \"%s\" %s flash" % (get_fastboot(), fastboot_options))
-    data = data.replace('fastboot -w update', "echo \"%s\" %s update" % (get_fastboot(), fastboot_options))
+    data = data.replace('fastboot flash', f"echo \"{get_fastboot()}\" {fastboot_options} flash")
+    data = data.replace('fastboot -w update', f"echo \"{get_fastboot()}\" {fastboot_options} update")
     data = data.replace('pause >nul', 'fastboot reboot')
 
     if self.config.custom_rom:
@@ -466,7 +466,7 @@ def prepare_package(self):
         rom_dst = 'update ' + rom_file
         data = data.replace(rom_src, rom_dst)
 
-    data = data.replace('fastboot reboot', "\"%s\" -s %s reboot" % (get_fastboot(), device.id))
+    data = data.replace('fastboot reboot', f"\"{get_fastboot()}\" -s {device.id} reboot")
 
     fin.close()
     fin = open(os.path.join(package_dir_full, "flash-dry-run.txt"), "wt")

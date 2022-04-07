@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import sys
 import datetime
-import os
 import wx
 import wx.html
 import wx.lib.wxpTag
 import webbrowser
 from config import VERSION
-from modules import get_bundle_dir
+from runtime import get_bundle_dir
 
 class AboutDlg(wx.Dialog):
     text = '''

@@ -21,18 +21,32 @@ jobs:
       - uses: actions/checkout@v2
 
       # Runs https://github.com/JackMcKew/pyinstaller-action-windows
-      - name: Package Application
+      - name: Package Windows Application
         uses: JackMcKew/pyinstaller-action-windows@main
         with:
           path: .
           spec: build-on-win.spec
 
-      # Upload artifcats
+      # Runs https://github.com/marketplace/actions/pyinstaller-linux
+      - name: Package Linux Application
+        uses: JackMcKew/pyinstaller-action-linux@main
+        with:
+          path: .
+          spec: build-on-linux.spec
+
+      # Upload artifcats Windows
       - uses: actions/upload-artifact@v2
-        id: upload_artifacts
+        id: upload_artifacts_windows
         with:
           name: PixelFlasher.exe
           path: dist/windows
+
+      # Upload artifcats linux
+      - uses: actions/upload-artifact@v2
+        id: upload_artifacts_linux
+        with:
+          name: PixelFlasher
+          path: dist/linux
 
       - name: Create Release
         id: create_release
@@ -45,8 +59,8 @@ jobs:
           draft: false
           prerelease: true
       
-      - name: Upload Release Asset
-        id: upload-release-asset 
+      - name: Upload Windows Release Asset
+        id: upload-windows-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,4 +68,15 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
           asset_path: ./dist/windows/PixelFlasher.exe
           asset_name: PixelFlasher.exe
+          asset_content_type: application/zip
+
+      - name: Upload Linux Release Asset
+        id: upload-linux-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          asset_path: ./dist/linux/PixelFlasher
+          asset_name: PixelFlasher
           asset_content_type: application/zip

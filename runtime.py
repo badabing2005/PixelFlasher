@@ -21,6 +21,9 @@ sdk_version = None
 magisk_package = None
 image_mode = None
 image_path = None
+custom_rom_file = None
+message_box_title = None
+message_box_message = None
 
 # ============================================================================
 #                               Function get_verbose
@@ -247,6 +250,54 @@ def set_image_path(value):
 
 
 # ============================================================================
+#                               Function get_custom_rom_file
+# ============================================================================
+def get_custom_rom_file():
+    global custom_rom_file
+    return custom_rom_file
+
+
+# ============================================================================
+#                               Function set_custom_rom_file
+# ============================================================================
+def set_custom_rom_file(value):
+    global custom_rom_file
+    custom_rom_file = value
+
+
+# ============================================================================
+#                               Function get_message_box_title
+# ============================================================================
+def get_message_box_title():
+    global message_box_title
+    return message_box_title
+
+
+# ============================================================================
+#                               Function set_message_box_title
+# ============================================================================
+def set_message_box_title(value):
+    global message_box_title
+    message_box_title = value
+
+
+# ============================================================================
+#                               Function get_message_box_message
+# ============================================================================
+def get_message_box_message():
+    global message_box_message
+    return message_box_message
+
+
+# ============================================================================
+#                               Function set_message_box_message
+# ============================================================================
+def set_message_box_message(value):
+    global message_box_message
+    message_box_message = value
+
+
+# ============================================================================
 #                               Function get_config_path
 # ============================================================================
 def get_config_path():
@@ -280,11 +331,13 @@ def get_config_file_path():
 def get_path_to_7z():
     if sys.platform == "win32":
         path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7z.exe')
+    elif sys.platform == "darwin":
+        path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zz')
     else:
         path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zzs')
 
     if not os.path.exists(path_to_7z):
-        print(f"ERROR: {path_to_7z} is not found")
+        print(f"\nERROR: {path_to_7z} is not found")
         return None
     return path_to_7z
 

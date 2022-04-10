@@ -3,7 +3,7 @@
 import os
 import json
 
-VERSION = "2.1.0.0"
+VERSION = "2.2.0.0"
 WIDTH = 1200
 HEIGHT = 800
 
@@ -26,10 +26,13 @@ class Config():
         self.custom_rom_path = None
         self.disable_verification = False
         self.disable_verity = False
+        self.fastboot_verbose = False
         self.advanced_options = False
         self.version = VERSION
         self.flash_both_slots = False
         self.verbose = False
+        self.pos_x = None
+        self.pos_y = None
 
     @classmethod
     def load(cls, file_path):
@@ -53,10 +56,13 @@ class Config():
                 conf.custom_rom_path = data['custom_rom_path']
                 conf.disable_verification = data['disable_verification']
                 conf.disable_verity = data['disable_verity']
+                conf.fastboot_verbose = data['fastboot_verbose']
                 conf.advanced_options = data['advanced_options']
                 conf.version = data['version']
                 conf.flash_both_slots = data['flash_both_slots']
                 conf.verbose = data['verbose']
+                conf.pos_x = data['pos_x']
+                conf.pos_y = data['pos_y']
         except Exception as e:
             os.remove(file_path)
         return conf
@@ -76,10 +82,13 @@ class Config():
             'custom_rom_path': self.custom_rom_path,
             'disable_verification': self.disable_verification,
             'disable_verity': self.disable_verity,
+            'fastboot_verbose': self.fastboot_verbose,
             'advanced_options': self.advanced_options,
             'version': VERSION,
             'flash_both_slots': self.flash_both_slots,
-            'verbose': self.verbose
+            'verbose': self.verbose,
+            'pos_x': self.pos_x,
+            'pos_y': self.pos_y
         }
         with open(file_path, 'w') as f:
             json.dump(data, f, indent=4)

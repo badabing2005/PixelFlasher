@@ -33,9 +33,11 @@ jobs:
           path: .
           spec: build-on-win.spec
 
-      # Install WxPython 
+      # Install dependencies 
       - name: Install WxPython
         run: pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
+      - name: Install GTK 3
+        run: sudo apt install libgtk-3-0
 
       # Runs https://github.com/marketplace/actions/pyinstaller-linux
       - name: Package Linux Application

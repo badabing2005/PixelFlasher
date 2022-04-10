@@ -21,6 +21,7 @@ class Device():
         self._hardware = None
         self._active_slot = None
         self._unlocked = None
+        self._magisk_modules = None
 
     # ----------------------------------------------------------------------------
     #                               property root_symbol
@@ -58,7 +59,23 @@ class Device():
                         self._magisk_version = version[1]
                     except:
                         pass
-        return self._magisk_version
+        return self._magisk_version.strip('\n')
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_modules
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_modules(self):
+        if self._magisk_modules is None:
+            if self.mode == 'adb':
+                if self.rooted:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
+                    res = run_shell(theCmd)
+                    if res.returncode == 0:
+                        self._magisk_modules = res.stdout.split('\n')
+                else:
+                    self._magisk_modules = ''
+        return self._magisk_modules
 
     # ----------------------------------------------------------------------------
     #                               property rooted
@@ -75,7 +92,7 @@ class Device():
                     else:
                         self._rooted = False
                 else:
-                    print("ERROR: adb command is not found!")
+                    print("\nERROR: adb command is not found!")
         return self._rooted
 
     # ----------------------------------------------------------------------------
@@ -91,7 +108,7 @@ class Device():
                     # remove any whitespace including tab and newline
                     self._hardware = ''.join(hardware.stdout.split())
                 else:
-                    print("ERROR: adb command is not found!")
+                    print("\nERROR: adb command is not found!")
             elif self.mode == 'f.b':
                 if get_fastboot():
                     theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar product"
@@ -101,7 +118,7 @@ class Device():
                     hardware = hardware[0].split(' ')
                     self._hardware = hardware[1]
                 else:
-                    print("ERROR: fastboot command is not found!")
+                    print("\nERROR: fastboot command is not found!")
         return self._hardware
 
     # ----------------------------------------------------------------------------
@@ -118,7 +135,7 @@ class Device():
                     fingerprint = ''.join(fingerprint.stdout.split())
                     self._build = fingerprint.split('/')[3]
                 else:
-                    print("ERROR: adb command is not found!")
+                    print("\nERROR: adb command is not found!")
             else:
                self._build = ''
         return self._build
@@ -139,7 +156,7 @@ class Device():
                     active_slot = active_slot.stdout.replace("\n", "")
                     self._active_slot = active_slot.replace("_", "")
                 else:
-                    print("ERROR: adb command is not found!")
+                    print("\nERROR: adb command is not found!")
             elif self.mode == 'f.b':
                 if get_fastboot():
                     theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar current-slot"
@@ -149,7 +166,7 @@ class Device():
                     active_slot = active_slot[0].split(' ')
                     self._active_slot = active_slot[1]
                 else:
-                    print("ERROR: fastboot command is not found!")
+                    print("\nERROR: fastboot command is not found!")
         return self._active_slot
 
     # ----------------------------------------------------------------------------
@@ -171,7 +188,7 @@ class Device():
                     else:
                         self._unlocked = False
                 else:
-                    print("ERROR: fastboot command is not found!")
+                    print("\nERROR: fastboot command is not found!")
         return self._unlocked
 
     # ----------------------------------------------------------------------------
@@ -230,7 +247,7 @@ class Device():
             return res
 
     # ----------------------------------------------------------------------------
-    #                               Method reboot_fastboot
+    #                               Method reboot_fastbootd
     # ----------------------------------------------------------------------------
     def reboot_fastboot(self):
         print(f"Rebooting device {self.id} to fastbootd ...")
@@ -261,6 +278,25 @@ class Device():
             theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={slot}"
             debug(theCmd)
             res = run_shell(theCmd)
+            return res
+
+    # ----------------------------------------------------------------------------
+    #                               Method disable_magisk_modules
+    # ----------------------------------------------------------------------------
+    def disable_magisk_modules(self):
+        print("Disabling magisk modules device ...")
+        if self.mode == 'adb' and get_adb():
+            theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            return res
+        elif self.mode == 'f.b' and get_fastboot():
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot reboot_system"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            print("Waiting 5 seconds ...")
+            time.sleep(5)
+            res = self.disable_magisk_modules(self)
             return res
 
     # ----------------------------------------------------------------------------
@@ -317,7 +353,7 @@ def get_connected_devices():
                 devices.append(device_details)
                 phones.append(device)
     else:
-        print("ERROR: adb command is not found!")
+        print("\nERROR: adb command is not found!")
 
     if get_fastboot():
         theCmd = f"\"{get_fastboot()}\" devices"
@@ -331,7 +367,7 @@ def get_connected_devices():
                 devices.append(device_details)
                 phones.append(device)
     else:
-        print("ERROR: fastboot command is not found!")
+        print("\nERROR: fastboot command is not found!")
 
     set_phones(phones)
     return devices

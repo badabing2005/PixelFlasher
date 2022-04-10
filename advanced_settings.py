@@ -10,7 +10,6 @@ class AdvancedSettings(wx.Dialog):
     def __init__(self, *args, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs)
         self.SetTitle("Advanced Configuration Settings")
-        self.SetSize(800, 500)
         self.before = get_advanced_options()
 
         vSizer = wx.BoxSizer( wx.VERTICAL )
@@ -43,25 +42,15 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         advanced_options_sizer.Add( self.advanced_options_checkbox, 0, wx.ALL, 5 )
         vSizer.Add( advanced_options_sizer, 0, wx.EXPAND, 5 )
 
-        reset_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        reset_sizer.Add( ( 20, 0), 1, wx.EXPAND, 5 )
-        self.reset_button = wx.Button( self, wx.ID_ANY, u"Reset", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.reset_button.SetToolTip( u"Reset to default values." )
-        self.reset_button.Hide()
-        reset_sizer.Add( self.reset_button, 0, wx.ALL, 5 )
-        vSizer.Add( reset_sizer, 1, wx.EXPAND, 5 )
-
         buttons_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        buttons_sizer.Add( ( 100, 0), 0, 0, 5 )
-        self.ok_button = wx.Button( self, wx.ID_ANY, u"OK", wx.Point( -1,-1 ), wx.DefaultSize, 0 )
-        buttons_sizer.Add( self.ok_button, 0, wx.ALL, 5 )
+        buttons_sizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+        self.ok_button = wx.Button( self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0 )
+        buttons_sizer.Add( self.ok_button, 0, wx.ALL, 20 )
+        self.cancel_button = wx.Button( self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0 )
+        buttons_sizer.Add( self.cancel_button, 0, wx.ALL, 20 )
         buttons_sizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
-        self.cancel_button = wx.Button( self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.cancel_button.SetDefault()
-        buttons_sizer.Add( self.cancel_button, 0, wx.ALL, 5 )
-        buttons_sizer.Add( ( 100, 0), 0, 0, 5 )
-        vSizer.Add( buttons_sizer, 1, wx.EXPAND, 5 )
+        vSizer.Add( buttons_sizer, 0, wx.EXPAND, 5 )
 
         self.SetSizer( vSizer )
         self.Layout()
@@ -69,11 +58,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         # Connect Events
         self.ok_button.Bind( wx.EVT_BUTTON, self._onOk )
         self.cancel_button.Bind( wx.EVT_BUTTON, self._onCancel )
-        self.reset_button.Bind( wx.EVT_BUTTON, self._onReset )
 
-    def _onReset(self, e):
-        set_advanced_options(False)
-        self.advanced_options_checkbox.SetValue( False )
+        # Autosize the dialog
+        self.SetSizerAndFit(vSizer)
 
     def _onCancel(self, e):
         set_advanced_options(self.before)

@@ -1,7 +1,7 @@
 # ![Image of PixelFlasher Icon](/images/icon-128.png) PixelFlasher [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 This is a follow up to [PixelFlasher](/scripts/PixelFlasher.ps1) `Powershell™` script (which is now deprecated and moved to `scripts` directory).
-This is a total rewrite in Python™ using [wxPython](https://www.wxpython.org/) to provide a UI interface.
+This is a total rewrite in Python™ using [wxPython](https://www.wxpython.org/) to provide a cross-platform UI interface.
 The executable which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
 
 ## DESCRIPTION
@@ -24,6 +24,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - current installed firmware.
   - if it is rooted with Magisk.
   - Magisk version
+  - List installed Magisk modules.
   - connection mode.
 - Display Android Platform Tools (SDK) version.
 - Advanced features are hidden to keep the interface simple and easy to follow.
@@ -41,8 +42,9 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 
 ## Prerequisites
 
-- [Android SDK Platform-Tools](https://developer.android.com/studio/releases/platform-tools.html)
-- [Android Pixel phone factory image](https://developers.google.com/android/images)
+- [Android SDK Platform-Tools](https://developer.android.com/studio/releases/platform-tools.html).
+- [Android Pixel phone factory image](https://developers.google.com/android/images).
+- Bootloader unlocked phone (see excellent guide links in credits section below).
 
 ## Installation
 
@@ -66,17 +68,34 @@ If you want to build this application yourself you need to:
 - Install [Python 3.x](https://www.python.org/downloads/) and [Pip](https://pip.pypa.io/en/stable/installing/) (it comes with Python™ if installed from `python.org`).
 - Install virtualenv `pip install virtualenv`
 - Create a virtual environment with `virtualenv --python <PATH_TO_PYTHON_EXE> venv`
-- Activate the virtual environment with `.\venv\Scripts\activate`
+- Activate the virtual environment with:
+  - On Windows: `.\venv\Scripts\activate`
+  - On Linux: `. venv/bin/activate`
 - Run `pip install -r requirements.txt`
 
-**Build**
-Run `build.bat`
+**A note on Linux:** As described on the [downloads section of `wxPython`](https://www.wxpython.org/pages/downloads/), wheels for Linux are complicated and may require you to run something like this to install `wxPython` correctly:
 
-**Note**
-If you run into troubles installing wxPython, you can download wxPython wheel file matching your version of Python™ from [here](https://wxpython.org/Phoenix/snapshot-builds/?C=M;O=D)
+```bash
+# Assuming you are running it on Ubuntu 20.04 LTS with GTK3
+pip install -U \
+    -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 \
+    wxPython
+```
+
+**A Note on Windows**
+If you run into troubles installing wxPython on Windows, you can download wxPython wheel file matching your version of Python™ from [here](https://wxpython.org/Phoenix/snapshot-builds/?C=M;O=D)
 Look for `cp310` if your python™ version is 3.10
-You install it with `pip`, for example this would be the command to install 3.10 version
-`pip install wxPython-4.1.2a1.dev5308+2258f215-cp310-cp310-win_amd64.whl`
+You install it with `pip`, for example this would be the command to install 3.10 version.
+
+```bash
+pip install wxPython-4.1.2a1.dev5308+2258f215-cp310-cp310-win_amd64.whl
+```
+
+**A Note on MacOS**
+This project is cross-platform and is built for Windows and Linux, it can also be built for other platforms such as MacOS. To the best of my knowledge I have included the necessary files for it to be build on MacOS, however I do not have a Mac to build or test it.
+
+**Build**
+Run `build.bat` on Windows or `build.sh` on Linux / MacOS.
 
 ## Usage
 
@@ -160,10 +179,6 @@ Choose the dropdown to select image type.
     - vendor - Expected file type .img
     - vendor_dlkm (the device will be put into fastbootd mode during this operation) - Expected file type .img
     - image - Expected file type .zip
-
-## What's Next
-
-- Although this project can be build for other platforms, it is currently not possible as it makes some basic windows assumptions. This could easily be addressed, however I do not have a Mac to build and or test.
 
 ## Credits
 

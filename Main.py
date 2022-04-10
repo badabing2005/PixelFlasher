@@ -74,7 +74,10 @@ class PixelFlasher(wx.Frame):
         sys.stdout = RedirectText(self.console_ctrl)
         sys.stderr = RedirectText(self.console_ctrl)
 
-        self.Centre(wx.BOTH)
+        # self.Centre(wx.BOTH)
+        if self.config.pos_x and self.config.pos_y:
+            self.SetPosition((self.config.pos_x,self.config.pos_y))
+
         self.Show(True)
 
         #------------------------------------
@@ -102,19 +105,7 @@ class PixelFlasher(wx.Frame):
         # print selected device.
         device = get_phone()
         if device:
-            print(f"Selected Device:")
-            print(f"    Device ID:          {device.id}")
-            print(f"    Device Model:       {device.hardware}")
-            print(f"    Device is Rooted:   {device.rooted}")
-            print(f"    Device Build:       {device.build}")
-            print(f"    Device Active Slot: {device.active_slot}")
-            print(f"    Device Mode:        {device.mode}")
-            if device.unlocked:
-                print(f"    Device Unlocked:{device.magisk_version}")
-            if device.rooted:
-                print(f"    Magisk Version:     {device.magisk_version}")
-            else:
-                print('')
+            self._print_device_details(device)
         else:
             print("No device is selected.")
 
@@ -151,6 +142,7 @@ class PixelFlasher(wx.Frame):
         self.SetMenuBar(self.menuBar)
 
     def _on_close(self, event):
+        self.config.pos_x, self.config.pos_y = self.GetPosition()
         self.config.save(get_config_file_path())
         wx.Exit()
 
@@ -188,6 +180,7 @@ class PixelFlasher(wx.Frame):
             self.flash_both_slots_checkBox.Hide()
             self.disable_verity_checkBox.Hide()
             self.disable_verification_checkBox.Hide()
+            self.fastboot_verbose_checkBox.Hide()
             # slot options
             self.a_radio_button.Hide()
             self.b_radio_button.Hide()
@@ -215,6 +208,7 @@ class PixelFlasher(wx.Frame):
             self.flash_both_slots_checkBox.Show()
             self.disable_verity_checkBox.Show()
             self.disable_verification_checkBox.Show()
+            self.fastboot_verbose_checkBox.Show()
             # slot options
             self.a_radio_button.Show()
             self.b_radio_button.Show()
@@ -239,6 +233,25 @@ class PixelFlasher(wx.Frame):
         h = h - 100
         self.Size = (w, h)
         self.Refresh()
+
+    def _print_device_details(self, device):
+        print(f"Selected Device:")
+        print(f"    Device ID:          {device.id}")
+        print(f"    Device Model:       {device.hardware}")
+        print(f"    Device is Rooted:   {device.rooted}")
+        print(f"    Device Build:       {device.build}")
+        print(f"    Device Active Slot: {device.active_slot}")
+        print(f"    Device Mode:        {device.mode}")
+        if device.unlocked:
+            print(f"    Device Unlocked:{device.magisk_version}")
+        if device.rooted:
+            print(f"    Magisk Version:     {device.magisk_version}")
+            print(f"    Magisk Modules:")
+            s1 = device.magisk_modules
+            s2 = "\n                        "
+            print(f"                        {s2.join(s1)}")
+        else:
+            print('')
 
     def _update_custom_flash_options(self):
         image_mode = get_image_mode()
@@ -266,7 +279,7 @@ class PixelFlasher(wx.Frame):
                         self.flash_radio_button.Enable(True)
                         self.flash_button.Enable(True)
                     else:
-                        print("ERROR: Selected file is not of type .img")
+                        print("\nERROR: Selected file is not of type .img")
                 elif image_mode == 'image':
                     if extension == '.zip':
                         self.live_boot_radio_button.Enable(False)
@@ -274,7 +287,7 @@ class PixelFlasher(wx.Frame):
                         self.flash_button.Enable(True)
                         self.flash_radio_button.SetValue( True )
                     else:
-                        print("ERROR: Selected file is not of type .zip")
+                        print("\nERROR: Selected file is not of type .zip")
                 else:
                     if extension == '.img':
                         self.live_boot_radio_button.Enable(False)
@@ -282,7 +295,7 @@ class PixelFlasher(wx.Frame):
                         self.flash_button.Enable(True)
                         self.flash_radio_button.SetValue( True )
                     else:
-                        print("ERROR: Selected file is not of type .img")
+                        print("\nERROR: Selected file is not of type .img")
         except:
             pass
 
@@ -329,19 +342,7 @@ class PixelFlasher(wx.Frame):
             for device in get_phones():
                 if device.id == id:
                     set_phone(device)
-                    print(f"Selected Device:")
-                    print(f"    Device ID:          {device.id}")
-                    print(f"    Device Model:       {device.hardware}")
-                    print(f"    Device is Rooted:   {device.rooted}")
-                    print(f"    Device Build:       {device.build}")
-                    print(f"    Device Active Slot: {device.active_slot}")
-                    print(f"    Device Mode:        {device.mode}")
-                    if device.unlocked:
-                        print(f"    Device Unlocked:{device.magisk_version}")
-                    if device.rooted:
-                        print(f"    Magisk Version:     {device.magisk_version}")
-                    else:
-                        print('')
+                    self._print_device_details(device)
             _reflect_slots(self)
 
         def _reflect_slots(self):
@@ -416,7 +417,7 @@ class PixelFlasher(wx.Frame):
                 set_image_path(image_path)
                 self._update_custom_flash_options()
             else:
-                print(f"ERROR: The selected file {image_path} is not img or zip file.")
+                print(f"\nERROR: The selected file {image_path} is not img or zip file.")
                 self.image_file_picker.SetPath('')
             del wait
 
@@ -430,7 +431,7 @@ class PixelFlasher(wx.Frame):
                 rom_file = ntpath.basename(custom_rom_path)
                 set_custom_rom_id(os.path.splitext(rom_file)[0])
             else:
-                print(f"ERROR: The selected file {custom_rom_path} is not a zip file.")
+                print(f"\nERROR: The selected file {custom_rom_path} is not a zip file.")
                 self.custom_rom.SetPath('')
             del wait
 
@@ -463,6 +464,11 @@ class PixelFlasher(wx.Frame):
             status = self.disable_verification_checkBox.GetValue()
             self.config.disable_verification = status
 
+        def _on_fastboot_verbose(event):
+            patch_checkBox = event.GetEventObject()
+            status = self.fastboot_verbose_checkBox.GetValue()
+            self.config.fastboot_verbose = status
+
         def _on_verbose(event):
             self.verbose_checkBox = event.GetEventObject()
             status = self.verbose_checkBox.GetValue()
@@ -494,7 +500,7 @@ class PixelFlasher(wx.Frame):
             elif self.b_radio_button.GetValue():
                 slot = 'b'
             else:
-                print("ERROR: Please first select a slot.")
+                print("\nERROR: Please first select a slot.")
                 del wait
                 return
             device = get_phone()
@@ -533,17 +539,17 @@ class PixelFlasher(wx.Frame):
         NUMROWS = 15
         fgs1 = wx.FlexGridSizer(NUMROWS, 2, 10, 10)
 
-        # 1st row widgets
+        # 1st row widgets, firmware file
         firmware_label = wx.StaticText(panel, label=u"Pixel Phone Factory Image")
         self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
 
-        # 2nd row widgets
+        # 2nd row widgets, Android platfom tools
         self.platform_tools_label = wx.StaticText(panel, label=u"Android Platform Tools")
         self.platform_tools_picker = wx.DirPickerCtrl(panel, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
         self.platform_tools_picker.SetToolTip(u"Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
 
-        # 3rd row widgets
+        # 3rd row widgets, Connected Devices
         self.device_label = wx.StaticText(panel, label=u"ADB Connected Devices")
         self.device_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, [], 0 )
         self.device_choice.SetSelection(0)
@@ -552,9 +558,9 @@ class PixelFlasher(wx.Frame):
         reload_button.SetToolTip(u"Reload adb device list")
         device_sizer = wx.BoxSizer(wx.HORIZONTAL)
         device_sizer.Add(self.device_choice, 1, wx.EXPAND)
-        device_sizer.Add(reload_button, flag=wx.LEFT, border=10)
+        device_sizer.Add(reload_button, flag=wx.LEFT, border=5)
 
-        # 4th row
+        # 4th row Reboot buttons
         active_slot_sizer = wx.BoxSizer( wx.HORIZONTAL )
         self.a_radio_button = wx.RadioButton( panel, wx.ID_ANY, u"A", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.b_radio_button = wx.RadioButton( panel, wx.ID_ANY, u"B", wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -566,11 +572,12 @@ class PixelFlasher(wx.Frame):
         reboot_bootloader_button = wx.Button( panel, wx.ID_ANY, u"Reboot to Bootloader", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.set_active_slot_button = wx.Button( panel, wx.ID_ANY, u"Set Active Slot", wx.DefaultPosition, wx.DefaultSize, 0 )
         reboot_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        reboot_sizer.Add(self.set_active_slot_button, 1, wx.EXPAND)
-        reboot_sizer.Add(self.reboot_recovery_button, 1, wx.EXPAND)
-        reboot_sizer.Add(reboot_system_button, 1, wx.EXPAND)
-        reboot_sizer.Add(reboot_bootloader_button, 1, wx.EXPAND)
-        reboot_sizer.Add( ( 120, 0), 0, wx.EXPAND, 5 )
+        reboot_sizer.Add(self.set_active_slot_button, 1, wx.RIGHT, 10)
+        # reboot_sizer.Add( ( 5, 0), 0, 0, 5 )
+        reboot_sizer.Add(self.reboot_recovery_button, 1, wx.RIGHT, 10)
+        reboot_sizer.Add(reboot_system_button, 1, wx.RIGHT, 5)
+        reboot_sizer.Add(reboot_bootloader_button, 1, wx.LEFT, 5)
+        reboot_sizer.Add( ( reload_button.Size.Width + 5, 0), 0, wx.EXPAND )
 
         # 5th row, empty row, static line
         self.staticline1 = wx.StaticLine( panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
@@ -630,12 +637,16 @@ class PixelFlasher(wx.Frame):
         self.flash_both_slots_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Flash on both slots", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.disable_verity_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Disable Verity", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.disable_verification_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Disable Verification", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.fastboot_verbose_checkBox = wx.CheckBox( panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.fastboot_verbose_checkBox.SetToolTip( u"set fastboot option to verbose" )
         self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.advanced_options_sizer.Add(self.flash_both_slots_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
         self.advanced_options_sizer.Add(self.disable_verity_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
         self.advanced_options_sizer.Add(self.disable_verification_checkBox)
+        self.advanced_options_sizer.AddSpacer(10)
+        self.advanced_options_sizer.Add(self.fastboot_verbose_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
 
         # 12th row widgets, Flash button
@@ -703,6 +714,7 @@ class PixelFlasher(wx.Frame):
         prepare_button.Bind(wx.EVT_BUTTON, _on_prepare)
         self.flash_both_slots_checkBox.Bind( wx.EVT_CHECKBOX, _on_flash_both_slots )
         self.disable_verity_checkBox.Bind( wx.EVT_CHECKBOX, _on_disable_verity )
+        self.fastboot_verbose_checkBox.Bind( wx.EVT_CHECKBOX, _on_fastboot_verbose )
         self.flash_button.Bind(wx.EVT_BUTTON, _on_flash)
         self.verbose_checkBox.Bind(wx.EVT_CHECKBOX, _on_verbose)
         clear_button.Bind(wx.EVT_BUTTON, _on_clear)
@@ -772,6 +784,7 @@ class PixelFlasher(wx.Frame):
         self.flash_both_slots_checkBox.SetValue(self.config.flash_both_slots)
         self.disable_verity_checkBox.SetValue(self.config.disable_verity)
         self.disable_verification_checkBox.SetValue(self.config.disable_verification)
+        self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
 
         # enable / disable advanced_options
         set_advanced_options(self.config.advanced_options)

@@ -58,7 +58,7 @@ class Device():
                     try:
                         self._magisk_version = version[1]
                     except:
-                        pass
+                        return ''
         return self._magisk_version.strip('\n')
 
     # ----------------------------------------------------------------------------

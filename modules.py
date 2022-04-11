@@ -324,6 +324,8 @@ def process_flash_all_file(filepath):
         flash_file_lines.append(flash)
 
         cnt = 1
+        in_if_block = False
+        if_block_data = ''
         while line:
             line = fp.readline()
 
@@ -338,18 +340,6 @@ def process_flash_all_file(filepath):
             elif line[:1] == "#":
                 # comment line Linux, ignore it
                 continue
-            elif line[:4] == "if !":
-                # if line to check fastboot version, ignore it
-                continue
-            elif line[:7] == "  echo ":
-                # part of the previous if, ignore it
-                continue
-            elif line[:6] == "  exit":
-                # part of the previous if, ignore it
-                continue
-            elif line[:2] == "fi":
-                # part of the previous if, ignore it
-                continue
             elif line[:10] == "pause >nul":
                 # pause line, ignore it
                 continue
@@ -362,6 +352,29 @@ def process_flash_all_file(filepath):
 
             #-----------------------
             # line that are relevant
+            elif line[:4] == "if !":
+                # if line to check fastboot version, grab it differently (all as one block)
+                in_if_block = True
+                if_block_data += line
+                continue
+            elif line[:7] == "  echo ":
+                # part of the previous if, grab it differently (all as one block)
+                if in_if_block:
+                    if_block_data += line
+                continue
+            elif line[:6] == "  exit":
+                # part of the previous if, grab it differently (all as one block)
+                if in_if_block:
+                    if_block_data += line
+                continue
+            elif line[:2] == "fi":
+                # part of the previous if, grab it differently (all as one block)
+                if in_if_block:
+                    if_block_data += line
+                in_if_block = False
+                flash = FlashFile(cnt, platform = filetype, type = "if_block", command = if_block_data.strip())
+                flash_file_lines.append(flash)
+                continue
             elif line[:5] == "PATH=":
                 flash = FlashFile(cnt, platform = filetype, type = "path", command = line.strip())
                 flash_file_lines.append(flash)
@@ -396,13 +409,7 @@ def process_flash_all_file(filepath):
                 print(f"WARNING! Encountered an unexpected line while parsing {filepath}")
                 print(line)
 
-            # list.append([cnt, line])
-            # print(*list, sep = "\r")
-            # # print(*list)
-
-            # print("Line {}: {}".format(cnt, line.strip()))
             cnt += 1
-
         return flash_file_lines
 
 

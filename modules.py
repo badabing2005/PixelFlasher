@@ -1032,7 +1032,7 @@ def flash_phone(self):
                 print("User canceled flashing.")
                 return
 
-        theCmd = os.path.join(cwd, package_dir, "flash-phone.bat")
+        theCmd = dest
         os.chdir(package_dir)
         theCmd = "\"%s\"" % theCmd
         debug(theCmd)

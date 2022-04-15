@@ -1,4 +1,4 @@
-wxPython~=4.1.1
+--only-binary wxPython~=4.1.1
 PyInstaller~=4.8
 httplib2>=0.18.1
 pyinstaller-versionfile>=2.0.0

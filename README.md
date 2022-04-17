@@ -7,6 +7,7 @@ The executable which can be found in [releases section](https://github.com/badab
 ## DESCRIPTION
 
 As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)
+PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on other phones (YMMV).
 The application has two modes, normal mode (basic) and advanced mode (expert).
 
 **Basic mode:** Should suit most users. Some of the features in basic mode are:
@@ -39,6 +40,9 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 - Ability to live boot to custom boot.img (temporary root).
 - Ability to boot to recovery.
 - Ability to flash custom image: boot, recovery, radio, kernel, ...
+- Ability to sideload an image.
+- Lock / Unlock bootloader.
+- Disable Magisk modules to get out of bootloop (experimental).
 
 ## Prerequisites
 
@@ -67,7 +71,9 @@ If you want to build this application yourself you need to:
 - Download or clone the repository.
 - Install [Python 3.x](https://www.python.org/downloads/) and [Pip](https://pip.pypa.io/en/stable/installing/) (it comes with Python™ if installed from `python.org`).
 - Install virtualenv `pip install virtualenv`
-- Create a virtual environment with `virtualenv --python <PATH_TO_PYTHON_EXE> venv`
+- Create a virtual environment with:
+  - On Windows: `virtualenv --python <PATH_TO_PYTHON_EXE> venv`
+  - On Linux: `python3 -m venv venv`
 - Activate the virtual environment with:
   - On Windows: `.\venv\Scripts\activate`
   - On Linux: `. venv/bin/activate`
@@ -107,8 +113,8 @@ Think of basic mode in 3 stages.
 **Stage 1**
 Essential selections.
 
-1. First thing to do is select the factory image, the application will recognize the phone model from the image name.
-2. If Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it.
+1. First thing to do is select the factory image, the application will recognize the phone model from the image name. (You can download factory images by clicking the blue link).
+2. If Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it. (You can download the lastest Android™ Platform Tools by clicking the blue link).
 Otherwise you'd have to select where it is installed.
 If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)
 3. If you already have your phone connected to the PC, the application will detect all ADB connected devices (both in adb and fastboot mode) and populate the combo box.
@@ -150,7 +156,7 @@ PixelFlasher will first present you the package content prepared in step 6, and 
 
 ### Expert Mode
 
-To enable the export mode use the **File Menu | Advanced Configuration**
+To enable the export mode use the **File Menu | Advanced Configuration** and select `Enable Advanced Options`
 ![Image of PixelFlasher GUI](/images/advanced-options.png)
 ![Image of PixelFlasher GUI](/images/advanced-gui.png)
 
@@ -158,7 +164,8 @@ In this mode the following additional options are exposed, below notes are more 
 
 1. Option to Change the Active Slot (the inactive slot is automatically selected).
 Option to reboot to Recovery.
-2. Apply Custom ROM. This replaces the factory ROM image with the selected file. This is still part of the package preparation stage.
+2. Options to Lock / Unlock bootloader, Option to disable Magisk modules when bootlooping.
+3. Apply Custom ROM. This replaces the factory ROM image with the selected file. This is still part of the package preparation stage.
 Please make sure to read the documentation of the chosen ROM, as each custom ROM instructions could be different.
 To be clear, this is what PixelFlasher does internally when this mode is selected, please understand it, and don't use it if the selected ROM guide does not fit the bill.
 You've been warned!
@@ -167,18 +174,27 @@ You've been warned!
     - Flashes in the chosen `Flash Mode` just like a stock image, i.e. bootloader, custom ROM and radio images in the original order that they were in the stock firmware.
     - Patching `boot.img` can be performed if the option is selected.
     - Flash Mode is similar to basic flash mode described above in step 7.
-3. Custom Flash. select this to switch from flashing a package file to flashing a single file.
-4. Browse to select a a valid image file (.img or .zip).
+4. Custom Flash. select this to switch from flashing a package file to flashing a single file.
+5. Browse to select a a valid image file (.img or .zip).
 Choose the dropdown to select image type.
     - boot (can be flashed to Live or boot) - Expected file type .img
-    - vbmeta - Expected file type .img
-    - recovery - Expected file type .img
-    - radio - Expected file type .img
     - bootloader - Expected file type .img
     - dtbo - Expected file type .img
+    - product - Expected file type .img
+    - radio - Expected file type .img
+    - recovery - Expected file type .img
+    - super_empty - Expected file type .img
+    - system - Expected file type .img
+    - system_ext - Expected file type .img
+    - system_other - Expected file type .img
+    - vbmeta - Expected file type .img
+    - vbmeta_system - Expected file type .img
+    - vbmeta_vendor - Expected file type .img
     - vendor - Expected file type .img
+    - vendor_boot - Expected file type .img
     - vendor_dlkm (the device will be put into fastbootd mode during this operation) - Expected file type .img
     - image - Expected file type .zip
+    - SIDELOAD - Expected file type .zip
 
 ## Credits
 
@@ -189,7 +205,8 @@ This program could not have been possible without their easy to follow guides.
 I strongly encourage all beginners to follow those guides rather than use this program, it is important to understand the basic steps involved before diving into one click tools or advanced tasks.
 
 - Marcel Stör's [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher) source code which jump started my introduction to [wxPython](https://www.wxpython.org/) and eventually this program.
-- Endless count of [xda](https://forum.xda-developers.com/) members and their posts that tirelessly answer questions and share tools. Too many to enumerate.
+- [JackMcKew](https://github.com/JackMcKew) for pyinstaller Github Actions.
+- Endless counts of [xda](https://forum.xda-developers.com/) members and their posts that tirelessly answer questions and share tools. Too many to enumerate.
 
 ## Disclaimer
 

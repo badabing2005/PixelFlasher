@@ -3,7 +3,7 @@
 import os
 import json
 
-VERSION = "2.2.2.0"
+VERSION = "2.3.0.0"
 WIDTH = 1200
 HEIGHT = 800
 
@@ -28,6 +28,7 @@ class Config():
         self.disable_verity = False
         self.fastboot_verbose = False
         self.advanced_options = False
+        self.update_check = True
         self.version = VERSION
         self.flash_both_slots = False
         self.verbose = False
@@ -58,6 +59,7 @@ class Config():
                 conf.disable_verity = data['disable_verity']
                 conf.fastboot_verbose = data['fastboot_verbose']
                 conf.advanced_options = data['advanced_options']
+                conf.update_check = data['update_check']
                 conf.version = data['version']
                 conf.flash_both_slots = data['flash_both_slots']
                 conf.verbose = data['verbose']
@@ -84,6 +86,7 @@ class Config():
             'disable_verity': self.disable_verity,
             'fastboot_verbose': self.fastboot_verbose,
             'advanced_options': self.advanced_options,
+            'update_check': self.update_check,
             'version': VERSION,
             'flash_both_slots': self.flash_both_slots,
             'verbose': self.verbose,

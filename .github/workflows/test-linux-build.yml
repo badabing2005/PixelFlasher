@@ -21,7 +21,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Runs https://github.com/marketplace/actions/pyinstaller-linux
+      # Runs https://github.com/badabing2005/pyinstaller-action-linux
       - name: Package Linux Application
         uses: badabing2005/pyinstaller-action-linux@main
         with:

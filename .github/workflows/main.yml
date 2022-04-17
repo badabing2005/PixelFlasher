@@ -33,32 +33,12 @@ jobs:
           path: .
           spec: build-on-win.spec
 
-      # # Install dependencies
-      # - name: Install WxPython
-      #   run: pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
-      # - name: Install GTK 3, wx
-      #   run: sudo apt install libgtk-3-0 wx
-
-      # # Runs https://github.com/marketplace/actions/pyinstaller-linux
-      # - name: Package Linux Application
-      #   uses: JackMcKew/pyinstaller-action-linux@main
-      #   with:
-      #     path: .
-      #     spec: build-on-linux.spec
-
       # Upload artifcats Windows
       - uses: actions/upload-artifact@v2
         id: upload_artifacts_windows
         with:
           name: PixelFlasher.exe
           path: dist/windows
-
-      # # Upload artifcats linux
-      # - uses: actions/upload-artifact@v2
-      #   id: upload_artifacts_linux
-      #   with:
-      #     name: PixelFlasher
-      #     path: dist/linux
 
       - name: Create Release
         id: create_release
@@ -82,13 +62,27 @@ jobs:
           asset_name: PixelFlasher.exe
           asset_content_type: application/zip
 
-      # - name: Upload Linux Release Asset
-      #   id: upload-linux-release-asset
-      #   uses: actions/upload-release-asset@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-      #     asset_path: ./dist/linux/PixelFlasher
-      #     asset_name: PixelFlasher
-      #     asset_content_type: application/zip
+      # Runs https://github.com/badabing2005/pyinstaller-action-linux
+      - name: Package Linux Application
+        uses: badabing2005/pyinstaller-action-linux@main
+        with:
+          path: .
+          spec: build-on-linux.spec
+
+      # Upload artifcats linux
+      - uses: actions/upload-artifact@v2
+        id: upload_artifacts_linux
+        with:
+          name: PixelFlasher
+          path: dist/linux
+
+      - name: Upload Linux Release Asset
+        id: upload-linux-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/linux/PixelFlasher
+          asset_name: PixelFlasher
+          asset_content_type: application/zip

@@ -3,6 +3,8 @@
 import os
 from platformdirs import *
 import sys
+import requests
+from datetime import datetime
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
@@ -13,6 +15,7 @@ fastboot = None
 phones = []
 phone = None
 advanced_options = False
+update_check = True
 firmware_model = None
 firmware_id = None
 custom_rom_id = None
@@ -24,6 +27,7 @@ image_path = None
 custom_rom_file = None
 message_box_title = None
 message_box_message = None
+version = None
 
 # ============================================================================
 #                               Function get_verbose
@@ -119,6 +123,22 @@ def get_advanced_options():
 def set_advanced_options(value):
     global advanced_options
     advanced_options = value
+
+
+# ============================================================================
+#                               Function get_update_check
+# ============================================================================
+def get_update_check():
+    global update_check
+    return update_check
+
+
+# ============================================================================
+#                               Function set_update_check
+# ============================================================================
+def set_update_check(value):
+    global update_check
+    update_check = value
 
 
 # ============================================================================
@@ -337,7 +357,7 @@ def get_path_to_7z():
         path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zzs')
 
     if not os.path.exists(path_to_7z):
-        print(f"\nERROR: {path_to_7z} is not found")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {path_to_7z} is not found")
         return None
     return path_to_7z
 
@@ -357,4 +377,23 @@ def get_bundle_dir():
         return os.path.dirname(os.path.abspath(__file__))
 
 
+
+# ============================================================================
+#                               Function check_latest_version
+# ============================================================================
+def check_latest_version():
+    try:
+        response = requests.get('https://github.com/badabing2005/PixelFlasher/releases/latest')
+        # look in history to find the 302, and get the loaction header
+        location = response.history[0].headers['Location']
+        # split by '/' and get the last item
+        l_version = location.split('/')[-1]
+        # If it starts with v, remove it
+        if l_version[:1] == "v":
+            version = l_version[1:]
+        if version.count('.') == 2:
+            version = f"{version}.0"
+    except:
+        version = '0.0.0.0'
+    return version
 

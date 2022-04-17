@@ -3,8 +3,11 @@
 import subprocess
 import time
 from runtime import *
+from datetime import datetime
 
-
+# ============================================================================
+#                               Class Device
+# ============================================================================
 class Device():
     # Class variable
     vendor = "google"
@@ -59,6 +62,7 @@ class Device():
                         self._magisk_version = version[1]
                     except:
                         return ''
+                self._magisk_version = self._magisk_version.strip('\n')
         return self._magisk_version.strip('\n')
 
     # ----------------------------------------------------------------------------
@@ -92,7 +96,7 @@ class Device():
                     else:
                         self._rooted = False
                 else:
-                    print("\nERROR: adb command is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
         return self._rooted
 
     # ----------------------------------------------------------------------------
@@ -108,7 +112,7 @@ class Device():
                     # remove any whitespace including tab and newline
                     self._hardware = ''.join(hardware.stdout.split())
                 else:
-                    print("\nERROR: adb command is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
             elif self.mode == 'f.b':
                 if get_fastboot():
                     theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar product"
@@ -118,7 +122,7 @@ class Device():
                     hardware = hardware[0].split(' ')
                     self._hardware = hardware[1]
                 else:
-                    print("\nERROR: fastboot command is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
         return self._hardware
 
     # ----------------------------------------------------------------------------
@@ -135,7 +139,7 @@ class Device():
                     fingerprint = ''.join(fingerprint.stdout.split())
                     self._build = fingerprint.split('/')[3]
                 else:
-                    print("\nERROR: adb command is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
             else:
                self._build = ''
         return self._build
@@ -156,7 +160,7 @@ class Device():
                     active_slot = active_slot.stdout.replace("\n", "")
                     self._active_slot = active_slot.replace("_", "")
                 else:
-                    print("\nERROR: adb command is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
             elif self.mode == 'f.b':
                 if get_fastboot():
                     theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar current-slot"
@@ -166,7 +170,7 @@ class Device():
                     active_slot = active_slot[0].split(' ')
                     self._active_slot = active_slot[1]
                 else:
-                    print("\nERROR: fastboot command is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
         return self._active_slot
 
     # ----------------------------------------------------------------------------
@@ -188,7 +192,7 @@ class Device():
                     else:
                         self._unlocked = False
                 else:
-                    print("\nERROR: fastboot command is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
         return self._unlocked
 
     # ----------------------------------------------------------------------------
@@ -265,6 +269,25 @@ class Device():
             return res
 
     # ----------------------------------------------------------------------------
+    #                               Method reboot_sideload
+    # ----------------------------------------------------------------------------
+    def reboot_sideload(self):
+        print(f"Rebooting device {self.id} for sideload ...")
+        if self.mode == 'adb' and get_adb():
+            theCmd = f"\"{get_adb()}\" -s {self.id} reboot sideload "
+            debug(theCmd)
+            res = run_shell(theCmd)
+            return res
+        elif self.mode == 'f.b' and get_fastboot():
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            print("Waiting 5 seconds ...")
+            time.sleep(5)
+            self.reboot_sideload()
+            return res
+
+    # ----------------------------------------------------------------------------
     #                               Method set_active
     # ----------------------------------------------------------------------------
     def set_active_slot(self, slot):
@@ -281,10 +304,44 @@ class Device():
             return res
 
     # ----------------------------------------------------------------------------
+    #                               Method lock_bootloader
+    # ----------------------------------------------------------------------------
+    def lock_bootloader(self):
+        if self.mode == 'adb' and get_adb():
+            self.reboot_bootloader()
+            print("Waiting 5 seconds ...")
+            time.sleep(5)
+            phone.refresh_phone_mode()
+        if self.mode == 'f.b' and get_fastboot():
+            # add a popup warning before continuing.
+            print(f"Unlocking bootloader for device {self.id} ...")
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing lock"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            return res
+
+    # ----------------------------------------------------------------------------
+    #                               Method unlock_bootloader
+    # ----------------------------------------------------------------------------
+    def unlock_bootloader(self):
+        if self.mode == 'adb' and get_adb():
+            self.reboot_bootloader()
+            print("Waiting 5 seconds ...")
+            time.sleep(5)
+            phone.refresh_phone_mode()
+        if self.mode == 'f.b' and get_fastboot():
+            # add a popup warning before continuing.
+            print(f"Unlocking bootloader for device {self.id} ...")
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing unlock"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            return res
+
+    # ----------------------------------------------------------------------------
     #                               Method disable_magisk_modules
     # ----------------------------------------------------------------------------
     def disable_magisk_modules(self):
-        print("Disabling magisk modules device ...")
+        print("Disabling magisk modules ...")
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
             debug(theCmd)
@@ -300,7 +357,7 @@ class Device():
             return res
 
     # ----------------------------------------------------------------------------
-    #                               Method refresh_phone_info
+    #                               Method refresh_phone_mode
     # ----------------------------------------------------------------------------
     def refresh_phone_mode(self):
         if self.mode == 'adb' and get_fastboot():
@@ -313,6 +370,41 @@ class Device():
             response = run_shell(theCmd)
             if self.id in response.stdout:
                 self.mode = 'adb'
+
+
+# # ============================================================================
+# #                               Class Magisk
+# # ============================================================================
+# class Magisk():
+#     def __init__(self, dirname):
+#         # Instance variables
+#         self.dirname = dirname
+#         # The below are for caching.
+#         self._id = None
+#         self._version = None
+#         self._state = None
+#         self._name = None
+#         self._version_code = None
+#         self._author = None
+#         self._description = None
+
+#     # ----------------------------------------------------------------------------
+#     #                               property id
+#     # ----------------------------------------------------------------------------
+#     @property
+#     def id(self):
+#         if self._id is None:
+#             self.get_magisk_module_details()
+#         return self._id
+
+#     # ----------------------------------------------------------------------------
+#     #                               Method get_magisk_module_details
+#     # ----------------------------------------------------------------------------
+#     def get_magisk_module_details(self):
+#         if self.mode == 'adb' and get_adb():
+#             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{self.dirname}/module.prop\'\""
+#             response = run_shell(theCmd)
+#             print(response)
 
 
 # ============================================================================
@@ -353,7 +445,7 @@ def get_connected_devices():
                 devices.append(device_details)
                 phones.append(device)
     else:
-        print("\nERROR: adb command is not found!")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
 
     if get_fastboot():
         theCmd = f"\"{get_fastboot()}\" devices"
@@ -367,7 +459,7 @@ def get_connected_devices():
                 devices.append(device_details)
                 phones.append(device)
     else:
-        print("\nERROR: fastboot command is not found!")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
 
     set_phones(phones)
     return devices

@@ -12,13 +12,13 @@ import ntpath
 import sys
 import math
 import hashlib
-# import sqlite3 as sl
+import sqlite3 as sl
 
 from config import VERSION
 from runtime import *
 from platformdirs import *
 from message_box import MessageBox
-
+from datetime import datetime
 
 # ============================================================================
 #                               Class FlashFile
@@ -43,7 +43,7 @@ class FlashFile():
     def sync_line(self):
         if self.type in ['init', 'sleep']:
             response = self.type
-        elif self.type == 'path':
+        elif self.type in ['path', 'if_block']:
             # don't include
             response = ''
         else:
@@ -65,7 +65,7 @@ def check_platform_tools(self):
         adb = os.path.join(self.config.platform_tools_path, adb_binary)
         fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
         if os.path.exists(fastboot) and os.path.exists(adb):
-            print(f"Selected Platform Tools Path: {self.config.platform_tools_path}.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Selected Platform Tools Path:\n{self.config.platform_tools_path}.")
             adb = os.path.join(self.config.platform_tools_path, adb_binary)
             fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
             set_adb(adb)
@@ -74,13 +74,15 @@ def check_platform_tools(self):
             print(f"SDK Version: {get_sdk_version()}")
             return
         else:
-            print("\nERROR: The selected path %s does not have adb and or fastboot" % self.config.platform_tools_path)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected path {self.config.platform_tools_path} does not have adb and or fastboot")
             self.config.platform_tools_path = None
             set_adb(None)
             set_fastboot(None)
+    wx.Yield
 
     if not self.config.platform_tools_path:
         print("Looking for Android Platform Tools in system PATH environment ...")
+        wx.Yield
         adb = which(adb_binary)
         if adb:
             folder_path = os.path.dirname(adb)
@@ -107,7 +109,10 @@ def check_platform_tools(self):
             self.platform_tools_picker.SetPath('')
     except:
         pass
+    wx.Yield
     identify_sdk_version(self)
+    wx.Yield
+
 
 
 # ============================================================================
@@ -141,14 +146,14 @@ def get_package_ready(self, src, includeFlashMode = False, includeTitle = False)
         message = ''
         if includeTitle:
             message +=  "The package is of the following state.\n\n"
-        message += "Patch Boot:           %s\n" % str(p_patch_boot)
-        message += "Custom Rom:           %s\n" % str(p_custom_rom)
+        message += "Patch Boot:             %s\n" % str(p_patch_boot)
+        message += "Custom Rom:             %s\n" % str(p_custom_rom)
         if p_custom_rom:
-            message += "Custom Rom File:      %s\n" % p_custom_rom_path
+            message += "Custom Rom File:        %s\n" % p_custom_rom_path
             rom_file = ntpath.basename(p_custom_rom_path)
             set_custom_rom_file(rom_file)
         if includeFlashMode:
-            message += "Flash Mode:           %s\n" % self.config.flash_mode
+            message += "Flash Mode:             %s\n" % self.config.flash_mode
         message += "\n"
     return message
 
@@ -266,7 +271,7 @@ def select_firmware(self):
     filename, extension = os.path.splitext(firmware)
     extension = extension.lower()
     if extension == '.zip':
-        print(f"The following firmware {firmware} is selected.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
         firmware = firmware.split("-")
         try:
             set_firmware_model(firmware[0])
@@ -276,10 +281,132 @@ def select_firmware(self):
             set_firmware_id(None)
         if get_firmware_id():
             set_flash_button_state(self)
+        # process_firmware(self)
     else:
-        print(f"\nERROR: The selected file {firmware} is not a zip file.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a zip file.")
         self.config.firmware_path = None
         self.firmware_picker.SetPath('')
+    wx.Yield
+
+
+# ============================================================================
+#                               Function process_firmware
+# ============================================================================
+def process_firmware(self):
+    print(f"processing firmware {self.config.firmware_path} ...")
+    path_to_7z = get_path_to_7z()
+    config_path = get_config_path()
+    factory_images = os.path.join(config_path, 'factory_images')
+    boot_images = os.path.join(config_path, 'boot_images')
+    package_dir_full = os.path.join(factory_images, get_firmware_id())
+    image_file_path = os.path.join(package_dir_full, 'image-' + get_firmware_id() + ".zip")
+
+    # let's do some db stuff
+    # connect / create db
+    con = sl.connect(os.path.join(config_path,'PixelFlasher.db'))
+    # create table
+    try:
+        with con:
+            con.execute("""
+                CREATE TABLE BOOT (
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    epoch integer,
+                    factory_id TEXT,
+                    factory_file TEXT,
+                    boot_hash TEXT,
+                    boot_file TEXT,
+                    patched_boot_hash,
+                    patched_boot_file,
+                    magisk_version,
+                    magisk_options
+                );
+            """)
+    except:
+        pass
+
+    # Unzip the factory image
+    start_1 = time.time()
+    debug(f"Unzipping Image: {self.config.firmware_path} into {package_dir_full} ...")
+    theCmd = f"\"{path_to_7z}\" x -bd -y -o{factory_images} \"{self.config.firmware_path}\""
+    debug(theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(res.stderr)
+        print("Aborting ...")
+        return
+
+    # extract boot.img
+    debug(f"Extracting boot.img from {image_file_path} ...")
+    theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" boot.img" % (path_to_7z, package_dir_full, image_file_path)
+    debug("%s" % theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(res.stderr)
+        print("Aborting ...")
+        return
+
+    # get the checksum of the boot.img
+    boot_img_file = os.path.join(package_dir_full, "boot.img")
+    checksum = md5(os.path.join(boot_img_file))
+    debug(f"md5 of boot.img: {checksum}")
+
+    # if a matching boot.img is not found, store it.
+    cached_boot_img_dir_full = os.path.join(config_path, 'boot_images', checksum)
+    cached_boot_img_path = os.path.join(cached_boot_img_dir_full, 'boot.img')
+    debug("Checking for cached copy of boot.img")
+    if not os.path.exists(cached_boot_img_dir_full):
+        os.makedirs(cached_boot_img_dir_full, exist_ok=True)
+    if not os.path.exists(cached_boot_img_path):
+        debug(f"Cached copy of boot.img with md5: {checksum} was not found.")
+        debug(f"Copying {image_file_path} to {cached_boot_img_dir_full}")
+        shutil.copy(boot_img_file, cached_boot_img_dir_full, follow_symlinks=True)
+        # create db record
+        sql = 'INSERT INTO BOOT (epoch, factory_id, factory_file, boot_hash, boot_file) values(?, ?, ?, ?, ?)'
+        data = [
+            (time.time(), get_firmware_id(), self.config.firmware_path, checksum, cached_boot_img_path)
+        ]
+        with con:
+            con.executemany(sql, data)
+    else:
+        debug(f"Found a cached copy of boot.img md5={checksum}")
+        with con:
+            data = con.execute(f"SELECT * FROM BOOT WHERE boot_hash = '{checksum}'")
+            for row in data:
+                print(row)
+
+    end_1 = time.time()
+    print("Process firmware time: %s seconds"%(math.ceil(end_1 - start_1)))
+
+        # id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        # epoch integer,
+        # factory_id TEXT,
+        # factory_file TEXT,
+        # boot_hash TEXT,
+        # boot_file TEXT,
+        # patched_boot_hash,
+        # patched_boot_file,
+        # magisk_version,
+        # magisk_options
+
+    # # Get the checksum for boot.img
+    # # see if we already have a match
+    # # if we do, enumerate all patched copies of it, along with the magisk version and the options.
+    # # probably it is best to store this in db
+    # # Fields to store:
+    #     # Date / Time
+    #     # Factory Filename
+    #     # Factory ID
+    #     # Factory model
+    #     # path to unpatched boot.img
+    #     # unpatched boot.img md5
+    #     # magisk version
+    #     # magisk options
+    #     # path to patched boot.img
+    #     # patched boot.img md5
 
 
 # ============================================================================
@@ -319,7 +446,7 @@ def process_flash_all_file(filepath):
         elif line[:9] == "#!/bin/sh":
             filetype = 'sh'
         else:
-            print(f"\nERROR: Unexpect first line: {line} in file: {filepath}")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpect first line: {line} in file: {filepath}")
         flash = FlashFile(1, platform = filetype, type = "init", command = line.strip())
         flash_file_lines.append(flash)
 
@@ -420,7 +547,7 @@ def process_flash_all_file(filepath):
 def prepare_package(self):
     print("")
     print("==============================================================================")
-    print("  PixelFlasher %s             Preparing Package                               " % VERSION)
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Preparing Package ")
     print("==============================================================================")
 
     # get device
@@ -428,22 +555,22 @@ def prepare_package(self):
 
     # Make sure factory image is selected
     if not get_firmware_model():
-        print("\nERROR: Select a valid factory image.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a valid factory image.")
         return
 
     # Make sure platform-tools is set and adb and fastboot are found
     if not self.config.platform_tools_path:
-        print("\nERROR: Select Android Platform Tools (ADB)")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
         return
 
     # Make sure Phone is connected
     if not device:
-        print("\nERROR: Select an ADB connection (phone)")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select an ADB connection (phone)")
         return
 
     # Make sure Phone model matches firmware model
     if get_firmware_model() != device.hardware:
-        print(f"\nERROR: Android device model {device.hardware} does not match firmware model {get_firmware_model()}")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware model {get_firmware_model()}")
         return
 
     start = time.time()
@@ -460,8 +587,8 @@ def prepare_package(self):
             print(f"Found a previous package {package_dir} deleting ...")
             shutil.rmtree(package_dir_full)
         except OSError as e:
-            print("\nERROR: Could not delete the previous package.")
-            print(f"Error: {e.filename} - {e.strerror}.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete the previous package.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {e.filename} - {e.strerror}.")
             print("Aborting ...")
             return
 
@@ -497,7 +624,7 @@ def prepare_package(self):
     if os.path.exists(package_dir):
         print("Unzipped into %s folder." % package_dir)
     else:
-        print("\nERROR: Unzipped folder %s not found." % package_dir)
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unzipped folder {package_dir} not found.")
         # if bundled 7zip fails, let's try with Python libraries and see if that works.
         if path_to_7z:
             debug("returncode is: %s" %res.returncode)
@@ -518,7 +645,7 @@ def prepare_package(self):
             if os.path.exists(package_dir):
                 print("Unzipped into %s folder." % package_dir)
             else:
-                print("\nERROR: Unzipped folder %s not found again." % package_dir)
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unzipped folder {package_dir} not found again.")
                 print("Aborting ...")
                 return
         else:
@@ -538,11 +665,11 @@ def prepare_package(self):
             if os.path.exists(self.config.custom_rom_path):
                 shutil.copy(self.config.custom_rom_path, rom_file_full, follow_symlinks=True)
             else:
-                print(f"\nERROR: Custom ROM file: {self.config.custom_rom_path} is not found")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Custom ROM file: {self.config.custom_rom_path} is not found")
                 print("Aborting ...")
                 return
         else:
-            print("\nERROR: Custom ROM file is not set")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Custom ROM file is not set")
             print("Aborting ...")
             return
     else:
@@ -576,7 +703,7 @@ def prepare_package(self):
                 os.rename(src, boot_img)
                 os.rename(image_file_full, image_file_full + ".orig")
             else:
-                print("\nERROR: Unzipped folder %s not found." %(boot_img_folder))
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unzipped folder {boot_img_folder} not found.")
                 print("Aborting ...")
                 return
         endUnzip2 = time.time()
@@ -584,7 +711,7 @@ def prepare_package(self):
 
         # check if boot.img got extracted (if not probably the zip does not have it)
         if not os.path.exists(boot_img):
-            print("\nERROR: You have selected the Patch option, however boot.img file is not found.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You have selected the Patch option, however boot.img file is not found.")
             print(f"Please make sure that the zip file: \n{image_file_full} contains boot.img at root level.")
             print("Aborting ...")
             return
@@ -595,7 +722,7 @@ def prepare_package(self):
         res = run_shell(theCmd)
         # expect ret 0
         if res.returncode != 0:
-            print("\nERROR: Encountered an error.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -608,7 +735,7 @@ def prepare_package(self):
         res = run_shell(theCmd)
         # expect ret 1
         if res.returncode != 1:
-            print("\nERROR: boot.img Delete Failed!")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img Delete Failed!")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -621,7 +748,7 @@ def prepare_package(self):
         res = run_shell(theCmd)
         # expect ret 0
         if res.returncode != 0:
-            print("\nERROR: Encountered an error.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -634,7 +761,7 @@ def prepare_package(self):
         res = run_shell(theCmd)
         # expect ret 1
         if res.returncode != 1:
-            print("\nERROR: magisk_patched.img delete failed!")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched.img delete failed!")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -648,7 +775,7 @@ def prepare_package(self):
         res = run_shell(theCmd)
         # expect ret 0
         if res.returncode != 0:
-            print("\nERROR: Encountered an error.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -663,7 +790,7 @@ def prepare_package(self):
         res = run_shell(theCmd)
         # expect 0
         if res.returncode != 0:
-            print("\nERROR: boot.img is not found!")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found!")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -703,7 +830,7 @@ def prepare_package(self):
                 res = run_shell(theCmd)
                 wx.Yield()
                 if res.returncode != 0:
-                    print("\nERROR: Magisk could not be launched")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
                     print(res.stderr)
                     print("Please launch Magisk manually.")
                 else:
@@ -746,7 +873,7 @@ def prepare_package(self):
         wx.Yield()
         # expect ret 0
         if res.returncode == 1:
-            print("\nERROR: magisk_patched*.img not found")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img not found")
             print(res.stderr)
             print("Aborting ...")
             return
@@ -762,7 +889,7 @@ def prepare_package(self):
         wx.Yield()
         # expect ret 0
         if res.returncode == 1:
-            print("\nERROR: Unable to pull magisk_patched.img from phone.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull magisk_patched.img from phone.")
             print(res.stderr)
             print("Aborting ...")
             return
@@ -803,7 +930,7 @@ def prepare_package(self):
             self.flash_button.Enable()
             wx.Yield()
         else:
-            print("\nERROR: Encountered an error while preparing the package.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while preparing the package.")
             print(f"Package file: {dest} is not found.")
             print("Aborting ...")
         endZip = time.time()
@@ -823,17 +950,17 @@ def prepare_package(self):
 # ============================================================================
 def flash_phone(self):
     if not get_adb():
-        print("\nERROR: Android Platform Tools must be set.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
         return
 
     device = get_phone()
     if not device:
-        print("\nERROR: You must first select a valid adb device.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid adb device.")
         return
 
     package_dir = get_firmware_id()
     if not package_dir:
-        print("\nERROR: You must first select a firmware file.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a firmware file.")
         return
 
     cwd = os.getcwd()
@@ -851,11 +978,11 @@ def flash_phone(self):
             fastboot_options += '--disable-verification '
         if self.config.fastboot_verbose:
             fastboot_options += '--verbose '
-        message  = "Custom Flash Options: %s\n" % str(self.config.advanced_options)
-        message += "Disable Verity:       %s\n" % str(self.config.disable_verity)
-        message += "Disable Verification: %s\n" % str(self.config.disable_verification)
-        message += "Flash Both Slots:     %s\n" % str(self.config.flash_both_slots)
-        message += "Verbose Fastboot:     %s\n" % str(self.config.fastboot_verbose)
+        message  = "Custom Flash Options:   %s\n" % str(self.config.advanced_options)
+        message += "Disable Verity:         %s\n" % str(self.config.disable_verity)
+        message += "Disable Verification:   %s\n" % str(self.config.disable_verification)
+        message += "Flash Both Slots:       %s\n" % str(self.config.flash_both_slots)
+        message += "Verbose Fastboot:       %s\n" % str(self.config.fastboot_verbose)
 
     # delete previous flash-phone.bat file if it exists
     if sys.platform == "win32":
@@ -879,19 +1006,25 @@ def flash_phone(self):
             # create flash-phone.bat based on the custom options.
             f = open(dest.strip(), "w")
             data = first_line
-            data += version_sig
             if sys.platform == "win32":
                 data += "PATH=%PATH%;\"%SYSTEMROOT%\System32\"\n"
-            if image_mode == 'image':
-                action = "update"
-                msg  = "Flash:                "
-            elif image_mode == 'boot' and self.live_boot_radio_button.Value:
-                action = "boot"
-                msg  = "Live Boot to:         "
+            # Sideload
+            if image_mode == 'SIDELOAD':
+                msg  = "ADB Sideload:         "
+                data += f"\"{get_adb()}\" -s {device.id} sideload \"{get_image_path()}\"\n"
             else:
-                action = f"flash {image_mode}"
-                msg  = "Flash:                "
-            data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} \"{get_image_path()}\"\n"
+                data += version_sig
+                if image_mode == 'image':
+                    action = "update"
+                    msg  = "Flash:                "
+                elif image_mode == 'boot' and self.live_boot_radio_button.Value:
+                    action = "boot"
+                    msg  = "Live Boot to:         "
+                else:
+                    action = f"flash {image_mode}"
+                    msg  = "Flash:                "
+                data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} \"{get_image_path()}\"\n"
+
             f.write(data)
             f.close()
             message += f"{msg}{get_image_path()} to {image_mode}\n\n"
@@ -902,14 +1035,14 @@ def flash_phone(self):
     else:
         pr = os.path.join(get_firmware_id(), "Package_Ready.json")
         if not os.path.exists(pr):
-            print("\nERROR: You must first prepare a package.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first prepare a package.")
             print("       Press the `Prepare Package` Button!")
             print("")
             return
 
         # Make sure Phone model matches firmware model
         if get_firmware_model() != device.hardware:
-            print("\nERROR: Android device model %s does not match firmware Model %s" % (device.hardware, get_firmware_model()))
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware Model {get_firmware_model()}")
             return
 
         # Process flash_all files
@@ -926,7 +1059,7 @@ def flash_phone(self):
         wx.Yield()
         # check to see if we have consistent linux / windows files
         if s1 != s2:
-            print("\nERROR: Found inconsistency between flash-all.bat and flash-all.sh files.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Found inconsistency between flash-all.bat and flash-all.sh files.")
             debug(f"bat file:\n{s1}")
             debug(f"\nsh file\n{s2}\n")
 
@@ -1000,9 +1133,9 @@ def flash_phone(self):
     result = dlg.ShowModal()
 
     if result == wx.ID_OK:
-        print("User Pressed Ok.")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
     else:
-        print("User Pressed Cancel.")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
         print("Aborting ...")
         dlg.Destroy()
         return
@@ -1010,16 +1143,41 @@ def flash_phone(self):
 
     print("")
     print("==============================================================================")
-    print(" PixelFlasher %s              Flashing Phone                                  " % VERSION)
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Flashing Phone    ")
+    # print(" PixelFlasher %s              Flashing Phone                                  " % VERSION)
     print("==============================================================================")
     startFlash = time.time()
 
-    # Reboot to bootloader if in adb mode
+    # If we're doing Sideload flashing
+    if self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD':
+        device.reboot_sideload()
+        print("Waiting 20 seconds ...")
+        time.sleep(20)
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
+        wx.Yield
+        theCmd = dest
+        os.chdir(package_dir)
+        theCmd = "\"%s\"" % theCmd
+        debug(theCmd)
+        run_shell2(theCmd)
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
+        endFlash = time.time()
+        print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        os.chdir(cwd)
+        return
+
     if device.mode == 'adb':
         device.reboot_bootloader()
         print("Waiting 5 seconds ...")
         time.sleep(5)
-        device.refresh_phone_mode()
+        # device.refresh_phone_mode()
+        self.device_choice.SetItems(self.get_connected_devices())
+        self._select_configured_device()
+
+    device = get_phone()
+    if not device:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
+        return
 
     # vendor_dlkm needs to be flashed in fastbootd mode
     if self.config.advanced_options and self.config.flash_mode == 'customFlash' and get_image_mode() == 'vendor_dlkm':
@@ -1029,14 +1187,14 @@ def flash_phone(self):
 
     # if in bootloader mode, Start flashing
     if device.mode == 'f.b' and get_fastboot():
-        print(f"Flashing device {device.id} ...")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
         # confirm for wipe data
         if self.config.flash_mode == 'wipeData':
             print("Flash Mode: Wipe Data")
             dlg = wx.MessageDialog(None, "You have selected to WIPE data\nAre you sure want to continue?",'Wipe Data',wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result != wx.ID_YES:
-                print("User canceled flashing.")
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
                 return
 
         theCmd = dest
@@ -1044,11 +1202,11 @@ def flash_phone(self):
         theCmd = "\"%s\"" % theCmd
         debug(theCmd)
         run_shell2(theCmd)
-        print("Done!")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
         print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
         os.chdir(cwd)
     else:
-        print(f"\nERROR: Device {device.id} not in bootloader mode.")
-        print("Aborting ...")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...")
 

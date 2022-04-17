@@ -1,21 +1,21 @@
 # ![Image of PixelFlasher Icon](/images/icon-128.png) PixelFlasher [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-This is a follow up to [PixelFlasher](/scripts/PixelFlasher.ps1) `Powershell™` script (which is now deprecated and moved to `scripts` directory).
-This is a total rewrite in Python™ using [wxPython](https://www.wxpython.org/) to provide a cross-platform UI interface.
+This is a follow up to [PixelFlasher](/scripts/PixelFlasher.ps1) `Powershell™` script (which is now deprecated and moved to `scripts` directory).  
+This is a total rewrite in Python™ using [wxPython](https://www.wxpython.org/) to provide a cross-platform UI interface.  
 The executable which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
 
 ## DESCRIPTION
 
-As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)
-PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on other phones (YMMV).
+As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)  
+PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on other phones (YMMV).  
 The application has two modes, normal mode (basic) and advanced mode (expert).
 
 **Basic mode:** Should suit most users. Some of the features in basic mode are:
 
 - Simple UI interface, click and go. No more command line.
-- Fully Automated, pre-patch factory image with Magisk (without user interaction) and perform upgrades without losing root.
-No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.
-No more setting airplane mode and clearing storage to retain Safetynet passing.
+- Fully Automated, pre-patch factory image with Magisk (without user interaction) and perform upgrades without losing root.  
+No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.  
+No more setting airplane mode and clearing storage to retain Safetynet passing.  
 (This Assumes that the phone was previously rooted with Magisk)
 - Choose to keep data or wipe data.
 - Ability to flash even if multiple devices are connected to the computer.
@@ -52,7 +52,8 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 
 ## Installation
 
-PixelFlasher doesn't have to be installed, just double-click it and it'll start. Check the [releases section](https://github.com/badabing2005/PixelFlasher/releases) for downloads.
+PixelFlasher doesn't have to be installed, just double-click it and it'll start.  
+Check the [releases section](https://github.com/badabing2005/PixelFlasher/releases) for downloads.  
 It is recommended that you place the executable in its own directory, as it creates temporary files in the application folder.
 
 ## Status
@@ -60,7 +61,7 @@ It is recommended that you place the executable in its own directory, as it crea
 Scan the [list of open issues](https://github.com/badabing2005/PixelFlasher/issues) for bugs and pending features.
 
 **Note**
-This is my first wxPython based project. I got ideas and inspiration from [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher)
+This is my first wxPython based project. I got ideas and inspiration from [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher).  
 If you have constructive feedback as for how to improve the code please do reach out to me.
 
 ## Build it yourself
@@ -98,7 +99,8 @@ pip install wxPython-4.1.2a1.dev5308+2258f215-cp310-cp310-win_amd64.whl
 ```
 
 **A Note on MacOS**
-This project is cross-platform and is built for Windows and Linux, it can also be built for other platforms such as MacOS. To the best of my knowledge I have included the necessary files for it to be build on MacOS, however I do not have a Mac to build or test it.
+This project is cross-platform and is built for Windows and Linux, it can also be built for other platforms such as MacOS.  
+To the best of my knowledge I have included the necessary files for it to be build on MacOS, however I do not have a Mac to build or test it.
 
 **Build**
 Run `build.bat` on Windows or `build.sh` on Linux / MacOS.
@@ -114,15 +116,15 @@ Think of basic mode in 3 stages.
 Essential selections.
 
 1. First thing to do is select the factory image, the application will recognize the phone model from the image name. (You can download factory images by clicking the blue link).
-2. If Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it. (You can download the lastest Android™ Platform Tools by clicking the blue link).
+2. If Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it. (You can download the lastest Android™ Platform Tools by clicking the blue link).  
 Otherwise you'd have to select where it is installed.
 If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)
-3. If you already have your phone connected to the PC, the application will detect all ADB connected devices (both in adb and fastboot mode) and populate the combo box.
+3. If you already have your phone connected to the PC, the application will detect all ADB connected devices (both in adb and fastboot mode) and populate the combo box.  
 Otherwise connect your phone to your PC, and hit the `Reload` button.
 4. Select your device from the list in the combo box.
-The following information about the connected device is displayed.
+The following information about the connected device is displayed.  
     - (1st field) Rooted devices will be identified with a checkmark ✓.
-    **Note:** If you want PixelFlasher to detect root, or automatically use Magisk to patch boot.img, you need to grant root permissions to `shell` in Magisk.
+    **Note:** If you want PixelFlasher to detect root, or automatically use Magisk to patch boot.img, you need to grant root permissions to `shell` in Magisk.  
     ![Image of shell root access](/images/shell-root.png)
     - (1st field) Non-Rooted devices will be identified with a ✗.
     - (1st field) Devices in fastboot mode will be identified with a ? (in fastboot mode, root status cannot be determined).
@@ -134,13 +136,13 @@ The following information about the connected device is displayed.
 **Stage 2**
 Preparing a package. Based on the choices made in stage 1, this stage creates the proper package file to be flashed later in stage 3.
 
-5. Select this option if you want to pre-patch the image with Magisk, assuming that Magisk is already installed on your phone.
-This would be the typical choice for monthly updates.
-This option will allow updating the phone without losing root (not even temporarily).
+5. Select this option if you want to pre-patch the image with Magisk, assuming that Magisk is already installed on your phone.  
+This would be the typical choice for monthly updates.  
+This option will allow updating the phone without losing root (not even temporarily).  
 **Note:** See note above for granting root permissions to `shell`.
 
-6. Prepare the package.
-If the phone is already rooted, the whole process is without user interaction.
+6. Prepare the package.  
+If the phone is already rooted, the whole process is without user interaction.  
 Otherwise the PixelFlasher will launch Magisk on the phone and wait for the user to select stock boot.img which would already be transferred to the phone by the PixelFlasher and guide the user to make the proper choices in Magisk to create a patched boot.img before continuing for PixelFlasher to do the rest of the work.
 
 **Stage 3**
@@ -162,11 +164,11 @@ To enable the export mode use the **File Menu | Advanced Configuration** and sel
 
 In this mode the following additional options are exposed, below notes are more for enumeration than a guide, as they should be trivial and obvious to an expert.
 
-1. Option to Change the Active Slot (the inactive slot is automatically selected).
+1. Option to Change the Active Slot (the inactive slot is automatically selected).  
 Option to reboot to Recovery.
 2. Options to Lock / Unlock bootloader, Option to disable Magisk modules when bootlooping.
-3. Apply Custom ROM. This replaces the factory ROM image with the selected file. This is still part of the package preparation stage.
-Please make sure to read the documentation of the chosen ROM, as each custom ROM instructions could be different.
+3. Apply Custom ROM. This replaces the factory ROM image with the selected file. This is still part of the package preparation stage.  
+Please make sure to read the documentation of the chosen ROM, as each custom ROM instructions could be different.  
 To be clear, this is what PixelFlasher does internally when this mode is selected, please understand it, and don't use it if the selected ROM guide does not fit the bill.
 You've been warned!
     - Keeps stock bootloader and radio images.
@@ -175,8 +177,8 @@ You've been warned!
     - Patching `boot.img` can be performed if the option is selected.
     - Flash Mode is similar to basic flash mode described above in step 7.
 4. Custom Flash. select this to switch from flashing a package file to flashing a single file.
-5. Browse to select a a valid image file (.img or .zip).
-Choose the dropdown to select image type.
+5. Browse to select a a valid image file (.img or .zip).  
+Choose the dropdown to select image type.  
     - boot (can be flashed to Live or boot) - Expected file type .img
     - bootloader - Expected file type .img
     - dtbo - Expected file type .img
@@ -201,9 +203,8 @@ Choose the dropdown to select image type.
 - First and foremost [Magisk](https://github.com/topjohnwu/Magisk/releases) by [John Wu](https://github.com/topjohnwu) which made rooting Pixel™ phones possible, without it none of this would have mattered.
 - Big thanks to [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://forum.xda-developers.com/m/t-ryder.3705546/) for his valuable ideas, feedback and testing. Your contributions are very much appreciated.
 - [[Homeboy76]](https://forum.xda-developers.com/m/homeboy76.4810220/) and [[v0latyle]](https://forum.xda-developers.com/m/v0latyle.3690504/) at [xda](https://forum.xda-developers.com/) for their excellent guides [[here](https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/) and [here](https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/)] on Pixel™ series phones.
-This program could not have been possible without their easy to follow guides.
+This program could not have been possible without their easy to follow guides.  
 I strongly encourage all beginners to follow those guides rather than use this program, it is important to understand the basic steps involved before diving into one click tools or advanced tasks.
-
 - Marcel Stör's [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher) source code which jump started my introduction to [wxPython](https://www.wxpython.org/) and eventually this program.
 - [JackMcKew](https://github.com/JackMcKew) for pyinstaller Github Actions.
 - Endless counts of [xda](https://forum.xda-developers.com/) members and their posts that tirelessly answer questions and share tools. Too many to enumerate.

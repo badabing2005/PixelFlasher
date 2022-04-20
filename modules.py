@@ -78,11 +78,9 @@ def check_platform_tools(self):
             self.config.platform_tools_path = None
             set_adb(None)
             set_fastboot(None)
-    wx.Yield
 
     if not self.config.platform_tools_path:
         print("Looking for Android Platform Tools in system PATH environment ...")
-        wx.Yield
         adb = which(adb_binary)
         if adb:
             folder_path = os.path.dirname(adb)
@@ -109,10 +107,7 @@ def check_platform_tools(self):
             self.platform_tools_picker.SetPath('')
     except:
         pass
-    wx.Yield
     identify_sdk_version(self)
-    wx.Yield
-
 
 
 # ============================================================================
@@ -127,7 +122,6 @@ def identify_sdk_version(self):
         for line in response.stdout.split('\n'):
             if 'Version' in line:
                 sdk_version = line.split()[1]
-                debug("Found ADB Version: %s in %s" % (sdk_version, self.config.platform_tools_path))
                 set_sdk_version(sdk_version)
 
 
@@ -199,6 +193,7 @@ def debug(message):
 def run_shell(cmd):
     try:
         response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        wx.Yield()
         return response
     except Exception as e:
         raise e
@@ -271,7 +266,7 @@ def select_firmware(self):
     filename, extension = os.path.splitext(firmware)
     extension = extension.lower()
     if extension == '.zip':
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
         firmware = firmware.split("-")
         try:
             set_firmware_model(firmware[0])
@@ -281,12 +276,13 @@ def select_firmware(self):
             set_firmware_id(None)
         if get_firmware_id():
             set_flash_button_state(self)
+        else:
+            self.flash_button.Disable()
         # process_firmware(self)
     else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a zip file.")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a zip file.")
         self.config.firmware_path = None
         self.firmware_picker.SetPath('')
-    wx.Yield
 
 
 # ============================================================================
@@ -408,6 +404,9 @@ def process_firmware(self):
     #     # path to patched boot.img
     #     # patched boot.img md5
 
+    # TODO: UI to manage boot.img.
+    # TODO: UI to manage previous packages (multiple)
+
 
 # ============================================================================
 #                               Function set_flash_button_state
@@ -417,13 +416,13 @@ def set_flash_button_state(self):
         src = os.path.join(get_firmware_id(), "Package_Ready.json")
         if os.path.exists(src):
             self.flash_button.Enable()
-            print(f"\nPrevious flashable package is found for the firmware:\n{self.config.firmware_path}")
+            print(f"Previous flashable package is found for the firmware:\n{self.config.firmware_path}")
             message = get_package_ready(self, src, includeTitle=True)
             print(message)
         else:
             self.flash_button.Disable()
             if self.config.firmware_path:
-                print(f"\nNo previous flashable package is found for the firmware:\n{self.config.firmware_path}")
+                print(f"No previous flashable package is found for the firmware:\n{self.config.firmware_path}")
     except:
         self.flash_button.Disable()
 
@@ -433,10 +432,6 @@ def set_flash_button_state(self):
 # ============================================================================
 def process_flash_all_file(filepath):
     cwd = os.getcwd()
-    # package_dir = get_firmware_id()
-    # package_dir_full = os.path.join(cwd, package_dir)
-    # filepath = os.path.join(package_dir_full, "flash-all.bat")
-
     flash_file_lines = []
     with open(filepath) as fp:
         #1st line, platform
@@ -540,7 +535,6 @@ def process_flash_all_file(filepath):
         return flash_file_lines
 
 
-
 # ============================================================================
 #                               Function prepare_package
 # ============================================================================
@@ -600,7 +594,6 @@ def prepare_package(self):
     else:
         print("Could not find bundled 7zip.\nzip/unzip operations will be slower")
         path_to_7z = None
-    wx.Yield()
 
     # Unzip the factory image
     startUnzip1 = time.time()
@@ -618,7 +611,6 @@ def prepare_package(self):
             raise e
     endUnzip1 = time.time()
     print("Unzip time1: %s seconds"%(math.ceil(endUnzip1 - startUnzip1)))
-    wx.Yield()
 
     # double check if unpacked directory exists, this should match firmware_id from factory image name
     if os.path.exists(package_dir):
@@ -651,7 +643,6 @@ def prepare_package(self):
         else:
             print("Aborting ...")
             return
-    wx.Yield()
 
     # if custom rom is selected, copy it to the flash folder
     if self.config.advanced_options and self.config.custom_rom:
@@ -818,7 +809,6 @@ def prepare_package(self):
                 result = dlg.ShowModal()
                 if result == wx.ID_OK:
                     print("User pressed ok.")
-                    wx.Yield()
                 else:
                     print("User pressed cancel.")
                     print("Aborting ...")
@@ -828,7 +818,6 @@ def prepare_package(self):
                 print("Launching Magisk ...")
                 theCmd = "\"%s\" -s %s shell monkey -p %s -c android.intent.category.LAUNCHER 1" % (get_adb(), device.id, get_magisk_package())
                 res = run_shell(theCmd)
-                wx.Yield()
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
                     print(res.stderr)
@@ -850,7 +839,6 @@ def prepare_package(self):
                 result = dlg.ShowModal()
                 if result == wx.ID_OK:
                     print("User Pressed Ok.")
-                    wx.Yield()
                 else:
                     print("User Pressed Cancel.")
                     print("Aborting ...")
@@ -863,14 +851,12 @@ def prepare_package(self):
             res = run_shell2(theCmd)
             endPatch = time.time()
             print("Patch time: %s seconds"%(math.ceil(endPatch - startPatch)))
-            wx.Yield()
 
         # check if magisk_patched.img got created.
         print("")
         print("Looking for magisk_patched.img in %s ..." % (self.config.phone_path))
         theCmd = "\"%s\" -s %s shell ls %s/magisk_patched*.img" % (get_adb(), device.id, self.config.phone_path)
         res = run_shell(theCmd)
-        wx.Yield()
         # expect ret 0
         if res.returncode == 1:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img not found")
@@ -886,7 +872,6 @@ def prepare_package(self):
         theCmd = "\"%s\" -s %s pull %s \"%s\""  % (get_adb(), device.id, magisk_patched, os.path.join(package_dir_full, "magisk_patched.img"))
         debug("%s" % theCmd)
         res = run_shell(theCmd)
-        wx.Yield()
         # expect ret 0
         if res.returncode == 1:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull magisk_patched.img from phone.")
@@ -910,7 +895,6 @@ def prepare_package(self):
             os.chdir(package_dir_full)
             res = run_shell(theCmd)
             os.chdir(cwd)
-            wx.Yield()
         else:
             src = os.path.join(package_dir_full, "magisk_patched.img")
             dest = os.path.join(package_dir_full, image_id, "boot.img")
@@ -921,14 +905,12 @@ def prepare_package(self):
             print("Zipping  %s ..." % dir_name)
             print("Please be patient as this is a slow process and could take some time.")
             shutil.make_archive(dir_name, 'zip', dir_name)
-            wx.Yield()
         if os.path.exists(dest):
             print("Package is successfully created!")
             # create a marker file to confirm successful package creation, this will be checked by Flash command
             src = os.path.join(package_dir_full, "Package_Ready.json")
             set_package_ready(self, src)
             self.flash_button.Enable()
-            wx.Yield()
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while preparing the package.")
             print(f"Package file: {dest} is not found.")
@@ -1056,7 +1038,6 @@ def flash_phone(self):
         for f in flash_all_linux:
             if f.sync_line != '':
                 s2 += f"{f.sync_line}\n"
-        wx.Yield()
         # check to see if we have consistent linux / windows files
         if s1 != s2:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Found inconsistency between flash-all.bat and flash-all.sh files.")
@@ -1154,7 +1135,6 @@ def flash_phone(self):
         print("Waiting 20 seconds ...")
         time.sleep(20)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
-        wx.Yield
         theCmd = dest
         os.chdir(package_dir)
         theCmd = "\"%s\"" % theCmd

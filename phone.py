@@ -6,6 +6,14 @@ from runtime import *
 from datetime import datetime
 
 # ============================================================================
+#                               Class Magisk
+# ============================================================================
+class Magisk():
+    def __init__(self, dirname):
+        self.dirname = dirname
+
+
+# ============================================================================
 #                               Class Device
 # ============================================================================
 class Device():
@@ -25,6 +33,8 @@ class Device():
         self._active_slot = None
         self._unlocked = None
         self._magisk_modules = None
+        self._magisk_detailed_modules = None
+        self._magisk_modules_summary = None
 
     # ----------------------------------------------------------------------------
     #                               property root_symbol
@@ -80,6 +90,57 @@ class Device():
                 else:
                     self._magisk_modules = ''
         return self._magisk_modules
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_detailed_modules
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_detailed_modules(self):
+        if self._magisk_detailed_modules is None:
+            if self.mode == 'adb':
+                if self.rooted:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
+                    res = run_shell(theCmd)
+                    if res.returncode == 0:
+                        modules = []
+                        self._magisk_detailed_modules = res.stdout.split('\n')
+                        for module in self._magisk_detailed_modules:
+                            if module != '':
+                                m = Magisk(module)
+                                if self.mode == 'adb' and get_adb():
+                                    # get the state by checking if there is a disable file in the module directory
+                                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
+                                    res = run_shell(theCmd)
+                                    if res.returncode == 0:
+                                        m.state = 'disabled'
+                                    else:
+                                        m.state = 'enabled'
+                                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
+                                    res = run_shell(theCmd)
+                                    if res.returncode == 0:
+                                        module_prop = res.stdout.split('\n')
+                                        for line in module_prop:
+                                            if line.strip() != '':
+                                                key, value = line.split('=', 1)
+                                                setattr(m, key, value)
+                                        modules.append(m)
+                        self._magisk_detailed_modules = modules
+        return self._magisk_detailed_modules
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_modules_summary
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_modules_summary(self):
+        if self._magisk_modules_summary is None:
+            if self.magisk_detailed_modules:
+                summary = ''
+                for module in self.magisk_detailed_modules:
+                    summary += "        {:<36}{:<10}{}\n".format(module.name, module.state, module.version)
+                self._magisk_modules_summary = summary
+            else:
+                self._magisk_modules_summary = ''
+        return self._magisk_modules_summary
 
     # ----------------------------------------------------------------------------
     #                               property rooted
@@ -295,7 +356,7 @@ class Device():
             self.reboot_bootloader()
             print("Waiting 5 seconds ...")
             time.sleep(5)
-            phone.refresh_phone_mode()
+            self.refresh_phone_mode()
         if self.mode == 'f.b' and get_fastboot():
             print(f"Setting active slot to slot [{slot}] for device {self.id} ...")
             theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={slot}"
@@ -311,7 +372,7 @@ class Device():
             self.reboot_bootloader()
             print("Waiting 5 seconds ...")
             time.sleep(5)
-            phone.refresh_phone_mode()
+            self.refresh_phone_mode()
         if self.mode == 'f.b' and get_fastboot():
             # add a popup warning before continuing.
             print(f"Unlocking bootloader for device {self.id} ...")
@@ -328,7 +389,7 @@ class Device():
             self.reboot_bootloader()
             print("Waiting 5 seconds ...")
             time.sleep(5)
-            phone.refresh_phone_mode()
+            self.refresh_phone_mode()
         if self.mode == 'f.b' and get_fastboot():
             # add a popup warning before continuing.
             print(f"Unlocking bootloader for device {self.id} ...")
@@ -336,6 +397,36 @@ class Device():
             debug(theCmd)
             res = run_shell(theCmd)
             return res
+
+    # ----------------------------------------------------------------------------
+    #                               Method enable_magisk_module
+    # ----------------------------------------------------------------------------
+    def enable_magisk_module(self, dirname):
+        if self.mode == 'adb' and get_adb():
+            print(f"Enabling magisk module {dirname} ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/adb/modules/{dirname}/disable\'\""
+            debug(theCmd)
+            res = run_shell(theCmd)
+            return 0
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
+            return 1
+
+    # ----------------------------------------------------------------------------
+    #                               Method disable_magisk_module
+    # ----------------------------------------------------------------------------
+    def disable_magisk_module(self, dirname):
+        if self.mode == 'adb' and get_adb():
+            print(f"Disabling magisk module {dirname} ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'touch /data/adb/modules/{dirname}/disable\'\""
+            debug(theCmd)
+            res = run_shell(theCmd)
+            return 0
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
+            return 1
 
     # ----------------------------------------------------------------------------
     #                               Method disable_magisk_modules
@@ -370,41 +461,6 @@ class Device():
             response = run_shell(theCmd)
             if self.id in response.stdout:
                 self.mode = 'adb'
-
-
-# # ============================================================================
-# #                               Class Magisk
-# # ============================================================================
-# class Magisk():
-#     def __init__(self, dirname):
-#         # Instance variables
-#         self.dirname = dirname
-#         # The below are for caching.
-#         self._id = None
-#         self._version = None
-#         self._state = None
-#         self._name = None
-#         self._version_code = None
-#         self._author = None
-#         self._description = None
-
-#     # ----------------------------------------------------------------------------
-#     #                               property id
-#     # ----------------------------------------------------------------------------
-#     @property
-#     def id(self):
-#         if self._id is None:
-#             self.get_magisk_module_details()
-#         return self._id
-
-#     # ----------------------------------------------------------------------------
-#     #                               Method get_magisk_module_details
-#     # ----------------------------------------------------------------------------
-#     def get_magisk_module_details(self):
-#         if self.mode == 'adb' and get_adb():
-#             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{self.dirname}/module.prop\'\""
-#             response = run_shell(theCmd)
-#             print(response)
 
 
 # ============================================================================

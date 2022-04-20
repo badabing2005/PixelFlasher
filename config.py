@@ -3,7 +3,7 @@
 import os
 import json
 
-VERSION = "2.3.0.0"
+VERSION = "2.4.0.0"
 WIDTH = 1200
 HEIGHT = 800
 
@@ -34,6 +34,7 @@ class Config():
         self.verbose = False
         self.pos_x = None
         self.pos_y = None
+        self.data = None
 
     @classmethod
     def load(cls, file_path):
@@ -44,6 +45,7 @@ class Config():
                 with open(file_path, 'r') as f:
                     data = json.load(f)
                     f.close()
+                conf.data = data
                 conf.device = data['device']
                 conf.firmware_path = data['firmware_path']
                 conf.platform_tools_path = data['platform_tools_path']

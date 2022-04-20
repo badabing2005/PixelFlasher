@@ -27,6 +27,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - Magisk version
   - List installed Magisk modules.
   - connection mode.
+- Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade.
 - Display Android Platform Tools (SDK) version.
 - Advanced features are hidden to keep the interface simple and easy to follow.
 - A lot of checks and validations for smooth operation.

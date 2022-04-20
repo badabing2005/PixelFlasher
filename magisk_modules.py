@@ -51,8 +51,14 @@ class MagiskModules(wx.Dialog):
 
         i = 0
         for module in modules:
-            index = self.list.InsertItem(i, module.id)
-            self.list.SetItem(index, 1, module.version)
+            if module.id == '':
+                index = self.list.InsertItem(i, module.name)
+            else:
+                index = self.list.InsertItem(i, module.id)
+            if module.version == '':
+                self.list.SetItem(index, 1, module.versionCode)
+            else:
+                self.list.SetItem(index, 1, module.version)
             self.list.SetItem(index, 2, module.description)
             if module.state == 'enabled':
                 self.list.CheckItem(index, check=True)

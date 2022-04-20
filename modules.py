@@ -19,6 +19,7 @@ from runtime import *
 from platformdirs import *
 from message_box import MessageBox
 from datetime import datetime
+from phone import get_connected_devices
 
 # ============================================================================
 #                               Class FlashFile
@@ -1151,7 +1152,7 @@ def flash_phone(self):
         print("Waiting 5 seconds ...")
         time.sleep(5)
         # device.refresh_phone_mode()
-        self.device_choice.SetItems(self.get_connected_devices())
+        self.device_choice.SetItems(get_connected_devices())
         self._select_configured_device()
 
     device = get_phone()

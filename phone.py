@@ -119,6 +119,11 @@ class Device():
                                     res = run_shell(theCmd)
                                     if res.returncode == 0:
                                         module_prop = res.stdout.split('\n')
+                                        setattr(m, 'id', '')
+                                        setattr(m, 'version', '')
+                                        setattr(m, 'versionCode', '')
+                                        setattr(m, 'author', '')
+                                        setattr(m, 'description', '')
                                         for line in module_prop:
                                             if line.strip() != '':
                                                 key, value = line.split('=', 1)

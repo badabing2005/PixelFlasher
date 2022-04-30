@@ -1,23 +1,41 @@
-# ![Image of PixelFlasher Icon](/images/icon-128.png) PixelFlasher [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+<img src="/images/icon-128.png" align="left" />
+  <h1> PixelFlasher
+  <BR />
 
-This is a follow up to [PixelFlasher](/scripts/PixelFlasher.ps1) `Powershell™` script (which is now deprecated and moved to `scripts` directory).  
+<a target="_blank" href="https://www.gnu.org/licenses/gpl-3.0">
+  <img src="https://img.shields.io/badge/License-GPLv3-blue.svg">
+
+<a target="_blank" href="https://github.com/badabing2005/PixelFlasher/releases">
+  <img src="https://img.shields.io/github/downloads/badabing2005/PixelFlasher/total.svg?style=flat">
+</h1>
+
+<br clear="left"/>
+
+This is a follow up to [PixelFlasher](/scripts/PixelFlasher.ps1) `Powershell™` script (which is now deprecated and moved to `scripts` directory for posterity.).  
 This is a total rewrite in Python™ using [wxPython](https://www.wxpython.org/) to provide a cross-platform UI interface.  
 The executable which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
 
 ## DESCRIPTION
 
 As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)  
-PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on other phones (YMMV).  
+PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on non Pixel devices as well. (YMMV).  
 The application has two modes, normal mode (basic) and advanced mode (expert).
 
 **Basic mode:** Should suit most users. Some of the features in basic mode are:
 
-- Simple UI interface, click and go. No more command line.
-- Fully Automated, pre-patch factory image with Magisk (without user interaction) and perform upgrades without losing root.  
+- Simple UI interface, click and go. No more command line, no more placing all files in one directory.
+- `boot.img` management UI, select the boot.img file to patch and click the patch button.
+Fully Automated patching with Magisk (without user interaction) and perform upgrades without losing root.  
 No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.  
-No more setting airplane mode and clearing storage to retain Safetynet passing.  
-(This Assumes that the phone was previously rooted with Magisk)
-- Choose to keep data or wipe data.
+No more setting airplane mode and clearing storage to retain Safetynet passing.
+- Display details of `boot.img`.
+  - Unique ID.
+  - Origin (file it was extracted from).
+  - Whether it is patched or not, and if it is patched.
+    - What version of Magisk was used to patch it.
+    - On what device it was patched.
+    - Date of patching.
+- Choose to keep data or wipe data while flashing.
 - Ability to flash even if multiple devices are connected to the computer.
 - Display information about the phone.
   - id
@@ -27,23 +45,28 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - Magisk version
   - List installed Magisk modules.
   - connection mode.
-- Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade.
+- Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade. Display:
+  - Name
+  - Version
+  - Description
+  - Enabled / Disabled.
 - Display Android Platform Tools (SDK) version.
 - Advanced features are hidden to keep the interface simple and easy to follow.
 - A lot of checks and validations for smooth operation.
+- Automatic check for program updates.
 
 **Expert mode:** (should only be turned on by experienced users). In addition to the basic features, you get:
 
-- The ability to flash custom ROM (with or without patching boot.img)
+- The ability to flash custom ROM (with or without patching `boot.img`)
 - Option to flash to both slots.
 - Options to disable verity and or verification.
 - Ability to change the active slot.
-- Ability to live boot to custom boot.img (temporary root).
+- Ability to live boot to custom `boot.img` (temporary root).
 - Ability to boot to recovery.
 - Ability to flash custom image: boot, recovery, radio, kernel, ...
 - Ability to sideload an image.
 - Lock / Unlock bootloader.
-- Disable Magisk modules to get out of bootloop (experimental).
+- SOS Disable Magisk modules to get out of bootloop (experimental).
 
 ## Prerequisites
 
@@ -112,17 +135,13 @@ Run `build.bat` on Windows or `build.sh` on Linux / MacOS.
 
 ![Image of PixelFlasher GUI](/images/basic-gui.png)
 
-Think of basic mode in 3 stages.
-**Stage 1**
-Essential selections.
-
-1. First thing to do is select the factory image, the application will recognize the phone model from the image name. (You can download factory images by clicking the blue link).
-2. If Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it. (You can download the lastest Android™ Platform Tools by clicking the blue link).  
-Otherwise you'd have to select where it is installed.
-If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)
-3. If you already have your phone connected to the PC, the application will detect all ADB connected devices (both in adb and fastboot mode) and populate the combo box.  
-Otherwise connect your phone to your PC, and hit the `Reload` button.
-4. Select your device from the list in the combo box.
+1. First thing to do is select Android™ Platform Tools, if Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it.  
+Otherwise you'd have to select where it is installed.  
+You can download the lastest Android™ Platform Tools by clicking the ![Image of link](/images/open-link-16.png) next to it.  
+If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)  
+If you already have your phone connected to the PC, the application will detect all ADB connected devices (both in adb and fastboot mode) and populate the combo box (2).  
+Otherwise connect your phone to your PC, and hit the `Reload` button and select your device.
+2. Select your device from the list in the combo box.
 The following information about the connected device is displayed.  
     - (1st field) Rooted devices will be identified with a checkmark ✓.
     **Note:** If you want PixelFlasher to detect root, or automatically use Magisk to patch boot.img, you need to grant root permissions to `shell` in Magisk.  
@@ -133,29 +152,36 @@ The following information about the connected device is displayed.
     - (3rd field) Device ID.
     - (4th field) Device hardware.
     - (5th field) Current running firmware (in fastboot mode current firmware cannot be determined).
-
-**Stage 2**
-Preparing a package. Based on the choices made in stage 1, this stage creates the proper package file to be flashed later in stage 3.
-
-5. Select this option if you want to pre-patch the image with Magisk, assuming that Magisk is already installed on your phone.  
+3. Next select the factory image, the application will recognize the phone model from the image name.  
+PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (4).  
+You can download factory images by clicking the ![Image of link](/images/open-link-16.png) next to it.
+4. Select `boot.img` from the list, the selected `boot.img` can be patched (5), or flashed (9).
+5. Optional: Select this option if you want to patch the `boot.img` with Magisk. Magisk must already be installed on your phone.  
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
-**Note:** See note above for granting root permissions to `shell`.
-
-6. Prepare the package.  
+**Note:** See note above for granting root permissions to `shell`.  
 If the phone is already rooted, the whole process is without user interaction.  
-Otherwise the PixelFlasher will launch Magisk on the phone and wait for the user to select stock boot.img which would already be transferred to the phone by the PixelFlasher and guide the user to make the proper choices in Magisk to create a patched boot.img before continuing for PixelFlasher to do the rest of the work.
-
-**Stage 3**
-Flashing the device.
-
+Otherwise PixelFlasher will launch Magisk on the phone and wait for the user to select stock `boot.img` which would already be transferred to the phone by the PixelFlasher and guide the user to make the proper choices in Magisk to create a patched `boot.img` before continuing for PixelFlasher to do the rest of the work.
+6. If you want to flash (9) a patched `boot.img` select the newly added entry.  
+The following details are listed.  
+    - ![Image of patched-boot](/images/patched-16.png) Indicates that the selection is patched.
+    - Boot ID is (shortened for display only) md5 of `boot.img`
+    - Package ID (shortened for display only) md5 of `boot.img` extracted from the image (This should be the same as Boot ID of an unpatched `boot.img`)
+    - Package Signature is just the filename portion of the image (without the extension).
+    - Patched with Magisk indicates the version of Magisk used to patch the image (if applicable).
+    - Patched on Device indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
+    - Date is the either the date the `boot.img` was extracted, or the date it was patched.
+    - Package Path indicates the source of the `boot.img` file.
 7. Select the Flash Mode
     - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`
     - **WIPE all data**: As the name suggests, this will wipe your data, use it with caution! PixelFlasher will ask for confirmation during the flashing phase, if this mode is selected.
     - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
     This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
-8. **Flash Pixel Phone** This is the final step, to actually execute/flash the prepared package in the selected `Flash Mode`.
-PixelFlasher will first present you the package content prepared in step 6, and ask for your confirmation if you want to proceed with flashing.
+8. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
+![Image of PixelFlasher GUI](/images/magisk-modules-manager.png)
+9. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  
+**Note**: Unlike the previous versions of the PixelFlasher, all the options are dynamic, i.e. depending on what you select before clicking the Flash button, there is no more concept of prepared package.
+PixelFlasher will first present you the selected options and ask for your confirmation if you want to proceed with flashing.
 
 ### Expert Mode
 
@@ -163,21 +189,22 @@ To enable the export mode use the **File Menu | Advanced Configuration** and sel
 ![Image of PixelFlasher GUI](/images/advanced-options.png)
 ![Image of PixelFlasher GUI](/images/advanced-gui.png)
 
-In this mode the following additional options are exposed, below notes are more for enumeration than a guide, as they should be trivial and obvious to an expert.
+In this mode the following additional options are exposed (green bounding boxes), below notes are more for enumeration than a guide, as they should be trivial and obvious to an expert.
 
 1. Option to Change the Active Slot (the inactive slot is automatically selected).  
 Option to reboot to Recovery.
 2. Options to Lock / Unlock bootloader, Option to disable Magisk modules when bootlooping.
-3. Apply Custom ROM. This replaces the factory ROM image with the selected file. This is still part of the package preparation stage.  
+3. Apply Custom ROM. This replaces the factory ROM image with the selected file.  
+PixelFlasher extracts `boot.img` from the ROM image and displays below for selection or patching.
 Please make sure to read the documentation of the chosen ROM, as each custom ROM instructions could be different.  
 To be clear, this is what PixelFlasher does internally when this mode is selected, please understand it, and don't use it if the selected ROM guide does not fit the bill.
 You've been warned!
     - Keeps stock bootloader and radio images.
     - Replaces the stock ROM image with the selected custom ROM image.
     - Flashes in the chosen `Flash Mode` just like a stock image, i.e. bootloader, custom ROM and radio images in the original order that they were in the stock firmware.
-    - Patching `boot.img` can be performed if the option is selected.
-    - Flash Mode is similar to basic flash mode described above in step 7.
-4. Custom Flash. select this to switch from flashing a package file to flashing a single file.
+    - Patching `boot.img` can be performed if the option is selected. You can select any of the listed `boot.img`.
+    - Flash Mode is similar to basic flash mode described above in step 7.  
+4. Custom Flash. select this to switch from flashing a Factory Image to flashing a single file.
 5. Browse to select a a valid image file (.img or .zip).  
 Choose the dropdown to select image type.  
     - boot (can be flashed to Live or boot) - Expected file type .img

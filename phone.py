@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import wx
 import subprocess
 import time
 from runtime import *
@@ -474,6 +475,7 @@ class Device():
 def run_shell(cmd):
     try:
         response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        wx.Yield()
         return response
     except Exception as e:
         raise e
@@ -498,6 +500,7 @@ def get_connected_devices():
         theCmd = f"\"{get_adb()}\" devices"
         response = run_shell(theCmd)
         for device in response.stdout.split('\n'):
+            # wx.Yield()
             if '\tdevice' in device:
                 id = device.split("\t")
                 id = id[0]
@@ -512,6 +515,7 @@ def get_connected_devices():
         theCmd = f"\"{get_fastboot()}\" devices"
         response = run_shell(theCmd)
         for device in response.stdout.split('\n'):
+            # wx.Yield()
             if '\tfastboot' in device:
                 id = device.split("\t")
                 id = id[0]
@@ -524,4 +528,3 @@ def get_connected_devices():
 
     set_phones(phones)
     return devices
-

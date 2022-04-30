@@ -169,7 +169,7 @@ function DeleteFile
 {
     param(
         [String] $removeFile
-    )
+   )
     Write-Host "  Deleting $removeFile ..." -f DarkGray
     if ((Test-Path -Path $removeFile))
     {
@@ -259,7 +259,7 @@ Function TestCommandExists
     Param(
         [Parameter(Mandatory = $true)][System.String]$theCommand,
         [ValidateSet('Alias', 'Function', 'Filter', 'Cmdlet', 'ExternalScript', 'Application', 'Script', 'Workflow', 'Configuration', 'All')][System.String]$type = ""
-    )
+   )
 
     $result = $false
     $oldPreference = $ErrorActionPreference

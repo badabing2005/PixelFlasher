@@ -17,10 +17,10 @@ a = Analysis(['PixelFlasher.py'],
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
-        a.scripts, 
+        a.scripts,
         a.binaries,
         a.zipfiles,
-        a.datas, 
+        a.datas,
         name='PixelFlasher',
         debug=False,
         strip=False,
@@ -31,4 +31,4 @@ exe = EXE(pyz,
         disable_windowed_traceback=False,
         target_arch=None,
         codesign_identity=None,
-        entitlements_file=None )
+        entitlements_file=None)

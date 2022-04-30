@@ -7,7 +7,6 @@ import wx
 import json
 import time
 import shutil
-import zipfile
 import ntpath
 import sys
 import math
@@ -112,6 +111,77 @@ def check_platform_tools(self):
 
 
 # ============================================================================
+#                               Function populate_boot_list
+# ============================================================================
+def populate_boot_list(self):
+    self.list.DeleteAllItems()
+    con = get_db()
+    con.execute("PRAGMA foreign_keys = ON")
+    sql = """
+        SELECT
+            BOOT.id as boot_id,
+            BOOT.boot_hash,
+            BOOT.file_path as boot_path,
+            BOOT.is_patched,
+            BOOT.magisk_version,
+            BOOT.hardware,
+            BOOT.epoch as boot_date,
+            PACKAGE.id as package_id,
+            PACKAGE.boot_hash as package_boot_hash,
+            PACKAGE.type as package_type,
+            PACKAGE.package_sig,
+            PACKAGE.file_path as package_path,
+            PACKAGE.epoch as package_date
+        FROM BOOT
+        JOIN PACKAGE_BOOT
+            ON BOOT.id = PACKAGE_BOOT.boot_id
+        JOIN PACKAGE
+            ON PACKAGE.id = PACKAGE_BOOT.package_id
+    """
+    if self.config.show_all_boot:
+        sql += ";"
+    else:
+        rom_path = ''
+        firmware_path = ''
+        if self.config.custom_rom and self.config.advanced_options:
+            rom_path = self.config.custom_rom_path
+        if self.config.firmware_path:
+            firmware_path = self.config.firmware_path
+        sql += f"AND package.file_path IN (\'{firmware_path}\', \'{rom_path}\');"
+
+    with con:
+        data = con.execute(sql)
+        i = 0
+        for row in data:
+            index = self.list.InsertItem(i, row[1][:8])                     # boot_hash
+            self.list.SetItem(index, 1, row[8][:8])                         # package_boot_hash
+            self.list.SetItem(index, 2, row[10])                            # package_sig
+            self.list.SetItem(index, 3, row[4])                             # magisk_version
+            self.list.SetItem(index, 4, row[5])                             # hardware
+            ts = datetime.fromtimestamp(row[6])
+            self.list.SetItem(index, 5, ts.strftime('%Y-%m-%d %H:%M:%S'))   # boot_date
+            self.list.SetItem(index, 6, row[11])                            # package_path
+            if row[3]:
+                self.list.SetItemColumnImage(i, 0, 0)
+            else:
+                self.list.SetItemColumnImage(i, 0, -1)
+            i += 1
+    # auto size columns to largest text, make the last column expand the available room
+    cw = 0
+    for i in range (0, self.list.ColumnCount - 1):
+        self.list.SetColumnWidth(i, -2)
+        cw += self.list.GetColumnWidth(i)
+    self.list.SetColumnWidth(self.list.ColumnCount - 1, self.list.BestVirtualSize.Width - cw)
+
+    # disable buttons
+    self.config.boot_id = None
+    self.config.selected_boot_md5 = None
+    print("\nNo boot image is selected!")
+    self.patch_boot_button.Enable(False)
+    self.delete_boot_button.Enable(False)
+
+
+# ============================================================================
 #                               Function identify_sdk_version
 # ============================================================================
 def identify_sdk_version(self):
@@ -127,44 +197,32 @@ def identify_sdk_version(self):
 
 
 # ============================================================================
-#                               Function get_package_ready
+#                               Function get_flash_settings
 # ============================================================================
-def get_package_ready(self, src, includeFlashMode = False, includeTitle = False):
+def get_flash_settings(self):
     message = ''
-    if os.path.exists(src):
-        with open(src, 'r') as f:
-            data = json.load(f)
-        p_device = data['device']
-        p_patch_boot = data['patch_boot']
-        p_custom_rom = data['custom_rom']
-        p_custom_rom_path = data['custom_rom_path']
-        message = ''
-        if includeTitle:
-            message +=  "The package is of the following state.\n\n"
-        message += "Patch Boot:             %s\n" % str(p_patch_boot)
-        message += "Custom Rom:             %s\n" % str(p_custom_rom)
-        if p_custom_rom:
-            message += "Custom Rom File:        %s\n" % p_custom_rom_path
-            rom_file = ntpath.basename(p_custom_rom_path)
-            set_custom_rom_file(rom_file)
-        if includeFlashMode:
-            message += "Flash Mode:             %s\n" % self.config.flash_mode
-        message += "\n"
+    isPatched = ''
+
+    p_custom_rom = self.config.custom_rom and self.config.advanced_options
+    p_custom_rom_path = self.config.custom_rom_path
+    boot = get_boot()
+    device = get_phone()
+
+    message += f"Android SDK Version:    {get_sdk_version()}\n"
+    message += f"Device:                 {self.config.device} {device.hardware} {device.build}\n"
+    message += f"Factory Image:          {self.config.firmware_path}\n"
+    if p_custom_rom :
+        message += f"Custom Rom:             {str(p_custom_rom)}\n"
+        message += f"Custom Rom File:        {p_custom_rom_path}\n"
+        rom_file = ntpath.basename(p_custom_rom_path)
+        set_custom_rom_file(rom_file)
+    message += f"\nBoot image:             {boot.boot_hash[:8]} / {boot.package_boot_hash[:8]} \n"
+    message += f"                        From: {boot.package_path}\n"
+    if boot.is_patched:
+        message += f"                        [Patched] with Magisk {boot.magisk_version} on {boot.hardware}\n"
+    message += f"\nFlash Mode:             {self.config.flash_mode}\n"
+    message += "\n"
     return message
-
-
-# ============================================================================
-#                               Function set_package_ready
-# ============================================================================
-def set_package_ready(self, file_path):
-    data = {
-        'device': self.config.device,
-        'patch_boot': self.config.patch_boot,
-        'custom_rom': self.config.custom_rom,
-        'custom_rom_path': self.config.custom_rom_path,
-    }
-    with open(file_path, 'w') as f:
-        json.dump(data, f, indent=4)
 
 
 # ============================================================================
@@ -175,6 +233,22 @@ def purge(dir, pattern):
     for f in os.listdir(dir):
         if re.search(pattern, f):
             os.remove(os.path.join(dir, f))
+
+
+# ============================================================================
+#                               Function delete_all
+# ============================================================================
+# This function delete multiple files matching a pattern
+def delete_all(dir):
+    for filename in os.listdir(dir):
+        file_path = os.path.join(dir, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 
 # ============================================================================
@@ -279,7 +353,7 @@ def select_firmware(self):
             set_flash_button_state(self)
         else:
             self.flash_button.Disable()
-        # process_firmware(self)
+        process_file(self, 'firmware')
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a zip file.")
         self.config.firmware_path = None
@@ -287,72 +361,81 @@ def select_firmware(self):
 
 
 # ============================================================================
-#                               Function process_firmware
+#                               Function process_file
 # ============================================================================
-def process_firmware(self):
-    print(f"processing firmware {self.config.firmware_path} ...")
-    path_to_7z = get_path_to_7z()
+def process_file(self, file_type):
+    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Processing {file_type} file ...")
     config_path = get_config_path()
-    factory_images = os.path.join(config_path, 'factory_images')
+    path_to_7z = get_path_to_7z()
     boot_images = os.path.join(config_path, 'boot_images')
-    package_dir_full = os.path.join(factory_images, get_firmware_id())
-    image_file_path = os.path.join(package_dir_full, 'image-' + get_firmware_id() + ".zip")
-
-    # let's do some db stuff
-    # connect / create db
-    con = sl.connect(os.path.join(config_path,'PixelFlasher.db'))
-    # create table
-    try:
-        with con:
-            con.execute("""
-                CREATE TABLE BOOT (
-                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                    epoch integer,
-                    factory_id TEXT,
-                    factory_file TEXT,
-                    boot_hash TEXT,
-                    boot_file TEXT,
-                    patched_boot_hash,
-                    patched_boot_file,
-                    magisk_version,
-                    magisk_options
-                );
-            """)
-    except:
-        pass
-
-    # Unzip the factory image
+    tmp_dir_full = os.path.join(config_path, 'tmp')
+    con = get_db()
+    con.execute("PRAGMA foreign_keys = ON")
+    cursor = con.cursor()
     start_1 = time.time()
-    debug(f"Unzipping Image: {self.config.firmware_path} into {package_dir_full} ...")
-    theCmd = f"\"{path_to_7z}\" x -bd -y -o{factory_images} \"{self.config.firmware_path}\""
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-        print(res.stderr)
-        print("Aborting ...")
-        return
+    checksum = ''
+
+    if file_type == 'firmware':
+        file_to_process = self.config.firmware_path
+        factory_images = os.path.join(config_path, 'factory_images')
+        package_sig = get_firmware_id()
+        package_dir_full = os.path.join(factory_images, package_sig)
+        # Unzip the factory image
+        image_file_path = os.path.join(package_dir_full, 'image-' + package_sig + ".zip")
+        debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
+        theCmd = f"\"{path_to_7z}\" x -bd -y -o{factory_images} \"{file_to_process}\""
+        debug(theCmd)
+        res = run_shell(theCmd)
+        # expect ret 0
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+            print(res.stderr)
+            print("Aborting ...")
+            return
+    else:
+        file_to_process = self.config.custom_rom_path
+        package_sig = get_custom_rom_id()
+        image_file_path = file_to_process
+
+    # see if we have a record for the firmware/rom being processed
+    cursor.execute(f"SELECT ID, boot_hash FROM PACKAGE WHERE package_sig = '{package_sig}' AND file_path = '{file_to_process}'")
+    data = cursor.fetchall()
+    if len(data) > 0:
+        pre_package_id = data[0][0]
+        pre_checksum = data[0][1]
+        debug(f"Found a previous {file_type} PACKAGE record id={pre_package_id} for package_sig: {package_sig} Firmware: {file_to_process}")
+    else:
+        pre_package_id = 0
+        pre_checksum = 'x'
+
+    # delete all files in tmp folder to make sure we're dealing with new files only.
+    delete_all(tmp_dir_full)
 
     # extract boot.img
     debug(f"Extracting boot.img from {image_file_path} ...")
-    theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" boot.img" % (path_to_7z, package_dir_full, image_file_path)
+    theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" boot.img" % (path_to_7z, tmp_dir_full, image_file_path)
     debug("%s" % theCmd)
     res = run_shell(theCmd)
     # expect ret 0
     if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.")
         print(res.stderr)
+        print("Aborting ...")
+        return
+    # sometimes the return code is 0 but no file to extract, handle that case.
+    boot_img_file = os.path.join(tmp_dir_full, "boot.img")
+    if not os.path.exists(boot_img_file):
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img, ")
+        print(f"Please make sure the file: {image_file_path} has boot.img in it.")
         print("Aborting ...")
         return
 
     # get the checksum of the boot.img
-    boot_img_file = os.path.join(package_dir_full, "boot.img")
     checksum = md5(os.path.join(boot_img_file))
     debug(f"md5 of boot.img: {checksum}")
 
     # if a matching boot.img is not found, store it.
-    cached_boot_img_dir_full = os.path.join(config_path, 'boot_images', checksum)
+    cached_boot_img_dir_full = os.path.join(boot_images, checksum)
     cached_boot_img_path = os.path.join(cached_boot_img_dir_full, 'boot.img')
     debug("Checking for cached copy of boot.img")
     if not os.path.exists(cached_boot_img_dir_full):
@@ -361,52 +444,62 @@ def process_firmware(self):
         debug(f"Cached copy of boot.img with md5: {checksum} was not found.")
         debug(f"Copying {image_file_path} to {cached_boot_img_dir_full}")
         shutil.copy(boot_img_file, cached_boot_img_dir_full, follow_symlinks=True)
-        # create db record
-        sql = 'INSERT INTO BOOT (epoch, factory_id, factory_file, boot_hash, boot_file) values(?, ?, ?, ?, ?)'
-        data = [
-            (time.time(), get_firmware_id(), self.config.firmware_path, checksum, cached_boot_img_path)
-        ]
-        with con:
-            con.executemany(sql, data)
     else:
-        debug(f"Found a cached copy of boot.img md5={checksum}")
-        with con:
-            data = con.execute(f"SELECT * FROM BOOT WHERE boot_hash = '{checksum}'")
-            for row in data:
-                print(row)
+        debug(f"Found a cached copy of {file_type} boot.img md5={checksum}")
 
+    # create PACKAGE db record
+    sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
+    data = (checksum, file_type, package_sig, file_to_process, time.time())
+    try:
+        cursor.execute(sql, data)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(e)
+    package_id = cursor.lastrowid
+    print(f"Package ID: {package_id}")
+    # if we didn't insert a new record, let's use the pre_package_id in case we need to insert a record into PACKAGE_BOOT
+    if package_id == 0:
+        package_id = pre_package_id
+
+    # create BOOT db record
+    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+    data = (checksum, cached_boot_img_path, 0, '', '', time.time())
+    try:
+        cursor.execute(sql, data)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(e)
+    boot_id = cursor.lastrowid
+    print(f"Boot ID: {boot_id}")
+    # if we didn't insert in BOOT, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
+    if boot_id == 0:
+        cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{pre_checksum}' OR boot_hash = '{checksum}'")
+        data = cursor.fetchall()
+        if len(data) > 0:
+            boot_id = data[0][0]
+            debug(f"Found a previous BOOT record id={boot_id} for boot_hash: {pre_checksum} or {checksum}")
+        else:
+            boot_id = 0
+
+    # create PACKAGE_BOOT db record
+    if package_id > 0 and boot_id > 0:
+        debug(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
+        sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
+        data = (package_id, boot_id, time.time())
+        try:
+            cursor.execute(sql, data)
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+            print(e)
+        package_boot_id = cursor.lastrowid
+        print(f"Package_Boot ID: {package_boot_id}")
+
+    # save db
+    con.commit()
+    set_db(con)
+    populate_boot_list(self)
     end_1 = time.time()
-    print("Process firmware time: %s seconds"%(math.ceil(end_1 - start_1)))
-
-        # id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        # epoch integer,
-        # factory_id TEXT,
-        # factory_file TEXT,
-        # boot_hash TEXT,
-        # boot_file TEXT,
-        # patched_boot_hash,
-        # patched_boot_file,
-        # magisk_version,
-        # magisk_options
-
-    # # Get the checksum for boot.img
-    # # see if we already have a match
-    # # if we do, enumerate all patched copies of it, along with the magisk version and the options.
-    # # probably it is best to store this in db
-    # # Fields to store:
-    #     # Date / Time
-    #     # Factory Filename
-    #     # Factory ID
-    #     # Factory model
-    #     # path to unpatched boot.img
-    #     # unpatched boot.img md5
-    #     # magisk version
-    #     # magisk options
-    #     # path to patched boot.img
-    #     # patched boot.img md5
-
-    # TODO: UI to manage boot.img.
-    # TODO: UI to manage previous packages (multiple)
+    print("Process %s time: %s seconds" % (file_type, math.ceil(end_1 - start_1)))
 
 
 # ============================================================================
@@ -414,16 +507,11 @@ def process_firmware(self):
 # ============================================================================
 def set_flash_button_state(self):
     try:
-        src = os.path.join(get_firmware_id(), "Package_Ready.json")
-        if os.path.exists(src):
+        boot = get_boot()
+        if self.config.firmware_path != '' and os.path.exists(boot.package_path):
             self.flash_button.Enable()
-            print(f"Previous flashable package is found for the firmware:\n{self.config.firmware_path}")
-            message = get_package_ready(self, src, includeTitle=True)
-            print(message)
         else:
             self.flash_button.Disable()
-            if self.config.firmware_path:
-                print(f"No previous flashable package is found for the firmware:\n{self.config.firmware_path}")
     except:
         self.flash_button.Disable()
 
@@ -537,395 +625,307 @@ def process_flash_all_file(filepath):
 
 
 # ============================================================================
-#                               Function prepare_package
+#                               Function patch_boot_img
 # ============================================================================
-def prepare_package(self):
+def patch_boot_img(self):
     print("")
     print("==============================================================================")
-    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Preparing Package ")
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Patching boot.img ")
     print("==============================================================================")
 
     # get device
     device = get_phone()
 
-    # Make sure factory image is selected
-    if not get_firmware_model():
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a valid factory image.")
+    # Make sure boot image is selected
+    if not self.config.boot_id:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
+        print("Aborting ...")
         return
 
     # Make sure platform-tools is set and adb and fastboot are found
     if not self.config.platform_tools_path:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
+        print("Aborting ...")
         return
 
     # Make sure Phone is connected
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select an ADB connection (phone)")
+        print("Aborting ...")
         return
 
-    # Make sure Phone model matches firmware model
-    if get_firmware_model() != device.hardware:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware model {get_firmware_model()}")
+    # Make sure the phone is in adb mode.
+    if device.mode != 'adb':
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {device.id} is not in adb mode.")
+        print(f"Perhaps a refresh is necessary?")
+        print("Aborting ...")
         return
 
     start = time.time()
-    cwd = os.getcwd()
-    package_dir = get_firmware_id()
-    package_dir_full = os.path.join(cwd, package_dir)
 
-    # disable Flash Button
-    self.flash_button.Disable()
+    boot = get_boot()
+    config_path = get_config_path()
+    boot_images = os.path.join(config_path, 'boot_images')
+    tmp_dir_full = os.path.join(config_path, 'tmp')
 
-    # Delete the previous folder if it exists
-    if os.path.exists(package_dir_full):
-        try:
-            print(f"Found a previous package {package_dir} deleting ...")
-            shutil.rmtree(package_dir_full)
-        except OSError as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete the previous package.")
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {e.filename} - {e.strerror}.")
+    # delete all files in tmp folder to make sure we're dealing with new files only.
+    delete_all(tmp_dir_full)
+
+    # check if boot.img got extracted (if not probably the zip does not have it)
+    if not os.path.exists(boot.boot_path):
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You have selected the Patch option, however boot file is not found.")
+        print("Aborting ...")
+        return
+
+    # Extract phone model from boot.package_sig and warn the user if it is not from the current phone model
+    package_sig = boot.package_sig.split("-")
+    try:
+        firmware_model = package_sig[0]
+    except Exception as e:
+        firmware_model = None
+    if firmware_model != device.hardware:
+        title = "Boot Model Mismatch"
+        message =  f"WARNING: Your phone model is: {device.hardware}\n\n"
+        message += f"The selected boot.img is from: {boot.package_sig}\n\n"
+        message += "Please make sure the boot.img file you are trying to patch,\n"
+        message += f"is for the selected device: {device.id}\n\n"
+        message += "Click OK to accept and continue.\n"
+        message += "or Hit CANCEL to abort."
+        print(message)
+        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            print("User pressed ok.")
+        else:
+            print("User pressed cancel.")
             print("Aborting ...")
             return
 
-    # See if the bundled 7zip is found.
-    path_to_7z = get_path_to_7z()
-    debug(f"7Zip Path: {path_to_7z}")
-    if os.path.exists(path_to_7z):
-        print("Found Bundled 7zip.\nzip/unzip operations will be faster")
-    else:
-        print("Could not find bundled 7zip.\nzip/unzip operations will be slower")
-        path_to_7z = None
+    # delete existing boot.img from phone
+    print("Deleting boot.img from phone in %s ..." % (self.config.phone_path))
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell rm -f {self.config.phone_path}/boot.img"
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
+        print("Aborting ...")
+        return
 
-    # Unzip the factory image
-    startUnzip1 = time.time()
-    print("Unzipping Image: %s into %s ..." % (self.config.firmware_path, cwd))
-    if path_to_7z:
-        theCmd = f"\"{path_to_7z}\" x -bd -y \"{self.config.firmware_path}\""
-        debug(theCmd)
-        res = run_shell(theCmd)
-    else:
-        try:
-            with zipfile.ZipFile(self.config.firmware_path, 'r') as zip_ref:
-                zip_ref.extractall(cwd)
-                zip_ref.close()
-        except Exception as e:
-            raise e
-    endUnzip1 = time.time()
-    print("Unzip time1: %s seconds"%(math.ceil(endUnzip1 - startUnzip1)))
+    # check if delete worked.
+    print("Making sure boot.img is not on the phone in %s ..." % (self.config.phone_path))
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/boot.img"
+    res = run_shell(theCmd)
+    # expect ret 1
+    if res.returncode != 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img Delete Failed!")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
+        print("Aborting ...")
+        return
 
-    # double check if unpacked directory exists, this should match firmware_id from factory image name
-    if os.path.exists(package_dir):
-        print("Unzipped into %s folder." % package_dir)
+    # delete existing magisk_patched.img from phone
+    print("Deleting magisk_patched.img from phone in %s ..." % (self.config.phone_path))
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell rm -f {self.config.phone_path}/magisk_patched*.img"
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
+        print("Aborting ...")
+        return
+
+    # check if delete worked.
+    print("Making sure magisk_patched.img is not on the phone in %s ..." % (self.config.phone_path))
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/magisk_patched*.img"
+    res = run_shell(theCmd)
+    # expect ret 1
+    if res.returncode != 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched.img delete failed!")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
+        print("Aborting ...")
+        return
+
+    # Transfer boot image to the phone
+    print("Transfering boot.img to the phone in %s ..." % (self.config.phone_path))
+    theCmd = f"\"{get_adb()}\" -s {device.id} push \"{boot.boot_path}\" {self.config.phone_path}/boot.img"
+    debug("%s" % theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
+        print("Aborting ...")
+        return
     else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unzipped folder {package_dir} not found.")
-        # if bundled 7zip fails, let's try with Python libraries and see if that works.
-        if path_to_7z:
-            debug("returncode is: %s" %res.returncode)
-            debug("stdout is: %s" %res.stdout)
-            debug("stderr is: %s" %res.stderr)
-            print("Disabling bundled 7zip ...")
-            path_to_7z = None
-            print("Trying unzip again with python libraries ...")
-            startUnzip1 = time.time()
-            try:
-                with zipfile.ZipFile(self.config.firmware_path, 'r') as zip_ref:
-                    zip_ref.extractall(cwd)
-            except Exception as e:
-                raise e
-            endUnzip1 = time.time()
-            print("Unzip time1.1: %s seconds"%(math.ceil(endUnzip1 - startUnzip1)))
-            # double check if unpacked directory exists, this should match firmware_id from factory image name
-            if os.path.exists(package_dir):
-                print("Unzipped into %s folder." % package_dir)
+        print(res.stdout)
+
+    # check if transfer worked.
+    print("Making sure boot.img is found on the phone in %s ..." % (self.config.phone_path))
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/boot.img"
+    res = run_shell(theCmd)
+    # expect 0
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found!")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
+        print("Aborting ...")
+        return
+
+    if not device.rooted:
+        print("Magisk Tools not found on the phone")
+        # Check to see if Magisk is installed
+        print("Looking for Magisk app ...")
+        if not device.magisk_version:
+            print("Unable to find magisk on the phone, perhaps it is hidden?")
+            # Message to Launch Manually and Patch
+            title = "Magisk not found"
+            message =  "WARNING: Magisk is not found on the phone\n\n"
+            message += "This could be either because it is hidden, or it is not installed\n\n"
+            message += "Please manually launch Magisk on your phone.\n"
+            message += "- Click on `Install` and choose\n"
+            message += "- `Select and Patch a File`\n"
+            message += "- select boot.img in %s \n" % self.config.phone_path
+            message += "- Then hit `LET's GO`\n\n"
+            message += "Click OK when done to continue.\n"
+            message += "Hit CANCEL to abort."
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unzipped folder {package_dir} not found again.")
+                print("User pressed cancel.")
                 print("Aborting ...")
                 return
         else:
-            print("Aborting ...")
-            return
-
-    # if custom rom is selected, copy it to the flash folder
-    if self.config.advanced_options and self.config.custom_rom:
-        if self.config.custom_rom_path:
-            rom_file = ntpath.basename(self.config.custom_rom_path)
-            set_custom_rom_file(rom_file)
-            rom_file_full = os.path.join(package_dir_full, rom_file)
-            image_file = rom_file
-            image_file_full = rom_file_full
-            image_id = get_custom_rom_id()
-            if os.path.exists(self.config.custom_rom_path):
-                shutil.copy(self.config.custom_rom_path, rom_file_full, follow_symlinks=True)
-            else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Custom ROM file: {self.config.custom_rom_path} is not found")
-                print("Aborting ...")
-                return
-        else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Custom ROM file is not set")
-            print("Aborting ...")
-            return
-    else:
-        image_id = 'image-' + package_dir
-        image_file = image_id + ".zip"
-        image_file_full = os.path.join(package_dir_full, image_file)
-
-    # Do this only if patch is checked.
-    if self.config.patch_boot:
-        # unzip image (we only need to unzip the full image if we cannot find 7zip)
-        # with 7zip we extract a single file, and then put it back later, without full unzip
-        startUnzip2 = time.time()
-        boot_img_folder = os.path.join(package_dir_full, image_id)
-        boot_img = os.path.join(package_dir_full, "boot.img")
-        if path_to_7z:
-            print("Extracting boot.img from %s ..." % (image_file))
-            theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" boot.img" % (path_to_7z, package_dir_full, image_file_full)
-            debug("%s" % theCmd)
+            print("Found Magisk app on the phone.")
+            print("Launching Magisk ...")
+            theCmd = f"\"{get_adb()}\" -s {device.id} shell monkey -p {get_magisk_package()} -c android.intent.category.LAUNCHER 1"
             res = run_shell(theCmd)
-        else:
-            try:
-                print("Extracting %s ..." % (image_file))
-                with zipfile.ZipFile(image_file_full, 'r') as zip_ref:
-                    zip_ref.extractall(boot_img_folder)
-            except Exception as e:
-                raise e
-            # check if unpacked directory exists, move boot.img
-            if os.path.exists(boot_img_folder):
-                print("Unzipped into %s folder." %(boot_img_folder))
-                src = os.path.join(boot_img_folder, "boot.img")
-                os.rename(src, boot_img)
-                os.rename(image_file_full, image_file_full + ".orig")
+            if res.returncode != 0:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
+                print(res.stderr)
+                print("Please launch Magisk manually.")
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unzipped folder {boot_img_folder} not found.")
+                print("Magisk should now be running on the phone.")
+            # Message Dialog Here to Patch Manually
+            title = "Magisk found"
+            message =  "Magisk should now be running on your phone.\n\n"
+            message += "If it is not, you  can try starting in manually\n\n"
+            message += "Please follow these steps in Magisk.\n"
+            message += "- Click on `Install` and choose\n"
+            message += "- `Select and patch a file`\n"
+            message += "- select boot.img in %s \n" % self.config.phone_path
+            message += "- Then hit `LET's GO`\n\n"
+            message += "Click OK when done to continue.\n"
+            message += "Hit CANCEL to abort."
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User Pressed Ok.")
+            else:
+                print("User Pressed Cancel.")
                 print("Aborting ...")
                 return
-        endUnzip2 = time.time()
-        print("Unzip time2: %s seconds"%(math.ceil(endUnzip2 - startUnzip2)))
-
-        # check if boot.img got extracted (if not probably the zip does not have it)
-        if not os.path.exists(boot_img):
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You have selected the Patch option, however boot.img file is not found.")
-            print(f"Please make sure that the zip file: \n{image_file_full} contains boot.img at root level.")
-            print("Aborting ...")
-            return
-
-        # delete existing boot.img
-        print("Deleting boot.img from phone in %s ..." % (self.config.phone_path))
-        theCmd = "\"%s\" -s %s shell rm -f %s/boot.img" % (get_adb(), device.id, self.config.phone_path)
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
-            print("Aborting ...")
-            return
-
-        # check if delete worked.
-        print("Making sure boot.img is not on the phone in %s ..." % (self.config.phone_path))
-        theCmd = "\"%s\" -s %s shell ls -l %s/boot.img" % (get_adb(), device.id, self.config.phone_path)
-        res = run_shell(theCmd)
-        # expect ret 1
-        if res.returncode != 1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img Delete Failed!")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
-            print("Aborting ...")
-            return
-
-        # delete existing magisk_patched.img
-        print("Deleting magisk_patched.img from phone in %s ..." % (self.config.phone_path))
-        theCmd = "\"%s\" -s %s shell rm -f %s/magisk_patched*.img" % (get_adb(), device.id, self.config.phone_path)
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
-            print("Aborting ...")
-            return
-
-        # check if delete worked.
-        print("Making sure magisk_patched.img is not on the phone in %s ..." % (self.config.phone_path))
-        theCmd = "\"%s\" -s %s shell ls -l %s/magisk_patched*.img" % (get_adb(), device.id, self.config.phone_path)
-        res = run_shell(theCmd)
-        # expect ret 1
-        if res.returncode != 1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched.img delete failed!")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
-            print("Aborting ...")
-            return
-
-        # Transfer boot.img to the phone
-        print("Transfering boot.img to the phone in %s ..." % (self.config.phone_path))
-        theCmd = "\"%s\" -s %s push \"%s\" %s/boot.img" % (get_adb(), device.id, boot_img, self.config.phone_path)
-        debug("%s" % theCmd)
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
-            print("Aborting ...")
-            return
-        else:
-            print(res.stdout)
-
-        # check if transfer worked.
-        print("Making sure boot.img is found on the phone in %s ..." % (self.config.phone_path))
-        theCmd = "\"%s\" -s %s shell ls -l %s/boot.img" % (get_adb(), device.id, self.config.phone_path)
-        res = run_shell(theCmd)
-        # expect 0
-        if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found!")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
-            print("Aborting ...")
-            return
-
-        if not device.rooted:
-            print("Magisk Tools not found on the phone")
-            # Check to see if Magisk is installed
-            print("Looking for Magisk app ...")
-            if not device.magisk_version:
-                print("Unable to find magisk on the phone, perhaps it is hidden?")
-                # Message to Launch Manually and Patch
-                title = "Magisk not found"
-                message =  "WARNING: Magisk is not found on the phone\n\n"
-                message += "This could be either because it is hidden, or it is not installed\n\n"
-                message += "Please manually launch Magisk on your phone.\n"
-                message += "- Click on `Install` and choose\n"
-                message += "- `Select and Patch a File`\n"
-                message += "- select boot.img in %s \n" % self.config.phone_path
-                message += "- Then hit `LET's GO`\n\n"
-                message += "Click OK when done to continue.\n"
-                message += "Hit CANCEL to abort."
-                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                result = dlg.ShowModal()
-                if result == wx.ID_OK:
-                    print("User pressed ok.")
-                else:
-                    print("User pressed cancel.")
-                    print("Aborting ...")
-                    return
-            else:
-                print("Found Magisk app on the phone.")
-                print("Launching Magisk ...")
-                theCmd = "\"%s\" -s %s shell monkey -p %s -c android.intent.category.LAUNCHER 1" % (get_adb(), device.id, get_magisk_package())
-                res = run_shell(theCmd)
-                if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
-                    print(res.stderr)
-                    print("Please launch Magisk manually.")
-                else:
-                    print("Magisk should now be running on the phone.")
-                # Message Dialog Here to Patch Manually
-                title = "Magisk found"
-                message =  "Magisk should now be running on your phone.\n\n"
-                message += "If it is not, you  can try starting in manually\n\n"
-                message += "Please follow these steps in Magisk.\n"
-                message += "- Click on `Install` and choose\n"
-                message += "- `Select and patch a file`\n"
-                message += "- select boot.img in %s \n" % self.config.phone_path
-                message += "- Then hit `LET's GO`\n\n"
-                message += "Click OK when done to continue.\n"
-                message += "Hit CANCEL to abort."
-                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                result = dlg.ShowModal()
-                if result == wx.ID_OK:
-                    print("User Pressed Ok.")
-                else:
-                    print("User Pressed Cancel.")
-                    print("Aborting ...")
-                    return
-        else:
-            startPatch = time.time()
-            print(f"Detected a rooted phone with Magisk Tools: {device.magisk_version}")
-            print("Creating patched boot.img ...")
-            theCmd = "\"%s\" -s %s shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched.img\'\"" % (get_adb(), device.id)
-            res = run_shell2(theCmd)
-            endPatch = time.time()
-            print("Patch time: %s seconds"%(math.ceil(endPatch - startPatch)))
-
-        # check if magisk_patched.img got created.
-        print("")
-        print("Looking for magisk_patched.img in %s ..." % (self.config.phone_path))
-        theCmd = "\"%s\" -s %s shell ls %s/magisk_patched*.img" % (get_adb(), device.id, self.config.phone_path)
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode == 1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img not found")
-            print(res.stderr)
-            print("Aborting ...")
-            return
-        else:
-            magisk_patched = res.stdout.strip()
-            print("Found %s" %magisk_patched)
-
-        # Transfer back boot.img
-        print("Pulling %s from the phone ..." % (magisk_patched))
-        theCmd = "\"%s\" -s %s pull %s \"%s\""  % (get_adb(), device.id, magisk_patched, os.path.join(package_dir_full, "magisk_patched.img"))
-        debug("%s" % theCmd)
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode == 1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull magisk_patched.img from phone.")
-            print(res.stderr)
-            print("Aborting ...")
-            return
-
-        # Replace Boot.img and create a zip file
-        print("Replacing boot.img with patched version ...")
-        startZip = time.time()
-        if path_to_7z:
-            # ren boot.img to boot.img.orig
-            dest = os.path.join(package_dir_full, "boot.img.orig")
-            shutil.copy(boot_img, dest, follow_symlinks=True)
-            # copy magisk_patched to boot.img
-            src = os.path.join(package_dir_full, "magisk_patched.img")
-            dest = boot_img
-            shutil.copy(src, dest, follow_symlinks=True)
-            theCmd = "\"%s\" a \"%s\" boot.img" % (path_to_7z, image_file_full)
-            debug("%s" % theCmd)
-            os.chdir(package_dir_full)
-            res = run_shell(theCmd)
-            os.chdir(cwd)
-        else:
-            src = os.path.join(package_dir_full, "magisk_patched.img")
-            dest = os.path.join(package_dir_full, image_id, "boot.img")
-            shutil.copy(src, dest, follow_symlinks=True)
-            dir_name = os.path.join(package_dir, image_id)
-            dest = os.path.join(package_dir_full, image_file)
-            print("")
-            print("Zipping  %s ..." % dir_name)
-            print("Please be patient as this is a slow process and could take some time.")
-            shutil.make_archive(dir_name, 'zip', dir_name)
-        if os.path.exists(dest):
-            print("Package is successfully created!")
-            # create a marker file to confirm successful package creation, this will be checked by Flash command
-            src = os.path.join(package_dir_full, "Package_Ready.json")
-            set_package_ready(self, src)
-            self.flash_button.Enable()
-        else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while preparing the package.")
-            print(f"Package file: {dest} is not found.")
-            print("Aborting ...")
-        endZip = time.time()
-        print("Zip time: %s seconds"%(math.ceil(endZip - startZip)))
     else:
-        print("Package is successfully created!")
-        src = os.path.join(package_dir_full, "Package_Ready.json")
-        set_package_ready(self, src)
-        self.flash_button.Enable()
+        startPatch = time.time()
+        print(f"Detected a rooted phone with Magisk Tools: {device.magisk_version}")
+        print("Creating patched boot.img ...")
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched.img\'\""
+        res = run_shell2(theCmd)
+        endPatch = time.time()
+
+    # check if magisk_patched.img got created.
+    print("")
+    print("Looking for magisk_patched.img in %s ..." % (self.config.phone_path))
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls {self.config.phone_path}/magisk_patched*.img"
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode == 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img not found")
+        print(res.stderr)
+        print("Aborting ...")
+        return
+    else:
+        magisk_patched = res.stdout.strip()
+        print("Found %s" %magisk_patched)
+
+    # Transfer back boot.img
+    print("Pulling %s from the phone ..." % (magisk_patched))
+    theCmd = "\"%s\" -s %s pull %s \"%s\""  % (get_adb(), device.id, magisk_patched, os.path.join(tmp_dir_full, "magisk_patched.img"))
+    debug("%s" % theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode == 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull magisk_patched.img from phone.")
+        print(res.stderr)
+        print("Aborting ...")
+        return
+
+    # get the checksum of the magisk_patched.img
+    magisk_patched_img_file = os.path.join(tmp_dir_full, "magisk_patched.img")
+    checksum = md5(os.path.join(magisk_patched_img_file))
+    debug(f"md5 of magisk_patched.img: {checksum}")
+
+    # if a matching magisk_patched.img is not found, store it.
+    cached_boot_img_dir_full = os.path.join(boot_images, checksum)
+    cached_boot_img_path = os.path.join(cached_boot_img_dir_full, 'magisk_patched.img')
+    debug("Checking for cached copy of boot.img")
+    if not os.path.exists(cached_boot_img_dir_full):
+        os.makedirs(cached_boot_img_dir_full, exist_ok=True)
+    if not os.path.exists(cached_boot_img_path):
+        debug(f"Cached copy of boot.img with md5: {checksum} was not found.")
+        debug(f"Copying {magisk_patched_img_file} to {cached_boot_img_dir_full}")
+        shutil.copy(magisk_patched_img_file, cached_boot_img_dir_full, follow_symlinks=True)
+    else:
+        debug(f"Found a cached copy of magisk_patched.img md5={checksum}")
+
+    # create BOOT db record
+    con = get_db()
+    con.execute("PRAGMA foreign_keys = ON")
+    cursor = con.cursor()
+    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+    data = (checksum, cached_boot_img_path, 1, device.magisk_version, device.hardware, time.time())
+    cursor.execute(sql, data)
+    boot_id = cursor.lastrowid
+    print(f"Boot ID: {boot_id}")
+    # if we didn't insert in BOOT, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
+    if boot_id == 0:
+        cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{checksum}'")
+        data = cursor.fetchall()
+        if len(data) > 0:
+            boot_id = data[0][0]
+            debug(f"Found a previous BOOT record id={boot_id} for boot_hash: {checksum}")
+        else:
+            boot_id = '0'
+
+    # create PACKAGE_BOOT db record
+    if boot.package_id > 0 and boot_id > 0:
+        debug(f"Creating PACKAGE_BOOT record, package_id: {boot.package_id} boot_id: {boot_id}")
+        sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
+        # sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?)'
+        data = (boot.package_id, boot_id, time.time())
+        cursor.execute(sql, data)
+        package_boot_id = cursor.lastrowid
+        print(f"Package_Boot ID: {package_boot_id}")
+
+    # save db
+    con.commit()
+    set_db(con)
+    populate_boot_list(self)
 
     end = time.time()
-    print("Total elapsed time: %s seconds"%(math.ceil(end - start)))
+    print("Patch time: %s seconds"%(math.ceil(end - start)))
 
 
 # ============================================================================
@@ -941,13 +941,17 @@ def flash_phone(self):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid adb device.")
         return
 
-    package_dir = get_firmware_id()
-    if not package_dir:
+    package_sig = get_firmware_id()
+    if not package_sig:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a firmware file.")
         return
 
     cwd = os.getcwd()
-    package_dir_full = os.path.join(cwd, package_dir)
+    config_path = get_config_path()
+    factory_images = os.path.join(config_path, 'factory_images')
+    package_dir_full = os.path.join(factory_images, package_sig)
+    boot = get_boot()
+
     message = ''
 
     # if advanced options is set, and we have flash options ...
@@ -967,7 +971,6 @@ def flash_phone(self):
         message += "Flash Both Slots:       %s\n" % str(self.config.flash_both_slots)
         message += "Verbose Fastboot:       %s\n" % str(self.config.fastboot_verbose)
 
-    # delete previous flash-phone.bat file if it exists
     if sys.platform == "win32":
         dest = os.path.join(package_dir_full, "flash-phone.bat")
         first_line = "@ECHO OFF\n"
@@ -976,6 +979,7 @@ def flash_phone(self):
         dest = os.path.join(package_dir_full, "flash-phone.sh")
         version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n\n"
         first_line = "#!/bin/sh\n"
+    # delete previous flash-phone.bat file if it exists
     if os.path.exists(dest):
         os.remove(dest)
 
@@ -993,40 +997,70 @@ def flash_phone(self):
                 data += "PATH=%PATH%;\"%SYSTEMROOT%\System32\"\n"
             # Sideload
             if image_mode == 'SIDELOAD':
-                msg  = "ADB Sideload:         "
+                msg  = "\nADB Sideload:           "
                 data += f"\"{get_adb()}\" -s {device.id} sideload \"{get_image_path()}\"\n"
             else:
                 data += version_sig
                 if image_mode == 'image':
                     action = "update"
-                    msg  = "Flash:                "
+                    msg  = f"\nFlash {image_mode:<18}"
                 elif image_mode == 'boot' and self.live_boot_radio_button.Value:
                     action = "boot"
-                    msg  = "Live Boot to:         "
+                    msg  = "\nLive Boot to:           "
                 else:
                     action = f"flash {image_mode}"
-                    msg  = "Flash:                "
+                    msg  = f"\nFlash {image_mode:<18}"
                 data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} \"{get_image_path()}\"\n"
 
             f.write(data)
             f.close()
-            message += f"{msg}{get_image_path()} to {image_mode}\n\n"
+            message += f"{msg}{get_image_path()}\n\n"
 
-    #--------------------------
-    # do the package flash mode
-    #--------------------------
+    #---------------------------
+    # do the standard flash mode
+    #---------------------------
     else:
-        pr = os.path.join(get_firmware_id(), "Package_Ready.json")
-        if not os.path.exists(pr):
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first prepare a package.")
-            print("       Press the `Prepare Package` Button!")
-            print("")
+        # check for boot file
+        if not os.path.exists(boot.boot_path):
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot file: {boot.boot_path} is not found.")
+            print("Aborting ...")
+            return
+        else:
+            # copy boot file to package directory, but first delete an old one to be sure
+            pf = os.path.join(package_dir_full, "pf_boot.img")
+            if os.path.exists(pf):
+                os.remove(pf)
+            debug(f"Copying {boot.boot_path} to {pf}")
+            shutil.copy(boot.boot_path, pf, follow_symlinks=True)
+
+        if not os.path.exists(pf):
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} boot file: {pf} is not found.")
+            print("Aborting ...")
             return
 
         # Make sure Phone model matches firmware model
         if get_firmware_model() != device.hardware:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware Model {get_firmware_model()}")
-            return
+            # return
+
+        # if firmware_model != device.hardware:
+            title = "Device / Firmware Mismatch"
+            message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
+            message += f"The selected firmware is for: {get_firmware_model()}\n\n"
+            message += "Unless you know what you are doing, if you continue flashing\n"
+            message += "you risk bricking your device, proceed only if you are absolutely\n"
+            message += "certian that this is what you want, you have been warned.\n\n"
+            message += "Click OK to accept and continue.\n"
+            message += "or Hit CANCEL to abort."
+            print(message)
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
+            else:
+                print("User pressed cancel.")
+                print("Aborting ...")
+                return
 
         # Process flash_all files
         flash_all_win32 = process_flash_all_file(os.path.join(package_dir_full, "flash-all.bat"))
@@ -1072,13 +1106,16 @@ def flash_phone(self):
                 data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
                 continue
             if f.action == '-w update':
-                action = 'update'
+                action = '--skip-reboot update'
                 arg1 = f.arg1
                 if self.config.flash_mode == 'wipeData':
-                    action = '-w update'
-                if self.config.custom_rom:
+                    action = '--skip-reboot -w update'
+                if self.config.custom_rom and self.config.advanced_options:
                     arg1 = f"\"{get_custom_rom_file()}\""
                 data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} {action} {arg1}\n"
+        # add the boot.img flashing
+        data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} flash pf_boot.img\n"
+
         if self.config.flash_mode == 'dryRun':
             data += f"{get_fastboot()} -s {device.id} reboot\n"
 
@@ -1086,8 +1123,8 @@ def flash_phone(self):
         fin.write(data)
         fin.close()
 
-        title = "Package Flash Options"
-        message += get_package_ready(self, pr, includeFlashMode=True)
+        title = "Flash Options"
+        message = get_flash_settings(self) + message + '\n'
 
     #----------------------------------------
     # common part for package or custom flash
@@ -1137,7 +1174,7 @@ def flash_phone(self):
         time.sleep(20)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
         theCmd = dest
-        os.chdir(package_dir)
+        os.chdir(package_dir_full)
         theCmd = "\"%s\"" % theCmd
         debug(theCmd)
         run_shell2(theCmd)
@@ -1179,7 +1216,7 @@ def flash_phone(self):
                 return
 
         theCmd = dest
-        os.chdir(package_dir)
+        os.chdir(package_dir_full)
         theCmd = "\"%s\"" % theCmd
         debug(theCmd)
         run_shell2(theCmd)

@@ -21,22 +21,22 @@ class MagiskModules(wx.Dialog):
         wx.Dialog.__init__(self, *args, **kwargs)
         self.SetTitle("Manage Magisk Modules")
 
-        vSizer = wx.BoxSizer( wx.VERTICAL )
-        message_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        message_sizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        message_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        message_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        self.message_label = wx.StaticText( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.message_label.Wrap( -1 )
+        self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.message_label.Wrap(-1)
         self.message_label.Label = "When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled."
-        self.message_label.SetFont( wx.Font( 12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial" ) )
-        self.message_label.SetForegroundColour( wx.Colour( 255, 0, 0 ) )
+        self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
+        self.message_label.SetForegroundColour(wx.Colour(255, 0, 0))
 
-        message_sizer.Add( self.message_label, 0, wx.ALL, 20 )
-        message_sizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+        message_sizer.Add(self.message_label, 0, wx.ALL, 20)
+        message_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        vSizer.Add( message_sizer, 0, wx.EXPAND, 5 )
+        vSizer.Add(message_sizer, 0, wx.EXPAND, 5)
 
-        list_sizer = wx.BoxSizer( wx.HORIZONTAL )
+        list_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.list  = TestListCtrl(self, -1, style = wx.LC_REPORT)
 
         device = get_phone()
@@ -44,7 +44,7 @@ class MagiskModules(wx.Dialog):
 
         self.list.InsertColumn(0, 'Name', width = -1)
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(2, 'Description', wx.LIST_FORMAT_LEFT,  -1 )
+        self.list.InsertColumn(2, 'Description', wx.LIST_FORMAT_LEFT,  -1)
         self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
         self.list.EnableCheckBoxes()
@@ -68,27 +68,27 @@ class MagiskModules(wx.Dialog):
         self.list.SetColumnWidth(1, -2)
         self.list.SetColumnWidth(2, -2)
 
-        list_sizer.Add( self.list, 1, wx.ALL|wx.EXPAND, 10 )
+        list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 10)
 
-        vSizer.Add( list_sizer , 1, wx.EXPAND, 5 )
+        vSizer.Add(list_sizer , 1, wx.EXPAND, 5)
 
-        buttons_sizer = wx.BoxSizer( wx.HORIZONTAL )
-        buttons_sizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
-        self.ok_button = wx.Button( self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0 )
-        buttons_sizer.Add( self.ok_button, 0, wx.ALL, 20 )
-        self.cancel_button = wx.Button( self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0 )
-        buttons_sizer.Add( self.cancel_button, 0, wx.ALL, 20 )
-        buttons_sizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+        self.ok_button = wx.Button(self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0)
+        buttons_sizer.Add(self.ok_button, 0, wx.ALL, 20)
+        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
+        buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 20)
+        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        vSizer.Add( buttons_sizer, 0, wx.EXPAND, 5 )
+        vSizer.Add(buttons_sizer, 0, wx.EXPAND, 5)
 
-        self.SetSizer( vSizer )
+        self.SetSizer(vSizer)
         self.Layout()
-        self.Centre( wx.BOTH )
+        self.Centre(wx.BOTH)
 
         # Connect Events
-        self.ok_button.Bind( wx.EVT_BUTTON, self._onOk )
-        self.cancel_button.Bind( wx.EVT_BUTTON, self._onCancel )
+        self.ok_button.Bind(wx.EVT_BUTTON, self._onOk)
+        self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
 
         # Autosize the dialog
         self.list.PostSizeEventToParent()
@@ -96,12 +96,21 @@ class MagiskModules(wx.Dialog):
         a = self.list.GetViewRect()
         self.SetSize(vSizer.MinSize.Width + 120, vSizer.MinSize.Height + 140)
 
-    def __del__( self ):
+    # -----------------------------------------------
+    #                  __del__
+    # -----------------------------------------------
+    def __del__(self):
         pass
 
+    # -----------------------------------------------
+    #                  _onCancel
+    # -----------------------------------------------
     def _onCancel(self, e):
         self.EndModal(wx.ID_CANCEL)
 
+    # -----------------------------------------------
+    #                  _onOk
+    # -----------------------------------------------
     def _onOk(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
         device = get_phone()

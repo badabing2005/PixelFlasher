@@ -13,6 +13,7 @@ import ntpath
 import json
 import webbrowser
 import time
+import math
 from datetime import datetime
 from modules import debug
 from packaging.version import parse
@@ -28,10 +29,12 @@ from config import Config
 from config import VERSION
 from phone import get_connected_devices
 from modules import check_platform_tools
-from modules import prepare_package
+from modules import patch_boot_img
 from modules import flash_phone
 from modules import select_firmware
 from modules import set_flash_button_state
+from modules import process_file
+from modules import populate_boot_list
 from advanced_settings import AdvancedSettings
 from message_box import MessageBox
 from magisk_modules import MagiskModules
@@ -56,7 +59,6 @@ class RedirectText():
             pass
         else:
             self.logfile.write(string)
-
         # Scroll to the end
         self.out.SetScrollPos(
             wx.VERTICAL,
@@ -71,6 +73,7 @@ class PixelFlasher(wx.Frame):
     def __init__(self, parent, title):
         init_config_path()
         config_file = get_config_file_path()
+        init_db()
         self.config = Config.load(config_file)
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
                           style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
@@ -89,15 +92,22 @@ class PixelFlasher(wx.Frame):
         self.Show(True)
         self.initialize()
 
+    # -----------------------------------------------
+    #                  initialize
+    # -----------------------------------------------
     def initialize(self):
         print(f"PixelFlasher {VERSION} started on {datetime.now():%Y-%m-%d %H:%M:%S}")
+        start = time.time()
+
         # load verbose settings
+        # debug("load verbose settings")
         if self.config.verbose:
             self.verbose_checkBox.SetValue(self.config.verbose)
             set_verbose(self.config.verbose)
-        debug(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
+        print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
 
         # enable / disable advanced_options
+        # debug("enable / disable advanced_options")
         set_advanced_options(self.config.advanced_options)
         if self.config.advanced_options:
             self._advanced_options_hide(False)
@@ -105,6 +115,7 @@ class PixelFlasher(wx.Frame):
             self._advanced_options_hide(True)
 
         # extract firmware info
+        # debug("extract firmware info")
         if self.config.firmware_path:
             if os.path.exists(self.config.firmware_path):
                 self.firmware_picker.SetPath(self.config.firmware_path)
@@ -116,29 +127,24 @@ class PixelFlasher(wx.Frame):
                 except Exception as e:
                     set_firmware_model(None)
                     set_firmware_id(None)
-        self._refresh_ui()
 
         # check platform tools
+        # debug("check platform tools")
         check_platform_tools(self)
 
         # load platform tools value
+        # debug("load platform tools value")
         if self.config.platform_tools_path and get_adb() and get_fastboot():
             self.platform_tools_picker.SetPath(self.config.platform_tools_path)
 
         # if adb is found, display the version
+        # debug("display adb version")
         if get_sdk_version():
             self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
 
-        # Populate device list
-        self.device_choice.AppendItems(get_connected_devices())
-
-        # select configured device
-        self._select_configured_device()
-        self._refresh_ui()
-
         # load custom_rom settings
+        # debug("load custom_rom settings")
         self.custom_rom_checkbox.SetValue(self.config.custom_rom)
-        self.patch_checkBox.SetValue(self.config.patch_boot)
         if self.config.custom_rom_path:
             if os.path.exists(self.config.custom_rom_path):
                 self.custom_rom.SetPath(self.config.custom_rom_path)
@@ -147,29 +153,50 @@ class PixelFlasher(wx.Frame):
             self.custom_rom.Enable()
         else:
             self.custom_rom.Disable()
-        self._refresh_ui()
+
+        # refresh boot.img list
+        # debug("refresh boot.img list")
+        populate_boot_list(self)
 
         # set the flash mode
+        # debug("set the flash mode")
         mode = self.config.flash_mode
 
         # set flash option
+        # debug("set flash option")
         self.flash_both_slots_checkBox.SetValue(self.config.flash_both_slots)
         self.disable_verity_checkBox.SetValue(self.config.disable_verity)
         self.disable_verification_checkBox.SetValue(self.config.disable_verification)
         self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
-        self._refresh_ui()
 
         # get the image choice and update UI
+        # debug("get the image choice")
         set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
-        self._update_custom_flash_options()
-        self._refresh_ui()
 
+        # debug("self._update_custom_flash_options()")
+        self._update_custom_flash_options()
+
+        # debug("set_magisk_package")
         set_magisk_package(self.config.magisk)
 
         # set the state of flash button.
+        # debug("set_flash_button_state")
         set_flash_button_state(self)
+
+        # debug("self._update_custom_flash_options")
         self._update_custom_flash_options()
+
+        print("\nLoading Device list ...")
+        print("This could take a while, please be patient.\n")
+
+        debug("Populate device list")
+        self.device_choice.AppendItems(get_connected_devices())
+
+        # select configured device
+        debug("select configured device")
+        self._select_configured_device()
         self._refresh_ui()
+        # debug("self._refresh_ui")
 
         # enable / disable update_check
         set_update_check(self.config.update_check)
@@ -183,16 +210,27 @@ class PixelFlasher(wx.Frame):
                 about = AboutDlg(self)
                 about.ShowModal()
                 about.Destroy()
+        end = time.time()
+        print("Load time: %s seconds"%(math.ceil(end - start)))
 
+    # -----------------------------------------------
+    #                  _set_icons
+    # -----------------------------------------------
     def _set_icons(self):
         self.SetIcon(images.Icon.GetIcon())
 
+    # -----------------------------------------------
+    #                  _build_status_bar
+    # -----------------------------------------------
     def _build_status_bar(self):
         self.statusBar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusBar.SetStatusWidths([-2, -1])
         status_text = "Welcome to PixelFlasher %s" % VERSION
         self.statusBar.SetStatusText(status_text, 0)
 
+    # -----------------------------------------------
+    #                  _build_menu_bar
+    # -----------------------------------------------
     def _build_menu_bar(self):
         self.menuBar = wx.MenuBar()
 
@@ -262,63 +300,107 @@ class PixelFlasher(wx.Frame):
 
         self.SetMenuBar(self.menuBar)
 
+    # -----------------------------------------------
+    #                  _on_close
+    # -----------------------------------------------
     def _on_close(self, event):
         self.config.pos_x, self.config.pos_y = self.GetPosition()
         self.config.save(get_config_file_path())
         wx.Exit()
 
+    # -----------------------------------------------
+    #                  _on_resize
+    # -----------------------------------------------
     def _on_resize(self, event):
         self.config.width = self.Rect.Width
         self.config.height = self.Rect.Height
+        # auto size list columns to largest text, make the last column expand to the available room
         event.Skip(True)
+        # TODO See if we can resize boot.img columns on frame resize
+        # populate_boot_list(self)
+        # cw = 0
+        # for i in range (0, self.list.ColumnCount - 1):
+        #     self.list.SetColumnWidth(i, -2)
+        #     cw += self.list.GetColumnWidth(i)
+        # self.list.SetColumnWidth(self.list.ColumnCount - 1, self.list.BestVirtualSize.Width - cw)
 
+    # -----------------------------------------------
+    #                  _on_report_an_issue
+    # -----------------------------------------------
     # Menu methods
     def _on_report_an_issue(self, event):
         wait = wx.BusyCursor()
         webbrowser.open_new('https://github.com/badabing2005/PixelFlasher/issues/new')
         del wait
 
+    # -----------------------------------------------
+    #                  _on_feature_request
+    # -----------------------------------------------
     def _on_feature_request(self, event):
         wait = wx.BusyCursor()
         webbrowser.open_new('https://github.com/badabing2005/PixelFlasher/issues/new')
         del wait
 
+    # -----------------------------------------------
+    #                  _on_project_page
+    # -----------------------------------------------
     def _on_project_page(self, event):
         wait = wx.BusyCursor()
         webbrowser.open_new('https://github.com/badabing2005/PixelFlasher')
         del wait
 
+    # -----------------------------------------------
+    #                  _on_forum
+    # -----------------------------------------------
     def _on_forum(self, event):
         wait = wx.BusyCursor()
         webbrowser.open_new('https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/')
         del wait
 
+    # -----------------------------------------------
+    #                  _on_guide1
+    # -----------------------------------------------
     def _on_guide1(self, event):
         wait = wx.BusyCursor()
         webbrowser.open_new('https://forum.xda-developers.com/t/guide-root-pixel-6-with-magisk.4388733/')
         del wait
 
+    # -----------------------------------------------
+    #                  _on_guide2
+    # -----------------------------------------------
     def _on_guide2(self, event):
         wait = wx.BusyCursor()
         webbrowser.open_new('https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/')
         del wait
 
+    # -----------------------------------------------
+    #                  _on_open_config_folder
+    # -----------------------------------------------
     def _on_open_config_folder(self, event):
         wait = wx.BusyCursor()
         if sys.platform == "win32":
             os.system(f"start {get_config_path()}")
         del wait
 
+    # -----------------------------------------------
+    #                  _on_exit_app
+    # -----------------------------------------------
     def _on_exit_app(self, event):
         self.config.save(get_config_file_path())
         self.Close(True)
 
+    # -----------------------------------------------
+    #                  _on_help_about
+    # -----------------------------------------------
     def _on_help_about(self, event):
         from About import AboutDlg
         about = AboutDlg(self)
         about.ShowModal()
         about.Destroy()
 
+    # -----------------------------------------------
+    #                  _on_advanced_config
+    # -----------------------------------------------
     def _on_advanced_config(self, event):
         advanced_setting_dialog = AdvancedSettings(self)
         advanced_setting_dialog.CentreOnParent(wx.BOTH)
@@ -329,8 +411,12 @@ class PixelFlasher(wx.Frame):
         advanced_setting_dialog.Destroy()
         # show / hide advanced settings
         self._advanced_options_hide(not get_advanced_options())
+        populate_boot_list(self)
         set_flash_button_state(self)
 
+    # -----------------------------------------------
+    #                  _advanced_options_hide
+    # -----------------------------------------------
     def _advanced_options_hide(self, value):
         if value:
             # flash options
@@ -390,6 +476,9 @@ class PixelFlasher(wx.Frame):
             self.image_file_picker.Show()
         self._refresh_ui()
 
+    # -----------------------------------------------
+    #                  _refresh_ui
+    # -----------------------------------------------
     def _refresh_ui(self):
         # Update UI (need to do this resize to get the UI properly refreshed.)
         self.Update()
@@ -400,8 +489,11 @@ class PixelFlasher(wx.Frame):
         h = h - 100
         self.Size = (w, h)
         self.Refresh()
-        wx.Yield
+        wx.Yield()
 
+    # -----------------------------------------------
+    #                  _print_device_details
+    # -----------------------------------------------
     def _print_device_details(self, device):
         print(f"\nSelected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:")
         print(f"    Device ID:          {device.id}")
@@ -424,6 +516,9 @@ class PixelFlasher(wx.Frame):
         else:
             print('')
 
+    # -----------------------------------------------
+    #                  _update_custom_flash_options
+    # -----------------------------------------------
     def _update_custom_flash_options(self):
         image_mode = get_image_mode()
         image_path = get_image_path()
@@ -470,10 +565,14 @@ class PixelFlasher(wx.Frame):
         except:
             pass
 
+    # -----------------------------------------------
+    #                  _select_configured_device
+    # -----------------------------------------------
     def _select_configured_device(self):
         count = 0
         if self.config.device:
             for device in get_phones():
+                # wx.Yield()
                 if device.id == self.config.device:
                     self.device_choice.Select(count)
                     set_phone(device)
@@ -486,12 +585,17 @@ class PixelFlasher(wx.Frame):
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} No Device is selected!")
         self._reflect_slots()
 
+    # -----------------------------------------------
+    #                  _reflect_slots
+    # -----------------------------------------------
     def _reflect_slots(self):
         device = get_phone()
         if device:
             self.reboot_recovery_button.Enable(True)
             self.reboot_bootloader_button.Enable(True)
             self.reboot_system_button.Enable(True)
+            self.unlock_bootloader.Enable(True)
+            self.lock_bootloader.Enable(True)
             if device.active_slot == 'a':
                 self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
                 self.a_radio_button.Enable(False)
@@ -526,6 +630,8 @@ class PixelFlasher(wx.Frame):
             self.reboot_bootloader_button.Enable(False)
             self.reboot_system_button.Enable(False)
             self.magisk_button.Enable(False)
+            self.unlock_bootloader.Enable(False)
+            self.lock_bootloader.Enable(False)
 
     #-----------------------------------------------------------------------------
     #                                   _init_ui
@@ -544,6 +650,9 @@ class PixelFlasher(wx.Frame):
             sizer.Add(self.mode_radio_button)
             sizer.AddSpacer(10)
 
+        # -----------------------------------------------
+        #                  _on_select_device
+        # -----------------------------------------------
         def _on_select_device(event):
             wait = wx.BusyCursor()
             choice = event.GetEventObject()
@@ -557,10 +666,13 @@ class PixelFlasher(wx.Frame):
                 if device.id == id:
                     set_phone(device)
                     self._print_device_details(device)
-            wx.Yield
+            # wx.Yield()
             self._reflect_slots()
             del wait
 
+        # -----------------------------------------------
+        #                  _on_reload
+        # -----------------------------------------------
         def _on_reload(event):
             if get_adb():
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Reloading Device List ...")
@@ -571,6 +683,9 @@ class PixelFlasher(wx.Frame):
             else:
                 print("Please set Android Platform Tools Path first.")
 
+        # -----------------------------------------------
+        #                  _on_select_platform_tools
+        # -----------------------------------------------
         def _on_select_platform_tools(event):
             wait = wx.BusyCursor()
             self.config.platform_tools_path = event.GetPath().replace("'", "")
@@ -581,12 +696,18 @@ class PixelFlasher(wx.Frame):
                 self.platform_tools_label.SetLabel("Android Platform Tools")
             del wait
 
+        # -----------------------------------------------
+        #                  _on_select_firmware
+        # -----------------------------------------------
         def _on_select_firmware(event):
             self.config.firmware_path = event.GetPath().replace("'", "")
             wait = wx.BusyCursor()
             select_firmware(self)
             del wait
 
+        # -----------------------------------------------
+        #                  _on_image_choice
+        # -----------------------------------------------
         def _on_image_choice(event):
             wait = wx.BusyCursor()
             choice = event.GetEventObject()
@@ -594,6 +715,9 @@ class PixelFlasher(wx.Frame):
             self._update_custom_flash_options()
             del wait
 
+        # -----------------------------------------------
+        #                  _on_image_select
+        # -----------------------------------------------
         def _on_image_select(event):
             wait = wx.BusyCursor()
             image_path = event.GetPath().replace("'", "")
@@ -607,6 +731,9 @@ class PixelFlasher(wx.Frame):
                 self.image_file_picker.SetPath('')
             del wait
 
+        # -----------------------------------------------
+        #                  _on_select_custom_rom
+        # -----------------------------------------------
         def _on_select_custom_rom(event):
             wait = wx.BusyCursor()
             custom_rom_path = event.GetPath().replace("'", "")
@@ -616,11 +743,15 @@ class PixelFlasher(wx.Frame):
                 self.config.custom_rom_path = custom_rom_path
                 rom_file = ntpath.basename(custom_rom_path)
                 set_custom_rom_id(os.path.splitext(rom_file)[0])
+                process_file(self, 'rom')
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a zip file.")
                 self.custom_rom.SetPath('')
             del wait
 
+        # -----------------------------------------------
+        #                  _on_mode_changed
+        # -----------------------------------------------
         def _on_mode_changed(event):
             self.mode_radio_button = event.GetEventObject()
             if self.mode_radio_button.GetValue():
@@ -630,37 +761,50 @@ class PixelFlasher(wx.Frame):
                 set_flash_button_state(self)
             self._update_custom_flash_options()
 
-        def _on_patch_boot(event):
-            self.patch_checkBox = event.GetEventObject()
-            status = self.patch_checkBox.GetValue()
-            self.config.patch_boot = status
-
+        # -----------------------------------------------
+        #                  _on_flash_both_slots
+        # -----------------------------------------------
         def _on_flash_both_slots(event):
-            self.patch_checkBox = event.GetEventObject()
+            self.flash_both_slots_checkBox = event.GetEventObject()
             status = self.flash_both_slots_checkBox.GetValue()
             self.config.flash_both_slots = status
 
+        # -----------------------------------------------
+        #                  _on_disable_verity
+        # -----------------------------------------------
         def _on_disable_verity(event):
-            self.patch_checkBox = event.GetEventObject()
+            self.disable_verity_checkBox = event.GetEventObject()
             status = self.disable_verity_checkBox.GetValue()
             self.config.disable_verity = status
 
+        # -----------------------------------------------
+        #                  _on_disable_verification
+        # -----------------------------------------------
         def _on_disable_verification(event):
-            self.patch_checkBox = event.GetEventObject()
+            self.disable_verification_checkBox = event.GetEventObject()
             status = self.disable_verification_checkBox.GetValue()
             self.config.disable_verification = status
 
+        # -----------------------------------------------
+        #                  _on_fastboot_verbose
+        # -----------------------------------------------
         def _on_fastboot_verbose(event):
-            self.patch_checkBox = event.GetEventObject()
+            self.fastboot_verbose_checkBox = event.GetEventObject()
             status = self.fastboot_verbose_checkBox.GetValue()
             self.config.fastboot_verbose = status
 
+        # -----------------------------------------------
+        #                  _on_verbose
+        # -----------------------------------------------
         def _on_verbose(event):
             self.verbose_checkBox = event.GetEventObject()
             status = self.verbose_checkBox.GetValue()
             self.config.verbose = status
             set_verbose(status)
 
+        # -----------------------------------------------
+        #                  _on_reboot_recovery
+        # -----------------------------------------------
         def _on_reboot_recovery(event):
             if self.config.device:
                 wait = wx.BusyCursor()
@@ -671,6 +815,9 @@ class PixelFlasher(wx.Frame):
                 self._select_configured_device()
                 del wait
 
+        # -----------------------------------------------
+        #                  _on_reboot_system
+        # -----------------------------------------------
         def _on_reboot_system(event):
             if self.config.device:
                 wait = wx.BusyCursor()
@@ -681,6 +828,9 @@ class PixelFlasher(wx.Frame):
                 self._select_configured_device()
                 del wait
 
+        # -----------------------------------------------
+        #                  _on_reboot_bootloader
+        # -----------------------------------------------
         def _on_reboot_bootloader(event):
             if self.config.device:
                 wait = wx.BusyCursor()
@@ -691,8 +841,34 @@ class PixelFlasher(wx.Frame):
                 self._select_configured_device()
                 del wait
 
+        # -----------------------------------------------
+        #                  _on_lock_bootloader
+        # -----------------------------------------------
         def _on_lock_bootloader(event):
             if self.config.device:
+                title = "Lock Bootloader"
+                message = "         WARNING!!! WARNING!!! WARNING!!!\n\n"
+                message += "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n"
+                message += "TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n"
+                message += "Do you want to continue to Lock the device bootloader?\n"
+                message += "       Press OK to continue or CANCEL to abort.\n"
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+                print(message)
+                set_message_box_title(title)
+                set_message_box_message(message)
+                dlg = MessageBox(self)
+                dlg.CentreOnParent(wx.BOTH)
+                result = dlg.ShowModal()
+
+                if result == wx.ID_OK:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+                else:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                    print("Aborting ...\n")
+                    dlg.Destroy()
+                    return
+                dlg.Destroy()
+
                 title = "Lock Bootloader"
                 message = "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n"
                 message += "Make sure you first read either of the guides linked in the help menu.\n"
@@ -728,6 +904,9 @@ class PixelFlasher(wx.Frame):
                 self._select_configured_device()
                 del wait
 
+        # -----------------------------------------------
+        #                  _on_unlock_bootloader
+        # -----------------------------------------------
         def _on_unlock_bootloader(event):
             if self.config.device:
                 title = "Unlock Bootloader"
@@ -765,6 +944,9 @@ class PixelFlasher(wx.Frame):
                 self._select_configured_device()
                 del wait
 
+        # -----------------------------------------------
+        #                  _on_sos
+        # -----------------------------------------------
         def _on_sos(event):
             if self.config.device:
                 title = "Disable Magisk Modules"
@@ -800,13 +982,15 @@ class PixelFlasher(wx.Frame):
                 self._select_configured_device()
                 del wait
 
+        # -----------------------------------------------
+        #                  _on_magisk
+        # -----------------------------------------------
         def _on_magisk(event):
             wait = wx.BusyCursor()
             dlg = MagiskModules(self)
             dlg.CentreOnParent(wx.BOTH)
             del wait
             result = dlg.ShowModal()
-
             if result != wx.ID_OK:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting Magisk Modules Management ...\n")
@@ -814,6 +998,9 @@ class PixelFlasher(wx.Frame):
                 return
             dlg.Destroy()
 
+        # -----------------------------------------------
+        #                  _on_set_active_slot
+        # -----------------------------------------------
         def _on_set_active_slot(event):
             if self.config.device:
                 wait = wx.BusyCursor()
@@ -832,35 +1019,196 @@ class PixelFlasher(wx.Frame):
                 self._select_configured_device()
                 del wait
 
+        # -----------------------------------------------
+        #                  _open_firmware_link
+        # -----------------------------------------------
         def _open_firmware_link(event):
             wait = wx.BusyCursor()
             webbrowser.open_new('https://developers.google.com/android/images')
             del wait
 
+        # -----------------------------------------------
+        #                  _open_sdk_link
+        # -----------------------------------------------
         def _open_sdk_link(event):
             wait = wx.BusyCursor()
             webbrowser.open_new('https://developer.android.com/studio/releases/platform-tools.html')
             del wait
 
+        # -----------------------------------------------
+        #                  _on_console_update
+        # -----------------------------------------------
+        # def _on_console_update(event):
+        #     wx.Yield()
+        #     event.Skip(True)
+
+        # -----------------------------------------------
+        #                  _on_custom_rom
+        # -----------------------------------------------
         def _on_custom_rom(event):
             self.custom_rom_checkbox = event.GetEventObject()
             status = self.custom_rom_checkbox.GetValue()
             self.config.custom_rom = status
             if status:
                 self.custom_rom.Enable()
+                process_file(self, 'rom')
             else:
                 self.custom_rom.Disable()
+                populate_boot_list(self)
 
-        def _on_prepare(event):
+        # -----------------------------------------------
+        #                  _on_show_all_boot
+        # -----------------------------------------------
+        def _on_show_all_boot(event):
+            self.show_all_boot_checkBox = event.GetEventObject()
+            status = self.show_all_boot_checkBox.GetValue()
+            self.config.show_all_boot = status
+            populate_boot_list(self)
+
+        # -----------------------------------------------
+        #                  _on_boot_selected
+        # -----------------------------------------------
+        def _on_boot_selected(event):
+            x,y = event.GetPosition()
+            row,flags = self.list.HitTest((x,y))
+            boot = None
+            for i in range (0, self.list.ItemCount):
+                # deselect all items
+                self.list.Select(i, 0)
+                item = self.list.GetItem(i)
+                # reset colors
+                item.SetTextColour(wx.BLACK)
+                self.list.SetItem(item)
+            if row != -1:
+                boot = Boot()
+                self.list.Select(row)
+                item = self.list.GetItem(row)
+                item.SetTextColour(wx.RED)
+                self.list.SetItem(item)
+                boot.boot_hash = self.list.GetItemText(row, col=0)
+                # get the raw data from db, listctrl is just a formatted display
+                con = get_db()
+                con.execute("PRAGMA foreign_keys = ON")
+                query = f"{boot.boot_hash}%"
+                sql = """
+                    SELECT
+                        BOOT.id as boot_id,
+                        BOOT.boot_hash,
+                        BOOT.file_path as boot_path,
+                        BOOT.is_patched,
+                        BOOT.magisk_version,
+                        BOOT.hardware,
+                        BOOT.epoch as boot_date,
+                        PACKAGE.id as package_id,
+                        PACKAGE.boot_hash as package_boot_hash,
+                        PACKAGE.type as package_type,
+                        PACKAGE.package_sig,
+                        PACKAGE.file_path as package_path,
+                        PACKAGE.epoch as package_date
+                    FROM BOOT
+                    JOIN PACKAGE_BOOT
+                        ON BOOT.id = PACKAGE_BOOT.boot_id
+                        AND BOOT.boot_hash LIKE '%s'
+                    JOIN PACKAGE
+                        ON PACKAGE.id = PACKAGE_BOOT.package_id;
+                """ % query
+                with con:
+                    data = con.execute(sql)
+                    i = 0
+                    for row in data:
+                        boot.boot_id = row[0]
+                        boot.boot_hash = row[1]
+                        boot.boot_path = row[2]
+                        boot.is_patched = row[3]
+                        boot.magisk_version = row[4]
+                        boot.hardware = row[5]
+                        boot.boot_epoch = row[6]
+                        boot.package_id = row[7]
+                        boot.package_boot_hash = row[8]
+                        boot.package_type = row[9]
+                        boot.package_sig = row[10]
+                        boot.package_path = row[11]
+                        boot.package_epoch = row[12]
+                        i += 1
+                    if i > 1:
+                        print("ERROR: Duplicate records found, this should be looked into.")
+                self.config.boot_id = boot.boot_id
+                self.config.selected_boot_md5 = boot.boot_hash
+                self.delete_boot_button.Enable(True)
+                if boot.magisk_version == '':
+                    self.patch_boot_button.Enable(True)
+                    print(f"\nSelected Boot: {boot.boot_hash} from image: {boot.package_path}" )
+                else:
+                    self.patch_boot_button.Enable(False)
+                    print(f"\nSelected Patched Boot: {boot.boot_hash} from image: {boot.package_path}" )
+                debug(f"boot.img Path: {boot.boot_path}" )
+            else:
+                self.config.boot_id = None
+                self.config.selected_boot_md5 = None
+                print("\nNo boot image is selected!")
+                self.patch_boot_button.Enable(False)
+                self.delete_boot_button.Enable(False)
+            set_boot(boot)
+            set_flash_button_state(self)
+
+        # -----------------------------------------------
+        #                  _on_delete_boot
+        # -----------------------------------------------
+        def _on_delete_boot(event):
             wait = wx.BusyCursor()
-            prepare_package(self)
+            boot = get_boot()
+            if boot.boot_id and boot.package_id:
+                print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
+                con = get_db()
+                con.execute("PRAGMA foreign_keys = ON")
+                sql = """
+                    DELETE FROM PACKAGE_BOOT
+                    WHERE boot_id = '%s' AND package_id = '%s';
+                """ % (boot.boot_id, boot.package_id)
+                with con:
+                    data = con.execute(sql)
+                sql = """
+                    DELETE FROM BOOT
+                    WHERE boot_hash = '%s';
+                """ % boot.boot_id
+                with con:
+                    data = con.execute(sql)
+                con.commit()
+
+                # delete the boot file
+                print(f"Deleting Boot file: {boot.boot_path} ...")
+                if os.path.exists(boot.boot_path):
+                    os.remove(boot.boot_path)
+                set_boot(None)
+                populate_boot_list(self)
             del wait
 
+        # -----------------------------------------------
+        #                  _on_add_boot
+        # -----------------------------------------------
+        def _on_add_boot(event):
+            wait = wx.BusyCursor()
+            del wait
+
+        # -----------------------------------------------
+        #                  _on_patch_boot
+        # -----------------------------------------------
+        def _on_patch_boot(event):
+            wait = wx.BusyCursor()
+            patch_boot_img(self)
+            del wait
+
+        # -----------------------------------------------
+        #                  _on_flash
+        # -----------------------------------------------
         def _on_flash(event):
             wait = wx.BusyCursor()
             flash_phone(self)
             del wait
 
+        # -----------------------------------------------
+        #                  _on_clear
+        # -----------------------------------------------
         def _on_clear(event):
             self.console_ctrl.SetValue("")
 
@@ -871,21 +1219,10 @@ class PixelFlasher(wx.Frame):
         panel = wx.Panel(self)
         hbox = wx.BoxSizer(wx.VERTICAL)
 
-        NUMROWS = 15
+        NUMROWS = 13
         fgs1 = wx.FlexGridSizer(NUMROWS, 2, 10, 10)
 
-        # 1st row widgets, firmware file
-        firmware_label = wx.StaticText(panel, label=u"Pixel Phone Factory Image")
-        self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
-        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
-        self.firmware_link = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
-        self.firmware_link.SetBitmap(images.Open_Link.GetBitmap())
-        self.firmware_link.SetToolTip(u"Download Latest Firmware")
-        self.firmware_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.firmware_sizer.Add(self.firmware_picker, 1, wx.EXPAND)
-        self.firmware_sizer.Add(self.firmware_link, flag=wx.LEFT, border=5)
-
-        # 2nd row widgets, Android platfom tools
+        # 1st row widgets, Android platfom tools
         self.platform_tools_label = wx.StaticText(panel, label=u"Android Platform Tools")
         self.platform_tools_picker = wx.DirPickerCtrl(panel, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
         self.platform_tools_picker.SetToolTip(u"Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
@@ -896,7 +1233,7 @@ class PixelFlasher(wx.Frame):
         self.sdk_sizer.Add(self.platform_tools_picker, 1, wx.EXPAND)
         self.sdk_sizer.Add(self.sdk_link, flag=wx.LEFT, border=5)
 
-        # 3rd row widgets, Connected Devices
+        # 2nd row widgets, Connected Devices
         self.device_label = wx.StaticText(panel, label=u"ADB Connected Devices")
         self.device_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, [], 0)
         self.device_choice.SetSelection(0)
@@ -910,13 +1247,14 @@ class PixelFlasher(wx.Frame):
         self.device_choice.SetToolTip(device_tooltip)
         reload_button = wx.Button(panel, label=u"Reload")
         reload_button.SetToolTip(u"Reload adb device list")
+        reload_button.SetBitmap(images.Reload.GetBitmap())
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
         device_sizer = wx.BoxSizer(wx.HORIZONTAL)
         device_sizer.Add(self.device_choice, 1, wx.EXPAND)
         device_sizer.Add(reload_button, flag=wx.LEFT, border=5)
-        device_sizer.Add((self.firmware_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
+        device_sizer.Add((self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
 
-        # 4th row Reboot buttons
+        # 3rd row Reboot buttons
         self.a_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"A", wx.DefaultPosition, wx.DefaultSize, 0)
         self.b_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"B", wx.DefaultPosition, wx.DefaultSize, 0)
         active_slot_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -953,31 +1291,82 @@ class PixelFlasher(wx.Frame):
         reboot_sizer.Add(self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.lock_bootloader, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.unlock_bootloader, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 0)
-        reboot_sizer.Add( ( reload_button.Size.Width + 5 + self.firmware_link.BestSize.Width + 5, 0), 0, wx.EXPAND )
+        reboot_sizer.Add((reload_button.Size.Width + 5 + self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
 
-        # 5th row, empty row, static line
+        # 4th row, empty row, static line
         self.staticline1 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
         self.staticline2 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
         self.staticline2.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT))
+
+        # 5th row widgets, firmware file
+        firmware_label = wx.StaticText(panel, label=u"Pixel Phone Factory Image")
+        self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
+        self.firmware_link = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.firmware_link.SetBitmap(images.Open_Link.GetBitmap())
+        self.firmware_link.SetToolTip(u"Download Latest Firmware")
+        self.firmware_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.firmware_sizer.Add(self.firmware_picker, 1, wx.EXPAND)
+        self.firmware_sizer.Add(self.firmware_link, flag=wx.LEFT, border=5)
 
         # 6th row widgets, custom_rom
         self.custom_rom_checkbox = wx.CheckBox(panel, wx.ID_ANY, u"Apply Custom ROM", wx.DefaultPosition, wx.DefaultSize, 0)
         self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
         self.custom_rom = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"ROM files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.custom_rom.SetToolTip(u"Select Custom ROM")
+        custom_rom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        custom_rom_sizer.Add(self.custom_rom, 1, wx.EXPAND)
+        # custom_rom_sizer.Add(self.custom_rom, flag=wx.LEFT, border=5)
+        custom_rom_sizer.Add((self.firmware_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
 
         # 7th row widgets
-        self.patch_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Patch boot.img\nusing Magisk", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.patch_checkBox.SetToolTip(u"This requires Magisk installed on the phone")
-        prepare_button = wx.Button(panel, -1, "Prepare Package", wx.DefaultPosition, wx.Size(-1,50))
-        prepare_button.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        prepare_button.SetToolTip(u"Prepares a Patched Factory Image for later Flashing")
+        self.select_boot_label = wx.StaticText(panel, label=u"Select a boot.img")
+        self.show_all_boot_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Show All boot.img", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.show_all_boot_checkBox.SetToolTip(u"Show all boot.img even if it is\nnot part of the selected firmware or ROM")
+        # list control
+        self.il = wx.ImageList(24, 24)
+        self.idx1 = self.il.Add(images.Patched.GetBitmap())
+        self.list  = wx.ListCtrl(panel, -1, style = wx.LC_REPORT|wx.BORDER_SUNKEN)
+        self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
+        self.list.InsertColumn(0, 'Boot ID', wx.LIST_FORMAT_LEFT, width = -1)
+        self.list.InsertColumn(1, 'Package ID', wx.LIST_FORMAT_LEFT, width = -1)
+        self.list.InsertColumn(2, 'Package Signature', wx.LIST_FORMAT_LEFT, width = -1)
+        self.list.InsertColumn(3, 'Patched with Magisk', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(4, 'Patched on Device', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(5, 'Date', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(6, 'Package Path', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10))))
+        self.list.SetColumnWidth(0, -2)
+        self.list.SetColumnWidth(1, -2)
+        self.list.SetColumnWidth(2, -2)
+        self.list.SetColumnWidth(3, -2)
+        self.list.SetColumnWidth(4, -2)
+        self.list.SetColumnWidth(5, -2)
+        self.list.SetColumnWidth(6, -2)
+        self.patch_boot_button = wx.Button(panel, wx.ID_ANY, u"Patch", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.patch_boot_button.SetBitmap(images.Patch.GetBitmap())
+        self.patch_boot_button.SetToolTip(u"Patch Selected boot.img")
+        self.delete_boot_button = wx.Button(panel, wx.ID_ANY, u"Delete", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.delete_boot_button.SetBitmap(images.Delete.GetBitmap())
+        self.delete_boot_button.SetToolTip(u"Delete Selected boot.img")
+        self.add_boot_button = wx.Button(panel, wx.ID_ANY, u"Add", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.add_boot_button.SetBitmap(images.Add.GetBitmap())
+        self.add_boot_button.SetToolTip(u"Add Custom boot.img")
+        self.add_boot_button.Enable(False)
+        label_v_sizer = wx.BoxSizer(wx.VERTICAL)
+        label_v_sizer.Add(self.select_boot_label, flag=wx.ALL)
+        label_v_sizer.AddSpacer(10)
+        label_v_sizer.Add(self.show_all_boot_checkBox, flag=wx.ALL)
+        image_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
+        image_buttons_sizer.Add(self.patch_boot_button, proportion=1, flag=wx.LEFT|wx.BOTTOM, border=5)
+        image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT|wx.TOP, border=5)
+        image_buttons_sizer.Add(self.add_boot_button, proportion=1, flag=wx.LEFT|wx.TOP, border=5)
+        list_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND)
+        list_sizer.Add(image_buttons_sizer, 0, wx.ALL|wx.EXPAND)
+        list_sizer.Add((self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
 
-        # 8th row, empty row, static line
-        self.staticline3 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-        self.staticline4 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-
-        # 9th row widgets
+        # 8th row widgets
         mode_label = wx.StaticText(panel, label=u"Flash Mode")
         mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
         # _add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
@@ -986,7 +1375,7 @@ class PixelFlasher(wx.Frame):
         _add_mode_radio_button(mode_sizer, 2, 'dryRun', "Dry Run", "Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
         _add_mode_radio_button(mode_sizer, 3, 'customFlash', "Custom Flash", "Custom Flash, Advanced option to flash a single file.\nThis will not flash the prepared package.\It will flash the single selected file.")
 
-        # 10th row widgets (custom flash)
+        # 9th row widgets (custom flash)
         self.live_boot_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, wx.RB_GROUP)
         self.live_boot_radio_button.Enable(False)
         self.live_boot_radio_button.SetToolTip(u"Live Boot to selected boot.img")
@@ -1005,8 +1394,9 @@ class PixelFlasher(wx.Frame):
         custom_flash_sizer = wx.BoxSizer(wx.HORIZONTAL)
         custom_flash_sizer.Add(self.image_choice, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         custom_flash_sizer.Add(self.image_file_picker, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 0)
+        custom_flash_sizer.Add((self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
 
-        # 11th row widgets, Flash options
+        # 10th row widgets, Flash options
         self.advanced_options_label = wx.StaticText(panel, label=u"Flash Options")
         self.flash_both_slots_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Flash on both slots", wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_verity_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Disable Verity", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -1023,16 +1413,13 @@ class PixelFlasher(wx.Frame):
         self.advanced_options_sizer.Add(self.fastboot_verbose_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
 
-        # 12th row widgets, Flash button
+        # 11th row widgets, Flash button
         self.flash_button = wx.Button(panel, -1, "Flash Pixel Phone", wx.DefaultPosition, wx.Size(-1,50))
         self.flash_button.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
         self.flash_button.SetToolTip(u"Flashes (with Flash Mode Settings) the selected phone with the prepared Image.")
+        self.flash_button.SetBitmap(images.Flash.GetBitmap())
 
-        # 13th row, empty row, static line
-        self.staticline5 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-        self.staticline6 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-
-        # 14th row widgets, console
+        # 12th row widgets, console
         console_label = wx.StaticText(panel, label=u"Console")
         self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH)
         self.console_ctrl.SetFont(wx.Font(8, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
@@ -1040,29 +1427,27 @@ class PixelFlasher(wx.Frame):
         self.console_ctrl.SetForegroundColour(wx.BLUE)
         self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
-        # 15th row widgets, verbose and clear button
+        # 13th row widgets, verbose and clear button
         self.verbose_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0)
         self.verbose_checkBox.SetToolTip(u"Enable Verbose Messages")
         clear_button = wx.Button(panel, -1, "Clear Console")
 
         # add the rows to flexgrid
         fgs1.AddMany([
-                    (firmware_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.firmware_sizer, 1, wx.EXPAND),
                     (self.platform_tools_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.sdk_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (self.device_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (active_slot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (reboot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
                     self.staticline1, (self.staticline2, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20),
-                    (self.custom_rom_checkbox, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.custom_rom, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
-                    (self.patch_checkBox, 0, wx.ALIGN_CENTER_VERTICAL, 5), (prepare_button, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (firmware_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.firmware_sizer, 1, wx.EXPAND),
+                    (self.custom_rom_checkbox, 0, wx.ALIGN_CENTER_VERTICAL, 5), (custom_rom_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (label_v_sizer, 1, wx.EXPAND), (list_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
-                    self.staticline3, (self.staticline4, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20),
                     (mode_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (mode_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (custom_advanced_options_sizer, 0, wx.ALIGN_CENTER_VERTICAL, 5), (custom_flash_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     self.advanced_options_label, self.advanced_options_sizer,
                     (wx.StaticText(panel, label="")), (self.flash_button, 1, wx.EXPAND),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
-                    self.staticline5, (self.staticline6, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20),
                     (console_label, 1, wx.EXPAND), (self.console_ctrl, 1, wx.EXPAND),
                     (self.verbose_checkBox), (clear_button, 1, wx.EXPAND)])
         # this makes the second column expandable (index starts at 0)
@@ -1086,8 +1471,6 @@ class PixelFlasher(wx.Frame):
         self.custom_rom_checkbox.Bind(wx.EVT_CHECKBOX, _on_custom_rom)
         self.custom_rom.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_custom_rom)
         self.disable_verification_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verification)
-        self.patch_checkBox.Bind(wx.EVT_CHECKBOX, _on_patch_boot)
-        prepare_button.Bind(wx.EVT_BUTTON, _on_prepare)
         self.flash_both_slots_checkBox.Bind(wx.EVT_CHECKBOX, _on_flash_both_slots)
         self.disable_verity_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verity)
         self.fastboot_verbose_checkBox.Bind(wx.EVT_CHECKBOX, _on_fastboot_verbose)
@@ -1106,9 +1489,44 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_SIZE, self._on_resize)
         self.image_file_picker.Bind(wx.EVT_FILEPICKER_CHANGED, _on_image_select)
         self.image_choice.Bind(wx.EVT_CHOICE, _on_image_choice)
+        self.list.Bind(wx.EVT_LEFT_DOWN, _on_boot_selected)
+        self.patch_boot_button.Bind(wx.EVT_BUTTON, _on_patch_boot)
+        self.delete_boot_button.Bind(wx.EVT_BUTTON, _on_delete_boot)
+        self.add_boot_button.Bind(wx.EVT_BUTTON, _on_add_boot)
+        # self.console_ctrl.Bind(wx.EVT_TEXT, _on_console_update)
+        self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)
 
         # Update UI
         self.Layout()
+
+
+# ============================================================================
+#                               Class MySplashScreen
+# ============================================================================
+class MySplashScreen(wx.adv.SplashScreen):
+    def __init__(self):
+        wx.adv.SplashScreen.__init__(self, images.Splash.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 2500, None, -1)
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+        self.__fc = wx.CallLater(10000, self._show_main)
+
+    def _on_close(self, evt):
+        # Make sure the default handler runs too so this window gets
+        # destroyed
+        evt.Skip()
+        self.Hide()
+
+        # if the timer is still running then go ahead and show the
+        # main frame now
+        if self.__fc.IsRunning():
+            self.__fc.Stop()
+            self._show_main()
+
+    def _show_main(self):
+        frame = PixelFlasher(None, "PixelFlasher")
+        frame.Show()
+        if self.__fc.IsRunning():
+            self.Raise()
+
 
 # ============================================================================
 #                               Class App
@@ -1117,7 +1535,7 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
     def OnInit(self):
         # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
         self.ResetLocale()
-        # wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
+        wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
         self.SetAppName("PixelFlasher")
 
         frame = PixelFlasher(None, "PixelFlasher")
@@ -1126,6 +1544,18 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
         frame.Show()
         return True
 
+        # Create and show the splash screen.  It will then create and
+        # show the main frame when it is time to do so.  Normally when
+        # using a SplashScreen you would create it, show it and then
+        # continue on with the application's initialization, finally
+        # creating and showing the main application window(s).  In
+        # this case we have nothing else to do so we'll delay showing
+        # the main frame until later (see ShowMain above) so the users
+        # can see the SplashScreen effect.
+        #
+        # splash = MySplashScreen()
+        # splash.Show()
+        # return True
 
 # ============================================================================
 #                               Function Main

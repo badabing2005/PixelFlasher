@@ -25,6 +25,11 @@ command_lines = [
     "-a -F -i -n Guide images/guide-24.png images.py",
     "-a -F -i -n Sos images/sos-24.png images.py",
     "-a -F -i -n Magisk images/magisk-24.png images.py",
+    "-a -F -i -n Add images/add-24.png images.py",
+    "-a -F -i -n Delete images/delete-24.png images.py",
+    "-a -F -i -n Reload images/reload-24.png images.py",
+    "-a -F -i -n Flash images/flash-32.png images.py",
+    # "-a -F -i -n Splash images/PF_promo-banner.png images.py",
     ]
 
 if __name__ == "__main__":

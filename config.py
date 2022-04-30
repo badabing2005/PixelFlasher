@@ -3,7 +3,7 @@
 import os
 import json
 
-VERSION = "2.4.1.0"
+VERSION = "3.0.0.0"
 WIDTH = 1200
 HEIGHT = 800
 
@@ -21,7 +21,8 @@ class Config():
         self.magisk = 'com.topjohnwu.magisk'
         self.width = WIDTH
         self.height = HEIGHT
-        self.patch_boot = True
+        self.boot_id = None
+        self.selected_boot_md5 = None
         self.custom_rom = False
         self.custom_rom_path = None
         self.disable_verification = False
@@ -35,6 +36,7 @@ class Config():
         self.pos_x = None
         self.pos_y = None
         self.data = None
+        self.show_all_boot=False
 
     @classmethod
     def load(cls, file_path):
@@ -45,7 +47,6 @@ class Config():
                 with open(file_path, 'r') as f:
                     data = json.load(f)
                     f.close()
-                conf.data = data
                 conf.device = data['device']
                 conf.firmware_path = data['firmware_path']
                 conf.platform_tools_path = data['platform_tools_path']
@@ -54,7 +55,6 @@ class Config():
                 conf.magisk = data['magisk']
                 conf.width = data['width']
                 conf.height = data['height']
-                conf.patch_boot = data['patch_boot']
                 conf.custom_rom = data['custom_rom']
                 conf.custom_rom_path = data['custom_rom_path']
                 conf.disable_verification = data['disable_verification']
@@ -67,6 +67,9 @@ class Config():
                 conf.verbose = data['verbose']
                 conf.pos_x = data['pos_x']
                 conf.pos_y = data['pos_y']
+                conf.data = data
+                conf.boot_id = data['boot_id']
+                conf.selected_boot_md5 = data['selected_boot_md5']
         except Exception as e:
             os.remove(file_path)
         return conf
@@ -81,7 +84,6 @@ class Config():
             'magisk': self.magisk,
             'width': self.width,
             'height': self.height,
-            'patch_boot': self.patch_boot,
             'custom_rom': self.custom_rom,
             'custom_rom_path': self.custom_rom_path,
             'disable_verification': self.disable_verification,
@@ -93,7 +95,9 @@ class Config():
             'flash_both_slots': self.flash_both_slots,
             'verbose': self.verbose,
             'pos_x': self.pos_x,
-            'pos_y': self.pos_y
+            'pos_y': self.pos_y,
+            'boot_id': self.boot_id,
+            'selected_boot_md5': self.selected_boot_md5
         }
         with open(file_path, 'w') as f:
             json.dump(data, f, indent=4)

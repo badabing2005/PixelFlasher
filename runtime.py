@@ -4,6 +4,8 @@ import os
 from platformdirs import *
 import sys
 import requests
+import sqlite3 as sl
+import ntpath
 from datetime import datetime
 
 APPNAME = 'PixelFlasher'
@@ -28,6 +30,61 @@ custom_rom_file = None
 message_box_title = None
 message_box_message = None
 version = None
+db = None
+boot = None
+
+
+# ============================================================================
+#                               Class Boot
+# ============================================================================
+class Boot():
+    def __init__(self):
+        self.boot_id = None
+        self.boot_hash = None
+        self.boot_path = None
+        self.is_patched = None
+        self.magisk_version = None
+        self.hardware = None
+        self.boot_epoch = None
+        self.package_id = None
+        self.package_boot_hash = None
+        self.package_type = None
+        self.package_sig = None
+        self.package_path = None
+        self.package_epoch = None
+
+
+# ============================================================================
+#                               Function get_boot
+# ============================================================================
+def get_boot():
+    global boot
+    return boot
+
+
+# ============================================================================
+#                               Function set_boot
+# ============================================================================
+def set_boot(value):
+    global boot
+    boot = value
+
+
+# ============================================================================
+#                               Function get_db
+# ============================================================================
+def get_db():
+    global db
+    return db
+
+
+# ============================================================================
+#                               Function set_db
+# ============================================================================
+def set_db(value):
+    global db
+    db = value
+
 
 # ============================================================================
 #                               Function get_verbose
@@ -336,6 +393,59 @@ def init_config_path():
         os.makedirs(os.path.join(config_path, 'factory_images'), exist_ok=True)
     if not os.path.exists(os.path.join(config_path, 'boot_images')):
             os.makedirs(os.path.join(config_path, 'boot_images'), exist_ok=True)
+    # if not os.path.exists(os.path.join(config_path, 'rom_images')):
+    #         os.makedirs(os.path.join(config_path, 'rom_images'), exist_ok=True)
+    if not os.path.exists(os.path.join(config_path, 'tmp')):
+            os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
+
+
+# ============================================================================
+#                               Function init_db
+# ============================================================================
+def init_db():
+    global db
+    config_path = get_config_path()
+    # connect / create db
+    db = sl.connect(os.path.join(config_path,'PixelFlasher.db'))
+    db.execute("PRAGMA foreign_keys = ON")
+    # create tables
+    with db:
+        # there could be more than one package that has the same boot.img
+        # PACKAGE Table
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS PACKAGE (
+                id INTEGER NOT NULL PRIMARY KEY,
+                boot_hash TEXT NOT NULL,
+                type TEXT CHECK (type IN ('firmware', 'rom')) NOT NULL,
+                package_sig TEXT NOT NULL,
+                file_path TEXT NOT NULL UNIQUE,
+                epoch INTEGER NOT NULL
+            );
+        """)
+        # BOOT Table
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS BOOT (
+                id INTEGER NOT NULL PRIMARY KEY,
+                boot_hash TEXT NOT NULL UNIQUE,
+                file_path TEXT NOT NULL,
+                is_patched INTEGER CHECK (is_patched IN (0, 1)),
+                magisk_version TEXT,
+                hardware TEXT,
+                epoch INTEGER NOT NULL
+            );
+        """)
+        # PACKAGE_BOOT Table
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS PACKAGE_BOOT (
+                package_id INTEGER,
+                boot_id INTEGER,
+                epoch INTEGER NOT NULL,
+                PRIMARY KEY (package_id, boot_id),
+                FOREIGN KEY (package_id) REFERENCES PACKAGE(id),
+                FOREIGN KEY (boot_id) REFERENCES BOOT(id)
+            );
+        """)
+        db.commit()
 
 
 # ============================================================================
@@ -375,7 +485,6 @@ def get_bundle_dir():
     else:
         # running live
         return os.path.dirname(os.path.abspath(__file__))
-
 
 
 # ============================================================================

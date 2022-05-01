@@ -343,12 +343,15 @@ def select_firmware(self):
     if extension == '.zip':
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
         firmware = firmware.split("-")
-        try:
-            set_firmware_model(firmware[0])
-            set_firmware_id(firmware[0] + "-" + firmware[1])
-        except Exception as e:
-            set_firmware_model(None)
-            set_firmware_id(None)
+        if len(firmware) == 1:
+            set_firmware_id(filename)
+        else:
+            try:
+                set_firmware_model(firmware[0])
+                set_firmware_id(firmware[0] + "-" + firmware[1])
+            except Exception as e:
+                set_firmware_model(None)
+                set_firmware_id(filename)
         if get_firmware_id():
             set_flash_button_state(self)
         else:
@@ -410,6 +413,11 @@ def process_file(self, file_type):
 
     # delete all files in tmp folder to make sure we're dealing with new files only.
     delete_all(tmp_dir_full)
+
+    if not os.path.exists(image_file_path):
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {image_file_path} is not found.")
+        print("Aborting ...")
+        return
 
     # extract boot.img
     debug(f"Extracting boot.img from {image_file_path} ...")

@@ -29,7 +29,7 @@ command_lines = [
     "-a -F -i -n Delete images/delete-24.png images.py",
     "-a -F -i -n Reload images/reload-24.png images.py",
     "-a -F -i -n Flash images/flash-32.png images.py",
-    # "-a -F -i -n Splash images/PF_promo-banner.png images.py",
+    "-a -F -i -n Splash images/splash.png images.py",
     ]
 
 if __name__ == "__main__":

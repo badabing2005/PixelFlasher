@@ -77,6 +77,7 @@ class PixelFlasher(wx.Frame):
         self.config = Config.load(config_file)
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
                           style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
+        self.Center()
         self._build_status_bar()
         self._set_icons()
         self._build_menu_bar()
@@ -89,8 +90,8 @@ class PixelFlasher(wx.Frame):
         if self.config.pos_x and self.config.pos_y:
             self.SetPosition((self.config.pos_x,self.config.pos_y))
 
-        self.Show(True)
         self.initialize()
+        self.Show(True)
 
     # -----------------------------------------------
     #                  initialize
@@ -100,14 +101,12 @@ class PixelFlasher(wx.Frame):
         start = time.time()
 
         # load verbose settings
-        # debug("load verbose settings")
         if self.config.verbose:
             self.verbose_checkBox.SetValue(self.config.verbose)
             set_verbose(self.config.verbose)
         print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
 
         # enable / disable advanced_options
-        # debug("enable / disable advanced_options")
         set_advanced_options(self.config.advanced_options)
         if self.config.advanced_options:
             self._advanced_options_hide(False)
@@ -115,7 +114,6 @@ class PixelFlasher(wx.Frame):
             self._advanced_options_hide(True)
 
         # extract firmware info
-        # debug("extract firmware info")
         if self.config.firmware_path:
             if os.path.exists(self.config.firmware_path):
                 self.firmware_picker.SetPath(self.config.firmware_path)
@@ -129,21 +127,17 @@ class PixelFlasher(wx.Frame):
                     set_firmware_id(None)
 
         # check platform tools
-        # debug("check platform tools")
         check_platform_tools(self)
 
         # load platform tools value
-        # debug("load platform tools value")
         if self.config.platform_tools_path and get_adb() and get_fastboot():
             self.platform_tools_picker.SetPath(self.config.platform_tools_path)
 
         # if adb is found, display the version
-        # debug("display adb version")
         if get_sdk_version():
             self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
 
         # load custom_rom settings
-        # debug("load custom_rom settings")
         self.custom_rom_checkbox.SetValue(self.config.custom_rom)
         if self.config.custom_rom_path:
             if os.path.exists(self.config.custom_rom_path):
@@ -155,35 +149,27 @@ class PixelFlasher(wx.Frame):
             self.custom_rom.Disable()
 
         # refresh boot.img list
-        # debug("refresh boot.img list")
         populate_boot_list(self)
 
         # set the flash mode
-        # debug("set the flash mode")
         mode = self.config.flash_mode
 
         # set flash option
-        # debug("set flash option")
         self.flash_both_slots_checkBox.SetValue(self.config.flash_both_slots)
         self.disable_verity_checkBox.SetValue(self.config.disable_verity)
         self.disable_verification_checkBox.SetValue(self.config.disable_verification)
         self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
 
         # get the image choice and update UI
-        # debug("get the image choice")
         set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
 
-        # debug("self._update_custom_flash_options()")
         self._update_custom_flash_options()
 
-        # debug("set_magisk_package")
         set_magisk_package(self.config.magisk)
 
         # set the state of flash button.
-        # debug("set_flash_button_state")
         set_flash_button_state(self)
 
-        # debug("self._update_custom_flash_options")
         self._update_custom_flash_options()
 
         print("\nLoading Device list ...")
@@ -196,7 +182,6 @@ class PixelFlasher(wx.Frame):
         debug("select configured device")
         self._select_configured_device()
         self._refresh_ui()
-        # debug("self._refresh_ui")
 
         # enable / disable update_check
         set_update_check(self.config.update_check)
@@ -1505,9 +1490,9 @@ class PixelFlasher(wx.Frame):
 # ============================================================================
 class MySplashScreen(wx.adv.SplashScreen):
     def __init__(self):
-        wx.adv.SplashScreen.__init__(self, images.Splash.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 2500, None, -1)
+        wx.adv.SplashScreen.__init__(self, images.Splash.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 20000, None, -1)
         self.Bind(wx.EVT_CLOSE, self._on_close)
-        self.__fc = wx.CallLater(10000, self._show_main)
+        self.__fc = wx.CallLater(1000, self._show_main)
 
     def _on_close(self, evt):
         # Make sure the default handler runs too so this window gets
@@ -1524,6 +1509,10 @@ class MySplashScreen(wx.adv.SplashScreen):
     def _show_main(self):
         frame = PixelFlasher(None, "PixelFlasher")
         frame.Show()
+        try:
+            self.Hide()
+        except:
+            pass
         if self.__fc.IsRunning():
             self.Raise()
 
@@ -1538,11 +1527,11 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
         wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
         self.SetAppName("PixelFlasher")
 
-        frame = PixelFlasher(None, "PixelFlasher")
+        # frame = PixelFlasher(None, "PixelFlasher")
         # frame.SetClientSize(frame.FromDIP(wx.Size(WIDTH, HEIGHT)))
         # frame.SetClientSize(wx.Size(WIDTH, HEIGHT))
-        frame.Show()
-        return True
+        # frame.Show()
+        # return True
 
         # Create and show the splash screen.  It will then create and
         # show the main frame when it is time to do so.  Normally when
@@ -1553,9 +1542,9 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
         # the main frame until later (see ShowMain above) so the users
         # can see the SplashScreen effect.
         #
-        # splash = MySplashScreen()
-        # splash.Show()
-        # return True
+        splash = MySplashScreen()
+        splash.Show()
+        return True
 
 # ============================================================================
 #                               Function Main

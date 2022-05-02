@@ -155,15 +155,15 @@ The following information about the connected device is displayed.
 3. Next select the factory image, the application will recognize the phone model from the image name.  
 You can download factory images by clicking the ![Image of link](/images/open-link-16.png) next to it.
 4. Process the factory image.
-PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (4).  
-5. Select `boot.img` from the list, the selected `boot.img` can be patched (5), or flashed (9).
+PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (5).  
+5. Select `boot.img` from the list, the selected `boot.img` can be patched (6), or flashed (10).
 6. Optional: Select this option if you want to patch the `boot.img` with Magisk. Magisk must already be installed on your phone.  
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
 **Note:** See note above for granting root permissions to `shell`.  
 If the phone is already rooted, the whole process is without user interaction.  
 Otherwise PixelFlasher will launch Magisk on the phone and wait for the user to select stock `boot.img` which would already be transferred to the phone by the PixelFlasher and guide the user to make the proper choices in Magisk to create a patched `boot.img` before continuing for PixelFlasher to do the rest of the work.
-7. If you want to flash (9) a patched `boot.img` select the newly added entry.  
+7. If you want to flash (10) a patched `boot.img` select the newly added entry.  
 The following details are listed.  
     - ![Image of patched-boot](/images/patched-16.png) Indicates that the selection is patched.
     - Boot ID is (shortened for display only) md5 of `boot.img`

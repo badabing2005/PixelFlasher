@@ -153,16 +153,17 @@ The following information about the connected device is displayed.
     - (4th field) Device hardware.
     - (5th field) Current running firmware (in fastboot mode current firmware cannot be determined).
 3. Next select the factory image, the application will recognize the phone model from the image name.  
-PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (4).  
 You can download factory images by clicking the ![Image of link](/images/open-link-16.png) next to it.
-4. Select `boot.img` from the list, the selected `boot.img` can be patched (5), or flashed (9).
-5. Optional: Select this option if you want to patch the `boot.img` with Magisk. Magisk must already be installed on your phone.  
+4. Process the factory image.
+PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (4).  
+5. Select `boot.img` from the list, the selected `boot.img` can be patched (5), or flashed (9).
+6. Optional: Select this option if you want to patch the `boot.img` with Magisk. Magisk must already be installed on your phone.  
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
 **Note:** See note above for granting root permissions to `shell`.  
 If the phone is already rooted, the whole process is without user interaction.  
 Otherwise PixelFlasher will launch Magisk on the phone and wait for the user to select stock `boot.img` which would already be transferred to the phone by the PixelFlasher and guide the user to make the proper choices in Magisk to create a patched `boot.img` before continuing for PixelFlasher to do the rest of the work.
-6. If you want to flash (9) a patched `boot.img` select the newly added entry.  
+7. If you want to flash (9) a patched `boot.img` select the newly added entry.  
 The following details are listed.  
     - ![Image of patched-boot](/images/patched-16.png) Indicates that the selection is patched.
     - Boot ID is (shortened for display only) md5 of `boot.img`
@@ -172,14 +173,14 @@ The following details are listed.
     - Patched on Device indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
     - Date is the either the date the `boot.img` was extracted, or the date it was patched.
     - Package Path indicates the source of the `boot.img` file.
-7. Select the Flash Mode
+8. Select the Flash Mode
     - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`
     - **WIPE all data**: As the name suggests, this will wipe your data, use it with caution! PixelFlasher will ask for confirmation during the flashing phase, if this mode is selected.
     - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
     This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
-8. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
+9. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
 ![Image of PixelFlasher GUI](/images/magisk-modules-manager.png)
-9. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  
+10. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  
 **Note**: Unlike the previous versions of the PixelFlasher, all the options are dynamic, i.e. depending on what you select before clicking the Flash button, there is no more concept of prepared package.
 PixelFlasher will first present you the selected options and ask for your confirmation if you want to proceed with flashing.
 

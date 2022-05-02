@@ -1129,9 +1129,7 @@ def flash_phone(self):
         data += f"{add_echo}{get_fastboot()} -s {device.id} reboot bootloader\n"
         data += sleep_line
         data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
-
-        if self.config.flash_mode == 'dryRun':
-            data += f"{get_fastboot()} -s {device.id} reboot\n"
+        data += f"{get_fastboot()} -s {device.id} reboot\n"
 
         fin = open(dest, "wt")
         fin.write(data)

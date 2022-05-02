@@ -145,8 +145,10 @@ class PixelFlasher(wx.Frame):
                 set_custom_rom_id(os.path.splitext(ntpath.basename(self.config.custom_rom_path))[0])
         if self.config.custom_rom:
             self.custom_rom.Enable()
+            self.process_rom.Enable()
         else:
             self.custom_rom.Disable()
+            self.process_rom.Disable()
 
         # refresh boot.img list
         populate_boot_list(self)
@@ -421,6 +423,7 @@ class PixelFlasher(wx.Frame):
             # ROM options
             self.custom_rom_checkbox.Hide()
             self.custom_rom.Hide()
+            self.process_rom.Hide()
             # Custom Flash Radio Button
             # if we're turning off advanced options, and the current mode is customFlash, hide, it
             self.mode_radio_button.LastInGroup.Hide()
@@ -452,6 +455,7 @@ class PixelFlasher(wx.Frame):
             # ROM options
             self.custom_rom_checkbox.Show()
             self.custom_rom.Show()
+            self.process_rom.Show()
             # Custom Flash Radio Button
             self.mode_radio_button.LastInGroup.Show()
             # Custom Flash Image options
@@ -691,6 +695,24 @@ class PixelFlasher(wx.Frame):
             del wait
 
         # -----------------------------------------------
+        #                  _on_process_firmware
+        # -----------------------------------------------
+        def _on_process_firmware(event):
+            wait = wx.BusyCursor()
+            if self.config.firmware_path:
+                process_file(self, 'firmware')
+            del wait
+
+        # -----------------------------------------------
+        #                  _on_process_rom
+        # -----------------------------------------------
+        def _on_process_rom(event):
+            wait = wx.BusyCursor()
+            if self.config.custom_rom_path:
+                process_file(self, 'rom')
+            del wait
+
+        # -----------------------------------------------
         #                  _on_image_choice
         # -----------------------------------------------
         def _on_image_choice(event):
@@ -728,7 +750,7 @@ class PixelFlasher(wx.Frame):
                 self.config.custom_rom_path = custom_rom_path
                 rom_file = ntpath.basename(custom_rom_path)
                 set_custom_rom_id(os.path.splitext(rom_file)[0])
-                process_file(self, 'rom')
+                populate_boot_list(self)
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a zip file.")
                 self.custom_rom.SetPath('')
@@ -1036,9 +1058,11 @@ class PixelFlasher(wx.Frame):
             self.config.custom_rom = status
             if status:
                 self.custom_rom.Enable()
-                process_file(self, 'rom')
+                self.process_rom.Enable()
+                populate_boot_list(self)
             else:
                 self.custom_rom.Disable()
+                self.process_rom.Disable()
                 populate_boot_list(self)
 
         # -----------------------------------------------
@@ -1222,14 +1246,16 @@ class PixelFlasher(wx.Frame):
 
         # 1st row widgets, Android platfom tools
         self.platform_tools_label = wx.StaticText(panel, label=u"Android Platform Tools")
-        self.platform_tools_picker = wx.DirPickerCtrl(panel, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
-        self.platform_tools_picker.SetToolTip(u"Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
         self.sdk_link = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.sdk_link.SetBitmap(images.Open_Link.GetBitmap())
         self.sdk_link.SetToolTip(u"Download Latest Android Platform-Tools")
+        self.platform_tools_picker = wx.DirPickerCtrl(panel, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
+        self.platform_tools_picker.SetToolTip(u"Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
+        platform_tools_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        platform_tools_label_sizer.Add(self.platform_tools_label, 1, wx.EXPAND)
+        platform_tools_label_sizer.Add(self.sdk_link, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=24)
         self.sdk_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.sdk_sizer.Add(self.platform_tools_picker, 1, wx.EXPAND)
-        self.sdk_sizer.Add(self.sdk_link, flag=wx.LEFT, border=5)
 
         # 2nd row widgets, Connected Devices
         self.device_label = wx.StaticText(panel, label=u"ADB Connected Devices")
@@ -1250,7 +1276,6 @@ class PixelFlasher(wx.Frame):
         device_sizer = wx.BoxSizer(wx.HORIZONTAL)
         device_sizer.Add(self.device_choice, 1, wx.EXPAND)
         device_sizer.Add(reload_button, flag=wx.LEFT, border=5)
-        device_sizer.Add((self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
 
         # 3rd row Reboot buttons
         self.a_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"A", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -1289,7 +1314,7 @@ class PixelFlasher(wx.Frame):
         reboot_sizer.Add(self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.lock_bootloader, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.unlock_bootloader, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 0)
-        reboot_sizer.Add((reload_button.Size.Width + 5 + self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
+        reboot_sizer.Add((reload_button.Size.Width + 5, 0), 0, wx.EXPAND)
 
         # 4th row, empty row, static line
         self.staticline1 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
@@ -1298,24 +1323,32 @@ class PixelFlasher(wx.Frame):
 
         # 5th row widgets, firmware file
         firmware_label = wx.StaticText(panel, label=u"Pixel Phone Factory Image")
-        self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
-        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
         self.firmware_link = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.firmware_link.SetBitmap(images.Open_Link.GetBitmap())
         self.firmware_link.SetToolTip(u"Download Latest Firmware")
+        self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
+        self.process_firmware = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.process_firmware.SetBitmap(images.Process_File.GetBitmap())
+        self.process_firmware.SetToolTip(u"Process the firmware file and extract the boot.img")
+        firmware_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        firmware_label_sizer.Add(firmware_label, 1, wx.EXPAND)
+        firmware_label_sizer.Add(self.firmware_link, flag=wx.LEFT, border=5)
         self.firmware_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.firmware_sizer.Add(self.firmware_picker, 1, wx.EXPAND)
-        self.firmware_sizer.Add(self.firmware_link, flag=wx.LEFT, border=5)
+        self.firmware_sizer.Add(self.process_firmware, flag=wx.LEFT, border=5)
 
         # 6th row widgets, custom_rom
         self.custom_rom_checkbox = wx.CheckBox(panel, wx.ID_ANY, u"Apply Custom ROM", wx.DefaultPosition, wx.DefaultSize, 0)
         self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
         self.custom_rom = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"ROM files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.custom_rom.SetToolTip(u"Select Custom ROM")
+        self.process_rom = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.process_rom.SetBitmap(images.Process_File.GetBitmap())
+        self.process_rom.SetToolTip(u"Process the ROM file and extract the boot.img")
         custom_rom_sizer = wx.BoxSizer(wx.HORIZONTAL)
         custom_rom_sizer.Add(self.custom_rom, 1, wx.EXPAND)
-        # custom_rom_sizer.Add(self.custom_rom, flag=wx.LEFT, border=5)
-        custom_rom_sizer.Add((self.firmware_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
+        custom_rom_sizer.Add(self.process_rom, flag=wx.LEFT, border=5)
 
         # 7th row widgets
         self.select_boot_label = wx.StaticText(panel, label=u"Select a boot.img")
@@ -1432,12 +1465,12 @@ class PixelFlasher(wx.Frame):
 
         # add the rows to flexgrid
         fgs1.AddMany([
-                    (self.platform_tools_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.sdk_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (platform_tools_label_sizer, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.sdk_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (self.device_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (active_slot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (reboot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
                     self.staticline1, (self.staticline2, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20),
-                    (firmware_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.firmware_sizer, 1, wx.EXPAND),
+                    (firmware_label_sizer, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.firmware_sizer, 1, wx.EXPAND),
                     (self.custom_rom_checkbox, 0, wx.ALIGN_CENTER_VERTICAL, 5), (custom_rom_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (label_v_sizer, 1, wx.EXPAND), (list_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
@@ -1491,6 +1524,8 @@ class PixelFlasher(wx.Frame):
         self.patch_boot_button.Bind(wx.EVT_BUTTON, _on_patch_boot)
         self.delete_boot_button.Bind(wx.EVT_BUTTON, _on_delete_boot)
         self.add_boot_button.Bind(wx.EVT_BUTTON, _on_add_boot)
+        self.process_firmware.Bind(wx.EVT_BUTTON, _on_process_firmware)
+        self.process_rom.Bind(wx.EVT_BUTTON, _on_process_rom)
         # self.console_ctrl.Bind(wx.EVT_TEXT, _on_console_update)
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)
 

@@ -356,7 +356,7 @@ def select_firmware(self):
             set_flash_button_state(self)
         else:
             self.flash_button.Disable()
-        process_file(self, 'firmware')
+        populate_boot_list(self)
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a zip file.")
         self.config.firmware_path = None
@@ -1104,7 +1104,11 @@ def flash_phone(self):
                 else:
                     data += f"# This is a generated file by PixelFlasher v{VERSION}\n\n"
                 continue
-            if f.type in ['sleep', 'path']:
+            if f.type in ['sleep']:
+                sleep_line = f"{f.full_line}\n"
+                data += f"{f.full_line}\n"
+                continue
+            if f.type in ['path']:
                 data += f"{f.full_line}\n"
                 continue
             if f.action == 'reboot-bootloader':
@@ -1122,7 +1126,9 @@ def flash_phone(self):
                     arg1 = f"\"{get_custom_rom_file()}\""
                 data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} {action} {arg1}\n"
         # add the boot.img flashing
-        data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} flash pf_boot.img\n"
+        data += f"{add_echo}{get_fastboot()} -s {device.id} reboot bootloader\n"
+        data += sleep_line
+        data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
 
         if self.config.flash_mode == 'dryRun':
             data += f"{get_fastboot()} -s {device.id} reboot\n"

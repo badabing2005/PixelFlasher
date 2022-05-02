@@ -176,7 +176,7 @@ def populate_boot_list(self):
     # disable buttons
     self.config.boot_id = None
     self.config.selected_boot_md5 = None
-    print("\nNo boot image is selected!")
+    print("\nPlease select a boot.img!")
     self.patch_boot_button.Enable(False)
     self.delete_boot_button.Enable(False)
 

@@ -1,5 +1,5 @@
 # This is a workflow to build a package code push.
-name: Build Windows Executable
+name: Build Windows and Linux Executables
 
 # Controls when the workflow will run
 on:
@@ -84,5 +84,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./dist/linux/PixelFlasher
-          asset_name: PixelFlasher
+          asset_name: PixelFlasher-Linux
           asset_content_type: application/zip

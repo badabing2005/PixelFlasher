@@ -1130,7 +1130,7 @@ class PixelFlasher(wx.Frame):
             else:
                 self.config.boot_id = None
                 self.config.selected_boot_md5 = None
-                print("\nNo boot image is selected!")
+                print("\nPlease select a boot.img!")
                 self.patch_boot_button.Enable(False)
                 self.delete_boot_button.Enable(False)
             set_boot(boot)
@@ -1154,10 +1154,23 @@ class PixelFlasher(wx.Frame):
                     data = con.execute(sql)
                 sql = """
                     DELETE FROM BOOT
-                    WHERE boot_hash = '%s';
+                    WHERE id = '%s';
                 """ % boot.boot_id
                 with con:
                     data = con.execute(sql)
+                # Check to see if this is the last entry for the package_id, if it is,
+                # delete the package from db and output a message that a firmware should be selected.
+                cursor = con.cursor()
+                cursor.execute(f"SELECT * FROM PACKAGE_BOOT WHERE package_id = '{boot.package_id}'")
+                data = cursor.fetchall()
+                if len(data) == 0:
+                    sql = """
+                        DELETE FROM PACKAGE
+                        WHERE id = '%s';
+                    """ % boot.package_id
+                    with con:
+                        data = con.execute(sql)
+                    print(f"Cleared db entry for: {boot.package_path}")
                 con.commit()
 
                 # delete the boot file

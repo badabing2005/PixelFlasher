@@ -3,7 +3,7 @@
 import os
 import json
 
-VERSION = "3.1.0.0"
+VERSION = "3.1.1.0"
 WIDTH = 1400
 HEIGHT = 1040
 

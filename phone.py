@@ -474,7 +474,7 @@ class Device():
 # ============================================================================
 def run_shell(cmd):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
         wx.Yield()
         return response
     except Exception as e:

@@ -267,7 +267,7 @@ def debug(message):
 # stderr are only available when the call is completed.
 def run_shell(cmd):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
         wx.Yield()
         return response
     except Exception as e:
@@ -284,7 +284,7 @@ def run_shell2(cmd):
         pass
 
     response = obj()
-    proc = subprocess.Popen("%s" % cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.Popen("%s" % cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='utf8')
     print
     stdout = ''
     while True:
@@ -1112,10 +1112,10 @@ def flash_phone(self):
                 data += f"{f.full_line}\n"
                 continue
             if f.action == 'reboot-bootloader':
-                data += f"{get_fastboot()} -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
+                data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
                 continue
             if f.action == 'flash':
-                data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
+                data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
                 continue
             if f.action == '-w update':
                 action = '--skip-reboot update'
@@ -1124,12 +1124,12 @@ def flash_phone(self):
                     action = '--skip-reboot -w update'
                 if self.config.custom_rom and self.config.advanced_options:
                     arg1 = f"\"{get_custom_rom_file()}\""
-                data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} {action} {arg1}\n"
+                data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} {arg1}\n"
         # add the boot.img flashing
-        data += f"{add_echo}{get_fastboot()} -s {device.id} reboot bootloader\n"
+        data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
         data += sleep_line
-        data += f"{add_echo}{get_fastboot()} -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
-        data += f"{get_fastboot()} -s {device.id} reboot\n"
+        data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
+        data += f"\"{get_fastboot()}\" -s {device.id} reboot\n"
 
         fin = open(dest, "wt")
         fin.write(data)

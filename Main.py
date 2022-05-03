@@ -50,7 +50,7 @@ class RedirectText():
     def __init__(self,aWxTextCtrl):
         self.out=aWxTextCtrl
         logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
-        self.logfile = open(logfile, "w")
+        self.logfile = open(logfile, "w", encoding="utf8")
         set_logfile(logfile)
 
     def write(self,string):

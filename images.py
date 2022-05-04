@@ -1267,3 +1267,29 @@ Process_File = PyEmbeddedImage(
     b'oFaro5OVN/56caMvlJvuyQmn4OudU5ipkmFuWiNoAnq0lFi+2puhE+lJ+W8uX4NrEaq8paWl'
     b'WW7iAP8CDZWUd9q79j4AAAAASUVORK5CYII=')
 
+#----------------------------------------------------------------------
+Support_Zip = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1B'
+    b'AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAARUSURBVEhLxVVraBxVFL5zZ3d2dnf2'
+    b'mU01yS7tNkkfbGKlIZHaWoVSS/PD9oc2rimpioiCWKtW+0eIIFZEjRVBVGptfWD9UelDwSqp'
+    b'Egix7Y+I0TalWFLy2M0m2VdmdjK7M+M307FkozGJIH5w9tw995wz95z57hnyX4Ox9Lxwu90t'
+    b'siy3YdlCKa3UdV3DOgU573Q6j+fz+YuG35IRCASqbTbbaSx1hmE0lmUvQboh5yCDsBsP0uHz'
+    b'lcvlusWIWTRwslVIOgwpIsGboVAobG3dhM/ni9jt9kPwKaGy616vt87a+mcEg0EBAVcQOI2T'
+    b'bbHM8wIt3Apf0aiwpqbGZZnnB071CpSOKuI3LAuD5/mHoHSO4zpvWOZBNBrlcPpJnKbHMi0a'
+    b'iOlF7Hg4HLZZJhNlLHI4HJtmZmZ6UMXjxWLxQ8N24PnXA+HYure/lYMexcURm+AgisT9OPhM'
+    b'17FSSSJeoV66PHJgBqd/QlGU99CyjaIo9poJAdb4QYlVoN9zmqbFoetxkmuRSKT76GaBCa28'
+    b'8zGbpm7yiePuFcqEW5gaomfYyvi5d3d1JlbHXgy1RCID33xwEhVsVVXVeGcG42xg4e+FQkE1'
+    b'K4DhIjabjPWf2LOdf/mdp3x7KQ36GQo31U4oiJnorb3WXOiI779rzbEf+oaqm9eHnzy4e122'
+    b'VCqdskJNgH1fwBanHo+nYW5yA26f7C3wMT/rv4MUMhLR5TyRtTzhq6rJZNfOn9LjM6SxxpuV'
+    b'+0dPIJFghd0EcraB3ssoWrLKspWDYYimXSWpq91k9DeNJH51kEJSJVyoytxWVZ0QVDaayDGg'
+    b'M2caZwF5GUmS1lD0yWHZysCxDsI7V5KKW2OktkkiVWszRAhwpDSZNPeRnthYhsgFhUE77KZx'
+    b'DvAAO0Up1t9ysLqdKNNThAYlkrheBeaEiZy2ESWdyhn7lKWEQlFUgVllxswFLiChoJUxuP6C'
+    b'YoFKdjGRTHT/kqTp8WTmymiSFQtJvlp4tX7/0c4HtkejgzpfSTfUvQZ6WlHlwPhIM6ATl8vl'
+    b'+lHJWstuAndhA+5C3+HDZ7cM8943vh+SSMnvIhmOoRrDRx6pcLq+Oz/M3d6w7Nmu3belQfGP'
+    b'rVATKO1yY2Njg0lTDC4f3sU2VOMFIwwGpNC/k6Yn8NaXl+6dKqqeVF5eLirF9cu5/KeNq2sP'
+    b'fT0w7a7mbDsmx/q3fXLwUR2VPI22XEDIBYyaj3DhRhb8HszG/fvO3u2q4I6zApN7qb2p/r73'
+    b'fyabAzSZGMokeo50bJyYmEihLS3ZbHbACln4gzMbu1o/pw8+XCfw3ny9zPor1Qwz5vaIKTHN'
+    b'qu177tmByvdCYpb70mDMe7/f34Z5tVMQhLIPDNpRg56PYR4ZU3XpQPIVUCLEoL+OZKPodTsk'
+    b'jqQv4P8I9BHD918BN7UFykxuiQqW9eEBfZhjZ1BVR2tr69+2e9HvABN3H0Z5M07qwBg4AcZ8'
+    b'Zm39nyDkD4r2ogMp5oQfAAAAAElFTkSuQmCC')
+

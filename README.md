@@ -94,15 +94,16 @@ If you want to build this application yourself you need to:
 **Setup**
 
 - Download or clone the repository.
-- Install [Python 3.x](https://www.python.org/downloads/) and [Pip](https://pip.pypa.io/en/stable/installing/) (it comes with Python™ if installed from `python.org`).
-- Install virtualenv `pip install virtualenv`
+- Install [Python 3.x](https://www.python.org/downloads/) and [Pip](https://pip.pypa.io/en/stable/installing/) (it comes with Python™ if installed from `python.org`)  
+_See note below if building on MacOS._
+- Install virtualenv `pip3 install virtualenv`
 - Create a virtual environment with:
   - On Windows: `virtualenv --python <PATH_TO_PYTHON_EXE> venv`
-  - On Linux: `python3 -m venv venv`
+  - On Linux / MacOS: `python3 -m venv venv`
 - Activate the virtual environment with:
   - On Windows: `.\venv\Scripts\activate`
-  - On Linux: `. venv/bin/activate`
-- Run `pip install -r requirements.txt`
+  - On Linux / MacOS: `. venv/bin/activate`
+- Run `pip3 install -r requirements.txt`
 
 **A note on Linux:** As described on the [downloads section of `wxPython`](https://www.wxpython.org/pages/downloads/), wheels for Linux are complicated and may require you to run something like this to install `wxPython` correctly:
 
@@ -113,7 +114,7 @@ pip install -U \
     wxPython
 ```
 
-**A Note on Windows**
+**A note on Windows**
 If you run into troubles installing wxPython on Windows, you can download wxPython wheel file matching your version of Python™ from [here](https://wxpython.org/Phoenix/snapshot-builds/?C=M;O=D)
 Look for `cp310` if your python™ version is 3.10
 You install it with `pip`, for example this would be the command to install 3.10 version.
@@ -123,8 +124,17 @@ pip install wxPython-4.1.2a1.dev5308+2258f215-cp310-cp310-win_amd64.whl
 ```
 
 **A Note on MacOS**
-This project is cross-platform and is built for Windows and Linux, it can also be built for other platforms such as MacOS.  
-To the best of my knowledge I have included the necessary files for it to be build on MacOS, however I do not have a Mac to build or test it.
+Don't install Python™ on MacOS, instead
+`brew install wxpython`, this will install Python™ 3.9.12, the installed wxPython will only work with this version of Python.
+If python 3.9.12 is not in the system path, you can find it here:  
+`/usr/local/Cellar/python@3.9/3.9.12/Frameworks/Python.framework/Versions/3.9/bin`  
+It is advised that you add this to your system `PATH`
+On MacOS, you should also install `create-dmg`
+
+```bash
+brew install node graphicsmagick imagemagick 
+npm install --global create-dmg
+```
 
 **Build**
 Run `build.bat` on Windows or `build.sh` on Linux / MacOS.

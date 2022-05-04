@@ -4,7 +4,6 @@ import os
 import subprocess
 import re
 import wx
-import json
 import time
 import shutil
 import ntpath
@@ -178,6 +177,8 @@ def populate_boot_list(self):
     self.config.selected_boot_md5 = None
     print("\nPlease select a boot.img!")
     self.patch_boot_button.Enable(False)
+    self.process_firmware.SetFocus()
+    # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
     self.delete_boot_button.Enable(False)
 
 
@@ -334,6 +335,107 @@ def which(program):
 
 
 # ============================================================================
+#                               Function create_support_zip
+# ============================================================================
+def create_support_zip():
+    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
+    config_path = get_config_path()
+    tmp_dir_full = os.path.join(config_path, 'tmp')
+    support_dir_full = os.path.join(tmp_dir_full, 'support')
+    support_zip = os.path.join(tmp_dir_full, 'support.zip')
+
+    # if a previous support dir exist delete it allong with support.zip
+    if os.path.exists(support_dir_full):
+        debug(f"Deleting old support files ...")
+        delete_all(support_dir_full)
+    if os.path.exists(support_zip):
+        debug(f"Deleting old support.zip ...")
+        os.remove(support_zip)
+
+    # create tmp\support folder if it does not exist
+    if not os.path.exists(support_dir_full):
+        os.makedirs(support_dir_full, exist_ok=True)
+
+    # copy PixelFlasher.json to tmp\support folder
+    to_copy = os.path.join(config_path, 'PixelFlasher.json')
+    if os.path.exists(to_copy):
+        debug(f"Copying {to_copy} to {support_dir_full}")
+        shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+    # copy PixelFlasher.db to tmp\support folder
+    # to_copy = os.path.join(config_path, 'PixelFlasher.db')
+    # if os.path.exists(to_copy):
+    #     debug(f"Copying {to_copy} to {support_dir_full}")
+    #     shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+    # copy logs to tmp\support folder
+    to_copy = os.path.join(config_path, 'logs')
+    logs_dir = os.path.join(support_dir_full, 'logs')
+    if os.path.exists(to_copy):
+        debug(f"Copying {to_copy} to {support_dir_full}")
+        shutil.copytree(to_copy, logs_dir)
+
+    # sanitize json
+    sanitize_file(os.path.join(support_dir_full, 'PixelFlasher.json'))
+    # for each file in logs, sanitize
+    for filename in os.listdir(logs_dir):
+        file_path = os.path.join(logs_dir, filename)
+        sanitize_file(file_path)
+
+    # sanitize db
+    # sanitize_db(os.path.join(support_dir_full, 'PixelFlasher.db'))
+
+    # zip support folder
+    debug(f"Zipping {support_dir_full} ...")
+    shutil.make_archive(support_dir_full, 'zip', support_dir_full)
+
+
+# ============================================================================
+#                               Function sanitize_file
+# ============================================================================
+def sanitize_file(filename):
+    debug(f"Santizing {filename} ...")
+    fin = open(filename, "rt", encoding='utf8')
+    data = fin.read()
+    fin.close()
+    data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
+    data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(Flashing device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(waiting for\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+    fin = open(filename, "wt", encoding='utf8')
+    fin.write(data)
+    fin.close()
+
+# ============================================================================
+#                               Function sanitize_db
+# ============================================================================
+def sanitize_db(filename):
+    debug(f"Santizing {filename} ...")
+    # TODO
+    # con = get_db()
+    # con.execute("PRAGMA foreign_keys = ON")
+    # cursor = con.cursor()
+
+
+# ============================================================================
+#                               Function set_flash_button_state
+# ============================================================================
+def set_flash_button_state(self):
+    try:
+        boot = get_boot()
+        if self.config.firmware_path != '' and os.path.exists(boot.package_path):
+            self.flash_button.Enable()
+        else:
+            self.flash_button.Disable()
+    except:
+        self.flash_button.Disable()
+
+
+# ============================================================================
 #                               Function select_firmware
 # ============================================================================
 def select_firmware(self):
@@ -386,15 +488,9 @@ def process_file(self, file_type):
         # Unzip the factory image
         image_file_path = os.path.join(package_dir_full, 'image-' + package_sig + ".zip")
         debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
-        theCmd = f"\"{path_to_7z}\" x -bd -y -o{factory_images} \"{file_to_process}\""
+        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
         debug(theCmd)
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-            print(res.stderr)
-            print("Aborting ...")
-            return
+        res = run_shell2(theCmd)
     else:
         file_to_process = self.config.custom_rom_path
         package_sig = get_custom_rom_id()
@@ -416,6 +512,8 @@ def process_file(self, file_type):
 
     if not os.path.exists(image_file_path):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {image_file_path} is not found.")
+        if file_type == 'firmware':
+            print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
         print("Aborting ...")
         return
 
@@ -508,20 +606,6 @@ def process_file(self, file_type):
     populate_boot_list(self)
     end_1 = time.time()
     print("Process %s time: %s seconds" % (file_type, math.ceil(end_1 - start_1)))
-
-
-# ============================================================================
-#                               Function set_flash_button_state
-# ============================================================================
-def set_flash_button_state(self):
-    try:
-        boot = get_boot()
-        if self.config.firmware_path != '' and os.path.exists(boot.package_path):
-            self.flash_button.Enable()
-        else:
-            self.flash_button.Disable()
-    except:
-        self.flash_button.Disable()
 
 
 # ============================================================================

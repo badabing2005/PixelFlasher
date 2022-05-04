@@ -15,7 +15,6 @@ import webbrowser
 import time
 import math
 from datetime import datetime
-from modules import debug
 from packaging.version import parse
 
 import ctypes
@@ -35,12 +34,18 @@ from modules import select_firmware
 from modules import set_flash_button_state
 from modules import process_file
 from modules import populate_boot_list
+from modules import debug
+from modules import delete_all
+from modules import create_support_zip
 from advanced_settings import AdvancedSettings
 from message_box import MessageBox
 from magisk_modules import MagiskModules
 
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
+
+# For troubleshooting, set inspector = True
+inspector = False
 
 
 # ============================================================================
@@ -50,7 +55,7 @@ class RedirectText():
     def __init__(self,aWxTextCtrl):
         self.out=aWxTextCtrl
         logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
-        self.logfile = open(logfile, "w", encoding="utf8")
+        self.logfile = open(logfile, "w", buffering=1, encoding="utf8")
         set_logfile(logfile)
 
     def write(self,string):
@@ -273,7 +278,13 @@ class PixelFlasher(wx.Frame):
             config_folder_item.SetBitmap(images.Config_Folder.GetBitmap())
             self.Bind(wx.EVT_MENU, self._on_open_config_folder, config_folder_item)
             # seperator
-            help_menu.AppendSeparator()
+            # help_menu.AppendSeparator()
+        # Create sanitized support.zip
+        support_zip_item = help_menu.Append(wx.ID_ANY, 'Create a Sanitized support.zip', 'Create a Sanitized support.zip')
+        support_zip_item.SetBitmap(images.Support_Zip.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_support_zip, support_zip_item)
+        # seperator
+        help_menu.AppendSeparator()
         # update check
         update_item = help_menu.Append(wx.ID_ANY, 'Check for New Version', 'Check for New Version')
         update_item.SetBitmap(images.Update_Check.GetBitmap())
@@ -368,6 +379,32 @@ class PixelFlasher(wx.Frame):
         if sys.platform == "win32":
             os.system(f"start {get_config_path()}")
         del wait
+
+    # -----------------------------------------------
+    #                  _on_support_zip
+    # -----------------------------------------------
+    def _on_support_zip(self, event):
+        with wx.FileDialog(self, "Save support file", '', 'support.zip', wildcard="Support files (*.zip)|*.zip",
+                        style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+
+            # save the current contents in the file
+            pathname = fileDialog.GetPath()
+            try:
+                config_path = get_config_path()
+                tmp_dir_full = os.path.join(config_path, 'tmp')
+                support_zip = os.path.join(tmp_dir_full, 'support.zip')
+                create_support_zip()
+                debug(f"Saving support file to: {pathname}")
+                with open(support_zip, "rb") as binaryfile :
+                    with open(pathname, 'wb') as file:
+                        bytearray = binaryfile.read()
+                        file.write(bytearray)
+                        file.close()
+            except IOError:
+                wx.LogError("Cannot save current data in file '%s'." % pathname)
 
     # -----------------------------------------------
     #                  _on_exit_app
@@ -1184,6 +1221,7 @@ class PixelFlasher(wx.Frame):
                     data = con.execute(sql)
                 # Check to see if this is the last entry for the package_id, if it is,
                 # delete the package from db and output a message that a firmware should be selected.
+                # Also delete unpacked files from factory_images cache
                 cursor = con.cursor()
                 cursor.execute(f"SELECT * FROM PACKAGE_BOOT WHERE package_id = '{boot.package_id}'")
                 data = cursor.fetchall()
@@ -1195,6 +1233,10 @@ class PixelFlasher(wx.Frame):
                     with con:
                         data = con.execute(sql)
                     print(f"Cleared db entry for: {boot.package_path}")
+                    config_path = get_config_path()
+                    tmp = os.path.join(config_path, 'factory_images', boot.package_sig)
+                    print(f"Deleting Firmware cache for: {tmp} ...")
+                    delete_all(tmp)
                 con.commit()
 
                 # delete the boot file
@@ -1575,32 +1617,34 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
         wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
         self.SetAppName("PixelFlasher")
 
-        # frame = PixelFlasher(None, "PixelFlasher")
-        # frame.SetClientSize(frame.FromDIP(wx.Size(WIDTH, HEIGHT)))
-        # frame.SetClientSize(wx.Size(WIDTH, HEIGHT))
-        # frame.Show()
-        # return True
+        if inspector:
+            frame = PixelFlasher(None, "PixelFlasher")
+            # frame.SetClientSize(frame.FromDIP(wx.Size(WIDTH, HEIGHT)))
+            # frame.SetClientSize(wx.Size(WIDTH, HEIGHT))
+            frame.Show()
+            return True
+        else:
+            # Create and show the splash screen.  It will then create and
+            # show the main frame when it is time to do so.  Normally when
+            # using a SplashScreen you would create it, show it and then
+            # continue on with the application's initialization, finally
+            # creating and showing the main application window(s).  In
+            # this case we have nothing else to do so we'll delay showing
+            # the main frame until later (see ShowMain above) so the users
+            # can see the SplashScreen effect.
+            #
+            splash = MySplashScreen()
+            splash.Show()
+            return True
 
-        # Create and show the splash screen.  It will then create and
-        # show the main frame when it is time to do so.  Normally when
-        # using a SplashScreen you would create it, show it and then
-        # continue on with the application's initialization, finally
-        # creating and showing the main application window(s).  In
-        # this case we have nothing else to do so we'll delay showing
-        # the main frame until later (see ShowMain above) so the users
-        # can see the SplashScreen effect.
-        #
-        splash = MySplashScreen()
-        splash.Show()
-        return True
 
 # ============================================================================
 #                               Function Main
 # ============================================================================
 def main():
     app = App(False)
-    # For troubleshooting, uncomment next line to launch WIT
-    # wx.lib.inspection.InspectionTool().Show()
+    if inspector:
+        wx.lib.inspection.InspectionTool().Show()
 
     app.MainLoop()
 

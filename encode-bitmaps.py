@@ -31,6 +31,7 @@ command_lines = [
     "-a -F -i -n Flash images/flash-32.png images.py",
     "-a -F -i -n Splash images/splash.png images.py",
     "-a -F -i -n Process_File images/process_file-24.png images.py",
+    "-a -F -i -n Support_Zip images/support-24.png images.py",
     ]
 
 if __name__ == "__main__":

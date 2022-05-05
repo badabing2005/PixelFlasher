@@ -116,6 +116,7 @@ def populate_boot_list(self):
     self.list.DeleteAllItems()
     con = get_db()
     con.execute("PRAGMA foreign_keys = ON")
+    con.commit()
     sql = """
         SELECT
             BOOT.id as boot_id,
@@ -175,7 +176,12 @@ def populate_boot_list(self):
     # disable buttons
     self.config.boot_id = None
     self.config.selected_boot_md5 = None
-    print("\nPlease select a boot.img!")
+    if self.list.ItemCount == 0 :
+        if self.config.firmware_path:
+            print("\nPlease Process the firmware!")
+    else:
+        print("\nPlease select a boot.img!")
+    # print("\nPlease select a boot.img!")
     self.patch_boot_button.Enable(False)
     self.process_firmware.SetFocus()
     # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
@@ -341,7 +347,7 @@ def create_support_zip():
     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
     config_path = get_config_path()
     tmp_dir_full = os.path.join(config_path, 'tmp')
-    support_dir_full = os.path.join(tmp_dir_full, 'support')
+    support_dir_full = os.path.join(config_path, 'support')
     support_zip = os.path.join(tmp_dir_full, 'support.zip')
 
     # if a previous support dir exist delete it allong with support.zip
@@ -352,7 +358,7 @@ def create_support_zip():
         debug(f"Deleting old support.zip ...")
         os.remove(support_zip)
 
-    # create tmp\support folder if it does not exist
+    # create support folder if it does not exist
     if not os.path.exists(support_dir_full):
         os.makedirs(support_dir_full, exist_ok=True)
 
@@ -362,11 +368,11 @@ def create_support_zip():
         debug(f"Copying {to_copy} to {support_dir_full}")
         shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
     # copy PixelFlasher.db to tmp\support folder
-    # to_copy = os.path.join(config_path, 'PixelFlasher.db')
-    # if os.path.exists(to_copy):
-    #     debug(f"Copying {to_copy} to {support_dir_full}")
-    #     shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
-    # copy logs to tmp\support folder
+    to_copy = os.path.join(config_path, 'PixelFlasher.db')
+    if os.path.exists(to_copy):
+        debug(f"Copying {to_copy} to {support_dir_full}")
+        shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+    # copy logs to support folder
     to_copy = os.path.join(config_path, 'logs')
     logs_dir = os.path.join(support_dir_full, 'logs')
     if os.path.exists(to_copy):
@@ -381,7 +387,7 @@ def create_support_zip():
         sanitize_file(file_path)
 
     # sanitize db
-    # sanitize_db(os.path.join(support_dir_full, 'PixelFlasher.db'))
+    sanitize_db(os.path.join(support_dir_full, 'PixelFlasher.db'))
 
     # zip support folder
     debug(f"Zipping {support_dir_full} ...")
@@ -410,15 +416,31 @@ def sanitize_file(filename):
     fin.write(data)
     fin.close()
 
+
 # ============================================================================
 #                               Function sanitize_db
 # ============================================================================
 def sanitize_db(filename):
     debug(f"Santizing {filename} ...")
-    # TODO
-    # con = get_db()
-    # con.execute("PRAGMA foreign_keys = ON")
-    # cursor = con.cursor()
+    con = get_db()
+    cursor = con.cursor()
+    with con:
+        data = con.execute("SELECT id, file_path FROM BOOT")
+        for row in data:
+            id = row[0]
+            file_path = row[1]
+            file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
+            cursor.execute(f"Update BOOT set file_path = '{file_path_sanitized}' where id = {id}")
+            con.commit()
+    with con:
+        data = con.execute("SELECT id, file_path FROM PACKAGE")
+        for row in data:
+            id = row[0]
+            file_path = row[1]
+            file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
+            cursor.execute(f"Update PACKAGE set file_path = '{file_path_sanitized}' where id = {id}")
+            con.commit()
+    con.close()
 
 
 # ============================================================================
@@ -446,7 +468,11 @@ def select_firmware(self):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
         firmware = firmware.split("-")
         if len(firmware) == 1:
-            set_firmware_id(filename)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected firmware filename is not a valid name.\nPlease keep the original filename intact.\n")
+            self.config.firmware_path = None
+            self.firmware_picker.SetPath('')
+            set_firmware_id(None)
+            return
         else:
             try:
                 set_firmware_model(firmware[0])
@@ -476,6 +502,7 @@ def process_file(self, file_type):
     tmp_dir_full = os.path.join(config_path, 'tmp')
     con = get_db()
     con.execute("PRAGMA foreign_keys = ON")
+    con.commit()
     cursor = con.cursor()
     start_1 = time.time()
     checksum = ''
@@ -558,6 +585,7 @@ def process_file(self, file_type):
     data = (checksum, file_type, package_sig, file_to_process, time.time())
     try:
         cursor.execute(sql, data)
+        con.commit()
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
         print(e)
@@ -572,6 +600,7 @@ def process_file(self, file_type):
     data = (checksum, cached_boot_img_path, 0, '', '', time.time())
     try:
         cursor.execute(sql, data)
+        con.commit()
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
         print(e)
@@ -594,14 +623,13 @@ def process_file(self, file_type):
         data = (package_id, boot_id, time.time())
         try:
             cursor.execute(sql, data)
+            con.commit()
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
             print(e)
         package_boot_id = cursor.lastrowid
         print(f"Package_Boot ID: {package_boot_id}")
 
-    # save db
-    con.commit()
     set_db(con)
     populate_boot_list(self)
     end_1 = time.time()
@@ -985,10 +1013,12 @@ def patch_boot_img(self):
     # create BOOT db record
     con = get_db()
     con.execute("PRAGMA foreign_keys = ON")
+    con.commit()
     cursor = con.cursor()
     sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
     data = (checksum, cached_boot_img_path, 1, device.magisk_version, device.hardware, time.time())
     cursor.execute(sql, data)
+    con.commit()
     boot_id = cursor.lastrowid
     print(f"Boot ID: {boot_id}")
     # if we didn't insert in BOOT, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
@@ -1005,14 +1035,12 @@ def patch_boot_img(self):
     if boot.package_id > 0 and boot_id > 0:
         debug(f"Creating PACKAGE_BOOT record, package_id: {boot.package_id} boot_id: {boot_id}")
         sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
-        # sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?)'
         data = (boot.package_id, boot_id, time.time())
         cursor.execute(sql, data)
+        con.commit()
         package_boot_id = cursor.lastrowid
         print(f"Package_Boot ID: {package_boot_id}")
 
-    # save db
-    con.commit()
     set_db(con)
     populate_boot_list(self)
 

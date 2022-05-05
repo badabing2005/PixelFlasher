@@ -1,24 +1,14 @@
 <img src="/images/icon-128.png" align="left" />
-  <h1> PixelFlasher
-  <BR />
+  <h1> PixelFlasher </h1>
 
-<a target="_blank" href="https://www.gnu.org/licenses/gpl-3.0">
-  <img src="https://img.shields.io/badge/License-GPLv3-blue.svg">
-
-<a target="_blank" href="https://github.com/badabing2005/PixelFlasher/releases">
-  <img src="https://img.shields.io/github/downloads/badabing2005/PixelFlasher/total.svg?style=flat">
-</h1>
-
-<br clear="left"/>
-
-This is a follow up to [PixelFlasher](/scripts/PixelFlasher.ps1) `Powershell™` script (which is now deprecated and moved to `scripts` directory for posterity.).  
-This is a total rewrite in Python™ using [wxPython](https://www.wxpython.org/) to provide a cross-platform UI interface.  
-The executable which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Github Releases](https://img.shields.io/github/downloads/badabing2005/PixelFlasher/total.svg?style=flat)](https://github.com/badabing2005/PixelFlasher/releases)
 
 ## DESCRIPTION
 
 As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)  
 PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on non Pixel devices as well. (YMMV).  
+The executables which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
+
 The application has two modes, normal mode (basic) and advanced mode (expert).
 
 **Basic mode:** Should suit most users. Some of the features in basic mode are:

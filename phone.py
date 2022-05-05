@@ -98,39 +98,46 @@ class Device():
     @property
     def magisk_detailed_modules(self):
         if self._magisk_detailed_modules is None:
-            if self.mode == 'adb':
-                if self.rooted:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
-                    res = run_shell(theCmd)
-                    if res.returncode == 0:
-                        modules = []
-                        self._magisk_detailed_modules = res.stdout.split('\n')
-                        for module in self._magisk_detailed_modules:
-                            if module != '':
-                                m = Magisk(module)
-                                if self.mode == 'adb' and get_adb():
-                                    # get the state by checking if there is a disable file in the module directory
-                                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
-                                    res = run_shell(theCmd)
-                                    if res.returncode == 0:
-                                        m.state = 'disabled'
-                                    else:
-                                        m.state = 'enabled'
-                                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
-                                    res = run_shell(theCmd)
-                                    if res.returncode == 0:
-                                        module_prop = res.stdout.split('\n')
-                                        setattr(m, 'id', '')
-                                        setattr(m, 'version', '')
-                                        setattr(m, 'versionCode', '')
-                                        setattr(m, 'author', '')
-                                        setattr(m, 'description', '')
-                                        for line in module_prop:
-                                            if line.strip() != '':
-                                                key, value = line.split('=', 1)
-                                                setattr(m, key, value)
-                                        modules.append(m)
-                        self._magisk_detailed_modules = modules
+            try:
+                if self.mode == 'adb':
+                    if self.rooted:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
+                        res = run_shell(theCmd)
+                        if res.returncode == 0:
+                            modules = []
+                            self._magisk_detailed_modules = res.stdout.split('\n')
+                            for module in self._magisk_detailed_modules:
+                                if module != '':
+                                    m = Magisk(module)
+                                    if self.mode == 'adb' and get_adb():
+                                        # get the state by checking if there is a disable file in the module directory
+                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
+                                        res = run_shell(theCmd)
+                                        if res.returncode == 0:
+                                            m.state = 'disabled'
+                                        else:
+                                            m.state = 'enabled'
+                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
+                                        res = run_shell(theCmd)
+                                        if res.returncode == 0:
+                                            module_prop = res.stdout.split('\n')
+                                            setattr(m, 'id', '')
+                                            setattr(m, 'version', '')
+                                            setattr(m, 'versionCode', '')
+                                            setattr(m, 'author', '')
+                                            setattr(m, 'description', '')
+                                            for line in module_prop:
+                                                # ignore comment lines
+                                                if line[:1] == "#":
+                                                    continue
+                                                if line.strip() != '':
+                                                    key, value = line.split('=', 1)
+                                                    setattr(m, key, value)
+                                            modules.append(m)
+                            self._magisk_detailed_modules = modules
+            except Exception as e:
+                self._magisk_detailed_modules is None
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing\nException: {e}")
         return self._magisk_detailed_modules
 
     # ----------------------------------------------------------------------------
@@ -142,7 +149,10 @@ class Device():
             if self.magisk_detailed_modules:
                 summary = ''
                 for module in self.magisk_detailed_modules:
-                    summary += "        {:<36}{:<10}{}\n".format(module.name, module.state, module.version)
+                    try:
+                        summary += "        {:<36}{:<10}{}\n".format(module.name, module.state, module.version)
+                    except Exception as e:
+                        pass
                 self._magisk_modules_summary = summary
             else:
                 self._magisk_modules_summary = ''
@@ -500,7 +510,6 @@ def get_connected_devices():
         theCmd = f"\"{get_adb()}\" devices"
         response = run_shell(theCmd)
         for device in response.stdout.split('\n'):
-            # wx.Yield()
             if '\tdevice' in device:
                 id = device.split("\t")
                 id = id[0]
@@ -515,7 +524,6 @@ def get_connected_devices():
         theCmd = f"\"{get_fastboot()}\" devices"
         response = run_shell(theCmd)
         for device in response.stdout.split('\n'):
-            # wx.Yield()
             if '\tfastboot' in device:
                 id = device.split("\t")
                 id = id[0]

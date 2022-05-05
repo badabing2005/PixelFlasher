@@ -393,8 +393,6 @@ def init_config_path():
         os.makedirs(os.path.join(config_path, 'factory_images'), exist_ok=True)
     if not os.path.exists(os.path.join(config_path, 'boot_images')):
             os.makedirs(os.path.join(config_path, 'boot_images'), exist_ok=True)
-    # if not os.path.exists(os.path.join(config_path, 'rom_images')):
-    #         os.makedirs(os.path.join(config_path, 'rom_images'), exist_ok=True)
     if not os.path.exists(os.path.join(config_path, 'tmp')):
             os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
 

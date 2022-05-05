@@ -59,16 +59,16 @@ class RedirectText():
         set_logfile(logfile)
 
     def write(self,string):
-        self.out.WriteText(string)
+        wx.CallAfter(self.out.AppendText, string)
         if self.logfile.closed:
             pass
         else:
             self.logfile.write(string)
-        # Scroll to the end
-        self.out.SetScrollPos(
-            wx.VERTICAL,
-            self.out.GetScrollRange(wx.VERTICAL))
-        self.out.SetInsertionPoint(-1)
+
+    # noinspection PyMethodMayBeStatic
+    def flush(self):
+        # noinspection PyStatementEffect
+        None
 
 
 # ============================================================================
@@ -277,8 +277,6 @@ class PixelFlasher(wx.Frame):
             config_folder_item = help_menu.Append(wx.ID_ANY, 'Open Configuration Folder', 'Open Configuration Folder')
             config_folder_item.SetBitmap(images.Config_Folder.GetBitmap())
             self.Bind(wx.EVT_MENU, self._on_open_config_folder, config_folder_item)
-            # seperator
-            # help_menu.AppendSeparator()
         # Create sanitized support.zip
         support_zip_item = help_menu.Append(wx.ID_ANY, 'Create a Sanitized support.zip', 'Create a Sanitized support.zip')
         support_zip_item.SetBitmap(images.Support_Zip.GetBitmap())
@@ -394,8 +392,7 @@ class PixelFlasher(wx.Frame):
             pathname = fileDialog.GetPath()
             try:
                 config_path = get_config_path()
-                tmp_dir_full = os.path.join(config_path, 'tmp')
-                support_zip = os.path.join(tmp_dir_full, 'support.zip')
+                support_zip = os.path.join(config_path, 'support.zip')
                 create_support_zip()
                 debug(f"Saving support file to: {pathname}")
                 with open(support_zip, "rb") as binaryfile :
@@ -598,7 +595,6 @@ class PixelFlasher(wx.Frame):
         count = 0
         if self.config.device:
             for device in get_phones():
-                # wx.Yield()
                 if device.id == self.config.device:
                     self.device_choice.Select(count)
                     set_phone(device)
@@ -1080,13 +1076,6 @@ class PixelFlasher(wx.Frame):
             del wait
 
         # -----------------------------------------------
-        #                  _on_console_update
-        # -----------------------------------------------
-        # def _on_console_update(event):
-        #     wx.Yield()
-        #     event.Skip(True)
-
-        # -----------------------------------------------
         #                  _on_custom_rom
         # -----------------------------------------------
         def _on_custom_rom(event):
@@ -1191,9 +1180,13 @@ class PixelFlasher(wx.Frame):
             else:
                 self.config.boot_id = None
                 self.config.selected_boot_md5 = None
-                print("\nPlease select a boot.img!")
                 self.patch_boot_button.Enable(False)
                 self.delete_boot_button.Enable(False)
+                if self.list.ItemCount == 0 :
+                    if self.config.firmware_path:
+                        print("\nPlease Process the firmware!")
+                else:
+                    print("\nPlease select a boot.img!")
             set_boot(boot)
             set_flash_button_state(self)
 
@@ -1207,36 +1200,52 @@ class PixelFlasher(wx.Frame):
                 print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
                 con = get_db()
                 con.execute("PRAGMA foreign_keys = ON")
+                con.commit()
                 sql = """
                     DELETE FROM PACKAGE_BOOT
                     WHERE boot_id = '%s' AND package_id = '%s';
                 """ % (boot.boot_id, boot.package_id)
-                with con:
-                    data = con.execute(sql)
+                try:
+                    with con:
+                        data = con.execute(sql)
+                    con.commit()
+                except Exception as e:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print(e)
                 sql = """
                     DELETE FROM BOOT
                     WHERE id = '%s';
                 """ % boot.boot_id
-                with con:
-                    data = con.execute(sql)
+                try:
+                    with con:
+                        data = con.execute(sql)
+                    con.commit()
+                except Exception as e:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print(e)
                 # Check to see if this is the last entry for the package_id, if it is,
                 # delete the package from db and output a message that a firmware should be selected.
                 # Also delete unpacked files from factory_images cache
-                cursor = con.cursor()
-                cursor.execute(f"SELECT * FROM PACKAGE_BOOT WHERE package_id = '{boot.package_id}'")
-                data = cursor.fetchall()
-                if len(data) == 0:
-                    sql = """
-                        DELETE FROM PACKAGE
-                        WHERE id = '%s';
-                    """ % boot.package_id
-                    with con:
-                        data = con.execute(sql)
-                    print(f"Cleared db entry for: {boot.package_path}")
-                    config_path = get_config_path()
-                    tmp = os.path.join(config_path, 'factory_images', boot.package_sig)
-                    print(f"Deleting Firmware cache for: {tmp} ...")
-                    delete_all(tmp)
+                try:
+                    cursor = con.cursor()
+                    cursor.execute(f"SELECT * FROM PACKAGE_BOOT WHERE package_id = '{boot.package_id}'")
+                    data = cursor.fetchall()
+                    if len(data) == 0:
+                        sql = """
+                            DELETE FROM PACKAGE
+                            WHERE id = '%s';
+                        """ % boot.package_id
+                        with con:
+                            data = con.execute(sql)
+                        con.commit()
+                        print(f"Cleared db entry for: {boot.package_path}")
+                        config_path = get_config_path()
+                        tmp = os.path.join(config_path, 'factory_images', boot.package_sig)
+                        print(f"Deleting Firmware cache for: {tmp} ...")
+                        delete_all(tmp)
+                except Exception as e:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print(e)
                 con.commit()
 
                 # delete the boot file
@@ -1568,7 +1577,6 @@ class PixelFlasher(wx.Frame):
         self.add_boot_button.Bind(wx.EVT_BUTTON, _on_add_boot)
         self.process_firmware.Bind(wx.EVT_BUTTON, _on_process_firmware)
         self.process_rom.Bind(wx.EVT_BUTTON, _on_process_rom)
-        # self.console_ctrl.Bind(wx.EVT_TEXT, _on_console_update)
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)
 
         # Update UI

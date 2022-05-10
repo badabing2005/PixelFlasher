@@ -5,8 +5,8 @@
 
 ## DESCRIPTION
 
-As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)  
-PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on non Pixel devices as well. (YMMV).  
+As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, **YMMV**.)  
+PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on non Pixel devices as well. (**YMMV**).  
 The executables which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
 
 The application has two modes, normal mode (basic) and advanced mode (expert).
@@ -178,7 +178,7 @@ The following details are listed.
     - **WIPE all data**: As the name suggests, this will wipe your data, use it with caution! PixelFlasher will ask for confirmation during the flashing phase, if this mode is selected.
     - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
     This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
-9. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
+9. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled **YMMV**).  
 ![Image of PixelFlasher GUI](/images/magisk-modules-manager.png)
 10. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  
 **Note**: Unlike the previous versions of the PixelFlasher, all the options are dynamic, i.e. depending on what you select before clicking the Flash button, there is no more concept of prepared package.
@@ -240,7 +240,7 @@ I strongly encourage all beginners to follow those guides rather than use this p
 
 ## Disclaimer
 
-```text
+**```text
 ********************************************************************************
 PLEASE DO YOUR PART AND READ / SEARCH / RESEARCH BEFORE USING THIS PROGRAM
 AND/OR ATTEMPTING ANY MODIFICATIONS ON YOUR DEVICE.
@@ -254,4 +254,3 @@ MODIFYING YOUR DEVICE COMES WITH INHERENT RISKS, AND IT'S NOT MY RESPONSIBILITY
 IF YOU LOSE YOUR DATA OR BRICK YOUR DEVICE. THE TOOL I SHARE HAVE WORKED FOR ME,
 BUT THAT DOESN'T MEAN THAT YOU MAY NOT RUN INTO PROBLEMS. **BACKUP YOUR DATA.**
 ********************************************************************************
-```

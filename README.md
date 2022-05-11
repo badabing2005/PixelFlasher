@@ -240,7 +240,7 @@ I strongly encourage all beginners to follow those guides rather than use this p
 
 ## Disclaimer
 
-**```text
+```
 ********************************************************************************
 PLEASE DO YOUR PART AND READ / SEARCH / RESEARCH BEFORE USING THIS PROGRAM
 AND/OR ATTEMPTING ANY MODIFICATIONS ON YOUR DEVICE.
@@ -254,3 +254,4 @@ MODIFYING YOUR DEVICE COMES WITH INHERENT RISKS, AND IT'S NOT MY RESPONSIBILITY
 IF YOU LOSE YOUR DATA OR BRICK YOUR DEVICE. THE TOOL I SHARE HAVE WORKED FOR ME,
 BUT THAT DOESN'T MEAN THAT YOU MAY NOT RUN INTO PROBLEMS. **BACKUP YOUR DATA.**
 ********************************************************************************
+```

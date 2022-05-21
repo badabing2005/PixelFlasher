@@ -139,3 +139,5 @@ images/*.psd
 
 # vscode
 .vscode/
+
+.DS_Store

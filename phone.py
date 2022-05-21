@@ -484,7 +484,7 @@ class Device():
 # ============================================================================
 def run_shell(cmd):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1')
         wx.Yield()
         return response
     except Exception as e:
@@ -509,14 +509,18 @@ def get_connected_devices():
     if get_adb():
         theCmd = f"\"{get_adb()}\" devices"
         response = run_shell(theCmd)
-        for device in response.stdout.split('\n'):
-            if '\tdevice' in device:
-                id = device.split("\t")
-                id = id[0]
-                device = Device(id, 'adb')
-                device_details = device.get_device_details()
-                devices.append(device_details)
-                phones.append(device)
+        if response.stdout:
+            for device in response.stdout.split('\n'):
+                if '\tdevice' in device:
+                    id = device.split("\t")
+                    id = id[0]
+                    device = Device(id, 'adb')
+                    device_details = device.get_device_details()
+                    devices.append(device_details)
+                    phones.append(device)
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
+
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
 

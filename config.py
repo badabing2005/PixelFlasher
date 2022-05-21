@@ -3,9 +3,11 @@
 import os
 import json
 
-VERSION = "3.3.0.0"
+VERSION = "3.3.1.0"
 WIDTH = 1400
 HEIGHT = 1040
+POS_X = 40
+POS_Y = 40
 
 
 # ============================================================================
@@ -33,10 +35,11 @@ class Config():
         self.version = VERSION
         self.flash_both_slots = False
         self.verbose = False
-        self.pos_x = None
-        self.pos_y = None
+        self.pos_x = POS_X
+        self.pos_y = POS_Y
         self.data = None
         self.show_all_boot=False
+        self.first_run=False
 
     @classmethod
     def load(cls, file_path):
@@ -70,6 +73,8 @@ class Config():
                 conf.data = data
                 conf.boot_id = data['boot_id']
                 conf.selected_boot_md5 = data['selected_boot_md5']
+            else:
+                conf.first_run = True
         except Exception as e:
             os.remove(file_path)
         return conf

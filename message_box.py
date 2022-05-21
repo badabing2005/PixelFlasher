@@ -16,7 +16,7 @@ class MessageBox(wx.Dialog):
 
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
-        self.message_label.SetFont(wx.Font(9, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Consolas"))
+        self.message_label.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         self.message_label.Label = get_message_box_message()
         message_sizer.Add(self.message_label, 1, wx.ALL|wx.EXPAND, 20)
         vSizer.Add(message_sizer, 1, wx.EXPAND, 5)

@@ -14,6 +14,7 @@ import json
 import webbrowser
 import time
 import math
+import darkdetect
 from datetime import datetime
 from packaging.version import parse
 
@@ -55,7 +56,7 @@ class RedirectText():
     def __init__(self,aWxTextCtrl):
         self.out=aWxTextCtrl
         logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
-        self.logfile = open(logfile, "w", buffering=1, encoding="utf8")
+        self.logfile = open(logfile, "w", buffering=1, encoding="ISO-8859-1")
         set_logfile(logfile)
 
     def write(self,string):
@@ -82,6 +83,13 @@ class PixelFlasher(wx.Frame):
         self.config = Config.load(config_file)
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
                           style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
+
+        # Base first run size on resolution.
+        if self.config.first_run:
+            x = int((self.CharWidth * self.config.width) / 11)
+            y = int((self.CharHeight * self.config.height) / 25)
+            self.SetSize(x, y)
+
         self.Center()
         self._build_status_bar()
         self._set_icons()
@@ -123,7 +131,9 @@ class PixelFlasher(wx.Frame):
             if os.path.exists(self.config.firmware_path):
                 self.firmware_picker.SetPath(self.config.firmware_path)
                 firmware = ntpath.basename(self.config.firmware_path)
-                firmware = firmware.split("-")
+                filename, extension = os.path.splitext(firmware)
+                extension = extension.lower()
+                firmware = filename.split("-")
                 try:
                     set_firmware_model(firmware[0])
                     set_firmware_id(firmware[0] + "-" + firmware[1])
@@ -439,6 +449,7 @@ class PixelFlasher(wx.Frame):
     #                  _advanced_options_hide
     # -----------------------------------------------
     def _advanced_options_hide(self, value):
+        self.Freeze()
         if value:
             # flash options
             self.advanced_options_label.Hide()
@@ -497,6 +508,7 @@ class PixelFlasher(wx.Frame):
             self.flash_radio_button.Show()
             self.image_choice.Show()
             self.image_file_picker.Show()
+        self.Thaw()
         self._refresh_ui()
 
     # -----------------------------------------------
@@ -504,6 +516,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _refresh_ui(self):
         # Update UI (need to do this resize to get the UI properly refreshed.)
+        self.Freeze()
         self.Update()
         self.Layout()
         w, h = self.Size
@@ -512,7 +525,7 @@ class PixelFlasher(wx.Frame):
         h = h - 100
         self.Size = (w, h)
         self.Refresh()
-        wx.Yield()
+        self.Thaw()
 
     # -----------------------------------------------
     #                  _print_device_details
@@ -543,17 +556,23 @@ class PixelFlasher(wx.Frame):
     #                  _update_custom_flash_options
     # -----------------------------------------------
     def _update_custom_flash_options(self):
+        boot = get_boot()
+        if not boot:
+            self.paste_boot.Enable(False)
         image_mode = get_image_mode()
         image_path = get_image_path()
         if self.config.flash_mode == 'customFlash':
             self.image_file_picker.Enable(True)
             self.image_choice.Enable(True)
+            if boot:
+                self.paste_boot.Enable(True)
         else:
             # disable custom_flash_options
             self.flash_radio_button.Enable(False)
             self.live_boot_radio_button.Enable(False)
             self.image_file_picker.Enable(False)
             self.image_choice.Enable(False)
+            self.paste_boot.Enable(False)
             return
         self.live_boot_radio_button.Enable(False)
         self.flash_radio_button.Enable(False)
@@ -563,6 +582,8 @@ class PixelFlasher(wx.Frame):
                 filename, extension = os.path.splitext(image_path)
                 extension = extension.lower()
                 if image_mode == 'boot':
+                    if boot:
+                        self.paste_boot.Enable(True)
                     if extension == '.img':
                         self.live_boot_radio_button.Enable(True)
                         self.flash_radio_button.Enable(True)
@@ -570,6 +591,7 @@ class PixelFlasher(wx.Frame):
                     else:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
                 elif image_mode in ['image', 'SIDELOAD']:
+                    self.paste_boot.Enable(False)
                     if extension == '.zip':
                         self.live_boot_radio_button.Enable(False)
                         self.flash_radio_button.Enable(True)
@@ -578,6 +600,7 @@ class PixelFlasher(wx.Frame):
                     else:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .zip")
                 else:
+                    self.paste_boot.Enable(False)
                     if extension == '.img':
                         self.live_boot_radio_button.Enable(False)
                         self.flash_radio_button.Enable(True)
@@ -585,6 +608,11 @@ class PixelFlasher(wx.Frame):
                         self.flash_radio_button.SetValue(True)
                     else:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
+            elif image_mode == 'boot':
+                if boot:
+                    self.paste_boot.Enable(True)
+            else:
+                self.paste_boot.Enable(False)
         except:
             pass
 
@@ -600,6 +628,21 @@ class PixelFlasher(wx.Frame):
                     set_phone(device)
                     self._print_device_details(device)
                 count += 1
+        else:
+            if self.device_choice.StringSelection != '':
+                device = self.device_choice.StringSelection
+                # replace multiple spaces with a single space and then split on space
+                id = ' '.join(device.split())
+                id = id.split()
+                id = id[2]
+                self.config.device = id
+                for device in get_phones():
+                    if device.id == id:
+                        set_phone(device)
+                        self._print_device_details(device)
+            else:
+                set_phone(None)
+                self.device_label.Label = "ADB Connected Devices"
         if self.device_choice.StringSelection == '':
             set_phone(None)
             self.device_label.Label = "ADB Connected Devices"
@@ -766,6 +809,7 @@ class PixelFlasher(wx.Frame):
             if extension == '.zip' or extension == '.img':
                 set_image_path(image_path)
                 self._update_custom_flash_options()
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Custom image file {image_path} is selected.")
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {image_path} is not img or zip file.")
                 self.image_file_picker.SetPath('')
@@ -1112,13 +1156,18 @@ class PixelFlasher(wx.Frame):
                 self.list.Select(i, 0)
                 item = self.list.GetItem(i)
                 # reset colors
-                item.SetTextColour(wx.BLACK)
+                if sys.platform != "win32":
+                    if darkdetect.isDark():
+                        item.SetTextColour(wx.WHITE)
+                else:
+                    item.SetTextColour(wx.BLACK)
                 self.list.SetItem(item)
             if row != -1:
                 boot = Boot()
                 self.list.Select(row)
                 item = self.list.GetItem(row)
-                item.SetTextColour(wx.RED)
+                if sys.platform == "win32":
+                    item.SetTextColour(wx.RED)
                 self.list.SetItem(item)
                 boot.boot_hash = self.list.GetItemText(row, col=0)
                 # get the raw data from db, listctrl is just a formatted display
@@ -1182,6 +1231,7 @@ class PixelFlasher(wx.Frame):
                 self.config.selected_boot_md5 = None
                 self.patch_boot_button.Enable(False)
                 self.delete_boot_button.Enable(False)
+                self.paste_boot.Enable(False)
                 if self.list.ItemCount == 0 :
                     if self.config.firmware_path:
                         print("\nPlease Process the firmware!")
@@ -1189,6 +1239,7 @@ class PixelFlasher(wx.Frame):
                     print("\nPlease select a boot.img!")
             set_boot(boot)
             set_flash_button_state(self)
+            self._update_custom_flash_options()
 
         # -----------------------------------------------
         #                  _on_delete_boot
@@ -1264,6 +1315,18 @@ class PixelFlasher(wx.Frame):
             del wait
 
         # -----------------------------------------------
+        #                  _on_paste_boot
+        # -----------------------------------------------
+        def _on_paste_boot(event):
+            boot = get_boot()
+            if boot:
+                if boot.boot_path:
+                    print(f"Pasted {boot.boot_path} to custom flash")
+                    self.image_file_picker.SetPath(boot.boot_path)
+                    set_image_path(boot.boot_path)
+                    set_flash_button_state(self)
+
+        # -----------------------------------------------
         #                  _on_patch_boot
         # -----------------------------------------------
         def _on_patch_boot(event):
@@ -1312,7 +1375,7 @@ class PixelFlasher(wx.Frame):
         self.device_label = wx.StaticText(panel, label=u"ADB Connected Devices")
         self.device_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, [], 0)
         self.device_choice.SetSelection(0)
-        self.device_choice.SetFont(wx.Font(9, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Consolas"))
+        self.device_choice.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
         device_tooltip += "✓ Rooted with Magisk.\n"
         device_tooltip += "✗ Probably Not Root (Magisk Tools not found).\n"
@@ -1328,7 +1391,7 @@ class PixelFlasher(wx.Frame):
         device_sizer.Add(self.device_choice, 1, wx.EXPAND)
         device_sizer.Add(reload_button, flag=wx.LEFT, border=5)
 
-        # 3rd row Reboot buttons
+        # 3rd row Reboot buttons, device related buttons
         self.a_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"A", wx.DefaultPosition, wx.DefaultSize, 0)
         self.b_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"B", wx.DefaultPosition, wx.DefaultSize, 0)
         active_slot_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1401,14 +1464,18 @@ class PixelFlasher(wx.Frame):
         custom_rom_sizer.Add(self.custom_rom, 1, wx.EXPAND)
         custom_rom_sizer.Add(self.process_rom, flag=wx.LEFT, border=5)
 
-        # 7th row widgets
+        # 7th row widgets, boot.img related widgets
         self.select_boot_label = wx.StaticText(panel, label=u"Select a boot.img")
         self.show_all_boot_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Show All boot.img", wx.DefaultPosition, wx.DefaultSize, 0)
         self.show_all_boot_checkBox.SetToolTip(u"Show all boot.img even if it is\nnot part of the selected firmware or ROM")
         # list control
-        self.il = wx.ImageList(24, 24)
-        self.idx1 = self.il.Add(images.Patched.GetBitmap())
-        self.list  = wx.ListCtrl(panel, -1, style = wx.LC_REPORT|wx.BORDER_SUNKEN)
+        if self.CharHeight > 20:
+            self.il = wx.ImageList(24, 24)
+            self.idx1 = self.il.Add(images.Patched.GetBitmap())
+        else:
+            self.il = wx.ImageList(16, 16)
+            self.idx1 = self.il.Add(images.Patched_Small.GetBitmap())
+        self.list  = wx.ListCtrl(panel, -1, size=(-1, self.CharHeight * 6), style = wx.LC_REPORT|wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         self.list.InsertColumn(0, 'Boot ID', wx.LIST_FORMAT_LEFT, width = -1)
         self.list.InsertColumn(1, 'Package ID', wx.LIST_FORMAT_LEFT, width = -1)
@@ -1418,6 +1485,8 @@ class PixelFlasher(wx.Frame):
         self.list.InsertColumn(5, 'Date', wx.LIST_FORMAT_LEFT,  -1)
         self.list.InsertColumn(6, 'Package Path', wx.LIST_FORMAT_LEFT,  -1)
         self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10))))
+        if sys.platform != "win32":
+            self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         self.list.SetColumnWidth(0, -2)
         self.list.SetColumnWidth(1, -2)
         self.list.SetColumnWidth(2, -2)
@@ -1473,10 +1542,13 @@ class PixelFlasher(wx.Frame):
         self.image_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, image_choices, 0)
         self.image_choice.SetSelection(0)
         self.image_file_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Flashable files (*.img;*.zip)|*.img;*.zip", wx.DefaultPosition, wx.DefaultSize, wx.FLP_USE_TEXTCTRL)
+        self.paste_boot = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.paste_boot.SetBitmap(images.Paste.GetBitmap())
+        self.paste_boot.SetToolTip(u"Paste the selected boot.img as custom image.")
         custom_flash_sizer = wx.BoxSizer(wx.HORIZONTAL)
         custom_flash_sizer.Add(self.image_choice, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         custom_flash_sizer.Add(self.image_file_picker, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 0)
-        custom_flash_sizer.Add((self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
+        custom_flash_sizer.Add(self.paste_boot, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         # 10th row widgets, Flash options
         self.advanced_options_label = wx.StaticText(panel, label=u"Flash Options")
@@ -1503,11 +1575,12 @@ class PixelFlasher(wx.Frame):
 
         # 12th row widgets, console
         console_label = wx.StaticText(panel, label=u"Console")
-        self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH)
-        self.console_ctrl.SetFont(wx.Font(8, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
-        self.console_ctrl.SetBackgroundColour(wx.WHITE)
-        self.console_ctrl.SetForegroundColour(wx.BLUE)
-        self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
+        self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
+        if darkdetect.isLight():
+            self.console_ctrl.SetBackgroundColour(wx.WHITE)
+            self.console_ctrl.SetForegroundColour(wx.BLUE)
+            self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
         # 13th row widgets, verbose and clear button
         self.verbose_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -1578,6 +1651,7 @@ class PixelFlasher(wx.Frame):
         self.process_firmware.Bind(wx.EVT_BUTTON, _on_process_firmware)
         self.process_rom.Bind(wx.EVT_BUTTON, _on_process_rom)
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)
+        self.paste_boot.Bind(wx.EVT_BUTTON, _on_paste_boot)
 
         # Update UI
         self.Layout()

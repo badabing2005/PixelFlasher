@@ -176,12 +176,12 @@ def populate_boot_list(self):
     # disable buttons
     self.config.boot_id = None
     self.config.selected_boot_md5 = None
+    self.paste_boot.Enable(False)
     if self.list.ItemCount == 0 :
         if self.config.firmware_path:
             print("\nPlease Process the firmware!")
     else:
         print("\nPlease select a boot.img!")
-    # print("\nPlease select a boot.img!")
     self.patch_boot_button.Enable(False)
     self.process_firmware.SetFocus()
     # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
@@ -197,10 +197,14 @@ def identify_sdk_version(self):
     if get_adb():
         theCmd = "\"%s\" --version" % get_adb()
         response = run_shell(theCmd)
-        for line in response.stdout.split('\n'):
-            if 'Version' in line:
-                sdk_version = line.split()[1]
-                set_sdk_version(sdk_version)
+        if response.stdout:
+            for line in response.stdout.split('\n'):
+                if 'Version' in line:
+                    sdk_version = line.split()[1]
+                    set_sdk_version(sdk_version)
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
+
 
 
 # ============================================================================
@@ -274,7 +278,7 @@ def debug(message):
 # stderr are only available when the call is completed.
 def run_shell(cmd):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf8')
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1')
         wx.Yield()
         return response
     except Exception as e:
@@ -291,7 +295,7 @@ def run_shell2(cmd):
         pass
 
     response = obj()
-    proc = subprocess.Popen("%s" % cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='utf8')
+    proc = subprocess.Popen("%s" % cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1')
     print
     stdout = ''
     while True:
@@ -399,10 +403,11 @@ def create_support_zip():
 # ============================================================================
 def sanitize_file(filename):
     debug(f"Santizing {filename} ...")
-    fin = open(filename, "rt", encoding='utf8')
+    fin = open(filename, "rt", encoding='ISO-8859-1')
     data = fin.read()
     fin.close()
     data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
+    data = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
     data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
@@ -412,7 +417,7 @@ def sanitize_file(filename):
     data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    fin = open(filename, "wt", encoding='utf8')
+    fin = open(filename, "wt", encoding='ISO-8859-1')
     fin.write(data)
     fin.close()
 
@@ -440,7 +445,6 @@ def sanitize_db(filename):
             file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
             cursor.execute(f"Update PACKAGE set file_path = '{file_path_sanitized}' where id = {id}")
             con.commit()
-    con.close()
 
 
 # ============================================================================
@@ -466,7 +470,7 @@ def select_firmware(self):
     extension = extension.lower()
     if extension == '.zip':
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
-        firmware = firmware.split("-")
+        firmware = filename.split("-")
         if len(firmware) == 1:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected firmware filename is not a valid name.\nPlease keep the original filename intact.\n")
             self.config.firmware_path = None
@@ -1135,6 +1139,9 @@ def flash_phone(self):
             f.write(data)
             f.close()
             message += f"{msg}{get_image_path()}\n\n"
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No image file is selected.")
+            return
 
     #---------------------------
     # do the standard flash mode
@@ -1238,9 +1245,14 @@ def flash_phone(self):
                     arg1 = f"\"{get_custom_rom_file()}\""
                 data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} {arg1}\n"
         # add the boot.img flashing
+        data += "echo rebooting to bootloader ...\n"
         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
+        data += "echo Sleeping 5-10 seconds ...\n"
         data += sleep_line
+        data += sleep_line
+        data += "echo flashing pf_boot ...\n"
         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
+        data += "echo rebooting to system ...\n"
         data += f"\"{get_fastboot()}\" -s {device.id} reboot\n"
 
         fin = open(dest, "wt")
@@ -1255,9 +1267,16 @@ def flash_phone(self):
     #----------------------------------------
     # make he sh script executable
     if sys.platform != "win32":
-        theCmd = f"chmod 755 {dest}"
+        theCmd = f"chmod 755 \"{dest}\""
         debug(theCmd)
         res = run_shell(theCmd)
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {dest}")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            print("Aborting ...")
+            return
 
     message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
     message += "fastboot commands, if your PC fastboot drivers are not propely setup,\n"

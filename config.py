@@ -3,7 +3,7 @@
 import os
 import json
 
-VERSION = "3.3.1.0"
+VERSION = "3.3.2.0"
 WIDTH = 1400
 HEIGHT = 1040
 POS_X = 40
@@ -40,6 +40,8 @@ class Config():
         self.data = None
         self.show_all_boot=False
         self.first_run=False
+        self.force_codepage = False
+        self.custom_codepage = None
 
     @classmethod
     def load(cls, file_path):
@@ -47,7 +49,7 @@ class Config():
         print(f"Loading configuration File ...")
         try:
             if os.path.exists(file_path):
-                with open(file_path, 'r') as f:
+                with open(file_path, 'r', encoding="ISO-8859-1") as f:
                     data = json.load(f)
                     f.close()
                 conf.device = data['device']
@@ -73,6 +75,8 @@ class Config():
                 conf.data = data
                 conf.boot_id = data['boot_id']
                 conf.selected_boot_md5 = data['selected_boot_md5']
+                conf.force_codepage = data['force_codepage']
+                conf.custom_codepage = data['custom_codepage']
             else:
                 conf.first_run = True
         except Exception as e:
@@ -102,8 +106,10 @@ class Config():
             'pos_x': self.pos_x,
             'pos_y': self.pos_y,
             'boot_id': self.boot_id,
-            'selected_boot_md5': self.selected_boot_md5
+            'selected_boot_md5': self.selected_boot_md5,
+            'force_codepage': self.force_codepage,
+            'custom_codepage': self.custom_codepage
         }
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding="ISO-8859-1") as f:
             json.dump(data, f, indent=4)
             f.close()

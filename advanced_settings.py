@@ -56,6 +56,18 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         check_for_update_sizer.Add(self.check_for_update_checkbox, 0, wx.ALL, 5)
         vSizer.Add(check_for_update_sizer, 0, wx.EXPAND, 5)
 
+        # Force codepage
+        code_page_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        code_page_sizer.Add((20, 0), 0, 0, 5)
+        self.force_codepage_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Force codepage to:", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.force_codepage_checkbox.SetValue(get_codepage_setting())
+        self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
+        self.code_page = wx.TextCtrl(self)
+        self.code_page.SetValue(str(get_codepage_value()))
+        code_page_sizer.Add(self.force_codepage_checkbox, 0, wx.ALL, 5)
+        code_page_sizer.Add(self.code_page, 0, wx.ALL, 5)
+        vSizer.Add(code_page_sizer, 0, wx.EXPAND, 5)
+
         # gap
         vSizer.Add((0, 20), 0, 0, 5)
 
@@ -86,10 +98,14 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     def _onOk(self, e):
         set_advanced_options(self.advanced_options_checkbox.GetValue())
         set_update_check(self.check_for_update_checkbox.GetValue())
+        if self.force_codepage_checkbox.GetValue():
+            if self.code_page.GetValue() != '' and self.code_page.GetValue().isnumeric():
+                set_codepage_setting(self.force_codepage_checkbox.GetValue())
+                set_codepage_value(int(self.code_page.GetValue()))
+            else:
+                set_codepage_setting(False)
+                set_codepage_value('')
+        else:
+            set_codepage_setting(False)
+            set_codepage_value('')
         self.EndModal(wx.ID_OK)
-
-    def get_advanced_settings(self):
-        return self.advanced_options_checkbox.GetValue()
-
-    def get_check_for_update_settings(self):
-        return self.check_for_update_checkbox.GetValue()

@@ -38,6 +38,7 @@ from modules import populate_boot_list
 from modules import debug
 from modules import delete_all
 from modules import create_support_zip
+from modules import get_code_page
 from advanced_settings import AdvancedSettings
 from message_box import MessageBox
 from magisk_modules import MagiskModules
@@ -117,7 +118,10 @@ class PixelFlasher(wx.Frame):
         if self.config.verbose:
             self.verbose_checkBox.SetValue(self.config.verbose)
             set_verbose(self.config.verbose)
-        print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
+        if self.config.first_run:
+            print("First Run: No previous configuration file is found.")
+        else:
+            print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
 
         # enable / disable advanced_options
         set_advanced_options(self.config.advanced_options)
@@ -125,6 +129,16 @@ class PixelFlasher(wx.Frame):
             self._advanced_options_hide(False)
         else:
             self._advanced_options_hide(True)
+
+        # check codepage
+        print(f"System Default Encoding: {sys.getdefaultencoding()}")
+        print(f"File System Encoding:    {sys.getfilesystemencoding()}")
+        get_code_page()
+
+        # load custom codepage settings
+        set_codepage_setting(self.config.force_codepage)
+        if self.config.force_codepage:
+            set_codepage_value(self.config.custom_codepage)
 
         # extract firmware info
         if self.config.firmware_path:
@@ -439,6 +453,8 @@ class PixelFlasher(wx.Frame):
         if res == wx.ID_OK:
             self.config.advanced_options = get_advanced_options()
             self.config.update_check = get_update_check()
+            self.config.force_codepage = get_codepage_setting()
+            self.config.custom_codepage = get_codepage_value()
         advanced_setting_dialog.Destroy()
         # show / hide advanced settings
         self._advanced_options_hide(not get_advanced_options())
@@ -477,6 +493,7 @@ class PixelFlasher(wx.Frame):
             self.flash_radio_button.Hide()
             self.image_choice.Hide()
             self.image_file_picker.Hide()
+            self.paste_boot.Hide()
             a = self.mode_radio_button.Name
             # if we're turning off advanced options, and the current mode is customFlash, change it to dryRun
             if self.mode_radio_button.Name == 'mode-customFlash' and self.mode_radio_button.GetValue():
@@ -508,6 +525,7 @@ class PixelFlasher(wx.Frame):
             self.flash_radio_button.Show()
             self.image_choice.Show()
             self.image_file_picker.Show()
+            self.paste_boot.Show()
         self.Thaw()
         self._refresh_ui()
 
@@ -1167,7 +1185,7 @@ class PixelFlasher(wx.Frame):
                 self.list.Select(row)
                 item = self.list.GetItem(row)
                 if sys.platform == "win32":
-                    item.SetTextColour(wx.RED)
+                    item.SetTextColour(wx.BLUE)
                 self.list.SetItem(item)
                 boot.boot_hash = self.list.GetItemText(row, col=0)
                 # get the raw data from db, listctrl is just a formatted display

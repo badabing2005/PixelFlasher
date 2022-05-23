@@ -324,6 +324,33 @@ def md5(fname):
 
 
 # ============================================================================
+#                               Function get_code_page
+# ============================================================================
+def get_code_page():
+    cp = get_system_codepage()
+    if cp:
+        print(f"Active code page: {cp}")
+    else:
+        theCmd = "chcp"
+        res = run_shell(theCmd)
+        if res.returncode == 0:
+            # extract the code page portion
+            try:
+                debug(f"CP: {res.stdout}")
+                cp = res.stdout.split(":")
+                cp = cp[1].strip()
+                cp = int(cp.replace('.',''))
+                print(f"Active code page: {cp}")
+                set_system_codepage(cp)
+            except:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+                print(f"{res.stderr}")
+                print(f"{res.stdout}")
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+
+
+# ============================================================================
 #                               Function Which
 # ============================================================================
 def which(program):
@@ -654,7 +681,7 @@ def process_flash_all_file(filepath):
         elif line[:9] == "#!/bin/sh":
             filetype = 'sh'
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpect first line: {line} in file: {filepath}")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected first line: {line} in file: {filepath}")
         flash = FlashFile(1, platform = filetype, type = "init", command = line.strip())
         flash_file_lines.append(flash)
 
@@ -999,7 +1026,7 @@ def patch_boot_img(self):
     # get the checksum of the magisk_patched.img
     magisk_patched_img_file = os.path.join(tmp_dir_full, "magisk_patched.img")
     checksum = md5(os.path.join(magisk_patched_img_file))
-    debug(f"md5 of magisk_patched.img: {checksum}")
+    print(f"md5 of magisk_patched.img: {checksum}")
 
     # if a matching magisk_patched.img is not found, store it.
     cached_boot_img_dir_full = os.path.join(boot_images, checksum)
@@ -1097,7 +1124,16 @@ def flash_phone(self):
 
     if sys.platform == "win32":
         dest = os.path.join(package_dir_full, "flash-phone.bat")
-        first_line = "@ECHO OFF\n"
+        if self.config.force_codepage:
+            cp = str(self.config.custom_codepage)
+            if cp == '':
+                cp = None
+        else:
+            cp = get_system_codepage()
+        if cp:
+            first_line = f"chcp {cp}\n@ECHO OFF\n"
+        else:
+            first_line = f"@ECHO OFF\n"
         version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n\n"
     else:
         dest = os.path.join(package_dir_full, "flash-phone.sh")
@@ -1115,7 +1151,7 @@ def flash_phone(self):
         if image_mode and get_image_path():
             title = "Advanced Flash Options"
             # create flash-phone.bat based on the custom options.
-            f = open(dest.strip(), "w")
+            f = open(dest.strip(), "w", encoding="ISO-8859-1")
             data = first_line
             if sys.platform == "win32":
                 data += "PATH=%PATH%;\"%SYSTEMROOT%\System32\"\n"
@@ -1206,7 +1242,10 @@ def flash_phone(self):
             debug(f"bat file:\n{s1}")
             debug(f"\nsh file\n{s2}\n")
 
-        data = ''
+        if cp:
+            data = f"chcp {cp}\n"
+        else:
+            data = ''
         add_echo =''
         if self.config.flash_mode == 'dryRun':
             add_echo = 'echo '
@@ -1255,7 +1294,7 @@ def flash_phone(self):
         data += "echo rebooting to system ...\n"
         data += f"\"{get_fastboot()}\" -s {device.id} reboot\n"
 
-        fin = open(dest, "wt")
+        fin = open(dest, "wt", encoding="ISO-8859-1")
         fin.write(data)
         fin.close()
 
@@ -1265,7 +1304,7 @@ def flash_phone(self):
     #----------------------------------------
     # common part for package or custom flash
     #----------------------------------------
-    # make he sh script executable
+    # make the sh script executable
     if sys.platform != "win32":
         theCmd = f"chmod 755 \"{dest}\""
         debug(theCmd)
@@ -1329,8 +1368,8 @@ def flash_phone(self):
 
     if device.mode == 'adb':
         device.reboot_bootloader()
-        print("Waiting 5 seconds ...")
-        time.sleep(5)
+        print("Waiting 10 seconds ...")
+        time.sleep(10)
         # device.refresh_phone_mode()
         self.device_choice.SetItems(get_connected_devices())
         self._select_configured_device()
@@ -1367,6 +1406,8 @@ def flash_phone(self):
         endFlash = time.time()
         print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
         os.chdir(cwd)
+        self.device_choice.SetItems(get_connected_devices())
+        self._select_configured_device()
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...")

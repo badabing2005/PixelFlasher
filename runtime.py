@@ -5,7 +5,6 @@ from platformdirs import *
 import sys
 import requests
 import sqlite3 as sl
-import ntpath
 from datetime import datetime
 
 APPNAME = 'PixelFlasher'
@@ -32,6 +31,9 @@ message_box_message = None
 version = None
 db = None
 boot = None
+system_code_page = None
+codepage_setting = False
+codepage_value = ''
 
 
 # ============================================================================
@@ -164,6 +166,54 @@ def get_phone():
 def set_phone(value):
     global phone
     phone = value
+
+
+# ============================================================================
+#                               Function get_system_codepage
+# ============================================================================
+def get_system_codepage():
+    global system_code_page
+    return system_code_page
+
+
+# ============================================================================
+#                               Function set_system_codepage
+# ============================================================================
+def set_system_codepage(value):
+    global system_code_page
+    system_code_page = value
+
+
+# ============================================================================
+#                               Function get_codepage_setting
+# ============================================================================
+def get_codepage_setting():
+    global codepage_setting
+    return codepage_setting
+
+
+# ============================================================================
+#                               Function set_codepage_setting
+# ============================================================================
+def set_codepage_setting(value):
+    global codepage_setting
+    codepage_setting = value
+
+
+# ============================================================================
+#                               Function get_codepage_value
+# ============================================================================
+def get_codepage_value():
+    global codepage_value
+    return codepage_value
+
+
+# ============================================================================
+#                               Function set_codepage_value
+# ============================================================================
+def set_codepage_value(value):
+    global codepage_value
+    codepage_value = value
 
 
 # ============================================================================

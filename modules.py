@@ -327,27 +327,28 @@ def md5(fname):
 #                               Function get_code_page
 # ============================================================================
 def get_code_page():
-    cp = get_system_codepage()
-    if cp:
-        print(f"Active code page: {cp}")
-    else:
-        theCmd = "chcp"
-        res = run_shell(theCmd)
-        if res.returncode == 0:
-            # extract the code page portion
-            try:
-                debug(f"CP: {res.stdout}")
-                cp = res.stdout.split(":")
-                cp = cp[1].strip()
-                cp = int(cp.replace('.',''))
-                print(f"Active code page: {cp}")
-                set_system_codepage(cp)
-            except:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
-                print(f"{res.stderr}")
-                print(f"{res.stdout}")
+    if sys.platform == "win32":
+        cp = get_system_codepage()
+        if cp:
+            print(f"Active code page: {cp}")
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+            theCmd = "chcp"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                # extract the code page portion
+                try:
+                    debug(f"CP: {res.stdout}")
+                    cp = res.stdout.split(":")
+                    cp = cp[1].strip()
+                    cp = int(cp.replace('.',''))
+                    print(f"Active code page: {cp}")
+                    set_system_codepage(cp)
+                except:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+                    print(f"{res.stderr}")
+                    print(f"{res.stdout}")
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
 
 
 # ============================================================================
@@ -410,8 +411,16 @@ def create_support_zip():
         debug(f"Copying {to_copy} to {support_dir_full}")
         shutil.copytree(to_copy, logs_dir)
 
+    # create directory/file listing
+    theCmd = f"dir /s /b {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
+    debug("%s" % theCmd)
+    res = run_shell(theCmd)
+
     # sanitize json
     sanitize_file(os.path.join(support_dir_full, 'PixelFlasher.json'))
+    # sanitize json
+    sanitize_file(os.path.join(support_dir_full, 'files.txt'))
+
     # for each file in logs, sanitize
     for filename in os.listdir(logs_dir):
         file_path = os.path.join(logs_dir, filename)
@@ -1195,11 +1204,30 @@ def flash_phone(self):
                 os.remove(pf)
             debug(f"Copying {boot.boot_path} to {pf}")
             shutil.copy(boot.boot_path, pf, follow_symlinks=True)
-
         if not os.path.exists(pf):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} boot file: {pf} is not found.")
             print("Aborting ...")
             return
+
+        # check for rom file
+        if self.config.custom_rom and self.config.advanced_options:
+            if not os.path.exists(self.config.custom_rom_path):
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: ROM file: {self.config.custom_rom_path} is not found.")
+                print("Aborting ...")
+                return
+            else:
+                # copy ROM file to package directory, but first delete an old one to be sure
+                rom_file = ntpath.basename(self.config.custom_rom_path)
+                set_custom_rom_file(rom_file)
+                rom = os.path.join(package_dir_full, rom_file)
+                if os.path.exists(rom):
+                    os.remove(rom)
+                debug(f"Copying {self.config.custom_rom_path} to {rom}")
+                shutil.copy(self.config.custom_rom_path, rom, follow_symlinks=True)
+            if not os.path.exists(rom):
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ROM file: {rom} is not found.")
+                print("Aborting ...")
+                return
 
         # Make sure Phone model matches firmware model
         if get_firmware_model() != device.hardware:
@@ -1357,6 +1385,7 @@ def flash_phone(self):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
         theCmd = dest
         os.chdir(package_dir_full)
+        debug(f"Running in Directory: {package_dir_full}")
         theCmd = "\"%s\"" % theCmd
         debug(theCmd)
         run_shell2(theCmd)

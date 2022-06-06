@@ -206,7 +206,8 @@ You've been warned!
     - Patching `boot.img` can be performed if the option is selected. You can select any of the listed `boot.img`.
     - Flash Mode is similar to basic flash mode described above in step 7.  
 4. Custom Flash. select this to switch from flashing a Factory Image to flashing a single file.
-5. Browse to select a a valid image file (.img or .zip).  
+5. Browse to select a a valid image file (.img or .zip).
+Or select a boot.img from the list above and click on the paste button to paste the selected boot.img into the file selection. 
 Choose the dropdown to select image type.  
     - boot (can be flashed to Live or boot) - Expected file type .img
     - bootloader - Expected file type .img
@@ -225,7 +226,8 @@ Choose the dropdown to select image type.
     - vendor_boot - Expected file type .img
     - vendor_dlkm (the device will be put into fastbootd mode during this operation) - Expected file type .img
     - image - Expected file type .zip
-    - SIDELOAD - Expected file type .zip
+    - SIDELOAD - Expected file type .zip  
+Select the appropriate flash options.
 
 ## Credits
 

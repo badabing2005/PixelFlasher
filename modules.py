@@ -412,22 +412,32 @@ def create_support_zip():
         shutil.copytree(to_copy, logs_dir)
 
     # create directory/file listing
-    theCmd = f"dir /s /b {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
+    if sys.platform == "win32":
+        theCmd = f"dir /s /b {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
+    else:
+        theCmd = f"ls -lR {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
     debug("%s" % theCmd)
     res = run_shell(theCmd)
 
     # sanitize json
-    sanitize_file(os.path.join(support_dir_full, 'PixelFlasher.json'))
+    file_path = os.path.join(support_dir_full, 'PixelFlasher.json')
+    if os.path.exists(file_path):
+        sanitize_file(file_path)
     # sanitize json
-    sanitize_file(os.path.join(support_dir_full, 'files.txt'))
+    file_path = os.path.join(support_dir_full, 'files.txt')
+    if os.path.exists(file_path):
+        sanitize_file(file_path)
 
     # for each file in logs, sanitize
     for filename in os.listdir(logs_dir):
         file_path = os.path.join(logs_dir, filename)
-        sanitize_file(file_path)
+        if os.path.exists(file_path):
+            sanitize_file(file_path)
 
     # sanitize db
-    sanitize_db(os.path.join(support_dir_full, 'PixelFlasher.db'))
+    file_path = os.path.join(support_dir_full, 'PixelFlasher.db')
+    if os.path.exists(file_path):
+        sanitize_db(file_path)
 
     # zip support folder
     debug(f"Zipping {support_dir_full} ...")
@@ -1270,7 +1280,7 @@ def flash_phone(self):
             debug(f"bat file:\n{s1}")
             debug(f"\nsh file\n{s2}\n")
 
-        if cp:
+        if sys.platform == "win32" and cp:
             data = f"chcp {cp}\n"
         else:
             data = ''
@@ -1346,8 +1356,10 @@ def flash_phone(self):
             return
 
     message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-    message += "fastboot commands, if your PC fastboot drivers are not propely setup,\n"
-    message += "fastboot will wait forever, and PixelFlasher will appear hung.\n"
+    message += "fastboot commands, this could possibly take a long time and PixelFlasher\n"
+    message += "will appear frozen. PLEASE BE PATIENT. \n"
+    message += "In case it takes excessively long, it could possibly be due to improper or\n"
+    message += "bad fasboot drivers.\n"
     message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
     message += "      Do you want to continue to flash with the above options?\n"
     message += "              Press OK to continue or CANCEL to abort.\n"
@@ -1435,8 +1447,12 @@ def flash_phone(self):
         endFlash = time.time()
         print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
         os.chdir(cwd)
-        self.device_choice.SetItems(get_connected_devices())
-        self._select_configured_device()
+        # clear the selected device option
+        set_phone(None)
+        self.device_label.Label = "ADB Connected Devices"
+        self.config.device = None
+        self.device_choice.SetItems([''])
+        self.device_choice.Select(0)
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...")

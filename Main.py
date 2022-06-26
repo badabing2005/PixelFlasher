@@ -1000,7 +1000,7 @@ class PixelFlasher(wx.Frame):
 
                 wait = wx.BusyCursor()
                 device = get_phone()
-                device.unlock_bootloader()
+                device.lock_bootloader()
                 time.sleep(5)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
@@ -1040,7 +1040,7 @@ class PixelFlasher(wx.Frame):
 
                 wait = wx.BusyCursor()
                 device = get_phone()
-                device.lock_bootloader()
+                device.unlock_bootloader()
                 time.sleep(5)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()

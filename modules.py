@@ -186,6 +186,7 @@ def populate_boot_list(self):
     self.process_firmware.SetFocus()
     # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
     self.delete_boot_button.Enable(False)
+    self.live_boot_button.Enable(False)
 
 
 # ============================================================================
@@ -656,7 +657,12 @@ def process_file(self, file_type):
         print(e)
     boot_id = cursor.lastrowid
     print(f"Boot ID: {boot_id}")
-    # if we didn't insert in BOOT, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
+    # if boot_id record does not exist, set it to 0
+    cursor.execute(f"SELECT ID FROM BOOT WHERE id = '{boot_id}'")
+    data = cursor.fetchall()
+    if len(data) == 0:
+        boot_id = 0
+    # if we didn't insert in BOOT or id does not exist, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
     if boot_id == 0:
         cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{pre_checksum}' OR boot_hash = '{checksum}'")
         data = cursor.fetchall()
@@ -1096,6 +1102,112 @@ def patch_boot_img(self):
 
     end = time.time()
     print("Patch time: %s seconds"%(math.ceil(end - start)))
+
+
+# ============================================================================
+#                               Function live_boot_phone
+# ============================================================================
+def live_boot_phone(self):
+    if not get_adb():
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
+        return
+
+    device = get_phone()
+    if not device:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+        return
+
+    boot = get_boot()
+    if boot:
+        if boot.hardware != device.hardware:
+            title = "Live Boot"
+            message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
+            message += f"The selected Boot is for: {boot.hardware}\n\n"
+            message += "Unless you know what you are doing, if you continue flashing\n"
+            message += "you risk bricking your device, proceed only if you are absolutely\n"
+            message += "certian that this is what you want, you have been warned.\n\n"
+            message += "Click OK to accept and continue.\n"
+            message += "or Hit CANCEL to abort."
+            print(message)
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
+            else:
+                print("User pressed cancel.")
+                print("Aborting ...")
+                return
+    else:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to access boot.img object, aborting ...")
+        return
+
+    # Make sure boot exists
+    if boot.boot_path:
+        title = "Device / Boot Mismatch"
+        message  = "Live Boot Flash Options:\n\n"
+        message += "Boot Hash:              %s\n" % str(boot.boot_hash)
+        message += "Hardware:               %s\n" % str(device.hardware)
+        if boot.is_patched == 1:
+            message += "Patched:                Yes\n"
+            message += "With Magisk:            %s\n" % str(boot.magisk_version)
+            message += "Original boot.img from: %s\n" % str(boot.package_sig)
+            message += "Original boot.img Hash: %s\n" % str(boot.package_boot_hash)
+        else:
+            message += "Patched:                No\n"
+        message += "boot.img path:\n"
+        message += "  %s\n" % str(boot.boot_path)
+        message += "\nClick OK to accept and continue.\n"
+        message += "or Hit CANCEL to abort."
+        print(message)
+        set_message_box_title(title)
+        set_message_box_message(message)
+        dlg = MessageBox(self)
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+        else:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+            print("Aborting ...")
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+    else:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get boot.img path, aborting ...")
+        return
+
+    if device.mode == 'adb':
+        device.reboot_bootloader()
+        print("Waiting 10 seconds ...")
+        time.sleep(10)
+        self.device_choice.SetItems(get_connected_devices())
+        self._select_configured_device()
+
+    device = get_phone()
+    if not device:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
+        return
+
+    if device.mode == 'f.b' and get_fastboot():
+        startFlash = time.time()
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Live Booting {boot.boot_path} ...")
+        theCmd = f"\"{get_fastboot()}\" -s {device.id} boot \"{boot.boot_path}\""
+        debug(theCmd)
+        run_shell(theCmd)
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
+        endFlash = time.time()
+        print("Flashing Live elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        # clear the selected device option
+        set_phone(None)
+        self.device_label.Label = "ADB Connected Devices"
+        self.config.device = None
+        self.device_choice.SetItems([''])
+        self.device_choice.Select(0)
+    else:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...")
+
+    return
 
 
 # ============================================================================

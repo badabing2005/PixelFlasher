@@ -31,6 +31,7 @@ from phone import get_connected_devices
 from modules import check_platform_tools
 from modules import patch_boot_img
 from modules import flash_phone
+from modules import live_boot_phone
 from modules import select_firmware
 from modules import set_flash_button_state
 from modules import process_file
@@ -1233,10 +1234,11 @@ class PixelFlasher(wx.Frame):
                         boot.package_epoch = row[12]
                         i += 1
                     if i > 1:
-                        print("ERROR: Duplicate records found, this should be looked into.")
+                        debug("INFO: Duplicate PACKAGE_BOOT records found")
                 self.config.boot_id = boot.boot_id
                 self.config.selected_boot_md5 = boot.boot_hash
                 self.delete_boot_button.Enable(True)
+                self.live_boot_button.Enable(True)
                 if boot.magisk_version == '':
                     self.patch_boot_button.Enable(True)
                     print(f"\nSelected Boot: {boot.boot_hash} from image: {boot.package_path}" )
@@ -1249,6 +1251,7 @@ class PixelFlasher(wx.Frame):
                 self.config.selected_boot_md5 = None
                 self.patch_boot_button.Enable(False)
                 self.delete_boot_button.Enable(False)
+                self.live_boot_button.Enable(False)
                 self.paste_boot.Enable(False)
                 if self.list.ItemCount == 0 :
                     if self.config.firmware_path:
@@ -1326,10 +1329,11 @@ class PixelFlasher(wx.Frame):
             del wait
 
         # -----------------------------------------------
-        #                  _on_add_boot
+        #                  _on_live_boot
         # -----------------------------------------------
-        def _on_add_boot(event):
+        def _on_live_boot(event):
             wait = wx.BusyCursor()
+            live_boot_phone(self)
             del wait
 
         # -----------------------------------------------
@@ -1518,10 +1522,9 @@ class PixelFlasher(wx.Frame):
         self.delete_boot_button = wx.Button(panel, wx.ID_ANY, u"Delete", wx.DefaultPosition, wx.DefaultSize, 0)
         self.delete_boot_button.SetBitmap(images.Delete.GetBitmap())
         self.delete_boot_button.SetToolTip(u"Delete Selected boot.img")
-        self.add_boot_button = wx.Button(panel, wx.ID_ANY, u"Add", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.add_boot_button.SetBitmap(images.Add.GetBitmap())
-        self.add_boot_button.SetToolTip(u"Add Custom boot.img")
-        self.add_boot_button.Enable(False)
+        self.live_boot_button = wx.Button(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.live_boot_button.SetBitmap(images.Boot.GetBitmap())
+        self.live_boot_button.SetToolTip(u"Live boot the selected boot.img")
         label_v_sizer = wx.BoxSizer(wx.VERTICAL)
         label_v_sizer.Add(self.select_boot_label, flag=wx.ALL)
         label_v_sizer.AddSpacer(10)
@@ -1529,7 +1532,7 @@ class PixelFlasher(wx.Frame):
         image_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         image_buttons_sizer.Add(self.patch_boot_button, proportion=1, flag=wx.LEFT|wx.BOTTOM, border=5)
         image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT|wx.TOP, border=5)
-        image_buttons_sizer.Add(self.add_boot_button, proportion=1, flag=wx.LEFT|wx.TOP, border=5)
+        image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT|wx.TOP, border=5)
         list_sizer = wx.BoxSizer(wx.HORIZONTAL)
         list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND)
         list_sizer.Add(image_buttons_sizer, 0, wx.ALL|wx.EXPAND)
@@ -1665,7 +1668,7 @@ class PixelFlasher(wx.Frame):
         self.list.Bind(wx.EVT_LEFT_DOWN, _on_boot_selected)
         self.patch_boot_button.Bind(wx.EVT_BUTTON, _on_patch_boot)
         self.delete_boot_button.Bind(wx.EVT_BUTTON, _on_delete_boot)
-        self.add_boot_button.Bind(wx.EVT_BUTTON, _on_add_boot)
+        self.live_boot_button.Bind(wx.EVT_BUTTON, _on_live_boot)
         self.process_firmware.Bind(wx.EVT_BUTTON, _on_process_firmware)
         self.process_rom.Bind(wx.EVT_BUTTON, _on_process_rom)
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)
@@ -1680,7 +1683,7 @@ class PixelFlasher(wx.Frame):
 # ============================================================================
 class MySplashScreen(wx.adv.SplashScreen):
     def __init__(self):
-        wx.adv.SplashScreen.__init__(self, images.Splash.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 20000, None, -1)
+        wx.adv.SplashScreen.__init__(self, images.Splash.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 20000, None, -1, wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.__fc = wx.CallLater(1000, self._show_main)
 

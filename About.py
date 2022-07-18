@@ -19,12 +19,17 @@ class AboutDlg(wx.Dialog):
     <img src="{0}/images/icon-64.png" width="64" height="64" alt="PixelFlasher">
 
     <h1>PixelFlasher</h1>
-    <p>Version {1}</p>
+    <p>By Badabing</p>
+    <h3>Version {1}</h3>
 
     {2}
 
     <p>Fork the <a style="color: #004CE5;" href="https://github.com/badabing2005/PixelFlasher">project on
     GitHub</a> and help improve it for all!</p>
+
+    <p> Beware! </p>
+    <p> If you are asked to donate or pay money for this program, check your source. </p>
+    <p> This program is free, will always remain totally free, ad free, even donation free.</p>
 
     <p>
         <wxp module="wx" class="Button">

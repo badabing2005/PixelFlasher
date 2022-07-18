@@ -1,6 +1,6 @@
 # https://github.com/DudeNr33/pyinstaller-versionfile
 # create-version-file windows-metadata.yaml --outfile windows-version-info.txt
-Version: 3.3.5.0
+Version: 3.4.0.0
 FileDescription: PixelFlasher
 InternalName: PixelFlasher
 OriginalFilename: PixelFlasher.exe

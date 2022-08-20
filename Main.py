@@ -190,6 +190,7 @@ class PixelFlasher(wx.Frame):
         self.flash_both_slots_checkBox.SetValue(self.config.flash_both_slots)
         self.disable_verity_checkBox.SetValue(self.config.disable_verity)
         self.disable_verification_checkBox.SetValue(self.config.disable_verification)
+        self.fastboot_force_checkBox.SetValue(self.config.fastboot_force)
         self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
 
         # get the image choice and update UI
@@ -473,6 +474,7 @@ class PixelFlasher(wx.Frame):
             self.flash_both_slots_checkBox.Hide()
             self.disable_verity_checkBox.Hide()
             self.disable_verification_checkBox.Hide()
+            self.fastboot_force_checkBox.Hide()
             self.fastboot_verbose_checkBox.Hide()
             # slot options
             self.a_radio_button.Hide()
@@ -506,6 +508,7 @@ class PixelFlasher(wx.Frame):
             self.flash_both_slots_checkBox.Show()
             self.disable_verity_checkBox.Show()
             self.disable_verification_checkBox.Show()
+            self.fastboot_force_checkBox.Show()
             self.fastboot_verbose_checkBox.Show()
             # slot options
             self.a_radio_button.Show()
@@ -887,6 +890,14 @@ class PixelFlasher(wx.Frame):
             self.disable_verification_checkBox = event.GetEventObject()
             status = self.disable_verification_checkBox.GetValue()
             self.config.disable_verification = status
+
+        # -----------------------------------------------
+        #                  _on_fastboot_force
+        # -----------------------------------------------
+        def _on_fastboot_force(event):
+            self.fastboot_force_checkBox = event.GetEventObject()
+            status = self.fastboot_force_checkBox.GetValue()
+            self.config.fastboot_force = status
 
         # -----------------------------------------------
         #                  _on_fastboot_verbose
@@ -1576,6 +1587,8 @@ class PixelFlasher(wx.Frame):
         self.flash_both_slots_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Flash on both slots", wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_verity_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Disable Verity", wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_verification_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Disable Verification", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.fastboot_force_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Force", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.fastboot_force_checkBox.SetToolTip(u"Force a flash operation that may be unsafe (will wipe your data)")
         self.fastboot_verbose_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0)
         self.fastboot_verbose_checkBox.SetToolTip(u"set fastboot option to verbose")
         self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1584,6 +1597,8 @@ class PixelFlasher(wx.Frame):
         self.advanced_options_sizer.Add(self.disable_verity_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
         self.advanced_options_sizer.Add(self.disable_verification_checkBox)
+        self.advanced_options_sizer.AddSpacer(10)
+        self.advanced_options_sizer.Add(self.fastboot_force_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
         self.advanced_options_sizer.Add(self.fastboot_verbose_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
@@ -1649,6 +1664,7 @@ class PixelFlasher(wx.Frame):
         self.disable_verification_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verification)
         self.flash_both_slots_checkBox.Bind(wx.EVT_CHECKBOX, _on_flash_both_slots)
         self.disable_verity_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verity)
+        self.fastboot_force_checkBox.Bind(wx.EVT_CHECKBOX, _on_fastboot_force)
         self.fastboot_verbose_checkBox.Bind(wx.EVT_CHECKBOX, _on_fastboot_verbose)
         self.flash_button.Bind(wx.EVT_BUTTON, _on_flash)
         self.verbose_checkBox.Bind(wx.EVT_CHECKBOX, _on_verbose)

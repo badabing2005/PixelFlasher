@@ -1238,19 +1238,26 @@ def flash_phone(self):
 
     # if advanced options is set, and we have flash options ...
     fastboot_options = ''
+    fastboot_options2 = ''
     if self.config.advanced_options:
         if self.config.flash_both_slots:
             fastboot_options += '--slot all '
         if self.config.disable_verity:
             fastboot_options += '--disable-verity '
+            fastboot_options2 += '--disable-verity '
         if self.config.disable_verification:
             fastboot_options += '--disable-verification '
+            fastboot_options2 += '--disable-verification '
         if self.config.fastboot_verbose:
             fastboot_options += '--verbose '
+            fastboot_options2 += '--verbose '
+        if self.config.fastboot_force:
+            fastboot_options2 += '--force '
         message  = "Custom Flash Options:   %s\n" % str(self.config.advanced_options)
         message += "Disable Verity:         %s\n" % str(self.config.disable_verity)
         message += "Disable Verification:   %s\n" % str(self.config.disable_verification)
         message += "Flash Both Slots:       %s\n" % str(self.config.flash_both_slots)
+        message += "Force:                  %s\n" % str(self.config.fastboot_force)
         message += "Verbose Fastboot:       %s\n" % str(self.config.fastboot_verbose)
 
     if sys.platform == "win32":
@@ -1420,7 +1427,7 @@ def flash_phone(self):
                 data += f"{f.full_line}\n"
                 continue
             if f.action == 'reboot-bootloader':
-                data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
+                data += f"\"{get_fastboot()}\" -s {device.id} {f.action} {f.arg1} {f.arg2}\n"
                 continue
             if f.action == 'flash':
                 data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
@@ -1432,7 +1439,18 @@ def flash_phone(self):
                     action = '--skip-reboot -w update'
                 if self.config.custom_rom and self.config.advanced_options:
                     arg1 = f"\"{get_custom_rom_file()}\""
-                data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} {arg1}\n"
+                data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
+                # flash on each slot separately
+                # https://forum.xda-developers.com/t/psa-do-not-try-to-boot-into-the-old-slot-after-updating-only-one-slot-to-android-13-unlocking-the-pixel-6-pro-bootloader-central-repository.4352027/post-87309913
+                if self.config.advanced_options and self.config.flash_both_slots:
+                    data += "echo Switching active slot to the other ...\n"
+                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
+                    data += "echo rebooting to bootloader ...\n"
+                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
+                    data += "echo Sleeping 5-10 seconds ...\n"
+                    data += sleep_line
+                    data += sleep_line
+                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
         # add the boot.img flashing
         data += "echo rebooting to bootloader ...\n"
         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
@@ -1545,6 +1563,14 @@ def flash_phone(self):
         if self.config.flash_mode == 'wipeData':
             print("Flash Mode: Wipe Data")
             dlg = wx.MessageDialog(None, "You have selected to WIPE data\nAre you sure want to continue?",'Wipe Data',wx.YES_NO | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result != wx.ID_YES:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
+                return
+        # confirm for force flag
+        if self.config.advanced_options and self.config.flash_both_slots:
+            print("Flash Option: Force")
+            dlg = wx.MessageDialog(None, "You have selected to flash option: Force\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Force',wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")

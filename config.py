@@ -3,7 +3,7 @@
 import os
 import json
 
-VERSION = "3.4.0.0"
+VERSION = "3.5.0.0"
 WIDTH = 1400
 HEIGHT = 1040
 POS_X = 40
@@ -30,6 +30,7 @@ class Config():
         self.disable_verification = False
         self.disable_verity = False
         self.fastboot_verbose = False
+        self.fastboot_force = False
         self.advanced_options = False
         self.update_check = True
         self.version = VERSION
@@ -64,6 +65,7 @@ class Config():
                 conf.custom_rom_path = data['custom_rom_path']
                 conf.disable_verification = data['disable_verification']
                 conf.disable_verity = data['disable_verity']
+                conf.fastboot_force = data['fastboot_force']
                 conf.fastboot_verbose = data['fastboot_verbose']
                 conf.advanced_options = data['advanced_options']
                 conf.update_check = data['update_check']
@@ -97,6 +99,7 @@ class Config():
             'custom_rom_path': self.custom_rom_path,
             'disable_verification': self.disable_verification,
             'disable_verity': self.disable_verity,
+            'fastboot_force': self.fastboot_force,
             'fastboot_verbose': self.fastboot_verbose,
             'advanced_options': self.advanced_options,
             'update_check': self.update_check,

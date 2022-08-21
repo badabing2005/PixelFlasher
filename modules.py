@@ -1494,9 +1494,9 @@ def flash_phone(self):
     message += "      Do you want to continue to flash with the above options?\n"
     message += "              Press OK to continue or CANCEL to abort.\n"
     print(message)
-    debug(f"The script content that will be executed:")
-    debug(f"--------------------------------------------\n{data}")
-    debug("--------------------------------------------\n")
+    print(f"The script content that will be executed:")
+    print(f"--------------------------------------------\n{data}")
+    print("--------------------------------------------\n")
     set_message_box_title(title)
     set_message_box_message(message)
     dlg = MessageBox(self)
@@ -1568,7 +1568,7 @@ def flash_phone(self):
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
                 return
         # confirm for force flag
-        if self.config.advanced_options and self.config.flash_both_slots:
+        if self.config.advanced_options and self.config.fastboot_force:
             print("Flash Option: Force")
             dlg = wx.MessageDialog(None, "You have selected to flash option: Force\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Force',wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()

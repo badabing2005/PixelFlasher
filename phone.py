@@ -33,6 +33,8 @@ class Device():
         self._hardware = None
         self._active_slot = None
         self._unlocked = None
+        self._bootloader_version = None
+        self._device_info = None
         self._magisk_modules = None
         self._magisk_detailed_modules = None
         self._magisk_modules_summary = None
@@ -271,6 +273,56 @@ class Device():
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
         return self._unlocked
+
+    # ----------------------------------------------------------------------------
+    #                               property bootloader_version
+    # ----------------------------------------------------------------------------
+    @property
+    def bootloader_version(self):
+        if self._bootloader_version is None:
+            if self.mode == 'adb':
+                if get_adb():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop ro.bootloader"
+                    bootloader_version = run_shell(theCmd)
+                    # remove any whitespace including tab and newline
+                    self._bootloader_version = ''.join(bootloader_version.stdout.split())
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+            elif self.mode == 'f.b':
+                if get_fastboot():
+                    theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar version-bootloader"
+                    bootloader_version = run_shell(theCmd)
+                    # remove any whitespace including tab and newline
+                    bootloader_version = bootloader_version.stderr.split('\n')
+                    bootloader_version = bootloader_version[0].split(' ')
+                    self._bootloader_version = bootloader_version[1]
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+        return self._bootloader_version
+
+    # ----------------------------------------------------------------------------
+    #                               property device_info
+    # ----------------------------------------------------------------------------
+    @property
+    def device_info(self):
+        if self.mode == 'adb':
+            if get_adb():
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop"
+                device_info = run_shell(theCmd)
+                self._device_info = ''.join(device_info.stdout)
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+        elif self.mode == 'f.b':
+            if get_fastboot():
+                theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar all"
+                device_info = run_shell(theCmd)
+                if (device_info.stdout == ''):
+                    self._device_info = ''.join(device_info.stderr)
+                else:
+                    self._device_info = ''.join(device_info.stdout)
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+        return self._device_info
 
     # ----------------------------------------------------------------------------
     #                               Method get_details

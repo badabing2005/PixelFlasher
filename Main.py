@@ -554,16 +554,17 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _print_device_details(self, device):
         print(f"\nSelected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:")
-        print(f"    Device ID:          {device.id}")
-        print(f"    Device Model:       {device.hardware}")
-        print(f"    Device is Rooted:   {device.rooted}")
-        print(f"    Device Build:       {device.build}")
-        print(f"    Device Active Slot: {device.active_slot}")
-        print(f"    Device Mode:        {device.mode}")
+        print(f"    Device ID:                       {device.id}")
+        print(f"    Device Model:                    {device.hardware}")
+        print(f"    Device is Rooted:                {device.rooted}")
+        print(f"    Device Build:                    {device.build}")
+        print(f"    Device Active Slot:              {device.active_slot}")
+        print(f"    Device Bootloader Version:       {device.bootloader_version}")
+        print(f"    Device Mode:                     {device.mode}")
         if device.unlocked:
-            print(f"    Device Unlocked:    {device.unlocked}")
+            print(f"    Device Unlocked:                 {device.unlocked}")
         if device.rooted:
-            print(f"    Magisk Version:     {device.magisk_version}")
+            print(f"    Magisk Version:                  {device.magisk_version}")
             print(f"    Magisk Modules:")
             if self.config.verbose:
                 print(f"{device.magisk_modules_summary}")
@@ -1097,6 +1098,16 @@ class PixelFlasher(wx.Frame):
                 del wait
 
         # -----------------------------------------------
+        #                  _on_device_info
+        # -----------------------------------------------
+        def _on_device_info(event):
+            if self.config.device:
+                wait = wx.BusyCursor()
+                device = get_phone()
+                print(f"Device Info:\n------------\n{device.device_info}")
+                del wait
+
+        # -----------------------------------------------
         #                  _on_magisk
         # -----------------------------------------------
         def _on_magisk(event):
@@ -1417,7 +1428,7 @@ class PixelFlasher(wx.Frame):
         device_tooltip += "(f.b) device is in fastboot mode\n"
         self.device_choice.SetToolTip(device_tooltip)
         reload_button = wx.Button(panel, label=u"Reload")
-        reload_button.SetToolTip(u"Reload adb device list")
+        reload_button.SetToolTip(u"Reload adb/fastboot device list")
         reload_button.SetBitmap(images.Reload.GetBitmap())
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
         device_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1438,7 +1449,10 @@ class PixelFlasher(wx.Frame):
         self.reboot_bootloader_button = wx.Button(panel, wx.ID_ANY, u"Reboot to Bootloader", wx.DefaultPosition, wx.DefaultSize, 0)
         self.reboot_bootloader_button.SetToolTip(u"Reboot to Bootloader")
         self.set_active_slot_button = wx.Button(panel, wx.ID_ANY, u"Set Active Slot", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.set_active_slot_button.SetToolTip(u"Set Active Slot")
+        self.set_active_slot_button.SetToolTip(u"Sets Active Slot to the selected A or B slot")
+        self.info_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.info_button.SetBitmap(images.About.GetBitmap())
+        self.info_button.SetToolTip(u"Dump Full Device Info")
         self.magisk_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.magisk_button.SetBitmap(images.Magisk.GetBitmap())
         self.magisk_button.SetToolTip(u"Manage Magisk Modules.")
@@ -1447,17 +1461,18 @@ class PixelFlasher(wx.Frame):
         self.sos_button.SetToolTip(u"Disable Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).")
         self.lock_bootloader = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.lock_bootloader.SetBitmap(images.Lock.GetBitmap())
-        self.lock_bootloader.SetToolTip(u"Lock Bootloader")
+        self.lock_bootloader.SetToolTip(u"Lock Bootloader\nCaution Will Wipe Data")
         self.unlock_bootloader = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.unlock_bootloader.SetBitmap(images.Unlock.GetBitmap())
-        self.unlock_bootloader.SetToolTip(u"Unlock Bootloader")
+        self.unlock_bootloader.SetToolTip(u"Unlock Bootloader\nCaution Will Wipe Data")
         # reboot_sizer.Add((5, 0), 0, 0, 5)
         reboot_sizer = wx.BoxSizer(wx.HORIZONTAL)
         reboot_sizer.Add(self.set_active_slot_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         reboot_sizer.Add(self.reboot_recovery_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         reboot_sizer.Add(self.reboot_system_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.reboot_bootloader_button, 1, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
-        reboot_sizer.Add(self.magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=10)
+        reboot_sizer.Add(self.info_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=10)
+        reboot_sizer.Add(self.magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.lock_bootloader, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.unlock_bootloader, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 0)
@@ -1472,7 +1487,7 @@ class PixelFlasher(wx.Frame):
         firmware_label = wx.StaticText(panel, label=u"Pixel Phone Factory Image")
         self.firmware_link = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.firmware_link.SetBitmap(images.Open_Link.GetBitmap())
-        self.firmware_link.SetToolTip(u"Download Latest Firmware")
+        self.firmware_link.SetToolTip(u"Download Pixel Firmware")
         self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
         self.process_firmware = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
@@ -1556,7 +1571,7 @@ class PixelFlasher(wx.Frame):
         _add_mode_radio_button(mode_sizer, 0, 'keepData', "Keep Data", "Data will be kept intact.")
         _add_mode_radio_button(mode_sizer, 1, 'wipeData', "WIPE all data", "CAUTION: This will wipe your data")
         _add_mode_radio_button(mode_sizer, 2, 'dryRun', "Dry Run", "Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
-        _add_mode_radio_button(mode_sizer, 3, 'customFlash', "Custom Flash", "Custom Flash, Advanced option to flash a single file.\nThis will not flash the prepared package.\It will flash the single selected file.")
+        _add_mode_radio_button(mode_sizer, 3, 'customFlash', "Custom Flash", "Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file.")
 
         # 9th row widgets (custom flash)
         self.live_boot_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, wx.RB_GROUP)
@@ -1606,7 +1621,7 @@ class PixelFlasher(wx.Frame):
         # 11th row widgets, Flash button
         self.flash_button = wx.Button(panel, -1, "Flash Pixel Phone", wx.DefaultPosition, wx.Size(-1,50))
         self.flash_button.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.flash_button.SetToolTip(u"Flashes (with Flash Mode Settings) the selected phone with the prepared Image.")
+        self.flash_button.SetToolTip(u"Flashes the selected device with chosen flash options.")
         self.flash_button.SetBitmap(images.Flash.GetBitmap())
 
         # 12th row widgets, console
@@ -1620,7 +1635,7 @@ class PixelFlasher(wx.Frame):
 
         # 13th row widgets, verbose and clear button
         self.verbose_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.verbose_checkBox.SetToolTip(u"Enable Verbose Messages")
+        self.verbose_checkBox.SetToolTip(u"Enable Verbose Messages in the console.")
         clear_button = wx.Button(panel, -1, "Clear Console")
 
         # add the rows to flexgrid
@@ -1672,6 +1687,7 @@ class PixelFlasher(wx.Frame):
         self.reboot_recovery_button.Bind(wx.EVT_BUTTON, _on_reboot_recovery)
         self.reboot_system_button.Bind(wx.EVT_BUTTON, _on_reboot_system)
         self.reboot_bootloader_button.Bind(wx.EVT_BUTTON, _on_reboot_bootloader)
+        self.info_button.Bind(wx.EVT_BUTTON, _on_device_info)
         self.magisk_button.Bind(wx.EVT_BUTTON, _on_magisk)
         self.sos_button.Bind(wx.EVT_BUTTON, _on_sos)
         self.lock_bootloader.Bind(wx.EVT_BUTTON, _on_lock_bootloader)

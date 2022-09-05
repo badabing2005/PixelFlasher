@@ -3,7 +3,8 @@
 import os
 import json
 
-VERSION = "3.6.0.0"
+VERSION = "3.7.0.0"
+SDKVERSION = "33.0.3"
 WIDTH = 1400
 HEIGHT = 1040
 POS_X = 40

@@ -35,6 +35,8 @@ command_lines = [
     "-a -F -i -n Paste images/paste-24.png images.py",
     "-a -F -i -n Patched_Small images/patched-16.png images.py",
     "-a -F -i -n Boot images/boot-24.png images.py",
+    "-a -F -i -n InstallMagisk images/install-magisk-24.png images.py",
+    "-a -F -i -n InstallApk images/install-apk-24.png images.py",
     ]
 
 if __name__ == "__main__":

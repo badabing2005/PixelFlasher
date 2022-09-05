@@ -10,14 +10,20 @@ import ntpath
 import sys
 import math
 import hashlib
+import requests
 import sqlite3 as sl
 
 from config import VERSION
+from config import SDKVERSION
 from runtime import *
 from platformdirs import *
 from message_box import MessageBox
 from datetime import datetime
 from phone import get_connected_devices
+from packaging.version import parse
+from urllib.parse import urlparse
+from magisk_downloads import MagiskDownloads
+
 
 # ============================================================================
 #                               Class FlashFile
@@ -195,17 +201,45 @@ def populate_boot_list(self):
 def identify_sdk_version(self):
     sdk_version = None
     # Let's grab the adb version
-    if get_adb():
-        theCmd = "\"%s\" --version" % get_adb()
-        response = run_shell(theCmd)
-        if response.stdout:
-            for line in response.stdout.split('\n'):
-                if 'Version' in line:
-                    sdk_version = line.split()[1]
-                    set_sdk_version(sdk_version)
-        else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
-
+    try:
+        if get_adb():
+            theCmd = f"\"{get_adb()}\" --version"
+            response = run_shell(theCmd)
+            if response.stdout:
+                for line in response.stdout.split('\n'):
+                    if 'Version' in line:
+                        sdk_version = line.split()[1]
+                        set_sdk_version(sdk_version)
+                        # If version is old treat it as bad SDK
+                        sdkver = sdk_version.split("-")[0]
+                        if parse(sdkver) < parse(SDKVERSION):
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected older Android Platform Tools version {sdk_version}")
+                            # confirm if you want to use older version
+                            dlg = wx.MessageDialog(None, f"You have an old Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest version to avoid any issues\nAre you sure want to continue?",'Old Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+                            result = dlg.ShowModal()
+                            if result == wx.ID_YES:
+                                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted older version {sdk_version} of Android platform tools.")
+                                self.reload_button.Enable(True)
+                                self.device_choice.Enable(True)
+                                return
+                            else:
+                                print("Older Android platform tools is not accepted. For your protection, disabling device selection.")
+                                print("Please update Android SDK.\n")
+                                break
+                        else:
+                            self.reload_button.Enable(True)
+                            self.device_choice.Enable(True)
+                            return
+    except:
+        pass
+    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version is not available or is too old.")
+    print("                           For your protection, disabling device selection.")
+    print("                           Please select valid Android SDK.\n")
+    self.reload_button.Enable(False)
+    self.config.device = None
+    self.device_choice.SetItems([''])
+    self.device_choice.Select(0)
+    self.device_choice.Enable(False)
 
 
 # ============================================================================
@@ -546,7 +580,10 @@ def select_firmware(self):
 #                               Function process_file
 # ============================================================================
 def process_file(self, file_type):
-    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Processing {file_type} file ...")
+    print("")
+    print("==============================================================================")
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}         Processing {file_type} file ...")
+    print("==============================================================================")
     config_path = get_config_path()
     path_to_7z = get_path_to_7z()
     boot_images = os.path.join(config_path, 'boot_images')
@@ -592,7 +629,7 @@ def process_file(self, file_type):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {image_file_path} is not found.")
         if file_type == 'firmware':
             print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # extract boot.img
@@ -604,14 +641,14 @@ def process_file(self, file_type):
     if res.returncode != 0:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.")
         print(res.stderr)
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
     # sometimes the return code is 0 but no file to extract, handle that case.
     boot_img_file = os.path.join(tmp_dir_full, "boot.img")
     if not os.path.exists(boot_img_file):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img, ")
         print(f"Please make sure the file: {image_file_path} has boot.img in it.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # get the checksum of the boot.img
@@ -690,6 +727,7 @@ def process_file(self, file_type):
     populate_boot_list(self)
     end_1 = time.time()
     print("Process %s time: %s seconds" % (file_type, math.ceil(end_1 - start_1)))
+    print("------------------------------------------------------------------------------\n")
 
 
 # ============================================================================
@@ -787,14 +825,16 @@ def process_flash_all_file(filepath):
                     flash_file_lines.append(flash)
                     continue
                 else:
-                    print(f"WARNING! Encountered an unexpected fastboot line while parsing {filepath}")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR! Encountered an unexpected fastboot line while parsing {filepath}")
                     print(line)
+                    return "ERROR"
 
             #-----------------
             # Unexpected lines
             else:
-                print(f"WARNING! Encountered an unexpected line while parsing {filepath}")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR! Encountered an unexpected line while parsing {filepath}")
                 print(line)
+                return "ERROR"
 
             cnt += 1
         return flash_file_lines
@@ -815,26 +855,26 @@ def patch_boot_img(self):
     # Make sure boot image is selected
     if not self.config.boot_id:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # Make sure platform-tools is set and adb and fastboot are found
     if not self.config.platform_tools_path:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # Make sure Phone is connected
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select an ADB connection (phone)")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # Make sure the phone is in adb mode.
     if device.mode != 'adb':
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {device.id} is not in adb mode.")
         print(f"Perhaps a refresh is necessary?")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     start = time.time()
@@ -850,7 +890,7 @@ def patch_boot_img(self):
     # check if boot.img got extracted (if not probably the zip does not have it)
     if not os.path.exists(boot.boot_path):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You have selected the Patch option, however boot file is not found.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # Extract phone model from boot.package_sig and warn the user if it is not from the current phone model
@@ -874,7 +914,7 @@ def patch_boot_img(self):
             print("User pressed ok.")
         else:
             print("User pressed cancel.")
-            print("Aborting ...")
+            print("Aborting ...\n")
             return
 
     # delete existing boot.img from phone
@@ -887,7 +927,7 @@ def patch_boot_img(self):
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # check if delete worked.
@@ -900,7 +940,7 @@ def patch_boot_img(self):
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # delete existing magisk_patched.img from phone
@@ -913,7 +953,7 @@ def patch_boot_img(self):
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # check if delete worked.
@@ -926,7 +966,7 @@ def patch_boot_img(self):
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # Transfer boot image to the phone
@@ -940,7 +980,7 @@ def patch_boot_img(self):
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
     else:
         print(res.stdout)
@@ -955,7 +995,7 @@ def patch_boot_img(self):
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     if not device.rooted:
@@ -963,56 +1003,76 @@ def patch_boot_img(self):
         # Check to see if Magisk is installed
         print("Looking for Magisk app ...")
         if not device.magisk_version:
+            # Magisk not found
             print("Unable to find magisk on the phone, perhaps it is hidden?")
             # Message to Launch Manually and Patch
             title = "Magisk not found"
             message =  "WARNING: Magisk is not found on the phone\n\n"
-            message += "This could be either because it is hidden, or it is not installed\n\n"
-            message += "Please manually launch Magisk on your phone.\n"
-            message += "- Click on `Install` and choose\n"
-            message += "- `Select and Patch a File`\n"
-            message += "- select boot.img in %s \n" % self.config.phone_path
-            message += "- Then hit `LET's GO`\n\n"
-            message += "Click OK when done to continue.\n"
-            message += "Hit CANCEL to abort."
+            message += "This could be either because it is hidden, or it is not installed.\n\n"
+            message += "If it is installed and hidden, then \n"
+            message += "You should manually launch Magisk on your phone and follow PixelFlasher prompts.\n\n"
+            message += "If Magisk is not installed, PixelFlasher can install it for you.\n\n"
+            message += "Do you want PixelFlasher to download and install Magisk?\n"
+            message += "You will be given a choice of Magisk Version to install.\n\n"
+            message += "Click OK to continue.\n"
+            message += "or Hit CANCEL (if Magisk is launched manually.)."
+            print(message)
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
+                # ok to download and install
                 print("User pressed ok.")
+                wait = wx.BusyCursor()
+                dlg = MagiskDownloads(self)
+                dlg.CentreOnParent(wx.BOTH)
+                del wait
+                result = dlg.ShowModal()
+                if result != wx.ID_OK:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancelled out of Magisk download and install.")
+                    print("Aborting ...\n")
+                    dlg.Destroy()
+                    return
+                dlg.Destroy()
+                try:
+                    magisk_version = device.get_uncached_magisk_version()
+                    if magisk_version:
+                        # Magisk is on the system
+                        print(f"Found Magisk version {magisk_version} on the phone.")
+                        print("Launching Magisk ...")
+                        theCmd = f"\"{get_adb()}\" -s {device.id} shell monkey -p {get_magisk_package()} -c android.intent.category.LAUNCHER 1"
+                        res = run_shell(theCmd)
+                        if res.returncode != 0:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
+                            print(res.stderr)
+                            print("Please launch Magisk manually.")
+                        else:
+                            print("Magisk should now be running on the phone.")
+                except:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
+                    print("Aborting ...\n")
+                    return
             else:
-                print("User pressed cancel.")
-                print("Aborting ...")
-                return
+                # not ok to download and install, (Magisk is hidden option)
+                print("User pressed cancel for downloading and installing Magisk to proceed with manually launching Magisk")
+        # Message Dialog Here to Patch Manually
+        title = "Patching in Magisk manually."
+        message =  "Magisk should now be running on your phone.\n\n"
+        message += "If it is not, you  can try starting it manually\n\n"
+        message += "Please follow these steps in Magisk.\n"
+        message += "- Click on `Install` and choose\n"
+        message += "- `Select and patch a file`\n"
+        message += "- select boot.img in %s \n" % self.config.phone_path
+        message += "- Then hit `LET's GO`\n\n"
+        message += "Click OK when done to continue.\n"
+        message += "Hit CANCEL to abort."
+        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            print("User Pressed Ok.")
         else:
-            print("Found Magisk app on the phone.")
-            print("Launching Magisk ...")
-            theCmd = f"\"{get_adb()}\" -s {device.id} shell monkey -p {get_magisk_package()} -c android.intent.category.LAUNCHER 1"
-            res = run_shell(theCmd)
-            if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
-                print(res.stderr)
-                print("Please launch Magisk manually.")
-            else:
-                print("Magisk should now be running on the phone.")
-            # Message Dialog Here to Patch Manually
-            title = "Magisk found"
-            message =  "Magisk should now be running on your phone.\n\n"
-            message += "If it is not, you  can try starting in manually\n\n"
-            message += "Please follow these steps in Magisk.\n"
-            message += "- Click on `Install` and choose\n"
-            message += "- `Select and patch a file`\n"
-            message += "- select boot.img in %s \n" % self.config.phone_path
-            message += "- Then hit `LET's GO`\n\n"
-            message += "Click OK when done to continue.\n"
-            message += "Hit CANCEL to abort."
-            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-            result = dlg.ShowModal()
-            if result == wx.ID_OK:
-                print("User Pressed Ok.")
-            else:
-                print("User Pressed Cancel.")
-                print("Aborting ...")
-                return
+            print("User Pressed Cancel.")
+            print("Aborting ...\n")
+            return
     else:
         startPatch = time.time()
         print(f"Detected a rooted phone with Magisk Tools: {device.magisk_version}")
@@ -1030,7 +1090,7 @@ def patch_boot_img(self):
     if res.returncode == 1:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img not found")
         print(res.stderr)
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
     else:
         magisk_patched = res.stdout.strip()
@@ -1045,7 +1105,7 @@ def patch_boot_img(self):
     if res.returncode == 1:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull magisk_patched.img from phone.")
         print(res.stderr)
-        print("Aborting ...")
+        print("Aborting ...\n")
         return
 
     # get the checksum of the magisk_patched.img
@@ -1101,7 +1161,9 @@ def patch_boot_img(self):
     populate_boot_list(self)
 
     end = time.time()
+    print("Magisk Version: %s"%(device.magisk_version))
     print("Patch time: %s seconds"%(math.ceil(end - start)))
+    print("------------------------------------------------------------------------------\n")
 
 
 # ============================================================================
@@ -1135,10 +1197,10 @@ def live_boot_phone(self):
                 print("User pressed ok.")
             else:
                 print("User pressed cancel.")
-                print("Aborting ...")
+                print("Aborting ...\n")
                 return
     else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to access boot.img object, aborting ...")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to access boot.img object, aborting ...\n")
         return
 
     # Make sure boot exists
@@ -1168,18 +1230,18 @@ def live_boot_phone(self):
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
         else:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting ...")
+            print("Aborting ...\n")
             dlg.Destroy()
             return
         dlg.Destroy()
     else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get boot.img path, aborting ...")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get boot.img path, aborting ...\n")
         return
 
     if device.mode == 'adb':
         device.reboot_bootloader()
-        print("Waiting 10 seconds ...")
-        time.sleep(10)
+        print("Waiting 5 seconds ...")
+        time.sleep(5)
         self.device_choice.SetItems(get_connected_devices())
         self._select_configured_device()
 
@@ -1190,13 +1252,24 @@ def live_boot_phone(self):
 
     if device.mode == 'f.b' and get_fastboot():
         startFlash = time.time()
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Live Booting {boot.boot_path} ...")
+        print("")
+        print("==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Live Booting\n     {boot.boot_path} ...")
+        print("==============================================================================")
         theCmd = f"\"{get_fastboot()}\" -s {device.id} boot \"{boot.boot_path}\""
         debug(theCmd)
-        run_shell(theCmd)
+        res = run_shell(theCmd)
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live boot failed!")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            print("Aborting ...\n")
+            return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
         print("Flashing Live elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        print("------------------------------------------------------------------------------\n")
         # clear the selected device option
         set_phone(None)
         self.device_label.Label = "ADB Connected Devices"
@@ -1205,7 +1278,7 @@ def live_boot_phone(self):
         self.device_choice.Select(0)
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
 
     return
 
@@ -1324,7 +1397,7 @@ def flash_phone(self):
         # check for boot file
         if not os.path.exists(boot.boot_path):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot file: {boot.boot_path} is not found.")
-            print("Aborting ...")
+            print("Aborting ...\n")
             return
         else:
             # copy boot file to package directory, but first delete an old one to be sure
@@ -1335,14 +1408,14 @@ def flash_phone(self):
             shutil.copy(boot.boot_path, pf, follow_symlinks=True)
         if not os.path.exists(pf):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} boot file: {pf} is not found.")
-            print("Aborting ...")
+            print("Aborting ...\n")
             return
 
         # check for rom file
         if self.config.custom_rom and self.config.advanced_options:
             if not os.path.exists(self.config.custom_rom_path):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: ROM file: {self.config.custom_rom_path} is not found.")
-                print("Aborting ...")
+                print("Aborting ...\n")
                 return
             else:
                 # copy ROM file to package directory, but first delete an old one to be sure
@@ -1355,7 +1428,7 @@ def flash_phone(self):
                 shutil.copy(self.config.custom_rom_path, rom, follow_symlinks=True)
             if not os.path.exists(rom):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ROM file: {rom} is not found.")
-                print("Aborting ...")
+                print("Aborting ...\n")
                 return
 
         # Make sure Phone model matches firmware model
@@ -1379,12 +1452,18 @@ def flash_phone(self):
                 print("User pressed ok.")
             else:
                 print("User pressed cancel.")
-                print("Aborting ...")
+                print("Aborting ...\n")
                 return
 
         # Process flash_all files
         flash_all_win32 = process_flash_all_file(os.path.join(package_dir_full, "flash-all.bat"))
+        if (flash_all_win32 == 'ERROR'):
+            print("Aborting ...\n")
+            return
         flash_all_linux = process_flash_all_file(os.path.join(package_dir_full, "flash-all.sh"))
+        if (flash_all_linux == 'ERROR'):
+            print("Aborting ...\n")
+            return
         s1 = ''
         s2 = ''
         for f in flash_all_win32:
@@ -1460,7 +1539,7 @@ def flash_phone(self):
         data += "echo flashing pf_boot ...\n"
         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
         data += "echo rebooting to system ...\n"
-        data += f"\"{get_fastboot()}\" -s {device.id} reboot\n"
+        data += f"\"{get_fastboot()}\" -s {device.id} reboot"
 
         fin = open(dest, "wt", encoding="ISO-8859-1")
         fin.write(data)
@@ -1482,7 +1561,7 @@ def flash_phone(self):
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
-            print("Aborting ...")
+            print("Aborting ...\n")
             return
 
     message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
@@ -1495,8 +1574,8 @@ def flash_phone(self):
     message += "              Press OK to continue or CANCEL to abort.\n"
     print(message)
     print(f"The script content that will be executed:")
-    print(f"--------------------------------------------\n{data}")
-    print("--------------------------------------------\n")
+    print(f"___________________________________________________\n{data}")
+    print("___________________________________________________\n")
     set_message_box_title(title)
     set_message_box_message(message)
     dlg = MessageBox(self)
@@ -1507,7 +1586,7 @@ def flash_phone(self):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-        print("Aborting ...")
+        print("Aborting ...\n")
         dlg.Destroy()
         return
     dlg.Destroy()
@@ -1515,7 +1594,6 @@ def flash_phone(self):
     print("")
     print("==============================================================================")
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Flashing Phone    ")
-    # print(" PixelFlasher %s              Flashing Phone                                  " % VERSION)
     print("==============================================================================")
     startFlash = time.time()
 
@@ -1534,6 +1612,7 @@ def flash_phone(self):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
         print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        print("------------------------------------------------------------------------------\n")
         os.chdir(cwd)
         return
 
@@ -1548,6 +1627,11 @@ def flash_phone(self):
     device = get_phone()
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
+        return
+
+    if not device.unlocked:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
+        print("Aborting ...\n")
         return
 
     # vendor_dlkm needs to be flashed in fastbootd mode
@@ -1584,6 +1668,7 @@ def flash_phone(self):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
         print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        print("------------------------------------------------------------------------------\n")
         os.chdir(cwd)
         # clear the selected device option
         set_phone(None)
@@ -1593,5 +1678,5 @@ def flash_phone(self):
         self.device_choice.Select(0)
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
 

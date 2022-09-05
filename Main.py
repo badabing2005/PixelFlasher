@@ -43,6 +43,7 @@ from modules import get_code_page
 from advanced_settings import AdvancedSettings
 from message_box import MessageBox
 from magisk_modules import MagiskModules
+from magisk_downloads import MagiskDownloads
 
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
@@ -261,6 +262,12 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_advanced_config, config_item)
         # seperator
         file_menu.AppendSeparator()
+        # Install APK
+        self.install_apk = file_menu.Append(wx.ID_ANY, "Install APK", "Install APK")
+        self.install_apk.SetBitmap(images.InstallApk.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_install_apk, self.install_apk)
+        # seperator
+        file_menu.AppendSeparator()
         # Exit Menu
         wx.App.SetMacExitMenuItemId(wx.ID_EXIT)
         exit_item = file_menu.Append(wx.ID_EXIT, "E&xit\tCtrl-Q", "Exit PixelFlasher")
@@ -464,6 +471,28 @@ class PixelFlasher(wx.Frame):
         set_flash_button_state(self)
 
     # -----------------------------------------------
+    #                  _on_install_apk
+    # -----------------------------------------------
+    def _on_install_apk(self, event):
+        with wx.FileDialog(self, "select APK file to install", '', '', wildcard="Android Applications (*.*.apk)|*.apk",
+                        style=wx.FD_OPEN ) as fileDialog:
+
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+
+            # save the current contents in the file
+            pathname = fileDialog.GetPath()
+            print(f"\nSelected {pathname} for installation.")
+            try:
+                wait = wx.BusyCursor()
+                device = get_phone()
+                if device:
+                    device.install_apk(pathname, fastboot_included = True)
+                del wait
+            except IOError:
+                wx.LogError("Cannot install file '%s'." % pathname)
+
+    # -----------------------------------------------
     #                  _advanced_options_hide
     # -----------------------------------------------
     def _advanced_options_hide(self, value):
@@ -557,11 +586,12 @@ class PixelFlasher(wx.Frame):
         print(f"    Device ID:                       {device.id}")
         print(f"    Device Model:                    {device.hardware}")
         print(f"    Device is Rooted:                {device.rooted}")
-        print(f"    Device Build:                    {device.build}")
+        if device.mode == 'adb':
+            print(f"    Device Build:                    {device.build}")
         print(f"    Device Active Slot:              {device.active_slot}")
         print(f"    Device Bootloader Version:       {device.bootloader_version}")
         print(f"    Device Mode:                     {device.mode}")
-        if device.unlocked:
+        if device.mode == 'f.b':
             print(f"    Device Unlocked:                 {device.unlocked}")
         if device.rooted:
             print(f"    Magisk Version:                  {device.magisk_version}")
@@ -682,8 +712,11 @@ class PixelFlasher(wx.Frame):
             self.reboot_recovery_button.Enable(True)
             self.reboot_bootloader_button.Enable(True)
             self.reboot_system_button.Enable(True)
+            self.info_button.Enable(True)
             self.unlock_bootloader.Enable(True)
             self.lock_bootloader.Enable(True)
+            self.install_magisk_button.Enable(True)
+            self.install_apk.Enable(True)
             if device.active_slot == 'a':
                 self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
                 self.a_radio_button.Enable(False)
@@ -717,9 +750,12 @@ class PixelFlasher(wx.Frame):
             self.reboot_recovery_button.Enable(False)
             self.reboot_bootloader_button.Enable(False)
             self.reboot_system_button.Enable(False)
+            self.info_button.Enable(False)
             self.magisk_button.Enable(False)
             self.unlock_bootloader.Enable(False)
             self.lock_bootloader.Enable(False)
+            self.install_magisk_button.Enable(False)
+            self.install_apk.Enable(False)
 
     #-----------------------------------------------------------------------------
     #                                   _init_ui
@@ -965,6 +1001,7 @@ class PixelFlasher(wx.Frame):
                 message = "         WARNING!!! WARNING!!! WARNING!!!\n\n"
                 message += "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n"
                 message += "TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n"
+                message += "       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n"
                 message += "Do you want to continue to Lock the device bootloader?\n"
                 message += "       Press OK to continue or CANCEL to abort.\n"
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
@@ -1108,9 +1145,9 @@ class PixelFlasher(wx.Frame):
                 del wait
 
         # -----------------------------------------------
-        #                  _on_magisk
+        #                  _on_magisk_modules
         # -----------------------------------------------
-        def _on_magisk(event):
+        def _on_magisk_modules(event):
             wait = wx.BusyCursor()
             dlg = MagiskModules(self)
             dlg.CentreOnParent(wx.BOTH)
@@ -1119,6 +1156,22 @@ class PixelFlasher(wx.Frame):
             if result != wx.ID_OK:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting Magisk Modules Management ...\n")
+                dlg.Destroy()
+                return
+            dlg.Destroy()
+
+        # -----------------------------------------------
+        #                  _on_magisk_install
+        # -----------------------------------------------
+        def _on_magisk_install(event):
+            wait = wx.BusyCursor()
+            dlg = MagiskDownloads(self)
+            dlg.CentreOnParent(wx.BOTH)
+            del wait
+            result = dlg.ShowModal()
+            if result != wx.ID_OK:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting Magisk Installation ...\n")
                 dlg.Destroy()
                 return
             dlg.Destroy()
@@ -1427,13 +1480,14 @@ class PixelFlasher(wx.Frame):
         device_tooltip += "(adb) device is in adb mode\n"
         device_tooltip += "(f.b) device is in fastboot mode\n"
         self.device_choice.SetToolTip(device_tooltip)
-        reload_button = wx.Button(panel, label=u"Reload")
-        reload_button.SetToolTip(u"Reload adb/fastboot device list")
-        reload_button.SetBitmap(images.Reload.GetBitmap())
+        self.reload_button = wx.Button(panel, label=u"Reload")
+        self.reload_button.SetToolTip(u"Reload adb/fastboot device list")
+        self.reload_button.SetBitmap(images.Reload.GetBitmap())
+        self.reload_button.Enable(False)
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
         device_sizer = wx.BoxSizer(wx.HORIZONTAL)
         device_sizer.Add(self.device_choice, 1, wx.EXPAND)
-        device_sizer.Add(reload_button, flag=wx.LEFT, border=5)
+        device_sizer.Add(self.reload_button, flag=wx.LEFT, border=5)
 
         # 3rd row Reboot buttons, device related buttons
         self.a_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"A", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -1456,6 +1510,9 @@ class PixelFlasher(wx.Frame):
         self.magisk_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.magisk_button.SetBitmap(images.Magisk.GetBitmap())
         self.magisk_button.SetToolTip(u"Manage Magisk Modules.")
+        self.install_magisk_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.install_magisk_button.SetBitmap(images.InstallMagisk.GetBitmap())
+        self.install_magisk_button.SetToolTip(u"Download and Install Magisk Manager")
         self.sos_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.sos_button.SetBitmap(images.Sos.GetBitmap())
         self.sos_button.SetToolTip(u"Disable Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).")
@@ -1473,10 +1530,11 @@ class PixelFlasher(wx.Frame):
         reboot_sizer.Add(self.reboot_bootloader_button, 1, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.info_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=10)
         reboot_sizer.Add(self.magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        reboot_sizer.Add(self.install_magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.lock_bootloader, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.unlock_bootloader, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 0)
-        reboot_sizer.Add((reload_button.Size.Width + 5, 0), 0, wx.EXPAND)
+        reboot_sizer.Add((self.reload_button.Size.Width + 5, 0), 0, wx.EXPAND)
 
         # 4th row, empty row, static line
         self.staticline1 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
@@ -1669,7 +1727,7 @@ class PixelFlasher(wx.Frame):
 
         # Connect Events
         self.device_choice.Bind(wx.EVT_CHOICE, _on_select_device)
-        reload_button.Bind(wx.EVT_BUTTON, _on_reload)
+        self.reload_button.Bind(wx.EVT_BUTTON, _on_reload)
         self.firmware_picker.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_firmware)
         self.firmware_link.Bind(wx.EVT_BUTTON, _open_firmware_link)
         self.platform_tools_picker.Bind(wx.EVT_DIRPICKER_CHANGED, _on_select_platform_tools)
@@ -1688,7 +1746,8 @@ class PixelFlasher(wx.Frame):
         self.reboot_system_button.Bind(wx.EVT_BUTTON, _on_reboot_system)
         self.reboot_bootloader_button.Bind(wx.EVT_BUTTON, _on_reboot_bootloader)
         self.info_button.Bind(wx.EVT_BUTTON, _on_device_info)
-        self.magisk_button.Bind(wx.EVT_BUTTON, _on_magisk)
+        self.magisk_button.Bind(wx.EVT_BUTTON, _on_magisk_modules)
+        self.install_magisk_button.Bind(wx.EVT_BUTTON, _on_magisk_install)
         self.sos_button.Bind(wx.EVT_BUTTON, _on_sos)
         self.lock_bootloader.Bind(wx.EVT_BUTTON, _on_lock_bootloader)
         self.unlock_bootloader.Bind(wx.EVT_BUTTON, _on_unlock_bootloader)

@@ -6,9 +6,9 @@ from runtime import *
 
 
 # ============================================================================
-#                               Class TestListCtrl
+#                               Class ListCtrl
 # ============================================================================
-class TestListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
+class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
     def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
@@ -37,7 +37,7 @@ class MagiskModules(wx.Dialog):
         vSizer.Add(message_sizer, 0, wx.EXPAND, 5)
 
         list_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.list  = TestListCtrl(self, -1, style = wx.LC_REPORT)
+        self.list  = ListCtrl(self, -1, style = wx.LC_REPORT)
 
         device = get_phone()
         modules = device.magisk_detailed_modules
@@ -95,6 +95,8 @@ class MagiskModules(wx.Dialog):
         self.SetSizerAndFit(vSizer)
         a = self.list.GetViewRect()
         self.SetSize(vSizer.MinSize.Width + 120, vSizer.MinSize.Height + 140)
+
+        print("\nOpening Magisk Modules Manager ...")
 
     # -----------------------------------------------
     #                  __del__

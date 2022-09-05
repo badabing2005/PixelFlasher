@@ -15,6 +15,14 @@ class Magisk():
 
 
 # ============================================================================
+#                               Class MagiskApk
+# ============================================================================
+class MagiskApk():
+    def __init__(self, type):
+        self.type = type
+
+
+# ============================================================================
 #                               Class Device
 # ============================================================================
 class Device():
@@ -38,6 +46,7 @@ class Device():
         self._magisk_modules = None
         self._magisk_detailed_modules = None
         self._magisk_modules_summary = None
+        self._magisk_apks = None
 
     # ----------------------------------------------------------------------------
     #                               property root_symbol
@@ -62,12 +71,22 @@ class Device():
         if self._magisk_version is None:
             if self.mode == 'adb':
                 if self.rooted:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/magisk/magisk32 -c\'\""
-                    res = run_shell(theCmd)
-                    if res.returncode == 0:
-                        self._magisk_version = res.stdout
+                    try:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk -c\'\""
+                        res = run_shell(theCmd)
+                        if res.returncode == 0:
+                            self._magisk_version = res.stdout
+                    except:
+                        try:
+                            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/magisk/magisk32 -c\'\""
+                            res = run_shell(theCmd)
+                            if res.returncode == 0:
+                                self._magisk_version = res.stdout
+                        except:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
+                            self._rooted = None
                 else:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package com.topjohnwu.mag | grep versionName"
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package com.topjohnwu.magisk | grep versionName"
                     res = run_shell(theCmd)
                     version = res.stdout.split('\n')
                     version = version[0].split('=')
@@ -79,6 +98,13 @@ class Device():
         return self._magisk_version.strip('\n')
 
     # ----------------------------------------------------------------------------
+    #                               Method get_uncached_magisk_version
+    # ----------------------------------------------------------------------------
+    def get_uncached_magisk_version(self):
+        self._magisk_version is None
+        return self.magisk_version
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_modules
     # ----------------------------------------------------------------------------
     @property
@@ -86,10 +112,15 @@ class Device():
         if self._magisk_modules is None:
             if self.mode == 'adb':
                 if self.rooted:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
-                    res = run_shell(theCmd)
-                    if res.returncode == 0:
-                        self._magisk_modules = res.stdout.split('\n')
+                    try:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
+                        res = run_shell(theCmd)
+                        if res.returncode == 0:
+                            self._magisk_modules = res.stdout.split('\n')
+                    except:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk modules, assuming that it is not rooted.")
+                        self._rooted = None
+                        self._magisk_modules = ''
                 else:
                     self._magisk_modules = ''
         return self._magisk_modules
@@ -141,6 +172,61 @@ class Device():
                 self._magisk_detailed_modules is None
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing\nException: {e}")
         return self._magisk_detailed_modules
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_apks
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_apks(self):
+        if self._magisk_apks is None:
+            try:
+                apks = []
+                list = ['stable', 'beta', 'canary', 'debug']
+                for i in list:
+                    apk = self.get_magisk_apk_details(i)
+                    apks.append(apk)
+                self._magisk_apks = apks
+            except Exception as e:
+                self._magisk_apks is None
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links processing\nException: {e}")
+        return self._magisk_apks
+
+    # ----------------------------------------------------------------------------
+    #                               Function get_magisk_apk_details
+    # ----------------------------------------------------------------------------
+    def get_magisk_apk_details(self, channel):
+        if channel == 'stable':
+            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/stable.json"
+        elif channel == 'beta':
+            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/beta.json"
+        elif channel == 'canary':
+            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/canary.json"
+        elif channel == 'debug':
+            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/debug.json"
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
+            return
+        try:
+            payload={}
+            headers = {
+                'Content-Type': "application/json"
+            }
+            response = requests.request("GET", url, headers=headers, data=payload)
+            response.raise_for_status()
+            data = response.json()
+            ma = MagiskApk(channel)
+            setattr(ma, 'version', data['magisk']['version'])
+            setattr(ma, 'versionCode', data['magisk']['versionCode'])
+            setattr(ma, 'link', data['magisk']['link'])
+            note_link = data['magisk']['note']
+            setattr(ma, 'note_link', note_link)
+            # Get the note contents
+            headers = {}
+            response = requests.request("GET", note_link, headers=headers, data=payload)
+            setattr(ma, 'release_notes', response.text)
+            return ma
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links processing\nException: {e}")
 
     # ----------------------------------------------------------------------------
     #                               property magisk_modules_summary
@@ -417,6 +503,34 @@ class Device():
             return res
 
     # ----------------------------------------------------------------------------
+    #                               Method install_apk
+    # ----------------------------------------------------------------------------
+    def install_apk(self, app, fastboot_included = False):
+        if self.mode == 'adb' and get_adb():
+            print(f"Installing {app} on device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} install {app}"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            if res.returncode != 0:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an errorwhile installing {app}")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+            else:
+                print(f"{res.stdout}")
+            return res
+        if self.mode == 'f.b' and fastboot_included and get_fastboot():
+            print("Device is in fastboot mode, will reboot to system and wait 60 seconds for system to load before installing ...")
+            self.reboot_system()
+            time.sleep(60)
+            res = self.refresh_phone_mode()
+            if self.mode == 'adb' and get_adb():
+                res = self.install_apk(app)
+            else:
+                print(f"Please perform the install again when the device is in adb mode.")
+            return res
+
+    # ----------------------------------------------------------------------------
     #                               Method set_active
     # ----------------------------------------------------------------------------
     def set_active_slot(self, slot):
@@ -507,12 +621,12 @@ class Device():
             res = run_shell(theCmd)
             return res
         elif self.mode == 'f.b' and get_fastboot():
-            theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot reboot_system"
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
             debug(theCmd)
             res = run_shell(theCmd)
-            print("Waiting 5 seconds ...")
-            time.sleep(5)
-            res = self.disable_magisk_modules(self)
+            print("Waiting 15 seconds ...")
+            time.sleep(15)
+            res = self.disable_magisk_modules()
             return res
 
     # ----------------------------------------------------------------------------

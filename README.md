@@ -25,6 +25,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
     - What version of Magisk was used to patch it.
     - On what device it was patched.
     - Date of patching.
+  - Option to Live boot from a choice of boot.img.
 - Choose to keep data or wipe data while flashing.
 - Ability to flash even if multiple devices are connected to the computer.
 - Display information about the phone.
@@ -35,12 +36,18 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - Magisk version
   - List installed Magisk modules.
   - connection mode.
+- Magisk installation UI. Supported versions:
+  - stable
+  - beta
+  - canary
+  - debug
 - Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade. Display:
   - Name
   - Version
   - Description
   - Enabled / Disabled.
-- Display Android Platform Tools (SDK) version.
+- Display Android Platform Tools (SDK) version and warn / block if the version is old.
+- Install APK file from the computer onto the device.
 - Advanced features are hidden to keep the interface simple and easy to follow.
 - A lot of checks and validations for smooth operation.
 - Automatic check for program updates.
@@ -207,7 +214,7 @@ You've been warned!
     - Flash Mode is similar to basic flash mode described above in step 7.  
 4. Custom Flash. select this to switch from flashing a Factory Image to flashing a single file.
 5. Browse to select a a valid image file (.img or .zip).
-Or select a boot.img from the list above and click on the paste button to paste the selected boot.img into the file selection. 
+Or select a boot.img from the list above and click on the paste button to paste the selected boot.img into the file selection.
 Choose the dropdown to select image type.  
     - boot (can be flashed to Live or boot) - Expected file type .img
     - bootloader - Expected file type .img

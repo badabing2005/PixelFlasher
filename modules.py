@@ -1,28 +1,28 @@
 #!/usr/bin/env python
 
-import os
-import subprocess
-import re
-import wx
-import time
-import shutil
-import ntpath
-import sys
-import math
+import contextlib
 import hashlib
-import requests
+import math
+import ntpath
+import os
+import re
+import shutil
 import sqlite3 as sl
-
-from config import VERSION
-from config import SDKVERSION
-from runtime import *
-from platformdirs import *
-from message_box import MessageBox
+import subprocess
+import sys
+import time
 from datetime import datetime
-from phone import get_connected_devices
-from packaging.version import parse
 from urllib.parse import urlparse
+
+import wx
+from packaging.version import parse
+from platformdirs import *
+
+from config import SDKVERSION, VERSION
 from magisk_downloads import MagiskDownloads
+from message_box import MessageBox
+from phone import get_connected_devices
+from runtime import *
 
 
 # ============================================================================
@@ -89,7 +89,7 @@ def check_platform_tools(self):
         adb = which(adb_binary)
         if adb:
             folder_path = os.path.dirname(adb)
-            print("Found Android Platform Tools in %s" % folder_path)
+            print(f"Found Android Platform Tools in {folder_path}")
             adb = os.path.join(folder_path, adb_binary)
             fastboot = os.path.join(folder_path, fastboot_binary)
             set_adb(adb)
@@ -105,13 +105,11 @@ def check_platform_tools(self):
                 set_fastboot(None)
         else:
             print("Android Platform Tools is not found.")
-    try:
+    with contextlib.suppress(Exception):
         if self.config.platform_tools_path:
             self.platform_tools_picker.SetPath(self.config.platform_tools_path)
         else:
             self.platform_tools_picker.SetPath('')
-    except:
-        pass
     identify_sdk_version(self)
 
 
@@ -201,7 +199,7 @@ def populate_boot_list(self):
 def identify_sdk_version(self):
     sdk_version = None
     # Let's grab the adb version
-    try:
+    with contextlib.suppress(Exception):
         if get_adb():
             theCmd = f"\"{get_adb()}\" --version"
             response = run_shell(theCmd)
@@ -219,7 +217,7 @@ def identify_sdk_version(self):
                             result = dlg.ShowModal()
                             if result == wx.ID_YES:
                                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted older version {sdk_version} of Android platform tools.")
-                                self.reload_button.Enable(True)
+                                self.scan_button.Enable(True)
                                 self.device_choice.Enable(True)
                                 return
                             else:
@@ -227,15 +225,13 @@ def identify_sdk_version(self):
                                 print("Please update Android SDK.\n")
                                 break
                         else:
-                            self.reload_button.Enable(True)
+                            self.scan_button.Enable(True)
                             self.device_choice.Enable(True)
                             return
-    except:
-        pass
     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version is not available or is too old.")
     print("                           For your protection, disabling device selection.")
     print("                           Please select valid Android SDK.\n")
-    self.reload_button.Enable(False)
+    self.scan_button.Enable(False)
     self.config.device = None
     self.device_choice.SetItems([''])
     self.device_choice.Select(0)
@@ -294,7 +290,7 @@ def delete_all(dir):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+            print(f"Failed to delete {file_path}. Reason: {e}")
 
 
 # ============================================================================
@@ -302,7 +298,7 @@ def delete_all(dir):
 # ============================================================================
 def debug(message):
     if get_verbose():
-        print("debug: %s" % message)
+        print(f"debug: {message}")
 
 
 # ============================================================================
@@ -330,18 +326,18 @@ def run_shell2(cmd):
         pass
 
     response = obj()
-    proc = subprocess.Popen("%s" % cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1')
+    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1')
+
     print
     stdout = ''
     while True:
         line = proc.stdout.readline()
         wx.Yield()
-        if line.strip() == "":
-            pass
-        else:
+        if line.strip() != "":
             print(line.strip())
             stdout += line
-        if not line: break
+        if not line:
+            break
     proc.wait()
     response.stdout = stdout
     return response
@@ -359,31 +355,43 @@ def md5(fname):
 
 
 # ============================================================================
+#                               Function sha1
+# ============================================================================
+def sha1(fname):
+    hash_sha1 = hashlib.sha1()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha1.update(chunk)
+    return hash_sha1.hexdigest()
+
+
+# ============================================================================
 #                               Function get_code_page
 # ============================================================================
 def get_code_page():
-    if sys.platform == "win32":
-        cp = get_system_codepage()
-        if cp:
-            print(f"Active code page: {cp}")
-        else:
-            theCmd = "chcp"
-            res = run_shell(theCmd)
-            if res.returncode == 0:
-                # extract the code page portion
-                try:
-                    debug(f"CP: {res.stdout}")
-                    cp = res.stdout.split(":")
-                    cp = cp[1].strip()
-                    cp = int(cp.replace('.',''))
-                    print(f"Active code page: {cp}")
-                    set_system_codepage(cp)
-                except:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
-                    print(f"{res.stderr}")
-                    print(f"{res.stdout}")
-            else:
+    if sys.platform != "win32":
+        return
+    cp = get_system_codepage()
+    if cp:
+        print(f"Active code page: {cp}")
+    else:
+        theCmd = "chcp"
+        res = run_shell(theCmd)
+        if res.returncode == 0:
+            # extract the code page portion
+            try:
+                debug(f"CP: {res.stdout}")
+                cp = res.stdout.split(":")
+                cp = cp[1].strip()
+                cp = int(cp.replace('.',''))
+                print(f"Active code page: {cp}")
+                set_system_codepage(cp)
+            except Exception:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+                print(f"{res.stderr}")
+                print(f"{res.stdout}")
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
 
 
 # ============================================================================
@@ -419,10 +427,10 @@ def create_support_zip():
 
     # if a previous support dir exist delete it allong with support.zip
     if os.path.exists(support_dir_full):
-        debug(f"Deleting old support files ...")
+        debug("Deleting old support files ...")
         delete_all(support_dir_full)
     if os.path.exists(support_zip):
-        debug(f"Deleting old support.zip ...")
+        debug("Deleting old support.zip ...")
         os.remove(support_zip)
 
     # create support folder if it does not exist
@@ -435,7 +443,7 @@ def create_support_zip():
         debug(f"Copying {to_copy} to {support_dir_full}")
         shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
     # copy PixelFlasher.db to tmp\support folder
-    to_copy = os.path.join(config_path, 'PixelFlasher.db')
+    to_copy = os.path.join(config_path, get_pf_db())
     if os.path.exists(to_copy):
         debug(f"Copying {to_copy} to {support_dir_full}")
         shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
@@ -451,14 +459,14 @@ def create_support_zip():
         theCmd = f"dir /s /b {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
     else:
         theCmd = f"ls -lR {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
-    debug("%s" % theCmd)
+    debug(f"{theCmd}")
     res = run_shell(theCmd)
 
     # sanitize json
     file_path = os.path.join(support_dir_full, 'PixelFlasher.json')
     if os.path.exists(file_path):
         sanitize_file(file_path)
-    # sanitize json
+    # sanitize files.txt
     file_path = os.path.join(support_dir_full, 'files.txt')
     if os.path.exists(file_path):
         sanitize_file(file_path)
@@ -470,7 +478,7 @@ def create_support_zip():
             sanitize_file(file_path)
 
     # sanitize db
-    file_path = os.path.join(support_dir_full, 'PixelFlasher.db')
+    file_path = os.path.join(support_dir_full, get_pf_db())
     if os.path.exists(file_path):
         sanitize_db(file_path)
 
@@ -484,9 +492,8 @@ def create_support_zip():
 # ============================================================================
 def sanitize_file(filename):
     debug(f"Santizing {filename} ...")
-    fin = open(filename, "rt", encoding='ISO-8859-1')
-    data = fin.read()
-    fin.close()
+    with open(filename, "rt", encoding='ISO-8859-1') as fin:
+        data = fin.read()
     data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
     data = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
     data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
@@ -498,9 +505,8 @@ def sanitize_file(filename):
     data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    fin = open(filename, "wt", encoding='ISO-8859-1')
-    fin.write(data)
-    fin.close()
+    with open(filename, "wt", encoding='ISO-8859-1') as fin:
+        fin.write(data)
 
 
 # ============================================================================
@@ -538,7 +544,7 @@ def set_flash_button_state(self):
             self.flash_button.Enable()
         else:
             self.flash_button.Disable()
-    except:
+    except Exception:
         self.flash_button.Disable()
 
 
@@ -561,7 +567,7 @@ def select_firmware(self):
         else:
             try:
                 set_firmware_model(firmware[0])
-                set_firmware_id(firmware[0] + "-" + firmware[1])
+                set_firmware_id(f"{firmware[0]}-{firmware[1]}")
             except Exception as e:
                 set_firmware_model(None)
                 set_firmware_id(filename)
@@ -586,7 +592,7 @@ def process_file(self, file_type):
     print("==============================================================================")
     config_path = get_config_path()
     path_to_7z = get_path_to_7z()
-    boot_images = os.path.join(config_path, 'boot_images')
+    boot_images = os.path.join(config_path, get_boot_images_dir())
     tmp_dir_full = os.path.join(config_path, 'tmp')
     con = get_db()
     con.execute("PRAGMA foreign_keys = ON")
@@ -601,7 +607,7 @@ def process_file(self, file_type):
         package_sig = get_firmware_id()
         package_dir_full = os.path.join(factory_images, package_sig)
         # Unzip the factory image
-        image_file_path = os.path.join(package_dir_full, 'image-' + package_sig + ".zip")
+        image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
         debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
         theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
         debug(theCmd)
@@ -634,8 +640,8 @@ def process_file(self, file_type):
 
     # extract boot.img
     debug(f"Extracting boot.img from {image_file_path} ...")
-    theCmd = "\"%s\" x -bd -y -o\"%s\" \"%s\" boot.img" % (path_to_7z, tmp_dir_full, image_file_path)
-    debug("%s" % theCmd)
+    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" boot.img"
+    debug(f"{theCmd}")
     res = run_shell(theCmd)
     # expect ret 0
     if res.returncode != 0:
@@ -652,8 +658,8 @@ def process_file(self, file_type):
         return
 
     # get the checksum of the boot.img
-    checksum = md5(os.path.join(boot_img_file))
-    debug(f"md5 of boot.img: {checksum}")
+    checksum = sha1(os.path.join(boot_img_file))
+    debug(f"sha1 of boot.img: {checksum}")
 
     # if a matching boot.img is not found, store it.
     cached_boot_img_dir_full = os.path.join(boot_images, checksum)
@@ -662,15 +668,15 @@ def process_file(self, file_type):
     if not os.path.exists(cached_boot_img_dir_full):
         os.makedirs(cached_boot_img_dir_full, exist_ok=True)
     if not os.path.exists(cached_boot_img_path):
-        debug(f"Cached copy of boot.img with md5: {checksum} was not found.")
+        debug(f"Cached copy of boot.img with sha1: {checksum} was not found.")
         debug(f"Copying {image_file_path} to {cached_boot_img_dir_full}")
         shutil.copy(boot_img_file, cached_boot_img_dir_full, follow_symlinks=True)
     else:
-        debug(f"Found a cached copy of {file_type} boot.img md5={checksum}")
+        debug(f"Found a cached copy of {file_type} boot.img sha1={checksum}")
 
     # create PACKAGE db record
     sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
-    data = (checksum, file_type, package_sig, file_to_process, time.time())
+    data = checksum, file_type, package_sig, file_to_process, time.time()
     try:
         cursor.execute(sql, data)
         con.commit()
@@ -685,7 +691,7 @@ def process_file(self, file_type):
 
     # create BOOT db record
     sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-    data = (checksum, cached_boot_img_path, 0, '', '', time.time())
+    data = checksum, cached_boot_img_path, 0, '', '', time.time()
     try:
         cursor.execute(sql, data)
         con.commit()
@@ -713,7 +719,7 @@ def process_file(self, file_type):
     if package_id > 0 and boot_id > 0:
         debug(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
         sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
-        data = (package_id, boot_id, time.time())
+        data = package_id, boot_id, time.time()
         try:
             cursor.execute(sql, data)
             con.commit()
@@ -726,7 +732,7 @@ def process_file(self, file_type):
     set_db(con)
     populate_boot_list(self)
     end_1 = time.time()
-    print("Process %s time: %s seconds" % (file_type, math.ceil(end_1 - start_1)))
+    print(f"Process {file_type} time: {math.ceil(end_1 - start_1)} seconds")
     print("------------------------------------------------------------------------------\n")
 
 
@@ -841,6 +847,353 @@ def process_flash_all_file(filepath):
 
 
 # ============================================================================
+#                               Function get_ui_cooridnates
+# ============================================================================
+def get_ui_cooridnates(xmlfile, search):
+    with open(xmlfile, "r", encoding='ISO-8859-1') as fin:
+        data = fin.read()
+    regex = re.compile(f"{search}.*?bounds\=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\".+")
+    m = re.findall(regex, data)
+    if m:
+        debug(f"Found Bounds: {m[0][0]} {m[0][1]} {m[0][2]} {m[0][3]}")
+        x = (int(m[0][0]) + int(m[0][2])) / 2
+        y = (int(m[0][1]) + int(m[0][3])) / 2
+        debug(f"Click Coordinates: {int(x)} {int(y)}")
+        return f"{x} {y}"
+
+
+# ============================================================================
+#                               Function extract_sha1
+# ============================================================================
+def extract_sha1(binfile):
+    with open(binfile, 'rb') as f:
+        s = f.read()
+        # Find SHA1=
+        pos = s.find(b'\x53\x48\x41\x31\x3D')
+        # Move to that location
+        if pos != -1:
+            # move to 5 characters from the found position
+            f.seek(pos + 5, 0)
+            # read 8 bytes
+            res = f.read(8)
+            return res.decode("utf-8")
+
+
+# ============================================================================
+#                               Function extract_fingerprint
+# ============================================================================
+def extract_fingerprint(binfile):
+    with open(binfile, 'rb') as f:
+        s = f.read()
+        # Find fingerprint=
+        pos = s.find(b'\x66\x69\x6E\x67\x65\x72\x70\x72\x69\x6E\x74')
+        # Move to that location
+        if pos != -1:
+            # move to 12 characters from the found position
+            f.seek(pos + 12, 0)
+            # read 65 bytes
+            res = f.read(65)
+            return res.decode("utf-8")
+
+
+# ============================================================================
+#                               Function drive_magisk
+# ============================================================================
+def drive_magisk(self, boot_file_name):
+    start = time.time()
+    print("")
+    print("==============================================================================")
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Driving Magisk ")
+    print("==============================================================================")
+
+    device = get_phone()
+    config_path = get_config_path()
+
+    if not device.is_display_unlocked():
+        title = "Display is Locked!"
+        message =  "ERROR: Your phone display is Locked.\n\n"
+        message += "Make sure you unlock your display\n"
+        message += "And set the display timeout to at least 1 minute.\n\n"
+        message += "After doing so, Click OK to accept and continue.\n"
+        message += "or Hit CANCEL to abort."
+        print(message)
+        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            print("User pressed ok.")
+            if not device.is_display_unlocked():
+                print("ERROR: The device display is still Locked!\nAborting ...\n")
+                return 'ERROR'
+        else:
+            print("User pressed cancel.")
+            print("Aborting ...\n")
+            return 'ERROR'
+
+    # Get uiautomator dump of view1
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view1.xml"
+    debug(theCmd)
+    res = run_shell(theCmd)
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+        print(res.stderr)
+        return 'ERROR'
+
+    # Pull view1.xml
+    view1 = os.path.join(config_path, 'tmp', 'view1.xml')
+    print(f"Pulling {self.config.phone_path}/view1.xml from the phone ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view1.xml \"{view1}\""
+    debug(theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode == 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view1} from phone.")
+        print(res.stderr)
+        print("Aborting ...\n")
+        return 'ERROR'
+
+    # get view1 bounds / click coordinates
+    coords = get_ui_cooridnates(view1, "Install")
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Click on coordinates of `Install`
+    # For Pixel 6 this would be: adb shell input tap 830 417
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # Sleep 2 seconds
+    print("Sleeping 2 seconds to make sure the view is loaded ...")
+    time.sleep(2)
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Get uiautomator dump of view2
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view2.xml"
+    debug(theCmd)
+    res = run_shell(theCmd)
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+        print(res.stderr)
+        # print("Please launch Magisk manually.")
+        return 'ERROR'
+
+    # Pull view2.xml
+    view2 = os.path.join(config_path, 'tmp', 'view2.xml')
+    print(f"Pulling {self.config.phone_path}/view2.xml from the phone ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view2.xml \"{view2}\""
+    debug(theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode == 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view2} from phone.")
+        print(res.stderr)
+        print("Aborting ...\n")
+        return 'ERROR'
+
+    # get view2 bounds / click coordinates
+    coords = get_ui_cooridnates(view2, "Select and Patch a File")
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Click on coordinates of `Select and Patch a File`
+    # For Pixel 6 this would be: adb shell input tap 540 555
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # Sleep 2 seconds
+    print("Sleeping 2 seconds to make sure the view is loaded ...")
+    time.sleep(2)
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Get uiautomator dump of view3
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view3.xml"
+    debug(theCmd)
+    res = run_shell(theCmd)
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+        print(res.stderr)
+        return 'ERROR'
+
+    # Pull view3.xml
+    view3 = os.path.join(config_path, 'tmp', 'view3.xml')
+    print(f"Pulling {self.config.phone_path}/view3.xml from the phone ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view3.xml \"{view3}\""
+    debug(theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode == 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view3} from phone.")
+        print(res.stderr)
+        print("Aborting ...\n")
+        return 'ERROR'
+
+    # get view3 bounds / click coordinates
+    coords = get_ui_cooridnates(view3, "Search this phone")
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Click on coordinates of `Search this phone`
+    # For Pixel 6 this would be: adb shell input tap 574 210
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # Sleep 2 seconds
+    print("Sleeping 2 seconds to make sure the view is loaded ...")
+    time.sleep(2)
+
+    # Type the boot_file_name to search for it
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input text {boot_file_name}"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # Sleep 1 seconds
+    print("Sleeping 1 seconds to make sure the view is loaded ...")
+    time.sleep(1)
+
+    # Hit Enter to search
+    print("Hitting Enter to search")
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input keyevent 66"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # Sleep 1 seconds
+    print("Sleeping 1 seconds to make sure the view is loaded ...")
+    time.sleep(1)
+
+    # Hit Enter to Select it
+    print("Hitting Enter to select")
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input keyevent 66"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # Sleep 2 seconds
+    print("Sleeping 2 seconds to make sure the view is loaded ...")
+    time.sleep(2)
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Get uiautomator dump of view4
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view4.xml"
+    debug(theCmd)
+    res = run_shell(theCmd)
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+        print(res.stderr)
+        return 'ERROR'
+
+    # Pull view4.xml
+    view4 = os.path.join(config_path, 'tmp', 'view4.xml')
+    print(f"Pulling {self.config.phone_path}/view4.xml from the phone ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view4.xml \"{view4}\""
+    debug(theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode == 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view4} from phone.")
+        print(res.stderr)
+        print("Aborting ...\n")
+        return 'ERROR'
+
+    # get view4 bounds / click coordinates
+    coords = get_ui_cooridnates(view4, "LET'S GO")
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Click on coordinates of `LET'S GO`
+    # For Pixel 6 this would be: adb shell input tap 839 417
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # Sleep 2 seconds
+    print("Sleeping 2 seconds to make sure the view is loaded ...")
+    time.sleep(2)
+
+    # Sleep 10 seconds
+    print("Sleeping 10 seconds to make sure Patching is completed ...")
+    time.sleep(10)
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Get uiautomator dump of view5
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view5.xml"
+    debug(theCmd)
+    res = run_shell(theCmd)
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+        print(res.stderr)
+        return 'ERROR'
+
+    # Pull view5.xml
+    view5 = os.path.join(config_path, 'tmp', 'view5.xml')
+    print(f"Pulling {self.config.phone_path}/view5.xml from the phone ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view5.xml \"{view5}\""
+    debug(theCmd)
+    res = run_shell(theCmd)
+    # expect ret 0
+    if res.returncode == 1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view5} from phone.")
+        print(res.stderr)
+        print("Aborting ...\n")
+        return 'ERROR'
+
+    # get view5 bounds / click coordinates (Save button)
+    coords = get_ui_cooridnates(view5, "com.topjohnwu.magisk:id/action_save")
+
+    # Check for Display being locked again
+    if not device.is_display_unlocked():
+        print("ERROR: The device display is Locked!\nAborting ...\n")
+        return 'ERROR'
+
+    # Click on coordinates of `com.topjohnwu.magisk:id/action_save`
+    # For Pixel 6 this would be: adb shell input tap 1010 198
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+    debug(theCmd)
+    res = run_shell(theCmd)
+
+    # get view5 bounds / click coordinates (All Done)
+    coords = None
+    coords = get_ui_cooridnates(view5, "- All done!")
+    if coords:
+        print("\nIt looks liks Patching was successful.")
+    else:
+        print("\nIt looks liks Patching was not successful.")
+
+    end = time.time()
+    print(f"Magisk Version: {device.magisk_version}")
+    print(f"Driven Patch time: {math.ceil(end - start)} seconds")
+    print("------------------------------------------------------------------------------\n")
+
+
+# ============================================================================
 #                               Function patch_boot_img
 # ============================================================================
 def patch_boot_img(self):
@@ -873,15 +1226,17 @@ def patch_boot_img(self):
     # Make sure the phone is in adb mode.
     if device.mode != 'adb':
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {device.id} is not in adb mode.")
-        print(f"Perhaps a refresh is necessary?")
+        print("Perhaps a Scan is necessary?")
         print("Aborting ...\n")
         return
 
     start = time.time()
 
     boot = get_boot()
+    boot_img = f"boot_{boot.boot_hash[:8]}.img"
+    magisk_patched_img = f"magisk_patched_{boot.boot_hash[:8]}.img"
     config_path = get_config_path()
-    boot_images = os.path.join(config_path, 'boot_images')
+    boot_images = os.path.join(config_path, get_boot_images_dir())
     tmp_dir_full = os.path.join(config_path, 'tmp')
 
     # delete all files in tmp folder to make sure we're dealing with new files only.
@@ -918,8 +1273,8 @@ def patch_boot_img(self):
             return
 
     # delete existing boot.img from phone
-    print("Deleting boot.img from phone in %s ..." % (self.config.phone_path))
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell rm -f {self.config.phone_path}/boot.img"
+    print(f"Deleting {boot_img} from phone in {self.config.phone_path} ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell rm -f {self.config.phone_path}/{boot_img}"
     res = run_shell(theCmd)
     # expect ret 0
     if res.returncode != 0:
@@ -931,20 +1286,20 @@ def patch_boot_img(self):
         return
 
     # check if delete worked.
-    print("Making sure boot.img is not on the phone in %s ..." % (self.config.phone_path))
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/boot.img"
+    print(f"Making sure {boot_img} is not on the phone in {self.config.phone_path} ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/{boot_img}"
     res = run_shell(theCmd)
     # expect ret 1
     if res.returncode != 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img Delete Failed!")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} Delete Failed!")
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
         print("Aborting ...\n")
         return
 
-    # delete existing magisk_patched.img from phone
-    print("Deleting magisk_patched.img from phone in %s ..." % (self.config.phone_path))
+    # delete existing magisk_patched*.img from phone
+    print(f"Deleting magisk_patched*.img from phone in {self.config.phone_path} ...")
     theCmd = f"\"{get_adb()}\" -s {device.id} shell rm -f {self.config.phone_path}/magisk_patched*.img"
     res = run_shell(theCmd)
     # expect ret 0
@@ -957,12 +1312,12 @@ def patch_boot_img(self):
         return
 
     # check if delete worked.
-    print("Making sure magisk_patched.img is not on the phone in %s ..." % (self.config.phone_path))
+    print(f"Making sure magisk_patched*.img is not on the phone in {self.config.phone_path} ...")
     theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/magisk_patched*.img"
     res = run_shell(theCmd)
     # expect ret 1
     if res.returncode != 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched.img delete failed!")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img delete failed!")
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
@@ -970,9 +1325,9 @@ def patch_boot_img(self):
         return
 
     # Transfer boot image to the phone
-    print("Transfering boot.img to the phone in %s ..." % (self.config.phone_path))
-    theCmd = f"\"{get_adb()}\" -s {device.id} push \"{boot.boot_path}\" {self.config.phone_path}/boot.img"
-    debug("%s" % theCmd)
+    print(f"Transfering {boot_img} to the phone in {self.config.phone_path} ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} push \"{boot.boot_path}\" {self.config.phone_path}/{boot_img}"
+    debug(theCmd)
     res = run_shell(theCmd)
     # expect ret 0
     if res.returncode != 0:
@@ -986,20 +1341,67 @@ def patch_boot_img(self):
         print(res.stdout)
 
     # check if transfer worked.
-    print("Making sure boot.img is found on the phone in %s ..." % (self.config.phone_path))
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/boot.img"
+    print(f"Making sure {boot_img} is found on the phone in {self.config.phone_path} ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/{boot_img}"
     res = run_shell(theCmd)
     # expect 0
     if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found!")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} is not found!")
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
         print("Aborting ...\n")
         return
 
-    if not device.rooted:
-        print("Magisk Tools not found on the phone")
+    if device.rooted:
+        # Compare installed Magisk version with Magisk Manager version, and if it is older
+        # Warn the user about rare situation where patching through the app would be preferable
+        # if the user chooses that option, jump to the manual mode
+        boot_patch_mode = True
+        if device.magisk_version and device.magisk_app_version and device.magisk_version !=device.magisk_app_version:
+            with contextlib.suppress(Exception):
+                magisk_version = device.magisk_version.split(':')[1]
+                magisk_app_version = device.magisk_app_version.split(':')[1]
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Magisk Version is different than Magisk Manager version")
+                print(f"  Magisk Manager Version: {device.magisk_app_version}")
+                print(f"  Magisk Version:         {device.magisk_version}")
+                if magisk_app_version > magisk_version:
+                    # Message to warn magisk version mismatch.
+                    title = "Magisk version mismatch"
+                    message =  f"WARNING: Magisk version {magisk_version} is older than Magisk Manager version {magisk_app_version}\n\n"
+                    message += "PixelFlasher can patch boot.img using Magisk in one of two ways.\n"
+                    message += "1- Using boot_patch which utilizes Magisk Tools (only available when the device is rooted)\n"
+                    message += "    This is the recommended patch mechanism if the device is rooted.\n"
+                    message += "2- Using Magisk Manager UI Application, which appears to be a newer version in this case.\n"
+                    message += "\n"
+                    message += "Patching using boot_patch is almost always the preferable method and not an issue.\n"
+                    message += "In very rare cases where the newer Magisk Manager addresses a bug or a limitation,\n"
+                    message += "patching in Magisk Manager UI is advised.\n"
+                    message += f"Please check the Magisk release notes to decide if release {magisk_app_version} falls into that category.\n"
+                    message += "\n"
+                    message += f"Do you want to continue patching through boot_patch {magisk_version}?\n"
+                    message += "Click OK to continue.\n"
+                    message += "or\n"
+                    message += f"Cancel to proceed with Magisk Manager UI patching {magisk_app_version}.\n"
+                    message += "(Pixel Flasher guide/drive the process)\n"
+                    print(message)
+                    dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+                    result = dlg.ShowModal()
+                    if result == wx.ID_OK:
+                        print("User Pressed Ok to patch using boot_patch.")
+                    else:
+                        boot_patch_mode = False
+                        print("User selected Magisk Manager (UI) option.")
+    else:
+        print("Rooted Magisk (boot_patch) is not found on the phone")
+    if boot_patch_mode:
+        startPatch = time.time()
+        print(f"Detected a rooted phone with Magisk Tools: {device.magisk_version}")
+        print("Creating patched boot.img ...")
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/{boot_img}; mv ./data/adb/magisk/new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
+        res = run_shell2(theCmd)
+        endPatch = time.time()
+    else:
         # Check to see if Magisk is installed
         print("Looking for Magisk app ...")
         if not device.magisk_version:
@@ -1036,54 +1438,67 @@ def patch_boot_img(self):
                 try:
                     magisk_version = device.get_uncached_magisk_version()
                     if magisk_version:
-                        # Magisk is on the system
                         print(f"Found Magisk version {magisk_version} on the phone.")
-                        print("Launching Magisk ...")
-                        theCmd = f"\"{get_adb()}\" -s {device.id} shell monkey -p {get_magisk_package()} -c android.intent.category.LAUNCHER 1"
-                        res = run_shell(theCmd)
-                        if res.returncode != 0:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
-                            print(res.stderr)
-                            print("Please launch Magisk manually.")
-                        else:
-                            print("Magisk should now be running on the phone.")
-                except:
+                except Exception:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
                     print("Aborting ...\n")
                     return
             else:
                 # not ok to download and install, (Magisk is hidden option)
                 print("User pressed cancel for downloading and installing Magisk to proceed with manually launching Magisk")
+        else:
+            print(f"Found Magisk version {device.magisk_version} on the phone.")
+        # Magisk is on the system
+        # Before launching Magisk, let's stop it in case it is in a specific screen, this way when we launch it, it will be on the main screen.
+        device.stop_magisk()
+        print("Launching Magisk ...")
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell monkey -p {get_magisk_package()} -c android.intent.category.LAUNCHER 1"
+        res = run_shell(theCmd)
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
+            print(res.stderr)
+            print("Please launch Magisk manually.")
+        else:
+            print("Magisk should now be running on the phone.")
         # Message Dialog Here to Patch Manually
-        title = "Patching in Magisk manually."
+        title = "Drive Magisk UI?"
         message =  "Magisk should now be running on your phone.\n\n"
         message += "If it is not, you  can try starting it manually\n\n"
-        message += "Please follow these steps in Magisk.\n"
-        message += "- Click on `Install` and choose\n"
-        message += "- `Select and patch a file`\n"
-        message += "- select boot.img in %s \n" % self.config.phone_path
-        message += "- Then hit `LET's GO`\n\n"
-        message += "Click OK when done to continue.\n"
-        message += "Hit CANCEL to abort."
+        message += "At this point you can either let PixelFlasher drive the Magisk UI automatically.\n"
+        message += "Or choose to do the manual patching yourself\n\n"
+        message += "Do you want PixelFlasher to drive the magisk UI?"
+        message += "Click OK to let PixelFlasher do the job.\n"
+        message += "Or Hit CANCEL to do it yourself (if you choose this option, instructions will be provided)."
         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             print("User Pressed Ok.")
+            res = drive_magisk(self, boot_img)
+            if res == 'ERROR':
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Sorry, automatic UI Driving of Magisk Failed.\nPlease try do to it manually.")
+                print("Aborting\n")
+                return
         else:
             print("User Pressed Cancel.")
-            print("Aborting ...\n")
-            return
-    else:
-        startPatch = time.time()
-        print(f"Detected a rooted phone with Magisk Tools: {device.magisk_version}")
-        print("Creating patched boot.img ...")
-        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/boot.img; mv ./data/adb/magisk/new-boot.img /sdcard/Download/magisk_patched.img\'\""
-        res = run_shell2(theCmd)
-        endPatch = time.time()
+            title = "Patching in Magisk manually."
+            message = "Please follow these steps in Magisk.\n"
+            message += "- Click on `Install` and choose\n"
+            message += "- `Select and patch a file`\n"
+            message += f"- select {boot_img} in {self.config.phone_path}\n"
+            message += "- Then hit `LET's GO`\n\n"
+            message += "Click OK when completely done to continue.\n"
+            message += "Hit CANCEL to abort."
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User Pressed Ok.")
+            else:
+                print("User Pressed Cancel.")
+                print("Aborting ...\n")
+                return
 
-    # check if magisk_patched.img got created.
-    print("")
-    print("Looking for magisk_patched.img in %s ..." % (self.config.phone_path))
+    # check if magisk_patched*.img got created.
+    print(f"\nLooking for magisk_patched*.img in {self.config.phone_path} ...")
     theCmd = f"\"{get_adb()}\" -s {device.id} shell ls {self.config.phone_path}/magisk_patched*.img"
     res = run_shell(theCmd)
     # expect ret 0
@@ -1094,37 +1509,60 @@ def patch_boot_img(self):
         return
     else:
         magisk_patched = res.stdout.strip()
-        print("Found %s" %magisk_patched)
+        print(f"Found {magisk_patched}")
 
-    # Transfer back boot.img
-    print("Pulling %s from the phone ..." % (magisk_patched))
-    theCmd = "\"%s\" -s %s pull %s \"%s\""  % (get_adb(), device.id, magisk_patched, os.path.join(tmp_dir_full, "magisk_patched.img"))
-    debug("%s" % theCmd)
+    # Transfer back magisk_patched.img
+    print(f"Pulling {magisk_patched} from the phone to: {magisk_patched_img} ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} pull {magisk_patched} \"{os.path.join(tmp_dir_full, magisk_patched_img)}\""
+    debug(theCmd)
     res = run_shell(theCmd)
     # expect ret 0
     if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull magisk_patched.img from phone.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {magisk_patched} from phone.")
         print(res.stderr)
         print("Aborting ...\n")
         return
 
     # get the checksum of the magisk_patched.img
-    magisk_patched_img_file = os.path.join(tmp_dir_full, "magisk_patched.img")
-    checksum = md5(os.path.join(magisk_patched_img_file))
-    print(f"md5 of magisk_patched.img: {checksum}")
+    magisk_patched_img_file = os.path.join(tmp_dir_full, magisk_patched_img)
+    checksum = sha1(os.path.join(magisk_patched_img_file))
+    print(f"sha1 of {magisk_patched_img}: {checksum}")
+
+    # Extarct sha1 from the patched image
+    print(f"Extracting SHA1 from {magisk_patched_img} ...")
+    patched_sha1 = extract_sha1(magisk_patched_img_file)
+
+    # get source boot.img sha1
+    boot_sha1 = sha1(boot.boot_path)[:8]
+    print("Getting SHA1 of source boot.img ...")
+
+    # compare it to the original boot.img file's sha1
+    print("Comparing the two SHA1s ...")
+    if not patched_sha1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} NOTICE: The patched image file does not contain source boot's SHA1")
+        print("                            This is normal for older devices, but newer deviced should have it.")
+        print("                            If you have a newer device, please double check if everything is ok.\n ")
+    elif patched_sha1 != boot_sha1:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Something is wrong with the patched filed.")
+        print(f"                           {magisk_patched_img} extracted sha1: {patched_sha1}")
+        print(f"                           boot.img sha1:                     {boot_sha1}")
+        print("                           They don't match.\nAborting\n")
+        return
+    else:
+        print(f"Good: Both SHA1s: {patched_sha1} match.")
 
     # if a matching magisk_patched.img is not found, store it.
     cached_boot_img_dir_full = os.path.join(boot_images, checksum)
-    cached_boot_img_path = os.path.join(cached_boot_img_dir_full, 'magisk_patched.img')
+    cached_boot_img_path = os.path.join(cached_boot_img_dir_full, magisk_patched_img)
     debug("Checking for cached copy of boot.img")
     if not os.path.exists(cached_boot_img_dir_full):
         os.makedirs(cached_boot_img_dir_full, exist_ok=True)
     if not os.path.exists(cached_boot_img_path):
-        debug(f"Cached copy of boot.img with md5: {checksum} was not found.")
+        debug(f"Cached copy of boot.img with sha1: {checksum} was not found.")
         debug(f"Copying {magisk_patched_img_file} to {cached_boot_img_dir_full}")
         shutil.copy(magisk_patched_img_file, cached_boot_img_dir_full, follow_symlinks=True)
     else:
-        debug(f"Found a cached copy of magisk_patched.img md5={checksum}")
+        debug(f"Found a cached copy of magisk_patched.img sha1={checksum}")
 
     # create BOOT db record
     con = get_db()
@@ -1161,8 +1599,8 @@ def patch_boot_img(self):
     populate_boot_list(self)
 
     end = time.time()
-    print("Magisk Version: %s"%(device.magisk_version))
-    print("Patch time: %s seconds"%(math.ceil(end - start)))
+    print(f"Magisk Version: {device.magisk_version}")
+    print(f"Patch time: {math.ceil(end - start)} seconds")
     print("------------------------------------------------------------------------------\n")
 
 
@@ -1207,17 +1645,17 @@ def live_boot_phone(self):
     if boot.boot_path:
         title = "Device / Boot Mismatch"
         message  = "Live Boot Flash Options:\n\n"
-        message += "Boot Hash:              %s\n" % str(boot.boot_hash)
-        message += "Hardware:               %s\n" % str(device.hardware)
+        message += f"Boot Hash:              {boot.boot_hash}\n"
+        message += f"Hardware:               {device.hardware}\n"
         if boot.is_patched == 1:
             message += "Patched:                Yes\n"
-            message += "With Magisk:            %s\n" % str(boot.magisk_version)
-            message += "Original boot.img from: %s\n" % str(boot.package_sig)
-            message += "Original boot.img Hash: %s\n" % str(boot.package_boot_hash)
+            message += f"With Magisk:            {boot.magisk_version}\n"
+            message += f"Original boot.img from: {boot.package_sig}\n"
+            message += f"Original boot.img Hash: {boot.package_boot_hash}\n"
         else:
             message += "Patched:                No\n"
         message += "boot.img path:\n"
-        message += "  %s\n" % str(boot.boot_path)
+        message += f"  {boot.boot_path}\n"
         message += "\nClick OK to accept and continue.\n"
         message += "or Hit CANCEL to abort."
         print(message)
@@ -1268,7 +1706,7 @@ def live_boot_phone(self):
             return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
-        print("Flashing Live elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        print(f"Flashing Live elapsed time: {math.ceil(endFlash - startFlash)} seconds")
         print("------------------------------------------------------------------------------\n")
         # clear the selected device option
         set_phone(None)
@@ -1301,6 +1739,31 @@ def flash_phone(self):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a firmware file.")
         return
 
+    if get_firmware_model() in ['raven', 'oriole', 'bluejay'] and device.api_level and int(device.api_level) < 33:
+        if not (self.config.advanced_options and self.config.flash_both_slots):
+            title = "Tensor device not on Android 13 or higher"
+            message =  f"WARNING: Your phone OS version is lower than Android 13.\n\n"
+            message += f"If you are upgrading to Android 13 or newer,\n"
+            message += "make sure you at least flash the bootloader to both slots.\n"
+            message += "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
+            message += "a bootloader update that increments the anti-roll back version for the bootloader.\n"
+            message += "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
+            message += "After flashing an Android 13 build on these devices\n"
+            message += "you will not be able to flash and boot older Android 12 builds.\n\n"
+            message += "Selecting the option 'Flash to both slots'\n"
+            message += "Will take care of that.\n\n"
+            message += "Click OK to continue as is.\n"
+            message += "or Hit CANCEL to abort and change options."
+            print(message)
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
+            else:
+                print("User pressed cancel.")
+                print("Aborting ...\n")
+                return
+
     cwd = os.getcwd()
     config_path = get_config_path()
     factory_images = os.path.join(config_path, 'factory_images')
@@ -1326,12 +1789,14 @@ def flash_phone(self):
             fastboot_options2 += '--verbose '
         if self.config.fastboot_force:
             fastboot_options2 += '--force '
-        message  = "Custom Flash Options:   %s\n" % str(self.config.advanced_options)
-        message += "Disable Verity:         %s\n" % str(self.config.disable_verity)
-        message += "Disable Verification:   %s\n" % str(self.config.disable_verification)
-        message += "Flash Both Slots:       %s\n" % str(self.config.flash_both_slots)
-        message += "Force:                  %s\n" % str(self.config.fastboot_force)
-        message += "Verbose Fastboot:       %s\n" % str(self.config.fastboot_verbose)
+        message  = f"Custom Flash Options:   {self.config.advanced_options}\n"
+        message += f"Disable Verity:         {self.config.disable_verity}\n"
+        message += f"Disable Verification:   {self.config.disable_verification}n"
+        message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
+        message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
+        message += f"Force:                  {self.config.fastboot_force}\n"
+        message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
+        message += f"Temporary Root:         {self.config.temporary_root}\n"
 
     if sys.platform == "win32":
         dest = os.path.join(package_dir_full, "flash-phone.bat")
@@ -1536,8 +2001,12 @@ def flash_phone(self):
         data += "echo Sleeping 5-10 seconds ...\n"
         data += sleep_line
         data += sleep_line
-        data += "echo flashing pf_boot ...\n"
-        data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
+        if self.config.temporary_root:
+            data += "echo Live booting to pf_boot (temporary root) ...\n"
+            data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
+        else:
+            data += "echo flashing pf_boot ...\n"
+            data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
         data += "echo rebooting to system ...\n"
         data += f"\"{get_fastboot()}\" -s {device.id} reboot"
 
@@ -1606,12 +2075,12 @@ def flash_phone(self):
         theCmd = dest
         os.chdir(package_dir_full)
         debug(f"Running in Directory: {package_dir_full}")
-        theCmd = "\"%s\"" % theCmd
+        theCmd = f"\"{theCmd}\""
         debug(theCmd)
         run_shell2(theCmd)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
-        print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
         print("------------------------------------------------------------------------------\n")
         os.chdir(cwd)
         return
@@ -1629,7 +2098,23 @@ def flash_phone(self):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
         return
 
-    if not device.unlocked:
+    # If flashing to inactive slot
+    if self.config.advanced_options and self.config.flash_to_inactive_slot and self.config.flash_mode != 'dryRun':
+        print(f"Switching to inactive slot")
+        theCmd = f"\"{get_fastboot()}\" -s {device.id} --set-active=other"
+        debug(theCmd)
+        device.reboot_bootloader()
+        print("Waiting 5 seconds ...")
+        time.sleep(5)
+        self.device_choice.SetItems(get_connected_devices())
+        self._select_configured_device()
+
+    device = get_phone()
+    if not device:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
+        return
+
+    if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD')):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
         print("Aborting ...\n")
         return
@@ -1662,12 +2147,12 @@ def flash_phone(self):
 
         theCmd = dest
         os.chdir(package_dir_full)
-        theCmd = "\"%s\"" % theCmd
+        theCmd = f"\"{theCmd}\""
         debug(theCmd)
         run_shell2(theCmd)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
-        print("Flashing elapsed time: %s seconds"%(math.ceil(endFlash - startFlash)))
+        print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
         print("------------------------------------------------------------------------------\n")
         os.chdir(cwd)
         # clear the selected device option

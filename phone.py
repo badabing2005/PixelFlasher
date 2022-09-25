@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-import wx
+import contextlib
+import re
 import subprocess
 import time
-from runtime import *
 from datetime import datetime
+
+import wx
+
+from runtime import *
 
 # ============================================================================
 #                               Class Magisk
@@ -29,14 +33,19 @@ class Device():
     # Class variable
     vendor = "google"
 
-    def __init__(self, id, mode):
+    def __init__(self, id, mode, true_mode = None):
         # Instance variables
         self.id = id
         self.mode = mode
+        if true_mode:
+            self.true_mode = true_mode
+        else:
+            self.true_mode = mode
         # The below are for caching.
         self._rooted = None
         self._root_symbol = None
         self._magisk_version = None
+        self._magisk_app_version = None
         self._build = None
         self._hardware = None
         self._active_slot = None
@@ -47,6 +56,7 @@ class Device():
         self._magisk_detailed_modules = None
         self._magisk_modules_summary = None
         self._magisk_apks = None
+        self._api_level = None
 
     # ----------------------------------------------------------------------------
     #                               property root_symbol
@@ -56,11 +66,10 @@ class Device():
         if self._root_symbol is None:
             if self.mode == 'f.b':
                 self._root_symbol = '?'
+            elif self.rooted:
+                self._root_symbol = '✓'
             else:
-                if self.rooted:
-                    self._root_symbol = '✓'
-                else:
-                    self._root_symbol = '✗'
+                self._root_symbol = '✗'
         return self._root_symbol
 
     # ----------------------------------------------------------------------------
@@ -68,34 +77,58 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_version(self):
-        if self._magisk_version is None:
-            if self.mode == 'adb':
-                if self.rooted:
+        if self._magisk_version is None and self.mode == 'adb':
+            if self.rooted:
+                try:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk -c\'\""
+                    res = run_shell(theCmd)
+                    if res.returncode == 0:
+                        regex = re.compile("(.*?):.*\((.*?)\)")
+                        m = re.findall(regex, res.stdout)
+                        if m:
+                            self._magisk_version = f"{m[0][0]}:{m[0][1]}"
+                        else:
+                            self._magisk_version = res.stdout
+                except Exception:
                     try:
-                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk -c\'\""
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/magisk/magisk32 -c\'\""
                         res = run_shell(theCmd)
                         if res.returncode == 0:
                             self._magisk_version = res.stdout
-                    except:
-                        try:
-                            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/magisk/magisk32 -c\'\""
-                            res = run_shell(theCmd)
-                            if res.returncode == 0:
-                                self._magisk_version = res.stdout
-                        except:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
-                            self._rooted = None
-                else:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package com.topjohnwu.magisk | grep versionName"
-                    res = run_shell(theCmd)
-                    version = res.stdout.split('\n')
-                    version = version[0].split('=')
-                    try:
-                        self._magisk_version = version[1]
-                    except:
-                        return ''
-                self._magisk_version = self._magisk_version.strip('\n')
-        return self._magisk_version.strip('\n')
+                    except Exception:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
+                        self._rooted = None
+            self._magisk_version = self._magisk_version.strip('\n')
+        return self._magisk_version
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_app_version
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_app_version(self):
+        if self._magisk_app_version is None and self.mode == 'adb':
+            try:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()} | grep versionName"
+                res = run_shell(theCmd)
+                version = res.stdout.split('\n')
+                version = version[0].split('=')
+                version = version[1]
+            except Exception:
+                return ''
+
+            try:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()} | grep versionCode"
+                res = run_shell(theCmd)
+                versionCode = res.stdout.split('\n')
+                versionCode = versionCode[0].split('=')
+                versionCode = versionCode[1]
+                versionCode = versionCode.split(' ')
+                versionCode = versionCode[0]
+            except Exception:
+                return version
+
+            self._magisk_app_version = f"{version}:{versionCode}"
+        return self._magisk_app_version
 
     # ----------------------------------------------------------------------------
     #                               Method get_uncached_magisk_version
@@ -105,24 +138,77 @@ class Device():
         return self.magisk_version
 
     # ----------------------------------------------------------------------------
+    #                               Method get_uncached_magisk_app_version
+    # ----------------------------------------------------------------------------
+    def get_uncached_magisk_app_version(self):
+        self._magisk_app_version is None
+        return self.magisk_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               Method is_display_unlocked
+    # ----------------------------------------------------------------------------
+    def is_display_unlocked(self):
+        print("Checking to see if display is unlocked ...")
+        try:
+            if self.mode == 'adb':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"dumpsys power | grep \'mHolding\'\""
+                res = run_shell(theCmd)
+                mHoldingWakeLockSuspendBlocker = False
+                mHoldingDisplaySuspendBlocker = False
+                if res.returncode == 0:
+                    results = res.stdout.strip().split('\n')
+                    for m in results:
+                        s = False
+                        k, v = m.strip().split('=')
+                        if v == 'true':
+                            s = True
+                        if k == 'mHoldingDisplaySuspendBlocker':
+                            mHoldingDisplaySuspendBlocker = s
+                        elif k == 'mHoldingWakeLockSuspendBlocker':
+                            mHoldingWakeLockSuspendBlocker = s
+                # https://stackoverflow.com/questions/35275828/is-there-a-way-to-check-if-android-device-screen-is-locked-via-adb
+                # I'm not going to check for both flags as it is not reliable
+                # But this won't work if display is on but locked :(
+                # if mHoldingWakeLockSuspendBlocker and mHoldingDisplaySuspendBlocker:
+                if mHoldingDisplaySuspendBlocker:
+                    print("Display is unlocked")
+                    return True
+                else:
+                    print("Display is locked")
+                    return False
+        except Exception:
+            print("Display is locked")
+            return False
+
+
+    # ----------------------------------------------------------------------------
+    #                               Method stop_magisk
+    # ----------------------------------------------------------------------------
+    def stop_magisk(self):
+        print("Stopping Magisk ...")
+        with contextlib.suppress(Exception):
+            if self.mode == 'adb':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell am force-stop {get_magisk_package()}"
+                res = run_shell(theCmd)
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_modules
     # ----------------------------------------------------------------------------
     @property
     def magisk_modules(self):
-        if self._magisk_modules is None:
-            if self.mode == 'adb':
-                if self.rooted:
-                    try:
-                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
-                        res = run_shell(theCmd)
-                        if res.returncode == 0:
-                            self._magisk_modules = res.stdout.split('\n')
-                    except:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk modules, assuming that it is not rooted.")
-                        self._rooted = None
-                        self._magisk_modules = ''
-                else:
+        if self._magisk_modules is None and self.mode == 'adb':
+            if self.rooted:
+                try:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
+                    res = run_shell(theCmd)
+                    if res.returncode == 0:
+                        self._magisk_modules = res.stdout.split('\n')
+                except Exception:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk modules, assuming that it is not rooted.")
+                    self._rooted = None
                     self._magisk_modules = ''
+            else:
+                self._magisk_modules = ''
         return self._magisk_modules
 
     # ----------------------------------------------------------------------------
@@ -132,45 +218,46 @@ class Device():
     def magisk_detailed_modules(self):
         if self._magisk_detailed_modules is None:
             try:
-                if self.mode == 'adb':
-                    if self.rooted:
-                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
-                        res = run_shell(theCmd)
-                        if res.returncode == 0:
-                            modules = []
-                            self._magisk_detailed_modules = res.stdout.split('\n')
-                            for module in self._magisk_detailed_modules:
-                                if module != '':
-                                    m = Magisk(module)
-                                    if self.mode == 'adb' and get_adb():
-                                        # get the state by checking if there is a disable file in the module directory
-                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
-                                        res = run_shell(theCmd)
-                                        if res.returncode == 0:
-                                            m.state = 'disabled'
-                                        else:
-                                            m.state = 'enabled'
-                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
-                                        res = run_shell(theCmd)
-                                        if res.returncode == 0:
-                                            module_prop = res.stdout.split('\n')
-                                            setattr(m, 'id', '')
-                                            setattr(m, 'version', '')
-                                            setattr(m, 'versionCode', '')
-                                            setattr(m, 'author', '')
-                                            setattr(m, 'description', '')
-                                            for line in module_prop:
-                                                # ignore comment lines
-                                                if line[:1] == "#":
-                                                    continue
-                                                if line.strip() != '':
-                                                    key, value = line.split('=', 1)
-                                                    setattr(m, key, value)
-                                            modules.append(m)
-                            self._magisk_detailed_modules = modules
+                if self.mode == 'adb' and self.rooted:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
+                    res = run_shell(theCmd)
+                    if res.returncode == 0:
+                        modules = []
+                        self._magisk_detailed_modules = res.stdout.split('\n')
+                        for module in self._magisk_detailed_modules:
+                            if module != '':
+                                m = Magisk(module)
+                                if self.mode == 'adb' and get_adb():
+                                    # get the state by checking if there is a disable file in the module directory
+                                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
+                                    res = run_shell(theCmd)
+                                    if res.returncode == 0:
+                                        m.state = 'disabled'
+                                    else:
+                                        m.state = 'enabled'
+                                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
+                                    res = run_shell(theCmd)
+                                    if res.returncode == 0:
+                                        module_prop = res.stdout.split('\n')
+                                        setattr(m, 'id', '')
+                                        setattr(m, 'version', '')
+                                        setattr(m, 'versionCode', '')
+                                        setattr(m, 'author', '')
+                                        setattr(m, 'description', '')
+                                        for line in module_prop:
+                                            # ignore comment lines
+                                            if line[:1] == "#":
+                                                continue
+                                            if line.strip() != '' and '=' in line:
+                                                key, value = line.split('=', 1)
+                                                setattr(m, key, value)
+                                        modules.append(m)
+                        self._magisk_detailed_modules = modules
             except Exception as e:
                 self._magisk_detailed_modules is None
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing\nException: {e}")
+                print(f"    Module: {module}\n    Line: {line}")
+                print(f"    module.prop:\n-----\n{res.stdout}-----\n")
         return self._magisk_detailed_modules
 
     # ----------------------------------------------------------------------------
@@ -181,8 +268,8 @@ class Device():
         if self._magisk_apks is None:
             try:
                 apks = []
-                list = ['stable', 'beta', 'canary', 'debug']
-                for i in list:
+                mlist = ['stable', 'beta', 'canary', 'debug']
+                for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     apks.append(apk)
                 self._magisk_apks = apks
@@ -237,10 +324,8 @@ class Device():
             if self.magisk_detailed_modules:
                 summary = ''
                 for module in self.magisk_detailed_modules:
-                    try:
-                        summary += "        {:<36}{:<10}{}\n".format(module.name, module.state, module.version)
-                    except Exception as e:
-                        pass
+                    with contextlib.suppress(Exception):
+                        summary += f"        {module.name:<36}{module.state:<10}{module.version}\n"
                 self._magisk_modules_summary = summary
             else:
                 self._magisk_modules_summary = ''
@@ -251,17 +336,16 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def rooted(self):
-        if self._rooted is None:
-            if self.mode == 'adb':
-                if get_adb():
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/\'\""
-                    res = run_shell(theCmd)
-                    if res.returncode == 0:
-                        self._rooted = True
-                    else:
-                        self._rooted = False
+        if self._rooted is None and self.mode == 'adb':
+            if get_adb():
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    self._rooted = True
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                    self._rooted = False
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
         return self._rooted
 
     # ----------------------------------------------------------------------------
@@ -291,6 +375,27 @@ class Device():
         return self._hardware
 
     # ----------------------------------------------------------------------------
+    #                               property api_level
+    # ----------------------------------------------------------------------------
+    @property
+    def api_level(self):
+        if self._api_level is None:
+            if self.mode == 'adb':
+                if get_adb():
+                    try:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop ro.build.version.sdk"
+                        version_sdk = run_shell(theCmd)
+                        # remove any whitespace including tab and newline
+                        self._api_level = ''.join(version_sdk.stdout.split())
+                    except Exception:
+                        self._api_level = ''
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+            else:
+               self._api_level = ''
+        return self._api_level
+
+    # ----------------------------------------------------------------------------
     #                               property build
     # ----------------------------------------------------------------------------
     @property
@@ -298,11 +403,14 @@ class Device():
         if self._build is None:
             if self.mode == 'adb':
                 if get_adb():
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop ro.build.fingerprint"
-                    fingerprint = run_shell(theCmd)
-                    # remove any whitespace including tab and newline
-                    fingerprint = ''.join(fingerprint.stdout.split())
-                    self._build = fingerprint.split('/')[3]
+                    try:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop ro.build.fingerprint"
+                        fingerprint = run_shell(theCmd)
+                        # remove any whitespace including tab and newline
+                        fingerprint = ''.join(fingerprint.stdout.split())
+                        self._build = fingerprint.split('/')[3]
+                    except Exception:
+                        self._build = ''
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
             else:
@@ -343,21 +451,20 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def unlocked(self):
-        if self._unlocked is None:
-            if self.mode == 'f.b':
-                if get_fastboot():
-                    theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar unlocked"
-                    unlocked = run_shell(theCmd)
-                    # remove any whitespace including tab and newline
-                    unlocked = unlocked.stderr.split('\n')
-                    unlocked = unlocked[0].split(' ')
-                    unlocked = unlocked[1]
-                    if unlocked == 'yes':
-                        self._unlocked = True
-                    else:
-                        self._unlocked = False
+        if self._unlocked is None and self.mode == 'f.b':
+            if get_fastboot():
+                theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar unlocked"
+                unlocked = run_shell(theCmd)
+                # remove any whitespace including tab and newline
+                unlocked = unlocked.stderr.split('\n')
+                unlocked = unlocked[0].split(' ')
+                unlocked = unlocked[1]
+                if unlocked == 'yes':
+                    self._unlocked = True
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+                    self._unlocked = False
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
         return self._unlocked
 
     # ----------------------------------------------------------------------------
@@ -414,8 +521,11 @@ class Device():
     #                               Method get_details
     # ----------------------------------------------------------------------------
     def get_device_details(self):
-        details = "{:<3}({:<3})   {:<25}{:<12}{:<25}".format(self.root_symbol, self.mode, self.id, self.hardware, self.build)
-        return details
+        if self.true_mode != self.mode:
+            mode = self.true_mode[:3]
+        else:
+            mode = self.mode
+        return f"{self.root_symbol:<3}({mode:<3})   {self.id:<25}{self.hardware:<12}{self.build:<25}"
 
     # ----------------------------------------------------------------------------
     #                               Method reboot_system
@@ -425,13 +535,11 @@ class Device():
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
         elif self.mode == 'f.b' and get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
     #                               Method reboot_recovery
@@ -441,13 +549,11 @@ class Device():
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot recovery "
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
         elif self.mode == 'f.b' and get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot recovery"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
     #                               Method reboot_bootloader
@@ -457,13 +563,11 @@ class Device():
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot bootloader "
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
         elif self.mode == 'f.b' and fastboot_included and get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot bootloader"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
     #                               Method reboot_fastbootd
@@ -475,13 +579,11 @@ class Device():
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot fastboot "
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
         elif self.mode == 'f.b' and get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot fastboot"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
     #                               Method reboot_sideload
@@ -491,8 +593,7 @@ class Device():
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot sideload "
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
         elif self.mode == 'f.b' and get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
             debug(theCmd)
@@ -527,7 +628,7 @@ class Device():
             if self.mode == 'adb' and get_adb():
                 res = self.install_apk(app)
             else:
-                print(f"Please perform the install again when the device is in adb mode.")
+                print("Please perform the install again when the device is in adb mode.")
             return res
 
     # ----------------------------------------------------------------------------
@@ -543,8 +644,7 @@ class Device():
             print(f"Setting active slot to slot [{slot}] for device {self.id} ...")
             theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={slot}"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
     #                               Method lock_bootloader
@@ -560,8 +660,7 @@ class Device():
             print(f"Unlocking bootloader for device {self.id} ...")
             theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing lock"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
     #                               Method unlock_bootloader
@@ -577,8 +676,7 @@ class Device():
             print(f"Unlocking bootloader for device {self.id} ...")
             theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing unlock"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
     #                               Method enable_magisk_module
@@ -618,16 +716,14 @@ class Device():
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
             debug(theCmd)
-            res = run_shell(theCmd)
-            return res
+            return run_shell(theCmd)
         elif self.mode == 'f.b' and get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
             debug(theCmd)
             res = run_shell(theCmd)
             print("Waiting 15 seconds ...")
             time.sleep(15)
-            res = self.disable_magisk_modules()
-            return res
+            return self.disable_magisk_modules()
 
     # ----------------------------------------------------------------------------
     #                               Method refresh_phone_mode
@@ -662,7 +758,7 @@ def run_shell(cmd):
 # ============================================================================
 def debug(message):
     if get_verbose():
-        print("debug: %s" % message)
+        print(f"debug: {message}")
 
 
 # ============================================================================
@@ -677,13 +773,18 @@ def get_connected_devices():
         response = run_shell(theCmd)
         if response.stdout:
             for device in response.stdout.split('\n'):
-                if '\tdevice' in device:
-                    id = device.split("\t")
-                    id = id[0]
-                    device = Device(id, 'adb')
-                    device_details = device.get_device_details()
-                    devices.append(device_details)
-                    phones.append(device)
+                if '\tdevice' in device or '\trecovery' in device or '\tsideload' in device:
+                    with contextlib.suppress(Exception):
+                        d_id = device.split("\t")
+                        mode = d_id[1]
+                        d_id = d_id[0]
+                        true_mode = None
+                        if mode in ('recovery', 'sideload'):
+                            true_mode = mode
+                        device = Device(d_id, 'adb', true_mode)
+                        device_details = device.get_device_details()
+                        devices.append(device_details)
+                        phones.append(device)
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
 
@@ -695,9 +796,9 @@ def get_connected_devices():
         response = run_shell(theCmd)
         for device in response.stdout.split('\n'):
             if '\tfastboot' in device:
-                id = device.split("\t")
-                id = id[0]
-                device = Device(id, 'f.b')
+                d_id = device.split("\t")
+                d_id = d_id[0]
+                device = Device(d_id, 'f.b')
                 device_details = device.get_device_details()
                 devices.append(device_details)
                 phones.append(device)

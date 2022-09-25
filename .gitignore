@@ -139,5 +139,9 @@ images/*.psd
 
 # vscode
 .vscode/
+.VSCodeCounter/
 
 .DS_Store
+/.sourcery.yaml
+.local/
+

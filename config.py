@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import os
 import json
+import os
 
-VERSION = "3.7.0.0"
+VERSION = "4.0.0.0"
 SDKVERSION = "33.0.3"
 WIDTH = 1400
 HEIGHT = 1040
@@ -31,11 +31,13 @@ class Config():
         self.disable_verification = False
         self.disable_verity = False
         self.fastboot_verbose = False
+        self.temporary_root = False
         self.fastboot_force = False
         self.advanced_options = False
         self.update_check = True
         self.version = VERSION
         self.flash_both_slots = False
+        self.flash_to_inactive_slot = False
         self.verbose = False
         self.pos_x = POS_X
         self.pos_y = POS_Y
@@ -48,7 +50,7 @@ class Config():
     @classmethod
     def load(cls, file_path):
         conf = cls()
-        print(f"Loading configuration File ...")
+        print("Loading configuration File ...")
         try:
             if os.path.exists(file_path):
                 with open(file_path, 'r', encoding="ISO-8859-1") as f:
@@ -68,10 +70,12 @@ class Config():
                 conf.disable_verity = data['disable_verity']
                 conf.fastboot_force = data['fastboot_force']
                 conf.fastboot_verbose = data['fastboot_verbose']
+                conf.temporary_root = data['temporary_root']
                 conf.advanced_options = data['advanced_options']
                 conf.update_check = data['update_check']
                 conf.version = data['version']
                 conf.flash_both_slots = data['flash_both_slots']
+                conf.flash_to_inactive_slot = data['flash_to_inactive_slot']
                 conf.verbose = data['verbose']
                 conf.pos_x = data['pos_x']
                 conf.pos_y = data['pos_y']
@@ -102,10 +106,12 @@ class Config():
             'disable_verity': self.disable_verity,
             'fastboot_force': self.fastboot_force,
             'fastboot_verbose': self.fastboot_verbose,
+            'temporary_root': self.temporary_root,
             'advanced_options': self.advanced_options,
             'update_check': self.update_check,
             'version': VERSION,
             'flash_both_slots': self.flash_both_slots,
+            'flash_to_inactive_slot': self.flash_to_inactive_slot,
             'verbose': self.verbose,
             'pos_x': self.pos_x,
             'pos_y': self.pos_y,

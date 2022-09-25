@@ -648,7 +648,7 @@ Delete = PyEmbeddedImage(
     b'rkJggg==')
 
 #----------------------------------------------------------------------
-Reload = PyEmbeddedImage(
+Scan = PyEmbeddedImage(
     b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1B'
     b'AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAATRSURBVEhLpVV9aFVlGH/O5z13273b'
     b'XLtzSFoJOpPAVcaKCUUwAhcSKpsVtlJKM1Y4LEPBoAj8Q5PoU5m6KanRHw4ryD9CjVWQ09DU'

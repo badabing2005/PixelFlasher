@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
 import os
-from platformdirs import *
-import sys
-import requests
 import sqlite3 as sl
+import sys
 from datetime import datetime
+
+import requests
+from packaging.version import parse
+from platformdirs import *
+
+from config import VERSION
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
@@ -34,7 +38,6 @@ boot = None
 system_code_page = None
 codepage_setting = False
 codepage_value = ''
-
 
 # ============================================================================
 #                               Class Boot
@@ -86,6 +89,26 @@ def get_db():
 def set_db(value):
     global db
     db = value
+
+
+# ============================================================================
+#                               Function get_boot_images_dir
+# ============================================================================
+def get_boot_images_dir():
+    if parse(VERSION) < parse('4.0.0'):
+        return 'boot_images'
+    else:
+        return 'boot_images4'
+
+
+# ============================================================================
+#                               Function get_pf_db
+# ============================================================================
+def get_pf_db():
+    if parse(VERSION) < parse('4.0.0'):
+        return 'PixelFlasher.db'
+    else:
+        return 'PixelFlasher4.db'
 
 
 # ============================================================================
@@ -428,8 +451,7 @@ def set_message_box_message(value):
 #                               Function get_config_path
 # ============================================================================
 def get_config_path():
-    config_path = user_data_dir(APPNAME, appauthor=False, roaming=True)
-    return config_path
+    return user_data_dir(APPNAME, appauthor=False, roaming=True)
 
 
 # ============================================================================
@@ -441,10 +463,10 @@ def init_config_path():
         os.makedirs(os.path.join(config_path, 'logs'), exist_ok=True)
     if not os.path.exists(os.path.join(config_path, 'factory_images')):
         os.makedirs(os.path.join(config_path, 'factory_images'), exist_ok=True)
-    if not os.path.exists(os.path.join(config_path, 'boot_images')):
-            os.makedirs(os.path.join(config_path, 'boot_images'), exist_ok=True)
+    if not os.path.exists(os.path.join(config_path, get_boot_images_dir())):
+        os.makedirs(os.path.join(config_path, get_boot_images_dir()), exist_ok=True)
     if not os.path.exists(os.path.join(config_path, 'tmp')):
-            os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
+        os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
 
 
 # ============================================================================
@@ -454,7 +476,7 @@ def init_db():
     global db
     config_path = get_config_path()
     # connect / create db
-    db = sl.connect(os.path.join(config_path,'PixelFlasher.db'))
+    db = sl.connect(os.path.join(config_path, get_pf_db()))
     db.execute("PRAGMA foreign_keys = ON")
     # create tables
     with db:
@@ -493,7 +515,6 @@ def init_db():
                 FOREIGN KEY (boot_id) REFERENCES BOOT(id)
             );
         """)
-        db.commit()
 
 
 # ============================================================================
@@ -550,7 +571,6 @@ def check_latest_version():
             version = l_version[1:]
         if version.count('.') == 2:
             version = f"{version}.0"
-    except:
+    except Exception:
         version = '0.0.0.0'
     return version
-

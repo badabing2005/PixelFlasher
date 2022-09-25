@@ -7,7 +7,7 @@
 
 As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)  
 PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on non Pixel devices as well. (YMMV).  
-The executables which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
+The executable which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
 
 The application has two modes, normal mode (basic) and advanced mode (expert).
 
@@ -15,33 +15,38 @@ The application has two modes, normal mode (basic) and advanced mode (expert).
 
 - Simple UI interface, click and go. No more command line, no more placing all files in one directory.
 - `boot.img` management UI, select the boot.img file to patch and click the patch button.
-Fully Automated patching with Magisk (without user interaction) and perform upgrades without losing root.  
+Fully Automated [patching](images/Patching%20boot.png) with Magisk (without user interaction) and perform upgrades without losing root.  
 No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.  
 No more setting airplane mode and clearing storage to retain Safetynet passing.
 - Display details of `boot.img`.
-  - Unique ID.
+  - SHA1 checksum.
   - Origin (file it was extracted from).
   - Whether it is patched or not, and if it is patched.
     - What version of Magisk was used to patch it.
     - On what device it was patched.
     - Date of patching.
+    - The SHA1 of the source boot.img file.
   - Option to Live boot from a choice of boot.img.
 - Choose to keep data or wipe data while flashing.
 - Ability to flash even if multiple devices are connected to the computer.
 - Display information about the phone.
-  - id
-  - hardware
-  - current installed firmware.
-  - if it is rooted with Magisk.
-  - Magisk version
+  - ID
+  - Hardware model.
+  - Current installed firmware (build).
+  - If it is rooted with Magisk.
+  - Magisk version (Magisk Tools).
+  - Magisk Manager version (the app).
   - List installed Magisk modules.
-  - connection mode.
-- Magisk installation UI. Supported versions:
+  - Connection mode (Adb | Fastboot | Sideload | Recovery).
+  - Bootloader version.
+  - Android OS API version.
+  - Convenient quick links to download Android platform tools or device firmware.
+- Magisk Manager installation UI, [screenshot](images/Magisk%20Installer.png). Supported versions:
   - stable
   - beta
   - canary
   - debug
-- Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade. Display:
+- Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade [screenshot](images/magisk-modules-manager.png):
   - Name
   - Version
   - Description
@@ -56,6 +61,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 
 - The ability to flash custom ROM (with or without patching `boot.img`)
 - Option to flash to both slots.
+- Option to flash to inactive slot.
 - Options to disable verity and or verification.
 - Ability to change the active slot.
 - Ability to live boot to custom `boot.img` (temporary root).
@@ -63,6 +69,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 - Ability to flash custom image: boot, recovery, radio, kernel, ...
 - Ability to sideload an image.
 - Lock / Unlock bootloader.
+- Option to gain temporary root (good for testing or checking things out).
 - SOS Disable Magisk modules to get out of bootloop (experimental).
 
 ## Prerequisites
@@ -75,7 +82,12 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 
 PixelFlasher doesn't have to be installed, just double-click it and it'll start.  
 Check the [releases section](https://github.com/badabing2005/PixelFlasher/releases) for downloads.  
-It is recommended that you place the executable in its own directory, as it creates temporary files in the application folder.
+
+### Supported platforms  
+
+- Windows
+- MacOSX
+- Linux (See [this](https://github.com/badabing2005/PixelFlasher/issues/23) if you're having issues with a Linux build.)
 
 ## Status
 
@@ -146,8 +158,9 @@ Run `build.bat` on Windows or `build.sh` on Linux / MacOS.
 Otherwise you'd have to select where it is installed.  
 You can download the lastest Android™ Platform Tools by clicking the ![Image of link](/images/open-link-16.png) next to it.  
 If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)  
-If you already have your phone connected to the PC, the application will detect all ADB connected devices (both in adb and fastboot mode) and populate the combo box (2).  
-Otherwise connect your phone to your PC, and hit the `Reload` button and select your device.
+If you already have your phone connected to the PC, the application will detect all connected devices  
+(in adb, fastboot, sideload, recovery modes) and populate the combo box (2).  
+Otherwise connect your phone to your PC, and hit the `Scan` button and then select your device.
 2. Select your device from the list in the combo box.
 The following information about the connected device is displayed.  
     - (1st field) Rooted devices will be identified with a checkmark ✓.
@@ -155,7 +168,7 @@ The following information about the connected device is displayed.
     ![Image of shell root access](/images/shell-root.png)
     - (1st field) Non-Rooted devices will be identified with a ✗.
     - (1st field) Devices in fastboot mode will be identified with a ? (in fastboot mode, root status cannot be determined).
-    - (2nd field) (adb) or (f.b) to indicate connection mode adb / fastboot.
+    - (2nd field) (adb), (f.b), (sid) or (rec) to indicate connection mode adb / fastboot / sideload / recovery.
     - (3rd field) Device ID.
     - (4th field) Device hardware.
     - (5th field) Current running firmware (in fastboot mode current firmware cannot be determined).
@@ -164,25 +177,26 @@ You can download factory images by clicking the ![Image of link](/images/open-li
 4. Process the factory image.
 PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (5).  
 5. Select `boot.img` from the list, the selected `boot.img` can be patched (6), or flashed (10).
-6. Optional: Select this option if you want to patch the `boot.img` with Magisk. Magisk must already be installed on your phone.  
+6. Optional: Select this option if you want to [patch](images/Patching%20boot.png) the `boot.img` with Magisk. Magisk must already be installed on your phone.  
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
 **Note:** See note above for granting root permissions to `shell`.  
 If the phone is already rooted, the whole process is without user interaction.  
-Otherwise PixelFlasher will launch Magisk on the phone and wait for the user to select stock `boot.img` which would already be transferred to the phone by the PixelFlasher and guide the user to make the proper choices in Magisk to create a patched `boot.img` before continuing for PixelFlasher to do the rest of the work.
+Otherwise PixelFlasher will launch Magisk on the phone and depending on the OS version and user choices, PixelFlasher will either control the Magisk Manager GUI (drive UI) through [UIAutomator](https://developer.android.com/training/testing/other-components/ui-automator) or guide the user to make the proper choices in Magisk to create a patched `boot.img` manually before continuing for PixelFlasher to do the rest of the work.
 7. If you want to flash (10) a patched `boot.img` select the newly added entry.  
 The following details are listed.  
     - ![Image of patched-boot](/images/patched-16.png) Indicates that the selection is patched.
-    - Boot ID is (shortened for display only) md5 of `boot.img`
-    - Package ID (shortened for display only) md5 of `boot.img` extracted from the image (This should be the same as Boot ID of an unpatched `boot.img`)
-    - Package Signature is just the filename portion of the image (without the extension).
-    - Patched with Magisk indicates the version of Magisk used to patch the image (if applicable).
-    - Patched on Device indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
-    - Date is the either the date the `boot.img` was extracted, or the date it was patched.
-    - Package Path indicates the source of the `boot.img` file.
+    - **SHA1** is (shortened for display only) sha1 of `boot.img`
+    - **Source SHA1** (shortened for display only) SHA1 of source `boot.img` extracted from the image (This should be the same as SHA1 of an unpatched `boot.img`)
+    - **Package Fingerprint** is just the filename portion of the image (without the extension).
+    - **Patched with Magisk** indicates the version of Magisk used to patch the image (if applicable).
+    - **Patched on Device** indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
+    - **Date** is the either the date the `boot.img` was extracted, or the date it was patched.
+    - **Package Path** indicates the file from which `boot.img` was extracted.
 8. Select the Flash Mode
-    - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`
-    - **WIPE all data**: As the name suggests, this will wipe your data, use it with caution! PixelFlasher will ask for confirmation during the flashing phase, if this mode is selected.
+    - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`.
+    - **WIPE all data**: As the text suggests, this will wipe your data, use it with caution!  
+    If this mode is selected PixelFlasher will ask for confirmation during the flashing phase.
     - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
     This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
 9. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
@@ -235,6 +249,7 @@ Choose the dropdown to select image type.
     - image - Expected file type .zip
     - SIDELOAD - Expected file type .zip  
 Select the appropriate flash options.
+**Note:** For Tensor devices (Pixel 6, Pixel 6a, Pixel 6 Pro) When `Flash to both slots` option is selected, Pixelflasher flashes each slot individually to overcome a Google bug that fails with the option `--slot=all`
 
 ## Credits
 

@@ -126,21 +126,19 @@ class MagiskModules(wx.Dialog):
 
             if list_state == module_state:
                 print(f"Module: {modules[i].name:<36} state has not changed,   Nothing to do. [Kept {modules[i].state.upper()}]")
-            else:
-                if list_state:
-                    print(f"Module: {modules[i].name:<36} state has changed,       ENABLING  the module ...")
-                    res = device.enable_magisk_module(modules[i].dirname)
-                    if res == 0:
-                        modules[i].state = 'enabled'
-                    else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
+            elif list_state:
+                print(f"Module: {modules[i].name:<36} state has changed,       ENABLING  the module ...")
+                res = device.enable_magisk_module(modules[i].dirname)
+                if res == 0:
+                    modules[i].state = 'enabled'
                 else:
-                    print(f"Module: {modules[i].name:<36} state has changed,       DISABLING the module ...")
-                    res = device.disable_magisk_module(modules[i].dirname)
-                    if res == 0:
-                        modules[i].state = 'disbled'
-                    else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
+            else:
+                print(f"Module: {modules[i].name:<36} state has changed,       DISABLING the module ...")
+                res = device.disable_magisk_module(modules[i].dirname)
+                if res == 0:
+                    modules[i].state = 'disbled'
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
         print('')
         self.EndModal(wx.ID_OK)
-

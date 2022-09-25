@@ -27,7 +27,7 @@ command_lines = [
     "-a -F -i -n Magisk images/magisk-24.png images.py",
     "-a -F -i -n Add images/add-24.png images.py",
     "-a -F -i -n Delete images/delete-24.png images.py",
-    "-a -F -i -n Reload images/reload-24.png images.py",
+    "-a -F -i -n Scan images/scan-24.png images.py",
     "-a -F -i -n Flash images/flash-32.png images.py",
     "-a -F -i -n Splash images/splash.png images.py",
     "-a -F -i -n Process_File images/process_file-24.png images.py",

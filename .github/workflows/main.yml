@@ -1,5 +1,5 @@
 # This is a workflow to build a package code push.
-name: Package executable with Pyinstaller - Windows
+name: Build Windows and Linux Executables
 
 # Controls when the workflow will run
 on:
@@ -7,7 +7,13 @@ on:
     # Sequence of patterns matched against refs/tags
     tags:
     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-    
+
+  # # Allows you to run this workflow manually from the Actions tab
+  # workflow_dispatch:
+  #   inputs:
+  #     tags:
+  #       description: 'Build tags'
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -27,26 +33,12 @@ jobs:
           path: .
           spec: build-on-win.spec
 
-      # Runs https://github.com/marketplace/actions/pyinstaller-linux
-      - name: Package Linux Application
-        uses: JackMcKew/pyinstaller-action-linux@main
-        with:
-          path: .
-          spec: build-on-linux.spec
-
       # Upload artifcats Windows
       - uses: actions/upload-artifact@v2
         id: upload_artifacts_windows
         with:
           name: PixelFlasher.exe
           path: dist/windows
-
-      # Upload artifcats linux
-      - uses: actions/upload-artifact@v2
-        id: upload_artifacts_linux
-        with:
-          name: PixelFlasher
-          path: dist/linux
 
       - name: Create Release
         id: create_release
@@ -58,17 +50,31 @@ jobs:
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: true
-      
+
       - name: Upload Windows Release Asset
         id: upload-windows-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./dist/windows/PixelFlasher.exe
           asset_name: PixelFlasher.exe
           asset_content_type: application/zip
+
+      # Runs https://github.com/badabing2005/pyinstaller-action-linux
+      - name: Package Linux Application
+        uses: badabing2005/pyinstaller-action-linux@main
+        with:
+          path: .
+          spec: build-on-linux.spec
+
+      # Upload artifcats linux
+      - uses: actions/upload-artifact@v2
+        id: upload_artifacts_linux
+        with:
+          name: PixelFlasher
+          path: dist/linux
 
       - name: Upload Linux Release Asset
         id: upload-linux-release-asset
@@ -76,7 +82,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./dist/linux/PixelFlasher
-          asset_name: PixelFlasher
+          asset_name: PixelFlasher-Linux
           asset_content_type: application/zip

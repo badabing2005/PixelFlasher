@@ -3,3 +3,6 @@ PyInstaller~=4.8
 httplib2>=0.18.1
 pyinstaller-versionfile>=2.0.0
 platformdirs>=2.5.1
+requests>=2.27.1
+darkdetect>=0.5.1
+markdown>=3.4.1

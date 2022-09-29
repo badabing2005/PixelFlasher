@@ -1,0 +1,58 @@
+# This is a workflow to build a package code push.
+name: Build Linux Executable
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    # inputs:
+    #   tags:
+    #     description: 'Build tags'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      # Runs https://github.com/badabing2005/pyinstaller-action-linux
+      - name: Package Linux Application
+        uses: badabing2005/pyinstaller-action-linux@main
+        with:
+          path: .
+          spec: build-on-linux.spec
+
+      # Upload artifcats linux
+      - uses: actions/upload-artifact@v2
+        id: upload_artifacts_linux
+        with:
+          name: PixelFlasher
+          path: dist/linux
+
+      # - name: Create Release
+        # id: create_release
+        # uses: actions/create-release@v1
+        # env:
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # with:
+          # tag_name: ${{ github.ref }}
+          # release_name: Release ${{ github.ref }}
+          # draft: false
+          # prerelease: true
+
+      # - name: Upload Linux Release Asset
+        # id: upload-linux-release-asset
+        # uses: actions/upload-release-asset@v1
+        # env:
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # with:
+          # upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          # asset_path: ./dist/linux/PixelFlasher
+          # asset_name: PixelFlasher
+          # asset_content_type: application/zip

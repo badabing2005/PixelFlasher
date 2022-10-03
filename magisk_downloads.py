@@ -137,11 +137,10 @@ class MagiskDownloads(wx.Dialog):
             self.list.Select(i, 0)
             item = self.list.GetItem(i)
             # reset colors
-            if sys.platform != "win32":
-                if darkdetect.isDark():
-                    item.SetTextColour(wx.WHITE)
-            else:
+            if sys.platform == "win32":
                 item.SetTextColour(wx.BLACK)
+            elif darkdetect.isDark():
+                item.SetTextColour(wx.WHITE)
             self.list.SetItem(item)
         if row != -1:
             self.list.Select(row)
@@ -170,24 +169,28 @@ class MagiskDownloads(wx.Dialog):
     def _onOk(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
         print(f"Downloading Magisk: {self.channel} version: {self.version} versionCode: {self.versionCode} ...")
-        download_file(self.url)
+        filename = f"magisk_{self.version}_{self.versionCode}.apk"
+        download_file(self.url, filename)
         config_path = get_config_path()
-        app = os.path.join(config_path, 'tmp', self.filename)
+        app = os.path.join(config_path, 'tmp', filename)
         device = get_phone()
         device.install_apk(app, fastboot_included = True)
+        # Fresh install of Magisk, reset the package name to default value
+        set_magisk_package('com.topjohnwu.magisk')
         print('')
         self.EndModal(wx.ID_OK)
 
 # ============================================================================
 #                               Function download_file
 # ============================================================================
-def download_file(url):
+def download_file(url, filename = None):
     if url:
         print (f"Downloading File: {url}")
         try:
             response = requests.get(url)
             config_path = get_config_path()
-            filename = os.path.basename(urlparse(url).path)
+            if not filename:
+                filename = os.path.basename(urlparse(url).path)
             downloaded_file_path = os.path.join(config_path, 'tmp', filename)
             open(downloaded_file_path, "wb").write(response.content)
             # check if filename got downloaded
@@ -195,7 +198,7 @@ def download_file(url):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
                 print("Aborting ...\n")
                 return
-        except:
+        except Exception:
             print (f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
             return 'ERROR'
     return downloaded_file_path

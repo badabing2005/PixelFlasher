@@ -897,7 +897,7 @@ def extract_fingerprint(binfile):
 
 
 # ============================================================================
-#                               Function drive_magisk
+#                               Function drive_magisk (not used)
 # ============================================================================
 def drive_magisk(self, boot_file_name):
     start = time.time()
@@ -1353,149 +1353,168 @@ def patch_boot_img(self):
         print("Aborting ...\n")
         return
 
-    if device.rooted:
-        # Compare installed Magisk version with Magisk Manager version, and if it is older
-        # Warn the user about rare situation where patching through the app would be preferable
-        # if the user chooses that option, jump to the manual mode
-        boot_patch_mode = True
-        if device.magisk_version and device.magisk_app_version and device.magisk_version !=device.magisk_app_version:
-            with contextlib.suppress(Exception):
-                magisk_version = device.magisk_version.split(':')[1]
-                magisk_app_version = device.magisk_app_version.split(':')[1]
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Magisk Version is different than Magisk Manager version")
-                print(f"  Magisk Manager Version: {device.magisk_app_version}")
-                print(f"  Magisk Version:         {device.magisk_version}")
-                if magisk_app_version > magisk_version:
-                    # Message to warn magisk version mismatch.
-                    title = "Magisk version mismatch"
-                    message =  f"WARNING: Magisk version {magisk_version} is older than Magisk Manager version {magisk_app_version}\n\n"
-                    message += "PixelFlasher can patch boot.img using Magisk in one of two ways.\n"
-                    message += "1- Using boot_patch which utilizes Magisk Tools (only available when the device is rooted)\n"
-                    message += "    This is the recommended patch mechanism if the device is rooted.\n"
-                    message += "2- Using Magisk Manager UI Application, which appears to be a newer version in this case.\n"
-                    message += "\n"
-                    message += "Patching using boot_patch is almost always the preferable method and not an issue.\n"
-                    message += "In very rare cases where the newer Magisk Manager addresses a bug or a limitation,\n"
-                    message += "patching in Magisk Manager UI is advised.\n"
-                    message += f"Please check the Magisk release notes to decide if release {magisk_app_version} falls into that category.\n"
-                    message += "\n"
-                    message += f"Do you want to continue patching through boot_patch {magisk_version}?\n"
-                    message += "Click OK to continue.\n"
-                    message += "or\n"
-                    message += f"Cancel to proceed with Magisk Manager UI patching {magisk_app_version}.\n"
-                    message += "(Pixel Flasher guide/drive the process)\n"
-                    print(message)
-                    dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                    result = dlg.ShowModal()
-                    if result == wx.ID_OK:
-                        print("User Pressed Ok to patch using boot_patch.")
-                    else:
-                        boot_patch_mode = False
-                        print("User selected Magisk Manager (UI) option.")
-    else:
-        print("Rooted Magisk (boot_patch) is not found on the phone")
-    if boot_patch_mode:
-        startPatch = time.time()
-        print(f"Detected a rooted phone with Magisk Tools: {device.magisk_version}")
-        print("Creating patched boot.img ...")
-        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/{boot_img}; mv ./data/adb/magisk/new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
-        res = run_shell2(theCmd)
-        endPatch = time.time()
-    else:
-        # Check to see if Magisk is installed
-        print("Looking for Magisk app ...")
-        if not device.magisk_version:
-            # Magisk not found
+    #------------------------------------
+    # Check to see if Magisk is installed
+    #------------------------------------
+    print("Looking for Magisk Manager app ...")
+    if not device.magisk_path:
+        # Magisk not found
+        if device.rooted:
+            # Device is rooted
+            print("Rooted phone is detected, is Magisk Manager hidden?")
+            title = "Rooted device, but Magisk Manager is not detected."
+            message =  "WARNING: Your phone is rooted, but Magisk Manager is not detected.\n\n"
+            message += "This could be either because it is hidden, or it is not installed.\n"
+            message += "If it is installed and hidden, then you could set the hidden Magisk package name in PixelFlasher settings.\n"
+            message += f"PixelFlasher can create a patch file using the rooted Magisk {device.magisk_version}\n\n"
+            message += "If Magisk is not installed, PixelFlasher can install it for you.\n\n"
+            message += f"Press OK to continue patching using rooted Magisk {device.magisk_version}, or\n"
+            message += "Press Cancel if you prefer patching with Magisk Manager, in which case\n"
+            message += "you should either install Magisk Manager or set the hidden package name.\n"
+            message += "WARNING: Do not install Magisk again if it is currently hidden.\n"
+            print(message)
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                # ok to patch with rooted magisk
+                print("User pressed ok.")
+                print(f"Patching with rooted Magisk: {device.magisk_version}")
+                theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/{boot_img}; mv ./data/adb/magisk/new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
+                res = run_shell2(theCmd)
+                dlg.Destroy()
+            else:
+                # not ok to patch with rooted Magisk
+                print("User pressed cancel for patching with rooted Magisk")
+                print("Aborting ...")
+                dlg.Destroy()
+                return
+        else:
+            # Device is not rooted
             print("Unable to find magisk on the phone, perhaps it is hidden?")
             # Message to Launch Manually and Patch
-            title = "Magisk not found"
+            title = "Magisk Manager is not detected."
             message =  "WARNING: Magisk is not found on the phone\n\n"
             message += "This could be either because it is hidden, or it is not installed.\n\n"
-            message += "If it is installed and hidden, then \n"
-            message += "You should manually launch Magisk on your phone and follow PixelFlasher prompts.\n\n"
+            message += "If it is installed and hidden, then you sould set the hidden Magisk package name\n"
+            message += "You can set that in PixelFlasher advanced settings and try again.\n\n"
+            message += "WARNING: Do not install Magisk again if it is currently hidden.\n"
             message += "If Magisk is not installed, PixelFlasher can install it for you.\n\n"
             message += "Do you want PixelFlasher to download and install Magisk?\n"
             message += "You will be given a choice of Magisk Version to install.\n\n"
-            message += "Click OK to continue.\n"
-            message += "or Hit CANCEL (if Magisk is launched manually.)."
+            message += "Click OK to continue with Magisk installation.\n"
+            message += "or Hit CANCEL to abort to set the Magisk package name in Advanced Settings."
             print(message)
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
                 # ok to download and install
                 print("User pressed ok.")
-                wait = wx.BusyCursor()
+                # wait = wx.BusyCursor()
                 dlg = MagiskDownloads(self)
                 dlg.CentreOnParent(wx.BOTH)
-                del wait
+                # del wait
                 result = dlg.ShowModal()
                 if result != wx.ID_OK:
-                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancelled out of Magisk download and install.")
+                    # User cancelled out of Magisk Installation
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel, out of Magisk download and install.")
                     print("Aborting ...\n")
                     dlg.Destroy()
                     return
                 dlg.Destroy()
                 try:
-                    magisk_version = device.get_uncached_magisk_version()
-                    if magisk_version:
-                        print(f"Found Magisk version {magisk_version} on the phone.")
+                    magisk_app_version = device.get_uncached_magisk_app_version()
+                    if magisk_app_version:
+                        # Magisk Manager is installed
+                        print(f"Found Magisk Manager version {magisk_app_version} on the phone.")
+                        # continues with patching using Magisk Manager.
+                    else:
+                        print("Magisk Manager is still not detected.\n\Aborting ...")
+                        return
                 except Exception:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
                     print("Aborting ...\n")
                     return
             else:
                 # not ok to download and install, (Magisk is hidden option)
-                print("User pressed cancel for downloading and installing Magisk to proceed with manually launching Magisk")
-        else:
-            print(f"Found Magisk version {device.magisk_version} on the phone.")
-        # Magisk is on the system
-        # Before launching Magisk, let's stop it in case it is in a specific screen, this way when we launch it, it will be on the main screen.
-        device.stop_magisk()
-        print("Launching Magisk ...")
-        theCmd = f"\"{get_adb()}\" -s {device.id} shell monkey -p {get_magisk_package()} -c android.intent.category.LAUNCHER 1"
+                print("User pressed cancel for downloading and installing Magisk.")
+                print("Aborting ...")
+                return
+
+    #------------------------------------
+    # Create Patching Script
+    #------------------------------------
+    if device.magisk_path:
+        print("Creating pf_patch.sh script ...")
+        dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
+        with open(dest.strip(), "w", encoding="ISO-8859-1", newline='\n') as f:
+            data = "#!/system/bin/sh\n"
+            data += "##############################################################################\n"
+            data += f"# PixelFlasher {VERSION} patch script using Magisk {device.magisk_app_version}\n"
+            data += "##############################################################################\n"
+            data += f"ARCH={device.architecture}\n"
+            data += f"cp {device.magisk_path} /data/local/tmp/pf.zip\n"
+            data += "cd /data/local/tmp\n"
+            data += "rm -rf pf\n"
+            data += "mkdir pf\n"
+            data += "cd pf\n"
+            data += "unzip -o -q ../pf.zip\n"
+            data += "cd assets\n"
+            data += "rm -f bootctl main.jar module_installer.sh uninstaller.sh\n"
+            data += "rm -rf dexopt\n"
+            data += "for FILE in ../lib/$ARCH/lib*.so; do\n"
+            data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
+            data += "    cp $FILE $NEWNAME\n"
+            data += "done\n"
+            if device.architecture == "arm64-v8a":
+                data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
+            elif device.architecture == "x86_64":
+                data += "cp ../lib/x86/libmagisk32.so magisk32\n"
+            data += "chmod 755 *\n"
+            data += "export KEEPVERITY=true\n"
+            data += "export KEEPFORCEENCRYPT=true\n"
+            data += f"./boot_patch.sh /sdcard/Download/{boot_img}\n"
+            data += f"cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/{magisk_patched_img}\n"
+            f.write(data)
+
+        print("PixelFlasher patching script contents:")
+        print(f"___________________________________________________\n{data}")
+        print("___________________________________________________\n")
+
+        # Transfer extraction script to the phone
+        print(f"Transfering {dest} to the phone [/data/local/tmp/pf_patch.sh] ...")
+        theCmd = f"\"{get_adb()}\" -s {device.id} push \"{dest}\" /data/local/tmp/pf_patch.sh"
+        debug(theCmd)
         res = run_shell(theCmd)
+        # expect ret 0
         if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk could not be launched")
-            print(res.stderr)
-            print("Please launch Magisk manually.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            print("Aborting ...\n")
+            return -1
         else:
-            print("Magisk should now be running on the phone.")
-        # Message Dialog Here to Patch Manually
-        title = "Drive Magisk UI?"
-        message =  "Magisk should now be running on your phone.\n\n"
-        message += "If it is not, you  can try starting it manually\n\n"
-        message += "At this point you can either let PixelFlasher drive the Magisk UI automatically.\n"
-        message += "Or choose to do the manual patching yourself\n\n"
-        message += "Do you want PixelFlasher to drive the magisk UI?"
-        message += "Click OK to let PixelFlasher do the job.\n"
-        message += "Or Hit CANCEL to do it yourself (if you choose this option, instructions will be provided)."
-        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-        result = dlg.ShowModal()
-        if result == wx.ID_OK:
-            print("User Pressed Ok.")
-            res = drive_magisk(self, boot_img)
-            if res == 'ERROR':
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Sorry, automatic UI Driving of Magisk Failed.\nPlease try do to it manually.")
-                print("Aborting\n")
-                return
-        else:
-            print("User Pressed Cancel.")
-            title = "Patching in Magisk manually."
-            message = "Please follow these steps in Magisk.\n"
-            message += "- Click on `Install` and choose\n"
-            message += "- `Select and patch a file`\n"
-            message += f"- select {boot_img} in {self.config.phone_path}\n"
-            message += "- Then hit `LET's GO`\n\n"
-            message += "Click OK when completely done to continue.\n"
-            message += "Hit CANCEL to abort."
-            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-            result = dlg.ShowModal()
-            if result == wx.ID_OK:
-                print("User Pressed Ok.")
-            else:
-                print("User Pressed Cancel.")
-                print("Aborting ...\n")
-                return
+            print(res.stdout)
+        # Set the executable flag
+        print("Setting /data/local/tmp/pf_patch.sh to executable ...")
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell chmod 755 /data/local/tmp/pf_patch.sh"
+        res = run_shell(theCmd)
+        # expect 0
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} is not found!")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            print("Aborting ...\n")
+            return -1
+
+        #------------------------------------
+        # Execute the pf_patch.sh script
+        #------------------------------------
+        print("Executing the extraction script ...")
+        print(f"PixelFlasher Patching phone with Magisk: {device.magisk_version}")
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
+        res = run_shell2(theCmd)
 
     # check if magisk_patched*.img got created.
     print(f"\nLooking for magisk_patched*.img in {self.config.phone_path} ...")
@@ -1791,7 +1810,7 @@ def flash_phone(self):
             fastboot_options2 += '--force '
         message  = f"Custom Flash Options:   {self.config.advanced_options}\n"
         message += f"Disable Verity:         {self.config.disable_verity}\n"
-        message += f"Disable Verification:   {self.config.disable_verification}n"
+        message += f"Disable Verification:   {self.config.disable_verification}\n"
         message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
         message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
         message += f"Force:                  {self.config.fastboot_force}\n"
@@ -2001,7 +2020,7 @@ def flash_phone(self):
         data += "echo Sleeping 5-10 seconds ...\n"
         data += sleep_line
         data += sleep_line
-        if self.config.temporary_root:
+        if self.config.temporary_root and boot.is_patched:
             data += "echo Live booting to pf_boot (temporary root) ...\n"
             data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
         else:
@@ -2103,6 +2122,7 @@ def flash_phone(self):
         print(f"Switching to inactive slot")
         theCmd = f"\"{get_fastboot()}\" -s {device.id} --set-active=other"
         debug(theCmd)
+        run_shell2(theCmd)
         device.reboot_bootloader()
         print("Waiting 5 seconds ...")
         time.sleep(5)

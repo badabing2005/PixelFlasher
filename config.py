@@ -3,7 +3,7 @@
 import json
 import os
 
-VERSION = "4.0.0.0"
+VERSION = "4.1.0.0"
 SDKVERSION = "33.0.3"
 WIDTH = 1400
 HEIGHT = 1040
@@ -84,6 +84,10 @@ class Config():
                 conf.selected_boot_md5 = data['selected_boot_md5']
                 conf.force_codepage = data['force_codepage']
                 conf.custom_codepage = data['custom_codepage']
+                if conf.flash_to_inactive_slot:
+                    conf.flash_both_slots = False
+                if conf.flash_both_slots:
+                    conf.flash_to_inactive_slot = False
             else:
                 conf.first_run = True
         except Exception as e:
@@ -91,6 +95,10 @@ class Config():
         return conf
 
     def save(self, file_path):
+        if self.flash_to_inactive_slot:
+            self.flash_both_slots = False
+        if self.flash_both_slots:
+            self.flash_to_inactive_slot = False
         data = {
             'device': self.device,
             'firmware_path': self.firmware_path,

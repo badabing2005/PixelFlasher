@@ -15,7 +15,7 @@ The application has two modes, normal mode (basic) and advanced mode (expert).
 
 - Simple UI interface, click and go. No more command line, no more placing all files in one directory.
 - `boot.img` management UI, select the boot.img file to patch and click the patch button.
-Fully Automated [patching](images/Patching%20boot.png) with Magisk (without user interaction) and perform upgrades without losing root.  
+Fully Automated patching with Magisk (without manual steps) and perform upgrades without losing root.  
 No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.  
 No more setting airplane mode and clearing storage to retain Safetynet passing.
 - Display details of `boot.img`.
@@ -177,12 +177,12 @@ You can download factory images by clicking the ![Image of link](/images/open-li
 4. Process the factory image.
 PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (5).  
 5. Select `boot.img` from the list, the selected `boot.img` can be patched (6), or flashed (10).
-6. Optional: Select this option if you want to [patch](images/Patching%20boot.png) the `boot.img` with Magisk. Magisk must already be installed on your phone.  
+6. Optional: Select this option if you want to patch the `boot.img` with Magisk. If Magisk is not already installed on your phone, PixelFlasher will install it for you.
+Your phone does not need to be rooted to create a patched file.
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
 **Note:** See note above for granting root permissions to `shell`.  
-If the phone is already rooted, the whole process is without user interaction.  
-Otherwise PixelFlasher will launch Magisk on the phone and depending on the OS version and user choices, PixelFlasher will either control the Magisk Manager GUI (drive UI) through [UIAutomator](https://developer.android.com/training/testing/other-components/ui-automator) or guide the user to make the proper choices in Magisk to create a patched `boot.img` manually before continuing for PixelFlasher to do the rest of the work.
+Whether the phone is rooted or not, the whole process is without any manual step.  
 7. If you want to flash (10) a patched `boot.img` select the newly added entry.  
 The following details are listed.  
     - ![Image of patched-boot](/images/patched-16.png) Indicates that the selection is patched.

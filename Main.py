@@ -131,6 +131,9 @@ class PixelFlasher(wx.Frame):
         if self.config.force_codepage:
             set_codepage_value(self.config.custom_codepage)
 
+        # load Magisk Package Name
+        set_magisk_package(self.config.magisk)
+
         # extract firmware info
         if self.config.firmware_path and os.path.exists(self.config.firmware_path):
             self.firmware_picker.SetPath(self.config.firmware_path)
@@ -186,8 +189,6 @@ class PixelFlasher(wx.Frame):
         # get the image choice and update UI
         set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
 
-        set_magisk_package(self.config.magisk)
-
         # set the state of flash button.
         set_flash_button_state(self)
 
@@ -218,6 +219,7 @@ class PixelFlasher(wx.Frame):
         end = time.time()
         print(f"Load time: {math.ceil(end - start)} seconds")
         self.spinner.Hide()
+        self.spinner_label.Hide()
 
     # -----------------------------------------------
     #                  _set_icons
@@ -465,6 +467,7 @@ class PixelFlasher(wx.Frame):
             self.config.update_check = get_update_check()
             self.config.force_codepage = get_codepage_setting()
             self.config.custom_codepage = get_codepage_value()
+            self.config.magisk = get_magisk_package()
         advanced_setting_dialog.Destroy()
         # show / hide advanced settings
         self._advanced_options_hide(not get_advanced_options())
@@ -573,10 +576,12 @@ class PixelFlasher(wx.Frame):
     def _on_spin(self, state):
         if state == 'start':
             self.spinner.Show()
+            self.spinner_label.Show()
             self.spinner.Start()
         else:
             self.spinner.Stop()
             self.spinner.Hide()
+            self.spinner_label.Hide()
 
     # -----------------------------------------------
     #                  _refresh_ui
@@ -601,25 +606,21 @@ class PixelFlasher(wx.Frame):
         print(f"\nSelected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:")
         print(f"    Device ID:                       {device.id}")
         print(f"    Device Model:                    {device.hardware}")
-        print(f"    Device is Rooted:                {device.rooted}")
+        print(f"    Device Active Slot:              {device.active_slot}")
+        print(f"    Device Mode:                     {device.true_mode}")
         if device.mode == 'adb':
+            print(f"    Device is Rooted:                {device.rooted}")
             print(f"    Device Build:                    {device.build}")
             print(f"    Device API Level:                {device.api_level}")
-        print(f"    Device Active Slot:              {device.active_slot}")
-        print(f"    Device Bootloader Version:       {device.bootloader_version}")
-        print(f"    Device Mode:                     {device.true_mode}")
+            print(f"    Device Architecture:             {device.architecture}")
+            print(f"    Device Bootloader Version:       {device.bootloader_version}")
+            print(f"    Magisk Manager Version:          {device.magisk_app_version}")
         if device.mode == 'f.b':
             print(f"    Device Unlocked:                 {device.unlocked}")
-        print(f"    Magisk Manager Version:          {device.magisk_app_version}")
         if device.rooted:
             print(f"    Magisk Version:                  {device.magisk_version}")
             print("    Magisk Modules:")
-            if self.config.verbose:
-                print(f"{device.magisk_modules_summary}")
-            else:
-                s1 = device.magisk_modules
-                s2 = "\n        "
-                print(f"        {s2.join(s1)}")
+            print(f"{device.magisk_modules_summary}")
         else:
             print('')
 
@@ -634,7 +635,6 @@ class PixelFlasher(wx.Frame):
         image_path = get_image_path()
         if self.config.flash_mode == 'customFlash':
             self.temporary_root_checkBox.Enable(False)
-            self.config.temporary_root = False
             self.image_file_picker.Enable(True)
             self.image_choice.Enable(True)
             if boot:
@@ -643,10 +643,8 @@ class PixelFlasher(wx.Frame):
             # disable custom_flash_options
             if boot and boot.is_patched == 1:
                 self.temporary_root_checkBox.Enable(True)
-                self.config.temporary_root = True
             else:
                 self.temporary_root_checkBox.Enable(False)
-                self.config.temporary_root = False
             self.flash_radio_button.Enable(False)
             self.live_boot_radio_button.Enable(False)
             self.image_file_picker.Enable(False)
@@ -814,7 +812,6 @@ class PixelFlasher(wx.Frame):
                 if device.id == d_id:
                     set_phone(device)
                     self._print_device_details(device)
-            # wx.Yield()
             self._reflect_slots()
             self._on_spin('stop')
             del wait
@@ -957,8 +954,8 @@ class PixelFlasher(wx.Frame):
             status = self.flash_both_slots_checkBox.GetValue()
             self.config.flash_both_slots = status
             if status:
-                self.flash_to_inactive_slot_checkBox.SetValue(False)
-                self.config.flash_to_inactive_slot = False
+                self.config.flash_to_inactive_slot = not status
+                self.flash_to_inactive_slot_checkBox.SetValue(not status)
 
         # -----------------------------------------------
         #                  _on_flash_to_inactive_slot
@@ -968,8 +965,8 @@ class PixelFlasher(wx.Frame):
             status = self.flash_to_inactive_slot_checkBox.GetValue()
             self.config.flash_to_inactive_slot = status
             if status:
-                self.flash_both_slots_checkBox.SetValue(False)
-                self.config.flash_both_slots_checkBox = False
+                self.config.flash_both_slots_checkBox = not status
+                self.flash_both_slots_checkBox.SetValue(not status)
 
         # -----------------------------------------------
         #                  _on_disable_verity
@@ -1772,7 +1769,6 @@ class PixelFlasher(wx.Frame):
         self.fastboot_verbose_checkBox.SetToolTip(u"set fastboot option to verbose")
         self.temporary_root_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Temporary Root", wx.DefaultPosition, wx.DefaultSize, 0)
         self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot.img\nInstead it will flash unpatched boot.img, but boot to Live Patched boot.img\nHandy to test if magisk will cause a bootloop.\n\nPlease be aware that factory image will be flashed, and if you reboot\nthe device will be unrooted.\nIf you want to make this permanent, just flash the patched boot.img")
-        self.temporary_root_checkBox.Enable(False)
         self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.advanced_options_sizer.Add(self.flash_both_slots_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
@@ -1798,10 +1794,15 @@ class PixelFlasher(wx.Frame):
         # 12th row widgets, console
         console_label = wx.StaticText(panel, label=u"Console")
         self.spinner = wx.ActivityIndicator(panel, size=(100, 100))
+        self.spinner_label = wx.StaticText(panel, label=u"Please be patient ...")
+        self.spinner_label.SetForegroundColour((255,165,0))
+        self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
         console_v_sizer = wx.BoxSizer(wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL)
         console_v_sizer.AddSpacer(40)
-        console_v_sizer.Add(self.spinner, flag=wx.ALL)
+        console_v_sizer.Add(self.spinner, flag=wx.LEFT, border=50)
+        console_v_sizer.AddSpacer(20)
+        console_v_sizer.Add(self.spinner_label, flag=wx.ALL)
         self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
         self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         if darkdetect.isLight():

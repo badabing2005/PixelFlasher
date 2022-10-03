@@ -26,7 +26,6 @@ firmware_id = None
 custom_rom_id = None
 logfile = None
 sdk_version = None
-magisk_package = None
 image_mode = None
 image_path = None
 custom_rom_file = None
@@ -38,6 +37,7 @@ boot = None
 system_code_page = None
 codepage_setting = False
 codepage_value = ''
+magisk_package = ''
 
 # ============================================================================
 #                               Class Boot
@@ -240,6 +240,22 @@ def set_codepage_value(value):
 
 
 # ============================================================================
+#                               Function get_magisk_package
+# ============================================================================
+def get_magisk_package():
+    global magisk_package
+    return magisk_package
+
+
+# ============================================================================
+#                               Function set_magisk_package
+# ============================================================================
+def set_magisk_package(value):
+    global magisk_package
+    magisk_package = value
+
+
+# ============================================================================
 #                               Function get_advanced_options
 # ============================================================================
 def get_advanced_options():
@@ -349,22 +365,6 @@ def get_sdk_version():
 def set_sdk_version(value):
     global sdk_version
     sdk_version = value
-
-
-# ============================================================================
-#                               Function get_magisk_package
-# ============================================================================
-def get_magisk_package():
-    global magisk_package
-    return magisk_package
-
-
-# ============================================================================
-#                               Function set_magisk_package
-# ============================================================================
-def set_magisk_package(value):
-    global magisk_package
-    magisk_package = value
 
 
 # ============================================================================

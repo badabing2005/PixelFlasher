@@ -47,6 +47,17 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         # gap
         vSizer.Add((0, 20), 0, 0, 5)
 
+        # Magisk Package name
+        package_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        package_name_sizer.Add((20, 0), 0, 0, 5)
+        package_name_label = wx.StaticText(self, label=u"Magisk Package Name:")
+        self.package_name = wx.TextCtrl(self, -1, size=(300, -1))
+        self.package_name.SetToolTip(u"If you have hidden Magisk,\nset this to the hidden package name.")
+        self.package_name.SetValue(str(get_magisk_package()))
+        package_name_sizer.Add(package_name_label, 0, wx.ALL, 5)
+        package_name_sizer.Add(self.package_name, 0, wx.LEFT, 10)
+        vSizer.Add(package_name_sizer, 0, wx.EXPAND, 5)
+
         # Check for updates options
         check_for_update_sizer = wx.BoxSizer(wx.HORIZONTAL)
         check_for_update_sizer.Add((20, 0), 0, 0, 5)
@@ -62,7 +73,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.force_codepage_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Force codepage to:", wx.DefaultPosition, wx.DefaultSize, 0)
         self.force_codepage_checkbox.SetValue(get_codepage_setting())
         self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
-        self.code_page = wx.TextCtrl(self)
+        self.code_page = wx.TextCtrl(self, -1, size=(300, -1))
         self.code_page.SetValue(str(get_codepage_value()))
         code_page_sizer.Add(self.force_codepage_checkbox, 0, wx.ALL, 5)
         code_page_sizer.Add(self.code_page, 0, wx.ALL, 5)
@@ -98,6 +109,8 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     def _onOk(self, e):
         set_advanced_options(self.advanced_options_checkbox.GetValue())
         set_update_check(self.check_for_update_checkbox.GetValue())
+        if self.package_name.GetValue() != '':
+            set_magisk_package(self.package_name.GetValue())
         if self.force_codepage_checkbox.GetValue():
             if self.code_page.GetValue() != '' and self.code_page.GetValue().isnumeric():
                 set_codepage_setting(self.force_codepage_checkbox.GetValue())

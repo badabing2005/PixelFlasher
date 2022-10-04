@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
-             binaries=[('bin/7zz', 'bin'), ('bin/busybox', 'bin')],
+             binaries=[('bin/7zz', 'bin'), ('bin/busybox_arm64-v8a', 'bin'), ('bin/busybox_armeabi-v7a', 'bin'), ('bin/busybox_x86', 'bin'), ('bin/busybox_x86_64', 'bin')],
              datas=[("images", "images")],
              hiddenimports=[],
              hookspath=[],
@@ -27,6 +27,6 @@ exe = EXE(pyz,
           icon='images/icon-256.icns')
 app = BUNDLE(exe,
              name='PixelFlasher.app',
-             version='4.1.1',
+             version='4.1.2',
              icon='./images/icon-256.icns',
              bundle_identifier='com.badabing.pixelflasher')

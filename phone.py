@@ -332,7 +332,7 @@ class Device():
     #                               Method get_uncached_magisk_app_version
     # ----------------------------------------------------------------------------
     def get_uncached_magisk_app_version(self):
-        self._magisk_app_version is None
+        self._magisk_app_version = None
         return self.magisk_app_version
 
     # ----------------------------------------------------------------------------

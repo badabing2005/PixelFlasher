@@ -157,10 +157,10 @@ def populate_boot_list(self):
         data = con.execute(sql)
         i = 0
         for row in data:
-            index = self.list.InsertItem(i, row[1][:8])                     # boot_hash
-            self.list.SetItem(index, 1, row[8][:8])                         # package_boot_hash
-            self.list.SetItem(index, 2, row[10])                            # package_sig
-            self.list.SetItem(index, 3, row[4])                             # magisk_version
+            index = self.list.InsertItem(i, row[1][:8])                     # boot_hash (SHA1)
+            self.list.SetItem(index, 1, row[8][:8])                         # package_boot_hash (Source SHA1)
+            self.list.SetItem(index, 2, row[10])                            # package_sig (Package Fingerprint)
+            self.list.SetItem(index, 3, str(row[4]))                        # magisk_version
             self.list.SetItem(index, 4, row[5])                             # hardware
             ts = datetime.fromtimestamp(row[6])
             self.list.SetItem(index, 5, ts.strftime('%Y-%m-%d %H:%M:%S'))   # boot_date
@@ -1365,7 +1365,7 @@ def patch_boot_img(self):
             title = "Rooted device, but Magisk Manager is not detected."
             message =  "WARNING: Your phone is rooted, but Magisk Manager is not detected.\n\n"
             message += "This could be either because it is hidden, or it is not installed.\n"
-            message += "If it is installed and hidden, then you could set the hidden Magisk package name in PixelFlasher settings.\n"
+            message += "If it is installed and hidden, then you could set the hidden Magisk package name in PixelFlasher Advanced Configuration.\n"
             message += f"PixelFlasher can create a patch file using the rooted Magisk {device.magisk_version}\n\n"
             message += "If Magisk is not installed, PixelFlasher can install it for you.\n\n"
             message += f"Press OK to continue patching using rooted Magisk {device.magisk_version}, or\n"
@@ -1377,8 +1377,9 @@ def patch_boot_img(self):
             result = dlg.ShowModal()
             if result == wx.ID_OK:
                 # ok to patch with rooted magisk
+                magisk_version = device.magisk_version
                 print("User pressed ok.")
-                print(f"Patching with rooted Magisk: {device.magisk_version}")
+                print(f"Patching with rooted Magisk: {magisk_version}")
                 theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/{boot_img}; mv ./data/adb/magisk/new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
                 res = run_shell2(theCmd)
                 dlg.Destroy()
@@ -1445,11 +1446,13 @@ def patch_boot_img(self):
     #------------------------------------
     if device.magisk_path:
         print("Creating pf_patch.sh script ...")
+        magisk_version = device.magisk_app_version
+        path_to_busybox = os.path.join(get_bundle_dir(),'bin', 'busybox')
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         with open(dest.strip(), "w", encoding="ISO-8859-1", newline='\n') as f:
             data = "#!/system/bin/sh\n"
             data += "##############################################################################\n"
-            data += f"# PixelFlasher {VERSION} patch script using Magisk {device.magisk_app_version}\n"
+            data += f"# PixelFlasher {VERSION} patch script using Magisk {magisk_version}\n"
             data += "##############################################################################\n"
             data += f"ARCH={device.architecture}\n"
             data += f"cp {device.magisk_path} /data/local/tmp/pf.zip\n"
@@ -1457,7 +1460,7 @@ def patch_boot_img(self):
             data += "rm -rf pf\n"
             data += "mkdir pf\n"
             data += "cd pf\n"
-            data += "unzip -o -q ../pf.zip\n"
+            data += "../busybox unzip -o -q ../pf.zip\n"
             data += "cd assets\n"
             data += "rm -f bootctl main.jar module_installer.sh uninstaller.sh\n"
             data += "rm -rf dexopt\n"
@@ -1508,21 +1511,49 @@ def patch_boot_img(self):
             print("Aborting ...\n")
             return -1
 
+        # Transfer busybox to the phone
+        print(f"\nTransfering {path_to_busybox} to the phone [/data/local/tmp/busybox] ...")
+        theCmd = f"\"{get_adb()}\" -s {device.id} push \"{path_to_busybox}\" /data/local/tmp/busybox"
+        debug(theCmd)
+        res = run_shell(theCmd)
+        # expect ret 0
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            print("Aborting ...\n")
+            return -1
+        else:
+            print(res.stdout)
+        # Set the executable flag
+        print("Setting /data/local/tmp/busybox to executable ...")
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell chmod 755 /data/local/tmp/busybox"
+        res = run_shell(theCmd)
+        # expect 0
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} is not found!")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            print("Aborting ...\n")
+            return -1
+
         #------------------------------------
         # Execute the pf_patch.sh script
         #------------------------------------
         print("Executing the extraction script ...")
-        print(f"PixelFlasher Patching phone with Magisk: {device.magisk_version}")
+        print(f"PixelFlasher Patching phone with Magisk: {magisk_version}")
         theCmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
         res = run_shell2(theCmd)
 
     # check if magisk_patched*.img got created.
-    print(f"\nLooking for magisk_patched*.img in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls {self.config.phone_path}/magisk_patched*.img"
+    print(f"\nLooking for {magisk_patched_img} in {self.config.phone_path} ...")
+    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls {self.config.phone_path}/{magisk_patched_img}"
     res = run_shell(theCmd)
     # expect ret 0
     if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img not found")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {magisk_patched_img} not found")
         print(res.stderr)
         print("Aborting ...\n")
         return
@@ -1589,7 +1620,7 @@ def patch_boot_img(self):
     con.commit()
     cursor = con.cursor()
     sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-    data = (checksum, cached_boot_img_path, 1, device.magisk_version, device.hardware, time.time())
+    data = (checksum, cached_boot_img_path, 1, magisk_version, device.hardware, time.time())
     cursor.execute(sql, data)
     con.commit()
     boot_id = cursor.lastrowid
@@ -1618,7 +1649,7 @@ def patch_boot_img(self):
     populate_boot_list(self)
 
     end = time.time()
-    print(f"Magisk Version: {device.magisk_version}")
+    print(f"Magisk Version: {magisk_version}")
     print(f"Patch time: {math.ceil(end - start)} seconds")
     print("------------------------------------------------------------------------------\n")
 

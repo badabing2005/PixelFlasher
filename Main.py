@@ -461,6 +461,7 @@ class PixelFlasher(wx.Frame):
     def _on_advanced_config(self, event):
         advanced_setting_dialog = AdvancedSettings(self)
         advanced_setting_dialog.CentreOnParent(wx.BOTH)
+        print("Entering Advanced Configuration ...")
         res = advanced_setting_dialog.ShowModal()
         if res == wx.ID_OK:
             self.config.advanced_options = get_advanced_options()

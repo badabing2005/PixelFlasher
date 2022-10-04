@@ -107,10 +107,19 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.EndModal(wx.ID_CANCEL)
 
     def _onOk(self, e):
+        if self.advanced_options_checkbox.GetValue() != self.before:
+            print(f"Setting Enable Advanced Options to: {self.advanced_options_checkbox.GetValue()}")
         set_advanced_options(self.advanced_options_checkbox.GetValue())
+
+        if self.check_for_update_checkbox.GetValue() != get_update_check():
+            print(f"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}")
         set_update_check(self.check_for_update_checkbox.GetValue())
+
         if self.package_name.GetValue() != '':
+            if self.package_name.GetValue() != get_magisk_package():
+                print(f"Setting Magisk Package Name to: {self.package_name.GetValue()}")
             set_magisk_package(self.package_name.GetValue())
+
         if self.force_codepage_checkbox.GetValue():
             if self.code_page.GetValue() != '' and self.code_page.GetValue().isnumeric():
                 set_codepage_setting(self.force_codepage_checkbox.GetValue())

@@ -916,7 +916,7 @@ def drive_magisk(self, boot_file_name):
         message += "And set the display timeout to at least 1 minute.\n\n"
         message += "After doing so, Click OK to accept and continue.\n"
         message += "or Hit CANCEL to abort."
-        print(message)
+        print(f"\n*** Dialog ***\n{message}\n______________\n")
         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
         if result == wx.ID_OK:
@@ -1262,7 +1262,7 @@ def patch_boot_img(self):
         message += f"is for the selected device: {device.id}\n\n"
         message += "Click OK to accept and continue.\n"
         message += "or Hit CANCEL to abort."
-        print(message)
+        print(f"\n*** Dialog ***\n{message}\n______________\n")
         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
         if result == wx.ID_OK:
@@ -1357,22 +1357,21 @@ def patch_boot_img(self):
     # Check to see if Magisk is installed
     #------------------------------------
     print("Looking for Magisk Manager app ...")
-    if not device.magisk_path:
+    magisk_app_version = device.get_uncached_magisk_app_version()
+    if not magisk_app_version:
         # Magisk not found
         if device.rooted:
             # Device is rooted
             print("Rooted phone is detected, is Magisk Manager hidden?")
             title = "Rooted device, but Magisk Manager is not detected."
-            message =  "WARNING: Your phone is rooted, but Magisk Manager is not detected.\n\n"
-            message += "This could be either because it is hidden, or it is not installed.\n"
-            message += "If it is installed and hidden, then you could set the hidden Magisk package name in PixelFlasher Advanced Configuration.\n"
-            message += f"PixelFlasher can create a patch file using the rooted Magisk {device.magisk_version}\n\n"
-            message += "If Magisk is not installed, PixelFlasher can install it for you.\n\n"
+            message =  f"WARNING: Your phone is rooted, but Magisk Manager [{get_magisk_package()}] is not detected.\n\n"
+            message += "This could be either because it is hidden, or it is not installed (most likely hidden).\n"
+            message += f"If it is installed and hidden, then PixelFlasher will create a patch file using the rooted Magisk {device.magisk_version}\n\n"
+            message += "If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n"
             message += f"Press OK to continue patching using rooted Magisk {device.magisk_version}, or\n"
-            message += "Press Cancel if you prefer patching with Magisk Manager, in which case\n"
-            message += "you should either install Magisk Manager or set the hidden package name.\n"
+            message += "Press Cancel if you prefer installing Magisk Manager and patching with it.\n\n"
             message += "WARNING: Do not install Magisk again if it is currently hidden.\n"
-            print(message)
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
@@ -1394,17 +1393,16 @@ def patch_boot_img(self):
             print("Unable to find magisk on the phone, perhaps it is hidden?")
             # Message to Launch Manually and Patch
             title = "Magisk Manager is not detected."
-            message =  "WARNING: Magisk is not found on the phone\n\n"
-            message += "This could be either because it is hidden, or it is not installed.\n\n"
-            message += "If it is installed and hidden, then you sould set the hidden Magisk package name\n"
-            message += "You can set that in PixelFlasher advanced settings and try again.\n\n"
+            message =  f"WARNING: Magisk Manager [{get_magisk_package()}] is not found on the phone\n\n"
+            message += "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
+            message += "If it is installed and hidden, then you should abort and then unhide it.\n"
+            message += "If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n"
             message += "WARNING: Do not install Magisk again if it is currently hidden.\n"
-            message += "If Magisk is not installed, PixelFlasher can install it for you.\n\n"
             message += "Do you want PixelFlasher to download and install Magisk?\n"
             message += "You will be given a choice of Magisk Version to install.\n\n"
             message += "Click OK to continue with Magisk installation.\n"
-            message += "or Hit CANCEL to abort to set the Magisk package name in Advanced Settings."
-            print(message)
+            message += "or Hit CANCEL to abort."
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
@@ -1444,15 +1442,15 @@ def patch_boot_img(self):
     #------------------------------------
     # Create Patching Script
     #------------------------------------
-    if device.magisk_path:
+    if device.magisk_path and magisk_app_version:
         print("Creating pf_patch.sh script ...")
         magisk_version = device.magisk_app_version
-        path_to_busybox = os.path.join(get_bundle_dir(),'bin', 'busybox')
+        path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         with open(dest.strip(), "w", encoding="ISO-8859-1", newline='\n') as f:
             data = "#!/system/bin/sh\n"
             data += "##############################################################################\n"
-            data += f"# PixelFlasher {VERSION} patch script using Magisk {magisk_version}\n"
+            data += f"# PixelFlasher {VERSION} patch script using Magisk Manager {magisk_version}\n"
             data += "##############################################################################\n"
             data += f"ARCH={device.architecture}\n"
             data += f"cp {device.magisk_path} /data/local/tmp/pf.zip\n"
@@ -1460,10 +1458,10 @@ def patch_boot_img(self):
             data += "rm -rf pf\n"
             data += "mkdir pf\n"
             data += "cd pf\n"
-            data += "../busybox unzip -o -q ../pf.zip\n"
+            data += "../busybox unzip -o ../pf.zip\n"
             data += "cd assets\n"
-            data += "rm -f bootctl main.jar module_installer.sh uninstaller.sh\n"
-            data += "rm -rf dexopt\n"
+            #data += "rm -f bootctl main.jar module_installer.sh uninstaller.sh\n"
+            #data += "rm -rf dexopt\n"
             data += "for FILE in ../lib/$ARCH/lib*.so; do\n"
             data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
             data += "    cp $FILE $NEWNAME\n"
@@ -1678,7 +1676,7 @@ def live_boot_phone(self):
             message += "certian that this is what you want, you have been warned.\n\n"
             message += "Click OK to accept and continue.\n"
             message += "or Hit CANCEL to abort."
-            print(message)
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
@@ -1708,7 +1706,7 @@ def live_boot_phone(self):
         message += f"  {boot.boot_path}\n"
         message += "\nClick OK to accept and continue.\n"
         message += "or Hit CANCEL to abort."
-        print(message)
+        print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
         dlg = MessageBox(self)
@@ -1804,7 +1802,7 @@ def flash_phone(self):
             message += "Will take care of that.\n\n"
             message += "Click OK to continue as is.\n"
             message += "or Hit CANCEL to abort and change options."
-            print(message)
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
@@ -1960,7 +1958,7 @@ def flash_phone(self):
             message += "certian that this is what you want, you have been warned.\n\n"
             message += "Click OK to accept and continue.\n"
             message += "or Hit CANCEL to abort."
-            print(message)
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
@@ -2091,7 +2089,7 @@ def flash_phone(self):
     message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
     message += "      Do you want to continue to flash with the above options?\n"
     message += "              Press OK to continue or CANCEL to abort.\n"
-    print(message)
+    print(f"\n*** Dialog ***\n{message}\n______________\n")
     print(f"The script content that will be executed:")
     print(f"___________________________________________________\n{data}")
     print("___________________________________________________\n")

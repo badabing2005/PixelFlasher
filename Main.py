@@ -1076,7 +1076,7 @@ class PixelFlasher(wx.Frame):
                 message += "Do you want to continue to Lock the device bootloader?\n"
                 message += "       Press OK to continue or CANCEL to abort.\n"
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
-                print(message)
+                print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
                 dlg = MessageBox(self)
@@ -1103,7 +1103,7 @@ class PixelFlasher(wx.Frame):
                 message += "      Do you want to continue to Lock the device bootloader?\n"
                 message += "              Press OK to continue or CANCEL to abort.\n"
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
-                print(message)
+                print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
                 dlg = MessageBox(self)
@@ -1145,7 +1145,7 @@ class PixelFlasher(wx.Frame):
                 message += "      Do you want to continue to Unlock the device bootloader?\n"
                 message += "              Press OK to continue or CANCEL to abort.\n"
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
-                print(message)
+                print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
                 dlg = MessageBox(self)
@@ -1185,7 +1185,7 @@ class PixelFlasher(wx.Frame):
                 message += "In such cases, killing the adb process will resume to normalcy.\n\n"
                 message += "              Press OK to continue or CANCEL to abort.\n"
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
-                print(message)
+                print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
                 dlg = MessageBox(self)

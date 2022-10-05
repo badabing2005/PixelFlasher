@@ -306,25 +306,20 @@ class Device():
     def magisk_app_version(self):
         if self._magisk_app_version is None and self.mode == 'adb':
             try:
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()} | grep versionName"
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()}"
                 res = run_shell(theCmd)
-                version = res.stdout.split('\n')
-                version = version[0].split('=')
-                version = version[1]
+                data = res.stdout.split('\n')
+                for line in data:
+                    if re.search('versionCode', line):
+                        versionCode = line.split('=')
+                        versionCode = versionCode[1]
+                        versionCode = versionCode.split(' ')
+                        versionCode = versionCode[0]
+                    if re.search('versionName', line):
+                        version = line.split('=')
+                        version = version[1]
             except Exception:
                 return ''
-
-            try:
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()} | grep versionCode"
-                res = run_shell(theCmd)
-                versionCode = res.stdout.split('\n')
-                versionCode = versionCode[0].split('=')
-                versionCode = versionCode[1]
-                versionCode = versionCode.split(' ')
-                versionCode = versionCode[0]
-            except Exception:
-                return version
-
             self._magisk_app_version = f"{version}:{versionCode}"
         return self._magisk_app_version
 
@@ -335,41 +330,41 @@ class Device():
         self._magisk_app_version = None
         return self.magisk_app_version
 
-    # ----------------------------------------------------------------------------
-    #                               Method is_display_unlocked
-    # ----------------------------------------------------------------------------
-    def is_display_unlocked(self):
-        print("Checking to see if display is unlocked ...")
-        try:
-            if self.mode == 'adb':
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"dumpsys power | grep \'mHolding\'\""
-                res = run_shell(theCmd)
-                mHoldingWakeLockSuspendBlocker = False
-                mHoldingDisplaySuspendBlocker = False
-                if res.returncode == 0:
-                    results = res.stdout.strip().split('\n')
-                    for m in results:
-                        s = False
-                        k, v = m.strip().split('=')
-                        if v == 'true':
-                            s = True
-                        if k == 'mHoldingDisplaySuspendBlocker':
-                            mHoldingDisplaySuspendBlocker = s
-                        elif k == 'mHoldingWakeLockSuspendBlocker':
-                            mHoldingWakeLockSuspendBlocker = s
-                # https://stackoverflow.com/questions/35275828/is-there-a-way-to-check-if-android-device-screen-is-locked-via-adb
-                # I'm not going to check for both flags as it is not reliable
-                # But this won't work if display is on but locked :(
-                # if mHoldingWakeLockSuspendBlocker and mHoldingDisplaySuspendBlocker:
-                if mHoldingDisplaySuspendBlocker:
-                    print("Display is unlocked")
-                    return True
-                else:
-                    print("Display is locked")
-                    return False
-        except Exception:
-            print("Display is locked")
-            return False
+    # # ----------------------------------------------------------------------------
+    # #                               Method is_display_unlocked
+    # # ----------------------------------------------------------------------------
+    # def is_display_unlocked(self):
+    #     print("Checking to see if display is unlocked ...")
+    #     try:
+    #         if self.mode == 'adb':
+    #             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"dumpsys power | grep \'mHolding\'\""
+    #             res = run_shell(theCmd)
+    #             mHoldingWakeLockSuspendBlocker = False
+    #             mHoldingDisplaySuspendBlocker = False
+    #             if res.returncode == 0:
+    #                 results = res.stdout.strip().split('\n')
+    #                 for m in results:
+    #                     s = False
+    #                     k, v = m.strip().split('=')
+    #                     if v == 'true':
+    #                         s = True
+    #                     if k == 'mHoldingDisplaySuspendBlocker':
+    #                         mHoldingDisplaySuspendBlocker = s
+    #                     elif k == 'mHoldingWakeLockSuspendBlocker':
+    #                         mHoldingWakeLockSuspendBlocker = s
+    #             # https://stackoverflow.com/questions/35275828/is-there-a-way-to-check-if-android-device-screen-is-locked-via-adb
+    #             # I'm not going to check for both flags as it is not reliable
+    #             # But this won't work if display is on but locked :(
+    #             # if mHoldingWakeLockSuspendBlocker and mHoldingDisplaySuspendBlocker:
+    #             if mHoldingDisplaySuspendBlocker:
+    #                 print("Display is unlocked")
+    #                 return True
+    #             else:
+    #                 print("Display is locked")
+    #                 return False
+    #     except Exception:
+    #         print("Display is locked")
+    #         return False
 
 
     # ----------------------------------------------------------------------------

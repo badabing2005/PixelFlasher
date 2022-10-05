@@ -896,301 +896,301 @@ def extract_fingerprint(binfile):
             return res.decode("utf-8")
 
 
-# ============================================================================
-#                               Function drive_magisk (not used)
-# ============================================================================
-def drive_magisk(self, boot_file_name):
-    start = time.time()
-    print("")
-    print("==============================================================================")
-    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Driving Magisk ")
-    print("==============================================================================")
+# # ============================================================================
+# #                               Function drive_magisk (not used)
+# # ============================================================================
+# def drive_magisk(self, boot_file_name):
+#     start = time.time()
+#     print("")
+#     print("==============================================================================")
+#     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Driving Magisk ")
+#     print("==============================================================================")
 
-    device = get_phone()
-    config_path = get_config_path()
+#     device = get_phone()
+#     config_path = get_config_path()
 
-    if not device.is_display_unlocked():
-        title = "Display is Locked!"
-        message =  "ERROR: Your phone display is Locked.\n\n"
-        message += "Make sure you unlock your display\n"
-        message += "And set the display timeout to at least 1 minute.\n\n"
-        message += "After doing so, Click OK to accept and continue.\n"
-        message += "or Hit CANCEL to abort."
-        print(f"\n*** Dialog ***\n{message}\n______________\n")
-        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-        result = dlg.ShowModal()
-        if result == wx.ID_OK:
-            print("User pressed ok.")
-            if not device.is_display_unlocked():
-                print("ERROR: The device display is still Locked!\nAborting ...\n")
-                return 'ERROR'
-        else:
-            print("User pressed cancel.")
-            print("Aborting ...\n")
-            return 'ERROR'
+#     if not device.is_display_unlocked():
+#         title = "Display is Locked!"
+#         message =  "ERROR: Your phone display is Locked.\n\n"
+#         message += "Make sure you unlock your display\n"
+#         message += "And set the display timeout to at least 1 minute.\n\n"
+#         message += "After doing so, Click OK to accept and continue.\n"
+#         message += "or Hit CANCEL to abort."
+#         print(f"\n*** Dialog ***\n{message}\n______________\n")
+#         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+#         result = dlg.ShowModal()
+#         if result == wx.ID_OK:
+#             print("User pressed ok.")
+#             if not device.is_display_unlocked():
+#                 print("ERROR: The device display is still Locked!\nAborting ...\n")
+#                 return 'ERROR'
+#         else:
+#             print("User pressed cancel.")
+#             print("Aborting ...\n")
+#             return 'ERROR'
 
-    # Get uiautomator dump of view1
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view1.xml"
-    debug(theCmd)
-    res = run_shell(theCmd)
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
-        print(res.stderr)
-        return 'ERROR'
+#     # Get uiautomator dump of view1
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view1.xml"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     if res.returncode != 0:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+#         print(res.stderr)
+#         return 'ERROR'
 
-    # Pull view1.xml
-    view1 = os.path.join(config_path, 'tmp', 'view1.xml')
-    print(f"Pulling {self.config.phone_path}/view1.xml from the phone ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view1.xml \"{view1}\""
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view1} from phone.")
-        print(res.stderr)
-        print("Aborting ...\n")
-        return 'ERROR'
+#     # Pull view1.xml
+#     view1 = os.path.join(config_path, 'tmp', 'view1.xml')
+#     print(f"Pulling {self.config.phone_path}/view1.xml from the phone ...")
+#     theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view1.xml \"{view1}\""
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     # expect ret 0
+#     if res.returncode == 1:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view1} from phone.")
+#         print(res.stderr)
+#         print("Aborting ...\n")
+#         return 'ERROR'
 
-    # get view1 bounds / click coordinates
-    coords = get_ui_cooridnates(view1, "Install")
+#     # get view1 bounds / click coordinates
+#     coords = get_ui_cooridnates(view1, "Install")
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Click on coordinates of `Install`
-    # For Pixel 6 this would be: adb shell input tap 830 417
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Click on coordinates of `Install`
+#     # For Pixel 6 this would be: adb shell input tap 830 417
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # Sleep 2 seconds
-    print("Sleeping 2 seconds to make sure the view is loaded ...")
-    time.sleep(2)
+#     # Sleep 2 seconds
+#     print("Sleeping 2 seconds to make sure the view is loaded ...")
+#     time.sleep(2)
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Get uiautomator dump of view2
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view2.xml"
-    debug(theCmd)
-    res = run_shell(theCmd)
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
-        print(res.stderr)
-        # print("Please launch Magisk manually.")
-        return 'ERROR'
+#     # Get uiautomator dump of view2
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view2.xml"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     if res.returncode != 0:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+#         print(res.stderr)
+#         # print("Please launch Magisk manually.")
+#         return 'ERROR'
 
-    # Pull view2.xml
-    view2 = os.path.join(config_path, 'tmp', 'view2.xml')
-    print(f"Pulling {self.config.phone_path}/view2.xml from the phone ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view2.xml \"{view2}\""
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view2} from phone.")
-        print(res.stderr)
-        print("Aborting ...\n")
-        return 'ERROR'
+#     # Pull view2.xml
+#     view2 = os.path.join(config_path, 'tmp', 'view2.xml')
+#     print(f"Pulling {self.config.phone_path}/view2.xml from the phone ...")
+#     theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view2.xml \"{view2}\""
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     # expect ret 0
+#     if res.returncode == 1:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view2} from phone.")
+#         print(res.stderr)
+#         print("Aborting ...\n")
+#         return 'ERROR'
 
-    # get view2 bounds / click coordinates
-    coords = get_ui_cooridnates(view2, "Select and Patch a File")
+#     # get view2 bounds / click coordinates
+#     coords = get_ui_cooridnates(view2, "Select and Patch a File")
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Click on coordinates of `Select and Patch a File`
-    # For Pixel 6 this would be: adb shell input tap 540 555
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Click on coordinates of `Select and Patch a File`
+#     # For Pixel 6 this would be: adb shell input tap 540 555
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # Sleep 2 seconds
-    print("Sleeping 2 seconds to make sure the view is loaded ...")
-    time.sleep(2)
+#     # Sleep 2 seconds
+#     print("Sleeping 2 seconds to make sure the view is loaded ...")
+#     time.sleep(2)
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Get uiautomator dump of view3
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view3.xml"
-    debug(theCmd)
-    res = run_shell(theCmd)
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
-        print(res.stderr)
-        return 'ERROR'
+#     # Get uiautomator dump of view3
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view3.xml"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     if res.returncode != 0:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+#         print(res.stderr)
+#         return 'ERROR'
 
-    # Pull view3.xml
-    view3 = os.path.join(config_path, 'tmp', 'view3.xml')
-    print(f"Pulling {self.config.phone_path}/view3.xml from the phone ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view3.xml \"{view3}\""
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view3} from phone.")
-        print(res.stderr)
-        print("Aborting ...\n")
-        return 'ERROR'
+#     # Pull view3.xml
+#     view3 = os.path.join(config_path, 'tmp', 'view3.xml')
+#     print(f"Pulling {self.config.phone_path}/view3.xml from the phone ...")
+#     theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view3.xml \"{view3}\""
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     # expect ret 0
+#     if res.returncode == 1:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view3} from phone.")
+#         print(res.stderr)
+#         print("Aborting ...\n")
+#         return 'ERROR'
 
-    # get view3 bounds / click coordinates
-    coords = get_ui_cooridnates(view3, "Search this phone")
+#     # get view3 bounds / click coordinates
+#     coords = get_ui_cooridnates(view3, "Search this phone")
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Click on coordinates of `Search this phone`
-    # For Pixel 6 this would be: adb shell input tap 574 210
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Click on coordinates of `Search this phone`
+#     # For Pixel 6 this would be: adb shell input tap 574 210
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # Sleep 2 seconds
-    print("Sleeping 2 seconds to make sure the view is loaded ...")
-    time.sleep(2)
+#     # Sleep 2 seconds
+#     print("Sleeping 2 seconds to make sure the view is loaded ...")
+#     time.sleep(2)
 
-    # Type the boot_file_name to search for it
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input text {boot_file_name}"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Type the boot_file_name to search for it
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input text {boot_file_name}"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # Sleep 1 seconds
-    print("Sleeping 1 seconds to make sure the view is loaded ...")
-    time.sleep(1)
+#     # Sleep 1 seconds
+#     print("Sleeping 1 seconds to make sure the view is loaded ...")
+#     time.sleep(1)
 
-    # Hit Enter to search
-    print("Hitting Enter to search")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input keyevent 66"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Hit Enter to search
+#     print("Hitting Enter to search")
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input keyevent 66"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # Sleep 1 seconds
-    print("Sleeping 1 seconds to make sure the view is loaded ...")
-    time.sleep(1)
+#     # Sleep 1 seconds
+#     print("Sleeping 1 seconds to make sure the view is loaded ...")
+#     time.sleep(1)
 
-    # Hit Enter to Select it
-    print("Hitting Enter to select")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input keyevent 66"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Hit Enter to Select it
+#     print("Hitting Enter to select")
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input keyevent 66"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # Sleep 2 seconds
-    print("Sleeping 2 seconds to make sure the view is loaded ...")
-    time.sleep(2)
+#     # Sleep 2 seconds
+#     print("Sleeping 2 seconds to make sure the view is loaded ...")
+#     time.sleep(2)
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Get uiautomator dump of view4
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view4.xml"
-    debug(theCmd)
-    res = run_shell(theCmd)
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
-        print(res.stderr)
-        return 'ERROR'
+#     # Get uiautomator dump of view4
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view4.xml"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     if res.returncode != 0:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+#         print(res.stderr)
+#         return 'ERROR'
 
-    # Pull view4.xml
-    view4 = os.path.join(config_path, 'tmp', 'view4.xml')
-    print(f"Pulling {self.config.phone_path}/view4.xml from the phone ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view4.xml \"{view4}\""
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view4} from phone.")
-        print(res.stderr)
-        print("Aborting ...\n")
-        return 'ERROR'
+#     # Pull view4.xml
+#     view4 = os.path.join(config_path, 'tmp', 'view4.xml')
+#     print(f"Pulling {self.config.phone_path}/view4.xml from the phone ...")
+#     theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view4.xml \"{view4}\""
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     # expect ret 0
+#     if res.returncode == 1:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view4} from phone.")
+#         print(res.stderr)
+#         print("Aborting ...\n")
+#         return 'ERROR'
 
-    # get view4 bounds / click coordinates
-    coords = get_ui_cooridnates(view4, "LET'S GO")
+#     # get view4 bounds / click coordinates
+#     coords = get_ui_cooridnates(view4, "LET'S GO")
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Click on coordinates of `LET'S GO`
-    # For Pixel 6 this would be: adb shell input tap 839 417
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Click on coordinates of `LET'S GO`
+#     # For Pixel 6 this would be: adb shell input tap 839 417
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # Sleep 2 seconds
-    print("Sleeping 2 seconds to make sure the view is loaded ...")
-    time.sleep(2)
+#     # Sleep 2 seconds
+#     print("Sleeping 2 seconds to make sure the view is loaded ...")
+#     time.sleep(2)
 
-    # Sleep 10 seconds
-    print("Sleeping 10 seconds to make sure Patching is completed ...")
-    time.sleep(10)
+#     # Sleep 10 seconds
+#     print("Sleeping 10 seconds to make sure Patching is completed ...")
+#     time.sleep(10)
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Get uiautomator dump of view5
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view5.xml"
-    debug(theCmd)
-    res = run_shell(theCmd)
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
-        print(res.stderr)
-        return 'ERROR'
+#     # Get uiautomator dump of view5
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell uiautomator dump {self.config.phone_path}/view5.xml"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     if res.returncode != 0:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+#         print(res.stderr)
+#         return 'ERROR'
 
-    # Pull view5.xml
-    view5 = os.path.join(config_path, 'tmp', 'view5.xml')
-    print(f"Pulling {self.config.phone_path}/view5.xml from the phone ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view5.xml \"{view5}\""
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view5} from phone.")
-        print(res.stderr)
-        print("Aborting ...\n")
-        return 'ERROR'
+#     # Pull view5.xml
+#     view5 = os.path.join(config_path, 'tmp', 'view5.xml')
+#     print(f"Pulling {self.config.phone_path}/view5.xml from the phone ...")
+#     theCmd = f"\"{get_adb()}\" -s {device.id} pull {self.config.phone_path}/view5.xml \"{view5}\""
+#     debug(theCmd)
+#     res = run_shell(theCmd)
+#     # expect ret 0
+#     if res.returncode == 1:
+#         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {view5} from phone.")
+#         print(res.stderr)
+#         print("Aborting ...\n")
+#         return 'ERROR'
 
-    # get view5 bounds / click coordinates (Save button)
-    coords = get_ui_cooridnates(view5, "com.topjohnwu.magisk:id/action_save")
+#     # get view5 bounds / click coordinates (Save button)
+#     coords = get_ui_cooridnates(view5, "com.topjohnwu.magisk:id/action_save")
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\nAborting ...\n")
-        return 'ERROR'
+#     # Check for Display being locked again
+#     if not device.is_display_unlocked():
+#         print("ERROR: The device display is Locked!\nAborting ...\n")
+#         return 'ERROR'
 
-    # Click on coordinates of `com.topjohnwu.magisk:id/action_save`
-    # For Pixel 6 this would be: adb shell input tap 1010 198
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
-    debug(theCmd)
-    res = run_shell(theCmd)
+#     # Click on coordinates of `com.topjohnwu.magisk:id/action_save`
+#     # For Pixel 6 this would be: adb shell input tap 1010 198
+#     theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
+#     debug(theCmd)
+#     res = run_shell(theCmd)
 
-    # get view5 bounds / click coordinates (All Done)
-    coords = None
-    coords = get_ui_cooridnates(view5, "- All done!")
-    if coords:
-        print("\nIt looks liks Patching was successful.")
-    else:
-        print("\nIt looks liks Patching was not successful.")
+#     # get view5 bounds / click coordinates (All Done)
+#     coords = None
+#     coords = get_ui_cooridnates(view5, "- All done!")
+#     if coords:
+#         print("\nIt looks liks Patching was successful.")
+#     else:
+#         print("\nIt looks liks Patching was not successful.")
 
-    end = time.time()
-    print(f"Magisk Version: {device.magisk_version}")
-    print(f"Driven Patch time: {math.ceil(end - start)} seconds")
-    print("------------------------------------------------------------------------------\n")
+#     end = time.time()
+#     print(f"Magisk Version: {device.magisk_version}")
+#     print(f"Driven Patch time: {math.ceil(end - start)} seconds")
+#     print("------------------------------------------------------------------------------\n")
 
 
 # ============================================================================

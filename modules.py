@@ -1379,7 +1379,7 @@ def patch_boot_img(self):
                 magisk_version = device.magisk_version
                 print("User pressed ok.")
                 print(f"Patching with rooted Magisk: {magisk_version}")
-                theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; ./data/adb/magisk/boot_patch.sh /sdcard/Download/{boot_img}; mv ./data/adb/magisk/new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
+                theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; cd /data/adb/magisk; ./boot_patch.sh /sdcard/Download/{boot_img}; mv new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
                 res = run_shell2(theCmd)
                 dlg.Destroy()
             else:

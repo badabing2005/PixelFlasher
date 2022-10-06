@@ -309,6 +309,8 @@ class Device():
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()}"
                 res = run_shell(theCmd)
                 data = res.stdout.split('\n')
+                version = None
+                versionCode = None
                 for line in data:
                     if re.search('versionCode', line):
                         versionCode = line.split('=')
@@ -320,7 +322,10 @@ class Device():
                         version = version[1]
             except Exception:
                 return ''
-            self._magisk_app_version = f"{version}:{versionCode}"
+            if version and versionCode:
+                self._magisk_app_version = f"{str(version)}:{str(versionCode)}"
+            else:
+                self._magisk_app_version = ''
         return self._magisk_app_version
 
     # ----------------------------------------------------------------------------

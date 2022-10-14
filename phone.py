@@ -53,7 +53,6 @@ class Device():
         self._active_slot = None
         self._bootloader_version = None
         self._rooted = None
-        self._root_symbol = None
         self._unlocked = None
         self._magisk_version = None
         self._magisk_app_version = None
@@ -61,6 +60,7 @@ class Device():
         self._magisk_modules_summary = None
         self._magisk_apks = None
         self._magisk_path = None
+        self._magisk_config_path = None
 
     # ----------------------------------------------------------------------------
     #                               property adb_device_info
@@ -246,14 +246,12 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def root_symbol(self):
-        if self._root_symbol is None:
-            if self.mode == 'f.b':
-                self._root_symbol = '?'
-            elif self.rooted:
-                self._root_symbol = '✓'
-            else:
-                self._root_symbol = '✗'
-        return self._root_symbol
+        if self.mode == 'f.b':
+            return '?'
+        elif self.rooted:
+            return '✓'
+        else:
+            return '✗'
 
     # ----------------------------------------------------------------------------
     #                               property magisk_path
@@ -298,6 +296,219 @@ class Device():
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
                     self._rooted = None
         return self._magisk_version
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_config_path
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_config_path(self):
+        if self._magisk_config_path is None and self.mode == 'adb' and self.rooted:
+            try:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -1 $(magisk --path)/.magisk/config\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    self._magisk_config_path = res.stdout.strip('\n')
+                else:
+                    self._magisk_config_path = None
+            except Exception as e:
+                print(e)
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+                self._magisk_config_path = None
+        return self._magisk_config_path
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_backups
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_backups(self):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -d -1 /data/magisk_backup_*\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    _magisk_backups = res.stdout.replace('/data/magisk_backup_', '').split('\n')
+                else:
+                    _magisk_backups = None
+            except Exception as e:
+                print(e)
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk backups.")
+                _magisk_backups = None
+        return _magisk_backups
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_sha1
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_sha1(self):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat $(magisk --path)/.magisk/config | grep SHA1 | cut -d \'=\' -f 2\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    _magisk_sha1 = res.stdout.strip('\n')
+                else:
+                    _magisk_sha1 = ''
+            except Exception as e:
+                print(e)
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+                _magisk_sha1 = ''
+        return _magisk_sha1
+
+    # ----------------------------------------------------------------------------
+    #                               Method run_magisk_migration
+    # ----------------------------------------------------------------------------
+    def run_magisk_migration(self, sha1 = None):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                print("Making sure stock-boot.img is found on the phone ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell ls -l /data/adb/magisk/stock-boot.img"
+                res = run_shell(theCmd)
+                # expect 0
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock-boot.img is not found!")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    print("Aborting run_migration ...\n")
+                    return -1
+
+                print("Triggering Magisk run_migration to create a Backup of source boot.img")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /data/adb/magisk; ./magiskboot cleanup; . ./util_functions.sh; run_migrations\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    print("run_migration completed.")
+                    if sha1:
+                        magisk_backups = self.magisk_backups
+                        if self.magisk_backups and sha1 in magisk_backups:
+                            print(f"Magisk backup for {sha1} was successful")
+                            return 0
+                        else:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                            return -1
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                    return -1
+            except Exception as e:
+                print(e)
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                return -1
+        return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method create_magisk_backup
+    # ----------------------------------------------------------------------------
+    def create_magisk_backup(self, sha1 = None):
+        if self.mode == 'adb' and self.rooted and sha1:
+            try:
+                print("Getting the current SHA1 from Magisk config ...")
+                magisk_sha1 = self.magisk_sha1
+                print(f"The Current SHA1 in Magisk config is: {magisk_sha1}")
+
+                boot_img = os.path.join(get_boot_images_dir(), sha1, 'boot.img')
+                if not os.path.exists(boot_img):
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img with SHA1 of {sha1} is not found.")
+                    print("Aborting backup ...\n")
+                    return -1
+                # Transfer boot image to the phone
+                print(f"Transfering {boot_img} to the phone in /data/adb/magisk/stock-boot.img ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} push \"{boot_img}\" /data/adb/magisk/stock-boot.img"
+                debug(theCmd)
+                res = run_shell(theCmd)
+                # expect ret 0
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    print("Aborting backup ...\n")
+                    return -1
+                else:
+                    print(res.stdout)
+
+                # trigger run migration
+                print("Triggering Magisk run_migration to create a Backup ...")
+                res = self.run_magisk_migration(sha1)
+                if res == -1:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                    return -1
+
+                # read config
+                print("Getting the SHA1 from Magisk config again ...")
+                magisk_sha1 = self.magisk_sha1
+                print(f"SHA1 from Magisk config is: {magisk_sha1}")
+                if sha1 != magisk_sha1:
+                    print(f"Updating Magisk Config SHA1 to {sha1} to match the SHA1 of the source boot.img ...")
+                    res = self.update_magisk_config(sha1)
+                    if res == -1:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
+                        return -1
+                    else:
+                        print(f"Magisk config successfully updated with SHA1: {sha1}")
+
+                return 0
+            except Exception as e:
+                print(e)
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                return -1
+        return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method update_magisk_config
+    # ----------------------------------------------------------------------------
+    def update_magisk_config(self, sha1 = None):
+        if self.mode != 'adb' or not self.rooted or not sha1:
+            return -1
+        try:
+            magisk_config_path = self.magisk_config_path
+            if magisk_config_path:
+                print("Getting the current SHA1 from Magisk config ...")
+                magisk_sha1 = self.magisk_sha1
+                print(f"The Current SHA1 in Magisk config is: {magisk_sha1}")
+                print(f"Changing Magisk config SHA1 to: {sha1} ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd {magisk_config_path}; sed -i \"s/{magisk_sha1}/{sha1}/g\" config\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    # Read back to make sure it us updated
+                    print("Getting back the SHA1 from Magisk config ...")
+                    magisk_sha1 = self.magisk_sha1
+                    print(f"SHA1 from Magisk config is: {magisk_sha1}")
+                    if magisk_sha1 != sha1:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
+                        return -1
+                    else:
+                        print(f"Magisk config successfully updated with SHA1: {sha1}")
+                        return 0
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
+                    return -1
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk config")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method delete_magisk_ramdisk_cpio
+    # ----------------------------------------------------------------------------
+    def delete_magisk_ramdisk_cpio(self):
+        if self.mode != 'adb' or not self.rooted:
+            return -1
+        try:
+            print("Deleting old ramdisk.cpio to prevent Magisk issue ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/adb/magisk/ramdisk.cpio\'\""
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("Successfully deleted Magisk ramdisk.cpio")
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete Magisk ramdisk.cpio")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete Magisk ramdisk.cpio")
+            return -1
 
     # ----------------------------------------------------------------------------
     #                               property magisk_app_version

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 rm -rf build dist
-VERSION=4.1.4
+VERSION=4.2.0.0
 NAME="PixelFlasher"
 DIST_NAME="PixelFlasher"
 

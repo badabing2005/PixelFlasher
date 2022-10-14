@@ -232,6 +232,7 @@ Or select a boot.img from the list above and click on the paste button to paste 
 Choose the dropdown to select image type.  
     - boot (can be flashed to Live or boot) - Expected file type .img
     - bootloader - Expected file type .img
+    - init_boot - Expected file type .img
     - dtbo - Expected file type .img
     - product - Expected file type .img
     - radio - Expected file type .img

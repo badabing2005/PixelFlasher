@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
-import wx
-import wx.lib.mixins.listctrl as listmix
-import wx.html
-import wx.lib.wxpTag
+from urllib.parse import urlparse
+
 import darkdetect
 import markdown
-from urllib.parse import urlparse
+import wx
+import wx.html
+import wx.lib.mixins.listctrl as listmix
+import wx.lib.wxpTag
+
 from runtime import *
+
 
 # ============================================================================
 #                               Class ListCtrl

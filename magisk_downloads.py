@@ -1,13 +1,18 @@
 #!/usr/bin/env python
 
-import wx
-import wx.lib.mixins.listctrl as listmix
-import wx.html
-import wx.lib.wxpTag
+from urllib.parse import urlparse
+
 import darkdetect
 import markdown
-from urllib.parse import urlparse
+import wx
+import wx.html
+import wx.lib.mixins.listctrl as listmix
+import wx.lib.wxpTag
+
+import images as images
+
 from runtime import *
+
 
 # ============================================================================
 #                               Class ListCtrl
@@ -46,7 +51,15 @@ class MagiskDownloads(wx.Dialog):
         vSizer.Add(message_sizer, 0, wx.EXPAND, 5)
 
         list_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 6), style = wx.LC_REPORT)
+        # list control
+        if self.CharHeight > 20:
+            self.il = wx.ImageList(24, 24)
+            self.idx1 = self.il.Add(images.Official.GetBitmap())
+        else:
+            self.il = wx.ImageList(16, 16)
+            self.idx1 = self.il.Add(images.Official_Small.GetBitmap())
+        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 9), style = wx.LC_REPORT)
+        self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         device = get_phone()
         apks = device.magisk_apks
@@ -61,6 +74,10 @@ class MagiskDownloads(wx.Dialog):
         for apk in apks:
             if apk.type != '':
                 index = self.list.InsertItem(i, apk.type)
+                if apk.type in ('stable', 'beta', 'canary', 'debug'):
+                    self.list.SetItemColumnImage(i, 0, 0)
+                else:
+                    self.list.SetItemColumnImage(i, 0, -1)
             if apk.version != '':
                 self.list.SetItem(index, 1, apk.version)
             if apk.versionCode != '':

@@ -38,6 +38,7 @@ system_code_page = None
 codepage_setting = False
 codepage_value = ''
 magisk_package = ''
+patched_with = ''
 
 # ============================================================================
 #                               Class Boot
@@ -73,6 +74,22 @@ def get_boot():
 def set_boot(value):
     global boot
     boot = value
+
+
+# ============================================================================
+#                               Function get_patched_with
+# ============================================================================
+def get_patched_with():
+    global patched_with
+    return patched_with
+
+
+# ============================================================================
+#                               Function set_patched_with
+# ============================================================================
+def set_patched_with(value):
+    global patched_with
+    patched_with = value
 
 
 # ============================================================================

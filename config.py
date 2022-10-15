@@ -3,8 +3,8 @@
 import json
 import os
 
-VERSION = "4.1.4.0"
-SDKVERSION = "33.0.3"
+VERSION = '4.3.0.0'
+SDKVERSION = '33.0.3'
 WIDTH = 1400
 HEIGHT = 1040
 POS_X = 40
@@ -128,6 +128,6 @@ class Config():
             'force_codepage': self.force_codepage,
             'custom_codepage': self.custom_codepage
         }
-        with open(file_path, 'w', encoding="ISO-8859-1") as f:
+        with open(file_path, 'w', encoding="ISO-8859-1", newline='\n') as f:
             json.dump(data, f, indent=4)
             f.close()

@@ -644,6 +644,7 @@ def process_file(self, file_type):
         files_to_extract = 'boot.img init_boot.img'
     else:
         boot_file_name = 'boot.img'
+        files_to_extract = 'boot.img'
     debug(f"Extracting {boot_file_name} from {image_file_path} ...")
     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
     debug(f"{theCmd}")

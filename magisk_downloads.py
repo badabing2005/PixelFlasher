@@ -10,7 +10,6 @@ import wx.lib.mixins.listctrl as listmix
 import wx.lib.wxpTag
 
 import images as images
-
 from runtime import *
 
 

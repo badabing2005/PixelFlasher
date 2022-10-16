@@ -26,12 +26,13 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
     - On what device it was patched.
     - Date of patching.
     - The SHA1 of the source boot.img file.
-  - Option to Live boot from a choice of boot.img.
+  - Option to Live boot from a choice of boot.img or patched image.
 - Choose to keep data or wipe data while flashing.
 - Ability to flash even if multiple devices are connected to the computer.
 - Display information about the phone.
   - ID
   - Hardware model.
+  - Device architecture.
   - Current installed firmware (build).
   - If it is rooted with Magisk.
   - Magisk version (Magisk Tools).
@@ -39,20 +40,23 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - List installed Magisk modules.
   - Connection mode (Adb | Fastboot | Sideload | Recovery).
   - Bootloader version.
+  - Active slot.
   - Android OS API version.
   - Convenient quick links to download Android platform tools or device firmware.
 - Magisk Manager installation UI, [screenshot](images/Magisk%20Installer.png). Supported versions:
-  - stable
-  - beta
-  - canary
-  - debug
+  - stable (official)
+  - beta (official)
+  - canary (official)
+  - debug (official)
+  - alpha  
+  - delta
 - Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade [screenshot](images/magisk-modules-manager.png):
   - Name
   - Version
   - Description
   - Enabled / Disabled.
 - Display Android Platform Tools (SDK) version and warn / block if the version is old.
-- Install APK file from the computer onto the device.
+- Install APK (an app) file from the computer onto the device.
 - Advanced features are hidden to keep the interface simple and easy to follow.
 - A lot of checks and validations for smooth operation.
 - Automatic check for program updates.

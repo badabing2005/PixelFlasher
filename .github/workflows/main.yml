@@ -24,7 +24,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Runs https://github.com/JackMcKew/pyinstaller-action-windows
       - name: Package Windows Application
@@ -34,7 +34,7 @@ jobs:
           spec: build-on-win.spec
 
       # Upload artifcats Windows
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         id: upload_artifacts_windows
         with:
           name: PixelFlasher.exe
@@ -42,14 +42,14 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1.11.1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          name: Release ${{ github.ref }}
           draft: false
           prerelease: true
+          
 
       - name: Upload Windows Release Asset
         id: upload-windows-release-asset
@@ -70,7 +70,7 @@ jobs:
           spec: build-on-linux.spec
 
       # Upload artifcats linux
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         id: upload_artifacts_linux
         with:
           name: PixelFlasher

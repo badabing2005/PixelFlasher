@@ -36,11 +36,11 @@ class MagiskModules(wx.Dialog):
 
         vSizer.Add(message_sizer, 0, wx.EXPAND, 5)
 
-        list_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.list  = ListCtrl(self, -1, style = wx.LC_REPORT)
-
         device = get_phone()
         modules = device.magisk_detailed_modules
+
+        list_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 18), style = wx.LC_REPORT)
 
         self.list.InsertColumn(0, 'Name', width = -1)
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)

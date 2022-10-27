@@ -601,37 +601,83 @@ class Device():
         if self._magisk_detailed_modules is None:
             try:
                 if self.mode == 'adb' and self.rooted:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'"
-                    res = run_shell(theCmd)
-                    if res.returncode == 0:
-                        modules = []
-                        themodules = res.stdout.split('-----pf\n')
-                        for item in themodules:
-                            if item != '':
-                                module_prop = item.split('\n')
-                                filepath = module_prop[0]
-                                module = os.path.basename(urlparse(filepath).path)
-                                m = Magisk(module)
-                                setattr(m, 'id', '')
-                                setattr(m, 'version', '')
-                                setattr(m, 'versionCode', '')
-                                setattr(m, 'author', '')
-                                setattr(m, 'description', '')
-                                for line in module_prop:
-                                    # ignore empty lines
-                                    if line == '':
-                                        continue
-                                    # ignore the first line which is the full path
-                                    if line == filepath:
-                                        continue
-                                    # ignore comment lines
-                                    if line[:1] == "#":
-                                        continue
-                                    if line.strip() != '' and '=' in line:
-                                        key, value = line.split('=', 1)
-                                        setattr(m, key, value)
-                                modules.append(m)
-                        self._magisk_detailed_modules = modules
+                    if sys.platform == "win32":
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
+                        res = run_shell(theCmd)
+                        if res.returncode == 0:
+                            modules = []
+                            themodules = res.stdout.split('-----pf\n')
+                            for item in themodules:
+                                if item != '':
+                                    module_prop = item.split('\n')
+                                    filepath = module_prop[0]
+                                    module = os.path.basename(urlparse(filepath).path)
+                                    m = Magisk(module)
+                                    setattr(m, 'id', '')
+                                    setattr(m, 'version', '')
+                                    setattr(m, 'versionCode', '')
+                                    setattr(m, 'author', '')
+                                    setattr(m, 'description', '')
+                                    for line in module_prop:
+                                        # ignore empty lines
+                                        if line == '':
+                                            continue
+                                        # ignore the first line which is the full path
+                                        if line == filepath:
+                                            continue
+                                        # ignore comment lines
+                                        if line[:1] == "#":
+                                            continue
+                                        if line.strip() != '' and '=' in line:
+                                            key, value = line.split('=', 1)
+                                            setattr(m, key, value)
+                                    modules.append(m)
+                            self._magisk_detailed_modules = modules
+                        else:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
+                            print(f"Return Code: {res.returncode}.")
+                            print(f"Stdout: {res.stdout}.")
+                            print(f"Stderr: {res.stderr}.")
+                    else:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
+                        res = run_shell(theCmd)
+                        if res.returncode == 0:
+                            modules = []
+                            self._magisk_detailed_modules = res.stdout.split('\n')
+                            for module in self._magisk_detailed_modules:
+                                if module != '':
+                                    m = Magisk(module)
+                                    if self.mode == 'adb' and get_adb():
+                                        # get the state by checking if there is a disable file in the module directory
+                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
+                                        res = run_shell(theCmd)
+                                        if res.returncode == 0:
+                                            m.state = 'disabled'
+                                        else:
+                                            m.state = 'enabled'
+                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
+                                        res = run_shell(theCmd)
+                                        if res.returncode == 0:
+                                            module_prop = res.stdout.split('\n')
+                                            setattr(m, 'id', '')
+                                            setattr(m, 'version', '')
+                                            setattr(m, 'versionCode', '')
+                                            setattr(m, 'author', '')
+                                            setattr(m, 'description', '')
+                                            for line in module_prop:
+                                                # ignore comment lines
+                                                if line[:1] == "#":
+                                                    continue
+                                                if line.strip() != '' and '=' in line:
+                                                    key, value = line.split('=', 1)
+                                                    setattr(m, key, value)
+                                            modules.append(m)
+                            self._magisk_detailed_modules = modules
+                        else:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
+                            print(f"Return Code: {res.returncode}.")
+                            print(f"Stdout: {res.stdout}.")
+                            print(f"Stderr: {res.stderr}.")
             except Exception as e:
                 self._magisk_detailed_modules is None
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing\nException: {e}")

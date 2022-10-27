@@ -560,6 +560,7 @@ class PixelFlasher(wx.Frame):
     #                  _on_spin
     # -----------------------------------------------
     def _on_spin(self, state):
+        wx.Yield
         if state == 'start':
             self.spinner.Show()
             self.spinner_label.Show()
@@ -607,6 +608,7 @@ class PixelFlasher(wx.Frame):
             print(f"    Device Unlocked:                 {device.unlocked}")
         if device.rooted:
             print(f"    Magisk Version:                  {device.magisk_version}")
+            print(f"    Magisk Config SHA1:              {device.magisk_sha1}")
             print("    Magisk Modules:")
             print(f"{device.magisk_modules_summary}")
         else:

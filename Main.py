@@ -32,7 +32,7 @@ from message_box import MessageBox
 from modules import (check_platform_tools, create_support_zip, debug,
                      delete_all, flash_phone, get_code_page, live_boot_phone,
                      patch_boot_img, populate_boot_list, process_file,
-                     select_firmware, set_flash_button_state)
+                     select_firmware, set_flash_button_state, wifi_adb_connect)
 from phone import get_connected_devices
 from runtime import *
 
@@ -220,8 +220,55 @@ class PixelFlasher(wx.Frame):
             about.Destroy()
         end = time.time()
         print(f"Load time: {math.ceil(end - start)} seconds")
+
+        # load pf_font details
+        set_customize_font(self.config.customize_font)
+        set_pf_font_face(self.config.pf_font_face)
+        set_pf_font_size(self.config.pf_font_size)
+
+        # set the ui fonts
+        self.set_ui_fonts()
+
         self.spinner.Hide()
         self.spinner_label.Hide()
+
+    # -----------------------------------------------
+    #                  set_ui_fonts
+    # -----------------------------------------------
+    def set_ui_fonts(self):
+        if self.config.customize_font:
+            font = wx.Font(get_pf_font_size(), family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName=get_pf_font_face())
+
+            # device list
+            self.device_choice.SetFont(font)
+
+            # boot img list
+            self.list.SetFont(font)
+            self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(font)))
+
+            # console
+            self.console_ctrl.SetFont(font)
+        else:
+            font = wx.Font(9, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName='Segoe UI')
+
+            # device list
+            self.device_choice.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
+
+            # boot img list
+            self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10))))
+            if sys.platform == "win32":
+                self.list.SetFont(font)
+            else:
+                self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
+
+            # console
+            self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
+            if darkdetect.isLight():
+                self.console_ctrl.SetBackgroundColour(wx.WHITE)
+                self.console_ctrl.SetForegroundColour(wx.BLUE)
+                self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
+
+        self._refresh_ui()
 
     # -----------------------------------------------
     #                  _set_icons
@@ -456,6 +503,10 @@ class PixelFlasher(wx.Frame):
             self.config.force_codepage = get_codepage_setting()
             self.config.custom_codepage = get_codepage_value()
             self.config.magisk = get_magisk_package()
+            self.config.customize_font = get_customize_font()
+            self.config.pf_font_face = get_pf_font_face()
+            self.config.pf_font_size = get_pf_font_size()
+            self.set_ui_fonts()
         advanced_setting_dialog.Destroy()
         # show / hide advanced settings
         self._advanced_options_hide(not get_advanced_options())
@@ -489,9 +540,7 @@ class PixelFlasher(wx.Frame):
         self.Freeze()
         if value:
             # flash options
-            self.advanced_options_label.Hide()
             self.flash_both_slots_checkBox.Hide()
-            self.flash_to_inactive_slot_checkBox.Hide()
             self.disable_verity_checkBox.Hide()
             self.disable_verification_checkBox.Hide()
             self.fastboot_force_checkBox.Hide()
@@ -525,9 +574,7 @@ class PixelFlasher(wx.Frame):
                 self.config.flash_mode = 'dryRun'
         else:
             # flash options
-            self.advanced_options_label.Show()
             self.flash_both_slots_checkBox.Show()
-            self.flash_to_inactive_slot_checkBox.Show()
             self.disable_verity_checkBox.Show()
             self.disable_verification_checkBox.Show()
             self.fastboot_force_checkBox.Show()
@@ -1258,6 +1305,26 @@ class PixelFlasher(wx.Frame):
             self._on_spin('stop')
 
         # -----------------------------------------------
+        #                  _on_wifi_adb_connect
+        # -----------------------------------------------
+        def _on_wifi_adb_connect(event):
+            x = ask(message = 'What IP/Hostname:Port you want to connect to?\nPort is optional (Default Port: 5555)')
+            if x:
+                self._on_spin('start')
+                wifi_adb_connect(self, x)
+                self._on_spin('stop')
+
+        # -----------------------------------------------
+        #                  _on_wifi_adb_disconnect
+        # -----------------------------------------------
+        def _on_wifi_adb_disconnect(event):
+            x = ask(message = 'What IP/Hostname:Port device you want to disconnect?\nPort is optional (Default Port: 5555)')
+            if x:
+                self._on_spin('start')
+                wifi_adb_connect(self, x, True)
+                self._on_spin('stop')
+
+        # -----------------------------------------------
         #                  _on_custom_rom
         # -----------------------------------------------
         def _on_custom_rom(event):
@@ -1512,6 +1579,12 @@ class PixelFlasher(wx.Frame):
 
         # 2nd row widgets, Connected Devices
         self.device_label = wx.StaticText(panel, label=u"ADB Connected Devices")
+        self.wifi_adb = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.wifi_adb.SetBitmap(images.Wifi_ADB.GetBitmap())
+        self.wifi_adb.SetToolTip(u"Connect/Disconnect to Remote Device (Wifi ADB)\nNote: ADB only, fastboot commands (example flashing)\ncannot be executed remotely.\nLeft click to connect, Right click to disconnect.")
+        adb_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        adb_label_sizer.Add(self.device_label, 1, wx.EXPAND)
+        adb_label_sizer.Add(self.wifi_adb, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=24)
         self.device_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, [], 0)
         self.device_choice.SetSelection(0)
         self.device_choice.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
@@ -1644,15 +1717,15 @@ class PixelFlasher(wx.Frame):
         self.list.SetColumnWidth(4, -2)
         self.list.SetColumnWidth(5, -2)
         self.list.SetColumnWidth(6, -2)
-        self.patch_boot_button = wx.Button(panel, wx.ID_ANY, u"Patch", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.patch_boot_button.SetBitmap(images.Patch.GetBitmap())
-        self.patch_boot_button.SetToolTip(u"Patch Selected boot.img")
-        self.delete_boot_button = wx.Button(panel, wx.ID_ANY, u"Delete", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.delete_boot_button.SetBitmap(images.Delete.GetBitmap())
-        self.delete_boot_button.SetToolTip(u"Delete Selected boot.img")
         self.live_boot_button = wx.Button(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, 0)
         self.live_boot_button.SetBitmap(images.Boot.GetBitmap())
         self.live_boot_button.SetToolTip(u"Live boot the selected boot.img")
+        self.patch_boot_button = wx.Button(panel, wx.ID_ANY, u"Patch", wx.DefaultPosition, self.live_boot_button.BestSize, 0)
+        self.patch_boot_button.SetBitmap(images.Patch.GetBitmap())
+        self.patch_boot_button.SetToolTip(u"Patch Selected boot.img")
+        self.delete_boot_button = wx.Button(panel, wx.ID_ANY, u"Delete", wx.DefaultPosition, self.live_boot_button.BestSize, 0)
+        self.delete_boot_button.SetBitmap(images.Delete.GetBitmap())
+        self.delete_boot_button.SetToolTip(u"Delete Selected boot.img")
         label_v_sizer = wx.BoxSizer(wx.VERTICAL)
         label_v_sizer.Add(self.select_boot_label, flag=wx.ALL)
         label_v_sizer.AddSpacer(10)
@@ -1702,9 +1775,9 @@ class PixelFlasher(wx.Frame):
 
         # 10th row widgets, Flash options
         self.advanced_options_label = wx.StaticText(panel, label=u"Flash Options")
-        self.flash_both_slots_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Flash to both slots", wx.DefaultPosition, wx.DefaultSize, 0)
         self.flash_to_inactive_slot_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Flash to inactive slot", wx.DefaultPosition, wx.DefaultSize, 0)
         self.flash_to_inactive_slot_checkBox.SetToolTip(u"This option when checked will flash to the alterante slot (inactive).\nKeeping the current slot intact.")
+        self.flash_both_slots_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Flash to both slots", wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_verity_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Disable Verity", wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_verification_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Disable Verification", wx.DefaultPosition, wx.DefaultSize, 0)
         self.fastboot_force_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Force", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -1714,9 +1787,9 @@ class PixelFlasher(wx.Frame):
         self.temporary_root_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Temporary Root", wx.DefaultPosition, wx.DefaultSize, 0)
         self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot.img\nInstead it will flash unpatched boot.img, but boot to Live Patched boot.img\nHandy to test if magisk will cause a bootloop.\n\nPlease be aware that factory image will be flashed, and if you reboot\nthe device will be unrooted.\nIf you want to make this permanent, just flash the patched boot.img")
         self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.advanced_options_sizer.Add(self.flash_both_slots_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
         self.advanced_options_sizer.Add(self.flash_to_inactive_slot_checkBox)
+        self.advanced_options_sizer.AddSpacer(10)
+        self.advanced_options_sizer.Add(self.flash_both_slots_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
         self.advanced_options_sizer.Add(self.disable_verity_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
@@ -1748,11 +1821,13 @@ class PixelFlasher(wx.Frame):
         console_v_sizer.AddSpacer(20)
         console_v_sizer.Add(self.spinner_label, flag=wx.ALL)
         self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
-        self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
-        if darkdetect.isLight():
-            self.console_ctrl.SetBackgroundColour(wx.WHITE)
-            self.console_ctrl.SetForegroundColour(wx.BLUE)
-            self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
+        if not self.config.customize_font:
+            self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
+            self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
+            if darkdetect.isLight():
+                self.console_ctrl.SetBackgroundColour(wx.WHITE)
+                self.console_ctrl.SetForegroundColour(wx.BLUE)
+                self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
         # 13th row widgets, verbose and clear button
         self.verbose_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -1762,7 +1837,7 @@ class PixelFlasher(wx.Frame):
         # add the rows to flexgrid
         fgs1.AddMany([
                     (platform_tools_label_sizer, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.sdk_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
-                    (self.device_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (adb_label_sizer, 0, wx.ALIGN_CENTER_VERTICAL, 5), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (active_slot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (reboot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
                     self.staticline1, (self.staticline2, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20),
@@ -1795,6 +1870,9 @@ class PixelFlasher(wx.Frame):
         self.firmware_link.Bind(wx.EVT_BUTTON, _open_firmware_link)
         self.platform_tools_picker.Bind(wx.EVT_DIRPICKER_CHANGED, _on_select_platform_tools)
         self.sdk_link.Bind(wx.EVT_BUTTON, _open_sdk_link)
+        self.wifi_adb.Bind(wx.EVT_BUTTON, _on_wifi_adb_connect)
+        self.wifi_adb.Bind(wx.EVT_RIGHT_DOWN, _on_wifi_adb_disconnect)
+        # self.wifi_adb.Bind(wx.EVT_LEFT_DCLICK, _on_wifi_adb_disconnect)
         self.custom_rom_checkbox.Bind(wx.EVT_CHECKBOX, _on_custom_rom)
         self.custom_rom.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_custom_rom)
         self.disable_verification_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verification)
@@ -1894,6 +1972,17 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
             splash = MySplashScreen()
             splash.Show()
         return True
+
+
+# ============================================================================
+#                               Function ask
+# ============================================================================
+def ask(parent=None, message='', default_value=''):
+    dlg = wx.TextEntryDialog(parent, message, value=default_value)
+    dlg.ShowModal()
+    result = dlg.GetValue()
+    dlg.Destroy()
+    return result
 
 
 # ============================================================================

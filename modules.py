@@ -344,6 +344,33 @@ def run_shell2(cmd):
 
 
 # ============================================================================
+#                               Function wifi_adb_connect
+# ============================================================================
+def wifi_adb_connect(self, value, disconnect = False):
+    if disconnect:
+        command = 'disconnect'
+    else:
+        command = 'connect'
+    print(f"Remote ADB {command}ing: {value}")
+    if get_adb():
+        if ':' in value:
+            ip,port = value.split(':')
+        else:
+            ip = value.strip()
+            port = '5555'
+        theCmd = f"\"{get_adb()}\" {command} {ip}:{port}"
+        res = run_shell(theCmd)
+        if res.returncode == 0 and 'cannot' not in res.stdout and 'failed' not in res.stdout:
+            print(f"ADB {command}ed: {ip}:{port}")
+            self.device_choice.SetItems(get_connected_devices())
+            self._select_configured_device()
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port}\n")
+            print(f"{res.stderr}")
+            print(f"{res.stdout}")
+
+
+# ============================================================================
 #                               Function md5
 # ============================================================================
 def md5(fname):
@@ -1616,13 +1643,13 @@ def patch_boot_img(self):
         magisk_sha1 = device.magisk_sha1
         print(f"Magisk Config's SHA1 is:   {magisk_sha1}")
         # compare it to the original boot_file_name file's sha1
-        print(f"Comparing source {boot_file_name} SHA1 with Magisk's config SHA1 (they should match) ...")
-        if boot_sha1_long != magisk_sha1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Something is wrong Magisk config has the wrong SHA1 ...")
-            # fix it
-            # res = device.update_magisk_config(boot_sha1_long)
-        else:
-            print(f"Good: Both SHA1s: {boot_sha1_long} match.")
+        # print(f"Comparing source {boot_file_name} SHA1 with Magisk's config SHA1 (they should match) ...")
+        # if boot_sha1_long != magisk_sha1:
+        #     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Something is wrong Magisk config has the wrong SHA1 ...")
+        #     # fix it
+        #     # res = device.update_magisk_config(boot_sha1_long)
+        # else:
+        #     print(f"Good: Both SHA1s: {boot_sha1_long} match.")
         # see if we have a Magisk backup
         print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
         magisk_backups = device.magisk_backups
@@ -1633,6 +1660,32 @@ def patch_boot_img(self):
             print("Triggering Magisk to create a backup ...")
             # Trigger Magisk to make a backup
             res = device.run_magisk_migration(boot_sha1_long)
+            # if return is -2, then copy boot.img to stock-boot.img
+            if res == -2:
+                # Transfer boot image to the phone
+                stock_boot_path = '/data/adb/magisk/stock-boot.img'
+                print(f"Transfering {boot_img} to the phone in {stock_boot_path} ...")
+                theCmd = f"\"{get_adb()}\" -s {device.id} push \"{boot.boot_path}\" {stock_boot_path}"
+                debug(theCmd)
+                res = run_shell(theCmd)
+                # expect ret 0
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    print("Aborting Backup...\n")
+                else:
+                    print(res.stdout)
+            # rerun the migration.
+            print("Triggering Magisk again to create a backup ...")
+            res = device.run_magisk_migration(boot_sha1_long)
+            print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
+            magisk_backups = device.magisk_backups
+            if magisk_backups and boot_sha1_long in magisk_backups:
+                print("Good: Magisk has made a backup")
+            else:
+                print("It looks like backup was not made.")
 
     # Extract sha1 from the patched image
     print(f"\nExtracting short SHA1 from {magisk_patched_img} ...")

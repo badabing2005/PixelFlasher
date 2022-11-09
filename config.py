@@ -3,7 +3,7 @@
 import json
 import os
 
-VERSION = '4.3.1.0'
+VERSION = '4.4.0.0'
 SDKVERSION = '33.0.3'
 WIDTH = 1400
 HEIGHT = 1040
@@ -46,6 +46,9 @@ class Config():
         self.first_run=False
         self.force_codepage = False
         self.custom_codepage = None
+        self.customize_font = False
+        self.pf_font_face = 'Courier'
+        self.pf_font_size = 12
 
     @classmethod
     def load(cls, file_path):
@@ -84,6 +87,9 @@ class Config():
                 conf.selected_boot_md5 = data['selected_boot_md5']
                 conf.force_codepage = data['force_codepage']
                 conf.custom_codepage = data['custom_codepage']
+                conf.customize_font = data['customize_font']
+                conf.pf_font_face = data['pf_font_face']
+                conf.pf_font_size = data['pf_font_size']
                 if conf.flash_to_inactive_slot:
                     conf.flash_both_slots = False
                 if conf.flash_both_slots:
@@ -126,7 +132,10 @@ class Config():
             'boot_id': self.boot_id,
             'selected_boot_md5': self.selected_boot_md5,
             'force_codepage': self.force_codepage,
-            'custom_codepage': self.custom_codepage
+            'custom_codepage': self.custom_codepage,
+            'customize_font': self.customize_font,
+            'pf_font_face': self.pf_font_face,
+            'pf_font_size': self.pf_font_size
         }
         with open(file_path, 'w', encoding="ISO-8859-1", newline='\n') as f:
             json.dump(data, f, indent=4)

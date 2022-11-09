@@ -75,6 +75,44 @@ class Device():
             return self._adb_device_info
 
     # ----------------------------------------------------------------------------
+    #                               property package_list
+    # ----------------------------------------------------------------------------
+    @property
+    def package_list(self):
+        if self.mode != 'adb':
+            return
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                return res.stdout.replace('package:','')
+            else:
+                return None
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            return None
+
+    # ----------------------------------------------------------------------------
+    #                               property disabled_package_list
+    # ----------------------------------------------------------------------------
+    @property
+    def disabled_package_list(self):
+        if self.mode != 'adb':
+            return
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -d"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                return res.stdout.replace('package:','')
+            else:
+                return None
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            return None
+
+    # ----------------------------------------------------------------------------
     #                               property fastboot_device_info
     # ----------------------------------------------------------------------------
     @property
@@ -370,7 +408,7 @@ class Device():
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")
                     print("Aborting run_migration ...\n")
-                    return -1
+                    return -2
 
                 print("Triggering Magisk run_migration to create a Backup of source boot.img")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /data/adb/magisk; ./magiskboot cleanup; . ./util_functions.sh; run_migrations\'\""
@@ -428,7 +466,7 @@ class Device():
                 # trigger run migration
                 print("Triggering Magisk run_migration to create a Backup ...")
                 res = self.run_magisk_migration(sha1)
-                if res == -1:
+                if res < 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                     return -1
 

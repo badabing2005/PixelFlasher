@@ -18,7 +18,7 @@ The application has two modes, normal mode (basic) and advanced mode (expert).
 Fully Automated patching with Magisk (without manual steps) and perform upgrades without losing root.  
 No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.  
 No more setting airplane mode and clearing storage to retain Safetynet passing.
-- Display details of `boot.img`.
+- Display details of `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro).
   - SHA1 checksum.
   - Origin (file it was extracted from).
   - Whether it is patched or not, and if it is patched.
@@ -179,24 +179,24 @@ The following information about the connected device is displayed.
 3. Next select the factory image, the application will recognize the phone model from the image name.  
 You can download factory images by clicking the ![Image of link](/images/open-link-16.png) next to it.
 4. Process the factory image.
-PixelFlasher will extract `boot.img` file from the factory image and populate it in the list below (5).  
-5. Select `boot.img` from the list, the selected `boot.img` can be patched (6), or flashed (10).
-6. Optional: Select this option if you want to patch the `boot.img` with Magisk. If Magisk is not already installed on your phone, PixelFlasher will install it for you.
+PixelFlasher will extract `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) file from the factory image and populate it in the list below (5).  
+5. Select `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) from the list, the selected file can be patched (6), or flashed (10).
+6. Optional: Select this option if you want to patch the `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) with Magisk. If Magisk is not already installed on your phone, PixelFlasher will install it for you.
 Your phone does not need to be rooted to create a patched file.
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
 **Note:** See note above for granting root permissions to `shell`.  
 Whether the phone is rooted or not, the whole process is without any manual step.  
-7. If you want to flash (10) a patched `boot.img` select the newly added entry.  
+7. If you want to flash (10) a patched `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) select the newly added entry.  
 The following details are listed.  
     - ![Image of patched-boot](/images/patched-16.png) Indicates that the selection is patched.
-    - **SHA1** is (shortened for display only) sha1 of `boot.img`
+    - **SHA1** is (shortened for display only) sha1 of `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro)
     - **Source SHA1** (shortened for display only) SHA1 of source `boot.img` extracted from the image (This should be the same as SHA1 of an unpatched `boot.img`)
     - **Package Fingerprint** is just the filename portion of the image (without the extension).
     - **Patched with Magisk** indicates the version of Magisk used to patch the image (if applicable).
     - **Patched on Device** indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
     - **Date** is the either the date the `boot.img` was extracted, or the date it was patched.
-    - **Package Path** indicates the file from which `boot.img` was extracted.
+    - **Package Path** indicates the file from which `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) was extracted.
 8. Select the Flash Mode
     - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`.
     - **WIPE all data**: As the text suggests, this will wipe your data, use it with caution!  
@@ -221,14 +221,14 @@ In this mode the following additional options are exposed (green bounding boxes)
 Option to reboot to Recovery.
 2. Options to Lock / Unlock bootloader, Option to disable Magisk modules when bootlooping.
 3. Apply Custom ROM. This replaces the factory ROM image with the selected file.  
-PixelFlasher extracts `boot.img` from the ROM image and displays below for selection or patching.
+PixelFlasher extracts `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) from the ROM image and displays below for selection or patching.
 Please make sure to read the documentation of the chosen ROM, as each custom ROM instructions could be different.  
 To be clear, this is what PixelFlasher does internally when this mode is selected, please understand it, and don't use it if the selected ROM guide does not fit the bill.
 You've been warned!
     - Keeps stock bootloader and radio images.
     - Replaces the stock ROM image with the selected custom ROM image.
     - Flashes in the chosen `Flash Mode` just like a stock image, i.e. bootloader, custom ROM and radio images in the original order that they were in the stock firmware.
-    - Patching `boot.img` can be performed if the option is selected. You can select any of the listed `boot.img`.
+    - Patching `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) can be performed if the option is selected. You can select any of the listed files.
     - Flash Mode is similar to basic flash mode described above in step 7.  
 4. Custom Flash. select this to switch from flashing a Factory Image to flashing a single file.
 5. Browse to select a a valid image file (.img or .zip).

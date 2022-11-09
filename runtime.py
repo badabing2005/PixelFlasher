@@ -39,6 +39,9 @@ codepage_setting = False
 codepage_value = ''
 magisk_package = ''
 patched_with = ''
+customize_font = False
+pf_font_face = ''
+pf_font_size = 12
 
 # ============================================================================
 #                               Class Boot
@@ -254,6 +257,54 @@ def get_codepage_value():
 def set_codepage_value(value):
     global codepage_value
     codepage_value = value
+
+
+# ============================================================================
+#                               Function get_pf_font_face
+# ============================================================================
+def get_pf_font_face():
+    global pf_font_face
+    return pf_font_face
+
+
+# ============================================================================
+#                               Function set_pf_font_face
+# ============================================================================
+def set_pf_font_face(value):
+    global pf_font_face
+    pf_font_face = value
+
+
+# ============================================================================
+#                               Function get_pf_font_size
+# ============================================================================
+def get_pf_font_size():
+    global pf_font_size
+    return pf_font_size
+
+
+# ============================================================================
+#                               Function set_pf_font_size
+# ============================================================================
+def set_pf_font_size(value):
+    global pf_font_size
+    pf_font_size = value
+
+
+# ============================================================================
+#                               Function get_customize_font
+# ============================================================================
+def get_customize_font():
+    global customize_font
+    return customize_font
+
+
+# ============================================================================
+#                               Function set_customize_font
+# ============================================================================
+def set_customize_font(value):
+    global customize_font
+    customize_font = value
 
 
 # ============================================================================

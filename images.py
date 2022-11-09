@@ -2176,3 +2176,23 @@ Official_Small = PyEmbeddedImage(
     b'f/9BNjQ1n+JtJb7yoaFkBjn8L6Qk/1znVtsvViYDe1UUVK+Vcj7bPr3xGvJtf8H/JOAPBiMt'
     b'NpNYWtcAAAAASUVORK5CYII=')
 
+#----------------------------------------------------------------------
+Wifi_ADB = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1B'
+    b'AACxjwv8YQUAAAAJcEhZcwAAJYAAACWAAWxVCAcAAAL+SURBVEhLxZZbSJRBFMf/46diWaur'
+    b'XXBD1wR7iDBLxdj0wQxTKChjsYceMlIS6SUMe7HLm9BjEEGPKtZDecMK9yEKImzRCryyrZIm'
+    b'bl7Wa+u6unOa/RyEZffbVSP6wTLfOTNn/vPNN3POMgQlIRJYKge4SRjKhk8TDrAvwO6nwOKq'
+    b'9G2iIaA0JCcbrprNZoqKisbExAQaGxv8xpaVXaHU1FR4vetoa2tnNtv3LsYyi4l6SQ5RCSKw'
+    b'53BEhMtus9lYWlqa6pmZmUFNzR1aW1tTbUVRUF9fzwyGJNX29RuNqXC5vKcAd7fq1CbGpNPF'
+    b'cdom6elHxFZFX5KTbBIh27B4PKDRUfCREXC3G37bEIqwAu0doJLzoIQDwNEMsGOZYOKZFZwF'
+    b'NT8HcbHuUGgKrKwApWZQ9S3gTAHQawXGxRv8sIP3fwO/XArUPQCKSkBz8zIoCJoCMTFAfh7Q'
+    b'IyaOigIuXAQMKVAOGaEUFoH9Xgasn4Dic4BurwzaGv4fue4+8YwTxF+2EJ91knd+nrwdncSz'
+    b'c4nfrqHNcVofOQj+AvMLRI5fxKuqiev3E9clEL9+g7jDQdzplIMEOz5FcTqxRZFgqx7A8hb4'
+    b'8E5cno0opter7XbRvgc373F+7S4P2vfX98BH7nHxy5DGzvlPN3mnhBVoGRxU2+HZWTzr6YFV'
+    b'ZFYfr2021f4sbS1CCgxMT6O8tRWTy8v4ODaGyaUlemK1wmK343F3N04mJaHWYsG0yyUjAgkp'
+    b'8EqsvjYvD21DQ6ptjI9HVU4OLL6MR4Tmvj6srK+T3nftNQgp4Jv4q8OBding4+fiIg7GxkJh'
+    b'DI+KipBtMLD+qSnZG4imgNgOFIqC88JsRopYebQoMm3Dw+yN2PvKrCwYdDpUd3aKIrmK9MRE'
+    b'GbUl/vkxVRZcLhdzOuekHR63e1UtmyJ7BCTuwJrMjAw0/t5kOpVfUVEpir7I1SHwer1oampk'
+    b'XV2WAWBfJjC9UbglGv8qdok05nkI0GlhhDwIAlE+Wa9IiXXiXSalTwL8AYCUDuqVKHwnAAAA'
+    b'AElFTkSuQmCC')
+

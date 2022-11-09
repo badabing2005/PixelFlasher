@@ -79,6 +79,35 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         code_page_sizer.Add(self.code_page, 0, wx.ALL, 5)
         vSizer.Add(code_page_sizer, 0, wx.EXPAND, 5)
 
+        # Use Custom Font
+        use_custom_font_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        use_custom_font_sizer.Add((20, 0), 0, 0, 5)
+        self.use_custom_font_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Use Custom Font", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.use_custom_font_checkbox.SetValue(get_customize_font())
+        self.use_custom_font_checkbox.SetToolTip(u"Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window.")
+        use_custom_font_sizer.Add(self.use_custom_font_checkbox, 0, wx.ALL, 5)
+        vSizer.Add(use_custom_font_sizer, 0, wx.EXPAND, 5)
+
+        # Font Selection
+        fonts = wx.FontEnumerator()
+        fonts.EnumerateFacenames(wx.FONTENCODING_SYSTEM,fixedWidthOnly=True)
+        font_list = fonts.GetFacenames(wx.FONTENCODING_SYSTEM,fixedWidthOnly=True)
+        list_text = wx.StaticText(self, -1, "Fontface:")
+        self.font = wx.ListBox(self, -1, size=(300, 100), choices=font_list)
+        self.font_size = wx.SpinCtrl(self, wx.ID_ANY, min=6, max=50, initial=get_pf_font_size())
+        self.sample = wx.StaticText(self, -1, "Sample ")
+        fonts_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        fonts_sizer.Add((20, 0), 0, 0, 5)
+        fonts_sizer.Add(list_text, 0, wx.ALL, 5)
+        fonts_sizer.Add(self.font, 0, wx.ALL, 5)
+        fonts_sizer.Add(self.font_size, 0, wx.ALL, 5)
+        fonts_sizer.Add(self.sample, 0, wx.ALL, 5)
+        self.font.SetSelection(0)
+        self.font.SetStringSelection(get_pf_font_face())
+        self.font_size.SetToolTip('Select font size')
+        self._onFontSelect(None)
+        vSizer.Add(fonts_sizer, 0, wx.EXPAND, 5)
+
         # gap
         vSizer.Add((0, 20), 0, 0, 5)
 
@@ -98,9 +127,19 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         # Connect Events
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOk)
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
+        self.font.Bind(wx.EVT_LISTBOX, self._onFontSelect)
+        self.font_size.Bind(wx.EVT_SPINCTRL, self._onFontSelect)
 
         # Autosize the dialog
         self.SetSizerAndFit(vSizer)
+
+    def _onFontSelect(self, evt):
+        facename = self.font.GetStringSelection()
+        size = self.font_size.GetValue()
+        font = wx.Font(size, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName=facename)
+        self.sample.SetLabel(facename)
+        self.sample.SetFont(font)
+        self.Refresh()
 
     def _onCancel(self, e):
         set_advanced_options(self.before)
@@ -130,4 +169,15 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         else:
             set_codepage_setting(False)
             set_codepage_value('')
+
+        if self.use_custom_font_checkbox.GetValue() != get_customize_font():
+            set_customize_font(self.use_custom_font_checkbox.GetValue())
+            if self.font.GetStringSelection() != get_pf_font_face():
+                print(f"Setting Application Font to: {self.font.GetStringSelection()}")
+                set_pf_font_face(self.font.GetStringSelection())
+
+            if self.font_size.GetValue() != get_pf_font_size():
+                print(f"Setting Application Font Size to: {self.font_size.GetValue()}")
+                set_pf_font_size(int(self.font_size.GetValue()))
+
         self.EndModal(wx.ID_OK)

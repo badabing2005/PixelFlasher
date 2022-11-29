@@ -266,6 +266,7 @@ I strongly encourage all beginners to follow those guides rather than use this p
 - Marcel Stör's [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher) source code which jump started my introduction to [wxPython](https://www.wxpython.org/) and eventually this program.
 - [JackMcKew](https://github.com/JackMcKew) for pyinstaller Github Actions.
 - Endless counts of [xda](https://forum.xda-developers.com/) members and their posts that tirelessly answer questions and share tools. Too many to enumerate.
+- Artwork / graphics / icons, designed and supplied by: [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://forum.xda-developers.com/m/t-ryder.3705546/) based on [material-design-icons](https://github.com/google/material-design-icons/blob/master/LICENSE).
 
 ## Disclaimer
 

@@ -11,6 +11,7 @@ import sys
 import time
 import webbrowser
 from datetime import datetime
+from urllib.parse import urlparse
 
 import darkdetect
 import wx
@@ -33,6 +34,7 @@ from modules import (check_platform_tools, create_support_zip, debug,
                      delete_all, flash_phone, get_code_page, live_boot_phone,
                      patch_boot_img, populate_boot_list, process_file,
                      select_firmware, set_flash_button_state, wifi_adb_connect)
+from package_manager import PackageManager
 from phone import get_connected_devices
 from runtime import *
 
@@ -106,6 +108,9 @@ class PixelFlasher(wx.Frame):
         start = time.time()
 
         print(f"Platform: {sys.platform}")
+        # check timezone
+        timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
+        print(f"System Timezone: {time.tzname} Offset: {timezone_offset / 60 / 60 * -1}")
         print(f"Configuration Path: {get_config_path()}")
         # load verbose settings
         if self.config.verbose:
@@ -294,8 +299,8 @@ class PixelFlasher(wx.Frame):
         # File menu
         file_menu = wx.Menu()
         self.menuBar.Append(file_menu, "&File")
-        # Advanced Config Menu
-        config_item = file_menu.Append(wx.ID_ANY, "Advanced Configuration", "Advanced Configuration")
+        # Configuration Menu
+        config_item = file_menu.Append(wx.ID_ANY, "Configuration", "Configuration")
         config_item.SetBitmap(images.Advanced_Config.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_advanced_config, config_item)
         # seperator
@@ -304,6 +309,10 @@ class PixelFlasher(wx.Frame):
         self.install_apk = file_menu.Append(wx.ID_ANY, "Install APK", "Install APK")
         self.install_apk.SetBitmap(images.InstallApk.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_install_apk, self.install_apk)
+        # Package Manager
+        self.package_manager = file_menu.Append(wx.ID_ANY, "Package Manager", "Package Manager")
+        self.package_manager.SetBitmap(images.PackageManager.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_package_manager, self.package_manager)
         # seperator
         file_menu.AppendSeparator()
         # Exit Menu
@@ -514,6 +523,23 @@ class PixelFlasher(wx.Frame):
         set_flash_button_state(self)
 
     # -----------------------------------------------
+    #                  _on_package_manager
+    # -----------------------------------------------
+    def _on_package_manager(self, event):
+        # listctrl_demo.main()
+        self._on_spin('start')
+        print("Launching Package Manager ...\n")
+        dlg = PackageManager(self)
+        dlg.CentreOnParent(wx.BOTH)
+        self._on_spin('stop')
+        result = dlg.ShowModal()
+        if result != wx.ID_OK:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Closing Package Manager ...\n")
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+
+    # -----------------------------------------------
     #                  _on_install_apk
     # -----------------------------------------------
     def _on_install_apk(self, event):
@@ -651,6 +677,8 @@ class PixelFlasher(wx.Frame):
             print(f"    Device Architecture:             {device.architecture}")
             print(f"    Device Bootloader Version:       {device.bootloader_version}")
             print(f"    Magisk Manager Version:          {device.magisk_app_version}")
+            if self.config.magisk != 'com.topjohnwu.magisk':
+                print(f"    Hidden Magisk Stub:              {self.config.magisk}")
         if device.mode == 'f.b':
             print(f"    Device Unlocked:                 {device.unlocked}")
         if device.rooted:
@@ -775,6 +803,7 @@ class PixelFlasher(wx.Frame):
             self.lock_bootloader.Enable(True)
             self.install_magisk_button.Enable(True)
             self.install_apk.Enable(True)
+            self.package_manager.Enable(True)
             if device.active_slot == 'a':
                 self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
                 self.a_radio_button.Enable(False)
@@ -814,6 +843,7 @@ class PixelFlasher(wx.Frame):
             self.lock_bootloader.Enable(False)
             self.install_magisk_button.Enable(False)
             self.install_apk.Enable(False)
+            self.package_manager.Enable(False)
 
     #-----------------------------------------------------------------------------
     #                                   _init_ui
@@ -1427,10 +1457,25 @@ class PixelFlasher(wx.Frame):
                 self.live_boot_button.Enable(True)
                 if boot.magisk_version == '':
                     self.patch_boot_button.Enable(True)
-                    print(f"\nSelected Boot: {boot.boot_hash} from image: {boot.package_path}\n  Path: {boot.boot_path}" )
                 else:
                     self.patch_boot_button.Enable(False)
-                    print(f"\nSelected Patched Boot: {boot.boot_hash} from image: {boot.package_path}\n  Path: {boot.boot_path}" )
+                print("Selected Boot:")
+                print(f"    File:                  {os.path.basename(urlparse(boot.boot_path).path)}")
+                print(f"    Path:                  {boot.boot_path}")
+                print(f"    SHA1:                  {boot.boot_hash}")
+                if boot.is_patched == 1:
+                    patched = True
+                    print(f"    Patched:               {patched}")
+                    print(f"    Patched With Magisk:   {boot.magisk_version}")
+                    print(f"    Patched on Device:     {boot.hardware}")
+                else:
+                    patched = False
+                    print(f"    Patched:               {patched}")
+                ts = datetime.fromtimestamp(boot.boot_epoch)
+                print(f"    Date:                  {ts.strftime('%Y-%m-%d %H:%M:%S')}")
+                print(f"    Firmware Fingerprint:  {boot.package_sig}")
+                print(f"    Firmware:              {boot.package_path}")
+                print(f"    Type:                  {boot.package_type}\n")
             else:
                 self.config.boot_id = None
                 self.config.selected_boot_md5 = None
@@ -1545,9 +1590,11 @@ class PixelFlasher(wx.Frame):
         #                  _on_flash
         # -----------------------------------------------
         def _on_flash(event):
+            self.spinner_label.Label = "Please be patient ...\n\nDuring this process:\n ! Do not touch the device\n ! Do not unplug your device"
             self._on_spin('start')
             flash_phone(self)
             self._on_spin('stop')
+            self.spinner_label.Label = "Please be patient ..."
 
         # -----------------------------------------------
         #                  _on_clear

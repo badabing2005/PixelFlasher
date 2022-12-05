@@ -13,6 +13,21 @@ from runtime import *
 
 
 # ============================================================================
+#                               Class Package
+# ============================================================================
+class Package():
+    def __init__(self, value):
+        self.value = value
+        self.type = ''
+        self.installed = False
+        self.enabled = False
+        self.user0 = False
+        self.details = ''
+        self.path = ''
+        self.label = ''
+
+
+# ============================================================================
 #                               Class Magisk
 # ============================================================================
 class Magisk():
@@ -61,6 +76,7 @@ class Device():
         self._magisk_apks = None
         self._magisk_path = None
         self._magisk_config_path = None
+        self.packages = {}
 
     # ----------------------------------------------------------------------------
     #                               property adb_device_info
@@ -75,36 +91,17 @@ class Device():
             return self._adb_device_info
 
     # ----------------------------------------------------------------------------
-    #                               property package_list
+    #                               method package_details
     # ----------------------------------------------------------------------------
-    @property
-    def package_list(self):
+    def package_details(self, package):
+        # TODO: Get Application's friendly name (Label)
         if self.mode != 'adb':
             return
         try:
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages"
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {package}"
             res = run_shell(theCmd)
             if res.returncode == 0:
-                return res.stdout.replace('package:','')
-            else:
-                return None
-        except Exception as e:
-            print(e)
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
-            return None
-
-    # ----------------------------------------------------------------------------
-    #                               property disabled_package_list
-    # ----------------------------------------------------------------------------
-    @property
-    def disabled_package_list(self):
-        if self.mode != 'adb':
-            return
-        try:
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -d"
-            res = run_shell(theCmd)
-            if res.returncode == 0:
-                return res.stdout.replace('package:','')
+                return res.stdout
             else:
                 return None
         except Exception as e:
@@ -1039,9 +1036,142 @@ class Device():
                 self.mode = 'adb'
 
 
+    # ----------------------------------------------------------------------------
+    #                               method package_action
+    # ----------------------------------------------------------------------------
+    def package_action(self, pkg, action, isSystem):
+        # possible actions 'uninstall', 'disable', 'enable'
+        if self.mode != 'adb':
+            return
+        try:
+            if action == 'uninstall':
+                if isSystem:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell pm uninstall -k --user 0 {pkg}"
+                else:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell pm uninstall {pkg}"
+            elif action == 'disable':
+                if isSystem:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell pm uninstall -k --user 0 {pkg}"
+                else:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell pm disable-user {pkg}"
+            elif action == 'enable':
+                if isSystem:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell pm install-existing {pkg}"
+                else:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell pm enable {pkg}"
+
+            res = run_shell2(theCmd)
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {action} {pkg}.")
+
+
+    # ----------------------------------------------------------------------------
+    #                               method package_list
+    # ----------------------------------------------------------------------------
+    def package_list(self, state = ''):
+        # possible options 'all', 'all+uninstalled', 'disabled', 'enabled', 'system', '3rdparty', 'user0'
+        if self.mode != 'adb':
+            return
+        try:
+            if state == 'all':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages"
+            elif state == 'all+uninstalled':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -u"
+            elif state == 'disabled':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -d"
+            elif state == 'enabled':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -e"
+            elif state == 'system':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -s"
+            elif state == '3rdparty':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -3"
+            elif state == 'user0':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -s --user 0"
+
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                return res.stdout.replace('package:','')
+            else:
+                return None
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            return None
+
+
+    # ============================================================================
+    #                               method get_detailed_packages
+    # ============================================================================
+    def get_detailed_packages(self):
+        if self.mode != 'adb':
+            return -1
+        try:
+            self.packages.clear()
+            # Get all packages including uninstalled ones
+            list = self.package_list('all+uninstalled')
+            if not list:
+                return -1
+            for item in list.split("\n"):
+                if item != '':
+                    package = Package(item)
+                    package.type = "System"
+                    package.installed = False
+                    self.packages[item] = package
+
+            # Get all packages
+            list = self.package_list('all')
+            if not list:
+                return -1
+            for item in list.split("\n"):
+                if item != '' and item in self.packages:
+                    self.packages[item].installed = True
+
+            # Get 3rd party packages
+            list = self.package_list('3rdparty')
+            if not list:
+                return -1
+            for item in list.split("\n"):
+                if item != '' and item in self.packages:
+                    self.packages[item].type = '3rd Party'
+
+            # Get disabled packages
+            list = self.package_list('disabled')
+            if not list:
+                return -1
+            for item in list.split("\n"):
+                if item != '' and item in self.packages:
+                    self.packages[item].enabled = False
+
+            # Get enabled packages
+            list = self.package_list('enabled')
+            if not list:
+                return -1
+            for item in list.split("\n"):
+                if item != '' and item in self.packages:
+                    self.packages[item].enabled = True
+
+            # Get user 0 packages
+            list = self.package_list('user0')
+            if not list:
+                return -1
+            for item in list.split("\n"):
+                if item != '' and item in self.packages:
+                    self.packages[item].user0 = True
+
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            return -1
+        return 0
+
+
 # ============================================================================
 #                               Function run_shell
 # ============================================================================
+# We use this when we want to capture the returncode and also selectively
+# output what we want to console. Nothing is sent to console, both stdout and
+# stderr are only available when the call is completed.
 def run_shell(cmd):
     try:
         response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1')
@@ -1049,6 +1179,33 @@ def run_shell(cmd):
         return response
     except Exception as e:
         raise e
+
+
+# ============================================================================
+#                               Function run_shell2
+# ============================================================================
+# This one pipes the stdout and stderr to Console text widget in realtime,
+# no returncode is available.
+def run_shell2(cmd):
+    class obj(object):
+        pass
+
+    response = obj()
+    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1')
+
+    print
+    stdout = ''
+    while True:
+        line = proc.stdout.readline()
+        wx.Yield()
+        if line.strip() != "":
+            print(line.strip())
+            stdout += line
+        if not line:
+            break
+    proc.wait()
+    response.stdout = stdout
+    return response
 
 
 # ============================================================================

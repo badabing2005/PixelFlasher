@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 rm -rf build dist
-VERSION=4.4.0.0
+VERSION=4.5.0.0
 NAME="PixelFlasher"
 DIST_NAME="PixelFlasher"
 
@@ -14,7 +14,6 @@ fi
 
 pyinstaller --log-level=DEBUG \
             --noconfirm \
-            --windowed \
             $specfile
 
 if [[ $OSTYPE == 'darwin'* ]]; then

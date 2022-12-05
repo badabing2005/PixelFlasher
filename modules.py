@@ -483,9 +483,9 @@ def create_support_zip():
 
     # create directory/file listing
     if sys.platform == "win32":
-        theCmd = f"dir /s /b {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
+        theCmd = f"dir /s /b \"{config_path}\" > \"{os.path.join(support_dir_full, 'files.txt')}\""
     else:
-        theCmd = f"ls -lR {config_path} > {os.path.join(support_dir_full, 'files.txt')}"
+        theCmd = f"ls -lR \"{config_path}\" > \"{os.path.join(support_dir_full, 'files.txt')}\""
     debug(f"{theCmd}")
     res = run_shell(theCmd)
 
@@ -1537,6 +1537,7 @@ def patch_boot_img(self):
             print(f"  Magisk Manager Version: {m_app_version}")
             print(f"  Magisk Version:         {m_version}")
             if magisk_version != magisk_app_version:
+                # TODO check if Magisk Manager is a stub, which would have 1.0.1 version
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Magisk Version is different than Magisk Manager version")
                 if m_version >= m_app_version:
                     patch_with_root()
@@ -1663,6 +1664,7 @@ def patch_boot_img(self):
             # if return is -2, then copy boot.img to stock-boot.img
             if res == -2:
                 # Transfer boot image to the phone
+                # TODO copy stock-boot from Downloads folder it already exists, and do it as su if rooted
                 stock_boot_path = '/data/adb/magisk/stock-boot.img'
                 print(f"Transfering {boot_img} to the phone in {stock_boot_path} ...")
                 theCmd = f"\"{get_adb()}\" -s {device.id} push \"{boot.boot_path}\" {stock_boot_path}"
@@ -1980,10 +1982,10 @@ def flash_phone(self):
             first_line = f"chcp {cp}\n@ECHO OFF\n"
         else:
             first_line = f"@ECHO OFF\n"
-        version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n\n"
+        version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n\n:: cd {package_dir_full}\n\n"
     else:
         dest = os.path.join(package_dir_full, "flash-phone.sh")
-        version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n\n"
+        version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n\n# cd {package_dir_full}\n\n"
         first_line = "#!/bin/sh\n"
     # delete previous flash-phone.bat file if it exists
     if os.path.exists(dest):
@@ -2133,8 +2135,10 @@ def flash_phone(self):
                 data += f"{f.full_line}\n"
                 if sys.platform == "win32":
                     data += f":: This is a generated file by PixelFlasher v{VERSION}\n\n"
+                    data += f":: cd {package_dir_full}\n\n"
                 else:
                     data += f"# This is a generated file by PixelFlasher v{VERSION}\n\n"
+                    data += f"# cd {package_dir_full}\n\n"
                 continue
             if f.type in ['sleep']:
                 sleep_line = f"{f.full_line}\n"
@@ -2296,8 +2300,10 @@ def flash_phone(self):
         print("Aborting ...\n")
         return
 
-    # vendor_dlkm needs to be flashed in fastbootd mode
-    if self.config.advanced_options and self.config.flash_mode == 'customFlash' and get_image_mode() == 'vendor_dlkm':
+    # some images need to be flashed in fastbootd mode
+    # note: system and vendor, typically get flashed to both slots. '--skip-secondary' will not flash secondary slots in flashall/update
+    # TODO check which Pixels and newer support fastbootd, Probably Pixel 5 and newer.
+    if self.config.advanced_options and self.config.flash_mode == 'customFlash' and get_image_mode() in ['super','product','system','system_dlkm','system_ext','vendor','vendor_dlkm']:
         device.reboot_fastboot()
         print("Waiting 5 seconds ...")
         time.sleep(5)

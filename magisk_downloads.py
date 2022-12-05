@@ -42,7 +42,8 @@ class MagiskDownloads(wx.Dialog):
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
         self.message_label.Label = "Select Magisk version to install."
-        self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
+        if sys.platform == "win32":
+            self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
 
         message_sizer.Add(self.message_label, 0, wx.ALL, 20)
         message_sizer.Add((0, 0), 1, wx.EXPAND, 5)
@@ -67,7 +68,8 @@ class MagiskDownloads(wx.Dialog):
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(2, 'VersionCode', wx.LIST_FORMAT_LEFT,  -1)
         self.list.InsertColumn(3, 'URL', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
+        if sys.platform == "win32":
+            self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
         i = 0
         for apk in apks:
@@ -96,9 +98,12 @@ class MagiskDownloads(wx.Dialog):
 
         # Release Notes
         self.html = wx.html.HtmlWindow(self, wx.ID_ANY, size=(420, -1))
+        if darkdetect.isDark():
+            black_html = "<!DOCTYPE html>\n<html><body style=\"background-color:#1e1e1e;\"></body></html>"
+            self.html.SetPage(black_html)
         if "gtk2" in wx.PlatformInfo or "gtk3" in wx.PlatformInfo:
             self.html.SetStandardFonts()
-        vSizer.Add(self.html , 1, wx.EXPAND, 5)
+        vSizer.Add(self.html , 1, wx.EXPAND | wx.ALL, 10)
 
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)

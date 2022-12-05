@@ -28,7 +28,8 @@ class MagiskModules(wx.Dialog):
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
         self.message_label.Label = "When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled."
-        self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
+        if sys.platform == "win32":
+            self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
         self.message_label.SetForegroundColour(wx.Colour(255, 0, 0))
 
         message_sizer.Add(self.message_label, 0, wx.ALL, 20)
@@ -45,7 +46,8 @@ class MagiskModules(wx.Dialog):
         self.list.InsertColumn(0, 'Name', width = -1)
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(2, 'Description', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
+        if sys.platform == "win32":
+            self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
         self.list.EnableCheckBoxes()
 

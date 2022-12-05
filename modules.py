@@ -1663,12 +1663,12 @@ def patch_boot_img(self):
             # Trigger Magisk to make a backup
             res = device.run_magisk_migration(boot_sha1_long)
             # if return is -2, then copy boot.img to stock-boot.img
-            if res == -2:
+            if res == -2 and is_rooted:
                 # Transfer boot image to the phone
                 # TODO copy stock-boot from Downloads folder it already exists, and do it as su if rooted
                 stock_boot_path = '/data/adb/magisk/stock-boot.img'
                 print(f"Transfering {boot_img} to the phone in {stock_boot_path} ...")
-                theCmd = f"\"{get_adb()}\" -s {device.id} push \"{boot.boot_path}\" {stock_boot_path}"
+                theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'cp /sdcard/Download/{boot_img} {stock_boot_path}\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 # expect ret 0
@@ -1680,15 +1680,15 @@ def patch_boot_img(self):
                     print("Aborting Backup...\n")
                 else:
                     print(res.stdout)
-            # rerun the migration.
-            print("Triggering Magisk again to create a backup ...")
-            res = device.run_magisk_migration(boot_sha1_long)
-            print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
-            magisk_backups = device.magisk_backups
-            if magisk_backups and boot_sha1_long in magisk_backups:
-                print("Good: Magisk has made a backup")
-            else:
-                print("It looks like backup was not made.")
+                # rerun the migration.
+                print("Triggering Magisk again to create a backup ...")
+                res = device.run_magisk_migration(boot_sha1_long)
+                print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
+                magisk_backups = device.magisk_backups
+                if magisk_backups and boot_sha1_long in magisk_backups:
+                    print("Good: Magisk has made a backup")
+                else:
+                    print("It looks like backup was not made.")
 
     # Extract sha1 from the patched image
     print(f"\nExtracting short SHA1 from {magisk_patched_img} ...")

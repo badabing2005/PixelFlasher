@@ -1014,7 +1014,7 @@ class PixelFlasher(wx.Frame):
             status = self.flash_to_inactive_slot_checkBox.GetValue()
             self.config.flash_to_inactive_slot = status
             if status:
-                self.config.flash_both_slots_checkBox = not status
+                self.config.flash_both_slots = not status
                 self.flash_both_slots_checkBox.SetValue(not status)
 
         # -----------------------------------------------

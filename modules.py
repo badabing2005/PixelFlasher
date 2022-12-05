@@ -1922,41 +1922,46 @@ def flash_phone(self):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid adb device.")
         return
 
-    package_sig = get_firmware_id()
-    if not package_sig:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a firmware file.")
-        return
-
-    if get_firmware_model() in ['raven', 'oriole', 'bluejay'] and device.api_level and int(device.api_level) < 33:
-        if not (self.config.advanced_options and self.config.flash_both_slots):
-            title = "Tensor device not on Android 13 or higher"
-            message =  f"WARNING: Your phone OS version is lower than Android 13.\n\n"
-            message += f"If you are upgrading to Android 13 or newer,\n"
-            message += "make sure you at least flash the bootloader to both slots.\n"
-            message += "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
-            message += "a bootloader update that increments the anti-roll back version for the bootloader.\n"
-            message += "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
-            message += "After flashing an Android 13 build on these devices\n"
-            message += "you will not be able to flash and boot older Android 12 builds.\n\n"
-            message += "Selecting the option 'Flash to both slots'\n"
-            message += "Will take care of that.\n\n"
-            message += "Click OK to continue as is.\n"
-            message += "or Hit CANCEL to abort and change options."
-            print(f"\n*** Dialog ***\n{message}\n______________\n")
-            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-            result = dlg.ShowModal()
-            if result == wx.ID_OK:
-                print("User pressed ok.")
-            else:
-                print("User pressed cancel.")
-                print("Aborting ...\n")
-                return
-
     cwd = os.getcwd()
     config_path = get_config_path()
     factory_images = os.path.join(config_path, 'factory_images')
-    package_dir_full = os.path.join(factory_images, package_sig)
-    boot = get_boot()
+
+    if self.config.advanced_options and self.config.flash_mode == 'customFlash':
+        image_mode = get_image_mode()
+        package_dir_full = os.path.join(config_path, 'tmp')
+    else:
+        package_sig = get_firmware_id()
+        if not package_sig:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a factory firmware file.")
+            return
+
+        if get_firmware_model() in ['raven', 'oriole', 'bluejay'] and device.api_level and int(device.api_level) < 33:
+            if not (self.config.advanced_options and self.config.flash_both_slots):
+                title = "Tensor device not on Android 13 or higher"
+                message =  f"WARNING: Your phone OS version is lower than Android 13.\n\n"
+                message += f"If you are upgrading to Android 13 or newer,\n"
+                message += "make sure you at least flash the bootloader to both slots.\n"
+                message += "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
+                message += "a bootloader update that increments the anti-roll back version for the bootloader.\n"
+                message += "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
+                message += "After flashing an Android 13 build on these devices\n"
+                message += "you will not be able to flash and boot older Android 12 builds.\n\n"
+                message += "Selecting the option 'Flash to both slots'\n"
+                message += "Will take care of that.\n\n"
+                message += "Click OK to continue as is.\n"
+                message += "or Hit CANCEL to abort and change options."
+                print(f"\n*** Dialog ***\n{message}\n______________\n")
+                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+                result = dlg.ShowModal()
+                if result == wx.ID_OK:
+                    print("User pressed ok.")
+                else:
+                    print("User pressed cancel.")
+                    print("Aborting ...\n")
+                    return
+
+        package_dir_full = os.path.join(factory_images, package_sig)
+        boot = get_boot()
 
     message = ''
 
@@ -1978,13 +1983,17 @@ def flash_phone(self):
         if self.config.fastboot_force:
             fastboot_options2 += '--force '
         message  = f"Custom Flash Options:   {self.config.advanced_options}\n"
-        message += f"Disable Verity:         {self.config.disable_verity}\n"
-        message += f"Disable Verification:   {self.config.disable_verification}\n"
-        message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
-        message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
-        message += f"Force:                  {self.config.fastboot_force}\n"
-        message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
-        message += f"Temporary Root:         {self.config.temporary_root}\n"
+        if self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD':
+            message  = "   ATTENTION!           Flash Options Don\'t apply to Sideloading.\n"
+        else:
+            message  = f"Custom Flash Options:   {self.config.advanced_options}\n"
+            message += f"Disable Verity:         {self.config.disable_verity}\n"
+            message += f"Disable Verification:   {self.config.disable_verification}\n"
+            message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
+            message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
+            message += f"Force:                  {self.config.fastboot_force}\n"
+            message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
+            message += f"Temporary Root:         {self.config.temporary_root}\n"
 
     if sys.platform == "win32":
         dest = os.path.join(package_dir_full, "flash-phone.bat")
@@ -2011,7 +2020,6 @@ def flash_phone(self):
     # if we are in custom Flash mode
     #-------------------------------
     if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-        image_mode = get_image_mode()
         if image_mode and get_image_path():
             title = "Advanced Flash Options"
             # create flash-phone.bat based on the custom options.
@@ -2230,11 +2238,15 @@ def flash_phone(self):
             return
 
     message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-    message += "fastboot commands, this could possibly take a long time and PixelFlasher\n"
-    message += "will appear frozen. PLEASE BE PATIENT. \n"
-    message += "In case it takes excessively long, it could possibly be due to improper or\n"
-    message += "bad fasboot drivers.\n"
-    message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
+    if self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD':
+        message += "adb command, this could possibly take a long time and PixelFlasher\n"
+        message += "will appear frozen. PLEASE BE PATIENT and don\'t interrupt the process.\n\n"
+    else:
+        message += "fastboot commands, this could possibly take a long time and PixelFlasher\n"
+        message += "will appear frozen. PLEASE BE PATIENT. \n"
+        message += "In case it takes excessively long, it could possibly be due to improper or\n"
+        message += "bad fasboot drivers.\n"
+        message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
     message += "      Do you want to continue to flash with the above options?\n"
     message += "              Press OK to continue or CANCEL to abort.\n"
     print(f"\n*** Dialog ***\n{message}\n______________\n")

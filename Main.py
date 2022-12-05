@@ -31,7 +31,7 @@ from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
 from message_box import MessageBox
 from modules import (check_platform_tools, create_support_zip, debug,
-                     delete_all, flash_phone, get_code_page, live_boot_phone,
+                     delete_all, flash_phone, get_code_page, live_flash_boot_phone,
                      patch_boot_img, populate_boot_list, process_file,
                      select_firmware, set_flash_button_state, wifi_adb_connect)
 from package_manager import PackageManager
@@ -1455,6 +1455,7 @@ class PixelFlasher(wx.Frame):
                 self.config.selected_boot_md5 = boot.boot_hash
                 self.delete_boot_button.Enable(True)
                 self.live_boot_button.Enable(True)
+                self.flash_boot_button.Enable(True)
                 if boot.magisk_version == '':
                     self.patch_boot_button.Enable(True)
                 else:
@@ -1482,6 +1483,7 @@ class PixelFlasher(wx.Frame):
                 self.patch_boot_button.Enable(False)
                 self.delete_boot_button.Enable(False)
                 self.live_boot_button.Enable(False)
+                self.flash_boot_button.Enable(False)
                 self.paste_boot.Enable(False)
                 if self.list.ItemCount == 0 :
                     if self.config.firmware_path:
@@ -1563,7 +1565,15 @@ class PixelFlasher(wx.Frame):
         # -----------------------------------------------
         def _on_live_boot(event):
             self._on_spin('start')
-            live_boot_phone(self)
+            live_flash_boot_phone(self, 'Live')
+            self._on_spin('stop')
+
+        # -----------------------------------------------
+        #                  _on_flash_boot
+        # -----------------------------------------------
+        def _on_flash_boot(event):
+            self._on_spin('start')
+            live_flash_boot_phone(self, 'Flash')
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -1764,23 +1774,27 @@ class PixelFlasher(wx.Frame):
         self.list.SetColumnWidth(4, -2)
         self.list.SetColumnWidth(5, -2)
         self.list.SetColumnWidth(6, -2)
-        self.live_boot_button = wx.Button(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.live_boot_button.SetBitmap(images.Boot.GetBitmap())
-        self.live_boot_button.SetToolTip(u"Live boot the selected boot.img")
-        self.patch_boot_button = wx.Button(panel, wx.ID_ANY, u"Patch", wx.DefaultPosition, self.live_boot_button.BestSize, 0)
+        self.flash_boot_button = wx.Button(panel, wx.ID_ANY, u"Flash Boot", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.flash_boot_button.SetBitmap(images.FlashBoot.GetBitmap())
+        self.flash_boot_button.SetToolTip(u"Flash just the selected item")
+        self.patch_boot_button = wx.Button(panel, wx.ID_ANY, u"Patch", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
         self.patch_boot_button.SetBitmap(images.Patch.GetBitmap())
-        self.patch_boot_button.SetToolTip(u"Patch Selected boot.img")
-        self.delete_boot_button = wx.Button(panel, wx.ID_ANY, u"Delete", wx.DefaultPosition, self.live_boot_button.BestSize, 0)
+        self.patch_boot_button.SetToolTip(u"Patch the selected item")
+        self.delete_boot_button = wx.Button(panel, wx.ID_ANY, u"Delete", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
         self.delete_boot_button.SetBitmap(images.Delete.GetBitmap())
-        self.delete_boot_button.SetToolTip(u"Delete Selected boot.img")
+        self.delete_boot_button.SetToolTip(u"Delete the selected item")
+        self.live_boot_button = wx.Button(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
+        self.live_boot_button.SetBitmap(images.Boot.GetBitmap())
+        self.live_boot_button.SetToolTip(u"Live boot to the selected item")
         label_v_sizer = wx.BoxSizer(wx.VERTICAL)
         label_v_sizer.Add(self.select_boot_label, flag=wx.ALL)
         label_v_sizer.AddSpacer(10)
         label_v_sizer.Add(self.show_all_boot_checkBox, flag=wx.ALL)
         image_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
-        image_buttons_sizer.Add(self.patch_boot_button, proportion=1, flag=wx.LEFT|wx.BOTTOM, border=5)
-        image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT|wx.TOP, border=5)
-        image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT|wx.TOP, border=5)
+        image_buttons_sizer.Add(self.patch_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(self.flash_boot_button, proportion=1, flag=wx.LEFT, border=5)
         list_sizer = wx.BoxSizer(wx.HORIZONTAL)
         list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND)
         list_sizer.Add(image_buttons_sizer, 0, wx.ALL|wx.EXPAND)
@@ -1798,11 +1812,11 @@ class PixelFlasher(wx.Frame):
         # 9th row widgets (custom flash)
         self.live_boot_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, wx.RB_GROUP)
         self.live_boot_radio_button.Enable(False)
-        self.live_boot_radio_button.SetToolTip(u"Live Boot to selected boot.img")
+        self.live_boot_radio_button.SetToolTip(u"Live Boot to selected boot / init_boot")
         self.flash_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"Flash", wx.DefaultPosition, wx.DefaultSize, 0)
         self.flash_radio_button.SetValue(True)
         self.flash_radio_button.Enable(False)
-        self.flash_radio_button.SetToolTip(u"Flashes the selected boot.img")
+        self.flash_radio_button.SetToolTip(u"Flashes the selected boot / init_boot")
         custom_advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
         custom_advanced_options_sizer.Add(self.live_boot_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 0)
         custom_advanced_options_sizer.Add(self.flash_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 0)
@@ -1832,7 +1846,7 @@ class PixelFlasher(wx.Frame):
         self.fastboot_verbose_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0)
         self.fastboot_verbose_checkBox.SetToolTip(u"set fastboot option to verbose")
         self.temporary_root_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Temporary Root", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot.img\nInstead it will flash unpatched boot.img, but boot to Live Patched boot.img\nHandy to test if magisk will cause a bootloop.\n\nPlease be aware that factory image will be flashed, and if you reboot\nthe device will be unrooted.\nIf you want to make this permanent, just flash the patched boot.img")
+        self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if magisk will cause a bootloop.\n\nPlease be aware that factory image will be flashed, and if you reboot\nthe device will be unrooted.\nIf you want to make this permanent, just flash the patched boot.img")
         self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.advanced_options_sizer.Add(self.flash_to_inactive_slot_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
@@ -1950,6 +1964,7 @@ class PixelFlasher(wx.Frame):
         self.patch_boot_button.Bind(wx.EVT_BUTTON, _on_patch_boot)
         self.delete_boot_button.Bind(wx.EVT_BUTTON, _on_delete_boot)
         self.live_boot_button.Bind(wx.EVT_BUTTON, _on_live_boot)
+        self.flash_boot_button.Bind(wx.EVT_BUTTON, _on_flash_boot)
         self.process_firmware.Bind(wx.EVT_BUTTON, _on_process_firmware)
         self.process_rom.Bind(wx.EVT_BUTTON, _on_process_rom)
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)

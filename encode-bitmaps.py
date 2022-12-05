@@ -42,6 +42,7 @@ command_lines = [
     "-a -F -i -n Official_Small images/official-16.png images.py",
     "-a -F -i -n Wifi_ADB images/wifi-adb-24.png images.py",
     "-a -F -i -n PackageManager images/packages-24.png images.py",
+    "-a -F -i -n FlashBoot images/flash-24.png images.py",
     ]
 
 if __name__ == "__main__":

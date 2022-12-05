@@ -191,6 +191,7 @@ def populate_boot_list(self):
     # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
     self.delete_boot_button.Enable(False)
     self.live_boot_button.Enable(False)
+    self.flash_boot_button.Enable(False)
 
 
 # ============================================================================
@@ -1762,9 +1763,9 @@ def patch_boot_img(self):
 
 
 # ============================================================================
-#                               Function live_boot_phone
+#                               Function live_flash_boot_phone
 # ============================================================================
-def live_boot_phone(self):
+def live_flash_boot_phone(self, option):
     if not get_adb():
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
         return
@@ -1774,14 +1775,14 @@ def live_boot_phone(self):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
         return
 
-    if device.hardware in ('panther', 'cheetah'):
+    if device.hardware in ('panther', 'cheetah') and option == 'Live':
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or Pixel 7p is not supported yet.")
         return
 
     boot = get_boot()
     if boot:
         if boot.hardware != device.hardware:
-            title = "Live Boot"
+            title = f"{option} Boot"
             message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
             message += f"The selected Boot is for: {boot.hardware}\n\n"
             message += "Unless you know what you are doing, if you continue flashing\n"
@@ -1799,13 +1800,14 @@ def live_boot_phone(self):
                 print("Aborting ...\n")
                 return
     else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to access boot.img object, aborting ...\n")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to access boot object, aborting ...\n")
         return
 
     # Make sure boot exists
     if boot.boot_path:
         title = "Device / Boot Mismatch"
-        message  = "Live Boot Flash Options:\n\n"
+        message  = f"Live/Flash Boot Options:\n\n"
+        message += f"Option:                 {option}\n"
         message += f"Boot Hash:              {boot.boot_hash}\n"
         message += f"Hardware:               {device.hardware}\n"
         if boot.is_patched == 1:
@@ -1853,24 +1855,38 @@ def live_boot_phone(self):
         startFlash = time.time()
         print("")
         print("==============================================================================")
-        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Live Booting\n     {boot.boot_path} ...")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Flashing / Live Booting\n     {boot.boot_path} ...")
         print("==============================================================================")
+        # if device.hardware in ('panther', 'cheetah'):
+        #     # Pixel 7 and 7P need a special command to Live Boot.
+        #     # https://forum.xda-developers.com/t/td1a-220804-031-factory-image-zip-is-up-unlock-bootloader-root-pixel-7-pro-cheetah-limited-safetynet-all-relevant-links.4502805/post-87571843
+        #     kernel = os.path.join(os.path.dirname(boot.boot_path), "boot.img")
+        #     if os.path.exists(kernel):
+        #         theCmd = f"\"{get_fastboot()}\" -s {device.id} boot \"{kernel}\" \"{boot.boot_path}\""
+        #     else:
+        #         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Kernel {kernel} ...\n")
+        #         print(f"Aborting ...\n")
+        #         return
+        # else:
+        fastboot_options = ''
+        slot = ''
+        if option == 'Flash':
+            if self.config.flash_to_inactive_slot:
+                fastboot_options += '--slot other '
+            if self.config.advanced_options:
+                if self.config.flash_both_slots:
+                    fastboot_options += '--slot all '
+                if self.config.fastboot_verbose:
+                    fastboot_options += '--verbose '
+            fastboot_options += 'flash '
         if device.hardware in ('panther', 'cheetah'):
-            # Pixel 7 and 7P need a special command to Live Boot.
-            # https://forum.xda-developers.com/t/td1a-220804-031-factory-image-zip-is-up-unlock-bootloader-root-pixel-7-pro-cheetah-limited-safetynet-all-relevant-links.4502805/post-87571843
-            kernel = os.path.join(os.path.dirname(boot.boot_path), "boot.img")
-            if os.path.exists(kernel):
-                theCmd = f"\"{get_fastboot()}\" -s {device.id} boot \"{kernel}\" \"{boot.boot_path}\""
-            else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Kernel {kernel} ...\n")
-                print(f"Aborting ...\n")
-                return
+            theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} init_boot \"{boot.boot_path}\""
         else:
-            theCmd = f"\"{get_fastboot()}\" -s {device.id} boot \"{boot.boot_path}\""
+            theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot \"{boot.boot_path}\""
         debug(theCmd)
         res = run_shell(theCmd)
         if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live boot failed!")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {option} boot failed!")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -1878,7 +1894,7 @@ def live_boot_phone(self):
             return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
-        print(f"Flashing Live elapsed time: {math.ceil(endFlash - startFlash)} seconds")
+        print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
         print("------------------------------------------------------------------------------\n")
         # clear the selected device option
         set_phone(None)
@@ -2279,7 +2295,7 @@ def flash_phone(self):
         return
 
     # If flashing to inactive slot
-    if self.config.advanced_options and self.config.flash_to_inactive_slot and self.config.flash_mode != 'dryRun':
+    if self.config.flash_to_inactive_slot and self.config.flash_mode != 'dryRun':
         print(f"Switching to inactive slot")
         theCmd = f"\"{get_fastboot()}\" -s {device.id} --set-active=other"
         debug(theCmd)

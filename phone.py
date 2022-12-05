@@ -217,6 +217,20 @@ class Device():
             return self._active_slot
 
     # ----------------------------------------------------------------------------
+    #                               property inactive_slot
+    # ----------------------------------------------------------------------------
+    @property
+    def inactive_slot(self):
+        if self.active_slot is None:
+            return ''
+        else:
+            current_slot = self.active_slot
+            if current_slot == 'a':
+                return '_b'
+            else:
+                return '_a'
+
+    # ----------------------------------------------------------------------------
     #                               property bootloader_version
     # ----------------------------------------------------------------------------
     @property

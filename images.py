@@ -1133,3 +1133,18 @@ PackageManager = PyEmbeddedImage(
     b'2xTJID0gbsZiQQsQ6yLxzUixYBGSxt3QkhXdggdQORh/MSkWPCajaHhGigUO5ODBl5OHnAUf'
     b'oBLUwB/QLXhAgwrnEchsAEAj8oqX4d29AAAAAElFTkSuQmCC')
 
+#----------------------------------------------------------------------
+FlashBoot = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAA7DAAAOwwHHb6hk'
+    b'AAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAAf9JREFUSIm1lsFLVUEU'
+    b'xn/zqmfRjVoUaJAQLdq4CKuFJAiCugh5pkarUGnXyoW4FN7T/6D/QYJyoRIuVBCMh8h9tmiZ'
+    b'vZ3FU0gXusm6p4V3vPOuM3PfondguHPnnPnOx7kz37lKRGim5ZqKDlz2OZVSeWAUKACdQFvs'
+    b'+glUgCXgo4j8doKIiHUAL4AqIBnjO1Bw4liAFTALRDbAgS4qlvUIKAGqkQSzPsb7a4Qef9Gb'
+    b'IC6LlTkgr/rYlpBTT4IoXS4TPA/s+tgfbfBVQv5kfJMq0KJxzWM6CjxwHYbxQbZuBnS4/Ibd'
+    b'B4b1i5lgyLVDKeTdNDcaANdW0BPzHnS6ot++pBxc45kmVVtlR/u6xrlT3eNeasvjc3JaKpRS'
+    b'x8D1NHgux9+TTXavtvAw7av9Imzt54mF04mIBFBfIqsoTb2mbAMHeFNyKkGkJ2ZADQjSkUM9'
+    b'RPuHZyW5FXA7f4V2gIMjKp8+J6VIWS2hnRzT92TIwvwc6xIiEiLPu/niiZ23HdMlB5uETPyM'
+    b'2T/yhC7riZngA2cXLdPGZrjkcVeBhQsJROQUmMLxsbUdHBKulJ3sBZg05buu4YjIIjDnSzBR'
+    b'9PaQkogs16045LqERfR6nzqVNAKKNCLXRqICGeIXj2/AoAvn/CbbLG6ZIyQt827s+gHsAIvA'
+    b'gq9lehP8D2v6X8U/tYmf5Lh+9lQAAAAASUVORK5CYII=')
+

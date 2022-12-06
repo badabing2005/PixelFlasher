@@ -1994,6 +1994,8 @@ def flash_phone(self):
             message += f"Force:                  {self.config.fastboot_force}\n"
             message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
             message += f"Temporary Root:         {self.config.temporary_root}\n"
+    else:
+        message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
 
     if sys.platform == "win32":
         dest = os.path.join(package_dir_full, "flash-phone.bat")

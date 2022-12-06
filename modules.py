@@ -1664,8 +1664,7 @@ def patch_boot_img(self):
             res = device.run_magisk_migration(boot_sha1_long)
             # if return is -2, then copy boot.img to stock_boot.img
             if res == -2 and is_rooted:
-                # Transfer boot image to the phone
-                # TODO copy stock_boot from Downloads folder it already exists, and do it as su if rooted
+                # copy stock_boot from Downloads folder it already exists, and do it as su if rooted
                 stock_boot_path = '/data/adb/magisk/stock_boot.img'
                 print(f"Copying {boot_img} to {stock_boot_path} ...")
                 theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'cp /sdcard/Download/{boot_img} {stock_boot_path}\'\""

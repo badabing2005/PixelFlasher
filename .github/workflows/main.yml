@@ -49,7 +49,7 @@ jobs:
           name: Release ${{ github.ref }}
           draft: false
           prerelease: true
-          
+
 
       - name: Upload Windows Release Asset
         id: upload-windows-release-asset
@@ -62,27 +62,27 @@ jobs:
           asset_name: PixelFlasher.exe
           asset_content_type: application/zip
 
-      # Runs https://github.com/badabing2005/pyinstaller-action-linux
-      - name: Package Linux Application
-        uses: badabing2005/pyinstaller-action-linux@main
-        with:
-          path: .
-          spec: build-on-linux.spec
+      # # Runs https://github.com/badabing2005/pyinstaller-action-linux
+      # - name: Package Linux Application
+      #   uses: badabing2005/pyinstaller-action-linux@main
+      #   with:
+      #     path: .
+      #     spec: build-on-linux.spec
 
-      # Upload artifcats linux
-      - uses: actions/upload-artifact@v3
-        id: upload_artifacts_linux
-        with:
-          name: PixelFlasher
-          path: dist/linux
+      # # Upload artifcats linux
+      # - uses: actions/upload-artifact@v3
+      #   id: upload_artifacts_linux
+      #   with:
+      #     name: PixelFlasher
+      #     path: dist/linux
 
-      - name: Upload Linux Release Asset
-        id: upload-linux-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/linux/PixelFlasher
-          asset_name: PixelFlasher-Ubuntu
-          asset_content_type: application/zip
+      # - name: Upload Linux Release Asset
+      #   id: upload-linux-release-asset
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./dist/linux/PixelFlasher
+      #     asset_name: PixelFlasher-Ubuntu
+      #     asset_content_type: application/zip

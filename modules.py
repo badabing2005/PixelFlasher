@@ -1447,7 +1447,7 @@ def patch_boot_img(self):
                 data += "./magiskboot cleanup\n"
                 data += f"./boot_patch.sh /sdcard/Download/{boot_img}\n"
                 data += f"cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/{magisk_patched_img}\n"
-                # if we're rooted, copy the stock boot.img to /data/adb/magisk/stock-boot.img so that magisk can backup
+                # if we're rooted, copy the stock boot.img to /data/adb/magisk/stock_boot.img so that magisk can backup
                 if is_rooted:
                     data += "cp -f /data/local/tmp/pf/assets/stock_boot.img /data/adb/magisk/stock_boot.img\n"
                     # TODO see if we need to update the config SHA1
@@ -1662,12 +1662,12 @@ def patch_boot_img(self):
             print("Triggering Magisk to create a backup ...")
             # Trigger Magisk to make a backup
             res = device.run_magisk_migration(boot_sha1_long)
-            # if return is -2, then copy boot.img to stock-boot.img
+            # if return is -2, then copy boot.img to stock_boot.img
             if res == -2 and is_rooted:
                 # Transfer boot image to the phone
-                # TODO copy stock-boot from Downloads folder it already exists, and do it as su if rooted
-                stock_boot_path = '/data/adb/magisk/stock-boot.img'
-                print(f"Transfering {boot_img} to the phone in {stock_boot_path} ...")
+                # TODO copy stock_boot from Downloads folder it already exists, and do it as su if rooted
+                stock_boot_path = '/data/adb/magisk/stock_boot.img'
+                print(f"Copying {boot_img} to {stock_boot_path} ...")
                 theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'cp /sdcard/Download/{boot_img} {stock_boot_path}\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)

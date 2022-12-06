@@ -91,9 +91,9 @@ class Device():
             return self._adb_device_info
 
     # ----------------------------------------------------------------------------
-    #                               method package_details
+    #                               method get_package_details
     # ----------------------------------------------------------------------------
-    def package_details(self, package):
+    def get_package_details(self, package):
         # TODO: Get Application's friendly name (Label)
         if self.mode != 'adb':
             return
@@ -409,12 +409,12 @@ class Device():
     def run_magisk_migration(self, sha1 = None):
         if self.mode == 'adb' and self.rooted:
             try:
-                print("Making sure stock-boot.img is found on the phone ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell ls -l /data/adb/magisk/stock-boot.img"
+                print("Making sure stock_boot.img is found on the phone ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/stock_boot.img\'\""
                 res = run_shell(theCmd)
                 # expect 0
                 if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock-boot.img is not found!")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")
@@ -459,8 +459,8 @@ class Device():
                     print("Aborting backup ...\n")
                     return -1
                 # Transfer boot image to the phone
-                print(f"Transfering {boot_img} to the phone in /data/adb/magisk/stock-boot.img ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} push \"{boot_img}\" /data/adb/magisk/stock-boot.img"
+                print(f"Transfering {boot_img} to the phone in /data/local/tmp/stock_boot.img ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} push \"{boot_img}\" /data/local/tmp/stock_boot.img"
                 debug(theCmd)
                 res = run_shell(theCmd)
                 # expect ret 0
@@ -471,6 +471,21 @@ class Device():
                     print(f"Stderr: {res.stderr}.")
                     print("Aborting backup ...\n")
                     return -1
+                else:
+                    print(res.stdout)
+
+                # copy stock_boot from /data/local/tmp folder
+                print(f"Copying /data/local/tmp/stock_boot.img to /data/adb/magisk/stock_boot.img ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp /data/adb/magisk/stock_boot.img /data/adb/magisk/stock_boot.img\'\""
+                debug(theCmd)
+                res = run_shell(theCmd)
+                # expect ret 0
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    print("Aborting Backup...\n")
                 else:
                     print(res.stdout)
 
@@ -1081,9 +1096,9 @@ class Device():
 
 
     # ----------------------------------------------------------------------------
-    #                               method package_list
+    #                               method get_package_list
     # ----------------------------------------------------------------------------
-    def package_list(self, state = ''):
+    def get_package_list(self, state = ''):
         # possible options 'all', 'all+uninstalled', 'disabled', 'enabled', 'system', '3rdparty', 'user0'
         if self.mode != 'adb':
             return
@@ -1123,7 +1138,7 @@ class Device():
         try:
             self.packages.clear()
             # Get all packages including uninstalled ones
-            list = self.package_list('all+uninstalled')
+            list = self.get_package_list('all+uninstalled')
             if not list:
                 return -1
             for item in list.split("\n"):
@@ -1134,7 +1149,7 @@ class Device():
                     self.packages[item] = package
 
             # Get all packages
-            list = self.package_list('all')
+            list = self.get_package_list('all')
             if not list:
                 return -1
             for item in list.split("\n"):
@@ -1142,7 +1157,7 @@ class Device():
                     self.packages[item].installed = True
 
             # Get 3rd party packages
-            list = self.package_list('3rdparty')
+            list = self.get_package_list('3rdparty')
             if not list:
                 return -1
             for item in list.split("\n"):
@@ -1150,7 +1165,7 @@ class Device():
                     self.packages[item].type = '3rd Party'
 
             # Get disabled packages
-            list = self.package_list('disabled')
+            list = self.get_package_list('disabled')
             if not list:
                 return -1
             for item in list.split("\n"):
@@ -1158,7 +1173,7 @@ class Device():
                     self.packages[item].enabled = False
 
             # Get enabled packages
-            list = self.package_list('enabled')
+            list = self.get_package_list('enabled')
             if not list:
                 return -1
             for item in list.split("\n"):
@@ -1166,7 +1181,7 @@ class Device():
                     self.packages[item].enabled = True
 
             # Get user 0 packages
-            list = self.package_list('user0')
+            list = self.get_package_list('user0')
             if not list:
                 return -1
             for item in list.split("\n"):

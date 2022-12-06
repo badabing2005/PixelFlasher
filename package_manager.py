@@ -223,7 +223,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         device = get_phone()
         package = device.packages[pkg]
         if package.details == '':
-            details = device.package_details(pkg)
+            details = device.get_package_details(pkg)
             package.details = details
         self.details.SetValue(package.details)
 

@@ -34,7 +34,7 @@ def get_values(thelist, update):
     for tuple in thelist:
         file = tuple[0]
         s = tuple[1]
-        with open(file, "rt", encoding='ISO-8859-1') as fin:
+        with open(file, "rt", encoding='ISO-8859-1', errors="replace") as fin:
             data = fin.read()
         r = re.findall(s, data)
         print(file)
@@ -47,7 +47,7 @@ def get_values(thelist, update):
 
 
     print(file5)
-    with open(file5, "rt", encoding='ISO-8859-1') as fin:
+    with open(file5, "rt", encoding='ISO-8859-1', errors="replace") as fin:
         data = fin.read()
     for item in s5:
         r = re.findall(item, data)
@@ -68,7 +68,7 @@ def set_values(file, search, replace):
         # content_new = re.sub(search, replace, content, flags = re.M)
         content_new = content.replace(search, replace)
     print(f"\t\tReplacing {search} with {replace} ...")
-    with open(file, 'w', encoding="ISO-8859-1", newline='\n') as f:
+    with open(file, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
         f.write(content_new)
 
 

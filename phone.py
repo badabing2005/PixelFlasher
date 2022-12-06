@@ -1203,7 +1203,7 @@ class Device():
 # stderr are only available when the call is completed.
 def run_shell(cmd):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1')
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace")
         wx.Yield()
         return response
     except Exception as e:
@@ -1220,7 +1220,7 @@ def run_shell2(cmd):
         pass
 
     response = obj()
-    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1')
+    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace")
 
     print
     stdout = ''

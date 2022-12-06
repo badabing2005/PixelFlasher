@@ -3,7 +3,7 @@
 import json
 import os
 
-VERSION = '4.6.0.1'
+VERSION = '4.6.0.3'
 SDKVERSION = '33.0.3'
 WIDTH = 1400
 HEIGHT = 1040
@@ -56,7 +56,7 @@ class Config():
         print("Loading configuration File ...")
         try:
             if os.path.exists(file_path):
-                with open(file_path, 'r', encoding="ISO-8859-1") as f:
+                with open(file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
                     data = json.load(f)
                     f.close()
                 conf.device = data['device']
@@ -137,6 +137,6 @@ class Config():
             'pf_font_face': self.pf_font_face,
             'pf_font_size': self.pf_font_size
         }
-        with open(file_path, 'w', encoding="ISO-8859-1", newline='\n') as f:
+        with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)
             f.close()

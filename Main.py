@@ -52,7 +52,7 @@ class RedirectText():
     def __init__(self,aWxTextCtrl):
         self.out=aWxTextCtrl
         logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
-        self.logfile = open(logfile, "w", buffering=1, encoding="ISO-8859-1")
+        self.logfile = open(logfile, "w", buffering=1, encoding="ISO-8859-1", errors="replace")
         set_logfile(logfile)
 
     def write(self,string):
@@ -1001,7 +1001,7 @@ class PixelFlasher(wx.Frame):
         def _on_flash_both_slots(event):
             self.flash_both_slots_checkBox = event.GetEventObject()
             status = self.flash_both_slots_checkBox.GetValue()
-            print(f"Flash Option: `Flash Both Slots` {status}")
+            print(f"Flash Option: Flash Both Slots {status}")
             self.config.flash_both_slots = status
             if status:
                 self.config.flash_to_inactive_slot = not status
@@ -1013,7 +1013,7 @@ class PixelFlasher(wx.Frame):
         def _on_flash_to_inactive_slot(event):
             self.flash_to_inactive_slot_checkBox = event.GetEventObject()
             status = self.flash_to_inactive_slot_checkBox.GetValue()
-            print(f"Flash Option: `Flash to Inactive Slot` {status}")
+            print(f"Flash Option: Flash to Inactive Slot {status}")
             self.config.flash_to_inactive_slot = status
             if status:
                 self.config.flash_both_slots = not status
@@ -1025,7 +1025,7 @@ class PixelFlasher(wx.Frame):
         def _on_disable_verity(event):
             self.disable_verity_checkBox = event.GetEventObject()
             status = self.disable_verity_checkBox.GetValue()
-            print(f"Flash Option: `Disable Verity` {status}")
+            print(f"Flash Option: Disable Verity {status}")
             self.config.disable_verity = status
 
         # -----------------------------------------------
@@ -1034,7 +1034,7 @@ class PixelFlasher(wx.Frame):
         def _on_disable_verification(event):
             self.disable_verification_checkBox = event.GetEventObject()
             status = self.disable_verification_checkBox.GetValue()
-            print(f"Flash Option: `Disable Verification` {status}")
+            print(f"Flash Option: Disable Verification {status}")
             self.config.disable_verification = status
 
         # -----------------------------------------------
@@ -1043,7 +1043,7 @@ class PixelFlasher(wx.Frame):
         def _on_fastboot_force(event):
             self.fastboot_force_checkBox = event.GetEventObject()
             status = self.fastboot_force_checkBox.GetValue()
-            print(f"Flash Option: `Force` {status}")
+            print(f"Flash Option: Force {status}")
             self.config.fastboot_force = status
 
         # -----------------------------------------------
@@ -1052,7 +1052,7 @@ class PixelFlasher(wx.Frame):
         def _on_fastboot_verbose(event):
             self.fastboot_verbose_checkBox = event.GetEventObject()
             status = self.fastboot_verbose_checkBox.GetValue()
-            print(f"Flash Option: `Verbose` {status}")
+            print(f"Flash Option: Verbose {status}")
             self.config.fastboot_verbose = status
 
         # -----------------------------------------------
@@ -1061,7 +1061,7 @@ class PixelFlasher(wx.Frame):
         def _on_temporary_root(event):
             self._on_temporary_root_checkBox = event.GetEventObject()
             status = self._on_temporary_root_checkBox.GetValue()
-            print(f"Flash Option: `Temporary Root` {status}")
+            print(f"Flash Option: Temporary Root {status}")
             self.config.temporary_root = status
 
         # -----------------------------------------------

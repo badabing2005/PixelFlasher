@@ -310,7 +310,7 @@ def debug(message):
 # stderr are only available when the call is completed.
 def run_shell(cmd):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1')
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace")
         wx.Yield()
         return response
     except Exception as e:
@@ -327,7 +327,7 @@ def run_shell2(cmd):
         pass
 
     response = obj()
-    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1')
+    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace")
 
     print
     stdout = ''
@@ -520,7 +520,7 @@ def create_support_zip():
 # ============================================================================
 def sanitize_file(filename):
     debug(f"Santizing {filename} ...")
-    with open(filename, "rt", encoding='ISO-8859-1') as fin:
+    with open(filename, "rt", encoding='ISO-8859-1', errors="replace") as fin:
         data = fin.read()
     data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
     data = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
@@ -533,7 +533,7 @@ def sanitize_file(filename):
     data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
     data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    with open(filename, "wt", encoding='ISO-8859-1') as fin:
+    with open(filename, "wt", encoding='ISO-8859-1', errors="replace") as fin:
         fin.write(data)
 
 
@@ -887,7 +887,7 @@ def process_flash_all_file(filepath):
 #                               Function get_ui_cooridnates
 # ============================================================================
 def get_ui_cooridnates(xmlfile, search):
-    with open(xmlfile, "r", encoding='ISO-8859-1') as fin:
+    with open(xmlfile, "r", encoding='ISO-8859-1', errors="replace") as fin:
         data = fin.read()
     regex = re.compile(f"{search}.*?bounds\=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\".+")
     m = re.findall(regex, data)
@@ -1420,7 +1420,7 @@ def patch_boot_img(self):
             # magisk_version = device.magisk_app_version
             path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
             dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
-            with open(dest.strip(), "w", encoding="ISO-8859-1", newline='\n') as f:
+            with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
                 data = "#!/system/bin/sh\n"
                 data += "##############################################################################\n"
                 data += f"# PixelFlasher {VERSION} patch script using Magisk Manager {magisk_app_version}\n"
@@ -1664,8 +1664,7 @@ def patch_boot_img(self):
             res = device.run_magisk_migration(boot_sha1_long)
             # if return is -2, then copy boot.img to stock_boot.img
             if res == -2 and is_rooted:
-                # Transfer boot image to the phone
-                # TODO copy stock_boot from Downloads folder it already exists, and do it as su if rooted
+                # copy stock_boot from Downloads folder it already exists, and do it as su if rooted
                 stock_boot_path = '/data/adb/magisk/stock_boot.img'
                 print(f"Copying {boot_img} to {stock_boot_path} ...")
                 theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'cp /sdcard/Download/{boot_img} {stock_boot_path}\'\""
@@ -2025,7 +2024,7 @@ def flash_phone(self):
         if image_mode and get_image_path():
             title = "Advanced Flash Options"
             # create flash-phone.bat based on the custom options.
-            f = open(dest.strip(), "w", encoding="ISO-8859-1")
+            f = open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace")
             data = first_line
             if sys.platform == "win32":
                 data += "PATH=%PATH%;\"%SYSTEMROOT%\System32\"\n"
@@ -2216,7 +2215,7 @@ def flash_phone(self):
         data += "echo rebooting to system ...\n"
         data += f"\"{get_fastboot()}\" -s {device.id} reboot"
 
-        fin = open(dest, "wt", encoding="ISO-8859-1")
+        fin = open(dest, "wt", encoding="ISO-8859-1", errors="replace")
         fin.write(data)
         fin.close()
 

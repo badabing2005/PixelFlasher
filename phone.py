@@ -757,7 +757,7 @@ class Device():
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['stable', 'beta', 'canary', 'debug', 'alpha', 'delta']
+                mlist = ['stable', 'beta', 'canary', 'debug', 'alpha', 'delta', 'special']
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     apks.append(apk)
@@ -783,6 +783,36 @@ class Device():
             url = "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/alpha.json"
         elif channel == 'delta':
             url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
+        elif channel == 'special':
+            url = ""
+            ma = MagiskApk(channel)
+            setattr(ma, 'version', "f9e82c9e")
+            setattr(ma, 'versionCode', "25203")
+            setattr(ma, 'link', "https://forum.xda-developers.com/attachments/app-debug-apk.5725759/")
+            setattr(ma, 'note_link', "note_link")
+            release_notes = """
+## 2022.10.03 Special Magisk v25.2 Build\n\n
+This is a special Magisk build by XDA Member [gecowa6967](https://forum.xda-developers.com/m/gecowa6967.11238881/)\n\n
+- Based on build versionCode: 25203 versionName: f9e82c9e\n
+- Modified to disable loading modules.\n
+- Made to recover from bootloops due to bad / incompatible Modules.\n\n
+### Steps to follow
+If your are bootlooping due to bad modules, and if you load stock boot image, it works fine but you're not rooted to removed modules, then follow these steps.\n\n
+- Uninstall the currently installed Magisk Manager.\n
+- Install this special version.\n
+- Create a patched boot / init_boot using this Magisk Manager version.\n
+- Flash the patched image.\n
+- You should now be able to get root access, and your modules will not load.\n
+- Delete / Disable suspect modules.\n
+- Uninstall this Magisk Manager.\n
+- Install your Magisk Manager of choice.\n
+- Create patched boot / init_boot image.\n
+- Flash the patched image.\n
+- You should be good to go.\n\n
+### Full Details: [here](https://forum.xda-developers.com/t/magisk-general-support-discussion.3432382/page-2667#post-87520397)\n
+            """
+            setattr(ma, 'release_notes', release_notes)
+            return ma
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
             return
@@ -1203,7 +1233,7 @@ class Device():
 # stderr are only available when the call is completed.
 def run_shell(cmd):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1')
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace")
         wx.Yield()
         return response
     except Exception as e:
@@ -1220,7 +1250,7 @@ def run_shell2(cmd):
         pass
 
     response = obj()
-    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1')
+    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace")
 
     print
     stdout = ''

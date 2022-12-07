@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import webbrowser
 from urllib.parse import urlparse
 
 import darkdetect
@@ -12,6 +13,13 @@ import wx.lib.wxpTag
 import images as images
 from runtime import *
 
+
+# ============================================================================
+#                               Class ListCtrl
+# ============================================================================
+class HtmlWindow(wx.html.HtmlWindow):
+    def OnLinkClicked(self, link):
+        webbrowser.open(link.GetHref())
 
 # ============================================================================
 #                               Class ListCtrl
@@ -58,7 +66,7 @@ class MagiskDownloads(wx.Dialog):
         else:
             self.il = wx.ImageList(16, 16)
             self.idx1 = self.il.Add(images.Official_Small.GetBitmap())
-        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 9), style = wx.LC_REPORT)
+        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 10), style = wx.LC_REPORT)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         device = get_phone()
@@ -97,7 +105,7 @@ class MagiskDownloads(wx.Dialog):
         vSizer.Add(list_sizer , 0, wx.EXPAND, 5)
 
         # Release Notes
-        self.html = wx.html.HtmlWindow(self, wx.ID_ANY, size=(420, -1))
+        self.html = HtmlWindow(self, wx.ID_ANY, size=(420, -1))
         if darkdetect.isDark():
             black_html = "<!DOCTYPE html>\n<html><body style=\"background-color:#1e1e1e;\"></body></html>"
             self.html.SetPage(black_html)

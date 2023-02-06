@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 import wx
+
+import images as images
 from runtime import *
+
 
 # ============================================================================
 #                               Class AdvancedSettings
@@ -54,8 +57,12 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.package_name = wx.TextCtrl(self, -1, size=(300, -1))
         self.package_name.SetToolTip(u"If you have hidden Magisk,\nset this to the hidden package name.")
         self.package_name.SetValue(str(get_magisk_package()))
+        self.reset_magisk_pkg = wx.BitmapButton(self, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.reset_magisk_pkg.SetBitmap(images.Scan.GetBitmap())
+        self.reset_magisk_pkg.SetToolTip(u"Resets package name to default: com.topjohnwu.magisk")
         package_name_sizer.Add(package_name_label, 0, wx.ALL, 5)
         package_name_sizer.Add(self.package_name, 0, wx.LEFT, 10)
+        package_name_sizer.Add(self.reset_magisk_pkg, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         vSizer.Add(package_name_sizer, 0, wx.EXPAND, 5)
 
         # Check for updates options
@@ -129,6 +136,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
         self.font.Bind(wx.EVT_LISTBOX, self._onFontSelect)
         self.font_size.Bind(wx.EVT_SPINCTRL, self._onFontSelect)
+        self.reset_magisk_pkg.Bind(wx.EVT_BUTTON, self._onResetMagiskPkg)
 
         # Autosize the dialog
         self.SetSizerAndFit(vSizer)
@@ -140,6 +148,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.sample.SetLabel(facename)
         self.sample.SetFont(font)
         self.Refresh()
+
+    def _onResetMagiskPkg(self, e):
+        self.package_name.Label = 'com.topjohnwu.magisk'
 
     def _onCancel(self, e):
         set_advanced_options(self.before)

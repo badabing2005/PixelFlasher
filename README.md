@@ -27,8 +27,10 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
     - Date of patching.
     - The SHA1 of the source boot.img file.
   - Option to Live boot from a choice of boot.img or patched image.
+  - Flash just the boot / init_boot image.
 - Choose to keep data or wipe data while flashing.
 - Ability to flash even if multiple devices are connected to the computer.
+- Option to flash to inactive slot.
 - Display information about the phone.
   - ID
   - Hardware model.
@@ -43,13 +45,20 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - Active slot.
   - Android OS API version.
   - Convenient quick links to download Android platform tools or device firmware.
-- Magisk Manager installation UI, [screenshot](images/Magisk%20Installer.png). Supported versions:
+- Magisk Manager installation UI, [screenshot](images/Magisk-Installer.png). Supported versions:
   - stable (official)
   - beta (official)
   - canary (official)
   - debug (official)
   - alpha  
   - delta
+  - special build that disables modules, used to recover from bootloops due to bad module(s) when safe mode does not work.
+- Magisk Backup Manager, [screenshot](images/Magisk-Backup-Manager.png).
+  - List all Magisk backups currently on the device.
+  - Highlight the one that is backup of the current installed version.
+  - Delete backups.
+  - Manually add backup from PC.
+  - Auto Backup: PixelFlasher figures out what needs to be backed up, and if it finds it on the PC, it creates the backup.
 - Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade [screenshot](images/magisk-modules-manager.png):
   - Name
   - Version
@@ -60,12 +69,19 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 - Advanced features are hidden to keep the interface simple and easy to follow.
 - A lot of checks and validations for smooth operation.
 - Automatic check for program updates.
+- Package (Application) Manager, [screenshot](images/Package-Manager.png):
+  - Disable (Freeze)
+  - Enable
+  - Uninstall
+  - Install APK
+  - Download APK
+  - Multi-Select
+  - Show Package Details.
 
 **Expert mode:** (should only be turned on by experienced users). In addition to the basic features, you get:
 
 - The ability to flash custom ROM (with or without patching `boot.img`)
 - Option to flash to both slots.
-- Option to flash to inactive slot.
 - Options to disable verity and or verification.
 - Ability to change the active slot.
 - Ability to live boot to custom `boot.img` (temporary root).
@@ -254,7 +270,7 @@ Choose the dropdown to select image type.
     - image - Expected file type .zip
     - SIDELOAD - Expected file type .zip  
 Select the appropriate flash options.
-**Note:** For Tensor devices (Pixel 6, Pixel 6a, Pixel 6 Pro) When `Flash to both slots` option is selected, Pixelflasher flashes each slot individually to overcome a Google bug that fails with the option `--slot=all`
+**Note:** For Tensor devices (Pixel 6, Pixel 6a, Pixel 6 Pro, Pixel 7, Pixel 7 Pro) When `Flash to both slots` option is selected, Pixelflasher flashes each slot individually to overcome a Google bug that fails with the option `--slot=all`
 
 ## Credits
 

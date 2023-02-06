@@ -24,7 +24,19 @@ class Package():
         self.user0 = False
         self.details = ''
         self.path = ''
+        self.path2 = ''
         self.label = ''
+        self.icon = ''
+
+
+# ============================================================================
+#                               Class Backup
+# ============================================================================
+class Backup():
+    def __init__(self, value):
+        self.value = value # sha1
+        self.date = ''
+        self.firmware = ''
 
 
 # ============================================================================
@@ -74,9 +86,9 @@ class Device():
         self._magisk_detailed_modules = None
         self._magisk_modules_summary = None
         self._magisk_apks = None
-        self._magisk_path = None
         self._magisk_config_path = None
         self.packages = {}
+        self.backups = {}
 
     # ----------------------------------------------------------------------------
     #                               property adb_device_info
@@ -94,20 +106,31 @@ class Device():
     #                               method get_package_details
     # ----------------------------------------------------------------------------
     def get_package_details(self, package):
-        # TODO: Get Application's friendly name (Label)
         if self.mode != 'adb':
             return
         try:
             theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {package}"
             res = run_shell(theCmd)
             if res.returncode == 0:
-                return res.stdout
+                path = self.get_path_from_details(res.stdout)
+                return res.stdout, path
             else:
-                return None
+                return '', ''
         except Exception as e:
             print(e)
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
-            return None
+            return '', ''
+
+    # -----------------------------------------------
+    #    Function get_path_from_package_details
+    # -----------------------------------------------
+    def get_path_from_details(self, details):
+        pattern = re.compile(r'Dexopt state:(?s).*?path:(.*?)\n(?!.*path:)', re.DOTALL)
+        match = re.search(pattern, details)
+        if match:
+            return match[1].strip()
+        else:
+            return ''
 
     # ----------------------------------------------------------------------------
     #                               property fastboot_device_info
@@ -223,12 +246,11 @@ class Device():
     def inactive_slot(self):
         if self.active_slot is None:
             return ''
+        current_slot = self.active_slot
+        if current_slot == 'a':
+            return '_b'
         else:
-            current_slot = self.active_slot
-            if current_slot == 'a':
-                return '_b'
-            else:
-                return '_a'
+            return '_a'
 
     # ----------------------------------------------------------------------------
     #                               property bootloader_version
@@ -307,16 +329,12 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_path(self):
-        if self._magisk_path is None and self.mode == 'adb':
-            try:
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm path {get_magisk_package()}"
-                res = run_shell(theCmd)
-                if res.returncode == 0:
-                    self._magisk_path = res.stdout.split(':')[1]
-                    self._magisk_path = self._magisk_path.strip('\n')
-            except Exception:
-                self._rooted = None
-        return self._magisk_path
+        if self.mode == 'adb':
+            res = self.get_package_path(get_magisk_package(), True)
+            if res != -1:
+                return res
+            self._rooted = None
+            return None
 
     # ----------------------------------------------------------------------------
     #                               property magisk_version
@@ -366,6 +384,55 @@ class Device():
         return self._magisk_config_path
 
     # ----------------------------------------------------------------------------
+    #                               method get_magisk_backups
+    # ----------------------------------------------------------------------------
+    def get_magisk_backups(self):
+        if self.mode != 'adb' or not self.rooted:
+            return -1
+        try:
+            self.backups.clear()
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l -d -1 /data/magisk_backup_*\'\""
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                list = res.stdout.split('\n')
+            else:
+                return -1
+            if not list:
+                return -1
+            for item in list:
+                if item != '':
+                    regex = re.compile("d.+root\sroot\s\w+\s(.*)\s\/data\/magisk_backup_(.*)")
+                    m = re.findall(regex, item)
+                    if m:
+                        backup_date = f"{m[0][0]}"
+                        backup_sha1 = f"{m[0][1]}"
+                    backup = Backup(backup_sha1)
+                    backup.date = backup_date
+                    with contextlib.suppress(Exception):
+                        backup.firmware = self.get_firmware_from_boot(backup_sha1)
+                    self.backups[backup_sha1] = backup
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get backup list.")
+            return -1
+        return 0
+
+    # ----------------------------------------------------------------------------
+    #                      function get_firmware_from_boot
+    # ----------------------------------------------------------------------------
+    def get_firmware_from_boot(self, sha1):
+        con = get_db()
+        con.execute("PRAGMA foreign_keys = ON")
+        con.commit()
+        cursor = con.cursor()
+        cursor.execute(f"SELECT package_sig FROM PACKAGE WHERE boot_hash = '{sha1}'")
+        data = cursor.fetchall()
+        if len(data) > 0:
+            return data[0][0]
+        else:
+            return ''
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_backups
     # ----------------------------------------------------------------------------
     @property
@@ -409,7 +476,7 @@ class Device():
     def run_magisk_migration(self, sha1 = None):
         if self.mode == 'adb' and self.rooted:
             try:
-                print("Making sure stock_boot.img is found on the phone ...")
+                print("Making sure stock_boot.img is found on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/stock_boot.img\'\""
                 res = run_shell(theCmd)
                 # expect 0
@@ -458,24 +525,16 @@ class Device():
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img with SHA1 of {sha1} is not found.")
                     print("Aborting backup ...\n")
                     return -1
-                # Transfer boot image to the phone
-                print(f"Transfering {boot_img} to the phone in /data/local/tmp/stock_boot.img ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} push \"{boot_img}\" /data/local/tmp/stock_boot.img"
-                debug(theCmd)
-                res = run_shell(theCmd)
-                # expect ret 0
-                if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
-                    print("Aborting backup ...\n")
+                # Transfer boot image to the device
+                print(f"Transfering {boot_img} to the device in /data/local/tmp/stock_boot.img ...")
+
+                res = self.push_file(f"{boot_img}", "/data/local/tmp/stock_boot.img")
+                if res != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {boot_img}")
                     return -1
-                else:
-                    print(res.stdout)
 
                 # copy stock_boot from /data/local/tmp folder
-                print(f"Copying /data/local/tmp/stock_boot.img to /data/adb/magisk/stock_boot.img ...")
+                print("Copying /data/local/tmp/stock_boot.img to /data/adb/magisk/stock_boot.img ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp /data/adb/magisk/stock_boot.img /data/adb/magisk/stock_boot.img\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
@@ -554,25 +613,477 @@ class Device():
             return -1
 
     # ----------------------------------------------------------------------------
-    #                               Method delete_magisk_ramdisk_cpio
+    #                               Method delete
     # ----------------------------------------------------------------------------
-    def delete_magisk_ramdisk_cpio(self):
-        if self.mode != 'adb' or not self.rooted:
+    def delete(self, file_path: str, with_su = False, dir = False) -> int:
+        """Method deletes a file on the device.
+
+        Args:
+            file_path:  Full file path
+            with_su:    Perform the action as root (Default: False)
+            dir:        Delete a directory instead of file (Default: False [file])
+
+        Returns:
+            0           if file is deleted or not found.
+            -1          if an exception is raised.
+        """
+        flag = ''
+        if dir:
+            flag = 'r'
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not in ADB mode.")
             return -1
         try:
-            print("Deleting old ramdisk.cpio to prevent Magisk issue ...")
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/adb/magisk/ramdisk.cpio\'\""
+            if with_su:
+                if self.rooted:
+                    print(f"Deleting {file_path} from the device as root ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -{flag}f {file_path}\'\""
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not rooted.")
+            else:
+                print(f"Deleting {file_path} from the device ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell rm -{flag}f {file_path}"
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Successfully deleted Magisk ramdisk.cpio")
+                print("Return Code: 0")
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete Magisk ramdisk.cpio")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
                 return -1
         except Exception as e:
             print(e)
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete Magisk ramdisk.cpio")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
             return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method dump_boot
+    # ----------------------------------------------------------------------------
+    def dump_boot(self, file_path: str = '', slot: str = '') -> int:
+        """Method dumps active boot / init_boot partition on device.
+
+        Args:
+            file_path:      Full file path (Default in: /data/local/tmp/ <boot | init_boot>)
+            slot:           If slot is specified, then it will dump the specificed slot instead of the active one. (Default: '')
+
+        Returns:
+            0, dumped_path  if boot partition is dumped.
+            -1, ''          if an exception is raised.
+        """
+        if self.mode != 'adb' and self.rooted:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump boot partition. Device must be in ADB mode and be rooted.")
+            return -1, ''
+        try:
+            if slot not in ['a', 'b']:
+                slot = self.active_slot
+
+            # decide on boot.img or init_boot.img
+            if get_firmware_model() in ('panther', 'cheetah'):
+                boot_file_name = 'init_boot'
+            else:
+                boot_file_name = 'boot'
+
+            if not file_path:
+                file_path = f"/data/local/tmp/{boot_file_name}_{slot}.img"
+
+            print(f"Dumping boot partition form slot {slot} to file: {file_path} ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/{boot_file_name}_{slot} of={file_path}\'\""
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("Return Code: 0")
+                return 0, file_path
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump boot partition.")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                return -1, ''
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump boot partition")
+            return -1, ''
+
+    # ----------------------------------------------------------------------------
+    #                               Method su_cp_on_device
+    # ----------------------------------------------------------------------------
+    def su_cp_on_device(self, source: str, dest) -> int:
+        """Method copies file as su from device to device.
+
+        Args:
+            source:     Source file path
+            dest:       Destination file path
+
+        Returns:
+            0           if copy is succesful.
+            -1          if an exception is raised.
+        """
+        if self.mode != 'adb' or not self.rooted:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy. Device is not in ADB mode or is not rooted.")
+            return -1
+        try:
+            print(f"Copying {source} to {dest} ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp {source} {dest}\'\""
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("Return Code: 0")
+                return 0
+            else:
+                print("Copy failed.")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Copy failed")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method check_file
+    # ----------------------------------------------------------------------------
+    def check_file(self, file_path: str, with_su = False) -> int:
+        """Method checks if a file exists on the device.
+
+        Args:
+            file_path:  Full file path
+            with_su:    Perform the action as root (Default: False)
+
+        Returns:
+            1,  matches       if file is found.
+            0,  None          if file is not found.
+            -1, None          if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not in ADB mode.")
+            return -1, None
+        try:
+            if with_su:
+                if self.rooted:
+                    print(f"Checking for {file_path} on the device as root ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls {file_path}\'\""
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not rooted.")
+            else:
+                print(f"Checking for {file_path} on the device ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell ls {file_path}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print(f"File: {file_path} is found on the device.")
+                return 1, res.stdout.strip()
+            else:
+                print(f"File: {file_path} is not found on the device.")
+                return 0, None
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}")
+            return -1, None
+
+    # ----------------------------------------------------------------------------
+    #                               Method create_dir
+    # ----------------------------------------------------------------------------
+    def create_dir(self, dir_path: str, with_su = False) -> int:
+        """Method creates a directory on the device.
+
+        Args:
+            dir_path:   Full directory path
+            with_su:    Perform the action as root (Default: False)
+
+        Returns:
+            0           if directory is created.
+            -1          if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {dir_path}. Device is not in ADB mode.")
+            return -1
+        try:
+            if with_su:
+                if self.rooted:
+                    print(f"Creating directory {dir_path} on the device as root ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'mkdir -p {dir_path}\'\""
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory {dir_path}. Device is not rooted.")
+            else:
+                print(f"Creating directory {dir_path} on the device ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell mkdir -p {dir_path}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("Return Code: 0")
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method push_file
+    # ----------------------------------------------------------------------------
+    def push_file(self, local_file: str, file_path: str, with_su = False) -> int:
+        """Method pushes a file to the device.
+
+        Args:
+            local_file: Local file path.
+            file_path:  Full file path on the device
+            with_su:        Perform the action as root (Default: False)
+
+        Returns:
+            0           if file is pushed.
+            -1          if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}. Device is not in ADB mode.")
+            return -1
+        try:
+            if with_su:
+                if self.rooted:
+                    filename = os.path.basename(urlparse(local_file).path)
+                    remote_file = f"/data/local/tmp/{filename}"
+                    res = self.push_file(local_file, remote_file, False)
+                    if res != 0:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {local_file}")
+                        return -1
+                    res = self.su_cp_on_device(remote_file, file_path)
+                    if res != 0:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file}")
+                        return -1
+                    return 0
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy to {file_path}. Device is not rooted.")
+                    return -1
+            else:
+                print(f"Pushing local file: {local_file} to the device: {file_path} ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} push \"{local_file}\" {file_path}"
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    print("Return Code: 0")
+                    return 0
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method pull_file
+    # ----------------------------------------------------------------------------
+    def pull_file(self, remote_file: str, local_file: str, with_su = False) -> int:
+        """Method pulls a file from the device.
+
+        Args:
+            remote_file:    Full file path on the device
+            local_file:     Local file path.
+            with_su:        Perform the action as root (Default: False)
+
+        Returns:
+            0               if file is pulled.
+            -1              if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not in ADB mode.")
+            return -1
+        try:
+            if with_su:
+                if self.rooted:
+                    filename = os.path.basename(urlparse(remote_file).path)
+                    temp_remote_file = f"/data/local/tmp/{filename}"
+                    res = self.su_cp_on_device(remote_file, temp_remote_file)
+                    if res != 0:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Device is not rooted.")
+                        return -1
+                    else:
+                        remote_file = temp_remote_file
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not rooted.")
+                    return -1
+
+            print(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} pull \"{remote_file}\" {local_file}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("Return Code: 0")
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method set_file_permissions
+    # ----------------------------------------------------------------------------
+    def set_file_permissions(self, file_path: str, permissions: str = "755", with_su = False) -> int:
+        """Method sets file permissions on the device.
+
+        Args:
+            permissions:    Permissions. (Default 755)
+            file_path:      Full file path on the device
+            with_su:        Perform the action as root (Default: False)
+
+        Returns:
+            0               On Success.
+            -1              if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not in ADB mode.")
+            return -1
+        try:
+            if with_su:
+                if self.rooted:
+                    print(f"Setting permissions {permissions} on {file_path} as root ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'chmod {permissions} {file_path}\'\""
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not rooted.")
+            else:
+                print(f"Setting permissions {permissions} on {file_path} on the device ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell chmod {permissions} {file_path}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("Return Code: 0")
+                return 0
+            else:
+                print(f"Return Code: {res.returncode}.")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method push_aapt2
+    # ----------------------------------------------------------------------------
+    def push_aapt2(self, file_path = "/data/local/tmp/aapt2") -> int:
+        """Method pushes aapt2 binary to the device.
+
+        Args:
+            file_path:      Full file path on the device (Default: /data/local/tmp/aapt2)
+
+        Returns:
+            0               On Success.
+            -1              if an exception is raised.
+        """
+        # Transfer extraction script to the phone
+        path_to_aapt2 = os.path.join(get_bundle_dir(),'bin', f"aapt2_{self.architecture}")
+        res = self.push_file(f"{path_to_aapt2}", f"{file_path}")
+        if res != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+            return -1
+        # set the permissions.
+        res = self.set_file_permissions(f"{file_path}", "755")
+        if res != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_package_path
+    # ----------------------------------------------------------------------------
+    def get_package_path(self, pkg: str, check_details = True) -> str:
+        """Method gets a package's apk path on device.
+
+        Args:
+            pkg:        Package
+
+        Returns:
+            pkg_path    on success returns package apk path.
+            -1          if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path. Device is not in ADB mode.")
+            return -1
+        try:
+            print(f"Getting package {pkg} path on the device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell pm path {pkg}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                pkg_path = res.stdout.split('\n')[0]
+                pkg_path = pkg_path.split(':')[1]
+                print(f"Package Path is: {pkg_path}")
+                return pkg_path
+            else:
+                if check_details:
+                    details, pkg_path = self.get_package_details(pkg)
+                    if pkg_path != '':
+                        print(f"Package Path is: {pkg_path}")
+                        return pkg_path
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_package_label
+    # ----------------------------------------------------------------------------
+    def get_package_label(self, pkg: str, pkg_path = '') -> str:
+        """Method package label (App name) given a package name.
+
+        Args:
+            pkg:        Package
+            pkg_path:   Package APK path, if provided, the Method skips figuring it out (faster). Default ''
+
+        Returns:
+            label, icon on success returns label (App name) and Icon path.
+            -1          if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label. Device is not in ADB mode.")
+            return -1, -1
+        print()
+        try:
+            if pkg_path == '':
+                pkg_path = self.get_package_path(f"{pkg}", True)
+                if pkg_path == -1:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
+                    return -1, -1
+                print(f"    Package Path: {pkg_path}")
+            print(f"Getting package {pkg} label from the device ...")
+            # theCmd = f"\"{get_adb()}\" -s {self.id} shell /data/local/tmp/aapt2 d badging {pkg_path} | grep \"application: label=\" |awk \"{{print $2}}\""
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell /data/local/tmp/aapt2 d badging {pkg_path} | grep \"application: label=\""
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                # print(res.stdout)
+                regex = re.compile("application: label='(.*)' icon='(.*)'")
+                m = re.findall(regex, res.stdout)
+                if m:
+                    pkg_label = f"{m[0][0]}"
+                    pkg_icon = f"{m[0][1]}"
+                print(f"{pkg} label is: {pkg_label}")
+                return pkg_label, pkg_icon
+            elif res.stderr.startswith("ERROR getting 'android:icon'"):
+                # try another way
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell /data/local/tmp/aapt2 d badging {pkg_path} | grep \"application-label:\""
+                res = run_shell(theCmd)
+                # print(res.stdout)
+                regex = re.compile("application-label:'(.*)'")
+                m = re.findall(regex, res.stdout)
+                if m:
+                    pkg_label = f"{m[0]}"
+                print(f"{pkg} label is: {pkg_label}")
+                return pkg_label, ''
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
+                return -1, -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
+            return -1, -1
 
     # ----------------------------------------------------------------------------
     #                               property magisk_app_version
@@ -771,6 +1282,7 @@ class Device():
     #                               Function get_magisk_apk_details
     # ----------------------------------------------------------------------------
     def get_magisk_apk_details(self, channel):
+        ma = MagiskApk(channel)
         if channel == 'stable':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/stable.json"
         elif channel == 'beta':
@@ -785,11 +1297,11 @@ class Device():
             url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
         elif channel == 'special':
             url = ""
-            ma = MagiskApk(channel)
             setattr(ma, 'version', "f9e82c9e")
             setattr(ma, 'versionCode', "25203")
             setattr(ma, 'link', "https://forum.xda-developers.com/attachments/app-debug-apk.5725759/")
             setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', 'com.topjohnwu.magisk')
             release_notes = """
 ## 2022.10.03 Special Magisk v25.2 Build\n\n
 This is a special Magisk build by XDA Member [gecowa6967](https://forum.xda-developers.com/m/gecowa6967.11238881/)\n\n
@@ -824,15 +1336,22 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             response = requests.request("GET", url, headers=headers, data=payload)
             response.raise_for_status()
             data = response.json()
-            ma = MagiskApk(channel)
             setattr(ma, 'version', data['magisk']['version'])
             setattr(ma, 'versionCode', data['magisk']['versionCode'])
             setattr(ma, 'link', data['magisk']['link'])
             note_link = data['magisk']['note']
             setattr(ma, 'note_link', note_link)
+            setattr(ma, 'package', 'com.topjohnwu.magisk')
+            if channel == 'alpha':
+                # Magisk alpha app link is not a full url, build it from url
+                setattr(ma, 'link', f"https://github.com/vvb2060/magisk_files/raw/alpha/{ma.link}")
+                setattr(ma, 'note_link', "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/README.md")
+                setattr(ma, 'package', 'io.github.vvb2060.magisk')
+            elif channel == 'delta':
+                setattr(ma, 'package', 'io.github.huskydg.magisk')
             # Get the note contents
             headers = {}
-            response = requests.request("GET", note_link, headers=headers, data=payload)
+            response = requests.request("GET", ma.note_link, headers=headers, data=payload)
             setattr(ma, 'release_notes', response.text)
             return ma
         except Exception as e:
@@ -1026,7 +1545,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             time.sleep(5)
             self.refresh_phone_mode()
         if self.mode == 'f.b' and get_fastboot():
-            # add a popup warning before continuing.
+            # TODO add a popup warning before continuing.
             print(f"Unlocking bootloader for device {self.id} ...")
             theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing unlock"
             debug(theCmd)
@@ -1096,9 +1615,9 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
 
 
     # ----------------------------------------------------------------------------
-    #                               method package_action
+    #                               method perform_package_action
     # ----------------------------------------------------------------------------
-    def package_action(self, pkg, action, isSystem):
+    def perform_package_action(self, pkg, action, isSystem):
         # possible actions 'uninstall', 'disable', 'enable'
         if self.mode != 'adb':
             return
@@ -1151,8 +1670,11 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             res = run_shell(theCmd)
             if res.returncode == 0:
                 return res.stdout.replace('package:','')
-            else:
-                return None
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            return None
         except Exception as e:
             print(e)
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
@@ -1167,6 +1689,8 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             return -1
         try:
             self.packages.clear()
+            # get labels
+            labels = get_labels()
             # Get all packages including uninstalled ones
             list = self.get_package_list('all+uninstalled')
             if not list:
@@ -1176,6 +1700,8 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     package = Package(item)
                     package.type = "System"
                     package.installed = False
+                    with contextlib.suppress(Exception):
+                        package.label = labels[item]
                     self.packages[item] = package
 
             # Get all packages

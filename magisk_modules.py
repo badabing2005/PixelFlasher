@@ -67,8 +67,11 @@ class MagiskModules(wx.Dialog):
             i += 1
 
         self.list.SetColumnWidth(0, -2)
+        grow_column(self.list, 0, 20)
         self.list.SetColumnWidth(1, -2)
+        grow_column(self.list, 1, 20)
         self.list.SetColumnWidth(2, -2)
+        grow_column(self.list, 2, 20)
 
         list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 10)
 

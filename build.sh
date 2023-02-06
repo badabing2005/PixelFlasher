@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 rm -rf build dist
-VERSION=4.6.1.0
+VERSION=4.7.0.0
 NAME="PixelFlasher"
 DIST_NAME="PixelFlasher"
+
+pushd "$(dirname "$0")"
 
 if [[ $OSTYPE == 'darwin'* ]]; then
     echo "Building for MacOS"
@@ -21,3 +23,5 @@ if [[ $OSTYPE == 'darwin'* ]]; then
     create-dmg "dist/$NAME.app"
     mv "$NAME $VERSION.dmg" "dist/$DIST_NAME.dmg"
 fi
+
+popd

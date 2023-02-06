@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
-             binaries=[('bin/7z.exe', 'bin'), ('bin/7z.dll', 'bin'), ('bin/busybox_arm64-v8a', 'bin'), ('bin/busybox_armeabi-v7a', 'bin'), ('bin/busybox_x86', 'bin'), ('bin/busybox_x86_64', 'bin'), ('bin/aapt', 'bin')],
+             binaries=[('bin/7z.exe', 'bin'), ('bin/7z.dll', 'bin'), ('bin/busybox_arm64-v8a', 'bin'), ('bin/busybox_armeabi-v7a', 'bin'), ('bin/busybox_x86', 'bin'), ('bin/busybox_x86_64', 'bin'), ('bin/aapt2_arm64-v8a', 'bin'), ('bin/aapt2_armeabi-v7a', 'bin'), ('bin/aapt2_x86', 'bin'), ('bin/aapt2_x86_64', 'bin')],
              datas=[("images", "images")],
              hiddenimports=[],
              hookspath=[],

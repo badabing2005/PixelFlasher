@@ -3,6 +3,7 @@
 import webbrowser
 from urllib.parse import urlparse
 
+import clipboard
 import darkdetect
 import markdown
 import wx
@@ -42,6 +43,7 @@ class MagiskDownloads(wx.Dialog):
         self.versionCode = None
         self.filename = None
         self.release_notes = None
+        self.package = None
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         message_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -76,6 +78,7 @@ class MagiskDownloads(wx.Dialog):
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(2, 'VersionCode', wx.LIST_FORMAT_LEFT,  -1)
         self.list.InsertColumn(3, 'URL', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(4, 'Package', wx.LIST_FORMAT_LEFT,  -1)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
@@ -93,12 +96,20 @@ class MagiskDownloads(wx.Dialog):
                 self.list.SetItem(index, 2, apk.versionCode)
             if apk.link != '':
                 self.list.SetItem(index, 3, apk.link)
+            if apk.package != '':
+                self.list.SetItem(index, 4, apk.package)
             i += 1
 
         self.list.SetColumnWidth(0, -2)
+        grow_column(self.list, 0, 20)
         self.list.SetColumnWidth(1, -2)
+        grow_column(self.list, 1, 20)
         self.list.SetColumnWidth(2, -2)
-        self.list.SetColumnWidth(3, -1)
+        grow_column(self.list, 2, 20)
+        self.list.SetColumnWidth(3, -2)
+        grow_column(self.list, 3, 20)
+        self.list.SetColumnWidth(4, -1)
+        grow_column(self.list, 4, 20)
 
         list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 10)
 
@@ -133,6 +144,12 @@ class MagiskDownloads(wx.Dialog):
         self.install_button.Bind(wx.EVT_BUTTON, self._onOk)
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
         self.list.Bind(wx.EVT_LEFT_DOWN, self._on_apk_selected)
+        self.list.Bind(wx.EVT_RIGHT_DOWN, self._onRightDown)
+        # for wxMSW
+        self.list.Bind(wx.EVT_COMMAND_RIGHT_CLICK, self._onRightClick)
+        # for wxGTK
+        self.list.Bind(wx.EVT_RIGHT_UP, self._onRightClick)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self._onItemSelected, self.list)
 
 
         # Autosize the dialog
@@ -142,6 +159,63 @@ class MagiskDownloads(wx.Dialog):
         self.SetSize(vSizer.MinSize.Width + 80, vSizer.MinSize.Height + 420)
 
         print("\nOpening Magisk Downloader/Installer ...")
+
+    # -----------------------------------------------
+    #                  _onItemSelected
+    # -----------------------------------------------
+    def _onItemSelected(self, event):
+        self.currentItem = event.Index
+        event.Skip()
+
+    # -----------------------------------------------
+    #                  _onRightDown
+    # -----------------------------------------------
+    def _onRightDown(self, event):
+        x = event.GetX()
+        y = event.GetY()
+        # print("x, y = %s\n" % str((x, y)))
+        item, flags = self.list.HitTest((x, y))
+        if item != wx.NOT_FOUND and flags & wx.LIST_HITTEST_ONITEM:
+            self.list.Select(item)
+        event.Skip()
+
+    # -----------------------------------------------
+    #                  _onRightClick
+    # -----------------------------------------------
+    def _onRightClick(self, event):
+        # print("OnRightClick %s\n" % self.list.GetItemText(self.currentItem))
+
+        # only do this part the first time so the events are only bound once
+        if not hasattr(self, "popupDisable"):
+            self.popupCopyURL = wx.NewIdRef()
+            self.popupCopyPackageId = wx.NewIdRef()
+
+            self.Bind(wx.EVT_MENU, self._OnCopyURL, id=self.popupCopyURL)
+            self.Bind(wx.EVT_MENU, self._OnCopyPackageId, id=self.popupCopyPackageId)
+
+        # build the menu
+        menu = wx.Menu()
+        menu.Append(self.popupCopyURL, "Copy URL to Clipboard")
+        menu.Append(self.popupCopyPackageId, "Copy Package ID to Clipboard")
+
+        # Popup the menu.  If an item is selected then its handler
+        # will be called before PopupMenu returns.
+        self.PopupMenu(menu)
+        menu.Destroy()
+
+    # -----------------------------------------------
+    #                  _OnCopyPackageId
+    # -----------------------------------------------
+    def _OnCopyPackageId(self, event):
+        item = self.list.GetItem(self.currentItem, 4)
+        clipboard.copy(item.Text)
+
+    # -----------------------------------------------
+    #                  _OnCopyURL
+    # -----------------------------------------------
+    def _OnCopyURL(self, event):
+        item = self.list.GetItem(self.currentItem, 3)
+        clipboard.copy(item.Text)
 
     # -----------------------------------------------
     #                  __del__
@@ -182,6 +256,7 @@ class MagiskDownloads(wx.Dialog):
             self.versionCode = self.list.GetItemText(row, col=2)
             self.url = self.list.GetItemText(row, col=3)
             self.filename = os.path.basename(urlparse(self.url).path)
+            self.package = self.list.GetItemText(row, col=4)
             device = get_phone()
             apks = device.magisk_apks
             release_notes = apks[row].release_notes
@@ -205,7 +280,8 @@ class MagiskDownloads(wx.Dialog):
         device = get_phone()
         device.install_apk(app, fastboot_included = True)
         # Fresh install of Magisk, reset the package name to default value
-        set_magisk_package('com.topjohnwu.magisk')
+        set_magisk_package(self.package)
+        self.Parent.config.magisk = self.package
         print('')
         self.EndModal(wx.ID_OK)
 

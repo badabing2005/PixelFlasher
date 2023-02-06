@@ -42,6 +42,7 @@ patched_with = ''
 customize_font = False
 pf_font_face = ''
 pf_font_size = 12
+app_labels = {}
 
 # ============================================================================
 #                               Class Boot
@@ -59,7 +60,7 @@ class Boot():
         self.package_boot_hash = None
         self.package_type = None
         self.package_sig = None
-        self.package_path = None
+        self.get_package_path = None
         self.package_epoch = None
 
 
@@ -77,6 +78,22 @@ def get_boot():
 def set_boot(value):
     global boot
     boot = value
+
+
+# ============================================================================
+#                               Function get_labels
+# ============================================================================
+def get_labels():
+    global app_labels
+    return app_labels
+
+
+# ============================================================================
+#                               Function set_labels
+# ============================================================================
+def set_labels(value):
+    global app_labels
+    app_labels = value
 
 
 # ============================================================================
@@ -115,6 +132,7 @@ def set_db(value):
 #                               Function get_boot_images_dir
 # ============================================================================
 def get_boot_images_dir():
+    # boot_images did not change at version 5, so we can keep on using 4
     if parse(VERSION) < parse('4.0.0'):
         return 'boot_images'
     else:
@@ -122,13 +140,27 @@ def get_boot_images_dir():
 
 
 # ============================================================================
+#                               Function get_factory_images_dir
+# ============================================================================
+def get_factory_images_dir():
+    # factory_images only changed after version 5
+    if parse(VERSION) < parse('5.0.0'):
+        return 'factory_images'
+    else:
+        return 'factory_images5'
+
+
+# ============================================================================
 #                               Function get_pf_db
 # ============================================================================
 def get_pf_db():
+    # we have different db schemas for each of these versions
     if parse(VERSION) < parse('4.0.0'):
         return 'PixelFlasher.db'
-    else:
+    elif parse(VERSION) < parse('5.0.0'):
         return 'PixelFlasher4.db'
+    else:
+        return 'PixelFlasher5.db'
 
 
 # ============================================================================
@@ -593,6 +625,13 @@ def get_config_file_path():
 
 
 # ============================================================================
+#                               Function get_labels_file_path
+# ============================================================================
+def get_labels_file_path():
+    return os.path.join(get_config_path(), "labels.json").strip()
+
+
+# ============================================================================
 #                               Function get_path_to_7z
 # ============================================================================
 def get_path_to_7z():
@@ -642,3 +681,11 @@ def check_latest_version():
     except Exception:
         version = '0.0.0.0'
     return version
+
+
+# ============================================================================
+#                               Function grow_column
+# ============================================================================
+def grow_column(list, col, value = 20):
+    w = list.GetColumnWidth(col)
+    list.SetColumnWidth(col, w + value)

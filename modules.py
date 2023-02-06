@@ -250,6 +250,9 @@ def get_flash_settings(self):
     p_custom_rom_path = self.config.custom_rom_path
     boot = get_boot()
     device = get_phone()
+    if not device:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+        return
 
     message += f"Android SDK Version:    {get_sdk_version()}\n"
     message += f"Device:                 {self.config.device} {device.hardware} {device.build}\n"
@@ -372,6 +375,25 @@ def wifi_adb_connect(self, value, disconnect = False):
 
 
 # ============================================================================
+#                               Function adb_kill_server
+# ============================================================================
+def adb_kill_server(self):
+    if get_adb():
+        print("Invoking adb kill-server ...")
+        theCmd = f"\"{get_adb()}\" kill-server"
+        res = run_shell(theCmd)
+        if res.returncode == 0:
+            print("returncode: 0")
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not kill adb server.\n")
+            print(f"{res.stderr}")
+            print(f"{res.stdout}")
+    else:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Android platform tools.\n")
+
+
+
+# ============================================================================
 #                               Function md5
 # ============================================================================
 def md5(fname):
@@ -391,6 +413,17 @@ def sha1(fname):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_sha1.update(chunk)
     return hash_sha1.hexdigest()
+
+
+# ============================================================================
+#                               Function sha256
+# ============================================================================
+def sha256(fname):
+    hash_sha256 = hashlib.sha256()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
 
 
 # ============================================================================
@@ -472,6 +505,11 @@ def create_support_zip():
         shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
     # copy PixelFlasher.db to tmp\support folder
     to_copy = os.path.join(config_path, get_pf_db())
+    if os.path.exists(to_copy):
+        debug(f"Copying {to_copy} to {support_dir_full}")
+        shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+    # copy labels.json to tmp\support folder
+    to_copy = os.path.join(config_path, 'labels.json')
     if os.path.exists(to_copy):
         debug(f"Copying {to_copy} to {support_dir_full}")
         shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
@@ -585,13 +623,15 @@ def select_firmware(self):
     extension = extension.lower()
     if extension == '.zip':
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
+        firmware_hash = sha256(self.config.firmware_path)
+        print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
         firmware = filename.split("-")
         if len(firmware) == 1:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected firmware filename is not a valid name.\nPlease keep the original filename intact.\n")
             self.config.firmware_path = None
             self.firmware_picker.SetPath('')
             set_firmware_id(None)
-            return
+            return f"SHA-256: {firmware_hash}"
         else:
             try:
                 set_firmware_model(firmware[0])
@@ -604,10 +644,12 @@ def select_firmware(self):
         else:
             self.flash_button.Disable()
         populate_boot_list(self)
+        return f"SHA-256: {firmware_hash}"
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a zip file.")
         self.config.firmware_path = None
         self.firmware_picker.SetPath('')
+        return 'Select Pixel Firmware'
 
 
 # ============================================================================
@@ -902,7 +944,7 @@ def get_ui_cooridnates(xmlfile, search):
 # ============================================================================
 #                               Function extract_sha1
 # ============================================================================
-def extract_sha1(binfile):
+def extract_sha1(binfile, length = 8):
     with open(binfile, 'rb') as f:
         s = f.read()
         # Find SHA1=
@@ -911,8 +953,8 @@ def extract_sha1(binfile):
         if pos != -1:
             # move to 5 characters from the found position
             f.seek(pos + 5, 0)
-            # read 8 bytes
-            res = f.read(8)
+            # read length bytes
+            res = f.read(length)
             return res.decode("utf-8")
 
 
@@ -1241,6 +1283,10 @@ def patch_boot_img(self):
 
     # get device
     device = get_phone()
+    if not device:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+        print("Aborting ...\n")
+        return
 
     # Make sure boot image is selected
     if not self.config.boot_id:
@@ -1251,12 +1297,6 @@ def patch_boot_img(self):
     # Make sure platform-tools is set and adb and fastboot are found
     if not self.config.platform_tools_path:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
-        print("Aborting ...\n")
-        return
-
-    # Make sure Phone is connected
-    if not device:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select an ADB connection (phone)")
         print("Aborting ...\n")
         return
 
@@ -1311,83 +1351,40 @@ def patch_boot_img(self):
             return
 
     # delete existing boot_file_name from phone
-    print(f"Deleting {boot_img} from phone in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell rm -f {self.config.phone_path}/{boot_img}"
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-        print(f"Return Code: {res.returncode}.")
-        print(f"Stdout: {res.stdout}.")
-        print(f"Stderr: {res.stderr}.")
+    res = device.delete(f"{self.config.phone_path}/{boot_img}")
+    if res != 0:
         print("Aborting ...\n")
         return
 
     # check if delete worked.
-    print(f"Making sure {boot_img} is not on the phone in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/{boot_img}"
-    res = run_shell(theCmd)
-    # expect ret 1
-    if res.returncode != 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} Delete Failed!")
-        print(f"Return Code: {res.returncode}.")
-        print(f"Stdout: {res.stdout}.")
-        print(f"Stderr: {res.stderr}.")
+    print("Making sure file is not on the phone ...")
+    res, tmp = device.check_file(f"{self.config.phone_path}/{boot_img}")
+    if res != 0:
         print("Aborting ...\n")
         return
 
-    # delete existing magisk_patched*.img from phone
-    print(f"Deleting magisk_patched*.img from phone in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell rm -f {self.config.phone_path}/magisk_patched*.img"
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-        print(f"Return Code: {res.returncode}.")
-        print(f"Stdout: {res.stdout}.")
-        print(f"Stderr: {res.stderr}.")
+    # delete existing boot_file_name from phone
+    res = device.delete(f"{self.config.phone_path}/magisk_patched*.img")
+    if res != 0:
         print("Aborting ...\n")
         return
 
     # check if delete worked.
-    print(f"Making sure magisk_patched*.img is not on the phone in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/magisk_patched*.img"
-    res = run_shell(theCmd)
-    # expect ret 1
-    if res.returncode != 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: magisk_patched*.img delete failed!")
-        print(f"Return Code: {res.returncode}.")
-        print(f"Stdout: {res.stdout}.")
-        print(f"Stderr: {res.stderr}.")
+    print("Making sure file is not on the phone ...")
+    res, tmp = device.check_file(f"{self.config.phone_path}/magisk_patched*.img")
+    if res != 0:
         print("Aborting ...\n")
         return
 
     # Transfer boot image to the phone
-    print(f"Transfering {boot_img} to the phone in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} push \"{boot.boot_path}\" {self.config.phone_path}/{boot_img}"
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-        print(f"Return Code: {res.returncode}.")
-        print(f"Stdout: {res.stdout}.")
-        print(f"Stderr: {res.stderr}.")
+    res = device.push_file(f"{boot.boot_path}", f"{self.config.phone_path}/{boot_img}")
+    if res != 0:
         print("Aborting ...\n")
         return
-    else:
-        print(res.stdout)
 
     # check if transfer worked.
-    print(f"Making sure {boot_img} is found on the phone in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -l {self.config.phone_path}/{boot_img}"
-    res = run_shell(theCmd)
-    # expect 0
-    if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} is not found!")
-        print(f"Return Code: {res.returncode}.")
-        print(f"Stdout: {res.stdout}.")
-        print(f"Stderr: {res.stderr}.")
+    res, tmp = device.check_file(f"{self.config.phone_path}/{boot_img}")
+    if res != 1:
         print("Aborting ...\n")
         return
 
@@ -1458,58 +1455,26 @@ def patch_boot_img(self):
             print("___________________________________________________\n")
 
             # Transfer extraction script to the phone
-            print(f"Transfering {dest} to the phone [/data/local/tmp/pf_patch.sh] ...")
-            theCmd = f"\"{get_adb()}\" -s {device.id} push \"{dest}\" /data/local/tmp/pf_patch.sh"
-            debug(theCmd)
-            res = run_shell(theCmd)
-            # expect ret 0
-            if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+            res = device.push_file(f"{dest}", "/data/local/tmp/pf_patch.sh")
+            if res != 0:
                 print("Aborting ...\n")
                 return -1
-            else:
-                print(res.stdout)
-            # Set the executable flag
-            print("Setting /data/local/tmp/pf_patch.sh to executable ...")
-            theCmd = f"\"{get_adb()}\" -s {device.id} shell chmod 755 /data/local/tmp/pf_patch.sh"
-            res = run_shell(theCmd)
-            # expect 0
-            if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} is not found!")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+
+            # set the permissions.
+            res = device.set_file_permissions("/data/local/tmp/pf_patch.sh", "755")
+            if res != 0:
                 print("Aborting ...\n")
                 return -1
 
             # Transfer busybox to the phone
-            print(f"\nTransfering {path_to_busybox} to the phone [/data/local/tmp/busybox] ...")
-            theCmd = f"\"{get_adb()}\" -s {device.id} push \"{path_to_busybox}\" /data/local/tmp/busybox"
-            debug(theCmd)
-            res = run_shell(theCmd)
-            # expect ret 0
-            if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+            res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
+            if res != 0:
                 print("Aborting ...\n")
                 return -1
-            else:
-                print(res.stdout)
-            # Set the executable flag
-            print("Setting /data/local/tmp/busybox to executable ...")
-            theCmd = f"\"{get_adb()}\" -s {device.id} shell chmod 755 /data/local/tmp/busybox"
-            res = run_shell(theCmd)
-            # expect 0
-            if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {boot_img} is not found!")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+
+            # set the permissions.
+            res = device.set_file_permissions("/data/local/tmp/busybox", "755")
+            if res != 0:
                 print("Aborting ...\n")
                 return -1
 
@@ -1523,7 +1488,7 @@ def patch_boot_img(self):
         else:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
             print("Aborting ...\n")
-            return
+            return -1
 
     # -------------------------------
     # Patching decision
@@ -1543,11 +1508,15 @@ def patch_boot_img(self):
                 if m_version >= m_app_version:
                     patch_with_root()
                 else:
-                    patch_with_magisk_manager()
+                    res = patch_with_magisk_manager()
+                    if res == -1:
+                        return
             else:
                 patch_with_root()
     elif magisk_app_version:
-        patch_with_magisk_manager()
+        res = patch_with_magisk_manager()
+        if res == -1:
+            return
     else:
         # Device is not rooted
         print("Unable to find magisk on the phone, perhaps it is hidden?")
@@ -1603,27 +1572,15 @@ def patch_boot_img(self):
     # -------------------------------
     # check if magisk_patched*.img got created.
     print(f"\nLooking for {magisk_patched_img} in {self.config.phone_path} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls {self.config.phone_path}/{magisk_patched_img}"
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {magisk_patched_img} not found")
-        print(res.stderr)
+    res, magisk_patched = device.check_file(f"{self.config.phone_path}/{magisk_patched_img}")
+    if res != 1:
         print("Aborting ...\n")
         return
-    else:
-        magisk_patched = res.stdout.strip()
-        print(f"Found {magisk_patched}")
 
     # Transfer back magisk_patched.img
     print(f"Pulling {magisk_patched} from the phone to: {magisk_patched_img} ...")
-    theCmd = f"\"{get_adb()}\" -s {device.id} pull {magisk_patched} \"{os.path.join(tmp_dir_full, magisk_patched_img)}\""
-    debug(theCmd)
-    res = run_shell(theCmd)
-    # expect ret 0
-    if res.returncode == 1:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to pull {magisk_patched} from phone.")
-        print(res.stderr)
+    res = device.pull_file(magisk_patched, f"\"{os.path.join(tmp_dir_full, magisk_patched_img)}\"")
+    if res != 0:
         print("Aborting ...\n")
         return
 
@@ -1667,20 +1624,12 @@ def patch_boot_img(self):
                 # copy stock_boot from Downloads folder it already exists, and do it as su if rooted
                 stock_boot_path = '/data/adb/magisk/stock_boot.img'
                 print(f"Copying {boot_img} to {stock_boot_path} ...")
-                theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'cp /sdcard/Download/{boot_img} {stock_boot_path}\'\""
-                debug(theCmd)
-                res = run_shell(theCmd)
-                # expect ret 0
-                if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
-                    print("Aborting Backup...\n")
-                else:
-                    print(res.stdout)
+                res = device.su_cp_on_device(f"/sdcard/Download/{boot_img}", stock_boot_path)
+                if res != 0:
+                    print("Aborting ...\n")
+                    return
                 # rerun the migration.
-                print("Triggering Magisk again to create a backup ...")
+                print("Triggering Magisk migration again to create a backup ...")
                 res = device.run_magisk_migration(boot_sha1_long)
                 print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
                 magisk_backups = device.magisk_backups
@@ -1780,7 +1729,17 @@ def live_flash_boot_phone(self, option):
 
     boot = get_boot()
     if boot:
-        if boot.hardware != device.hardware:
+        if boot.is_patched:
+            firmware_model = boot.hardware
+        else:
+            # Extract phone model from boot.package_sig
+            package_sig_array = boot.package_sig.split("-")
+            try:
+                firmware_model = package_sig_array[0]
+            except Exception as e:
+                firmware_model = None
+        # Warn the user if it is not from the current phone model
+        if firmware_model != device.hardware:
             title = f"{option} Boot"
             message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
             message += f"The selected Boot is for: {boot.hardware}\n\n"
@@ -1804,7 +1763,7 @@ def live_flash_boot_phone(self, option):
 
     # Make sure boot exists
     if boot.boot_path:
-        title = "Device / Boot Mismatch"
+        title = f"{option} Flashing"
         message  = f"Live/Flash Boot Options:\n\n"
         message += f"Option:                 {option}\n"
         message += f"Boot Hash:              {boot.boot_hash}\n"
@@ -1901,6 +1860,7 @@ def live_flash_boot_phone(self, option):
         self.config.device = None
         self.device_choice.SetItems([''])
         self.device_choice.Select(0)
+        print("\nNote: The device is intentionaly kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
@@ -1989,12 +1949,10 @@ def flash_phone(self):
             message += f"Disable Verity:         {self.config.disable_verity}\n"
             message += f"Disable Verification:   {self.config.disable_verification}\n"
             message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
-            message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
             message += f"Force:                  {self.config.fastboot_force}\n"
             message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
             message += f"Temporary Root:         {self.config.temporary_root}\n"
-    else:
-        message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
+    message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
 
     if sys.platform == "win32":
         dest = os.path.join(package_dir_full, "flash-phone.bat")
@@ -2021,6 +1979,8 @@ def flash_phone(self):
     # if we are in custom Flash mode
     #-------------------------------
     if self.config.advanced_options and self.config.flash_mode == 'customFlash':
+        if self.config.flash_to_inactive_slot:
+            fastboot_options += '--slot other '
         if image_mode and get_image_path():
             title = "Advanced Flash Options"
             # create flash-phone.bat based on the custom options.
@@ -2164,6 +2124,9 @@ def flash_phone(self):
                 else:
                     data += f"# This is a generated file by PixelFlasher v{VERSION}\n\n"
                     data += f"# cd {package_dir_full}\n\n"
+                if self.config.flash_to_inactive_slot:
+                    data += "echo Switching active slot to the other ...\n"
+                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
                 continue
             if f.type in ['sleep']:
                 sleep_line = f"{f.full_line}\n"
@@ -2274,6 +2237,7 @@ def flash_phone(self):
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Flashing Phone    ")
     print("==============================================================================")
     startFlash = time.time()
+    print(f"Android Platform Tools Version: {get_sdk_version()}")
 
     # If we're doing Sideload flashing
     if self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD':
@@ -2299,23 +2263,6 @@ def flash_phone(self):
         print("Waiting 10 seconds ...")
         time.sleep(10)
         # device.refresh_phone_mode()
-        self.device_choice.SetItems(get_connected_devices())
-        self._select_configured_device()
-
-    device = get_phone()
-    if not device:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
-        return
-
-    # If flashing to inactive slot
-    if self.config.flash_to_inactive_slot and self.config.flash_mode != 'dryRun':
-        print(f"Switching to inactive slot")
-        theCmd = f"\"{get_fastboot()}\" -s {device.id} --set-active=other"
-        debug(theCmd)
-        run_shell2(theCmd)
-        device.reboot_bootloader()
-        print("Waiting 5 seconds ...")
-        time.sleep(5)
         self.device_choice.SetItems(get_connected_devices())
         self._select_configured_device()
 
@@ -2373,6 +2320,8 @@ def flash_phone(self):
         self.config.device = None
         self.device_choice.SetItems([''])
         self.device_choice.Select(0)
+        if self.config.advanced_options and self.config.flash_mode == 'customFlash':
+            print("\nNote: The device is intentionaly kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")

@@ -26,14 +26,16 @@ with contextlib.suppress(Exception):
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
 
 from advanced_settings import AdvancedSettings
+from backup_manager import BackupManager
 from config import VERSION, Config
 from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
 from message_box import MessageBox
-from modules import (check_platform_tools, create_support_zip, debug,
-                     delete_all, flash_phone, get_code_page, live_flash_boot_phone,
-                     patch_boot_img, populate_boot_list, process_file,
-                     select_firmware, set_flash_button_state, wifi_adb_connect)
+from modules import (adb_kill_server, check_platform_tools, create_support_zip,
+                     debug, delete_all, flash_phone, get_code_page,
+                     live_flash_boot_phone, patch_boot_img, populate_boot_list,
+                     process_file, select_firmware, set_flash_button_state,
+                     sha256, wifi_adb_connect)
 from package_manager import PackageManager
 from phone import get_connected_devices
 from runtime import *
@@ -154,6 +156,8 @@ class PixelFlasher(wx.Frame):
             except Exception as e:
                 set_firmware_model(None)
                 set_firmware_id(None)
+            firmware_hash = sha256(self.config.firmware_path)
+            self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
 
         # check platform tools
         check_platform_tools(self)
@@ -171,6 +175,8 @@ class PixelFlasher(wx.Frame):
         if self.config.custom_rom_path and os.path.exists(self.config.custom_rom_path):
             self.custom_rom.SetPath(self.config.custom_rom_path)
             set_custom_rom_id(os.path.splitext(ntpath.basename(self.config.custom_rom_path))[0])
+            rom_hash = sha256(self.config.custom_rom_path)
+            self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
         if self.config.custom_rom:
             self.custom_rom.Enable()
             self.process_rom.Enable()
@@ -294,11 +300,17 @@ class PixelFlasher(wx.Frame):
     #                  _build_menu_bar
     # -----------------------------------------------
     def _build_menu_bar(self):
+        # create the main menu object
         self.menuBar = wx.MenuBar()
 
-        # File menu
+        # Create the File menu
         file_menu = wx.Menu()
-        self.menuBar.Append(file_menu, "&File")
+
+        # Create the Help menu
+        help_menu = wx.Menu()
+
+        # File Menu Items
+        # ---------------
         # Configuration Menu
         config_item = file_menu.Append(wx.ID_ANY, "Configuration", "Configuration")
         config_item.SetBitmap(images.Advanced_Config.GetBitmap())
@@ -321,9 +333,8 @@ class PixelFlasher(wx.Frame):
         exit_item.SetBitmap(images.Exit.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_exit_app, exit_item)
 
-        # Help menu
-        help_menu = wx.Menu()
-        self.menuBar.Append(help_menu, '&Help')
+        # Help Menu Items
+        # ---------------
         # Report an issue
         issue_item = help_menu.Append(wx.ID_ANY, 'Report an Issue', 'Report an Issue')
         issue_item.SetBitmap(images.Bug.GetBitmap())
@@ -342,14 +353,33 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_forum, forum_item)
         # seperator
         help_menu.AppendSeparator()
-        # Guide 1
-        guide1_item = help_menu.Append(wx.ID_ANY, 'Homeboy76\'s Guide', 'Homeboy76\'s Guide')
-        guide1_item.SetBitmap(images.Guide.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_guide1, guide1_item)
-        # Guide 2
-        guide2_item = help_menu.Append(wx.ID_ANY, 'V0latyle\'s Guide', 'V0latyle\'s Guide')
-        guide2_item.SetBitmap(images.Guide.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_guide2, guide2_item)
+        # Links Submenu
+        links = wx.Menu()
+        linksMenuItem1 = links.Append(wx.ID_ANY, "Homeboy76\'s Guide")
+        linksMenuItem2 = links.Append(wx.ID_ANY, "V0latyle\'s Guide")
+        linksMenuItem3 = links.Append(wx.ID_ANY, "roirraW\'s Guide")
+        linksMenuItem4 = links.Append(wx.ID_ANY, "kdrag0n\'s safetynet-fix")
+        linksMenuItem5 = links.Append(wx.ID_ANY, "Displax\'s safetynet-fix")
+        linksMenuItem1.SetBitmap(images.Guide.GetBitmap())
+        linksMenuItem2.SetBitmap(images.Guide.GetBitmap())
+        linksMenuItem3.SetBitmap(images.Guide.GetBitmap())
+        linksMenuItem4.SetBitmap(images.Open_Link.GetBitmap())
+        linksMenuItem5.SetBitmap(images.Open_Link.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_guide1, linksMenuItem1)
+        self.Bind(wx.EVT_MENU, self._on_guide2, linksMenuItem2)
+        self.Bind(wx.EVT_MENU, self._on_guide3, linksMenuItem3)
+        self.Bind(wx.EVT_MENU, self._on_link1, linksMenuItem4)
+        self.Bind(wx.EVT_MENU, self._on_link2, linksMenuItem5)
+        links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
+        links_item.SetBitmap(images.Open_Link.GetBitmap())
+        # # Guide 1
+        # guide1_item = help_menu.Append(wx.ID_ANY, 'Homeboy76\'s Guide', 'Homeboy76\'s Guide')
+        # guide1_item.SetBitmap(images.Guide.GetBitmap())
+        # self.Bind(wx.EVT_MENU, self._on_guide1, guide1_item)
+        # # Guide 2
+        # guide2_item = help_menu.Append(wx.ID_ANY, 'V0latyle\'s Guide', 'V0latyle\'s Guide')
+        # guide2_item.SetBitmap(images.Guide.GetBitmap())
+        # self.Bind(wx.EVT_MENU, self._on_guide2, guide2_item)
         # seperator
         help_menu.AppendSeparator()
         if sys.platform == "win32":
@@ -373,6 +403,17 @@ class PixelFlasher(wx.Frame):
         about_item = help_menu.Append(wx.ID_ABOUT, '&About PixelFlasher', 'About')
         about_item.SetBitmap(images.About.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, about_item)
+
+        # Add the File menu to the menu bar
+        self.menuBar.Append(file_menu, "&File")
+        # Add the Help menu to the menu bar
+        self.menuBar.Append(help_menu, '&Help')
+        # Add the Test menu to the menu bar
+        if self.config.dev_mode:
+            test_menu = wx.Menu()
+            test1_item = test_menu.Append(wx.ID_ANY, "Test1", "Test1")
+            self.Bind(wx.EVT_MENU, self.Test, test1_item)
+            self.menuBar.Append(test_menu, '&Test')
 
         self.SetMenuBar(self.menuBar)
 
@@ -450,6 +491,30 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_guide3
+    # -----------------------------------------------
+    def _on_guide3(self, event):
+        self._on_spin('start')
+        webbrowser.open_new('https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/')
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_link1
+    # -----------------------------------------------
+    def _on_link1(self, event):
+        self._on_spin('start')
+        webbrowser.open_new('https://github.com/kdrag0n/safetynet-fix/releases')
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_link2
+    # -----------------------------------------------
+    def _on_link2(self, event):
+        self._on_spin('start')
+        webbrowser.open_new('https://github.com/Displax/safetynet-fix/releases')
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_open_config_folder
     # -----------------------------------------------
     def _on_open_config_folder(self, event):
@@ -462,7 +527,8 @@ class PixelFlasher(wx.Frame):
     #                  _on_support_zip
     # -----------------------------------------------
     def _on_support_zip(self, event):
-        with wx.FileDialog(self, "Save support file", '', 'support.zip', wildcard="Support files (*.zip)|*.zip",
+        timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
+        with wx.FileDialog(self, "Save support file", '', f"support_{timestr}.zip", wildcard="Support files (*.zip)|*.zip",
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -473,12 +539,15 @@ class PixelFlasher(wx.Frame):
             try:
                 config_path = get_config_path()
                 support_zip = os.path.join(config_path, 'support.zip')
+                self._on_spin('start')
                 create_support_zip()
                 debug(f"Saving support file to: {pathname}")
                 with open(support_zip, "rb") as binaryfile :
                     with open(pathname, 'wb') as file:
                         byte_array = binaryfile.read()
                         file.write(byte_array)
+                self._on_spin('stop')
+                print(f"Saved support file to: {pathname}")
             except IOError:
                 wx.LogError(f"Cannot save current data in file '{pathname}'.")
 
@@ -488,6 +557,12 @@ class PixelFlasher(wx.Frame):
     def _on_exit_app(self, event):
         self.config.save(get_config_file_path())
         self.Close(True)
+
+    # -----------------------------------------------
+    #                  Test
+    # -----------------------------------------------
+    def Test(self, event):
+        print("Entrering Test function (used during development only) ...")
 
     # -----------------------------------------------
     #                  _on_help_about
@@ -526,7 +601,10 @@ class PixelFlasher(wx.Frame):
     #                  _on_package_manager
     # -----------------------------------------------
     def _on_package_manager(self, event):
-        # listctrl_demo.main()
+        # load labels if not already loaded
+        if not get_labels() and os.path.exists(get_labels_file_path()):
+                with open(get_labels_file_path(), "r") as f:
+                    set_labels(json.load(f))
         self._on_spin('start')
         print("Launching Package Manager ...\n")
         dlg = PackageManager(self)
@@ -638,11 +716,13 @@ class PixelFlasher(wx.Frame):
             self.spinner.Show()
             self.spinner_label.Show()
             self.spinner.Start()
+            self.spinner.Refresh()
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         else:
             self.spinner.Stop()
             self.spinner.Hide()
             self.spinner_label.Hide()
+            self.spinner.Refresh()
             self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
     # -----------------------------------------------
@@ -677,8 +757,8 @@ class PixelFlasher(wx.Frame):
             print(f"    Device Architecture:             {device.architecture}")
             print(f"    Device Bootloader Version:       {device.bootloader_version}")
             print(f"    Magisk Manager Version:          {device.magisk_app_version}")
-            if self.config.magisk != 'com.topjohnwu.magisk':
-                print(f"    Hidden Magisk Stub:              {self.config.magisk}")
+            # print(f"    Magisk Path:                     {device.magisk_path}")
+            print(f"        Checked for Package:         {self.config.magisk}")
         if device.mode == 'f.b':
             print(f"    Device Unlocked:                 {device.unlocked}")
         if device.rooted:
@@ -802,6 +882,7 @@ class PixelFlasher(wx.Frame):
             self.unlock_bootloader.Enable(True)
             self.lock_bootloader.Enable(True)
             self.install_magisk_button.Enable(True)
+            self.backup_manager_button.Enable(True)
             self.install_apk.Enable(True)
             self.package_manager.Enable(True)
             if device.active_slot == 'a':
@@ -842,6 +923,7 @@ class PixelFlasher(wx.Frame):
             self.unlock_bootloader.Enable(False)
             self.lock_bootloader.Enable(False)
             self.install_magisk_button.Enable(False)
+            self.backup_manager_button.Enable(False)
             self.install_apk.Enable(False)
             self.package_manager.Enable(False)
 
@@ -917,7 +999,8 @@ class PixelFlasher(wx.Frame):
         def _on_select_firmware(event):
             self.config.firmware_path = event.GetPath().replace("'", "")
             self._on_spin('start')
-            select_firmware(self)
+            hash = select_firmware(self)
+            self.firmware_picker.SetToolTip(hash)
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -977,6 +1060,9 @@ class PixelFlasher(wx.Frame):
                 self.config.custom_rom_path = custom_rom_path
                 rom_file = ntpath.basename(custom_rom_path)
                 set_custom_rom_id(os.path.splitext(rom_file)[0])
+                rom_hash = sha256(self.config.custom_rom_path)
+                self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
+                print(f"Selected ROM {rom_file} SHA-256: {rom_hash}")
                 populate_boot_list(self)
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a zip file.")
@@ -1297,6 +1383,24 @@ class PixelFlasher(wx.Frame):
             dlg.Destroy()
 
         # -----------------------------------------------
+        #                  _on_backup_manager
+        # -----------------------------------------------
+        def _on_backup_manager(event):
+            # device = get_phone()
+            # device.get_magisk_backups()
+            self._on_spin('start')
+            dlg = BackupManager(self)
+            dlg.CentreOnParent(wx.BOTH)
+            self._on_spin('stop')
+            result = dlg.ShowModal()
+            if result != wx.ID_OK:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting Backup Manager ...\n")
+                dlg.Destroy()
+                return
+            dlg.Destroy()
+
+        # -----------------------------------------------
         #                  _on_set_active_slot
         # -----------------------------------------------
         def _on_set_active_slot(event):
@@ -1360,6 +1464,20 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 wifi_adb_connect(self, x, True)
                 self._on_spin('stop')
+
+        # -----------------------------------------------
+        #                  _on_adb_kill_server
+        # -----------------------------------------------
+        def _on_adb_kill_server(event):
+            dlg = wx.MessageDialog(None, "This will invoke the command adb kill-server.\nAre you sure want to continue?",'ADB Kill Server',wx.YES_NO | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result != wx.ID_YES:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled Killing ADB server.")
+                return
+            print("User pressed ok kill ADB server")
+            self._on_spin('start')
+            adb_kill_server(self)
+            self._on_spin('stop')
 
         # -----------------------------------------------
         #                  _on_custom_rom
@@ -1643,6 +1761,7 @@ class PixelFlasher(wx.Frame):
 
         # 2nd row widgets, Connected Devices
         self.device_label = wx.StaticText(panel, label=u"ADB Connected Devices")
+        self.device_label.SetToolTip(u"Double click this label to issue the command:\nadb kill-server")
         self.wifi_adb = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.wifi_adb.SetBitmap(images.Wifi_ADB.GetBitmap())
         self.wifi_adb.SetToolTip(u"Connect/Disconnect to Remote Device (Wifi ADB)\nNote: ADB only, fastboot commands (example flashing)\ncannot be executed remotely.\nLeft click to connect, Right click to disconnect.")
@@ -1694,6 +1813,9 @@ class PixelFlasher(wx.Frame):
         self.install_magisk_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.install_magisk_button.SetBitmap(images.InstallMagisk.GetBitmap())
         self.install_magisk_button.SetToolTip(u"Download and Install Magisk Manager")
+        self.backup_manager_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.backup_manager_button.SetBitmap(images.BackupManager.GetBitmap())
+        self.backup_manager_button.SetToolTip(u"Magisk Backup Manager")
         self.sos_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.sos_button.SetBitmap(images.Sos.GetBitmap())
         self.sos_button.SetToolTip(u"Disable Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).")
@@ -1712,6 +1834,7 @@ class PixelFlasher(wx.Frame):
         reboot_sizer.Add(self.info_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=10)
         reboot_sizer.Add(self.magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.install_magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        reboot_sizer.Add(self.backup_manager_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.lock_bootloader, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.unlock_bootloader, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 0)
@@ -1775,12 +1898,19 @@ class PixelFlasher(wx.Frame):
         if sys.platform != "win32":
             self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         self.list.SetColumnWidth(0, -2)
+        grow_column(self.list, 0, 20)
         self.list.SetColumnWidth(1, -2)
+        grow_column(self.list, 1, 20)
         self.list.SetColumnWidth(2, -2)
+        grow_column(self.list, 2, 20)
         self.list.SetColumnWidth(3, -2)
+        grow_column(self.list, 3, 20)
         self.list.SetColumnWidth(4, -2)
+        grow_column(self.list, 4, 20)
         self.list.SetColumnWidth(5, -2)
+        grow_column(self.list, 5, 20)
         self.list.SetColumnWidth(6, -2)
+        grow_column(self.list, 6, 20)
         self.flash_boot_button = wx.Button(panel, wx.ID_ANY, u"Flash Boot", wx.DefaultPosition, wx.DefaultSize, 0)
         self.flash_boot_button.SetBitmap(images.FlashBoot.GetBitmap())
         self.flash_boot_button.SetToolTip(u"Flash just the selected item")
@@ -1880,7 +2010,7 @@ class PixelFlasher(wx.Frame):
         console_label = wx.StaticText(panel, label=u"Console")
         self.spinner = wx.ActivityIndicator(panel, size=(100, 100))
         self.spinner_label = wx.StaticText(panel, label=u"Please be patient ...")
-        self.spinner_label.SetForegroundColour((255,165,0))
+        self.spinner_label.SetForegroundColour((255,0,0))
         self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
         console_v_sizer = wx.BoxSizer(wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL)
@@ -1937,10 +2067,10 @@ class PixelFlasher(wx.Frame):
         self.firmware_picker.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_firmware)
         self.firmware_link.Bind(wx.EVT_BUTTON, _open_firmware_link)
         self.platform_tools_picker.Bind(wx.EVT_DIRPICKER_CHANGED, _on_select_platform_tools)
+        self.device_label.Bind(wx.EVT_LEFT_DCLICK, _on_adb_kill_server)
         self.sdk_link.Bind(wx.EVT_BUTTON, _open_sdk_link)
         self.wifi_adb.Bind(wx.EVT_BUTTON, _on_wifi_adb_connect)
         self.wifi_adb.Bind(wx.EVT_RIGHT_DOWN, _on_wifi_adb_disconnect)
-        # self.wifi_adb.Bind(wx.EVT_LEFT_DCLICK, _on_wifi_adb_disconnect)
         self.custom_rom_checkbox.Bind(wx.EVT_CHECKBOX, _on_custom_rom)
         self.custom_rom.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_custom_rom)
         self.disable_verification_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verification)
@@ -1959,6 +2089,7 @@ class PixelFlasher(wx.Frame):
         self.info_button.Bind(wx.EVT_BUTTON, _on_device_info)
         self.magisk_button.Bind(wx.EVT_BUTTON, _on_magisk_modules)
         self.install_magisk_button.Bind(wx.EVT_BUTTON, _on_magisk_install)
+        self.backup_manager_button.Bind(wx.EVT_BUTTON, _on_backup_manager)
         self.sos_button.Bind(wx.EVT_BUTTON, _on_sos)
         self.lock_bootloader.Bind(wx.EVT_BUTTON, _on_lock_bootloader)
         self.unlock_bootloader.Bind(wx.EVT_BUTTON, _on_unlock_bootloader)
@@ -2005,10 +2136,8 @@ class MySplashScreen(wx.adv.SplashScreen):
     def _show_main(self):
         frame = PixelFlasher(None, "PixelFlasher")
         frame.Show()
-        try:
+        with contextlib.suppress(Exception):
             self.Hide()
-        except:
-            pass
         if self.__fc.IsRunning():
             self.Raise()
 

@@ -24,7 +24,7 @@ class AboutDlg(wx.Dialog):
 
     {2}
 
-    <p>Fork the <a style="color: #004CE5;" href="https://github.com/badabing2005/PixelFlasher">project on
+    <p>Fork the <a style="color: #004CE5;" href="https://github.com/badabing2005/PixelFlasher/fork">project on
     GitHub</a> and help improve it for all!</p>
 
     <p> Beware! </p>

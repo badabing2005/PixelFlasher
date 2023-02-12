@@ -77,9 +77,11 @@ def check_platform_tools(self):
             set_fastboot(fastboot)
             identify_sdk_version(self)
             print(f"SDK Version: {get_sdk_version()}")
+            puml(f":Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:{get_sdk_version()}\n")
             return
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected path {self.config.platform_tools_path} does not have adb and or fastboot")
+            puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:The selected path does not have adb and or fastboot\n")
             self.config.platform_tools_path = None
             set_adb(None)
             set_fastboot(None)
@@ -216,15 +218,23 @@ def identify_sdk_version(self):
                             # confirm if you want to use older version
                             dlg = wx.MessageDialog(None, f"You have an old Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest version to avoid any issues\nAre you sure want to continue?",'Old Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
                             result = dlg.ShowModal()
+                            puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected older Android Platform Tools version {sdk_version}\n")
                             if result == wx.ID_YES:
                                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted older version {sdk_version} of Android platform tools.")
                                 self.scan_button.Enable(True)
                                 self.device_choice.Enable(True)
+                                puml("#red:User wanted to proceed regardless;\n")
                                 return
                             else:
                                 print("Older Android platform tools is not accepted. For your protection, disabling device selection.")
                                 print("Please update Android SDK.\n")
                                 break
+                        elif (sdkver == '34.0.0'):
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version 34.0.0 has known issues, please select another version.")
+                            puml("#red:Android Platform Tools version 34.0.0 has known issues;\n")
+                            dlg = wx.MessageDialog(None, f"Android Platform Tools version 34.0.0 has known issues, please select another version.",'Android Platform Tools 34.0',wx.OK | wx.ICON_EXCLAMATION)
+                            result = dlg.ShowModal()
+                            break
                         else:
                             self.scan_button.Enable(True)
                             self.device_choice.Enable(True)
@@ -232,6 +242,7 @@ def identify_sdk_version(self):
     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version is not available or is too old.")
     print("                           For your protection, disabling device selection.")
     print("                           Please select valid Android SDK.\n")
+    puml("#pink:For your protection, disabled device selection;\n")
     self.scan_button.Enable(False)
     self.config.device = None
     self.device_choice.SetItems([''])
@@ -519,6 +530,12 @@ def create_support_zip():
     if os.path.exists(to_copy):
         debug(f"Copying {to_copy} to {support_dir_full}")
         shutil.copytree(to_copy, logs_dir)
+    # copy puml to support folder
+    to_copy = os.path.join(config_path, 'puml')
+    puml_dir = os.path.join(support_dir_full, 'puml')
+    if os.path.exists(to_copy):
+        debug(f"Copying {to_copy} to {support_dir_full}")
+        shutil.copytree(to_copy, puml_dir)
 
     # create directory/file listing
     if sys.platform == "win32":
@@ -543,6 +560,12 @@ def create_support_zip():
         if os.path.exists(file_path):
             sanitize_file(file_path)
 
+    # for each file in logs, sanitize
+    for filename in os.listdir(puml_dir):
+        file_path = os.path.join(puml_dir, filename)
+        if os.path.exists(file_path):
+            sanitize_file(file_path)
+
     # sanitize db
     file_path = os.path.join(support_dir_full, get_pf_db())
     if os.path.exists(file_path):
@@ -558,21 +581,22 @@ def create_support_zip():
 # ============================================================================
 def sanitize_file(filename):
     debug(f"Santizing {filename} ...")
-    with open(filename, "rt", encoding='ISO-8859-1', errors="replace") as fin:
-        data = fin.read()
-    data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
-    data = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
-    data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(Flashing device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(waiting for\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-    with open(filename, "wt", encoding='ISO-8859-1', errors="replace") as fin:
-        fin.write(data)
+    with contextlib.suppress(Exception):
+        with open(filename, "rt", encoding='ISO-8859-1', errors="replace") as fin:
+            data = fin.read()
+        data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
+        data = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
+        data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(Flashing device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(waiting for\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        with open(filename, "wt", encoding='ISO-8859-1', errors="replace") as fin:
+            fin.write(data)
 
 
 # ============================================================================
@@ -621,16 +645,19 @@ def select_firmware(self):
     firmware = ntpath.basename(self.config.firmware_path)
     filename, extension = os.path.splitext(firmware)
     extension = extension.lower()
+    puml(":Selecting Firmware;\n", True)
     if extension == '.zip':
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
         firmware_hash = sha256(self.config.firmware_path)
         print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
+        puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
         firmware = filename.split("-")
         if len(firmware) == 1:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected firmware filename is not a valid name.\nPlease keep the original filename intact.\n")
             self.config.firmware_path = None
             self.firmware_picker.SetPath('')
             set_firmware_id(None)
+            puml("#red:The selected firmware filename is not valid;\n")
             return f"SHA-256: {firmware_hash}"
         else:
             try:
@@ -647,6 +674,7 @@ def select_firmware(self):
         return f"SHA-256: {firmware_hash}"
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a zip file.")
+        puml("#red:The selected firmware is not valid;\n")
         self.config.firmware_path = None
         self.firmware_picker.SetPath('')
         return 'Select Pixel Firmware'
@@ -709,7 +737,7 @@ def process_file(self, file_type):
         return
 
     # extract boot.img or init_boot.img
-    if get_firmware_model() in ('panther', 'cheetah'):
+    if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
         boot_file_name = 'init_boot.img'
         files_to_extract = 'boot.img init_boot.img'
     else:
@@ -747,7 +775,7 @@ def process_file(self, file_type):
         debug(f"Cached copy of {boot_file_name} with sha1: {checksum} is not found.")
         debug(f"Copying {image_file_path} to {cached_boot_img_dir_full}")
         shutil.copy(boot_img_file, cached_boot_img_dir_full, follow_symlinks=True)
-        if get_firmware_model() in ('panther', 'cheetah'):
+        if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
             # we need to copy boot.img for Pixel 7, 7P so that we can do live boot.
             shutil.copy(os.path.join(tmp_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
     else:
@@ -1280,24 +1308,29 @@ def patch_boot_img(self):
     print("==============================================================================")
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Patching boot.img ")
     print("==============================================================================")
+    puml("#cyan:Create Patch;\n", True)
+    puml("partition \"**Create Patch**\" {\n")
 
     # get device
     device = get_phone()
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
         print("Aborting ...\n")
+        puml("#red:Valid device is not selected;\n}\n")
         return
 
     # Make sure boot image is selected
     if not self.config.boot_id:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
         print("Aborting ...\n")
+        puml("#red:Valid boot image is not selected;\n}\n")
         return
 
     # Make sure platform-tools is set and adb and fastboot are found
     if not self.config.platform_tools_path:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
         print("Aborting ...\n")
+        puml("#red:Valid Anroid Platform Tools is not selected;\n}\n")
         return
 
     # Make sure the phone is in adb mode.
@@ -1305,6 +1338,7 @@ def patch_boot_img(self):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {device.id} is not in adb mode.")
         print("Perhaps a Scan is necessary?")
         print("Aborting ...\n")
+        puml("#red:Device is not in ADB mode;\n}\n")
         return
 
     start = time.time()
@@ -1323,7 +1357,8 @@ def patch_boot_img(self):
     # check if boot_file_name got extracted (if not probably the zip does not have it)
     if not os.path.exists(boot.boot_path):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You have selected the Patch option, however boot file is not found.")
-        print("Aborting ...\n")
+        puml("#red:Cannot patch an already patched file;\n")
+        print("Aborting ...\n}\n")
         return
 
     # Extract phone model from boot.package_sig and warn the user if it is not from the current phone model
@@ -1341,12 +1376,16 @@ def patch_boot_img(self):
         message += "Click OK to accept and continue.\n"
         message += "or Hit CANCEL to abort."
         print(f"\n*** Dialog ***\n{message}\n______________\n")
+        puml("#orange:WARNING;\n", True)
+        puml(f"note right\n{message}end note\n")
         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             print("User pressed ok.")
+            puml(":User Pressed OK to continue;\n")
         else:
             print("User pressed cancel.")
+            puml("#pink:User Pressed Cancel to abort;\n}\n")
             print("Aborting ...\n")
             return
 
@@ -1354,6 +1393,7 @@ def patch_boot_img(self):
     res = device.delete(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print("Aborting ...\n")
+        puml("#red:Failed to delete old boot image from the phone;\n}\n")
         return
 
     # check if delete worked.
@@ -1361,46 +1401,63 @@ def patch_boot_img(self):
     res, tmp = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print("Aborting ...\n")
+        puml("#red:Failed to delete old boot image from the phone;\n}\n")
         return
 
     # delete existing boot_file_name from phone
     res = device.delete(f"{self.config.phone_path}/magisk_patched*.img")
     if res != 0:
-        print("Aborting ...\n")
+        puml("#red:Failed to delete old magisk_patched.img;\n")
+        print("Aborting ...\n}\n")
         return
 
     # check if delete worked.
     print("Making sure file is not on the phone ...")
     res, tmp = device.check_file(f"{self.config.phone_path}/magisk_patched*.img")
     if res != 0:
-        print("Aborting ...\n")
+        puml("#red:Failed to delete old magisk_patched.img;\n")
+        print("Aborting ...\n}\n")
         return
 
     # Transfer boot image to the phone
     res = device.push_file(f"{boot.boot_path}", f"{self.config.phone_path}/{boot_img}")
     if res != 0:
-        print("Aborting ...\n")
+        puml("#red:Failed to transfer the boot file to the phone;\n")
+        print("Aborting ...\n}\n")
         return
 
     # check if transfer worked.
     res, tmp = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 1:
         print("Aborting ...\n")
+        puml("#red:Failed to transfer the boot file to the phone;\n}\n")
         return
 
     #------------------------------------
     # Check to see if Magisk is installed
     #------------------------------------
     print("Looking for Magisk Manager app ...")
+    puml(":Checking Magisk Manager;\n")
     magisk_app_version = device.get_uncached_magisk_app_version()
     magisk_version = device.magisk_version
     is_rooted = device.rooted
+
+    # If the device is not reporting rooted, and adb shell access is not granted
+    # Display a warning an abort.
+    if self.config.magisk != '' and self.config.magisk not in ['com.topjohnwu.magisk', 'io.github.vvb2060.magisk', 'io.github.huskydg.magisk'] and not is_rooted:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It looks like you have a hidden Magisk Manager, and have not allowed root access to adb shell")
+        print("Patching can not be performed, to correct this, either grant root access to adb shell (recommended) or unhide Magisk Manager.")
+        print("And try again.")
+        print("Aborting ...\n")
+        puml("#red:Hidden Magisk and root isnot granted;\n}\n")
+        return
 
     # ==========================================
     # Sub Function       patch_with_root
     # ==========================================
     def patch_with_root():
         print(f"Patching with rooted Magisk: {magisk_version}")
+        puml(f"Patching with rooted Magisk: {magisk_version}", True)
         theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; cd /data/adb/magisk; ./magiskboot cleanup; ./boot_patch.sh /sdcard/Download/{boot_img}; mv new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
         res = run_shell2(theCmd)
 
@@ -1414,14 +1471,15 @@ def patch_boot_img(self):
         if device.magisk_path and magisk_app_version:
             set_patched_with(magisk_app_version)
             print("Creating pf_patch.sh script ...")
+            puml(f":Patching with Magisk Manager: {magisk_app_version};\n", True)
             # magisk_version = device.magisk_app_version
             path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
             dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
             with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
-                data = "#!/system/bin/sh\n"
-                data += "##############################################################################\n"
-                data += f"# PixelFlasher {VERSION} patch script using Magisk Manager {magisk_app_version}\n"
-                data += "##############################################################################\n"
+                data = " #!/system/bin/sh\n"
+                data += " ##############################################################################\n"
+                data += f" # PixelFlasher {VERSION} patch script using Magisk Manager {magisk_app_version}\n"
+                data += " ##############################################################################\n"
                 data += f"ARCH={device.architecture}\n"
                 data += f"cp {device.magisk_path} /data/local/tmp/pf.zip\n"
                 data += "cd /data/local/tmp\n"
@@ -1449,6 +1507,7 @@ def patch_boot_img(self):
                     data += "cp -f /data/local/tmp/pf/assets/stock_boot.img /data/adb/magisk/stock_boot.img\n"
                     # TODO see if we need to update the config SHA1
                 f.write(data)
+                puml(f"note right\nPatch Script\n====\n{data}end note\n")
 
             print("PixelFlasher patching script contents:")
             print(f"___________________________________________________\n{data}")
@@ -1458,24 +1517,28 @@ def patch_boot_img(self):
             res = device.push_file(f"{dest}", "/data/local/tmp/pf_patch.sh")
             if res != 0:
                 print("Aborting ...\n")
+                puml("#red:Failed to transfer Patch Script to the phone;\n")
                 return -1
 
             # set the permissions.
             res = device.set_file_permissions("/data/local/tmp/pf_patch.sh", "755")
             if res != 0:
                 print("Aborting ...\n")
+                puml("#red:Failed to set the executable bit on patch script;\n")
                 return -1
 
             # Transfer busybox to the phone
             res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
             if res != 0:
                 print("Aborting ...\n")
+                puml("#red:Failed to transfer busybox to the phone;\n")
                 return -1
 
             # set the permissions.
             res = device.set_file_permissions("/data/local/tmp/busybox", "755")
             if res != 0:
                 print("Aborting ...\n")
+                puml("#red:Failed to set the executable bit on busybox;\n")
                 return -1
 
             #------------------------------------
@@ -1483,11 +1546,13 @@ def patch_boot_img(self):
             #------------------------------------
             print("Executing the extraction script ...")
             print(f"PixelFlasher Patching phone with Magisk: {magisk_app_version}")
+            puml(":Executing the patch script;\n")
             theCmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
             res = run_shell2(theCmd)
         else:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
             print("Aborting ...\n")
+            puml("#red:Patching Failed;\n")
             return -1
 
     # -------------------------------
@@ -1502,24 +1567,29 @@ def patch_boot_img(self):
             m_app_version = magisk_app_version.split(':')[1]
             print(f"  Magisk Manager Version: {m_app_version}")
             print(f"  Magisk Version:         {m_version}")
+            puml(f"note right\nMagisk Manager Version: {m_app_version}\nMagisk Version:         {m_version}\nend note\n")
             if magisk_version != magisk_app_version:
                 # TODO check if Magisk Manager is a stub, which would have 1.0.1 version
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Magisk Version is different than Magisk Manager version")
+                puml("#orange:WARNING: Magisk Version is different than Magisk Manager version;\n")
                 if m_version >= m_app_version:
                     patch_with_root()
                 else:
                     res = patch_with_magisk_manager()
                     if res == -1:
+                        puml("}\n")
                         return
             else:
                 patch_with_root()
     elif magisk_app_version:
         res = patch_with_magisk_manager()
         if res == -1:
+            puml("}\n")
             return
     else:
         # Device is not rooted
         print("Unable to find magisk on the phone, perhaps it is hidden?")
+        puml("#orange:Magisk not found;\n")
         # Message to Launch Manually and Patch
         title = "Magisk Manager is not detected."
         message =  f"WARNING: Magisk Manager [{get_magisk_package()}] is not found on the phone\n\n"
@@ -1532,17 +1602,20 @@ def patch_boot_img(self):
         message += "Click OK to continue with Magisk installation.\n"
         message += "or Hit CANCEL to abort."
         print(f"\n*** Dialog ***\n{message}\n______________\n")
+        puml(f"note right\nDialog\n====\n{message}\nend note\n")
         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             # ok to download and install
             print("User pressed ok.")
+            puml(":User Pressed OK;\nnote right:Proceed to Magisk download and install\n")
             dlg = MagiskDownloads(self)
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             if result != wx.ID_OK:
                 # User cancelled out of Magisk Installation
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel, out of Magisk download and install.")
+                puml(":User Pressed Cancel;\n}\n")
                 print("Aborting ...\n")
                 dlg.Destroy()
                 return
@@ -1552,18 +1625,22 @@ def patch_boot_img(self):
                 if magisk_app_version:
                     # Magisk Manager is installed
                     print(f"Found Magisk Manager version {magisk_app_version} on the phone.")
+                    puml(f":Found Magisk Manager;\nnote right:version {magisk_app_version}\n", True)
                     # continue with patching using Magisk Manager.
                     patch_with_magisk_manager()
                 else:
                     print("Magisk Manager is still not detected.\n\Aborting ...\n")
+                    puml("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n", True)
                     return
             except Exception:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
+                puml("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n", True)
                 print("Aborting ...\n")
                 return
         else:
             # not ok to download and install, (Magisk is hidden option)
             print("User pressed cancel for downloading and installing Magisk.")
+            puml(":User Pressed Cancel;\n}\n")
             print("Aborting ...\n")
             return
 
@@ -1575,6 +1652,7 @@ def patch_boot_img(self):
     res, magisk_patched = device.check_file(f"{self.config.phone_path}/{magisk_patched_img}")
     if res != 1:
         print("Aborting ...\n")
+        puml("#red:Failed to find magisk_patched the phone;\n}\n")
         return
 
     # Transfer back magisk_patched.img
@@ -1582,6 +1660,7 @@ def patch_boot_img(self):
     res = device.pull_file(magisk_patched, f"\"{os.path.join(tmp_dir_full, magisk_patched_img)}\"")
     if res != 0:
         print("Aborting ...\n")
+        puml("#red:Failed to pull magisk_patched from the phone;\n}\n")
         return
 
     # get the checksum of the magisk_patched.img
@@ -1614,6 +1693,7 @@ def patch_boot_img(self):
         magisk_backups = device.magisk_backups
         if magisk_backups and boot_sha1_long in magisk_backups:
             print("Good: Magisk has made a backup")
+            puml("#lightgreen:Magisk Backup: Success;\n")
         else:
             print(f"Magisk has NOT made a backup of the source {boot_file_name}")
             print("Triggering Magisk to create a backup ...")
@@ -1626,20 +1706,22 @@ def patch_boot_img(self):
                 print(f"Copying {boot_img} to {stock_boot_path} ...")
                 res = device.su_cp_on_device(f"/sdcard/Download/{boot_img}", stock_boot_path)
                 if res != 0:
-                    print("Aborting ...\n")
-                    return
-                # rerun the migration.
-                print("Triggering Magisk migration again to create a backup ...")
-                res = device.run_magisk_migration(boot_sha1_long)
-                print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
-                magisk_backups = device.magisk_backups
-                if magisk_backups and boot_sha1_long in magisk_backups:
-                    print("Good: Magisk has made a backup")
+                    print("Aborting Backup ...\n")
                 else:
-                    print("It looks like backup was not made.")
+                    # rerun the migration.
+                    print("Triggering Magisk migration again to create a backup ...")
+                    res = device.run_magisk_migration(boot_sha1_long)
+                    print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
+                    magisk_backups = device.magisk_backups
+                    if magisk_backups and boot_sha1_long in magisk_backups:
+                        print("Good: Magisk has made a backup")
+                        puml("#lightgreen:Magisk Backup: Success;\n")
+                    else:
+                        print("It looks like backup was not made.")
 
     # Extract sha1 from the patched image
     print(f"\nExtracting short SHA1 from {magisk_patched_img} ...")
+    puml(f":Extract SHA1 from {magisk_patched_img};\n", True)
     patched_sha1 = extract_sha1(magisk_patched_img_file)
     if patched_sha1:
         print(f"Short SHA1 embedded in {magisk_patched_img_file} is: {patched_sha1}")
@@ -1649,13 +1731,17 @@ def patch_boot_img(self):
             print(f"                           {magisk_patched_img} extracted sha1: {patched_sha1}")
             print(f"                           {boot_file_name} sha1:                     {boot_sha1}")
             print("                           They don't match.\nAborting\n")
+            puml(f"ERROR: Something is wrong with the patched file\nSHA1: {patched_sha1}\nExpected SHA1: {boot_sha1};\n", True)
             return
         else:
             print(f"Good: Both SHA1s: {patched_sha1} match.")
+            puml(f"right note:SHA1 {patched_sha1} matches the expected value;\n")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} NOTICE: The patched image file does not contain source boot's SHA1")
         print("                            This is normal for older devices, but newer deviced should have it.")
         print("                            If you have a newer device, please double check if everything is ok.\n ")
+        puml("right note:The patched image file does not contain source boot's SHA1;\n")
+
 
     # if a matching magisk_patched.img is not found, store it.
     cached_boot_img_dir_full = os.path.join(boot_images, checksum)
@@ -1708,6 +1794,9 @@ def patch_boot_img(self):
     print(f"Magisk Version: {get_patched_with()}")
     print(f"Patch time: {math.ceil(end - start)} seconds")
     print("------------------------------------------------------------------------------\n")
+    puml("#cee7ee:End Patching;\n", True)
+    puml(f"note right:Patch time: {math.ceil(end - start)} seconds;\n")
+    puml("}\n")
 
 
 # ============================================================================
@@ -1775,6 +1864,11 @@ def live_flash_boot_phone(self, option):
             message += f"Original boot.img Hash: {boot.package_boot_hash}\n"
         else:
             message += "Patched:                No\n"
+        message += f"Custom Flash Options:   {self.config.advanced_options}\n"
+        # don't allow inactive slot flashing
+        message += "Flash To Inactive Slot: False\n"
+        message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
+        message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
         message += "boot.img path:\n"
         message += f"  {boot.boot_path}\n"
         message += "\nClick OK to accept and continue.\n"
@@ -1799,14 +1893,16 @@ def live_flash_boot_phone(self, option):
 
     if device.mode == 'adb':
         device.reboot_bootloader()
-        print("Waiting 5 seconds ...")
-        time.sleep(5)
+        print("Waiting 10 seconds ...")
+        time.sleep(10)
         self.device_choice.SetItems(get_connected_devices())
         self._select_configured_device()
 
     device = get_phone()
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
+        print("You can try scanning for devices and selecting your device (it should be in bootloader mode).")
+        print(f"and then press the same {option} button again.")
         return
 
     if device.mode == 'f.b' and get_fastboot():
@@ -1829,8 +1925,9 @@ def live_flash_boot_phone(self, option):
         fastboot_options = ''
         slot = ''
         if option == 'Flash':
-            if self.config.flash_to_inactive_slot:
-                fastboot_options += '--slot other '
+            # don't allow inactive slot flashing
+            # if self.config.flash_to_inactive_slot:
+            #     fastboot_options += '--slot other '
             if self.config.advanced_options:
                 if self.config.flash_both_slots:
                     fastboot_options += '--slot all '
@@ -1860,7 +1957,8 @@ def live_flash_boot_phone(self, option):
         self.config.device = None
         self.device_choice.SetItems([''])
         self.device_choice.Select(0)
-        print("\nNote: The device is intentionaly kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
+        if option == 'Flash':
+            print("\nNote: The device is intentionaly kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
@@ -2171,12 +2269,12 @@ def flash_phone(self):
             data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
         else:
             data += "echo flashing pf_boot ...\n"
-            if get_firmware_model() in ('panther', 'cheetah'):
+            if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
                 data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
             else:
                 data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
-        data += "echo rebooting to system ...\n"
-        data += f"\"{get_fastboot()}\" -s {device.id} reboot"
+            data += "echo rebooting to system ...\n"
+            data += f"\"{get_fastboot()}\" -s {device.id} reboot"
 
         fin = open(dest, "wt", encoding="ISO-8859-1", errors="replace")
         fin.write(data)

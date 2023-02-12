@@ -680,7 +680,7 @@ class Device():
                 slot = self.active_slot
 
             # decide on boot.img or init_boot.img
-            if get_firmware_model() in ('panther', 'cheetah'):
+            if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
                 boot_file_name = 'init_boot'
             else:
                 boot_file_name = 'boot'
@@ -1565,6 +1565,20 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
             return 1
+
+    # ----------------------------------------------------------------------------
+    #                               Method open_shell
+    # ----------------------------------------------------------------------------
+    def open_shell(self):
+        if self.mode == 'adb' and get_adb():
+            print(f"Opening an adb shell command for device: {self.id} ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell"
+            debug(theCmd)
+            subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
+            return 0
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
+            return 133
 
     # ----------------------------------------------------------------------------
     #                               Method disable_magisk_module

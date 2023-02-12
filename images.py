@@ -1158,3 +1158,12 @@ BackupManager = PyEmbeddedImage(
     b'YXRlADIwMjItMTItMjVUMTM6MTQ6NTErMDA6MDCbTSjGAAAAJXRFWHRkYXRlOm1vZGlmeQAy'
     b'MDIyLTEyLTI1VDEzOjE0OjUxKzAwOjAw6hCQegAAAABJRU5ErkJggg==')
 
+#----------------------------------------------------------------------
+Shell = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAA1klEQVRIS2NkoDFgpLH5DHS1'
+    b'wADom/lADKIpAQeAmhuBGESj+GA/kO9AiclIeh8A2YroFvynkuEwY8DBjxwHdLOA0oiHORSn'
+    b'D+higQAw+ECRDkpRF4DYEYg/EBlHRPuAXEuItgDkYHIsIckCbJYYEggqsiwA5fAAaO4ExQc+'
+    b'QJIFoCCCGQ6K7EAgBuVSqliAz3BsmRKWvInyASGXU2wBkUkeqzKifEATC+4DTVWgxGQkvaAE'
+    b'AU7OyOWOAzTFUGrJAaA5C4F4AboFVHI8qjGUlpwEHUVzCwDu+zwZ4exkIAAAAABJRU5ErkJg'
+    b'gg==')
+

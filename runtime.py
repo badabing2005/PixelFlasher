@@ -25,6 +25,7 @@ firmware_model = None
 firmware_id = None
 custom_rom_id = None
 logfile = None
+pumlfile = None
 sdk_version = None
 image_mode = None
 image_path = None
@@ -452,6 +453,22 @@ def set_logfile(value):
 
 
 # ============================================================================
+#                               Function get_pumlfile
+# ============================================================================
+def get_pumlfile():
+    global pumlfile
+    return pumlfile
+
+
+# ============================================================================
+#                               Function set_pumlfile
+# ============================================================================
+def set_pumlfile(value):
+    global pumlfile
+    pumlfile = value
+
+
+# ============================================================================
 #                               Function get_sdk_version
 # ============================================================================
 def get_sdk_version():
@@ -555,6 +572,16 @@ def get_config_path():
 
 
 # ============================================================================
+#                               Function puml
+# ============================================================================
+def puml(message='', left_ts = False, mode='a'):
+    with open(get_pumlfile(), mode, encoding="ISO-8859-1", errors="replace") as puml_file:
+        puml_file.write(message)
+        if left_ts:
+            puml_file.write(f"note left:{datetime.now():%Y-%m-%d %H:%M:%S}\n")
+
+
+# ============================================================================
 #                               Function init_config_path
 # ============================================================================
 def init_config_path():
@@ -567,6 +594,8 @@ def init_config_path():
         os.makedirs(os.path.join(config_path, get_boot_images_dir()), exist_ok=True)
     if not os.path.exists(os.path.join(config_path, 'tmp')):
         os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
+    if not os.path.exists(os.path.join(config_path, 'puml')):
+        os.makedirs(os.path.join(config_path, 'puml'), exist_ok=True)
 
 
 # ============================================================================

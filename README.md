@@ -91,6 +91,9 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 - Lock / Unlock bootloader.
 - Option to gain temporary root (good for testing or checking things out).
 - SOS Disable Magisk modules to get out of bootloop (experimental).
+- Partition Manager:
+  - Erase single or multi partitions.
+  - Dump / create backup of single or multi partitions and save to PC.
 
 ## Prerequisites
 

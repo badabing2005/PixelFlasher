@@ -119,6 +119,7 @@ class Device():
         except Exception as e:
             print(e)
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            puml("#red:ERROR: Could not get package list;\n", True)
             return '', ''
 
     # -----------------------------------------------
@@ -159,6 +160,7 @@ class Device():
                 return ''.join(device_info.stdout)
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                puml("#red:ERROR: adb command is not found!;\n", True)
         elif self.mode == 'f.b':
             if get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar all"
@@ -169,6 +171,7 @@ class Device():
                     return ''.join(device_info.stdout)
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+                puml("#red:ERROR: fastboot command is not found!;\n", True)
 
     # ----------------------------------------------------------------------------
     #                               Method init
@@ -380,8 +383,31 @@ class Device():
             except Exception as e:
                 print(e)
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+                puml("#red:ERROR: Could not get magisk sha1;\n", True)
                 self._magisk_config_path = None
         return self._magisk_config_path
+
+    # ----------------------------------------------------------------------------
+    #                               method get_partitions
+    # ----------------------------------------------------------------------------
+    def get_partitions(self):
+        if self.mode != 'adb' or not self.rooted:
+            return -1
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /dev/block/bootdevice/by-name/; ls -1 .\'\""
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                list = res.stdout.split('\n')
+            else:
+                return -1
+            if not list:
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get partitions list.")
+            puml("#red:ERROR: Could not get partitions list.;\n", True)
+            return -1
+        return list
 
     # ----------------------------------------------------------------------------
     #                               method get_magisk_backups
@@ -414,6 +440,7 @@ class Device():
         except Exception as e:
             print(e)
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get backup list.")
+            puml("#red:ERROR: Could not get backup list.;\n", True)
             return -1
         return 0
 
@@ -448,6 +475,7 @@ class Device():
             except Exception as e:
                 print(e)
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk backups.")
+                puml("#red:ERROR: Could not get magisk backups;\n", True)
                 _magisk_backups = None
         return _magisk_backups
 
@@ -467,6 +495,7 @@ class Device():
             except Exception as e:
                 print(e)
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+                puml("#red:ERROR: Could not get magisk sha1;\n", True)
                 _magisk_sha1 = ''
         return _magisk_sha1
 
@@ -659,50 +688,55 @@ class Device():
             return -1
 
     # ----------------------------------------------------------------------------
-    #                               Method dump_boot
+    #                               Method dump_partition
     # ----------------------------------------------------------------------------
-    def dump_boot(self, file_path: str = '', slot: str = '') -> int:
+    def dump_partition(self, file_path: str = '', slot: str = '', partition = '') -> int:
         """Method dumps active boot / init_boot partition on device.
 
         Args:
             file_path:      Full file path (Default in: /data/local/tmp/ <boot | init_boot>)
+            partition:      If specified, then the specified partition will be dumped, otherwise it will be boot on init_boot
             slot:           If slot is specified, then it will dump the specificed slot instead of the active one. (Default: '')
+                            The active slot selection only applies if partition is not specified.
+                            If partition is specified, then the dump will be without the _slot, unless slot is also specified.
 
         Returns:
             0, dumped_path  if boot partition is dumped.
             -1, ''          if an exception is raised.
         """
         if self.mode != 'adb' and self.rooted:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump boot partition. Device must be in ADB mode and be rooted.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump partition. Device must be in ADB mode and be rooted.")
             return -1, ''
         try:
-            if slot not in ['a', 'b']:
-                slot = self.active_slot
-
-            # decide on boot.img or init_boot.img
-            if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
-                boot_file_name = 'init_boot'
-            else:
-                boot_file_name = 'boot'
-
+            if partition == '':
+                if slot not in ['a', 'b']:
+                    slot = self.active_slot
+                # decide on boot.img or init_boot.img
+                if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
+                    partition = 'init_boot'
+                else:
+                    partition = 'boot'
+            if slot != '':
+                partition = f"{partition}_{slot}"
             if not file_path:
-                file_path = f"/data/local/tmp/{boot_file_name}_{slot}.img"
+                file_path = f"/data/local/tmp/{partition}.img"
 
-            print(f"Dumping boot partition form slot {slot} to file: {file_path} ...")
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/{boot_file_name}_{slot} of={file_path}\'\""
+            print(f"Dumping partition to file: {file_path} ...")
+            puml(f":Dump Partition;\nnote right:Partition: {partition};\n", True)
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/{partition} of={file_path}\'\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")
                 return 0, file_path
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump boot partition.")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition.")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
                 return -1, ''
         except Exception as e:
             print(e)
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump boot partition")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition")
             return -1, ''
 
     # ----------------------------------------------------------------------------
@@ -1388,6 +1422,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     self._rooted = False
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                puml("#red:ERROR: adb command is not found;\n", True)
         return self._rooted
 
     # ----------------------------------------------------------------------------
@@ -1405,6 +1440,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     def reboot_system(self):
         print(f"Rebooting device {self.id} to system ...")
+        puml(f":Rebooting device {self.id} to system;\n, True")
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot"
             debug(theCmd)
@@ -1419,6 +1455,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     def reboot_recovery(self):
         print(f"Rebooting device {self.id} to recovery ...")
+        puml(f":Rebooting device {self.id} to recovery;\n", True)
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot recovery "
             debug(theCmd)
@@ -1433,6 +1470,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     def reboot_bootloader(self, fastboot_included = False):
         print(f"Rebooting device {self.id} to bootloader ...")
+        puml(f":Rebooting device {self.id} to bootloader;\n", True)
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot bootloader "
             debug(theCmd)
@@ -1449,6 +1487,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
         print(f"Rebooting device {self.id} to fastbootd ...")
         print("This process will wait for fastbootd indefinitly.")
         print("WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you'd have to kill it.")
+        puml(f":Rebooting device {self.id} to fastbootd;\n", True)
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot fastboot "
             debug(theCmd)
@@ -1463,6 +1502,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     def reboot_sideload(self):
         print(f"Rebooting device {self.id} for sideload ...")
+        puml(f":Rebooting device {self.id} to sideload;\n", True)
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot sideload "
             debug(theCmd)
@@ -1479,10 +1519,15 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     #                               Method install_apk
     # ----------------------------------------------------------------------------
-    def install_apk(self, app, fastboot_included = False):
+    def install_apk(self, app, fastboot_included = False, owner_playstore = False):
         if self.mode == 'adb' and get_adb():
             print(f"Installing {app} on device ...")
-            theCmd = f"\"{get_adb()}\" -s {self.id} install \"{app}\""
+            puml(f":Installing {app};\n", True)
+            if owner_playstore:
+                puml("note right:Set owner to be Play Store;\n")
+                theCmd = f"\"{get_adb()}\" -s {self.id} install -i \"com.android.vending\" -r \"{app}\""
+            else:
+                theCmd = f"\"{get_adb()}\" -s {self.id} install -r \"{app}\""
             debug(theCmd)
             res = run_shell(theCmd)
             if res.returncode != 0:
@@ -1515,9 +1560,27 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             self.refresh_phone_mode()
         if self.mode == 'f.b' and get_fastboot():
             print(f"Setting active slot to slot [{slot}] for device {self.id} ...")
+            puml(f":Setting Active slot to [{slot}];\n", True)
             theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={slot}"
             debug(theCmd)
             return run_shell(theCmd)
+
+    # ----------------------------------------------------------------------------
+    #                               Method erase_partition
+    # ----------------------------------------------------------------------------
+    def erase_partition(self, partition):
+        if self.mode == 'adb' and get_adb():
+            self.reboot_bootloader()
+            print("Waiting 10 seconds ...")
+            time.sleep(10)
+            self.refresh_phone_mode()
+        if self.mode == 'f.b' and get_fastboot():
+            print(f"Erasing Partition [{partition}] for device {self.id} ...")
+            puml(f":Erasing Partition [{partition}];\n", True)
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} erase {partition}"
+            debug(theCmd)
+            # return run_shell(theCmd)
+            return
 
     # ----------------------------------------------------------------------------
     #                               Method lock_bootloader
@@ -1557,6 +1620,8 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     def enable_magisk_module(self, dirname):
         if self.mode == 'adb' and get_adb():
             print(f"Enabling magisk module {dirname} ...")
+            puml(":Enable magisk module;\n", True)
+            puml(f"note right:{dirname};\n")
             theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/adb/modules/{dirname}/disable\'\""
             debug(theCmd)
@@ -1564,6 +1629,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
+            puml(f"#red:ERROR: Device {self.id} is not in adb mode;\n", True)
             return 1
 
     # ----------------------------------------------------------------------------
@@ -1572,13 +1638,15 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     def open_shell(self):
         if self.mode == 'adb' and get_adb():
             print(f"Opening an adb shell command for device: {self.id} ...")
+            puml(":Opening an adb shell command;\n", True)
             theCmd = f"\"{get_adb()}\" -s {self.id} shell"
             debug(theCmd)
             subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
             return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
-            return 133
+            puml("#red:ERROR: The Device {self.id} is not in adb mode;\n", True)
+            return 1
 
     # ----------------------------------------------------------------------------
     #                               Method disable_magisk_module
@@ -1586,6 +1654,8 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     def disable_magisk_module(self, dirname):
         if self.mode == 'adb' and get_adb():
             print(f"Disabling magisk module {dirname} ...")
+            puml(":Disable magisk module;\n", True)
+            puml(f"note right:{dirname};\n")
             theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'touch /data/adb/modules/{dirname}/disable\'\""
             debug(theCmd)
@@ -1593,6 +1663,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
+            puml("#red:ERROR: The Device {self.id} is not in adb mode;\n", True)
             return 1
 
     # ----------------------------------------------------------------------------
@@ -1600,6 +1671,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     def disable_magisk_modules(self):
         print("Disabling magisk modules ...")
+        puml(":SOS Disable magisk modules;\n", True)
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
             debug(theCmd)
@@ -1761,6 +1833,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
         except Exception as e:
             print(e)
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            puml("#red:ERROR: Could not get package list;\n", True)
             return -1
         return 0
 
@@ -1777,6 +1850,10 @@ def run_shell(cmd):
         wx.Yield()
         return response
     except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell")
+        print(e)
+        puml("#red:Encountered an error;\n", True)
+        puml(f"note right\n{e}\nend note\n")
         raise e
 
 
@@ -1786,25 +1863,32 @@ def run_shell(cmd):
 # This one pipes the stdout and stderr to Console text widget in realtime,
 # no returncode is available.
 def run_shell2(cmd):
-    class obj(object):
-        pass
+    try:
+        class obj(object):
+            pass
 
-    response = obj()
-    proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace")
+        response = obj()
+        proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace")
 
-    print
-    stdout = ''
-    while True:
-        line = proc.stdout.readline()
-        wx.Yield()
-        if line.strip() != "":
-            print(line.strip())
-            stdout += line
-        if not line:
-            break
-    proc.wait()
-    response.stdout = stdout
-    return response
+        print
+        stdout = ''
+        while True:
+            line = proc.stdout.readline()
+            wx.Yield()
+            if line.strip() != "":
+                print(line.strip())
+                stdout += line
+            if not line:
+                break
+        proc.wait()
+        response.stdout = stdout
+        return response
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2")
+        print(e)
+        puml("#red:Encountered an error;\n", True)
+        puml(f"note right\n{e}\nend note\n")
+        raise e
 
 
 # ============================================================================
@@ -1822,44 +1906,50 @@ def get_connected_devices():
     devices = []
     phones = []
 
-    if get_adb():
-        theCmd = f"\"{get_adb()}\" devices"
-        response = run_shell(theCmd)
-        if response.stdout:
-            for device in response.stdout.split('\n'):
-                if '\tdevice' in device or '\trecovery' in device or '\tsideload' in device:
-                    with contextlib.suppress(Exception):
-                        d_id = device.split("\t")
-                        mode = d_id[1]
-                        d_id = d_id[0]
-                        true_mode = None
-                        if mode in ('recovery', 'sideload'):
-                            true_mode = mode
-                        device = Device(d_id, 'adb', true_mode)
-                        device.init('adb')
-                        device_details = device.get_device_details()
-                        devices.append(device_details)
-                        phones.append(device)
+    try:
+        if get_adb():
+            theCmd = f"\"{get_adb()}\" devices"
+            response = run_shell(theCmd)
+            if response.stdout:
+                for device in response.stdout.split('\n'):
+                    if 'device' in device or 'recovery' in device or 'sideload' in device:
+                        with contextlib.suppress(Exception):
+                            d_id = device.split("\t")
+                            mode = d_id[1].strip()
+                            d_id = d_id[0].strip()
+                            true_mode = None
+                            if mode in ('recovery', 'sideload'):
+                                true_mode = mode
+                            device = Device(d_id, 'adb', true_mode)
+                            device.init('adb')
+                            device_details = device.get_device_details()
+                            devices.append(device_details)
+                            phones.append(device)
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
 
-    else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+        if get_fastboot():
+            theCmd = f"\"{get_fastboot()}\" devices"
+            response = run_shell(theCmd)
+            for device in response.stdout.split('\n'):
+                if 'fastboot' in device:
+                    d_id = device.split("\t")
+                    d_id = d_id[0].strip()
+                    device = Device(d_id, 'f.b')
+                    device.init('f.b')
+                    device_details = device.get_device_details()
+                    devices.append(device_details)
+                    phones.append(device)
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
 
-    if get_fastboot():
-        theCmd = f"\"{get_fastboot()}\" devices"
-        response = run_shell(theCmd)
-        for device in response.stdout.split('\n'):
-            if '\tfastboot' in device:
-                d_id = device.split("\t")
-                d_id = d_id[0]
-                device = Device(d_id, 'f.b')
-                device.init('f.b')
-                device_details = device.get_device_details()
-                devices.append(device_details)
-                phones.append(device)
-    else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+        set_phones(phones)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while scanning for devices.")
+        print(e)
+        puml("#red:Encountered an error;\n", True)
+        puml(f"note right\n{e}\nend note\n")
 
-    set_phones(phones)
     return devices

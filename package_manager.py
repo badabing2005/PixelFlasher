@@ -47,7 +47,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         if not self.device:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-            return
+            return -1
 
         splitter = wx.SplitterWindow(self, -1)
         splitter.SetMinimumPaneSize(400)
@@ -457,10 +457,16 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             # save the current contents in the file
             pathname = fileDialog.GetPath()
             print(f"\nSelected {pathname} for installation.")
+            dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
             try:
                 self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
                 if self.device:
-                    self.device.install_apk(pathname, fastboot_included=True)
+                    if result != wx.ID_YES:
+                        self.device.install_apk(pathname, fastboot_included=True)
+                    else:
+                        puml("note right:Set ownership to Play Store;\n")
+                        self.device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
                 self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
             except IOError:
                 wx.LogError(f"Cannot install file '{pathname}'.")

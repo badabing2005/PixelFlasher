@@ -45,6 +45,7 @@ command_lines = [
     "-a -F -i -n FlashBoot images/flash-24.png images.py",
     "-a -F -i -n BackupManager images/backup-24.png images.py",
     "-a -F -i -n Shell images/shell-24.png images.py",
+    "-a -F -i -n PartitionManager images/partition-24.png images.py",
     ]
 
 if __name__ == "__main__":

@@ -1150,13 +1150,10 @@ FlashBoot = PyEmbeddedImage(
 
 #----------------------------------------------------------------------
 BackupManager = PyEmbeddedImage(
-    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAACBj'
-    b'SFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5'
-    b'Q7t/AAAACXBIWXMAAABgAAAAYADwa0LPAAAAbklEQVRIx2NgoDFgROZs7vh/lIGBwYpCM4/4'
-    b'VjDawjhMaJKUGs7AwMBgg8xhwqbCt4KR0beCkRGZT65tTORqJBagx8F/ahiK7GN0Hxyh2PT/'
-    b'DIdpHSr0BaP5gCAYzQeYYDQfEAFG8wFpYDQfEAQAzt4rEkVxsuYAAAAldEVYdGRhdGU6Y3Jl'
-    b'YXRlADIwMjItMTItMjVUMTM6MTQ6NTErMDA6MDCbTSjGAAAAJXRFWHRkYXRlOm1vZGlmeQAy'
-    b'MDIyLTEyLTI1VDEzOjE0OjUxKzAwOjAw6hCQegAAAABJRU5ErkJggg==')
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAgElEQVRIS2NkoDFgRDZfZFHX'
+    b'eqBAAIV2HngdV+YIMwPFAtFFXf8pNBysHWgB3FysFsAUwCwE8UmxfOAtoDSYcPtgcdd5hv8M'
+    b'BpRYAIzEDW/iygKxRjIlBuPSixLJNLdgNB/Agng0H+BNbKP5gJi8OFofEA4lghmNsBH4VQyv'
+    b'+gAAqPOEGZDRrC8AAAAASUVORK5CYII=')
 
 #----------------------------------------------------------------------
 Shell = PyEmbeddedImage(
@@ -1166,4 +1163,11 @@ Shell = PyEmbeddedImage(
     b'QJIFoCCCGQ6K7EAgBuVSqliAz3BsmRKWvInyASGXU2wBkUkeqzKifEATC+4DTVWgxGQkvaAE'
     b'AU7OyOWOAzTFUGrJAaA5C4F4AboFVHI8qjGUlpwEHUVzCwDu+zwZ4exkIAAAAABJRU5ErkJg'
     b'gg==')
+
+#----------------------------------------------------------------------
+PartitionManager = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAhElEQVRIS2NkoDFgpLH5DPSz'
+    b'oDtc6z/IN6Urr1FkKbo5cMPoagGyZbjYuOKOKB8MuAXEpDxYXGKNA0I+oLkF+FLa4IgDYoKA'
+    b'olREcwtISfvoYU5RHGDzGdUswGY4KDXBLECXJzkf0NwCXGmfakFEVQtonkxpYgElhuLTS1H1'
+    b'SIyjaG4BAIELECiIeXl+AAAAAElFTkSuQmCC')
 

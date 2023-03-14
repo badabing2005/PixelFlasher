@@ -27,6 +27,7 @@ with contextlib.suppress(Exception):
 
 from advanced_settings import AdvancedSettings
 from backup_manager import BackupManager
+from partition_manager import PartitionManager
 from config import VERSION, Config
 from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
@@ -220,8 +221,9 @@ class PixelFlasher(wx.Frame):
         print("This could take a while, please be patient.\n")
 
         debug("Populate device list")
-        self.device_choice.AppendItems(get_connected_devices())
-        d_list_string = '\n'.join(get_connected_devices())
+        connected_devices = get_connected_devices()
+        self.device_choice.AppendItems(connected_devices)
+        d_list_string = '\n'.join(connected_devices)
         puml(f"note right\n{d_list_string}\nend note\n")
 
         # select configured device
@@ -460,6 +462,7 @@ class PixelFlasher(wx.Frame):
     def _on_report_an_issue(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://github.com/badabing2005/PixelFlasher/issues/new')
+        puml(f":Open Link;\nnote right\n=== Report an Issue\n[[https://github.com/badabing2005/PixelFlasher/issues/new]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -468,6 +471,7 @@ class PixelFlasher(wx.Frame):
     def _on_feature_request(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://github.com/badabing2005/PixelFlasher/issues/new')
+        puml(f":Open Link;\nnote right\n=== Feature Request\n[[https://github.com/badabing2005/PixelFlasher/issues/new]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -476,6 +480,7 @@ class PixelFlasher(wx.Frame):
     def _on_project_page(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://github.com/badabing2005/PixelFlasher')
+        puml(f":Open Link;\nnote right\n=== Github Project Page\n[[https://github.com/badabing2005/PixelFlasher]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -484,6 +489,7 @@ class PixelFlasher(wx.Frame):
     def _on_forum(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/')
+        puml(f":Open Link;\nnote right\n=== PixelFlasher @XDA\n[[https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -492,6 +498,7 @@ class PixelFlasher(wx.Frame):
     def _on_guide1(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://forum.xda-developers.com/t/guide-root-pixel-6-with-magisk.4388733/')
+        puml(f":Open Link;\nnote right\n=== Homeboy76's Guide\n[[https://forum.xda-developers.com/t/guide-root-pixel-6-with-magisk.4388733/]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -500,6 +507,7 @@ class PixelFlasher(wx.Frame):
     def _on_guide2(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/')
+        puml(f":Open Link;\nnote right\n=== V0latyle's Guide\n[[https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -508,6 +516,7 @@ class PixelFlasher(wx.Frame):
     def _on_guide3(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/')
+        puml(f":Open Link;\nnote right\n=== roirraW's Guide\n[[https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -516,6 +525,7 @@ class PixelFlasher(wx.Frame):
     def _on_link1(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://github.com/kdrag0n/safetynet-fix/releases')
+        puml(f":Open Link;\nnote right\n=== kdrag0n's Universal Safetynet Fix\n[[https://github.com/kdrag0n/safetynet-fix/releases]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -524,6 +534,7 @@ class PixelFlasher(wx.Frame):
     def _on_link2(self, event):
         self._on_spin('start')
         webbrowser.open_new('https://github.com/Displax/safetynet-fix/releases')
+        puml(f":Open Link;\nnote right\n=== Displax's Universal Safetynet Fix\n[[https://github.com/Displax/safetynet-fix/releases]]\nend note\n", True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -621,7 +632,11 @@ class PixelFlasher(wx.Frame):
                     set_labels(json.load(f))
         self._on_spin('start')
         print("Launching Package Manager ...\n")
-        dlg = PackageManager(self)
+        try:
+            dlg = PackageManager(self)
+        except Exception:
+            self._on_spin('stop')
+            return
         dlg.CentreOnParent(wx.BOTH)
         self._on_spin('stop')
         result = dlg.ShowModal()
@@ -643,10 +658,19 @@ class PixelFlasher(wx.Frame):
             pathname = fileDialog.GetPath()
             print(f"\nSelected {pathname} for installation.")
             try:
+                dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+            except Exception:
+                return
+            result = dlg.ShowModal()
+            try:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
-                    device.install_apk(pathname, fastboot_included=True)
+                    if result != wx.ID_YES:
+                        device.install_apk(pathname, fastboot_included=True)
+                    else:
+                        puml("note right:Set ownership to Play Store;\n")
+                        device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
                 self._on_spin('stop')
             except IOError:
                 wx.LogError(f"Cannot install file '{pathname}'.")
@@ -672,6 +696,7 @@ class PixelFlasher(wx.Frame):
             self.sos_button.Hide()
             self.lock_bootloader.Hide()
             self.unlock_bootloader.Hide()
+            self.partition_manager_button.Hide()
             # ROM options
             self.custom_rom_checkbox.Hide()
             self.custom_rom.Hide()
@@ -706,6 +731,7 @@ class PixelFlasher(wx.Frame):
             self.sos_button.Show()
             self.lock_bootloader.Show()
             self.unlock_bootloader.Show()
+            self.partition_manager_button.Show()
             # ROM options
             self.custom_rom_checkbox.Show()
             self.custom_rom.Show()
@@ -759,6 +785,8 @@ class PixelFlasher(wx.Frame):
     #                  _print_device_details
     # -----------------------------------------------
     def _print_device_details(self, device):
+        m_version = 0
+        m_app_version = 0
         message = ''
         print('')
         message += f"Selected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:\n"
@@ -772,13 +800,15 @@ class PixelFlasher(wx.Frame):
             message += f"    Device API Level:                {device.api_level}\n"
             message += f"    Device Architecture:             {device.architecture}\n"
             message += f"    Device Bootloader Version:       {device.bootloader_version}\n"
-            message += f"    Magisk Manager Version:          {device.magisk_app_version}\n"
+            m_app_version = device.magisk_app_version
+            message += f"    Magisk Manager Version:          {m_app_version}\n"
             message += f"    Magisk Path:                     {device.magisk_path}\n"
             message += f"        Checked for Package:         {self.config.magisk}\n"
         elif device.mode == 'f.b':
             message += f"    Device Unlocked:                 {device.unlocked}\n"
         if device.rooted:
-            message += f"    Magisk Version:                  {device.magisk_version}\n"
+            m_version = device.magisk_version
+            message += f"    Magisk Version:                  {m_version}\n"
             message += f"    Magisk Config SHA1:              {device.magisk_sha1}\n"
             message += "    Magisk Modules:\n"
             message += f"{device.magisk_modules_summary}\n"
@@ -786,6 +816,36 @@ class PixelFlasher(wx.Frame):
             print('')
         print(message)
         puml(f"note right\n{message}end note\n")
+        self._check_for_bad_magisk(m_version, m_app_version)
+
+    # -----------------------------------------------
+    #                  _check_for_bad_magisk
+    # -----------------------------------------------
+    def _check_for_bad_magisk(self, m_version, m_app_version):
+            bad_m_version = False
+            bad_m_app_version = False
+            if m_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210']:
+                bad_m_version = True
+                print(f"WARNING! Problematic Magisk Version:         {m_version} is installed. Advised not to use this version.")
+            if m_app_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210']:
+                bad_m_app_version = True
+                print(f"WARNING! Problematic Magisk Manager Version: {m_app_version} is installed. Advised not to use this version.")
+
+            if bad_m_version and bad_m_app_version:
+                dlg = wx.MessageDialog(None, f"Magisk Version: {m_version} is detected.\nMagisk Manager Version: {m_app_version} is detected.\n\nThese versions of Magisk are known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Versions.',wx.OK | wx.ICON_EXCLAMATION)
+                puml(f"#red:Magisk Version: {m_version} is detected\nMagisk Manager Version: {m_app_version} is detected;\n")
+                puml("note right:These versions of Magisk are known to have problems.")
+                result = dlg.ShowModal()
+            elif bad_m_version:
+                dlg = wx.MessageDialog(None, f"Magisk Version: {m_version} is detected.\nThis version of Magisk is known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Version.',wx.OK | wx.ICON_EXCLAMATION)
+                puml(f"#red:Magisk Version: {m_version} is detected;\n")
+                puml("note right:This version of Magisk is known to have problems.")
+                result = dlg.ShowModal()
+            elif bad_m_app_version:
+                dlg = wx.MessageDialog(None, f"Magisk Manager Version: {m_app_version} is detected.\nThis version of Magisk Manager is known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Manager Version.',wx.OK | wx.ICON_EXCLAMATION)
+                puml(f"#red:Magisk Manager Version: {m_app_version} is detected;\n")
+                puml("note right:This version of Magisk Manager is known to have problems.")
+                result = dlg.ShowModal()
 
     # -----------------------------------------------
     #                  _update_custom_flash_options
@@ -906,8 +966,10 @@ class PixelFlasher(wx.Frame):
             self.install_magisk_button.Enable(True)
             if device.rooted:
                 self.backup_manager_button.Enable(True)
+                self.partition_manager_button.Enable(True)
             else:
                 self.backup_manager_button.Enable(False)
+                self.partition_manager_button.Enable(False)
             self.install_apk.Enable(True)
             self.package_manager.Enable(True)
             if device.active_slot == 'a':
@@ -950,6 +1012,7 @@ class PixelFlasher(wx.Frame):
             self.lock_bootloader.Enable(False)
             self.install_magisk_button.Enable(False)
             self.backup_manager_button.Enable(False)
+            self.partition_manager_button.Enable(False)
             self.install_apk.Enable(False)
             self.package_manager.Enable(False)
 
@@ -997,8 +1060,9 @@ class PixelFlasher(wx.Frame):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Scanning for Devices ...")
                 puml(":Scan for Devices;\n")
                 self._on_spin('start')
-                self.device_choice.SetItems(get_connected_devices())
-                d_list_string = '\n'.join(get_connected_devices())
+                connected_devices = get_connected_devices()
+                self.device_choice.SetItems(connected_devices)
+                d_list_string = '\n'.join(connected_devices)
                 puml(f"note right\n{d_list_string}\nend note\n")
                 if self.device_choice.Count > 0:
                     print(f"{self.device_choice.Count} Device(s) are found.")
@@ -1266,7 +1330,10 @@ class PixelFlasher(wx.Frame):
                 print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
-                dlg = MessageBox(self)
+                try:
+                    dlg = MessageBox(self)
+                except Exception:
+                    return
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
 
@@ -1417,7 +1484,11 @@ class PixelFlasher(wx.Frame):
         # -----------------------------------------------
         def _on_magisk_modules(event):
             self._on_spin('start')
-            dlg = MagiskModules(self)
+            try:
+                dlg = MagiskModules(self)
+            except Exception:
+                self._on_spin('stop')
+                return
             dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
             result = dlg.ShowModal()
@@ -1433,7 +1504,11 @@ class PixelFlasher(wx.Frame):
         # -----------------------------------------------
         def _on_magisk_install(event):
             self._on_spin('start')
-            dlg = MagiskDownloads(self)
+            try:
+                dlg = MagiskDownloads(self)
+            except Exception:
+                self._on_spin('stop')
+                return
             dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
             result = dlg.ShowModal()
@@ -1451,13 +1526,36 @@ class PixelFlasher(wx.Frame):
             # device = get_phone()
             # device.get_magisk_backups()
             self._on_spin('start')
-            dlg = BackupManager(self)
+            try:
+                dlg = BackupManager(self)
+            except Exception:
+                self._on_spin('stop')
+                return
             dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
             result = dlg.ShowModal()
             if result != wx.ID_OK:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting Backup Manager ...\n")
+                dlg.Destroy()
+                return
+            dlg.Destroy()
+
+        # -----------------------------------------------
+        #                  _on_partition_manager
+        # -----------------------------------------------
+        def _on_partition_manager(event):
+            self._on_spin('start')
+            try:
+                dlg = PartitionManager(self)
+            except Exception:
+                self._on_spin('stop')
+                return
+            dlg.CentreOnParent(wx.BOTH)
+            self._on_spin('stop')
+            result = dlg.ShowModal()
+            if result != wx.ID_OK:
+                print("Closing Partition Manager ...\n")
                 dlg.Destroy()
                 return
             dlg.Destroy()
@@ -1497,6 +1595,7 @@ class PixelFlasher(wx.Frame):
                     hardware = ''
             print(f"Launching browser for Firmware download URL: https://developers.google.com/android/images#{hardware}")
             webbrowser.open_new(f"https://developers.google.com/android/images#{hardware}")
+            puml(f":Open Link;\nnote right\n=== {hardware} Firmware Link\n[[https://developers.google.com/android/images#{hardware}]]\nend note\n", True)
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -1506,6 +1605,7 @@ class PixelFlasher(wx.Frame):
             self._on_spin('start')
             print(f"Launching browser for SDK download URL: https://developer.android.com/studio/releases/platform-tools.html")
             webbrowser.open_new('https://developer.android.com/studio/releases/platform-tools.html')
+            puml(f":Open SDK Link;\nnote right\n=== Android Platform Tools\n[[https://developer.android.com/studio/releases/platform-tools.html]]\nend note\n", True)
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -1702,7 +1802,7 @@ class PixelFlasher(wx.Frame):
                 print(f"Delete boot image button is pressed.")
                 puml(":Delete boot image;\n", True)
                 print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
-                puml(f"right note\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8]}\nend note\n")
+                puml(f"note right\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8]}\nend note\n")
                 con = get_db()
                 con.execute("PRAGMA foreign_keys = ON")
                 con.commit()
@@ -1788,6 +1888,7 @@ class PixelFlasher(wx.Frame):
             if boot:
                 if boot.boot_path:
                     print(f"Pasted {boot.boot_path} to custom flash")
+                    puml(f":Paste boot path;\nnote right:{boot.boot_path};\n", True)
                     self.image_file_picker.SetPath(boot.boot_path)
                     set_image_path(boot.boot_path)
                     set_flash_button_state(self)
@@ -1899,6 +2000,9 @@ class PixelFlasher(wx.Frame):
         self.backup_manager_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.backup_manager_button.SetBitmap(images.BackupManager.GetBitmap())
         self.backup_manager_button.SetToolTip(u"Magisk Backup Manager")
+        self.partition_manager_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.partition_manager_button.SetBitmap(images.PartitionManager.GetBitmap())
+        self.partition_manager_button.SetToolTip(u"Partition Manager")
         self.sos_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.sos_button.SetBitmap(images.Sos.GetBitmap())
         self.sos_button.SetToolTip(u"Disable Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).")
@@ -1919,6 +2023,7 @@ class PixelFlasher(wx.Frame):
         reboot_sizer.Add(self.magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.install_magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.backup_manager_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        reboot_sizer.Add(self.partition_manager_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.lock_bootloader, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.unlock_bootloader, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 0)
@@ -2096,13 +2201,20 @@ class PixelFlasher(wx.Frame):
         self.spinner_label = wx.StaticText(panel, label=u"Please be patient ...")
         self.spinner_label.SetForegroundColour((255,0,0))
         self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
+        self.support_button = wx.Button(panel, label=u"Support", size=wx.Size(-1, 50), style=0)
+        self.support_button.SetBitmap(images.Support_Zip.GetBitmap())
+        self.support_button.SetBitmapMargins( wx.Size( 10,-1 ) )
+        self.support_button.SetToolTip(u"Create sanitized support.zip file\nAll sensitive data is redacted.\n\nThis if absolutely required when asking for help.")
         console_v_sizer = wx.BoxSizer(wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL)
         console_v_sizer.AddSpacer(40)
         console_v_sizer.Add(self.spinner, flag=wx.LEFT, border=50)
         console_v_sizer.AddSpacer(20)
         console_v_sizer.Add(self.spinner_label, flag=wx.ALL)
+        console_v_sizer.Add( (0, 0), 1, wx.EXPAND, 5 )
+        console_v_sizer.Add(self.support_button, proportion=0, flag=wx.ALL|wx.EXPAND, border=0)
         self.console_ctrl = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        self.console_ctrl.SetMinSize((400, 200)) # set a minimum size of 400 x 200 pixels
         if not self.config.customize_font:
             self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
             self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
@@ -2175,6 +2287,7 @@ class PixelFlasher(wx.Frame):
         self.magisk_button.Bind(wx.EVT_BUTTON, _on_magisk_modules)
         self.install_magisk_button.Bind(wx.EVT_BUTTON, _on_magisk_install)
         self.backup_manager_button.Bind(wx.EVT_BUTTON, _on_backup_manager)
+        self.partition_manager_button.Bind(wx.EVT_BUTTON, _on_partition_manager)
         self.sos_button.Bind(wx.EVT_BUTTON, _on_sos)
         self.lock_bootloader.Bind(wx.EVT_BUTTON, _on_lock_bootloader)
         self.unlock_bootloader.Bind(wx.EVT_BUTTON, _on_unlock_bootloader)
@@ -2192,6 +2305,7 @@ class PixelFlasher(wx.Frame):
         self.process_rom.Bind(wx.EVT_BUTTON, _on_process_rom)
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)
         self.paste_boot.Bind(wx.EVT_BUTTON, _on_paste_boot)
+        self.support_button.Bind(wx.EVT_BUTTON, self._on_support_zip)
 
         # Update UI
         self.Layout()
@@ -2240,7 +2354,7 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
         t = f"{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}"
         pumlfile = os.path.join(get_config_path(), 'puml', f"PixelFlasher_{t}.puml")
         set_pumlfile(pumlfile)
-        puml(f"@startuml {t}\nstart\n", False, "w")
+        puml(f"@startuml {t}\nscale 2\nstart\n", False, "w")
         puml("<style>\n  note {\n    FontName Courier\n    FontSize 10\n  }\n</style>\n")
 
         if inspector:

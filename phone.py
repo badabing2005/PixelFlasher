@@ -79,6 +79,16 @@ class Device():
         self._architecture = None
         self._active_slot = None
         self._bootloader_version = None
+        self._sys_oem_unlock_allowed = None
+        self._ro_boot_flash_locked = None
+        self._ro_boot_vbmeta_device_state = None
+        self._vendor_boot_verifiedbootstate = None
+        self._ro_product_first_api_level = None
+        self._ro_boot_verifiedbootstate = None
+        self._vendor_boot_vbmeta_device_state = None
+        self._ro_boot_warranty_bit = None
+        self._ro_warranty_bit = None
+        self._ro_secure = None
         self._rooted = None
         self._unlocked = None
         self._magisk_version = None
@@ -186,6 +196,17 @@ class Device():
                 s_api_level = "ro.build.version.sdk"
                 s_hardware = "ro.hardware"
                 s_architecture = "ro.product.cpu.abi"
+                # USNF related props
+                s_sys_oem_unlock_allowed = 'sys.oem_unlock_allowed'
+                s_ro_boot_flash_locked = 'ro.boot.flash.locked'
+                s_ro_boot_vbmeta_device_state = 'ro.boot.vbmeta.device_state'
+                s_vendor_boot_verifiedbootstate = 'vendor.boot.verifiedbootstate'
+                s_ro_product_first_api_level = 'ro.product.first_api_level'
+                s_ro_boot_verifiedbootstate = 'ro.boot.verifiedbootstate'
+                s_vendor_boot_vbmeta_device_state = 'vendor.boot.vbmeta.device_state'
+                s_ro_boot_warranty_bit = 'ro.boot.warranty_bit'
+                s_ro_warranty_bit = 'ro.warranty_bit'
+                s_ro_secure = 'ro.secure'
                 for line in device_info.split("\n"):
                     if s_active_slot in line and not self._active_slot:
                         self._active_slot = self.extract_prop(s_active_slot, line.strip())
@@ -201,6 +222,26 @@ class Device():
                         self._hardware = self.extract_prop(s_hardware, line.strip())
                     elif s_architecture in line and not self._architecture:
                         self._architecture = self.extract_prop(s_architecture, line.strip())
+                    elif s_sys_oem_unlock_allowed in line and not self._sys_oem_unlock_allowed:
+                        self._sys_oem_unlock_allowed = self.extract_prop(s_sys_oem_unlock_allowed, line.strip())
+                    elif s_ro_boot_flash_locked in line and not self._ro_boot_flash_locked:
+                        self._ro_boot_flash_locked = self.extract_prop(s_ro_boot_flash_locked, line.strip())
+                    elif s_ro_boot_vbmeta_device_state in line and not self._ro_boot_vbmeta_device_state:
+                        self._ro_boot_vbmeta_device_state = self.extract_prop(s_ro_boot_vbmeta_device_state, line.strip())
+                    elif s_vendor_boot_verifiedbootstate in line and not self._vendor_boot_verifiedbootstate:
+                        self._vendor_boot_verifiedbootstate = self.extract_prop(s_vendor_boot_verifiedbootstate, line.strip())
+                    elif s_ro_product_first_api_level in line and not self._ro_product_first_api_level:
+                        self._ro_product_first_api_level = self.extract_prop(s_ro_product_first_api_level, line.strip())
+                    elif s_ro_boot_verifiedbootstate in line and not self._ro_boot_verifiedbootstate:
+                        self._ro_boot_verifiedbootstate = self.extract_prop(s_ro_boot_verifiedbootstate, line.strip())
+                    elif s_vendor_boot_vbmeta_device_state in line and not self._vendor_boot_vbmeta_device_state:
+                        self._vendor_boot_vbmeta_device_state = self.extract_prop(s_vendor_boot_vbmeta_device_state, line.strip())
+                    elif s_ro_boot_warranty_bit in line and not self._ro_boot_warranty_bit:
+                        self._ro_boot_warranty_bit = self.extract_prop(s_ro_boot_warranty_bit, line.strip())
+                    elif s_ro_warranty_bit in line and not self._ro_warranty_bit:
+                        self._ro_warranty_bit = self.extract_prop(s_ro_warranty_bit, line.strip())
+                    elif s_ro_secure in line and not self._ro_secure:
+                        self._ro_secure = self.extract_prop(s_ro_secure, line.strip())
         elif mode == 'f.b':
             device_info = self.fastboot_device_info
             if device_info:
@@ -304,6 +345,106 @@ class Device():
             return ''
         else:
             return self._architecture
+
+    # ----------------------------------------------------------------------------
+    #                               property sys_oem_unlock_allowed
+    # ----------------------------------------------------------------------------
+    @property
+    def sys_oem_unlock_allowed(self):
+        if self._sys_oem_unlock_allowed is None:
+            return ''
+        else:
+            return self._sys_oem_unlock_allowed
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_boot_flash_locked
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_boot_flash_locked(self):
+        if self._ro_boot_flash_locked is None:
+            return ''
+        else:
+            return self._ro_boot_flash_locked
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_boot_vbmeta_device_state
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_boot_vbmeta_device_state(self):
+        if self._ro_boot_vbmeta_device_state is None:
+            return ''
+        else:
+            return self._ro_boot_vbmeta_device_state
+
+    # ----------------------------------------------------------------------------
+    #                               property vendor_boot_verifiedbootstate
+    # ----------------------------------------------------------------------------
+    @property
+    def vendor_boot_verifiedbootstate(self):
+        if self._vendor_boot_verifiedbootstate is None:
+            return ''
+        else:
+            return self._vendor_boot_verifiedbootstate
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_product_first_api_level
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_product_first_api_level(self):
+        if self._ro_product_first_api_level is None:
+            return ''
+        else:
+            return self._ro_product_first_api_level
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_boot_verifiedbootstate
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_boot_verifiedbootstate(self):
+        if self._ro_boot_verifiedbootstate is None:
+            return ''
+        else:
+            return self._ro_boot_verifiedbootstate
+
+    # ----------------------------------------------------------------------------
+    #                               property vendor_boot_vbmeta_device_state
+    # ----------------------------------------------------------------------------
+    @property
+    def vendor_boot_vbmeta_device_state(self):
+        if self._vendor_boot_vbmeta_device_state is None:
+            return ''
+        else:
+            return self._vendor_boot_vbmeta_device_state
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_boot_warranty_bit
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_boot_warranty_bit(self):
+        if self._ro_boot_warranty_bit is None:
+            return ''
+        else:
+            return self._ro_boot_warranty_bit
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_warranty_bit
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_warranty_bit(self):
+        if self._ro_warranty_bit is None:
+            return ''
+        else:
+            return self._ro_warranty_bit
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_secure
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_secure(self):
+        if self._ro_secure is None:
+            return ''
+        else:
+            return self._ro_secure
 
     # ----------------------------------------------------------------------------
     #                               property unlocked
@@ -1723,6 +1864,8 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell pm install-existing {pkg}"
                 else:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell pm enable {pkg}"
+            elif action == 'launch':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell monkey -p {pkg} -c android.intent.category.LAUNCHER 1"
 
             res = run_shell2(theCmd)
         except Exception as e:
@@ -1844,11 +1987,15 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
 # We use this when we want to capture the returncode and also selectively
 # output what we want to console. Nothing is sent to console, both stdout and
 # stderr are only available when the call is completed.
-def run_shell(cmd):
+def run_shell(cmd, timeout=None):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace")
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", timeout=timeout)
         wx.Yield()
         return response
+    except subprocess.TimeoutExpired as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
+        puml("#red:Command timed out;\n", True)
+        puml(f"note right\n{e}\nend note\n")
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell")
         print(e)
@@ -1862,7 +2009,7 @@ def run_shell(cmd):
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
 # no returncode is available.
-def run_shell2(cmd):
+def run_shell2(cmd, timeout=None):
     try:
         class obj(object):
             pass
@@ -1872,6 +2019,7 @@ def run_shell2(cmd):
 
         print
         stdout = ''
+        start_time = time.time()
         while True:
             line = proc.stdout.readline()
             wx.Yield()
@@ -1880,6 +2028,12 @@ def run_shell2(cmd):
                 stdout += line
             if not line:
                 break
+            if timeout is not None and time.time() > start_time + timeout:
+                proc.terminate()
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
+                puml("#red:Command timed out;\n", True)
+                puml(f"note right\nCommand timed out after {timeout} seconds\nend note\n")
+                return None
         proc.wait()
         response.stdout = stdout
         return response

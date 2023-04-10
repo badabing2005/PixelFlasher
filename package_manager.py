@@ -635,6 +635,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.popupEnable = wx.NewIdRef()
             self.popupUninstall = wx.NewIdRef()
             self.popupDownload = wx.NewIdRef()
+            self.popupLaunch = wx.NewIdRef()
             self.popupRefresh = wx.NewIdRef()
             self.popupCheckAllBoxes = wx.NewIdRef()
             self.popupUnCheckAllBoxes = wx.NewIdRef()
@@ -644,6 +645,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.Bind(wx.EVT_MENU, self.OnPopupEnable, id=self.popupEnable)
             self.Bind(wx.EVT_MENU, self.OnPopupUninstall, id=self.popupUninstall)
             self.Bind(wx.EVT_MENU, self.OnPopupDownload, id=self.popupDownload)
+            self.Bind(wx.EVT_MENU, self.OnPopupLaunch, id=self.popupLaunch)
             self.Bind(wx.EVT_MENU, self.OnPopupRefresh, id=self.popupRefresh)
             self.Bind(wx.EVT_MENU, self.OnCheckAllBoxes, id=self.popupCheckAllBoxes)
             self.Bind(wx.EVT_MENU, self.OnUnCheckAllBoxes, id=self.popupUnCheckAllBoxes)
@@ -655,6 +657,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         menu.Append(self.popupEnable, "Enable Package")
         menu.Append(self.popupUninstall, "Uninstall Package")
         menu.Append(self.popupDownload, "Download Package")
+        menu.Append(self.popupLaunch, "Launch Package")
         menu.Append(self.popupRefresh, "Refresh")
         menu.Append(self.popupCheckAllBoxes, "Check All")
         menu.Append(self.popupUnCheckAllBoxes, "UnCheck All")
@@ -688,6 +691,12 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnPopupDownload(self, event):
         self.ApplySingleAction(self.currentItem, 'download')
+
+    # -----------------------------------------------
+    #                  OnPopupLaunch
+    # -----------------------------------------------
+    def OnPopupLaunch(self, event):
+        self.ApplySingleAction(self.currentItem, 'launch')
 
     # -----------------------------------------------
     #                  OnPopupRefresh
@@ -746,6 +755,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             print(f"Enabling {pkg} type: {type}...")
         elif action == "uninstall":
             print(f"Uninstalling {pkg} type: {type}...")
+        elif action == "launch":
+            print(f"Launching {pkg} type: {type}...")
         elif action == "download":
             print(f"Downloading {pkg} Label: {label}...")
             self.DownloadApk(pkg, fromMulti)

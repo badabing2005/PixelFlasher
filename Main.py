@@ -373,16 +373,19 @@ class PixelFlasher(wx.Frame):
         linksMenuItem3 = links.Append(wx.ID_ANY, "roirraW\'s Guide")
         linksMenuItem4 = links.Append(wx.ID_ANY, "kdrag0n\'s safetynet-fix")
         linksMenuItem5 = links.Append(wx.ID_ANY, "Displax\'s safetynet-fix")
+        linksMenuItem6 = links.Append(wx.ID_ANY, "Get the Google USB Driver")
         linksMenuItem1.SetBitmap(images.Guide.GetBitmap())
         linksMenuItem2.SetBitmap(images.Guide.GetBitmap())
         linksMenuItem3.SetBitmap(images.Guide.GetBitmap())
         linksMenuItem4.SetBitmap(images.Open_Link.GetBitmap())
         linksMenuItem5.SetBitmap(images.Open_Link.GetBitmap())
+        linksMenuItem6.SetBitmap(images.Open_Link.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_guide1, linksMenuItem1)
         self.Bind(wx.EVT_MENU, self._on_guide2, linksMenuItem2)
         self.Bind(wx.EVT_MENU, self._on_guide3, linksMenuItem3)
         self.Bind(wx.EVT_MENU, self._on_link1, linksMenuItem4)
         self.Bind(wx.EVT_MENU, self._on_link2, linksMenuItem5)
+        self.Bind(wx.EVT_MENU, self._on_link3, linksMenuItem6)
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.Open_Link.GetBitmap())
         # # Guide 1
@@ -538,6 +541,15 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_link3 (USB Drivers)
+    # -----------------------------------------------
+    def _on_link3(self, event):
+        self._on_spin('start')
+        webbrowser.open_new('https://developer.android.com/studio/run/win-usb?authuser=1%2F')
+        puml(f":Open Link;\nnote right\n=== Google USB Driver\n[[https://developer.android.com/studio/run/win-usb?authuser=1%2F]]\nend note\n", True)
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_open_config_folder
     # -----------------------------------------------
     def _on_open_config_folder(self, event):
@@ -658,7 +670,7 @@ class PixelFlasher(wx.Frame):
             pathname = fileDialog.GetPath()
             print(f"\nSelected {pathname} for installation.")
             try:
-                dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+                dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'APK Installation',wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_EXCLAMATION)
             except Exception:
                 return
             result = dlg.ShowModal()
@@ -666,11 +678,14 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 device = get_phone()
                 if device:
-                    if result != wx.ID_YES:
-                        device.install_apk(pathname, fastboot_included=True)
-                    else:
+                    if result == wx.ID_YES:
                         puml("note right:Set ownership to Play Store;\n")
                         device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
+                    elif result == wx.ID_NO:
+                        device.install_apk(pathname, fastboot_included=True)
+                    else:
+                        puml("note right:Cancelled APK installation;\n")
+                        print("User cancelled apk installation.")
                 self._on_spin('stop')
             except IOError:
                 wx.LogError(f"Cannot install file '{pathname}'.")
@@ -799,6 +814,16 @@ class PixelFlasher(wx.Frame):
             message += f"    Device Build:                    {device.build}\n"
             message += f"    Device API Level:                {device.api_level}\n"
             message += f"    Device Architecture:             {device.architecture}\n"
+            message += f"    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
+            message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
+            message += f"    ro.boot.vbmeta.device_state:     {device.ro_boot_vbmeta_device_state}\n"
+            message += f"    vendor.boot.verifiedbootstate:   {device.vendor_boot_verifiedbootstate}\n"
+            message += f"    ro.product.first_api_level:      {device.ro_product_first_api_level}\n"
+            message += f"    ro.boot.verifiedbootstate:       {device.ro_boot_verifiedbootstate}\n"
+            message += f"    vendor.boot.vbmeta.device_state: {device.vendor_boot_vbmeta_device_state}\n"
+            message += f"    ro.boot.warranty_bit:            {device.ro_boot_warranty_bit}\n"
+            message += f"    ro.warranty_bit:                 {device.ro_warranty_bit}\n"
+            message += f"    ro.secure:                       {device.ro_secure}\n"
             message += f"    Device Bootloader Version:       {device.bootloader_version}\n"
             m_app_version = device.magisk_app_version
             message += f"    Magisk Manager Version:          {m_app_version}\n"
@@ -824,10 +849,10 @@ class PixelFlasher(wx.Frame):
     def _check_for_bad_magisk(self, m_version, m_app_version):
             bad_m_version = False
             bad_m_app_version = False
-            if m_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210']:
+            if m_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210', '69529ac5:25211', 'e2545e57:26001', '26.0:26000']:
                 bad_m_version = True
                 print(f"WARNING! Problematic Magisk Version:         {m_version} is installed. Advised not to use this version.")
-            if m_app_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210']:
+            if m_app_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210', '69529ac5:25211', 'e2545e57:26001', '26.0:26000']:
                 bad_m_app_version = True
                 print(f"WARNING! Problematic Magisk Manager Version: {m_app_version} is installed. Advised not to use this version.")
 
@@ -844,7 +869,7 @@ class PixelFlasher(wx.Frame):
             elif bad_m_app_version:
                 dlg = wx.MessageDialog(None, f"Magisk Manager Version: {m_app_version} is detected.\nThis version of Magisk Manager is known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Manager Version.',wx.OK | wx.ICON_EXCLAMATION)
                 puml(f"#red:Magisk Manager Version: {m_app_version} is detected;\n")
-                puml("note right:This version of Magisk Manager is known to have problems.")
+                puml("note right:This version of Magisk Manager is known to have problems;\n")
                 result = dlg.ShowModal()
 
     # -----------------------------------------------

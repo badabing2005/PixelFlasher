@@ -322,11 +322,15 @@ def debug(message):
 # We use this when we want to capture the returncode and also selectively
 # output what we want to console. Nothing is sent to console, both stdout and
 # stderr are only available when the call is completed.
-def run_shell(cmd):
+def run_shell(cmd, timeout=None):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace")
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", timeout=timeout)
         wx.Yield()
         return response
+    except subprocess.TimeoutExpired as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
+        puml("#red:Command timed out;\n", True)
+        puml(f"note right\n{e}\nend note\n")
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell")
         print(e)
@@ -340,7 +344,7 @@ def run_shell(cmd):
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
 # no returncode is available.
-def run_shell2(cmd):
+def run_shell2(cmd, timeout=None):
     try:
         class obj(object):
             pass
@@ -350,6 +354,7 @@ def run_shell2(cmd):
 
         print
         stdout = ''
+        start_time = time.time()
         while True:
             line = proc.stdout.readline()
             wx.Yield()
@@ -358,6 +363,12 @@ def run_shell2(cmd):
                 stdout += line
             if not line:
                 break
+            if timeout is not None and time.time() > timeout:
+                proc.terminate()
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
+                puml("#red:Command timed out;\n", True)
+                puml(f"note right\nCommand timed out after {timeout} seconds\nend note\n")
+                return None
         proc.wait()
         response.stdout = stdout
         return response
@@ -676,6 +687,15 @@ def select_firmware(self):
         firmware_hash = sha256(self.config.firmware_path)
         print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
         puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
+
+        # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
+        if firmware_hash[:8] in firmware:
+            print(f"Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
+            puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
+        else:
+            print(f"WARNING: Expected to match {firmware_hash[:8]} in the filename but didn't, please double check to make sure the checksum is good.")
+            puml("#orange:Unable to match the checksum in the filename;\n")
+
         firmware = filename.split("-")
         if len(firmware) == 1:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected firmware filename is not a valid name.\nPlease keep the original filename intact.\n")
@@ -713,6 +733,7 @@ def process_file(self, file_type):
     print("==============================================================================")
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}         Processing {file_type} file ...")
     print("==============================================================================")
+    puml(f"#cyan:Process {file_type};\n", True)
     config_path = get_config_path()
     path_to_7z = get_path_to_7z()
     boot_images = os.path.join(config_path, get_boot_images_dir())
@@ -739,6 +760,7 @@ def process_file(self, file_type):
         file_to_process = self.config.custom_rom_path
         package_sig = get_custom_rom_id()
         image_file_path = file_to_process
+    puml(f"note right:{image_file_path}\n")
 
     # see if we have a record for the firmware/rom being processed
     cursor.execute(f"SELECT ID, boot_hash FROM PACKAGE WHERE package_sig = '{package_sig}' AND file_path = '{file_to_process}'")
@@ -758,6 +780,7 @@ def process_file(self, file_type):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {image_file_path} is not found.")
         if file_type == 'firmware':
             print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
+            puml("#red:The selected firmware is not valid;\n")
         print("Aborting ...\n")
         return
 
@@ -768,7 +791,8 @@ def process_file(self, file_type):
     else:
         boot_file_name = 'boot.img'
         files_to_extract = 'boot.img'
-    debug(f"Extracting {boot_file_name} from {image_file_path} ...")
+    print(f"Extracting {boot_file_name} from {image_file_path} ...")
+    puml(f":Extract {boot_file_name};\n")
     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
     debug(f"{theCmd}")
     res = run_shell(theCmd)
@@ -776,6 +800,7 @@ def process_file(self, file_type):
     if res.returncode != 0:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
         print(res.stderr)
+        puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
         print("Aborting ...\n")
         return
     # sometimes the return code is 0 but no file to extract, handle that case.
@@ -783,31 +808,33 @@ def process_file(self, file_type):
     if not os.path.exists(boot_img_file):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}, ")
         print(f"Please make sure the file: {image_file_path} has {boot_file_name} in it.")
+        puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
         print("Aborting ...\n")
         return
 
     # get the checksum of the boot_file_name
     checksum = sha1(os.path.join(boot_img_file))
-    debug(f"sha1 of {boot_file_name}: {checksum}")
+    print(f"sha1 of {boot_file_name}: {checksum}")
+    puml(f"note right:sha1 of {boot_file_name}: {checksum}\n")
 
     # if a matching boot_file_name is not found, store it.
     cached_boot_img_dir_full = os.path.join(boot_images, checksum)
     cached_boot_img_path = os.path.join(cached_boot_img_dir_full, boot_file_name)
-    debug(f"Checking for cached copy of {boot_file_name}")
+    print(f"Checking for cached copy of {boot_file_name}")
     if not os.path.exists(cached_boot_img_dir_full):
         os.makedirs(cached_boot_img_dir_full, exist_ok=True)
     if not os.path.exists(cached_boot_img_path):
-        debug(f"Cached copy of {boot_file_name} with sha1: {checksum} is not found.")
-        debug(f"Copying {image_file_path} to {cached_boot_img_dir_full}")
+        print(f"Cached copy of {boot_file_name} with sha1: {checksum} is not found.")
+        print(f"Copying {image_file_path} to {cached_boot_img_dir_full}")
         shutil.copy(boot_img_file, cached_boot_img_dir_full, follow_symlinks=True)
         if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
             # we need to copy boot.img for Pixel 7, 7P so that we can do live boot.
             shutil.copy(os.path.join(tmp_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
     else:
-        debug(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
+        print(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
 
     # create PACKAGE db record
-    sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
+    sql = 'INSERT OR REPLACE INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
     data = checksum, file_type, package_sig, file_to_process, time.time()
     try:
         cursor.execute(sql, data)
@@ -822,7 +849,7 @@ def process_file(self, file_type):
         package_id = pre_package_id
 
     # create BOOT db record
-    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+    sql = 'INSERT OR REPLACE INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
     data = checksum, cached_boot_img_path, 0, '', '', time.time()
     try:
         cursor.execute(sql, data)
@@ -850,7 +877,7 @@ def process_file(self, file_type):
     # create PACKAGE_BOOT db record
     if package_id > 0 and boot_id > 0:
         debug(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
-        sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
+        sql = 'INSERT OR REPLACE INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
         data = package_id, boot_id, time.time()
         try:
             cursor.execute(sql, data)
@@ -1790,7 +1817,7 @@ def patch_boot_img(self):
     con.execute("PRAGMA foreign_keys = ON")
     con.commit()
     cursor = con.cursor()
-    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+    sql = 'INSERT OR REPLACE INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
     data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time())
     cursor.execute(sql, data)
     con.commit()
@@ -1809,7 +1836,7 @@ def patch_boot_img(self):
     # create PACKAGE_BOOT db record
     if boot.package_id > 0 and boot_id > 0:
         debug(f"Creating PACKAGE_BOOT record, package_id: {boot.package_id} boot_id: {boot_id}")
-        sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
+        sql = 'INSERT OR REPLACE INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
         data = (boot.package_id, boot_id, time.time())
         cursor.execute(sql, data)
         con.commit()
@@ -2012,7 +2039,7 @@ def live_flash_boot_phone(self, option):
         self.device_choice.SetItems([''])
         self.device_choice.Select(0)
         if option == 'Flash':
-            print("\nNote: The device is intentionaly kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
+            print("\nNote: The device is intentionally kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
@@ -2072,7 +2099,7 @@ def flash_phone(self):
                 message += "Click OK to continue as is.\n"
                 message += "or Hit CANCEL to abort and change options."
                 puml(":API < 33 and device is Tensor;\n")
-                puml(f"note right\nDialog\n====\n{message}end note\n")
+                puml(f"note right\nDialog\n====\n{message}\nend note\n")
                 print(f"\n*** Dialog ***\n{message}\n______________\n")
                 dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
                 result = dlg.ShowModal()
@@ -2132,10 +2159,10 @@ def flash_phone(self):
             first_line = f"chcp {cp}\n@ECHO OFF\n"
         else:
             first_line = f"@ECHO OFF\n"
-        version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n\n:: cd {package_dir_full}\n\n"
+        version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
     else:
         dest = os.path.join(package_dir_full, "flash-phone.sh")
-        version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n\n# cd {package_dir_full}\n\n"
+        version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
         first_line = "#!/bin/sh\n"
     # delete previous flash-phone.bat file if it exists
     if os.path.exists(dest):
@@ -2246,7 +2273,7 @@ def flash_phone(self):
             message += "or Hit CANCEL to abort."
             print(f"\n*** Dialog ***\n{message}\n______________\n")
             puml(":Dialog;\n")
-            puml(f"note right\n{message}end note\n")
+            puml(f"note right\n{message}\nend note\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
@@ -2300,11 +2327,15 @@ def flash_phone(self):
             if f.type == 'init':
                 data += f"{f.full_line}\n"
                 if sys.platform == "win32":
-                    data += f":: This is a generated file by PixelFlasher v{VERSION}\n\n"
-                    data += f":: cd {package_dir_full}\n\n"
+                    data += f":: This is a generated file by PixelFlasher v{VERSION}\n"
+                    data += f":: cd {package_dir_full}\n"
+                    data += f":: pf_boot.img: {boot.boot_path}\n"
+                    data += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
                 else:
-                    data += f"# This is a generated file by PixelFlasher v{VERSION}\n\n"
-                    data += f"# cd {package_dir_full}\n\n"
+                    data += f"# This is a generated file by PixelFlasher v{VERSION}\n"
+                    data += f"# cd {package_dir_full}\n"
+                    data += f"# pf_boot.img: {boot.boot_path}\n"
+                    data += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
                 if self.config.flash_to_inactive_slot:
                     data += "echo Switching active slot to the other ...\n"
                     data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
@@ -2402,7 +2433,7 @@ def flash_phone(self):
     puml(":Dialog;\n", True)
     puml(f"note right\n{message}end note\n")
     puml(":Script;\n")
-    puml(f"note right\nFlash Script\n====\n{data}end note\n")
+    puml(f"note right\nFlash Script\n====\n{data}\nend note\n")
     set_message_box_title(title)
     set_message_box_message(message)
     dlg = MessageBox(self)
@@ -2425,7 +2456,7 @@ def flash_phone(self):
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Flashing Phone    ")
     print("==============================================================================")
     startFlash = time.time()
-    puml("Start Flashing;\n", True)
+    puml(":Start Flashing;\n", True)
     print(f"Android Platform Tools Version: {get_sdk_version()}")
     puml(f"note right\nPixelFlasher {VERSION}\nAndroid Platform Tools Version: {get_sdk_version()}\nend note\n")
 
@@ -2464,6 +2495,15 @@ def flash_phone(self):
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
         puml("#red:Valid device is not detected;\n}\n")
+        # let's try one more time just in case
+        print("Waiting 10 seconds ...")
+        time.sleep(10)
+        self.device_choice.SetItems(get_connected_devices())
+        self._select_configured_device()
+        device = get_phone()
+        if not device:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
+            puml("#red:Valid device is not detected;\n}\n")
         return
 
     if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD')):
@@ -2483,11 +2523,11 @@ def flash_phone(self):
     # if in bootloader mode, Start flashing
     if device.mode == 'f.b' and get_fastboot():
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
-        puml(f"Flashing device {device.id}", True)
+        puml(f":Flashing device {device.id};\n", True)
         # confirm for wipe data
         if self.config.flash_mode == 'wipeData':
             print("Flash Mode: Wipe Data")
-            puml(f"Flash Mode: Wipe Data")
+            puml(f":Flash Mode: Wipe Data;\n")
             dlg = wx.MessageDialog(None, "You have selected to WIPE data\nAre you sure want to continue?",'Wipe Data',wx.YES_NO | wx.ICON_EXCLAMATION)
             puml(f"note right\nDialog\n====\nYou have selected to WIPE data\nAre you sure want to continue?\nend note\n")
             result = dlg.ShowModal()
@@ -2526,7 +2566,7 @@ def flash_phone(self):
         self.device_choice.SetItems([''])
         self.device_choice.Select(0)
         if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-            print("\nNote: The device is intentionaly kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
+            print("\nNote: The device is intentionally kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")

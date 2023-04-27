@@ -68,7 +68,7 @@ class MagiskDownloads(wx.Dialog):
         else:
             self.il = wx.ImageList(16, 16)
             self.idx1 = self.il.Add(images.Official_Small.GetBitmap())
-        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 10), style = wx.LC_REPORT)
+        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 15), style = wx.LC_REPORT)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         device = get_phone()
@@ -159,12 +159,16 @@ class MagiskDownloads(wx.Dialog):
         self.SetSize(vSizer.MinSize.Width + 80, vSizer.MinSize.Height + 420)
 
         print("\nOpening Magisk Downloader/Installer ...")
+        puml(f":Open Magisk Downloader/Installer;\n", True)
+
 
     # -----------------------------------------------
     #                  _onItemSelected
     # -----------------------------------------------
     def _onItemSelected(self, event):
         self.currentItem = event.Index
+        print(f"Magisk {self.list.GetItemText(self.currentItem)} is selected.")
+        puml(f":Select Magisk {self.list.GetItemText(self.currentItem)};\n")
         event.Skip()
 
     # -----------------------------------------------
@@ -227,6 +231,7 @@ class MagiskDownloads(wx.Dialog):
     #                  _onCancel
     # -----------------------------------------------
     def _onCancel(self, e):
+        puml(f":Cancelled Magisk Downloader/Installer;\n", True)
         self.EndModal(wx.ID_CANCEL)
 
     # -----------------------------------------------
@@ -271,19 +276,48 @@ class MagiskDownloads(wx.Dialog):
     #                  _onOk
     # -----------------------------------------------
     def _onOk(self, e):
+        proceed = True
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
-        print(f"Downloading Magisk: {self.channel} version: {self.version} versionCode: {self.versionCode} ...")
         filename = f"magisk_{self.version}_{self.versionCode}.apk"
-        download_file(self.url, filename)
-        config_path = get_config_path()
-        app = os.path.join(config_path, 'tmp', filename)
         device = get_phone()
-        device.install_apk(app, fastboot_included = True)
-        # Fresh install of Magisk, reset the package name to default value
-        set_magisk_package(self.package)
-        self.Parent.config.magisk = self.package
-        print('')
-        self.EndModal(wx.ID_OK)
+        if 'Namelesswonder' in self.url and device.hardware not in ('panther', 'cheetah'):
+            print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
+            print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) are currently supported.")
+            print("         See details at: https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")
+
+            title = "Device Not Supported"
+            message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
+            message += "The selected Magisk is not supported for your device\n"
+            message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) are currently supported.\n\n"
+            message += "Unless you know what you are doing, if you choose to continue\n"
+            message += "you risk running into serious issues, proceed only if you are absolutely\n"
+            message += "certian that this is what you want, you have been warned.\n\n"
+            message += "Click OK to accept and continue.\n"
+            message += "or Hit CANCEL to abort."
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            # puml(":Dialog;\n")
+            # puml(f"note right\n{message}\nend note\n")
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
+                # puml(":User Pressed OK;\n")
+            else:
+                print("User pressed cancel.")
+                print("Aborting ...\n")
+                # puml("#pink:User Pressed Cancel to abort;\n}\n")
+                proceed = False
+        if proceed:
+            print(f"Downloading Magisk: {self.channel} version: {self.version} versionCode: {self.versionCode} ...")
+            download_file(self.url, filename)
+            config_path = get_config_path()
+            app = os.path.join(config_path, 'tmp', filename)
+            device.install_apk(app, fastboot_included = True)
+            # Fresh install of Magisk, reset the package name to default value
+            set_magisk_package(self.package)
+            self.Parent.config.magisk = self.package
+            print('')
+            self.EndModal(wx.ID_OK)
 
 # ============================================================================
 #                               Function download_file

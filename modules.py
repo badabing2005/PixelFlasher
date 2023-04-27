@@ -177,7 +177,7 @@ def populate_boot_list(self):
     for i in range (0, self.list.ColumnCount - 1):
         self.list.SetColumnWidth(i, -2)
         cw += self.list.GetColumnWidth(i)
-    self.list.SetColumnWidth(self.list.ColumnCount - 1, self.list.BestVirtualSize.Width - cw)
+    self.list.SetColumnWidth(self.list.ColumnCount - 1, self.list.BestVirtualSize.Width - cw - 5)
 
     # disable buttons
     self.config.boot_id = None
@@ -192,6 +192,7 @@ def populate_boot_list(self):
     self.process_firmware.SetFocus()
     # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
     self.delete_boot_button.Enable(False)
+    self.boot_folder_button.Enable(False)
     self.live_boot_button.Enable(False)
     self.flash_boot_button.Enable(False)
 
@@ -678,10 +679,10 @@ def set_flash_button_state(self):
 #                               Function select_firmware
 # ============================================================================
 def select_firmware(self):
+    puml(":Selecting Firmware;\n", True)
     firmware = ntpath.basename(self.config.firmware_path)
     filename, extension = os.path.splitext(firmware)
     extension = extension.lower()
-    puml(":Selecting Firmware;\n", True)
     if extension == '.zip':
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
         firmware_hash = sha256(self.config.firmware_path)
@@ -696,21 +697,30 @@ def select_firmware(self):
             print(f"WARNING: Expected to match {firmware_hash[:8]} in the filename but didn't, please double check to make sure the checksum is good.")
             puml("#orange:Unable to match the checksum in the filename;\n")
 
-        firmware = filename.split("-")
-        if len(firmware) == 1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected firmware filename is not a valid name.\nPlease keep the original filename intact.\n")
-            self.config.firmware_path = None
-            self.firmware_picker.SetPath('')
-            set_firmware_id(None)
-            puml("#red:The selected firmware filename is not valid;\n")
-            return f"SHA-256: {firmware_hash}"
+        set_lineage(False)
+        if 'lineage' in filename:
+            print("Warning: Detected Lineage (Non-Pixel) firmware.\nBoot extraction and patching is supported, however avoid full factory flashing and instead use Lineage Recovery for updates.")
+            puml("#orange:Detected Lineage (Non-Pixel) firmware.;\n")
+            puml("note right\nBoot extraction and patching is supported\nhowever avoid full factory flashing\nand instead use Lineage Recovery for updates.\nend note\n")
+            set_lineage(True)
+            set_firmware_model(filename)
+            set_firmware_id(filename)
         else:
-            try:
-                set_firmware_model(firmware[0])
-                set_firmware_id(f"{firmware[0]}-{firmware[1]}")
-            except Exception as e:
-                set_firmware_model(None)
-                set_firmware_id(filename)
+            firmware = filename.split("-")
+            if len(firmware) == 1:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected firmware filename is not a valid name.\nPlease keep the original filename intact.\n")
+                self.config.firmware_path = None
+                self.firmware_picker.SetPath('')
+                set_firmware_id(None)
+                puml("#red:The selected firmware filename is not valid;\n")
+                return f"SHA-256: {firmware_hash}"
+            else:
+                try:
+                    set_firmware_model(firmware[0])
+                    set_firmware_id(f"{firmware[0]}-{firmware[1]}")
+                except Exception as e:
+                    set_firmware_model(None)
+                    set_firmware_id(filename)
         if get_firmware_id():
             set_flash_button_state(self)
         else:
@@ -750,12 +760,16 @@ def process_file(self, file_type):
         factory_images = os.path.join(config_path, 'factory_images')
         package_sig = get_firmware_id()
         package_dir_full = os.path.join(factory_images, package_sig)
-        # Unzip the factory image
-        image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
-        debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
-        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
-        debug(theCmd)
-        res = run_shell2(theCmd)
+        # skip zip extraction if we're dealing with lineage firmware
+        if get_lineage():
+            image_file_path = file_to_process
+        else:
+            image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
+            # Unzip the factory image
+            debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
+            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
+            debug(theCmd)
+            res = run_shell2(theCmd)
     else:
         file_to_process = self.config.custom_rom_path
         package_sig = get_custom_rom_id()
@@ -777,7 +791,7 @@ def process_file(self, file_type):
     delete_all(tmp_dir_full)
 
     if not os.path.exists(image_file_path):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {image_file_path} is not found.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The firmware file did not have the expected structure / contents.")
         if file_type == 'firmware':
             print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
             puml("#red:The selected firmware is not valid;\n")
@@ -834,7 +848,7 @@ def process_file(self, file_type):
         print(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
 
     # create PACKAGE db record
-    sql = 'INSERT OR REPLACE INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
+    sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
     data = checksum, file_type, package_sig, file_to_process, time.time()
     try:
         cursor.execute(sql, data)
@@ -849,7 +863,7 @@ def process_file(self, file_type):
         package_id = pre_package_id
 
     # create BOOT db record
-    sql = 'INSERT OR REPLACE INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
     data = checksum, cached_boot_img_path, 0, '', '', time.time()
     try:
         cursor.execute(sql, data)
@@ -870,23 +884,25 @@ def process_file(self, file_type):
         data = cursor.fetchall()
         if len(data) > 0:
             boot_id = data[0][0]
-            debug(f"Found a previous BOOT record id={boot_id} for boot_hash: {pre_checksum} or {checksum}")
+            print(f"Found a previous BOOT record id={boot_id} for boot_hash: {pre_checksum} or {checksum}")
         else:
             boot_id = 0
 
     # create PACKAGE_BOOT db record
     if package_id > 0 and boot_id > 0:
         debug(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
-        sql = 'INSERT OR REPLACE INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
+        sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
         data = package_id, boot_id, time.time()
         try:
             cursor.execute(sql, data)
             con.commit()
+            package_boot_id = cursor.lastrowid
+            if package_boot_id == 0:
+                print(f"Record PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id} already exists")
+            else:
+                print(f"Package_Boot ID: {package_boot_id}")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-            print(e)
-        package_boot_id = cursor.lastrowid
-        print(f"Package_Boot ID: {package_boot_id}")
+            print(f"Record PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id} already exists")
 
     set_db(con)
     populate_boot_list(self)
@@ -1355,12 +1371,15 @@ def extract_fingerprint(binfile):
 # ============================================================================
 #                               Function patch_boot_img
 # ============================================================================
-def patch_boot_img(self):
+def patch_boot_img(self, custom_patch = False):
+    custom_text = ""
+    if custom_patch:
+        custom_text = "Custom "
     print("")
     print("==============================================================================")
-    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Patching boot.img ")
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Patching {custom_text}boot")
     print("==============================================================================")
-    puml("#cyan:Create Patch;\n", True)
+    puml(f"#cyan:Create {custom_text}Patch;\n", True)
     puml("partition \"**Create Patch**\" {\n")
 
     # get device
@@ -1371,12 +1390,25 @@ def patch_boot_img(self):
         puml("#red:Valid device is not selected;\n}\n")
         return
 
-    # Make sure boot image is selected
-    if not self.config.boot_id:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
-        print("Aborting ...\n")
-        puml("#red:Valid boot image is not selected;\n}\n")
-        return
+    if custom_patch:
+        with wx.FileDialog(self, "boot / init_boot image to create patch from.", '', '', wildcard="Images (*.*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
+            puml(":Select boot image to patch;\n")
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                print("User cancelled backup creation.")
+                puml("#:User Cancelled;\n}\n")
+                return
+            # save the current contents in the file
+            file_to_patch = fileDialog.GetPath()
+            file_sha1 = sha1(file_to_patch)
+            print(f"\nSelected {file_to_patch} for patching with SHA1 of {file_sha1}")
+            puml(f"note right\nSelected {file_to_patch} for patching with SHA1 of {file_sha1}\nend note\n")
+    else:
+        # Make sure boot image is selected
+        if not self.config.boot_id:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
+            print("Aborting ...\n")
+            puml("#red:Valid boot image is not selected;\n}\n")
+            return
 
     # Make sure platform-tools is set and adb and fastboot are found
     if not self.config.platform_tools_path:
@@ -1395,10 +1427,20 @@ def patch_boot_img(self):
 
     start = time.time()
 
-    boot = get_boot()
-    boot_file_name = os.path.basename(boot.boot_path)
-    boot_img = f"{boot_file_name}_{boot.boot_hash[:8]}.img"
-    magisk_patched_img = f"magisk_patched_{boot.boot_hash[:8]}.img"
+    if custom_patch:
+        boot_path = file_to_patch
+        boot_file_name = os.path.basename(boot_path)
+        filename, extension = os.path.splitext(boot_file_name)
+        stock_sha1 = file_sha1[:8]
+        boot_img = f"{filename}_{stock_sha1}.img"
+        magisk_patched_img = f"magisk_patched_{file_sha1[:8]}.img"
+    else:
+        boot = get_boot()
+        boot_path = boot.boot_path
+        boot_file_name = os.path.basename(boot_path)
+        stock_sha1 = boot.boot_hash[:8]
+        boot_img = f"{boot_file_name}_{stock_sha1}.img"
+        magisk_patched_img = f"magisk_patched_{boot.boot_hash[:8]}.img"
     config_path = get_config_path()
     boot_images = os.path.join(config_path, get_boot_images_dir())
     tmp_dir_full = os.path.join(config_path, 'tmp')
@@ -1407,41 +1449,42 @@ def patch_boot_img(self):
     delete_all(tmp_dir_full)
 
     # check if boot_file_name got extracted (if not probably the zip does not have it)
-    if not os.path.exists(boot.boot_path):
+    if not os.path.exists(boot_path):
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You have selected the Patch option, however boot file is not found.")
         puml("#red:Cannot patch an already patched file;\n")
         print("Aborting ...\n}\n")
         return
 
-    # Extract phone model from boot.package_sig and warn the user if it is not from the current phone model
-    package_sig = boot.package_sig.split("-")
-    try:
-        firmware_model = package_sig[0]
-    except Exception as e:
-        firmware_model = None
-    if firmware_model != device.hardware:
-        title = "Boot Model Mismatch"
-        message =  f"WARNING: Your phone model is: {device.hardware}\n\n"
-        message += f"The selected {boot_file_name} is from: {boot.package_sig}\n\n"
-        message += f"Please make sure the {boot_file_name} file you are trying to patch,\n"
-        message += f"is for the selected device: {device.id}\n\n"
-        message += "Click OK to accept and continue.\n"
-        message += "or Hit CANCEL to abort."
-        print(f"\n*** Dialog ***\n{message}\n______________\n")
-        puml("#orange:WARNING;\n", True)
-        puml(f"note right\n{message}\nend note\n")
-        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-        result = dlg.ShowModal()
-        if result == wx.ID_OK:
-            print("User pressed ok.")
-            puml(":User Pressed OK to continue;\n")
-        else:
-            print("User pressed cancel.")
-            puml("#pink:User Pressed Cancel to abort;\n}\n")
-            print("Aborting ...\n")
-            return
+    if not custom_patch:
+        # Extract phone model from boot.package_sig and warn the user if it is not from the current phone model
+        package_sig = boot.package_sig.split("-")
+        try:
+            firmware_model = package_sig[0]
+        except Exception as e:
+            firmware_model = None
+        if firmware_model != device.hardware:
+            title = "Boot Model Mismatch"
+            message =  f"WARNING: Your phone model is: {device.hardware}\n\n"
+            message += f"The selected {boot_file_name} is from: {boot.package_sig}\n\n"
+            message += f"Please make sure the {boot_file_name} file you are trying to patch,\n"
+            message += f"is for the selected device: {device.id}\n\n"
+            message += "Click OK to accept and continue.\n"
+            message += "or Hit CANCEL to abort."
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            puml("#orange:WARNING;\n", True)
+            puml(f"note right\n{message}\nend note\n")
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
+                puml(":User Pressed OK to continue;\n")
+            else:
+                print("User pressed cancel.")
+                puml("#pink:User Pressed Cancel to abort;\n}\n")
+                print("Aborting ...\n")
+                return
 
-    # delete existing boot_file_name from phone
+    # delete existing boot_img from phone
     res = device.delete(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print("Aborting ...\n")
@@ -1456,7 +1499,7 @@ def patch_boot_img(self):
         puml("#red:Failed to delete old boot image from the phone;\n}\n")
         return
 
-    # delete existing boot_file_name from phone
+    # delete existing magisk_patched from phone
     res = device.delete(f"{self.config.phone_path}/magisk_patched*.img")
     if res != 0:
         puml("#red:Failed to delete old magisk_patched.img;\n")
@@ -1472,7 +1515,7 @@ def patch_boot_img(self):
         return
 
     # Transfer boot image to the phone
-    res = device.push_file(f"{boot.boot_path}", f"{self.config.phone_path}/{boot_img}")
+    res = device.push_file(f"{boot_path}", f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         puml("#red:Failed to transfer the boot file to the phone;\n")
         print("Aborting ...\n}\n")
@@ -1495,7 +1538,7 @@ def patch_boot_img(self):
     is_rooted = device.rooted
 
     # If the device is not reporting rooted, and adb shell access is not granted
-    # Display a warning an abort.
+    # Display a warning and abort.
     if self.config.magisk != '' and self.config.magisk not in ['com.topjohnwu.magisk', 'io.github.vvb2060.magisk', 'io.github.huskydg.magisk'] and not is_rooted:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It looks like you have a hidden Magisk Manager, and have not allowed root access to adb shell")
         print("Patching can not be performed, to correct this, either grant root access to adb shell (recommended) or unhide Magisk Manager.")
@@ -1505,33 +1548,40 @@ def patch_boot_img(self):
         return
 
     # ==========================================
-    # Sub Function       patch_with_root
+    # Sub Function       patch_script
     # ==========================================
-    def patch_with_root():
-        print(f"Patching with rooted Magisk: {magisk_version}")
-        puml(f":Patching with rooted Magisk: {magisk_version};\n", True)
-        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'export KEEPVERITY=true; export KEEPFORCEENCRYPT=true; cd /data/adb/magisk; ./magiskboot cleanup; ./boot_patch.sh /sdcard/Download/{boot_img}; mv new-boot.img /sdcard/Download/{magisk_patched_img}\'\""
-        res = run_shell2(theCmd)
-
-    # ==========================================
-    # Sub Function    patch_with_magisk_manager
-    # ==========================================
-    def patch_with_magisk_manager():
-        #------------------------------------
-        # Create Patching Script
-        #------------------------------------
-        if device.magisk_path and magisk_app_version:
-            set_patched_with(magisk_app_version)
-            print("Creating pf_patch.sh script ...")
-            puml(f":Patching with Magisk Manager: {magisk_app_version};\n", True)
-            # magisk_version = device.magisk_app_version
+    def patch_script(patch_method):
+        print("Creating pf_patch.sh script ...")
+        if patch_method == "rooted":
+            patch_label = "rooted Magisk"
+            script_path = "/data/adb/magisk/pf_patch.sh"
+            exec_cmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'cd /data/adb/magisk; ./pf_patch.sh\'\""
+            with_version = device.magisk_version
+            with_version_code = device.magisk_version_code
+        elif patch_method == "app":
+            patch_label = "Magisk App"
             path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
-            dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
-            with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
-                data = " #!/system/bin/sh\n"
-                data += " ##############################################################################\n"
-                data += f" # PixelFlasher {VERSION} patch script using Magisk Manager {magisk_app_version}\n"
-                data += " ##############################################################################\n"
+            script_path = "/data/local/tmp/pf_patch.sh"
+            exec_cmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
+            with_version = device.get_uncached_magisk_app_version()
+            with_version_code = device.magisk_app_version_code
+        else:
+            print(f"ERROR: Unsupport patch method: {patch_method}")
+            return -1
+
+        set_patched_with(with_version)
+        puml(f":Patching with {patch_label}: {with_version};\n", True)
+
+        dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
+        with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+            data = " #!/system/bin/sh\n"
+            data += " ##############################################################################\n"
+            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
+            data += " ##############################################################################\n"
+            data += f"MAGISK_VERSION=\"{with_version_code}\"\n"
+            data += f"STOCK_SHA1={stock_sha1}\n"
+
+            if patch_method == "app":
                 data += f"ARCH={device.architecture}\n"
                 data += f"cp {device.magisk_path} /data/local/tmp/pf.zip\n"
                 data += "cd /data/local/tmp\n"
@@ -1544,41 +1594,67 @@ def patch_boot_img(self):
                 data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
                 data += "    cp $FILE $NEWNAME\n"
                 data += "done\n"
-                if device.architecture == "arm64-v8a":
+                if device.architecture == "arm64-v8a" and (device.ro_zygote != "zygote64" or self.config.include_magisk32):
                     data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
                 elif device.architecture == "x86_64":
                     data += "cp ../lib/x86/libmagisk32.so magisk32\n"
                 data += "chmod 755 *\n"
-                data += "export KEEPVERITY=true\n"
-                data += "export KEEPFORCEENCRYPT=true\n"
-                data += "./magiskboot cleanup\n"
-                data += f"./boot_patch.sh /sdcard/Download/{boot_img}\n"
-                data += f"cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/{magisk_patched_img}\n"
+
+            data += "SYSTEM_ROOT=false\n"
+            data += "grep \' / \' /proc/mounts | grep -qv \'rootfs\' && SYSTEM_ROOT=true\n"
+            data += ". ./util_functions.sh\n"
+            data += 'get_flags\n'
+            data += "echo -------------------------\n"
+            data += "echo \"SYSTEM_ROOT:       $SYSTEM_ROOT\"\n"
+            data += "echo \"KEEPVERITY:        $KEEPVERITY\"\n"
+            data += "echo \"KEEPFORCEENCRYPT:  $KEEPFORCEENCRYPT\"\n"
+            data += "echo \"RECOVERYMODE:      $RECOVERYMODE\"\n"
+            data += "echo \"PATCHVBMETAFLAG:   $PATCHVBMETAFLAG\"\n"
+            data += "echo \"ISENCRYPTED:       $ISENCRYPTED\"\n"
+            data += "echo \"VBMETAEXIST:       $VBMETAEXIST\"\n"
+            data += "export KEEPVERITY KEEPFORCEENCRYPT RECOVERYMODE PATCHVBMETAFLAG ISENCRYPTED VBMETAEXIST SYSTEM_ROOT\n"
+            data += "echo -------------------------\n"
+            data += "echo \"Creating a patch ...\"\n"
+            data += "./magiskboot cleanup\n"
+            data += f"./boot_patch.sh /sdcard/Download/{boot_img}\n"
+            data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+            data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
+            data += "PATCH_FILENAME=magisk_patched_${MAGISK_VERSION}_${STOCK_SHA1}_${PATCH_SHA1}.img\n"
+            data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
+            data += "echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
+
+            if patch_method == "app":
+                data += "cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
+
                 # if we're rooted, copy the stock boot.img to /data/adb/magisk/stock_boot.img so that magisk can backup
                 if is_rooted:
                     data += "cp -f /data/local/tmp/pf/assets/stock_boot.img /data/adb/magisk/stock_boot.img\n"
                     # TODO see if we need to update the config SHA1
-                f.write(data)
-                puml(f"note right\nPatch Script\n====\n{data}end note\n")
+            else:
+                data += "mv new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
 
-            print("PixelFlasher patching script contents:")
-            print(f"___________________________________________________\n{data}")
-            print("___________________________________________________\n")
+            f.write(data)
+            puml(f"note right\nPatch Script\n====\n{data}end note\n")
 
-            # Transfer extraction script to the phone
-            res = device.push_file(f"{dest}", "/data/local/tmp/pf_patch.sh")
-            if res != 0:
-                print("Aborting ...\n")
-                puml("#red:Failed to transfer Patch Script to the phone;\n")
-                return -1
+        print("PixelFlasher patching script contents:")
+        print(f"___________________________________________________\n{data}")
+        print("___________________________________________________\n")
 
-            # set the permissions.
-            res = device.set_file_permissions("/data/local/tmp/pf_patch.sh", "755")
-            if res != 0:
-                print("Aborting ...\n")
-                puml("#red:Failed to set the executable bit on patch script;\n")
-                return -1
+        # Transfer extraction script to the phone
+        res = device.push_file(f"{dest}", script_path, is_rooted)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to transfer Patch Script to the phone;\n")
+            return -1
 
+        # set the permissions.
+        res = device.set_file_permissions(script_path, "755", is_rooted)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to set the executable bit on patch script;\n")
+            return -1
+
+        if patch_method == "app":
             # Transfer busybox to the phone
             res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
             if res != 0:
@@ -1593,27 +1669,43 @@ def patch_boot_img(self):
                 puml("#red:Failed to set the executable bit on busybox;\n")
                 return -1
 
-            #------------------------------------
-            # Execute the pf_patch.sh script
-            #------------------------------------
-            print("Executing the extraction script ...")
-            print(f"PixelFlasher Patching phone with Magisk: {magisk_app_version}")
-            puml(":Executing the patch script;\n")
-            theCmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
-            res = run_shell2(theCmd)
-        else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
+        #------------------------------------
+        # Execute the pf_patch.sh script
+        #------------------------------------
+        print("Executing the pf_patch.sh script ...")
+        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
+        puml(":Executing the patch script;\n")
+        res = run_shell2(exec_cmd)
+
+        # get the patched_filename
+        print("Checking patch log: /data/local/tmp/pf_patch.log ...")
+        res = device.file_content("/data/local/tmp/pf_patch.log")
+        if res == -1:
             print("Aborting ...\n")
-            puml("#red:Patching Failed;\n")
+            puml("#red:Failed to pull pf_patch.log from the phone;\n")
             return -1
+        else:
+            magisk_patched_img = res.strip('\n')
+
+        # delete pf_patch.log from phone
+        res = device.delete("/data/local/tmp/pf_patch.log", is_rooted)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to delete pf_patch.log from the phone;\n")
+            return -1
+
+        return magisk_patched_img
 
     # -------------------------------
     # Patching decision
     # -------------------------------
     if is_rooted:
-        set_patched_with(magisk_version)
         if not magisk_app_version:
-            patch_with_root()
+            magisk_patched_img = patch_script("rooted")
+            if magisk_patched_img == -1:
+                print("Aborting ...\n")
+                puml("#red:Failed to patch\n}\n", True)
+                return
         elif magisk_version and magisk_app_version:
             m_version = 0
             m_app_version = 0
@@ -1628,18 +1720,20 @@ def patch_boot_img(self):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Magisk Version is different than Magisk Manager version")
                 puml("#orange:WARNING: Magisk Version is different than Magisk Manager version;\n")
                 if m_version >= m_app_version:
-                    patch_with_root()
+                    magisk_patched_img = patch_script("rooted")
                 else:
-                    res = patch_with_magisk_manager()
-                    if res == -1:
-                        puml("}\n")
-                        return
+                    magisk_patched_img = patch_script("app")
             else:
-                patch_with_root()
+                magisk_patched_img = patch_script("rooted")
+            if magisk_patched_img == -1:
+                print("Aborting ...\n")
+                puml("#red:Failed to patch\n}\n", True)
+                return
     elif magisk_app_version:
-        res = patch_with_magisk_manager()
-        if res == -1:
-            puml("}\n")
+        magisk_patched_img = patch_script("app")
+        if magisk_patched_img == -1:
+            print("Aborting ...\n")
+            puml("#red:Failed to patch\n}\n", True)
             return
     else:
         # Device is not rooted
@@ -1682,7 +1776,11 @@ def patch_boot_img(self):
                     print(f"Found Magisk Manager version {magisk_app_version} on the phone.")
                     puml(f":Found Magisk Manager;\nnote right:version {magisk_app_version}\n", True)
                     # continue with patching using Magisk Manager.
-                    patch_with_magisk_manager()
+                    magisk_patched_img = patch_script("app")
+                    if magisk_patched_img == -1:
+                        print("Aborting ...\n")
+                        puml("#red:Failed to patch\n}\n", True)
+                        return
                 else:
                     print("Magisk Manager is still not detected.\n\Aborting ...\n")
                     puml("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n", True)
@@ -1702,33 +1800,45 @@ def patch_boot_img(self):
     # -------------------------------
     # Validation Checks
     # -------------------------------
-    # check if magisk_patched*.img got created.
+    # abort if patching failed
+    if magisk_patched_img == -1:
+        puml("}\n")
+        return
+
+    # check if magisk_patched_img got created.
     print(f"\nLooking for {magisk_patched_img} in {self.config.phone_path} ...")
     res, magisk_patched = device.check_file(f"{self.config.phone_path}/{magisk_patched_img}")
     if res != 1:
         print("Aborting ...\n")
-        puml("#red:Failed to find magisk_patched the phone;\n}\n")
+        puml("#red:Failed to find magisk_patched on the phone;\n}\n")
         return
 
     # Transfer back magisk_patched.img
     print(f"Pulling {magisk_patched} from the phone to: {magisk_patched_img} ...")
-    res = device.pull_file(magisk_patched, f"\"{os.path.join(tmp_dir_full, magisk_patched_img)}\"")
+    magisk_patched_img_file = os.path.join(tmp_dir_full, magisk_patched_img)
+    res = device.pull_file(magisk_patched, f"\"{magisk_patched_img_file}\"")
     if res != 0:
         print("Aborting ...\n")
         puml("#red:Failed to pull magisk_patched from the phone;\n}\n")
         return
 
     # get the checksum of the magisk_patched.img
-    magisk_patched_img_file = os.path.join(tmp_dir_full, magisk_patched_img)
     print(f"Getting SHA1 of {magisk_patched_img_file} ...")
     checksum = sha1(os.path.join(magisk_patched_img_file))
     print(f"SHA1 of {magisk_patched_img} file: {checksum}")
 
     # get source boot_file_name sha1
     print(f"\nGetting SHA1 of source {boot_file_name} ...")
-    boot_sha1_long = sha1(boot.boot_path)
+    boot_sha1_long = sha1(boot_path)
     boot_sha1 = boot_sha1_long[:8]
     print(f"Source {boot_file_name}'s SHA1 is: {boot_sha1_long}")
+
+    # check to make sure the patch sha1 is not the same as the source (stock) sha1
+    if checksum == boot_sha1_long:
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Patching failed, magisk_patched SHA1 is the same as the stock SHA1")
+        puml("#red:Patching failed;\nnote right:magisk_patched SHA1 is the same as the stock SHA1\n}\n", True)
+        print("Aborting ...\n")
+        return
 
     # if rooted, get magisk's stored sha1 from it's config.
     if is_rooted:
@@ -1789,7 +1899,7 @@ def patch_boot_img(self):
             puml(f"#red:ERROR: Something is wrong with the patched file\nSHA1: {patched_sha1}\nExpected SHA1: {boot_sha1};\n", True)
             return
         else:
-            print(f"Good: Both SHA1s: {patched_sha1} match.")
+            print(f"Good: Both SHA1s: {patched_sha1} match.\n")
             puml(f"note right:SHA1 {patched_sha1} matches the expected value\n")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} NOTICE: The patched image file does not contain source boot's SHA1")
@@ -1799,60 +1909,75 @@ def patch_boot_img(self):
         puml(f"note right\nThis is normal for older devices, but newer deviced should have it.\nend note\n")
 
 
-    # if a matching magisk_patched.img is not found, store it.
-    cached_boot_img_dir_full = os.path.join(boot_images, checksum)
-    cached_boot_img_path = os.path.join(cached_boot_img_dir_full, magisk_patched_img)
-    debug(f"Checking for cached copy of {boot_file_name}")
-    if not os.path.exists(cached_boot_img_dir_full):
-        os.makedirs(cached_boot_img_dir_full, exist_ok=True)
-    if not os.path.exists(cached_boot_img_path):
-        debug(f"Cached copy of {boot_file_name} with sha1: {checksum} is not found.")
-        debug(f"Copying {magisk_patched_img_file} to {cached_boot_img_dir_full}")
-        shutil.copy(magisk_patched_img_file, cached_boot_img_dir_full, follow_symlinks=True)
-    else:
-        debug(f"Found a cached copy of magisk_patched.img sha1={checksum}")
-
-    # create BOOT db record
-    con = get_db()
-    con.execute("PRAGMA foreign_keys = ON")
-    con.commit()
-    cursor = con.cursor()
-    sql = 'INSERT OR REPLACE INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-    data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time())
-    cursor.execute(sql, data)
-    con.commit()
-    boot_id = cursor.lastrowid
-    print(f"\nDB BOOT record ID: {boot_id}")
-    # if we didn't insert in BOOT, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
-    if boot_id == 0:
-        cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{checksum}'")
-        data = cursor.fetchall()
-        if len(data) > 0:
-            boot_id = data[0][0]
-            debug(f"Found a previous BOOT record id={boot_id} for boot_hash: {checksum}")
+    if not custom_patch:
+        # if a matching magisk_patched.img is not found, store it.
+        cached_boot_img_dir_full = os.path.join(boot_images, boot.boot_hash)
+        cached_boot_img_path = os.path.join(cached_boot_img_dir_full, magisk_patched_img)
+        debug(f"Checking for cached copy of {boot_file_name}")
+        if not os.path.exists(cached_boot_img_path):
+            debug(f"Cached copy of {magisk_patched_img} with sha1: {checksum} is not found.")
+            debug(f"Copying {magisk_patched_img_file} to {cached_boot_img_dir_full}")
+            shutil.copy(magisk_patched_img_file, cached_boot_img_dir_full, follow_symlinks=True)
         else:
-            boot_id = '0'
+            debug(f"Found a cached copy of magisk_patched.img sha1={checksum}\n")
 
-    # create PACKAGE_BOOT db record
-    if boot.package_id > 0 and boot_id > 0:
-        debug(f"Creating PACKAGE_BOOT record, package_id: {boot.package_id} boot_id: {boot_id}")
-        sql = 'INSERT OR REPLACE INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
-        data = (boot.package_id, boot_id, time.time())
-        cursor.execute(sql, data)
+        # create BOOT db record
+        con = get_db()
+        con.execute("PRAGMA foreign_keys = ON")
         con.commit()
-        package_boot_id = cursor.lastrowid
-        print(f"DB Package_Boot record ID: {package_boot_id}")
+        cursor = con.cursor()
+        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time())
+        debug(f"Creating BOOT record, boot_hash: {checksum}")
+        try:
+            cursor.execute(sql, data)
+            con.commit()
+            boot_id = cursor.lastrowid
+            debug(f"DB BOOT record ID: {boot_id}")
+        except Exception as e:
+            boot_id = 0
+        # if we didn't insert in BOOT, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
+        if boot_id == 0:
+            cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{checksum}'")
+            data = cursor.fetchall()
+            if len(data) > 0:
+                boot_id = data[0][0]
+                debug(f"Found a previous BOOT record id={boot_id} for boot_hash: {checksum}\n")
+            else:
+                boot_id = 0
+                debug(f"ERROR: Something went wrong while inserting BOOT record id={boot_id} for boot_hash: {checksum}\n")
 
-    set_db(con)
-    populate_boot_list(self)
+        # create PACKAGE_BOOT db record
+        if boot.package_id > 0 and boot_id > 0:
+            debug(f"Creating PACKAGE_BOOT record, package_id: {boot.package_id} boot_id: {boot_id}")
+            sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
+            data = (boot.package_id, boot_id, time.time())
+            try:
+                cursor.execute(sql, data)
+                con.commit()
+                package_boot_id = cursor.lastrowid
+                debug(f"DB Package_Boot record ID: {package_boot_id}\n")
+            except Exception as e:
+                package_boot_id = 0
+
+        set_db(con)
+    else:
+        # Display save as dialog to save the patched file
+        with wx.FileDialog(self, "Save Patched Magisk File", '', f"{magisk_patched_img}", wildcard="Image files (*.img)|*.img", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                print(f"User Cancelled saving: {magisk_patched_img}")
+                return     # the user changed their mind
+            shutil.copy(magisk_patched_img_file, fileDialog.GetPath(), follow_symlinks=True)
 
     end = time.time()
-    print(f"Magisk Version: {get_patched_with()}")
+    print(f"\nMagisk Version: {get_patched_with()}")
     print(f"Patch time: {math.ceil(end - start)} seconds")
     print("------------------------------------------------------------------------------\n")
-    puml("#cee7ee:End Patching;\n", True)
+    puml(f"#cee7ee:End {custom_text}Patching;\n", True)
     puml(f"note right:Patch time: {math.ceil(end - start)} seconds\n")
     puml("}\n")
+
+    populate_boot_list(self)
 
 
 # ============================================================================
@@ -2040,6 +2165,16 @@ def live_flash_boot_phone(self, option):
         self.device_choice.Select(0)
         if option == 'Flash':
             print("\nNote: The device is intentionally kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
+            try:
+                dlg = wx.MessageDialog(None, "Do you want to reboot to system?",'Flashing success',wx.YES_NO | wx.YES_DEFAULT | wx.ICON_EXCLAMATION)
+            except Exception:
+                return
+            result = dlg.ShowModal()
+            if result == wx.ID_YES:
+                puml(":Reboot to System;\n")
+                device.reboot_system()
+            else:
+                print("User cancelled rebooting to system.")
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
@@ -2159,11 +2294,18 @@ def flash_phone(self):
             first_line = f"chcp {cp}\n@ECHO OFF\n"
         else:
             first_line = f"@ECHO OFF\n"
-        version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
+        if self.config.advanced_options and self.config.flash_mode == 'customFlash':
+            version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
+        else:
+            version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
     else:
         dest = os.path.join(package_dir_full, "flash-phone.sh")
-        version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
         first_line = "#!/bin/sh\n"
+        if self.config.advanced_options and self.config.flash_mode == 'customFlash':
+            version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
+        else:
+            version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
+
     # delete previous flash-phone.bat file if it exists
     if os.path.exists(dest):
         os.remove(dest)

@@ -3,7 +3,7 @@
 import json
 import os
 
-VERSION = '4.8.2.0'
+VERSION = '4.9.0.0'
 SDKVERSION = '33.0.3'
 WIDTH = 1400
 HEIGHT = 1040
@@ -50,6 +50,7 @@ class Config():
         self.pf_font_face = 'Courier'
         self.pf_font_size = 12
         self.dev_mode = False
+        self.include_magisk32 = False
 
     @classmethod
     def load(cls, file_path):
@@ -96,6 +97,7 @@ class Config():
                 if conf.flash_both_slots:
                     conf.flash_to_inactive_slot = False
                 conf.dev_mode = data['dev_mode']
+                conf.include_magisk32 = data['include_magisk32']
             else:
                 conf.first_run = True
         except Exception as e:
@@ -138,7 +140,8 @@ class Config():
             'customize_font': self.customize_font,
             'pf_font_face': self.pf_font_face,
             'pf_font_size': self.pf_font_size,
-            'dev_mode': self.dev_mode
+            'dev_mode': self.dev_mode,
+            'include_magisk32': self.include_magisk32
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

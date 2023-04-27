@@ -7,6 +7,7 @@ import locale
 import math
 import ntpath
 import os
+import subprocess
 import sys
 import time
 import webbrowser
@@ -27,7 +28,6 @@ with contextlib.suppress(Exception):
 
 from advanced_settings import AdvancedSettings
 from backup_manager import BackupManager
-from partition_manager import PartitionManager
 from config import VERSION, Config
 from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
@@ -38,6 +38,7 @@ from modules import (adb_kill_server, check_platform_tools, create_support_zip,
                      process_file, select_firmware, set_flash_button_state,
                      sha256, wifi_adb_connect)
 from package_manager import PackageManager
+from partition_manager import PartitionManager
 from phone import get_connected_devices
 from runtime import *
 
@@ -158,13 +159,25 @@ class PixelFlasher(wx.Frame):
             firmware = ntpath.basename(self.config.firmware_path)
             filename, extension = os.path.splitext(firmware)
             extension = extension.lower()
-            firmware = filename.split("-")
-            try:
-                set_firmware_model(firmware[0])
-                set_firmware_id(f"{firmware[0]}-{firmware[1]}")
-            except Exception as e:
-                set_firmware_model(None)
-                set_firmware_id(None)
+            if 'lineage' in filename:
+                print("Warning: Detected Lineage (Non-Pixel) firmware.\nBoot extraction and patching is supported, however avoid full factory flashing and instead use Lineage Recovery for updates.")
+                puml("#orange:Detected Lineage (Non-Pixel) firmware.;\n")
+                puml("note right\nBoot extraction and patching is supported\nhowever avoid full factory flashing\nand instead use Lineage Recovery for updates.\nend note\n")
+                try:
+                    set_lineage(True)
+                    set_firmware_model(filename)
+                    set_firmware_id(filename)
+                except Exception as e:
+                    set_firmware_model(None)
+                    set_firmware_id(None)
+            else:
+                firmware = filename.split("-")
+                try:
+                    set_firmware_model(firmware[0])
+                    set_firmware_id(f"{firmware[0]}-{firmware[1]}")
+                except Exception as e:
+                    set_firmware_model(None)
+                    set_firmware_id(None)
             firmware_hash = sha256(self.config.firmware_path)
             self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
 
@@ -554,8 +567,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_open_config_folder(self, event):
         self._on_spin('start')
-        if sys.platform == "win32":
-            os.system(f"start {get_config_path()}")
+        self._open_folder(get_config_path())
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -662,6 +674,11 @@ class PixelFlasher(wx.Frame):
     #                  _on_install_apk
     # -----------------------------------------------
     def _on_install_apk(self, event):
+        device = get_phone()
+        if not device:
+            print("ERROR: Please select a device before attempting APK Installation")
+            return
+
         with wx.FileDialog(self, "select APK file to install", '', '', wildcard="Android Applications (*.*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return     # the user changed their mind
@@ -676,16 +693,14 @@ class PixelFlasher(wx.Frame):
             result = dlg.ShowModal()
             try:
                 self._on_spin('start')
-                device = get_phone()
-                if device:
-                    if result == wx.ID_YES:
-                        puml("note right:Set ownership to Play Store;\n")
-                        device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
-                    elif result == wx.ID_NO:
-                        device.install_apk(pathname, fastboot_included=True)
-                    else:
-                        puml("note right:Cancelled APK installation;\n")
-                        print("User cancelled apk installation.")
+                if result == wx.ID_YES:
+                    puml("note right:Set ownership to Play Store;\n")
+                    device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
+                elif result == wx.ID_NO:
+                    device.install_apk(pathname, fastboot_included=True)
+                else:
+                    puml("note right:Cancelled APK installation;\n")
+                    print("User cancelled apk installation.")
                 self._on_spin('stop')
             except IOError:
                 wx.LogError(f"Cannot install file '{pathname}'.")
@@ -707,6 +722,8 @@ class PixelFlasher(wx.Frame):
             self.a_radio_button.Hide()
             self.b_radio_button.Hide()
             self.reboot_recovery_button.Hide()
+            self.reboot_download_button.Hide()
+            self.reboot_safemode_button.Hide()
             self.set_active_slot_button.Hide()
             self.sos_button.Hide()
             self.lock_bootloader.Hide()
@@ -742,6 +759,8 @@ class PixelFlasher(wx.Frame):
             self.a_radio_button.Show()
             self.b_radio_button.Show()
             self.reboot_recovery_button.Show()
+            self.reboot_download_button.Show()
+            self.reboot_safemode_button.Show()
             self.set_active_slot_button.Show()
             self.sos_button.Show()
             self.lock_bootloader.Show()
@@ -824,6 +843,9 @@ class PixelFlasher(wx.Frame):
             message += f"    ro.boot.warranty_bit:            {device.ro_boot_warranty_bit}\n"
             message += f"    ro.warranty_bit:                 {device.ro_warranty_bit}\n"
             message += f"    ro.secure:                       {device.ro_secure}\n"
+            message += f"    ro.zygote:                       {device.ro_zygote}\n"
+            message += f"    ro.vendor.product.cpu.abilist:   {device.ro_vendor_product_cpu_abilist}\n"
+            message += f"    ro.vendor.product.cpu.abilist32: {device.ro_vendor_product_cpu_abilist32}\n"
             message += f"    Device Bootloader Version:       {device.bootloader_version}\n"
             m_app_version = device.magisk_app_version
             message += f"    Magisk Manager Version:          {m_app_version}\n"
@@ -940,6 +962,22 @@ class PixelFlasher(wx.Frame):
                 self.paste_boot.Enable(False)
 
     # -----------------------------------------------
+    #                  _open_folder
+    # -----------------------------------------------
+    def _open_folder(self, path, isFile = False):
+        if path:
+            if isFile:
+                dir_path = os.path.dirname(path)
+            else:
+                dir_path = path
+            if sys.platform == "win32":
+                os.system(f"start {dir_path}")
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", dir_path])
+            else:
+                subprocess.Popen(["xdg-open", dir_path])
+
+    # -----------------------------------------------
     #                  _select_configured_device
     # -----------------------------------------------
     def _select_configured_device(self):
@@ -982,6 +1020,15 @@ class PixelFlasher(wx.Frame):
         device = get_phone()
         if device:
             self.reboot_recovery_button.Enable(True)
+            if device.mode == 'adb':
+                self.reboot_download_button.Enable(True)
+                if device.rooted:
+                    self.reboot_safemode_button.Enable(True)
+                else:
+                    self.reboot_safemode_button.Enable(False)
+            else:
+                self.reboot_download_button.Enable(False)
+                self.reboot_safemode_button.Enable(False)
             self.reboot_bootloader_button.Enable(True)
             self.reboot_system_button.Enable(True)
             self.shell_button.Enable(True)
@@ -989,12 +1036,13 @@ class PixelFlasher(wx.Frame):
             self.unlock_bootloader.Enable(True)
             self.lock_bootloader.Enable(True)
             self.install_magisk_button.Enable(True)
+            self.flash_both_slots_checkBox.Enable(True)
+            self.flash_to_inactive_slot_checkBox.Enable(True)
+            self.partition_manager_button.Enable(True)
             if device.rooted:
                 self.backup_manager_button.Enable(True)
-                self.partition_manager_button.Enable(True)
             else:
                 self.backup_manager_button.Enable(False)
-                self.partition_manager_button.Enable(False)
             self.install_apk.Enable(True)
             self.package_manager.Enable(True)
             if device.active_slot == 'a':
@@ -1003,12 +1051,14 @@ class PixelFlasher(wx.Frame):
                 self.b_radio_button.Enable(True)
                 self.b_radio_button.SetValue(True)
                 self.set_active_slot_button.Enable(True)
+                set_a_only(False)
             elif device.active_slot == 'b':
                 self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [B]"
                 self.a_radio_button.Enable(True)
                 self.b_radio_button.Enable(False)
                 self.a_radio_button.SetValue(True)
                 self.set_active_slot_button.Enable(True)
+                set_a_only(False)
             else:
                 self.device_label.Label = "ADB Connected Devices"
                 self.a_radio_button.Enable(False)
@@ -1016,6 +1066,9 @@ class PixelFlasher(wx.Frame):
                 self.a_radio_button.SetValue(False)
                 self.b_radio_button.SetValue(False)
                 self.set_active_slot_button.Enable(False)
+                self.flash_both_slots_checkBox.Enable(False)
+                self.flash_to_inactive_slot_checkBox.Enable(False)
+                set_a_only(True)
             if device.magisk_modules_summary == '':
                 self.magisk_button.Enable(False)
             else:
@@ -1028,6 +1081,8 @@ class PixelFlasher(wx.Frame):
             self.b_radio_button.SetValue(False)
             self.set_active_slot_button.Enable(False)
             self.reboot_recovery_button.Enable(False)
+            self.reboot_download_button.Enable(False)
+            self.reboot_safemode_button.Enable(False)
             self.reboot_bootloader_button.Enable(False)
             self.reboot_system_button.Enable(False)
             self.shell_button.Enable(False)
@@ -1040,6 +1095,9 @@ class PixelFlasher(wx.Frame):
             self.partition_manager_button.Enable(False)
             self.install_apk.Enable(False)
             self.package_manager.Enable(False)
+            self.flash_both_slots_checkBox.Enable(False)
+            self.flash_to_inactive_slot_checkBox.Enable(False)
+
 
     #-----------------------------------------------------------------------------
     #                                   _init_ui
@@ -1308,6 +1366,32 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 device = get_phone()
                 device.reboot_recovery()
+                time.sleep(5)
+                self.device_choice.SetItems(get_connected_devices())
+                self._select_configured_device()
+                self._on_spin('stop')
+
+        # -----------------------------------------------
+        #                  _on_reboot_download
+        # -----------------------------------------------
+        def _on_reboot_download(event):
+            if self.config.device:
+                self._on_spin('start')
+                device = get_phone()
+                device.reboot_download()
+                time.sleep(5)
+                self.device_choice.SetItems(get_connected_devices())
+                self._select_configured_device()
+                self._on_spin('stop')
+
+        # -----------------------------------------------
+        #                  _on_reboot_safemode
+        # -----------------------------------------------
+        def _on_reboot_safemode(event):
+            if self.config.device:
+                self._on_spin('start')
+                device = get_phone()
+                device.reboot_safemode()
                 time.sleep(5)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
@@ -1774,6 +1858,7 @@ class PixelFlasher(wx.Frame):
                 self.config.boot_id = boot.boot_id
                 self.config.selected_boot_md5 = boot.boot_hash
                 self.delete_boot_button.Enable(True)
+                self.boot_folder_button.Enable(True)
                 self.live_boot_button.Enable(True)
                 self.flash_boot_button.Enable(True)
                 if boot.magisk_version == '':
@@ -1805,6 +1890,7 @@ class PixelFlasher(wx.Frame):
                 self.config.selected_boot_md5 = None
                 self.patch_boot_button.Enable(False)
                 self.delete_boot_button.Enable(False)
+                self.boot_folder_button.Enable(False)
                 self.live_boot_button.Enable(False)
                 self.flash_boot_button.Enable(False)
                 self.paste_boot.Enable(False)
@@ -1890,6 +1976,16 @@ class PixelFlasher(wx.Frame):
             self._on_spin('stop')
 
         # -----------------------------------------------
+        #                  _on_boot_folder
+        # -----------------------------------------------
+        def _on_boot_folder(event):
+            self._on_spin('start')
+            boot = get_boot()
+            if boot:
+                self._open_folder(boot.boot_path, True)
+            self._on_spin('stop')
+
+        # -----------------------------------------------
         #                  _on_live_boot
         # -----------------------------------------------
         def _on_live_boot(event):
@@ -1923,7 +2019,15 @@ class PixelFlasher(wx.Frame):
         # -----------------------------------------------
         def _on_patch_boot(event):
             self._on_spin('start')
-            patch_boot_img(self)
+            patch_boot_img(self, False)
+            self._on_spin('stop')
+
+        # -----------------------------------------------
+        #                  _on_patch_custom_boot
+        # -----------------------------------------------
+        def _on_patch_custom_boot(event):
+            self._on_spin('start')
+            patch_boot_img(self, True)
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -2002,8 +2106,12 @@ class PixelFlasher(wx.Frame):
         active_slot_sizer.Add((0, 0), 1, wx.EXPAND, 10)
         active_slot_sizer.Add(self.a_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         active_slot_sizer.Add(self.b_radio_button, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
-        self.reboot_recovery_button = wx.Button(panel, wx.ID_ANY, u" Reboot to Recovery  ", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.reboot_recovery_button = wx.Button(panel, wx.ID_ANY, u" Reboot to Recovery", wx.DefaultPosition, wx.DefaultSize, 0)
         self.reboot_recovery_button.SetToolTip(u"Reboot to Recovery")
+        self.reboot_download_button = wx.Button(panel, wx.ID_ANY, u" Reboot to Downloader", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.reboot_download_button.SetToolTip(u"Reboot to Downloader")
+        self.reboot_safemode_button = wx.Button(panel, wx.ID_ANY, u" Reboot to Safe Mode", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.reboot_safemode_button.SetToolTip(u"Reboot to Safe Mode")
         self.reboot_system_button = wx.Button(panel, wx.ID_ANY, u"Reboot to System", wx.DefaultPosition, wx.DefaultSize, 0)
         self.reboot_system_button.SetToolTip(u"Reboot to System")
         self.reboot_bootloader_button = wx.Button(panel, wx.ID_ANY, u"Reboot to Bootloader", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -2041,6 +2149,8 @@ class PixelFlasher(wx.Frame):
         reboot_sizer = wx.BoxSizer(wx.HORIZONTAL)
         reboot_sizer.Add(self.set_active_slot_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         reboot_sizer.Add(self.reboot_recovery_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
+        reboot_sizer.Add(self.reboot_download_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
+        reboot_sizer.Add(self.reboot_safemode_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         reboot_sizer.Add(self.reboot_system_button, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.reboot_bootloader_button, 1, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.shell_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=10)
@@ -2052,7 +2162,7 @@ class PixelFlasher(wx.Frame):
         reboot_sizer.Add(self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
         reboot_sizer.Add(self.lock_bootloader, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         reboot_sizer.Add(self.unlock_bootloader, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 0)
-        reboot_sizer.Add((self.scan_button.Size.Width + 5, 0), 0, wx.EXPAND)
+        # reboot_sizer.Add((self.scan_button.Size.Width + 5, 0), 0, wx.EXPAND)
 
         # 4th row, empty row, static line
         self.staticline1 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
@@ -2131,9 +2241,15 @@ class PixelFlasher(wx.Frame):
         self.patch_boot_button = wx.Button(panel, wx.ID_ANY, u"Patch", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
         self.patch_boot_button.SetBitmap(images.Patch.GetBitmap())
         self.patch_boot_button.SetToolTip(u"Patch the selected item")
+        self.patch_custom_boot_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.patch_custom_boot_button.SetBitmap(images.CustomPatch.GetBitmap())
+        self.patch_custom_boot_button.SetToolTip(u"Custom Patch\n\nSelect a file from disk to patch, and then save the patched file to disk.\nUse this if you want to patch a manually extracted boot image.")
         self.delete_boot_button = wx.Button(panel, wx.ID_ANY, u"Delete", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
         self.delete_boot_button.SetBitmap(images.Delete.GetBitmap())
         self.delete_boot_button.SetToolTip(u"Delete the selected item")
+        self.boot_folder_button = wx.Button(panel, wx.ID_ANY, u"Open Folder", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
+        self.boot_folder_button.SetBitmap(images.Config_Folder.GetBitmap())
+        self.boot_folder_button.SetToolTip(u"Open boot files folder.")
         self.live_boot_button = wx.Button(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
         self.live_boot_button.SetBitmap(images.Boot.GetBitmap())
         self.live_boot_button.SetToolTip(u"Live boot to the selected item")
@@ -2141,15 +2257,18 @@ class PixelFlasher(wx.Frame):
         label_v_sizer.Add(self.select_boot_label, flag=wx.ALL)
         label_v_sizer.AddSpacer(10)
         label_v_sizer.Add(self.show_all_boot_checkBox, flag=wx.ALL)
+        patch_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        patch_sizer.Add(self.patch_boot_button, 1, wx.EXPAND)
+        patch_sizer.Add(self.patch_custom_boot_button, flag=wx.LEFT, border=5)
         image_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
-        image_buttons_sizer.Add(self.patch_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(patch_sizer, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(self.boot_folder_button, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.flash_boot_button, proportion=1, flag=wx.LEFT, border=5)
         list_sizer = wx.BoxSizer(wx.HORIZONTAL)
         list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND)
         list_sizer.Add(image_buttons_sizer, 0, wx.ALL|wx.EXPAND)
-        list_sizer.Add((self.sdk_link.BestSize.Width + 5, 0), 0, wx.EXPAND)
 
         # 8th row widgets
         mode_label = wx.StaticText(panel, label=u"Flash Mode")
@@ -2305,6 +2424,8 @@ class PixelFlasher(wx.Frame):
         self.verbose_checkBox.Bind(wx.EVT_CHECKBOX, _on_verbose)
         clear_button.Bind(wx.EVT_BUTTON, _on_clear)
         self.reboot_recovery_button.Bind(wx.EVT_BUTTON, _on_reboot_recovery)
+        self.reboot_download_button.Bind(wx.EVT_BUTTON, _on_reboot_download)
+        self.reboot_safemode_button.Bind(wx.EVT_BUTTON, _on_reboot_safemode)
         self.reboot_system_button.Bind(wx.EVT_BUTTON, _on_reboot_system)
         self.reboot_bootloader_button.Bind(wx.EVT_BUTTON, _on_reboot_bootloader)
         self.shell_button.Bind(wx.EVT_BUTTON, _on_adb_shell)
@@ -2323,7 +2444,9 @@ class PixelFlasher(wx.Frame):
         self.image_choice.Bind(wx.EVT_CHOICE, _on_image_choice)
         self.list.Bind(wx.EVT_LEFT_DOWN, _on_boot_selected)
         self.patch_boot_button.Bind(wx.EVT_BUTTON, _on_patch_boot)
+        self.patch_custom_boot_button.Bind(wx.EVT_BUTTON, _on_patch_custom_boot)
         self.delete_boot_button.Bind(wx.EVT_BUTTON, _on_delete_boot)
+        self.boot_folder_button.Bind(wx.EVT_BUTTON, _on_boot_folder)
         self.live_boot_button.Bind(wx.EVT_BUTTON, _on_live_boot)
         self.flash_boot_button.Bind(wx.EVT_BUTTON, _on_flash_boot)
         self.process_firmware.Bind(wx.EVT_BUTTON, _on_process_firmware)

@@ -89,10 +89,15 @@ class Device():
         self._ro_boot_warranty_bit = None
         self._ro_warranty_bit = None
         self._ro_secure = None
+        self._ro_zygote = None
+        self._ro_vendor_product_cpu_abilist = None
+        self._ro_vendor_product_cpu_abilist32 = None
         self._rooted = None
         self._unlocked = None
         self._magisk_version = None
         self._magisk_app_version = None
+        self._magisk_version_code = None
+        self._magisk_app_version_code = None
         self._magisk_detailed_modules = None
         self._magisk_modules_summary = None
         self._magisk_apks = None
@@ -207,6 +212,10 @@ class Device():
                 s_ro_boot_warranty_bit = 'ro.boot.warranty_bit'
                 s_ro_warranty_bit = 'ro.warranty_bit'
                 s_ro_secure = 'ro.secure'
+                # Magisk zygote64_32 related props. https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/
+                s_ro_zygote = 'ro.zygote'
+                s_ro_vendor_product_cpu_abilist = 'ro.vendor.product.cpu.abilist'
+                s_ro_vendor_product_cpu_abilist32 = 'ro.vendor.product.cpu.abilist32'
                 for line in device_info.split("\n"):
                     if s_active_slot in line and not self._active_slot:
                         self._active_slot = self.extract_prop(s_active_slot, line.strip())
@@ -242,6 +251,12 @@ class Device():
                         self._ro_warranty_bit = self.extract_prop(s_ro_warranty_bit, line.strip())
                     elif s_ro_secure in line and not self._ro_secure:
                         self._ro_secure = self.extract_prop(s_ro_secure, line.strip())
+                    elif s_ro_zygote in line and not self._ro_zygote:
+                        self._ro_zygote = self.extract_prop(s_ro_zygote, line.strip())
+                    elif s_ro_vendor_product_cpu_abilist in line and not self._ro_vendor_product_cpu_abilist:
+                        self._ro_vendor_product_cpu_abilist = self.extract_prop(s_ro_vendor_product_cpu_abilist, line.strip())
+                    elif s_ro_vendor_product_cpu_abilist32 in line and not self._ro_vendor_product_cpu_abilist32:
+                        self._ro_vendor_product_cpu_abilist32 = self.extract_prop(s_ro_vendor_product_cpu_abilist32, line.strip())
         elif mode == 'f.b':
             device_info = self.fastboot_device_info
             if device_info:
@@ -447,6 +462,36 @@ class Device():
             return self._ro_secure
 
     # ----------------------------------------------------------------------------
+    #                               property ro_zygote
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_zygote(self):
+        if self._ro_zygote is None:
+            return ''
+        else:
+            return self._ro_zygote
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_vendor_product_cpu_abilist
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_vendor_product_cpu_abilist(self):
+        if self._ro_vendor_product_cpu_abilist is None:
+            return ''
+        else:
+            return self._ro_vendor_product_cpu_abilist
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_vendor_product_cpu_abilist32
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_vendor_product_cpu_abilist32(self):
+        if self._ro_vendor_product_cpu_abilist32 is None:
+            return ''
+        else:
+            return self._ro_vendor_product_cpu_abilist32
+
+    # ----------------------------------------------------------------------------
     #                               property unlocked
     # ----------------------------------------------------------------------------
     @property
@@ -494,8 +539,11 @@ class Device():
                     m = re.findall(regex, res.stdout)
                     if m:
                         self._magisk_version = f"{m[0][0]}:{m[0][1]}"
+                        self._magisk_version_code = f"{m[0][1]}"
                     else:
                         self._magisk_version = res.stdout
+                        self._magisk_version_code = res.stdout
+                        self._magisk_version_code = self._magisk_version.strip(':')
                     self._magisk_version = self._magisk_version.strip('\n')
             except Exception:
                 try:
@@ -503,10 +551,21 @@ class Device():
                     res = run_shell(theCmd)
                     if res.returncode == 0:
                         self._magisk_version = res.stdout.strip('\n')
+                        self._magisk_version_code = self._magisk_version.strip(':')
                 except Exception:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
                     self._rooted = None
         return self._magisk_version
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_version_code(self):
+        if self._magisk_version_code is None:
+            return ''
+        else:
+            return self._magisk_version_code
 
     # ----------------------------------------------------------------------------
     #                               property magisk_config_path
@@ -532,10 +591,13 @@ class Device():
     #                               method get_partitions
     # ----------------------------------------------------------------------------
     def get_partitions(self):
-        if self.mode != 'adb' or not self.rooted:
+        if self.mode != 'adb':
             return -1
-        try:
+        if self.rooted:
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /dev/block/bootdevice/by-name/; ls -1 .\'\""
+        else:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell cd /dev/block/bootdevice/by-name/; ls -1 ."
+        try:
             res = run_shell(theCmd)
             if res.returncode == 0:
                 list = res.stdout.split('\n')
@@ -992,6 +1054,45 @@ class Device():
             return -1
 
     # ----------------------------------------------------------------------------
+    #                               Method file_content
+    # ----------------------------------------------------------------------------
+    def file_content(self, file_path: str, with_su = False) -> int:
+        """Method cats the file content.
+
+        Args:
+            file_path:  Full file path
+            with_su:    Perform the action as root (Default: False)
+
+        Returns:
+            filecontent if it exists
+            -1          if an exception is raised.
+        """
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not in ADB mode.")
+            return -1
+        try:
+            if with_su:
+                if self.rooted:
+                    print(f"Getting file content of {file_path} on the device as root ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat {file_path}\'\""
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not rooted.")
+            else:
+                print(f"Getting file content of {file_path} on the device ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell cat {file_path}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("Return Code: 0")
+                return res.stdout
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
+                return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method push_file
     # ----------------------------------------------------------------------------
     def push_file(self, local_file: str, file_path: str, with_su = False) -> int:
@@ -1278,6 +1379,7 @@ class Device():
                         versionCode = versionCode[1]
                         versionCode = versionCode.split(' ')
                         versionCode = versionCode[0]
+                        self._magisk_app_version_code = versionCode
                     if re.search('versionName', line):
                         version = line.split('=')
                         version = version[1]
@@ -1288,6 +1390,16 @@ class Device():
             else:
                 self._magisk_app_version = ''
         return self._magisk_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_app_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_app_version_code(self):
+        if self._magisk_app_version_code is None:
+            return ''
+        else:
+            return self._magisk_app_version_code
 
     # ----------------------------------------------------------------------------
     #                               Method get_uncached_magisk_app_version
@@ -1443,14 +1555,15 @@ class Device():
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['stable', 'beta', 'canary', 'debug', 'alpha', 'delta', 'special']
+                mlist = ['stable', 'beta', 'canary', 'debug', 'alpha', 'delta', 'zygote64_32 stable', 'zygote64_32 beta', 'zygote64_32 canary', 'zygote64_32 debug', 'special']
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
-                    apks.append(apk)
+                    if apk:
+                        apks.append(apk)
                 self._magisk_apks = apks
             except Exception as e:
                 self._magisk_apks is None
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links processing\nException: {e}")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads link: {i} processing\nException: {e}")
         return self._magisk_apks
 
     # ----------------------------------------------------------------------------
@@ -1470,6 +1583,14 @@ class Device():
             url = "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/alpha.json"
         elif channel == 'delta':
             url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
+        elif channel == 'zygote64_32 stable':
+            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/stable.json"
+        elif channel == 'zygote64_32 beta':
+            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/beta.json"
+        elif channel == 'zygote64_32 canary':
+            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/canary.json"
+        elif channel == 'zygote64_32 debug':
+            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/debug.json"
         elif channel == 'special':
             url = ""
             setattr(ma, 'version', "f9e82c9e")
@@ -1530,7 +1651,8 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             setattr(ma, 'release_notes', response.text)
             return ma
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links processing\nException: {e}")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links: {url} processing\nException: {e}")
+            return
 
     # ----------------------------------------------------------------------------
     #                               property magisk_modules_summary
@@ -1581,7 +1703,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     def reboot_system(self):
         print(f"Rebooting device {self.id} to system ...")
-        puml(f":Rebooting device {self.id} to system;\n, True")
+        puml(f":Rebooting device {self.id} to system;\n", True)
         if self.mode == 'adb' and get_adb():
             theCmd = f"\"{get_adb()}\" -s {self.id} reboot"
             debug(theCmd)
@@ -1605,6 +1727,29 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot recovery"
             debug(theCmd)
             return run_shell(theCmd)
+
+    # ----------------------------------------------------------------------------
+    #                               Method reboot_download
+    # ----------------------------------------------------------------------------
+    def reboot_download(self):
+        if self.mode == 'adb' and get_adb():
+            print(f"Rebooting device {self.id} to download ...")
+            puml(f":Rebooting device {self.id} to download;\n", True)
+            theCmd = f"\"{get_adb()}\" -s {self.id} reboot download "
+            debug(theCmd)
+            return run_shell(theCmd)
+
+    # ----------------------------------------------------------------------------
+    #                               Method reboot_safemode
+    # ----------------------------------------------------------------------------
+    def reboot_safemode(self):
+        if self.mode == 'adb' and get_adb() and self.rooted:
+            print(f"Rebooting device {self.id} to safe mode ...")
+            puml(f":Rebooting device {self.id} to safe mode;\n", True)
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'setprop persist.sys.safemode 1\'\""
+            debug(theCmd)
+            run_shell(theCmd)
+            self.reboot_system()
 
     # ----------------------------------------------------------------------------
     #                               Method reboot_bootloader

@@ -182,7 +182,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.Set_all_cb_clicked (True)
         itemcount = self.list.GetItemCount()
         [self.list.CheckItem(item=i, check=state) for i in range(itemcount)]
-        if state:
+        if state and self.device.rooted:
             print("checking all Partitions\n")
             self.EnableDisableButton(True)
         else:
@@ -256,10 +256,12 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             self.EnableDisableButton(False)
         elif i == self.partitionCount:
             self.all_checkbox.Set3StateValue(1)
-            self.EnableDisableButton(True)
+            if self.device.rooted:
+                self.EnableDisableButton(True)
         else:
             self.all_checkbox.Set3StateValue(2)
-            self.EnableDisableButton(True)
+            if self.device.rooted:
+                self.EnableDisableButton(True)
 
     # -----------------------------------------------
     #                  EnableDisableButton
@@ -458,13 +460,15 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     #                  OnpopupErase
     # -----------------------------------------------
     def OnpopupErase(self, event):
-        self.ApplySingleAction(self.currentItem, 'erase')
+        if self.device.rooted:
+            self.ApplySingleAction(self.currentItem, 'erase')
 
     # -----------------------------------------------
     #                  OnPopupDump
     # -----------------------------------------------
     def OnPopupDump(self, event):
-        self.ApplySingleAction(self.currentItem, 'dump')
+        if self.device.rooted:
+            self.ApplySingleAction(self.currentItem, 'dump')
 
     # -----------------------------------------------
     #                  OnCopyClipboard

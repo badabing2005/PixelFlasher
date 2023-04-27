@@ -1171,3 +1171,16 @@ PartitionManager = PyEmbeddedImage(
     b'olREcwtISfvoYU5RHGDzGdUswGY4KDXBLECXJzkf0NwCXGmfakFEVQtonkxpYgElhuLTS1H1'
     b'SIyjaG4BAIELECiIeXl+AAAAAElFTkSuQmCC')
 
+#----------------------------------------------------------------------
+CustomPatch = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABuElEQVRIS82UT07CUBCHZygm'
+    b'umNpUkx6BLwB3EBWgm7gBkXrWl1blRvARmGnN5AbwA3UAPvuNEH7nCltfW364FU0sRv+pPm+'
+    b'eTO/eQh//OBv8Hu2VWp3X7ws1saCgVOuEuRBANSb7myUlmwsGDp7twDCZjBJamnJjwTDU7MH'
+    b'WPAa7rTD4KFTfqKPapYkt2AJx9ayFdj1wX8tAJ7Tj1LUHvkkuQQSnAcaAwMVwIUQwiL5gS+w'
+    b'fXQ9fQz/18uRDGcAovAIyq3hZ9JwZ/v85e7MrBxfzScRVesEaXhUXZigUILdaCZyyWsFWfCB'
+    b'vWu9w7bH2b93TJtmQEmiFPmi3byZ97UFKjgaRlC1QGoV7UAwDyH6b59bnfTCKU+gagtv7U7x'
+    b'gwWVuFIFXDlkVeVQLFq8SIner4BnCuScU1rqPNCgamMxpghaPohOnPs18ExBMhkwovjV+EX5'
+    b'SghaowFXtihLwvk2BI7zwJWCMHry+o/CoSrTIkdzZUwTcGrD972j3xalQIbz3XLozi7jdmn2'
+    b'PH2SxB5Qgp45KRE8elneXFUrtFrEAkTsc+V5QVqCwYnZSt8lm4rWXnb/XvAFy7IRKHw15OYA'
+    b'AAAASUVORK5CYII=')
+

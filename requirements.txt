@@ -1,5 +1,5 @@
 wxPython>=4.2.0
-PyInstaller=5.9.0
+PyInstaller==5.9.0
 httplib2>=0.21.0
 pyinstaller-versionfile>=2.1.1
 platformdirs>=2.5.4

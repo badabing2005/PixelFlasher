@@ -220,6 +220,7 @@ class PixelFlasher(wx.Frame):
         self.fastboot_force_checkBox.SetValue(self.config.fastboot_force)
         self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
         self.temporary_root_checkBox.SetValue(self.config.temporary_root)
+        self.no_reboot_checkBox.SetValue(self.config.no_reboot)
 
         # get the image choice and update UI
         set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
@@ -975,7 +976,23 @@ class PixelFlasher(wx.Frame):
             elif sys.platform == "darwin":
                 subprocess.Popen(["open", dir_path])
             else:
-                subprocess.Popen(["xdg-open", dir_path])
+                subprocess.Popen(["nautilus", dir_path])
+
+    # -----------------------------------------------
+    #                  _open_terminal
+    # -----------------------------------------------
+    def _open_terminal(self, path, isFile = False):
+        if path:
+            if isFile:
+                dir_path = os.path.dirname(path)
+            else:
+                dir_path = path
+            if sys.platform.startswith("win"):
+                subprocess.Popen(["cmd.exe", "/k", "cd", dir_path])
+            elif sys.platform.startswith("linux"):
+                subprocess.Popen(["x-terminal-emulator", "--working-directory", dir_path])
+            elif sys.platform.startswith("darwin"):
+                subprocess.Popen(["open", "-a", "Terminal", dir_path])
 
     # -----------------------------------------------
     #                  _select_configured_device
@@ -1038,6 +1055,7 @@ class PixelFlasher(wx.Frame):
             self.install_magisk_button.Enable(True)
             self.flash_both_slots_checkBox.Enable(True)
             self.flash_to_inactive_slot_checkBox.Enable(True)
+            self.no_reboot_checkBox.Enable(True)
             self.partition_manager_button.Enable(True)
             if device.rooted:
                 self.backup_manager_button.Enable(True)
@@ -1068,6 +1086,7 @@ class PixelFlasher(wx.Frame):
                 self.set_active_slot_button.Enable(False)
                 self.flash_both_slots_checkBox.Enable(False)
                 self.flash_to_inactive_slot_checkBox.Enable(False)
+                self.no_reboot_checkBox.Enable(False)
                 set_a_only(True)
             if device.magisk_modules_summary == '':
                 self.magisk_button.Enable(False)
@@ -1097,6 +1116,7 @@ class PixelFlasher(wx.Frame):
             self.package_manager.Enable(False)
             self.flash_both_slots_checkBox.Enable(False)
             self.flash_to_inactive_slot_checkBox.Enable(False)
+            self.no_reboot_checkBox.Enable(False)
 
 
     #-----------------------------------------------------------------------------
@@ -1345,6 +1365,17 @@ class PixelFlasher(wx.Frame):
             puml(":Flash Option change;\n", True)
             puml(f"note right:Temporary Root {status}\n")
             self.config.temporary_root = status
+
+        # -----------------------------------------------
+        #                  _on_no_reboot
+        # -----------------------------------------------
+        def _on_no_reboot(event):
+            self._on_no_reboot_checkBox = event.GetEventObject()
+            status = self._on_no_reboot_checkBox.GetValue()
+            print(f"Flash Option: No Reboot {status}")
+            puml(":Flash Option change;\n", True)
+            puml(f"note right:No Reboot {status}\n")
+            self.config.no_reboot = status
 
         # -----------------------------------------------
         #                  _on_verbose
@@ -1859,6 +1890,7 @@ class PixelFlasher(wx.Frame):
                 self.config.selected_boot_md5 = boot.boot_hash
                 self.delete_boot_button.Enable(True)
                 self.boot_folder_button.Enable(True)
+                self.firmware_folder_button.Enable(True)
                 self.live_boot_button.Enable(True)
                 self.flash_boot_button.Enable(True)
                 if boot.magisk_version == '':
@@ -1891,6 +1923,7 @@ class PixelFlasher(wx.Frame):
                 self.patch_boot_button.Enable(False)
                 self.delete_boot_button.Enable(False)
                 self.boot_folder_button.Enable(False)
+                self.firmware_folder_button.Enable(False)
                 self.live_boot_button.Enable(False)
                 self.flash_boot_button.Enable(False)
                 self.paste_boot.Enable(False)
@@ -1983,6 +2016,18 @@ class PixelFlasher(wx.Frame):
             boot = get_boot()
             if boot:
                 self._open_folder(boot.boot_path, True)
+            self._on_spin('stop')
+
+        # -----------------------------------------------
+        #                  _on_firmware_folder
+        # -----------------------------------------------
+        def _on_firmware_folder(event):
+            self._on_spin('start')
+            boot = get_boot()
+            if boot:
+                config_path = get_config_path()
+                working_dir = os.path.join(config_path, 'factory_images', boot.package_sig)
+                self._open_folder(working_dir, False)
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -2176,7 +2221,7 @@ class PixelFlasher(wx.Frame):
         self.firmware_link.SetToolTip(u"Download Pixel Firmware")
         self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
-        self.process_firmware = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.process_firmware = wx.Button(panel, wx.ID_ANY, u"Process", wx.DefaultPosition, wx.DefaultSize, 0)
         self.process_firmware.SetBitmap(images.Process_File.GetBitmap())
         self.process_firmware.SetToolTip(u"Process the firmware file and extract the boot.img")
         firmware_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2191,7 +2236,7 @@ class PixelFlasher(wx.Frame):
         self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
         self.custom_rom = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"ROM files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.custom_rom.SetToolTip(u"Select Custom ROM")
-        self.process_rom = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.process_rom = wx.Button(panel, wx.ID_ANY, u"Process", wx.DefaultPosition, wx.DefaultSize, 0)
         self.process_rom.SetBitmap(images.Process_File.GetBitmap())
         self.process_rom.SetToolTip(u"Process the ROM file and extract the boot.img")
         custom_rom_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2250,6 +2295,9 @@ class PixelFlasher(wx.Frame):
         self.boot_folder_button = wx.Button(panel, wx.ID_ANY, u"Open Folder", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
         self.boot_folder_button.SetBitmap(images.Config_Folder.GetBitmap())
         self.boot_folder_button.SetToolTip(u"Open boot files folder.")
+        self.firmware_folder_button = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.firmware_folder_button.SetBitmap(images.Config_Folder.GetBitmap())
+        self.firmware_folder_button.SetToolTip(u"Open Working Directory\n\nOpens the firmware working directory.\nUse this if you want to manually run commands from the working directory")
         self.live_boot_button = wx.Button(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, self.flash_boot_button.BestSize, 0)
         self.live_boot_button.SetBitmap(images.Boot.GetBitmap())
         self.live_boot_button.SetToolTip(u"Live boot to the selected item")
@@ -2260,10 +2308,13 @@ class PixelFlasher(wx.Frame):
         patch_sizer = wx.BoxSizer(wx.HORIZONTAL)
         patch_sizer.Add(self.patch_boot_button, 1, wx.EXPAND)
         patch_sizer.Add(self.patch_custom_boot_button, flag=wx.LEFT, border=5)
+        folder_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        folder_sizer.Add(self.boot_folder_button, 1, wx.EXPAND)
+        folder_sizer.Add(self.firmware_folder_button, flag=wx.LEFT, border=5)
         image_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         image_buttons_sizer.Add(patch_sizer, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT, border=5)
-        image_buttons_sizer.Add(self.boot_folder_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(folder_sizer, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.flash_boot_button, proportion=1, flag=wx.LEFT, border=5)
         list_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2317,6 +2368,8 @@ class PixelFlasher(wx.Frame):
         self.fastboot_verbose_checkBox.SetToolTip(u"set fastboot option to verbose")
         self.temporary_root_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Temporary Root", wx.DefaultPosition, wx.DefaultSize, 0)
         self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if magisk will cause a bootloop.\n\nPlease be aware that factory image will be flashed, and if you reboot\nthe device will be unrooted.\nIf you want to make this permanent, just flash the patched boot.img")
+        self.no_reboot_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"No reboot", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
         self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.advanced_options_sizer.Add(self.flash_to_inactive_slot_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
@@ -2331,6 +2384,8 @@ class PixelFlasher(wx.Frame):
         self.advanced_options_sizer.Add(self.fastboot_verbose_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
         self.advanced_options_sizer.Add(self.temporary_root_checkBox)
+        self.advanced_options_sizer.AddSpacer(10)
+        self.advanced_options_sizer.Add(self.no_reboot_checkBox)
         self.advanced_options_sizer.AddSpacer(10)
 
         # 11th row widgets, Flash button
@@ -2416,6 +2471,7 @@ class PixelFlasher(wx.Frame):
         self.disable_verification_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verification)
         self.flash_both_slots_checkBox.Bind(wx.EVT_CHECKBOX, _on_flash_both_slots)
         self.flash_to_inactive_slot_checkBox.Bind(wx.EVT_CHECKBOX, _on_flash_to_inactive_slot)
+        self.no_reboot_checkBox.Bind(wx.EVT_CHECKBOX, _on_no_reboot)
         self.disable_verity_checkBox.Bind(wx.EVT_CHECKBOX, _on_disable_verity)
         self.fastboot_force_checkBox.Bind(wx.EVT_CHECKBOX, _on_fastboot_force)
         self.fastboot_verbose_checkBox.Bind(wx.EVT_CHECKBOX, _on_fastboot_verbose)
@@ -2447,6 +2503,7 @@ class PixelFlasher(wx.Frame):
         self.patch_custom_boot_button.Bind(wx.EVT_BUTTON, _on_patch_custom_boot)
         self.delete_boot_button.Bind(wx.EVT_BUTTON, _on_delete_boot)
         self.boot_folder_button.Bind(wx.EVT_BUTTON, _on_boot_folder)
+        self.firmware_folder_button.Bind(wx.EVT_BUTTON, _on_firmware_folder)
         self.live_boot_button.Bind(wx.EVT_BUTTON, _on_live_boot)
         self.flash_boot_button.Bind(wx.EVT_BUTTON, _on_flash_boot)
         self.process_firmware.Bind(wx.EVT_BUTTON, _on_process_firmware)

@@ -19,8 +19,10 @@ from packaging.version import parse
 from platformdirs import *
 
 from config import SDKVERSION, VERSION
+from file_editor import FileEditor
 from magisk_downloads import MagiskDownloads
 from message_box import MessageBox
+from message_box_ex import MessageBoxEx
 from phone import get_connected_devices
 from runtime import *
 
@@ -193,6 +195,7 @@ def populate_boot_list(self):
     # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
     self.delete_boot_button.Enable(False)
     self.boot_folder_button.Enable(False)
+    self.firmware_folder_button.Enable(False)
     self.live_boot_button.Enable(False)
     self.flash_boot_button.Enable(False)
 
@@ -1594,10 +1597,10 @@ def patch_boot_img(self, custom_patch = False):
                 data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
                 data += "    cp $FILE $NEWNAME\n"
                 data += "done\n"
-                if device.architecture == "arm64-v8a" and (device.ro_zygote != "zygote64" or self.config.include_magisk32):
-                    data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
-                elif device.architecture == "x86_64":
+                if device.architecture == "x86_64":
                     data += "cp ../lib/x86/libmagisk32.so magisk32\n"
+                elif device.architecture == "arm64-v8a" and (device.ro_zygote != "zygote64" or "zygote64_32" in with_version.lower()):
+                    data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
                 data += "chmod 755 *\n"
 
             data += "SYSTEM_ROOT=false\n"
@@ -2163,18 +2166,10 @@ def live_flash_boot_phone(self, option):
         self.config.device = None
         self.device_choice.SetItems([''])
         self.device_choice.Select(0)
-        if option == 'Flash':
-            print("\nNote: The device is intentionally kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
-            try:
-                dlg = wx.MessageDialog(None, "Do you want to reboot to system?",'Flashing success',wx.YES_NO | wx.YES_DEFAULT | wx.ICON_EXCLAMATION)
-            except Exception:
-                return
-            result = dlg.ShowModal()
-            if result == wx.ID_YES:
-                puml(":Reboot to System;\n")
-                device.reboot_system()
-            else:
-                print("User cancelled rebooting to system.")
+        # Live automatically reboots, so we can only control the Flash one.
+        if option == 'Flash' and not self.config.no_reboot:
+            puml(":Reboot to System;\n")
+            device.reboot_system()
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
@@ -2283,7 +2278,7 @@ def flash_phone(self):
     message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
 
     if sys.platform == "win32":
-        dest = os.path.join(package_dir_full, "flash-phone.bat")
+        flash_pf_file = os.path.join(package_dir_full, "flash-pf.bat")
         if self.config.force_codepage:
             cp = str(self.config.custom_codepage)
             if cp == '':
@@ -2299,16 +2294,16 @@ def flash_phone(self):
         else:
             version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
     else:
-        dest = os.path.join(package_dir_full, "flash-phone.sh")
+        flash_pf_file = os.path.join(package_dir_full, "flash-pf.sh")
         first_line = "#!/bin/sh\n"
         if self.config.advanced_options and self.config.flash_mode == 'customFlash':
             version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
         else:
             version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
 
-    # delete previous flash-phone.bat file if it exists
-    if os.path.exists(dest):
-        os.remove(dest)
+    # delete previous flash-pf.bat file if it exists
+    if os.path.exists(flash_pf_file):
+        os.remove(flash_pf_file)
 
     #-------------------------------
     # if we are in custom Flash mode
@@ -2318,8 +2313,8 @@ def flash_phone(self):
             fastboot_options += '--slot other '
         if image_mode and get_image_path():
             title = "Advanced Flash Options"
-            # create flash-phone.bat based on the custom options.
-            f = open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace")
+            # create flash-pf.bat based on the custom options.
+            f = open(flash_pf_file.strip(), "w", encoding="ISO-8859-1", errors="replace")
             data = first_line
             if sys.platform == "win32":
                 data += "PATH=%PATH%;\"%SYSTEMROOT%\System32\"\n"
@@ -2529,10 +2524,12 @@ def flash_phone(self):
                 data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
             else:
                 data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
-            data += "echo rebooting to system ...\n"
-            data += f"\"{get_fastboot()}\" -s {device.id} reboot"
+            # only reboot if no_reboot is not selected.
+            if not self.config.no_reboot:
+                data += "echo rebooting to system ...\n"
+                data += f"\"{get_fastboot()}\" -s {device.id} reboot"
 
-        fin = open(dest, "wt", encoding="ISO-8859-1", errors="replace")
+        fin = open(flash_pf_file, "wt", encoding="ISO-8859-1", errors="replace")
         fin.write(data)
         fin.close()
 
@@ -2544,11 +2541,11 @@ def flash_phone(self):
     #----------------------------------------
     # make the sh script executable
     if sys.platform != "win32":
-        theCmd = f"chmod 755 \"{dest}\""
+        theCmd = f"chmod 755 \"{flash_pf_file}\""
         debug(theCmd)
         res = run_shell(theCmd)
         if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {dest}")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file}")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
@@ -2566,8 +2563,9 @@ def flash_phone(self):
         message += "In case it takes excessively long, it could possibly be due to improper or\n"
         message += "bad fasboot drivers.\n"
         message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
-    message += "      Do you want to continue to flash with the above options?\n"
-    message += "              Press OK to continue or CANCEL to abort.\n"
+    message += "Do you want to continue to flash with the above options?\n"
+    message += "You can also choose to edit the script before continuing,\nin case you want to customize it.(Only choose this if you know what you are doing)\n\n"
+    message += "Press OK to continue or CANCEL to abort.\n"
     print(f"\n*** Dialog ***\n{message}\n______________\n")
     print(f"The script content that will be executed:")
     print(f"___________________________________________________\n{data}")
@@ -2578,20 +2576,40 @@ def flash_phone(self):
     puml(f"note right\nFlash Script\n====\n{data}\nend note\n")
     set_message_box_title(title)
     set_message_box_message(message)
-    dlg = MessageBox(self)
+    dlg = MessageBoxEx(parent=None, button_texts=["OK", "Edit script before continuing", "Cancel"], default_button=1)
     dlg.CentreOnParent(wx.BOTH)
     result = dlg.ShowModal()
-
-    if result == wx.ID_OK:
+    dlg.Destroy()
+    if result == 1: # OK
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
         puml(":User Pressed OK;\n")
-    else:
+        # continue flashing
+    elif result == 2: # Edit
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
+        puml("#pink:User Pressed Edit Script;\n}\n")
+        dlg = FileEditor(self, flash_pf_file)
+        dlg.CenterOnParent()
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        if result == wx.ID_OK:
+            # get the contents of modified flash_pf_file
+            with open(flash_pf_file, 'r') as f:
+                contents = f.read()
+            print(f"\nflash_pf file has been modified!")
+            print(f"The modified script content that will be executed:")
+            print(f"___________________________________________________\n{contents}")
+            print("___________________________________________________\n")
+            puml(f"note right\nModified Script\n====\n{contents}\nend note\n")
+            # continue flashing
+        else:
+            print("User cancelled editing flash_phone file.")
+            puml(f"note right\nCancelled and Aborted\nend note\n")
+            return
+    elif result == 3: # Cancel
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
         print("Aborting ...\n")
-        dlg.Destroy()
         puml("#pink:User Pressed Cancel;\n}\n")
         return
-    dlg.Destroy()
 
     print("")
     print("==============================================================================")
@@ -2609,7 +2627,7 @@ def flash_phone(self):
         time.sleep(20)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
         puml(f":Flashing device {device.id};\n", True)
-        theCmd = dest
+        theCmd = flash_pf_file
         os.chdir(package_dir_full)
         debug(f"Running in Directory: {package_dir_full}")
         theCmd = f"\"{theCmd}\""
@@ -2688,7 +2706,7 @@ def flash_phone(self):
                 puml("#pink:User cancelled flashing;\n}\n")
                 return
 
-        theCmd = dest
+        theCmd = flash_pf_file
         os.chdir(package_dir_full)
         theCmd = f"\"{theCmd}\""
         debug(theCmd)

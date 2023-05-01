@@ -54,7 +54,8 @@ jobs:
 
       - name: Upload Windows Release Asset
         id: upload-windows-release-asset
-        uses: actions/upload-release-asset@v1
+        # uses: actions/upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

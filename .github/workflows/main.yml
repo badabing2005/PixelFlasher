@@ -28,7 +28,8 @@ jobs:
 
       # Runs https://github.com/JackMcKew/pyinstaller-action-windows
       - name: Package Windows Application
-        uses: JackMcKew/pyinstaller-action-windows@main
+        # uses: JackMcKew/pyinstaller-action-windows@main
+        uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
         with:
           path: .
           spec: build-on-win.spec
@@ -47,13 +48,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           name: Release ${{ github.ref }}
+          allowUpdates: "true"
           draft: false
           prerelease: true
 
 
       - name: Upload Windows Release Asset
         id: upload-windows-release-asset
-        uses: actions/upload-release-asset@v1
+        # uses: actions/upload-release-asset@v1
+        uses: shogo82148/actions-upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -61,6 +64,7 @@ jobs:
           asset_path: ./dist/windows/PixelFlasher.exe
           asset_name: PixelFlasher.exe
           asset_content_type: application/zip
+          overwrite: "true"
 
       # # Runs https://github.com/badabing2005/pyinstaller-action-linux
       # - name: Package Linux Application

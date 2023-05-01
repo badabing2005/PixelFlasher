@@ -64,6 +64,7 @@ jobs:
           asset_path: ./dist/windows/PixelFlasher.exe
           asset_name: PixelFlasher.exe
           asset_content_type: application/zip
+          overwrite: "true"
 
       # # Runs https://github.com/badabing2005/pyinstaller-action-linux
       # - name: Package Linux Application

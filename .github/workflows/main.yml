@@ -28,7 +28,8 @@ jobs:
 
       # Runs https://github.com/JackMcKew/pyinstaller-action-windows
       - name: Package Windows Application
-        uses: JackMcKew/pyinstaller-action-windows@main
+        # uses: JackMcKew/pyinstaller-action-windows@main
+        uses: JackMcKew/pyinstaller-action-windows@python3-10-pyinstaller-5-3
         with:
           path: .
           spec: build-on-win.spec

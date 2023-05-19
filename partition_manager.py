@@ -9,7 +9,6 @@ import wx.lib.mixins.listctrl as listmix
 import wx.lib.wxpTag
 
 import images as images
-from modules import extract_sha1, sha1
 from runtime import *
 
 
@@ -155,7 +154,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             self.partitionCount = len(res)
             self.message_label.Label = f"{self.partitionCount} Partitions"
             for i, key in enumerate(res):
-                if key != '':
+                if key:
                     index = self.list.InsertItem(self.list.GetItemCount(), key)
                     itemDataMap[i + 1] = (key)
                     row = self.list.GetItem(index)

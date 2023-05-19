@@ -1,0 +1,97 @@
+name: Build for Ubuntu 22.04
+
+env:
+  ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# Controls when the workflow will run
+on:
+  # push:
+    # # Sequence of patterns matched against refs/tags
+    # tags:
+    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Build tags'
+
+jobs:
+  build_ubuntu_22_04:
+    if: github.actor == 'badabing2005'
+    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          # python-version: '3.8'
+          # python-version: '3.9'
+          python-version: '3.10'
+
+      - name: Create virtual environment
+        run: python -m venv myenv
+        shell: bash
+
+      - name: Activate virtual environment
+        run: source myenv/bin/activate
+        shell: bash
+
+      - name: Install wxPython
+        # run: pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp38-cp38-linux_x86_64.whl
+        # run: pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp39-cp39-linux_x86_64.whl
+        run: pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp310-cp310-linux_x86_64.whl
+
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: List modules and their versions
+        run: python3.10 -m pip freeze
+
+      - name: Build application
+        run: ./build.sh
+
+      - name: List contents of dist directory
+        run: ls dist
+
+      # # Upload artifcats Ubuntu
+      # - name: Upload Ubuntu 22.04 Artifact
+        # uses: actions/upload-artifact@v3
+        # id: upload_artifacts_ubuntu_22_04
+        # with:
+          # name: PixelFlasher_Ubuntu_22_04
+          # path: dist/PixelFlasher
+
+      # Create a release
+      - name: Create Release
+        id: create_release
+        # uses: actions/create-release@v1
+        uses: ncipollo/release-action@v1.11.1
+        # env:
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          # release_name: Release ${{ github.ref }}
+          # name: Release ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          allowUpdates: "true"
+          draft: false
+          prerelease: true
+
+      # Upload the Ubuntu 22.04 artifact to release
+      - name: Upload Ubuntu 22.04 Artifact to release
+        uses: shogo82148/actions-upload-release-asset@v1
+        # uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/PixelFlasher
+          asset_name: PixelFlasher_Ubuntu_22_04
+          asset_content_type: application/zip

@@ -226,7 +226,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 alltext = f"{key.lower()} {str(data.label.lower())}"
                 if query.lower() in alltext:
                     index = self.list.InsertItem(self.list.GetItemCount(), key)
-                    if data.type != '':
+                    if data.type:
                         itemDataMap[i + 1] = (key, data.type, data.installed, data.enabled, data.user0, data.label)
                         row = self.list.GetItem(index)
                         self.list.SetItem(index, 1, data.type)

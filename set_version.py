@@ -9,7 +9,7 @@ import re
 cwd = os.getcwd()
 file1 = os.path.join(cwd, 'build-on-mac.spec')
 file2 = os.path.join(cwd, 'build.sh')
-file3 = os.path.join(cwd, 'config.py')
+file3 = os.path.join(cwd, 'constants.py')
 file4 = os.path.join(cwd, 'windows-metadata.yaml')
 file5 = os.path.join(cwd, 'windows-version-info.txt')
 

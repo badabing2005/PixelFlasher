@@ -7,8 +7,7 @@ import time
 from datetime import datetime
 from urllib.parse import urlparse
 
-import wx
-
+from constants import *
 from runtime import *
 
 
@@ -102,6 +101,7 @@ class Device():
         self._magisk_modules_summary = None
         self._magisk_apks = None
         self._magisk_config_path = None
+        self._has_init_boot = None
         self.packages = {}
         self.backups = {}
 
@@ -275,6 +275,15 @@ class Device():
                         else:
                             self._unlocked = False
 
+        # set has_init_boot
+        self._has_init_boot = False
+        if self.hardware in KNOWN_INIT_BOOT_DEVICES:
+            self._has_init_boot = True
+        for partition in self.get_partitions():
+            if 'init' in partition:
+                self._has_init_boot = True
+                break
+
     # ----------------------------------------------------------------------------
     #                               property extract_prop
     # ----------------------------------------------------------------------------
@@ -287,6 +296,16 @@ class Device():
             l,r = match.split(":")
             if l.strip() == f"{search}":
                 return r.strip()
+
+    # ----------------------------------------------------------------------------
+    #                               property has_init_boot
+    # ----------------------------------------------------------------------------
+    @property
+    def has_init_boot(self):
+        if self._has_init_boot is None:
+            return False
+        else:
+            return self._has_init_boot
 
     # ----------------------------------------------------------------------------
     #                               property active_slot
@@ -629,7 +648,7 @@ class Device():
             if not list:
                 return -1
             for item in list:
-                if item != '':
+                if item:
                     regex = re.compile("d.+root\sroot\s\w+\s(.*)\s\/data\/magisk_backup_(.*)")
                     m = re.findall(regex, item)
                     if m:
@@ -915,11 +934,11 @@ class Device():
                 if slot not in ['a', 'b']:
                     slot = self.active_slot
                 # decide on boot.img or init_boot.img
-                if 'panther' in get_firmware_model() or 'cheetah' in get_firmware_model():
+                if self.hardware in KNOWN_INIT_BOOT_DEVICES:
                     partition = 'init_boot'
                 else:
                     partition = 'boot'
-            if slot != '':
+            if slot:
                 partition = f"{partition}_{slot}"
             if not file_path:
                 file_path = f"/data/local/tmp/{partition}.img"
@@ -1113,6 +1132,7 @@ class Device():
         try:
             if with_su:
                 if self.rooted:
+                    print(f"Pushing local file as root: {local_file} to the device: {file_path} ...")
                     filename = os.path.basename(urlparse(local_file).path)
                     remote_file = f"/data/local/tmp/{filename}"
                     res = self.push_file(local_file, remote_file, False)
@@ -1288,7 +1308,7 @@ class Device():
             else:
                 if check_details:
                     details, pkg_path = self.get_package_details(pkg)
-                    if pkg_path != '':
+                    if pkg_path:
                         print(f"Package Path is: {pkg_path}")
                         return pkg_path
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
@@ -1362,6 +1382,48 @@ class Device():
             return -1, -1
 
     # ----------------------------------------------------------------------------
+    #                               Method uiautomator_dump
+    # ----------------------------------------------------------------------------
+    def uiautomator_dump(self, path: str):
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not uiautomator dump. Device is not in ADB mode.")
+            return -1
+        try:
+            print(f"uiautomator dump {path} path on the device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell uiautomator dump {path}"
+            res = run_shell(theCmd)
+            if res.returncode == 0 and res.stderr == '':
+                return path
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+            print(res.stderr)
+            return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: not uiautomator dump.")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method click
+    # ----------------------------------------------------------------------------
+    def click(self, coords):
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not click. Device is not in ADB mode.")
+            return -1
+        try:
+            print(f"click {coords} on the device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell input tap {coords}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                return 0
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: click failed.")
+            print(res.stderr)
+            return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: click failed.")
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_app_version
     # ----------------------------------------------------------------------------
     @property
@@ -1408,42 +1470,41 @@ class Device():
         self._magisk_app_version = None
         return self.magisk_app_version
 
-    # # ----------------------------------------------------------------------------
-    # #                               Method is_display_unlocked
-    # # ----------------------------------------------------------------------------
-    # def is_display_unlocked(self):
-    #     print("Checking to see if display is unlocked ...")
-    #     try:
-    #         if self.mode == 'adb':
-    #             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"dumpsys power | grep \'mHolding\'\""
-    #             res = run_shell(theCmd)
-    #             mHoldingWakeLockSuspendBlocker = False
-    #             mHoldingDisplaySuspendBlocker = False
-    #             if res.returncode == 0:
-    #                 results = res.stdout.strip().split('\n')
-    #                 for m in results:
-    #                     s = False
-    #                     k, v = m.strip().split('=')
-    #                     if v == 'true':
-    #                         s = True
-    #                     if k == 'mHoldingDisplaySuspendBlocker':
-    #                         mHoldingDisplaySuspendBlocker = s
-    #                     elif k == 'mHoldingWakeLockSuspendBlocker':
-    #                         mHoldingWakeLockSuspendBlocker = s
-    #             # https://stackoverflow.com/questions/35275828/is-there-a-way-to-check-if-android-device-screen-is-locked-via-adb
-    #             # I'm not going to check for both flags as it is not reliable
-    #             # But this won't work if display is on but locked :(
-    #             # if mHoldingWakeLockSuspendBlocker and mHoldingDisplaySuspendBlocker:
-    #             if mHoldingDisplaySuspendBlocker:
-    #                 print("Display is unlocked")
-    #                 return True
-    #             else:
-    #                 print("Display is locked")
-    #                 return False
-    #     except Exception:
-    #         print("Display is locked")
-    #         return False
-
+    # ----------------------------------------------------------------------------
+    #                               Method is_display_unlocked
+    # ----------------------------------------------------------------------------
+    def is_display_unlocked(self):
+        print("Checking to see if display is unlocked ...")
+        try:
+            if self.mode == 'adb':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"dumpsys power | grep \'mHolding\'\""
+                res = run_shell(theCmd)
+                mHoldingWakeLockSuspendBlocker = False
+                mHoldingDisplaySuspendBlocker = False
+                if res.returncode == 0:
+                    results = res.stdout.strip().split('\n')
+                    for m in results:
+                        s = False
+                        k, v = m.strip().split('=')
+                        if v == 'true':
+                            s = True
+                        if k == 'mHoldingDisplaySuspendBlocker':
+                            mHoldingDisplaySuspendBlocker = s
+                        elif k == 'mHoldingWakeLockSuspendBlocker':
+                            mHoldingWakeLockSuspendBlocker = s
+                # https://stackoverflow.com/questions/35275828/is-there-a-way-to-check-if-android-device-screen-is-locked-via-adb
+                # I'm not going to check for both flags as it is not reliable
+                # But this won't work if display is on but locked :(
+                # if mHoldingWakeLockSuspendBlocker and mHoldingDisplaySuspendBlocker:
+                if mHoldingDisplaySuspendBlocker:
+                    print("Display is unlocked")
+                    return True
+                else:
+                    print("Display is locked")
+                    return False
+        except Exception:
+            print("Display is locked")
+            return False
 
     # ----------------------------------------------------------------------------
     #                               Method stop_magisk
@@ -1470,7 +1531,7 @@ class Device():
                             modules = []
                             themodules = res.stdout.split('-----pf\n')
                             for item in themodules:
-                                if item != '':
+                                if item:
                                     module_prop = item.split('\n')
                                     filepath = module_prop[0]
                                     module = os.path.basename(urlparse(filepath).path)
@@ -1490,7 +1551,7 @@ class Device():
                                         # ignore comment lines
                                         if line[:1] == "#":
                                             continue
-                                        if line.strip() != '' and '=' in line:
+                                        if line.strip() and '=' in line:
                                             key, value = line.split('=', 1)
                                             setattr(m, key, value)
                                     modules.append(m)
@@ -1507,7 +1568,7 @@ class Device():
                             modules = []
                             self._magisk_detailed_modules = res.stdout.split('\n')
                             for module in self._magisk_detailed_modules:
-                                if module != '':
+                                if module:
                                     m = Magisk(module)
                                     if self.mode == 'adb' and get_adb():
                                         # get the state by checking if there is a disable file in the module directory
@@ -1530,7 +1591,7 @@ class Device():
                                                 # ignore comment lines
                                                 if line[:1] == "#":
                                                     continue
-                                                if line.strip() != '' and '=' in line:
+                                                if line.strip() and '=' in line:
                                                     key, value = line.split('=', 1)
                                                     setattr(m, key, value)
                                             modules.append(m)
@@ -2070,7 +2131,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             if not list:
                 return -1
             for item in list.split("\n"):
-                if item != '':
+                if item:
                     package = Package(item)
                     package.type = "System"
                     package.installed = False
@@ -2083,7 +2144,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             if not list:
                 return -1
             for item in list.split("\n"):
-                if item != '' and item in self.packages:
+                if item and item in self.packages:
                     self.packages[item].installed = True
 
             # Get 3rd party packages
@@ -2091,7 +2152,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             if not list:
                 return -1
             for item in list.split("\n"):
-                if item != '' and item in self.packages:
+                if item and item in self.packages:
                     self.packages[item].type = '3rd Party'
 
             # Get disabled packages
@@ -2099,7 +2160,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             if not list:
                 return -1
             for item in list.split("\n"):
-                if item != '' and item in self.packages:
+                if item and item in self.packages:
                     self.packages[item].enabled = False
 
             # Get enabled packages
@@ -2107,7 +2168,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             if not list:
                 return -1
             for item in list.split("\n"):
-                if item != '' and item in self.packages:
+                if item and item in self.packages:
                     self.packages[item].enabled = True
 
             # Get user 0 packages
@@ -2115,7 +2176,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             if not list:
                 return -1
             for item in list.split("\n"):
-                if item != '' and item in self.packages:
+                if item and item in self.packages:
                     self.packages[item].user0 = True
 
         except Exception as e:
@@ -2124,70 +2185,6 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             puml("#red:ERROR: Could not get package list;\n", True)
             return -1
         return 0
-
-
-# ============================================================================
-#                               Function run_shell
-# ============================================================================
-# We use this when we want to capture the returncode and also selectively
-# output what we want to console. Nothing is sent to console, both stdout and
-# stderr are only available when the call is completed.
-def run_shell(cmd, timeout=None):
-    try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", timeout=timeout)
-        wx.Yield()
-        return response
-    except subprocess.TimeoutExpired as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
-        puml("#red:Command timed out;\n", True)
-        puml(f"note right\n{e}\nend note\n")
-    except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell")
-        print(e)
-        puml("#red:Encountered an error;\n", True)
-        puml(f"note right\n{e}\nend note\n")
-        raise e
-
-
-# ============================================================================
-#                               Function run_shell2
-# ============================================================================
-# This one pipes the stdout and stderr to Console text widget in realtime,
-# no returncode is available.
-def run_shell2(cmd, timeout=None):
-    try:
-        class obj(object):
-            pass
-
-        response = obj()
-        proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace")
-
-        print
-        stdout = ''
-        start_time = time.time()
-        while True:
-            line = proc.stdout.readline()
-            wx.Yield()
-            if line.strip() != "":
-                print(line.strip())
-                stdout += line
-            if not line:
-                break
-            if timeout is not None and time.time() > start_time + timeout:
-                proc.terminate()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
-                puml("#red:Command timed out;\n", True)
-                puml(f"note right\nCommand timed out after {timeout} seconds\nend note\n")
-                return None
-        proc.wait()
-        response.stdout = stdout
-        return response
-    except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2")
-        print(e)
-        puml("#red:Encountered an error;\n", True)
-        puml(f"note right\n{e}\nend note\n")
-        raise e
 
 
 # ============================================================================

@@ -7,7 +7,6 @@ import locale
 import math
 import ntpath
 import os
-import subprocess
 import sys
 import time
 import webbrowser
@@ -26,17 +25,17 @@ import images as images
 with contextlib.suppress(Exception):
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
 
+from constants import *
 from advanced_settings import AdvancedSettings
 from backup_manager import BackupManager
-from config import VERSION, Config
+from config import Config
 from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
-from message_box import MessageBox
-from modules import (adb_kill_server, check_platform_tools, create_support_zip,
-                     debug, delete_all, flash_phone, get_code_page,
+from message_box_ex import MessageBoxEx
+from modules import (adb_kill_server, check_platform_tools, flash_phone,
                      live_flash_boot_phone, patch_boot_img, populate_boot_list,
                      process_file, select_firmware, set_flash_button_state,
-                     sha256, wifi_adb_connect)
+                     wifi_adb_connect)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
 from phone import get_connected_devices
@@ -47,7 +46,7 @@ locale.setlocale(locale.LC_ALL, 'C')
 
 # For troubleshooting, set inspector = True
 inspector = False
-
+dont_initialize = False
 
 # ============================================================================
 #                               Class RedirectText
@@ -100,7 +99,8 @@ class PixelFlasher(wx.Frame):
         if self.config.pos_x and self.config.pos_y:
             self.SetPosition((self.config.pos_x,self.config.pos_y))
 
-        self.initialize()
+        if not dont_initialize:
+            self.initialize()
         self.Show(True)
 
     # -----------------------------------------------
@@ -153,44 +153,57 @@ class PixelFlasher(wx.Frame):
         # load Magisk Package Name
         set_magisk_package(self.config.magisk)
 
+        # load Linux File Explorer
+        set_file_explorer(self.config.linux_file_explorer)
+
+        # load Linux Shell
+        set_linux_shell(self.config.linux_shell)
+
+        # load firmware_has_init_boot
+        set_firmware_has_init_boot(self.config.firmware_has_init_boot)
+
+        # load rom_has_init_boot
+        set_rom_has_init_boot(self.config.rom_has_init_boot)
+
         # extract firmware info
         if self.config.firmware_path and os.path.exists(self.config.firmware_path):
             self.firmware_picker.SetPath(self.config.firmware_path)
             firmware = ntpath.basename(self.config.firmware_path)
             filename, extension = os.path.splitext(firmware)
             extension = extension.lower()
-            if 'lineage' in filename:
-                print("Warning: Detected Lineage (Non-Pixel) firmware.\nBoot extraction and patching is supported, however avoid full factory flashing and instead use Lineage Recovery for updates.")
-                puml("#orange:Detected Lineage (Non-Pixel) firmware.;\n")
-                puml("note right\nBoot extraction and patching is supported\nhowever avoid full factory flashing\nand instead use Lineage Recovery for updates.\nend note\n")
-                try:
-                    set_lineage(True)
-                    set_firmware_model(filename)
-                    set_firmware_id(filename)
-                except Exception as e:
-                    set_firmware_model(None)
-                    set_firmware_id(None)
+            firmware = filename.split("-")
+            if len(firmware) == 1:
+                set_firmware_model(None)
+                set_firmware_id(filename)
             else:
-                firmware = filename.split("-")
                 try:
                     set_firmware_model(firmware[0])
                     set_firmware_id(f"{firmware[0]}-{firmware[1]}")
                 except Exception as e:
                     set_firmware_model(None)
-                    set_firmware_id(None)
+                    set_firmware_id(filename)
             firmware_hash = sha256(self.config.firmware_path)
             self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
+            # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
+            if firmware_hash[:8] in self.config.firmware_path:
+                print(f"Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
+                puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
+                set_firmware_hash_validity(True)
+            else:
+                print(f"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
+                puml("#orange:Unable to match the checksum in the filename;\n")
+                set_firmware_hash_validity(False)
 
         # check platform tools
-        check_platform_tools(self)
+        res_sdk = check_platform_tools(self)
+        if res_sdk != -1:
+            # load platform tools value
+            if self.config.platform_tools_path and get_adb() and get_fastboot():
+                self.platform_tools_picker.SetPath(self.config.platform_tools_path)
 
-        # load platform tools value
-        if self.config.platform_tools_path and get_adb() and get_fastboot():
-            self.platform_tools_picker.SetPath(self.config.platform_tools_path)
-
-        # if adb is found, display the version
-        if get_sdk_version():
-            self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+            # if adb is found, display the version
+            if get_sdk_version():
+                self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
 
         # load custom_rom settings
         self.custom_rom_checkbox.SetValue(self.config.custom_rom)
@@ -230,21 +243,28 @@ class PixelFlasher(wx.Frame):
 
         self._update_custom_flash_options()
 
-        print("\nLoading Device list ...")
-        puml(":Loading device list;\n", True)
-        print("This could take a while, please be patient.\n")
+        if res_sdk != -1:
+            print("\nLoading Device list ...")
+            puml(":Loading device list;\n", True)
+            print("This could take a while, please be patient.\n")
 
-        debug("Populate device list")
-        connected_devices = get_connected_devices()
-        self.device_choice.AppendItems(connected_devices)
-        d_list_string = '\n'.join(connected_devices)
-        puml(f"note right\n{d_list_string}\nend note\n")
+            debug("Populate device list")
+            connected_devices = get_connected_devices()
+            self.device_choice.AppendItems(connected_devices)
+            d_list_string = '\n'.join(connected_devices)
+            puml(f"note right\n{d_list_string}\nend note\n")
 
-        # select configured device
-        debug("select configured device")
-        self._select_configured_device()
-        self._refresh_ui()
+            # select configured device
+            debug("select configured device")
+            self._select_configured_device()
+            self._refresh_ui()
 
+        # enable / disable offer_patch_methods
+        set_patch_methods_settings(self.config.offer_patch_methods)
+        # enable / disable Patching Recovery Partition option
+        set_recovery_patch_settings(self.config.show_recovery_patching_option)
+        # enable / disable use_busybox_shell
+        set_use_busybox_shell_settings(self.config.use_busybox_shell)
         # enable / disable update_check
         set_update_check(self.config.update_check)
         # check version if we are running the latest
@@ -412,11 +432,10 @@ class PixelFlasher(wx.Frame):
         # self.Bind(wx.EVT_MENU, self._on_guide2, guide2_item)
         # seperator
         help_menu.AppendSeparator()
-        if sys.platform == "win32":
-            # Open configuration Folder
-            config_folder_item = help_menu.Append(wx.ID_ANY, 'Open Configuration Folder', 'Open Configuration Folder')
-            config_folder_item.SetBitmap(images.Config_Folder.GetBitmap())
-            self.Bind(wx.EVT_MENU, self._on_open_config_folder, config_folder_item)
+        # Open configuration Folder
+        config_folder_item = help_menu.Append(wx.ID_ANY, 'Open Configuration Folder', 'Open Configuration Folder')
+        config_folder_item.SetBitmap(images.Config_Folder.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_open_config_folder, config_folder_item)
         # Create sanitized support.zip
         support_zip_item = help_menu.Append(wx.ID_ANY, 'Create a Sanitized support.zip', 'Create a Sanitized support.zip')
         support_zip_item.SetBitmap(images.Support_Zip.GetBitmap())
@@ -568,7 +587,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_open_config_folder(self, event):
         self._on_spin('start')
-        self._open_folder(get_config_path())
+        open_folder(get_config_path())
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -633,10 +652,15 @@ class PixelFlasher(wx.Frame):
         res = advanced_setting_dialog.ShowModal()
         if res == wx.ID_OK:
             self.config.advanced_options = get_advanced_options()
+            self.config.offer_patch_methods = get_patch_methods_settings()
+            self.config.show_recovery_patching_option = get_recovery_patch_settings()
+            self.config.use_busybox_shell = get_use_busybox_shell_settings()
             self.config.update_check = get_update_check()
             self.config.force_codepage = get_codepage_setting()
             self.config.custom_codepage = get_codepage_value()
             self.config.magisk = get_magisk_package()
+            self.config.linux_file_explorer = get_file_explorer()
+            self.config.linux_shell = get_linux_shell()
             self.config.customize_font = get_customize_font()
             self.config.pf_font_face = get_pf_font_face()
             self.config.pf_font_size = get_pf_font_size()
@@ -829,6 +853,7 @@ class PixelFlasher(wx.Frame):
         message += f"    Device Model:                    {device.hardware}\n"
         message += f"    Device Active Slot:              {device.active_slot}\n"
         message += f"    Device Mode:                     {device.true_mode}\n"
+        message += f"    Has init_boot partition:         {device.has_init_boot}\n"
         if device.mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
             message += f"    Device Build:                    {device.build}\n"
@@ -963,38 +988,6 @@ class PixelFlasher(wx.Frame):
                 self.paste_boot.Enable(False)
 
     # -----------------------------------------------
-    #                  _open_folder
-    # -----------------------------------------------
-    def _open_folder(self, path, isFile = False):
-        if path:
-            if isFile:
-                dir_path = os.path.dirname(path)
-            else:
-                dir_path = path
-            if sys.platform == "win32":
-                os.system(f"start {dir_path}")
-            elif sys.platform == "darwin":
-                subprocess.Popen(["open", dir_path])
-            else:
-                subprocess.Popen(["nautilus", dir_path])
-
-    # -----------------------------------------------
-    #                  _open_terminal
-    # -----------------------------------------------
-    def _open_terminal(self, path, isFile = False):
-        if path:
-            if isFile:
-                dir_path = os.path.dirname(path)
-            else:
-                dir_path = path
-            if sys.platform.startswith("win"):
-                subprocess.Popen(["cmd.exe", "/k", "cd", dir_path])
-            elif sys.platform.startswith("linux"):
-                subprocess.Popen(["x-terminal-emulator", "--working-directory", dir_path])
-            elif sys.platform.startswith("darwin"):
-                subprocess.Popen(["open", "-a", "Terminal", dir_path])
-
-    # -----------------------------------------------
     #                  _select_configured_device
     # -----------------------------------------------
     def _select_configured_device(self):
@@ -1007,7 +1000,7 @@ class PixelFlasher(wx.Frame):
                     puml(f":Select Device;\n", True)
                     self._print_device_details(device)
                 count += 1
-        elif self.device_choice.StringSelection != '':
+        elif self.device_choice.StringSelection:
             device = self.device_choice.StringSelection
             # replace multiple spaces with a single space and then split on space
             id = ' '.join(device.split())
@@ -1167,13 +1160,16 @@ class PixelFlasher(wx.Frame):
                 self.device_choice.SetItems(connected_devices)
                 d_list_string = '\n'.join(connected_devices)
                 puml(f"note right\n{d_list_string}\nend note\n")
-                if self.device_choice.Count > 0:
-                    print(f"{self.device_choice.Count} Device(s) are found.")
-                else:
+                if self.device_choice.Count == 0:
                     print("No Devices found.")
                     puml(f"note right:No Devices are found\n")
+                    return
+                print(f"{self.device_choice.Count} Device(s) are found.")
                 self._select_configured_device()
                 self._on_spin('stop')
+                if self.device_choice.StringSelection == '':
+                    # Popup the devices dropdown
+                    self.device_choice.Popup()
             else:
                 print("Please set Android Platform Tools Path first.")
 
@@ -1254,7 +1250,7 @@ class PixelFlasher(wx.Frame):
             filename, extension = os.path.splitext(custom_rom_path)
             extension = extension.lower()
             puml(":Select ROM File;\n", True)
-            if extension == '.zip':
+            if extension in ['.zip', '.tgz', '.tar']:
                 self.config.custom_rom_path = custom_rom_path
                 rom_file = ntpath.basename(custom_rom_path)
                 set_custom_rom_id(os.path.splitext(rom_file)[0])
@@ -1264,7 +1260,7 @@ class PixelFlasher(wx.Frame):
                 puml(f"note right\n{rom_file}\nSHA-256: {rom_hash}\nend note\n")
                 populate_boot_list(self)
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a zip file.")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a valid archive.")
                 puml("#red:The selected ROM file is not valid;\n")
                 self.custom_rom.SetPath('')
             self._on_spin('stop')
@@ -1471,13 +1467,13 @@ class PixelFlasher(wx.Frame):
                 set_message_box_title(title)
                 set_message_box_message(message)
                 try:
-                    dlg = MessageBox(self)
+                    dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
                 except Exception:
                     return
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
 
-                if result == wx.ID_OK:
+                if result == 1:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
                 else:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
@@ -1500,11 +1496,11 @@ class PixelFlasher(wx.Frame):
                 print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
-                dlg = MessageBox(self)
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
 
-                if result == wx.ID_OK:
+                if result == 1:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
                 else:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
@@ -1540,11 +1536,11 @@ class PixelFlasher(wx.Frame):
                 print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
-                dlg = MessageBox(self)
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
 
-                if result == wx.ID_OK:
+                if result == 1:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
                 else:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
@@ -1573,16 +1569,16 @@ class PixelFlasher(wx.Frame):
                 message += "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n"
                 message += "If your device is not detected PixelFlasher will appear hung.\n"
                 message += "In such cases, killing the adb process will resume to normalcy.\n\n"
-                message += "              Press OK to continue or CANCEL to abort.\n"
+                message += "                        Press OK to continue or CANCEL to abort.\n"
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
                 print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
-                dlg = MessageBox(self)
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1)
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
 
-                if result == wx.ID_OK:
+                if result == 1:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
                 else:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
@@ -1992,8 +1988,9 @@ class PixelFlasher(wx.Frame):
                         print(f"Cleared db entry for: {boot.package_path}")
                         config_path = get_config_path()
                         tmp = os.path.join(config_path, 'factory_images', boot.package_sig)
-                        print(f"Deleting Firmware cache for: {tmp} ...")
-                        delete_all(tmp)
+                        with contextlib.suppress(Exception):
+                            print(f"Deleting Firmware cache for: {tmp} ...")
+                            delete_all(tmp)
                 except Exception as e:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                     puml("#red:Encountered an error;\n", True)
@@ -2015,7 +2012,7 @@ class PixelFlasher(wx.Frame):
             self._on_spin('start')
             boot = get_boot()
             if boot:
-                self._open_folder(boot.boot_path, True)
+                open_folder(boot.boot_path, True)
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -2027,7 +2024,7 @@ class PixelFlasher(wx.Frame):
             if boot:
                 config_path = get_config_path()
                 working_dir = os.path.join(config_path, 'factory_images', boot.package_sig)
-                self._open_folder(working_dir, False)
+                open_folder(working_dir, False)
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -2120,10 +2117,11 @@ class PixelFlasher(wx.Frame):
         self.wifi_adb = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.wifi_adb.SetBitmap(images.Wifi_ADB.GetBitmap())
         self.wifi_adb.SetToolTip(u"Connect/Disconnect to Remote Device (Wifi ADB)\nNote: ADB only, fastboot commands (example flashing)\ncannot be executed remotely.\nLeft click to connect, Right click to disconnect.")
+        self.wifi_adb.Enable(False)
         adb_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         adb_label_sizer.Add(self.device_label, 1, wx.EXPAND)
         adb_label_sizer.Add(self.wifi_adb, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=24)
-        self.device_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, [], 0)
+        self.device_choice = wx.ComboBox(panel, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, [], wx.CB_DROPDOWN | wx.CB_READONLY)
         self.device_choice.SetSelection(0)
         self.device_choice.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
@@ -2219,7 +2217,7 @@ class PixelFlasher(wx.Frame):
         self.firmware_link = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.firmware_link.SetBitmap(images.Open_Link.GetBitmap())
         self.firmware_link.SetToolTip(u"Download Pixel Firmware")
-        self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
         self.process_firmware = wx.Button(panel, wx.ID_ANY, u"Process", wx.DefaultPosition, wx.DefaultSize, 0)
         self.process_firmware.SetBitmap(images.Process_File.GetBitmap())
@@ -2234,7 +2232,7 @@ class PixelFlasher(wx.Frame):
         # 6th row widgets, custom_rom
         self.custom_rom_checkbox = wx.CheckBox(panel, wx.ID_ANY, u"Apply Custom ROM", wx.DefaultPosition, wx.DefaultSize, 0)
         self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
-        self.custom_rom = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"ROM files (*.zip)|*.zip", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
+        self.custom_rom = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", wx.DefaultPosition, wx.DefaultSize , style=wx.FLP_USE_TEXTCTRL)
         self.custom_rom.SetToolTip(u"Select Custom ROM")
         self.process_rom = wx.Button(panel, wx.ID_ANY, u"Process", wx.DefaultPosition, wx.DefaultSize, 0)
         self.process_rom.SetBitmap(images.Process_File.GetBitmap())
@@ -2457,7 +2455,7 @@ class PixelFlasher(wx.Frame):
         panel.SetSizer(hbox)
 
         # Connect Events
-        self.device_choice.Bind(wx.EVT_CHOICE, _on_select_device)
+        self.device_choice.Bind(wx.EVT_COMBOBOX, _on_select_device)
         self.scan_button.Bind(wx.EVT_BUTTON, _on_scan)
         self.firmware_picker.Bind(wx.EVT_FILEPICKER_CHANGED, _on_select_firmware)
         self.firmware_link.Bind(wx.EVT_BUTTON, _open_firmware_link)

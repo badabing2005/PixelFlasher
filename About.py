@@ -6,7 +6,7 @@ import wx
 import wx.html
 import wx.lib.wxpTag
 import webbrowser
-from config import VERSION
+from constants import *
 from runtime import get_bundle_dir
 from runtime import check_latest_version
 from packaging.version import parse

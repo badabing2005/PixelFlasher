@@ -16,7 +16,7 @@ from runtime import *
 
 
 # ============================================================================
-#                               Class ListCtrl
+#                               Class HtmlWindow
 # ============================================================================
 class HtmlWindow(wx.html.HtmlWindow):
     def OnLinkClicked(self, link):
@@ -84,19 +84,19 @@ class MagiskDownloads(wx.Dialog):
 
         i = 0
         for apk in apks:
-            if apk.type != '':
+            if apk.type:
                 index = self.list.InsertItem(i, apk.type)
                 if apk.type in ('stable', 'beta', 'canary', 'debug'):
                     self.list.SetItemColumnImage(i, 0, 0)
                 else:
                     self.list.SetItemColumnImage(i, 0, -1)
-            if apk.version != '':
+            if apk.version:
                 self.list.SetItem(index, 1, apk.version)
-            if apk.versionCode != '':
+            if apk.versionCode:
                 self.list.SetItem(index, 2, apk.versionCode)
-            if apk.link != '':
+            if apk.link:
                 self.list.SetItem(index, 3, apk.link)
-            if apk.package != '':
+            if apk.package:
                 self.list.SetItem(index, 4, apk.package)
             i += 1
 
@@ -280,15 +280,15 @@ class MagiskDownloads(wx.Dialog):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
         filename = f"magisk_{self.version}_{self.versionCode}.apk"
         device = get_phone()
-        if 'Namelesswonder' in self.url and device.hardware not in ('panther', 'cheetah'):
+        if 'Namelesswonder' in self.url and not device.has_init_boot:
             print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
-            print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) are currently supported.")
+            print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) are currently supported.")
             print("         See details at: https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")
 
             title = "Device Not Supported"
             message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
             message += "The selected Magisk is not supported for your device\n"
-            message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) are currently supported.\n\n"
+            message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) are currently supported.\n\n"
             message += "Unless you know what you are doing, if you choose to continue\n"
             message += "you risk running into serious issues, proceed only if you are absolutely\n"
             message += "certian that this is what you want, you have been warned.\n\n"

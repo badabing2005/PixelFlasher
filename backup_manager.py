@@ -11,7 +11,6 @@ import wx.lib.mixins.listctrl as listmix
 import wx.lib.wxpTag
 
 import images as images
-from modules import extract_sha1, sha1
 from runtime import *
 
 
@@ -160,12 +159,12 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 alltext = f"{key.lower()} {str(data.firmware.lower())}"
                 if query.lower() in alltext:
                     index = self.list.InsertItem(self.list.GetItemCount(), key)
-                    if data.value != '':
+                    if data.value:
                         itemDataMap[i + 1] = (key, data.date, data.firmware)
                         row = self.list.GetItem(index)
                         self.list.SetItem(index, 1, data.date)
                         self.list.SetItem(index, 2, str(data.firmware))
-                        if self.sha1 != '' and self.sha1 == data.value:
+                        if self.sha1 and self.sha1 == data.value:
                             row.SetTextColour(wx.RED)
                         self.list.SetItem(row)
                         self.list.SetItemData(index, i + 1)

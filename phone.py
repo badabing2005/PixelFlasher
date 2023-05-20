@@ -279,10 +279,9 @@ class Device():
         self._has_init_boot = False
         if self.hardware in KNOWN_INIT_BOOT_DEVICES:
             self._has_init_boot = True
-        for partition in self.get_partitions():
-            if 'init' in partition:
-                self._has_init_boot = True
-                break
+        partitions = self.get_partitions()
+        if partitions != -1 and 'init_boot' in partitions:
+            self._has_init_boot = True
 
     # ----------------------------------------------------------------------------
     #                               property extract_prop

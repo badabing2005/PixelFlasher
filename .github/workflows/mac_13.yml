@@ -1,4 +1,4 @@
-name: Build for MacOS
+name: Build for MacOS 13
 
 env:
   ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,5 +101,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/PixelFlasher.dmg
-          asset_name: PixelFlasher.dmg
+          asset_name: PixelFlasher_MacOS_13.dmg
           asset_content_type: application/zip

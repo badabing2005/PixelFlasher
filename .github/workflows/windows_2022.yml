@@ -62,41 +62,41 @@ jobs:
       - name: List contents of dist directory
         run: ls dist
 
-      # # Upload artifcats Windows
-      # - name: Upload Windows Artifact
-        # uses: actions/upload-artifact@v3
-        # id: upload_artifacts_windows
-        # with:
-          # name: PixelFlasher.exe
-          # path: dist/PixelFlasher.exe
+      # Upload artifcats Windows to Actions
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v3
+        id: upload_artifacts_windows
+        with:
+          name: PixelFlasher.exe
+          path: dist/PixelFlasher.exe
 
-      # Create a release
-      - name: Create Release
-        id: create_release
-        # uses: actions/create-release@v1
-        uses: ncipollo/release-action@v1.11.1
+      # # Create a release
+      # - name: Create Release
+        # id: create_release
+        # # uses: actions/create-release@v1
+        # uses: ncipollo/release-action@v1.11.1
+        # # env:
+          # # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # with:
+          # token: ${{ secrets.GITHUB_TOKEN }}
+          # tag: ${{ github.ref }}
+          # # release_name: Release ${{ github.ref }}
+          # # name: Release ${{ github.ref }}
+          # name: Release ${{ github.ref }}
+          # allowUpdates: "true"
+          # draft: false
+          # prerelease: true
+
+      # # Upload the Windows artifact to release
+      # - name: Upload Windows Artifact to release
+        # uses: shogo82148/actions-upload-release-asset@v1
+        # # uses: actions/upload-release-asset@v1
         # env:
           # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          # release_name: Release ${{ github.ref }}
-          # name: Release ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          allowUpdates: "true"
-          draft: false
-          prerelease: true
-
-      # Upload the Windows artifact to release
-      - name: Upload Windows Artifact to release
-        uses: shogo82148/actions-upload-release-asset@v1
-        # uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/PixelFlasher.exe
-          asset_name: PixelFlasher.exe
-          asset_content_type: application/zip
-          # asset_content_type: application/octet-stream
+        # with:
+          # upload_url: ${{ steps.create_release.outputs.upload_url }}
+          # asset_path: dist/PixelFlasher.exe
+          # asset_name: PixelFlasher.exe
+          # asset_content_type: application/zip
+          # # asset_content_type: application/octet-stream
 

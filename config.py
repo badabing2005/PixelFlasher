@@ -53,6 +53,7 @@ class Config():
         self.firmware_has_init_boot = False
         self.rom_has_init_boot = False
         self.show_recovery_patching_option = False
+        self.pf_home = None
 
     @classmethod
     def load(cls, file_path):
@@ -147,6 +148,8 @@ class Config():
                     conf.rom_has_init_boot = data['rom_has_init_boot']
                 with contextlib.suppress(Exception):
                     conf.show_recovery_patching_option = data['show_recovery_patching_option']
+                with contextlib.suppress(Exception):
+                    conf.pf_home = data['pf_home']
             else:
                 conf.first_run = True
         except Exception as e:
@@ -197,7 +200,8 @@ class Config():
             'linux_shell': self.linux_shell,
             'firmware_has_init_boot': self.firmware_has_init_boot,
             'rom_has_init_boot': self.rom_has_init_boot,
-            'show_recovery_patching_option': self.show_recovery_patching_option
+            'show_recovery_patching_option': self.show_recovery_patching_option,
+            'pf_home': self.pf_home
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

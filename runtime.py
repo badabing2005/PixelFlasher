@@ -2,7 +2,6 @@
 
 import binascii
 import contextlib
-import gzip
 import hashlib
 import io
 import os
@@ -15,6 +14,7 @@ import tarfile
 import tempfile
 import time
 import zipfile
+import json
 from datetime import datetime
 
 import requests
@@ -66,6 +66,7 @@ firmware_has_init_boot = False
 rom_has_init_boot = False
 dlg_checkbox_values = None
 recovery_patch = False
+config_path = None
 
 # ============================================================================
 #                               Class Boot
@@ -779,13 +780,6 @@ def set_message_box_message(value):
 
 
 # ============================================================================
-#                               Function get_config_path
-# ============================================================================
-def get_config_path():
-    return user_data_dir(APPNAME, appauthor=False, roaming=True)
-
-
-# ============================================================================
 #                               Function puml
 # ============================================================================
 def puml(message='', left_ts = False, mode='a'):
@@ -799,6 +793,17 @@ def puml(message='', left_ts = False, mode='a'):
 #                               Function init_config_path
 # ============================================================================
 def init_config_path():
+    config_path = get_sys_config_path()
+    set_config_path(config_path)
+    with contextlib.suppress(Exception):
+        file_path = os.path.join(config_path, CONFIG_FILE_NAME)
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
+                data = json.load(f)
+                f.close()
+            pf_home = data['pf_home']
+            if pf_home and os.path.exists(pf_home):
+                set_config_path(pf_home)
     config_path = get_config_path()
     if not os.path.exists(os.path.join(config_path, 'logs')):
         os.makedirs(os.path.join(config_path, 'logs'), exist_ok=True)
@@ -817,7 +822,7 @@ def init_config_path():
 # ============================================================================
 def init_db():
     global db
-    config_path = get_config_path()
+    config_path = get_sys_config_path()
     # connect / create db
     db = sl.connect(os.path.join(config_path, get_pf_db()))
     db.execute("PRAGMA foreign_keys = ON")
@@ -864,7 +869,30 @@ def init_db():
 #                               Function get_config_file_path
 # ============================================================================
 def get_config_file_path():
-    return os.path.join(get_config_path(), CONFIG_FILE_NAME).strip()
+    return os.path.join(get_sys_config_path(), CONFIG_FILE_NAME).strip()
+
+
+# ============================================================================
+#                               Function get_sys_config_path
+# ============================================================================
+def get_sys_config_path():
+    return user_data_dir(APPNAME, appauthor=False, roaming=True)
+
+
+# ============================================================================
+#                               Function get_config_path
+# ============================================================================
+def get_config_path():
+    global config_path
+    return config_path
+
+
+# ============================================================================
+#                               Function set_config_path
+# ============================================================================
+def set_config_path(value):
+    global config_path
+    config_path = value
 
 
 # ============================================================================

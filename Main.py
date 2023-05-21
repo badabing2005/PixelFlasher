@@ -75,8 +75,8 @@ class RedirectText():
 class PixelFlasher(wx.Frame):
     def __init__(self, parent, title):
         config_file = get_config_file_path()
-        init_db()
         self.config = Config.load(config_file)
+        init_db()
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
                           style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE)
 
@@ -422,20 +422,17 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_link3, linksMenuItem6)
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.Open_Link.GetBitmap())
-        # # Guide 1
-        # guide1_item = help_menu.Append(wx.ID_ANY, 'Homeboy76\'s Guide', 'Homeboy76\'s Guide')
-        # guide1_item.SetBitmap(images.Guide.GetBitmap())
-        # self.Bind(wx.EVT_MENU, self._on_guide1, guide1_item)
-        # # Guide 2
-        # guide2_item = help_menu.Append(wx.ID_ANY, 'V0latyle\'s Guide', 'V0latyle\'s Guide')
-        # guide2_item.SetBitmap(images.Guide.GetBitmap())
-        # self.Bind(wx.EVT_MENU, self._on_guide2, guide2_item)
         # seperator
         help_menu.AppendSeparator()
         # Open configuration Folder
         config_folder_item = help_menu.Append(wx.ID_ANY, 'Open Configuration Folder', 'Open Configuration Folder')
         config_folder_item.SetBitmap(images.Config_Folder.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_open_config_folder, config_folder_item)
+        if get_config_path() != get_sys_config_path():
+            # Open pf_home
+            pf_home_item = help_menu.Append(wx.ID_ANY, 'Open PixelFlasher Working Directory', 'Open PixelFlasher Working Directory')
+            pf_home_item.SetBitmap(images.Config_Folder.GetBitmap())
+            self.Bind(wx.EVT_MENU, self._on_open_pf_home, pf_home_item)
         # Create sanitized support.zip
         support_zip_item = help_menu.Append(wx.ID_ANY, 'Create a Sanitized support.zip', 'Create a Sanitized support.zip')
         support_zip_item.SetBitmap(images.Support_Zip.GetBitmap())
@@ -586,6 +583,14 @@ class PixelFlasher(wx.Frame):
     #                  _on_open_config_folder
     # -----------------------------------------------
     def _on_open_config_folder(self, event):
+        self._on_spin('start')
+        open_folder(get_sys_config_path())
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_open_pf_home
+    # -----------------------------------------------
+    def _on_open_pf_home(self, event):
         self._on_spin('start')
         open_folder(get_config_path())
         self._on_spin('stop')

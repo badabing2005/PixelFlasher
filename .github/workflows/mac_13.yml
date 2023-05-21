@@ -1,0 +1,105 @@
+name: Build for MacOS
+
+env:
+  ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# Controls when the workflow will run
+on:
+  # push:
+    # # Sequence of patterns matched against refs/tags
+    # tags:
+    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Build tags'
+
+jobs:
+  build_mac_13:
+    if: github.actor == 'badabing2005'
+    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+    # runs-on: macos-latest
+    runs-on: macos-13
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: List Cellar directory Again
+        run: |
+          ls /usr/local/Cellar
+
+      # - name: Set up Python
+        # uses: actions/setup-python@v4
+        # with:
+          # python-version: '3.9'
+
+      - name: Install wxPython
+        run: brew install wxpython
+
+      - name: Install node graphicsmagick imagemagick
+        run: brew install node graphicsmagick imagemagick
+
+      - name: Install create-dmg
+        run: npm install --global create-dmg
+
+      - name: Add Python 3.10 to PATH
+        run: export PATH=/usr/local/Cellar/python@3.10/bin:$PATH
+
+      - name: Create virtual environment
+        run: python3.10 -m venv myenv
+        shell: bash
+
+      - name: Activate virtual environment
+        run: source myenv/bin/activate
+        shell: bash
+
+      - name: Install requirements
+        run: python3.10 -m pip install -r requirements.txt
+
+      - name: List modules and their versions
+        run: python3.10 -m pip freeze
+
+      - name: Build application
+        run: ./build.sh
+
+      - name: List contents of dist directory
+        run: ls dist
+
+      # # Upload artifcats Mac-OS
+      # - name: Upload Mac-OS 13 Artifact
+        # uses: actions/upload-artifact@v3
+        # id: upload_artifact_macos_13
+        # with:
+          # name: PixelFlasher.dmg
+          # path: dist/PixelFlasher.dmg
+
+      # Create a release
+      - name: Create Release
+        id: create_release
+        # uses: actions/create-release@v1
+        uses: ncipollo/release-action@v1.11.1
+        # env:
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          # release_name: Release ${{ github.ref }}
+          # name: Release ${{ github.ref }}
+          name: Release ${{ github.ref }}
+          allowUpdates: "true"
+          draft: false
+
+      # Upload the Mac-OS 13 artifact to release
+      - name: Upload Mac-OS 13 Artifacts to release
+        uses: shogo82148/actions-upload-release-asset@v1
+        # uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/PixelFlasher.dmg
+          asset_name: PixelFlasher.dmg
+          asset_content_type: application/zip

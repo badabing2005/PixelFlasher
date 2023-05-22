@@ -275,7 +275,7 @@ def identify_sdk_version(self):
     self.wifi_adb.Enable(False)
     self.config.device = None
     self.device_choice.SetItems([''])
-    self.device_choice.Select(0)
+    self.device_choice.Select(-1)
     self.device_choice.Enable(False)
     return -1
 
@@ -336,11 +336,15 @@ def wifi_adb_connect(self, value, disconnect = False):
             puml(f"#palegreen:Succeeded;\n")
             self.device_choice.SetItems(get_connected_devices())
             self._select_configured_device()
+            if not disconnect:
+                print(f"Please select the device: {ip}:{port}")
+            return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port}\n")
             print(f"{res.stderr}")
             print(f"{res.stdout}")
             puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
+            return -1
 
 
 # ============================================================================
@@ -355,14 +359,19 @@ def adb_kill_server(self):
         if res.returncode == 0:
             print("returncode: 0")
             puml(f"#palegreen:Succeeded;\n")
+            self.device_choice.SetItems(get_connected_devices())
+            self._select_configured_device()
+            return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not kill adb server.\n")
             print(f"{res.stderr}")
             print(f"{res.stdout}")
             puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
+            return -1
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Android platform tools.\n")
         puml(f"#red:Missing Android platform tools;\n")
+        return -1
 
 
 # ============================================================================
@@ -2077,7 +2086,7 @@ def live_flash_boot_phone(self, option):
         self.device_label.Label = "ADB Connected Devices"
         self.config.device = None
         self.device_choice.SetItems([''])
-        self.device_choice.Select(0)
+        self.device_choice.Select(-1)
         # Live automatically reboots, so we can only control the Flash one.
         if option == 'Flash' and not self.config.no_reboot:
             puml(":Reboot to System;\n")
@@ -2686,7 +2695,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         self.device_label.Label = "ADB Connected Devices"
         self.config.device = None
         self.device_choice.SetItems([''])
-        self.device_choice.Select(0)
+        self.device_choice.Select(-1)
         if self.config.advanced_options and self.config.flash_mode == 'customFlash':
             print("\nNote: The device is intentionally kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
     else:

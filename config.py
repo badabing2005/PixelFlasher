@@ -54,6 +54,8 @@ class Config():
         self.rom_has_init_boot = False
         self.show_recovery_patching_option = False
         self.pf_home = None
+        self.firmware_sha256 = None
+        self.rom_sha256 = None
 
     @classmethod
     def load(cls, file_path):
@@ -150,6 +152,10 @@ class Config():
                     conf.show_recovery_patching_option = data['show_recovery_patching_option']
                 with contextlib.suppress(Exception):
                     conf.pf_home = data['pf_home']
+                with contextlib.suppress(Exception):
+                    conf.firmware_sha256 = data['firmware_sha256']
+                with contextlib.suppress(Exception):
+                    conf.rom_sha256 = data['rom_sha256']
             else:
                 conf.first_run = True
         except Exception as e:
@@ -201,7 +207,9 @@ class Config():
             'firmware_has_init_boot': self.firmware_has_init_boot,
             'rom_has_init_boot': self.rom_has_init_boot,
             'show_recovery_patching_option': self.show_recovery_patching_option,
-            'pf_home': self.pf_home
+            'pf_home': self.pf_home,
+            'firmware_sha256': self.firmware_sha256,
+            'rom_sha256': self.rom_sha256
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

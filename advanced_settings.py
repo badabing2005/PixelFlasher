@@ -155,7 +155,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fonts_sizer.Add(self.font, 0, wx.ALL, 5)
         fonts_sizer.Add(self.font_size, 0, wx.ALL, 5)
         fonts_sizer.Add(self.sample, 0, wx.ALL, 5)
-        self.font.SetSelection(0)
+        self.font.SetSelection(-1)
         self.font.SetStringSelection(get_pf_font_face())
         self.font_size.SetToolTip('Select font size')
         self._onFontSelect(None)

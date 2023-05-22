@@ -182,7 +182,11 @@ class PixelFlasher(wx.Frame):
                 except Exception as e:
                     set_firmware_model(None)
                     set_firmware_id(filename)
-            firmware_hash = sha256(self.config.firmware_path)
+            if self.config.firmware_sha256:
+                firmware_hash = self.config.firmware_sha256
+            else:
+                firmware_hash = sha256(self.config.firmware_path)
+                self.config.firmware_sha256 = firmware_hash
             self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
             # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
             if firmware_hash[:8] in self.config.firmware_path:
@@ -210,7 +214,11 @@ class PixelFlasher(wx.Frame):
         if self.config.custom_rom_path and os.path.exists(self.config.custom_rom_path):
             self.custom_rom.SetPath(self.config.custom_rom_path)
             set_custom_rom_id(os.path.splitext(ntpath.basename(self.config.custom_rom_path))[0])
-            rom_hash = sha256(self.config.custom_rom_path)
+            if self.config.rom_sha256:
+                rom_hash = self.config.rom_sha256
+            else:
+                rom_hash = sha256(self.config.custom_rom_path)
+                self.config.rom_sha256 = rom_hash
             self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
         if self.config.custom_rom:
             self.custom_rom.Enable()
@@ -1166,8 +1174,10 @@ class PixelFlasher(wx.Frame):
                 d_list_string = '\n'.join(connected_devices)
                 puml(f"note right\n{d_list_string}\nend note\n")
                 if self.device_choice.Count == 0:
+                    self.device_choice.SetSelection(-1)
                     print("No Devices found.")
                     puml(f"note right:No Devices are found\n")
+                    self._on_spin('stop')
                     return
                 print(f"{self.device_choice.Count} Device(s) are found.")
                 self._select_configured_device()
@@ -1198,6 +1208,7 @@ class PixelFlasher(wx.Frame):
             self.config.firmware_path = event.GetPath().replace("'", "")
             self._on_spin('start')
             hash = select_firmware(self)
+            self.config.firmware_sha256 = hash
             self.firmware_picker.SetToolTip(hash)
             self._on_spin('stop')
 
@@ -1260,6 +1271,7 @@ class PixelFlasher(wx.Frame):
                 rom_file = ntpath.basename(custom_rom_path)
                 set_custom_rom_id(os.path.splitext(rom_file)[0])
                 rom_hash = sha256(self.config.custom_rom_path)
+                self.config.rom_sha256 = rom_hash
                 self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
                 print(f"Selected ROM {rom_file} SHA-256: {rom_hash}")
                 puml(f"note right\n{rom_file}\nSHA-256: {rom_hash}\nend note\n")
@@ -1756,7 +1768,9 @@ class PixelFlasher(wx.Frame):
             x = ask(message = 'What IP/Hostname:Port you want to connect to?\nPort is optional (Default Port: 5555)')
             if x:
                 self._on_spin('start')
-                wifi_adb_connect(self, x)
+                res = wifi_adb_connect(self, x)
+                if res == 0:
+                    self.device_choice.Popup()
                 self._on_spin('stop')
 
         # -----------------------------------------------
@@ -2127,7 +2141,7 @@ class PixelFlasher(wx.Frame):
         adb_label_sizer.Add(self.device_label, 1, wx.EXPAND)
         adb_label_sizer.Add(self.wifi_adb, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=24)
         self.device_choice = wx.ComboBox(panel, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, [], wx.CB_DROPDOWN | wx.CB_READONLY)
-        self.device_choice.SetSelection(0)
+        self.device_choice.SetSelection(-1)
         self.device_choice.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
         device_tooltip += "✓ Rooted with Magisk.\n"
@@ -2348,7 +2362,7 @@ class PixelFlasher(wx.Frame):
         # https://android.googlesource.com/platform/system/core/+/refs/heads/master/fastboot/fastboot.cpp#144
         image_choices = [ u"boot", u"init_boot", u"bootloader", u"cache", u"dtbo", u"dts", u"odm", u"odm_dlkm", u"product", u"pvmfw", u"radio", u"recovery", u"super", u"super_empty", u"system", u"system_dlkm", u"system_ext", u"system_other", u"userdata", u"vbmeta", u"vbmeta_system", u"vbmeta_vendor", u"vendor", u"vendor_boot", u"vendor_dlkm", u"vendor_kernel_boot", u"vendor_other", u"image", u"SIDELOAD" ]
         self.image_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, image_choices, 0)
-        self.image_choice.SetSelection(0)
+        self.image_choice.SetSelection(-1)
         self.image_file_picker = wx.FilePickerCtrl(panel, wx.ID_ANY, wx.EmptyString, u"Select a file", u"Flashable files (*.img;*.zip)|*.img;*.zip", wx.DefaultPosition, wx.DefaultSize, wx.FLP_USE_TEXTCTRL)
         self.paste_boot = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.paste_boot.SetBitmap(images.Paste.GetBitmap())

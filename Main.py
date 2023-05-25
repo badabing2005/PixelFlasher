@@ -150,6 +150,18 @@ class PixelFlasher(wx.Frame):
         if self.config.force_codepage:
             set_codepage_value(self.config.custom_codepage)
 
+        # load android_versions into a dict.
+        with contextlib.suppress(Exception):
+            with open('android_versions.json', 'r', encoding='ISO-8859-1', errors="replace") as file:
+                android_versions = json.load(file)
+            set_android_versions(android_versions)
+
+        # load android_devices into a dict.
+        with contextlib.suppress(Exception):
+            with open('android_devices.json', 'r', encoding='ISO-8859-1', errors="replace") as file:
+                android_devices = json.load(file)
+            set_android_devices(android_devices)
+
         # load Magisk Package Name
         set_magisk_package(self.config.magisk)
 
@@ -183,10 +195,13 @@ class PixelFlasher(wx.Frame):
                     set_firmware_model(None)
                     set_firmware_id(filename)
             if self.config.firmware_sha256:
+                print("Using previously stored firmware SHA-256 ...")
                 firmware_hash = self.config.firmware_sha256
             else:
+                print("Computing firmware SHA-256 ...")
                 firmware_hash = sha256(self.config.firmware_path)
                 self.config.firmware_sha256 = firmware_hash
+            print(f"Firmware SHA-256: {firmware_hash}")
             self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
             # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
             if firmware_hash[:8] in self.config.firmware_path:
@@ -690,8 +705,8 @@ class PixelFlasher(wx.Frame):
     def _on_package_manager(self, event):
         # load labels if not already loaded
         if not get_labels() and os.path.exists(get_labels_file_path()):
-                with open(get_labels_file_path(), "r") as f:
-                    set_labels(json.load(f))
+            with open(get_labels_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
+                set_labels(json.load(f))
         self._on_spin('start')
         print("Launching Package Manager ...\n")
         try:
@@ -866,11 +881,24 @@ class PixelFlasher(wx.Frame):
         message += f"    Device Model:                    {device.hardware}\n"
         message += f"    Device Active Slot:              {device.active_slot}\n"
         message += f"    Device Mode:                     {device.true_mode}\n"
+        android_devices = get_android_devices()
+        android_device = android_devices[device.hardware]
+        if android_device:
+            message += f"    Device:                          {android_device['device']}\n"
+            message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
+            message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"
         message += f"    Has init_boot partition:         {device.has_init_boot}\n"
         if device.mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
             message += f"    Device Build:                    {device.build}\n"
             message += f"    Device API Level:                {device.api_level}\n"
+            android_versions = get_android_versions()
+            android_version = android_versions[device.api_level]
+            message += f"    Android Version:                 {android_version['Version']}\n"
+            message += f"    Android Name:                    {android_version['Name']}\n"
+            message += f"    Android Codename:                {android_version['Codename']}\n"
+            message += f"    Android Release Date:            {android_version['Release date']}\n"
+            message += f"    Android Latest Update:           {android_version['Latest update']}\n"
             message += f"    Device Architecture:             {device.architecture}\n"
             message += f"    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
             message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
@@ -1151,14 +1179,15 @@ class PixelFlasher(wx.Frame):
             device = choice.GetString(choice.GetSelection())
             # replace multiple spaces with a single space and then split on space
             d_id = ' '.join(device.split())
-            d_id = d_id.split()
-            d_id = d_id[2]
-            self.config.device = d_id
-            for device in get_phones():
-                if device.id == d_id:
-                    set_phone(device)
-                    self._print_device_details(device)
-            self._reflect_slots()
+            if d_id:
+                d_id = d_id.split()
+                d_id = d_id[2]
+                self.config.device = d_id
+                for device in get_phones():
+                    if device.id == d_id:
+                        set_phone(device)
+                        self._print_device_details(device)
+                self._reflect_slots()
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -1207,9 +1236,12 @@ class PixelFlasher(wx.Frame):
         def _on_select_firmware(event):
             self.config.firmware_path = event.GetPath().replace("'", "")
             self._on_spin('start')
-            hash = select_firmware(self)
-            self.config.firmware_sha256 = hash
-            self.firmware_picker.SetToolTip(hash)
+            checksum = select_firmware(self)
+            if len(checksum) == 64:
+                self.config.firmware_sha256 = checksum
+            else:
+                self.config.firmware_sha256 = None
+            self.firmware_picker.SetToolTip(f"SHA-256: {checksum}")
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -1271,7 +1303,11 @@ class PixelFlasher(wx.Frame):
                 rom_file = ntpath.basename(custom_rom_path)
                 set_custom_rom_id(os.path.splitext(rom_file)[0])
                 rom_hash = sha256(self.config.custom_rom_path)
-                self.config.rom_sha256 = rom_hash
+
+                if len(rom_hash) == 64:
+                    self.config.rom_sha256 = rom_hash
+                else:
+                    self.config.rom_sha256 = None
                 self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
                 print(f"Selected ROM {rom_file} SHA-256: {rom_hash}")
                 puml(f"note right\n{rom_file}\nSHA-256: {rom_hash}\nend note\n")
@@ -1865,6 +1901,7 @@ class PixelFlasher(wx.Frame):
                         BOOT.boot_hash,
                         BOOT.file_path as boot_path,
                         BOOT.is_patched,
+                        BOOT.patch_method,
                         BOOT.magisk_version,
                         BOOT.hardware,
                         BOOT.epoch as boot_date,
@@ -1889,15 +1926,16 @@ class PixelFlasher(wx.Frame):
                         boot.boot_hash = row[1]
                         boot.boot_path = row[2]
                         boot.is_patched = row[3]
-                        boot.magisk_version = row[4]
-                        boot.hardware = row[5]
-                        boot.boot_epoch = row[6]
-                        boot.package_id = row[7]
-                        boot.package_boot_hash = row[8]
-                        boot.package_type = row[9]
-                        boot.package_sig = row[10]
-                        boot.package_path = row[11]
-                        boot.package_epoch = row[12]
+                        boot.patch_method = row[4]
+                        boot.magisk_version = row[5]
+                        boot.hardware = row[6]
+                        boot.boot_epoch = row[7]
+                        boot.package_id = row[8]
+                        boot.package_boot_hash = row[9]
+                        boot.package_type = row[10]
+                        boot.package_sig = row[11]
+                        boot.package_path = row[12]
+                        boot.package_epoch = row[13]
                         i += 1
                     if i > 1:
                         debug("INFO: Duplicate PACKAGE_BOOT records found")
@@ -1920,6 +1958,8 @@ class PixelFlasher(wx.Frame):
                 if boot.is_patched == 1:
                     patched = True
                     message += f"    Patched:               {patched}\n"
+                    if boot.patch_method:
+                        message += f"    Patched Method:        {boot.patch_method}\n"
                     message += f"    Patched With Magisk:   {boot.magisk_version}\n"
                     message += f"    Patched on Device:     {boot.hardware}\n"
                 else:
@@ -2277,9 +2317,10 @@ class PixelFlasher(wx.Frame):
         self.list.InsertColumn(1, 'Source SHA1', wx.LIST_FORMAT_LEFT, width = -1)
         self.list.InsertColumn(2, 'Package Fingerprint', wx.LIST_FORMAT_LEFT, width = -1)
         self.list.InsertColumn(3, 'Patched with Magisk', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(4, 'Patched on Device', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(5, 'Date', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(6, 'Package Path', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(4, 'Patch Method', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(5, 'Patched on Device', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(6, 'Date', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(7, 'Package Path', wx.LIST_FORMAT_LEFT,  -1)
         self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10))))
         if sys.platform != "win32":
             self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
@@ -2297,6 +2338,8 @@ class PixelFlasher(wx.Frame):
         grow_column(self.list, 5, 20)
         self.list.SetColumnWidth(6, -2)
         grow_column(self.list, 6, 20)
+        self.list.SetColumnWidth(7, -2)
+        grow_column(self.list, 7, 20)
         self.flash_boot_button = wx.Button(panel, wx.ID_ANY, u"Flash Boot", wx.DefaultPosition, wx.DefaultSize, 0)
         self.flash_boot_button.SetBitmap(images.FlashBoot.GetBitmap())
         self.flash_boot_button.SetToolTip(u"Flash just the selected item")

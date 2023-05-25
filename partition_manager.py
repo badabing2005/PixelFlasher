@@ -274,11 +274,6 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     # -----------------------------------------------
     def OnClose(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close.")
-        labels = get_labels()
-        if (labels):
-            with open(get_labels_file_path(), "w") as f:
-                # Write the dictionary to the file in JSON format
-                json.dump(labels, f, indent=4)
         self.EndModal(wx.ID_CANCEL)
 
     # -----------------------------------------------

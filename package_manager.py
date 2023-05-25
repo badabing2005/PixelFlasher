@@ -419,7 +419,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close.")
         labels = get_labels()
         if (labels):
-            with open(get_labels_file_path(), "w") as f:
+            with open(get_labels_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
                 # Write the dictionary to the file in JSON format
                 json.dump(labels, f, indent=4)
         self.EndModal(wx.ID_CANCEL)

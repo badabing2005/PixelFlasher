@@ -1,0 +1,102 @@
+{
+    "lynx": {
+        "device": "Pixel 7a",
+        "android_version_end_date": "May 2026",
+        "security_update_end_date": "May 2027"
+    },
+    "cheetah": {
+        "device": "Pixel 7 Pro",
+        "android_version_end_date": "October 2025",
+        "security_update_end_date": "October 2026"
+    },
+    "panther": {
+        "device": "Pixel 7",
+        "android_version_end_date": "October 2025",
+        "security_update_end_date": "October 2026"
+    },
+    "bluejay": {
+        "device": "Pixel 6a",
+        "android_version_end_date": "June 2025",
+        "security_update_end_date": "June 2026"
+    },
+    "oriole": {
+        "device": "Pixel 6",
+        "android_version_end_date": "October 2024",
+        "security_update_end_date": "October 2025"
+    },
+    "raven": {
+        "device": "Pixel 6 Pro",
+        "android_version_end_date": "October 2024",
+        "security_update_end_date": "October 2025"
+    },
+    "barbet": {
+        "device": "Pixel 5a",
+        "android_version_end_date": "August 2024",
+        "security_update_end_date": "August 2025"
+    },
+    "redfin": {
+        "device": "Pixel 5",
+        "android_version_end_date": "October 2023",
+        "security_update_end_date": "October 2024"
+    },
+    "bramble": {
+        "device": "Pixel 4a (5G)",
+        "android_version_end_date": "October 2023",
+        "security_update_end_date": "October 2024"
+    },
+    "sunfish": {
+        "device": "Pixel 4a",
+        "android_version_end_date": "August 2023",
+        "security_update_end_date": "August 2024"
+    },
+    "coral": {
+        "device": "Pixel 4 XL",
+        "android_version_end_date": "October 2022",
+        "security_update_end_date": "October 2023"
+    },
+    "flame": {
+        "device": "Pixel 4",
+        "android_version_end_date": "October 2022",
+        "security_update_end_date": "October 2023"
+    },
+    "bonito": {
+        "device": "Pixel 3a XL",
+        "android_version_end_date": "May 2022",
+        "security_update_end_date": "May 2023"
+    },
+    "sargo": {
+        "device": "Pixel 3a",
+        "android_version_end_date": "May 2022",
+        "security_update_end_date": "May 2023"
+    },
+    "crosshatch": {
+        "device": "Pixel 3 XL",
+        "android_version_end_date": "October 2021",
+        "security_update_end_date": "October 2023"
+    },
+    "blueline": {
+        "device": "Pixel 3",
+        "android_version_end_date": "October 2021",
+        "security_update_end_date": "October 2023"
+    },
+    "taimen": {
+        "device": "Pixel 2 XL",
+        "android_version_end_date": "October 2020",
+        "security_update_end_date": "October 2022"
+    },
+    "walleye": {
+        "device": "Pixel 2",
+        "android_version_end_date": "October 2020",
+        "security_update_end_date": "October 2022"
+    },
+    "marlin": {
+        "device": "Pixel XL",
+        "android_version_end_date": "October 2018",
+        "security_update_end_date": "October 2019"
+    },
+    "sailfish": {
+        "device": "Pixel",
+        "android_version_end_date": "October 2019",
+        "security_update_end_date": "October 2020"
+    }
+}

@@ -1,0 +1,247 @@
+{
+    "1": {
+        "Name": "Android 1.0",
+        "Codename": "",
+        "Version": "1.0",
+        "Release date": "September 23, 2008",
+        "Latest update": ""
+    },
+    "2": {
+        "Name": "Android Petit Four",
+        "Codename": "Petit Four",
+        "Version": "1.1",
+        "Release date": "February 9, 2009",
+        "Latest update": ""
+    },
+    "3": {
+        "Name": "Android Cupcake",
+        "Codename": "Cupcake",
+        "Version": "1.5",
+        "Release date": "April 27, 2009",
+        "Latest update": ""
+    },
+    "4": {
+        "Name": "Android Donut",
+        "Codename": "Donut",
+        "Version": "1.6",
+        "Release date": "September 15, 2009",
+        "Latest update": ""
+    },
+    "5": {
+        "Name": "Android Eclair",
+        "Codename": "Eclair",
+        "Version": "2.0",
+        "Release date": "October 27, 2009",
+        "Latest update": ""
+    },
+    "6": {
+        "Name": "Android Eclair",
+        "Codename": "Eclair",
+        "Version": "2.0.1",
+        "Release date": "December 3, 2009",
+        "Latest update": ""
+    },
+    "7": {
+        "Name": "Android Eclair",
+        "Codename": "Eclair",
+        "Version": "2.1",
+        "Release date": "January 11, 2010",
+        "Latest update": ""
+    },
+    "8": {
+        "Name": "Android Froyo",
+        "Codename": "Froyo",
+        "Version": "2.2 – 2.2.3",
+        "Release date": "May 20, 2010",
+        "Latest update": ""
+    },
+    "9": {
+        "Name": "Android Gingerbread",
+        "Codename": "Gingerbread",
+        "Version": "2.3 – 2.3.2",
+        "Release date": "December 6, 2010",
+        "Latest update": ""
+    },
+    "10": {
+        "Name": "Android Gingerbread",
+        "Codename": "Gingerbread",
+        "Version": "2.3.3 – 2.3.7",
+        "Release date": "February 9, 2011",
+        "Latest update": ""
+    },
+    "11": {
+        "Name": "Android Honeycomb",
+        "Codename": "Honeycomb",
+        "Version": "3.0",
+        "Release date": "February 22, 2011",
+        "Latest update": ""
+    },
+    "12": {
+        "Name": "Android Honeycomb",
+        "Codename": "Honeycomb",
+        "Version": "3.1",
+        "Release date": "May 10, 2011",
+        "Latest update": ""
+    },
+    "13": {
+        "Name": "Android Honeycomb",
+        "Codename": "",
+        "Version": "3.2 – 3.2.6",
+        "Release date": "July 15, 2011",
+        "Latest update": ""
+    },
+    "14": {
+        "Name": "Android Ice Cream Sandwich",
+        "Codename": "Ice Cream Sandwich",
+        "Version": "4.0 – 4.0.2",
+        "Release date": "October 18, 2011",
+        "Latest update": ""
+    },
+    "15": {
+        "Name": "Android Ice Cream Sandwich",
+        "Codename": "Ice Cream Sandwich",
+        "Version": "4.0.3 – 4.0.4",
+        "Release date": "December 16, 2011",
+        "Latest update": ""
+    },
+    "16": {
+        "Name": "Android Jelly Bean",
+        "Codename": "Jelly Bean",
+        "Version": "4.1 – 4.1.2",
+        "Release date": "July 9, 2012",
+        "Latest update": ""
+    },
+    "17": {
+        "Name": "Android Jelly Bean",
+        "Codename": "Jelly Bean",
+        "Version": "4.2 – 4.2.2",
+        "Release date": "November 13, 2012",
+        "Latest update": ""
+    },
+    "18": {
+        "Name": "Android Jelly Bean",
+        "Codename": "Jelly Bean",
+        "Version": "4.3 – 4.3.1",
+        "Release date": "July 24, 2013",
+        "Latest update": ""
+    },
+    "19": {
+        "Name": "Android KitKat",
+        "Codename": "Key Lime Pie",
+        "Version": "4.4 – 4.4.4",
+        "Release date": "October 31, 2013",
+        "Latest update": "October 2017"
+    },
+    "20": {
+        "Name": "Android KitKat",
+        "Codename": "Key Lime Pie",
+        "Version": "4.4W – 4.4W.2",
+        "Release date": "June 25, 2014",
+        "Latest update": ""
+    },
+    "21": {
+        "Name": "Android Lollipop",
+        "Codename": "Lemon Meringue Pie",
+        "Version": "5.0 – 5.0.2",
+        "Release date": "November 4, 2014",
+        "Latest update": "November 2017"
+    },
+    "22": {
+        "Name": "Android Lollipop",
+        "Codename": "Lemon Meringue Pie",
+        "Version": "5.1 – 5.1.1",
+        "Release date": "March 2, 2015",
+        "Latest update": "March 2018"
+    },
+    "23": {
+        "Name": "Android Marshmallow",
+        "Codename": "Macadamia Nut Cookie",
+        "Version": "6.0 – 6.0.1",
+        "Release date": "October 2, 2015",
+        "Latest update": "August 2018"
+    },
+    "24": {
+        "Name": "Android Nougat",
+        "Codename": "New York Cheesecake",
+        "Version": "7.0",
+        "Release date": "August 22, 2016",
+        "Latest update": "August 2019"
+    },
+    "25": {
+        "Name": "Android Nougat",
+        "Codename": "New York Cheesecake",
+        "Version": "7.1 – 7.1.2",
+        "Release date": "October 4, 2016",
+        "Latest update": "October 2019"
+    },
+    "26": {
+        "Name": "Android Oreo",
+        "Codename": "Oatmeal Cookie",
+        "Version": "8.0",
+        "Release date": "August 21, 2017",
+        "Latest update": "January 2021"
+    },
+    "27": {
+        "Name": "Android Oreo",
+        "Codename": "Oatmeal Cookie",
+        "Version": "8.1",
+        "Release date": "December 5, 2017",
+        "Latest update": "October 2021"
+    },
+    "28": {
+        "Name": "Android Pie",
+        "Codename": "Pistachio Ice Cream",
+        "Version": "9",
+        "Release date": "August 6, 2018",
+        "Latest update": "January 2022"
+    },
+    "29": {
+        "Name": "Android 10",
+        "Codename": "Quince Tart",
+        "Version": "10",
+        "Release date": "September 3, 2019",
+        "Latest update": "February 2023"
+    },
+    "30": {
+        "Name": "Android 11",
+        "Codename": "Red Velvet Cake",
+        "Version": "11",
+        "Release date": "September 8, 2020",
+        "Latest update": "Present"
+    },
+    "31": {
+        "Name": "Android 12",
+        "Codename": "Snow Cone ",
+        "Version": "12",
+        "Release date": "October 4, 2021",
+        "Latest update": "Present"
+    },
+    "32": {
+        "Name": "Android 12L",
+        "Codename": "Snow Cone v2",
+        "Version": "12.1",
+        "Release date": "March 7, 2022",
+        "Latest update": "Present"
+    },
+    "33": {
+        "Name": "Android 13",
+        "Codename": "Tiramisu",
+        "Version": "13",
+        "Release date": "August 15, 2022",
+        "Latest update": "Present"
+    },
+    "34": {
+        "Name": "Android 14",
+        "Codename": "Upside Down Cake",
+        "Version": "14",
+        "Release date": "Q3 2023",
+        "Latest update": "Present"
+    },
+    "35": {
+        "Name": "Android 15",
+        "Codename": "Vanilla Ice Cream",
+        "Version": "15",
+        "Release date": "Q3 2024",
+        "Latest update": ""
+    }
+}

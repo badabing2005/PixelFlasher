@@ -1987,7 +1987,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             puml(":Opening an adb shell command;\n", True)
             theCmd = f"\"{get_adb()}\" -s {self.id} shell"
             debug(theCmd)
-            subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
+            subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, env=get_env_variables())
             return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")

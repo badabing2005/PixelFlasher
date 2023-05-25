@@ -1,3 +1,4 @@
+attrdict3>=2.0.2
 wxPython>=4.2.0
 PyInstaller>=5.9.0
 httplib2>=0.21.0
@@ -7,3 +8,4 @@ requests>=2.28.1
 darkdetect>=0.7.1
 markdown>=3.4.1
 clipboard>=0.0.4
+

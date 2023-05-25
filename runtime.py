@@ -67,6 +67,11 @@ rom_has_init_boot = False
 dlg_checkbox_values = None
 recovery_patch = False
 config_path = None
+android_versions = {}
+android_devices = {}
+env_variables = os.environ.copy()
+boot_list_columns = 8
+boot_column_widths = column_widths = [0] * boot_list_columns
 
 # ============================================================================
 #                               Class Boot
@@ -77,6 +82,7 @@ class Boot():
         self.boot_hash = None
         self.boot_path = None
         self.is_patched = None
+        self.patch_method = None
         self.magisk_version = None
         self.hardware = None
         self.boot_epoch = None
@@ -84,7 +90,7 @@ class Boot():
         self.package_boot_hash = None
         self.package_type = None
         self.package_sig = None
-        self.get_package_path = None
+        self.package_path = None
         self.package_epoch = None
 
 
@@ -118,6 +124,54 @@ def get_labels():
 def set_labels(value):
     global app_labels
     app_labels = value
+
+
+# ============================================================================
+#                               Function get_android_versions
+# ============================================================================
+def get_android_versions():
+    global android_versions
+    return android_versions
+
+
+# ============================================================================
+#                               Function set_android_versions
+# ============================================================================
+def set_android_versions(value):
+    global android_versions
+    android_versions = value
+
+
+# ============================================================================
+#                               Function get_android_devices
+# ============================================================================
+def get_android_devices():
+    global android_devices
+    return android_devices
+
+
+# ============================================================================
+#                               Function set_android_devices
+# ============================================================================
+def set_android_devices(value):
+    global android_devices
+    android_devices = value
+
+
+# ============================================================================
+#                               Function get_env_variables
+# ============================================================================
+def get_env_variables():
+    global env_variables
+    return env_variables
+
+
+# ============================================================================
+#                               Function set_env_variables
+# ============================================================================
+def set_env_variables(value):
+    global env_variables
+    env_variables = value
 
 
 # ============================================================================
@@ -281,6 +335,22 @@ def get_fastboot_sha256():
 def set_fastboot_sha256(value):
     global fastboot_sha256
     fastboot_sha256 = value
+
+
+# ============================================================================
+#                               Function get_boot_column_widths
+# ============================================================================
+def get_boot_column_widths():
+    global boot_column_widths
+    return boot_column_widths
+
+
+# ============================================================================
+#                               Function set_boot_column_widths
+# ============================================================================
+def set_boot_column_widths(value):
+    global boot_column_widths
+    boot_column_widths = value
 
 
 # ============================================================================
@@ -828,7 +898,6 @@ def init_db():
     db.execute("PRAGMA foreign_keys = ON")
     # create tables
     with db:
-        # there could be more than one package that has the same boot.img
         # PACKAGE Table
         db.execute("""
             CREATE TABLE IF NOT EXISTS PACKAGE (
@@ -849,7 +918,8 @@ def init_db():
                 is_patched INTEGER CHECK (is_patched IN (0, 1)),
                 magisk_version TEXT,
                 hardware TEXT,
-                epoch INTEGER NOT NULL
+                epoch INTEGER NOT NULL,
+                patch_method TEXT
             );
         """)
         # PACKAGE_BOOT Table
@@ -863,6 +933,16 @@ def init_db():
                 FOREIGN KEY (boot_id) REFERENCES BOOT(id)
             );
         """)
+
+        # Check if the patch_method column already exists in the BOOT table
+        # Added in version 5.1
+        cursor = db.execute("PRAGMA table_info(BOOT)")
+        columns = cursor.fetchall()
+        column_names = [column[1] for column in columns]
+
+        if 'patch_method' not in column_names:
+            # Add the patch_method column to the BOOT table
+            db.execute("ALTER TABLE BOOT ADD COLUMN patch_method TEXT;")
 
 
 # ============================================================================
@@ -973,14 +1053,14 @@ def open_folder(path, isFile = False):
     else:
         dir_path = path
     if sys.platform == "darwin":
-        subprocess.Popen(["open", dir_path])
+        subprocess.Popen(["open", dir_path], env=get_env_variables())
     elif sys.platform == "win32":
         os.system(f"start {dir_path}")
     # linux
     elif get_file_explorer():
-        subprocess.Popen([get_file_explorer(), dir_path])
+        subprocess.Popen([get_file_explorer(), dir_path], env=get_env_variables())
     else:
-        subprocess.Popen(["nautilus", dir_path])
+        subprocess.Popen(["nautilus", dir_path], env=get_env_variables())
 
 
 # ============================================================================
@@ -993,14 +1073,14 @@ def open_terminal(path, isFile=False):
         else:
             dir_path = path
         if sys.platform.startswith("win"):
-            subprocess.Popen(["start", "cmd.exe", "/k", "cd", "/d", dir_path], shell=True)
+            subprocess.Popen(["start", "cmd.exe", "/k", "cd", "/d", dir_path], shell=True, env=get_env_variables())
         elif sys.platform.startswith("linux"):
             if get_linux_shell():
-                subprocess.Popen([get_linux_shell(), "--working-directory", dir_path])
+                subprocess.Popen([get_linux_shell(), "--working-directory", dir_path], env=get_env_variables())
             else:
-                subprocess.Popen(["gnome-terminal", "--working-directory", dir_path])
+                subprocess.Popen(["gnome-terminal", "--working-directory", dir_path], env=get_env_variables())
         elif sys.platform.startswith("darwin"):
-            subprocess.Popen(["open", "-a", "Terminal", dir_path])
+            subprocess.Popen(["open", "-a", "Terminal", dir_path], env=get_env_variables())
 
 
 # ============================================================================
@@ -1436,7 +1516,7 @@ def delete_all(dir):
 # stderr are only available when the call is completed.
 def run_shell(cmd, timeout=None):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", timeout=timeout)
+        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", timeout=timeout, env=get_env_variables())
         wx.Yield()
         return response
     except subprocess.TimeoutExpired as e:
@@ -1462,7 +1542,7 @@ def run_shell2(cmd, timeout=None):
             pass
 
         response = obj()
-        proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace")
+        proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", env=get_env_variables())
 
         print
         stdout = ''

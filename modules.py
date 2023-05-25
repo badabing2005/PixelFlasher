@@ -82,8 +82,8 @@ def check_platform_tools(self):
             puml(f":Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:{get_sdk_version()}\n")
             if res == -1:
                 return -1
-            else:
-                return
+            set_android_product_out(self.config.platform_tools_path)
+            return
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected path {self.config.platform_tools_path} does not have adb and or fastboot")
             puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:The selected path does not have adb and or fastboot\n")
@@ -104,11 +104,15 @@ def check_platform_tools(self):
             set_adb_sha256(sha256(adb))
             if os.path.exists(get_fastboot()):
                 self.config.platform_tools_path = folder_path
-                identify_sdk_version(self)
+                res = identify_sdk_version(self)
                 set_fastboot_sha256(sha256(fastboot))
                 print(f"SDK Version:      {get_sdk_version()}")
                 print(f"Adb SHA256:       {get_adb_sha256()}")
                 print(f"Fastboot SHA256:  {get_fastboot_sha256()}")
+                if res == -1:
+                    return -1
+                set_android_product_out(self.config.platform_tools_path)
+                return
             else:
                 print(f"fastboot is not found in: {self.config.platform_tools_path}")
                 self.config.platform_tools_path = None
@@ -119,9 +123,20 @@ def check_platform_tools(self):
     with contextlib.suppress(Exception):
         if self.config.platform_tools_path:
             self.platform_tools_picker.SetPath(self.config.platform_tools_path)
+            set_android_product_out(self.config.platform_tools_path)
         else:
             self.platform_tools_picker.SetPath('')
             return -1
+
+
+# ============================================================================
+#                               Function set_android_product_out
+# ============================================================================
+def set_android_product_out(sdk_path):
+    # add the SDK path to to ANDROID_PRODUCT_OUT env
+    env_vars = get_env_variables()
+    env_vars["ANDROID_PRODUCT_OUT"] = f"{sdk_path}"
+    set_env_variables(env_vars)
 
 
 # ============================================================================
@@ -138,6 +153,7 @@ def populate_boot_list(self):
             BOOT.boot_hash,
             BOOT.file_path as boot_path,
             BOOT.is_patched,
+            BOOT.patch_method,
             BOOT.magisk_version,
             BOOT.hardware,
             BOOT.epoch as boot_date,
@@ -169,24 +185,38 @@ def populate_boot_list(self):
         i = 0
         for row in data:
             index = self.list.InsertItem(i, row[1][:8])                     # boot_hash (SHA1)
-            self.list.SetItem(index, 1, row[8][:8])                         # package_boot_hash (Source SHA1)
-            self.list.SetItem(index, 2, row[10])                            # package_sig (Package Fingerprint)
-            self.list.SetItem(index, 3, str(row[4]))                        # magisk_version
-            self.list.SetItem(index, 4, row[5])                             # hardware
-            ts = datetime.fromtimestamp(row[6])
-            self.list.SetItem(index, 5, ts.strftime('%Y-%m-%d %H:%M:%S'))   # boot_date
-            self.list.SetItem(index, 6, row[11])                            # package_path
+            self.list.SetItem(index, 1, row[9][:8])                         # package_boot_hash (Source SHA1)
+            self.list.SetItem(index, 2, row[11])                            # package_sig (Package Fingerprint)
+            patch_method = row[4] or ''
+            self.list.SetItem(index, 3, str(row[5]))                        # pacthed with magisk_version
+            self.list.SetItem(index, 4, patch_method)                       # patched_method
+            self.list.SetItem(index, 5, row[6])                             # hardware
+            ts = datetime.fromtimestamp(row[7])
+            self.list.SetItem(index, 6, ts.strftime('%Y-%m-%d %H:%M:%S'))   # boot_date
+            self.list.SetItem(index, 7, row[12])                            # package_path
             if row[3]:
                 self.list.SetItemColumnImage(i, 0, 0)
             else:
                 self.list.SetItemColumnImage(i, 0, -1)
             i += 1
-    # auto size columns to largest text, make the last column expand the available room
+
+    # auto size columns to largest text, including the header (except the last column)
     cw = 0
-    for i in range (0, self.list.ColumnCount - 1):
-        self.list.SetColumnWidth(i, -2)
-        cw += self.list.GetColumnWidth(i)
-    self.list.SetColumnWidth(self.list.ColumnCount - 1, self.list.BestVirtualSize.Width - cw - 5)
+    column_widths = get_boot_column_widths()
+    for i in range(self.list.ColumnCount - 1):
+        self.list.SetColumnWidth(i, -1)  # Set initial width to -1 (default)
+        width = self.list.GetColumnWidth(i)
+        self.list.SetColumnWidth(i, -2)  # Auto-size column width to largest text
+        width = max(width, self.list.GetColumnWidth(i), column_widths[i])  # Get the maximum width
+        if width > column_widths[i]:
+            column_widths[i] = width  # Store / update the width in the array
+        self.list.SetColumnWidth(i, width)  # Set the column width
+        cw += width
+
+    # Set the last column width to the available room
+    available_width = self.list.BestVirtualSize.Width - cw - 10
+    self.list.SetColumnWidth(self.list.ColumnCount - 1, available_width)
+    set_boot_column_widths(column_widths)
 
     # disable buttons
     self.config.boot_id = None
@@ -306,7 +336,10 @@ def get_flash_settings(self):
     message += f"\nBoot image:             {boot.boot_hash[:8]} / {boot.package_boot_hash[:8]} \n"
     message += f"                        From: {boot.package_path}\n"
     if boot.is_patched:
-        message += f"                        [Patched] with Magisk {boot.magisk_version} on {boot.hardware}\n"
+        if boot.patch_method:
+            message += f"                        Patched with Magisk {boot.magisk_version} on {boot.hardware} method: {boot.patch_method}\n"
+        else:
+            message += f"                        Patched with Magisk {boot.magisk_version} on {boot.hardware}\n"
     message += f"\nFlash Mode:             {self.config.flash_mode}\n"
     message += "\n"
     return message
@@ -428,7 +461,7 @@ def select_firmware(self):
         else:
             self.flash_button.Disable()
         populate_boot_list(self)
-        return f"SHA-256: {firmware_hash}"
+        return firmware_hash
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a valid archive file.")
         puml("#red:The selected firmware is not valid;\n")
@@ -595,8 +628,8 @@ def process_file(self, file_type):
         package_id = pre_package_id
 
     # create BOOT db record
-    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-    data = checksum, cached_boot_img_path, 0, '', '', time.time()
+    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method) values(?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+    data = checksum, cached_boot_img_path, 0, '', '', time.time(), ''
     try:
         cursor.execute(sql, data)
         con.commit()
@@ -1173,21 +1206,32 @@ def manual_magisk(self, boot_file_name):
 
     # Message Dialog Here to Patch Manually
     title = "Manual Patching"
-    message =  "Magisk should now be running on your phone.\n\n"
-    message += "If it is not, you  can try starting in manually\n\n"
-    message += "Please follow these steps in Magisk.\n"
-    message += "- Click on `Install` and choose\n"
-    message += "- `Select and patch a file`\n"
-    message += f"- select {boot_file_name} in %s \n" % self.config.phone_path
-    message += "- Then hit `LET's GO`\n\n"
-    message += "To continue. Click OK when Magisk is done creating a patch.\n"
-    message += "Hit CANCEL to abort."
-    dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+    buttons_text = ["Done creating the patch, continue", "Cancel"]
+    message = '''
+## Magisk should now be running on your phone
+
+_If it is not, you  can try starting in manually._
+
+Please follow these steps in Magisk.
+
+- Click on **Install** or **Upgrade** in the section under **Magisk** block (Not App)
+- Click on **Select and patch a file**
+'''
+    message += f"- Select `{boot_file_name}` in `{self.config.phone_path}` \n"
+    message += '''
+- Then hit **Let's go**
+
+When done creating the patch in Magisk <br/>
+Click on **Done creating the patch, continue** button <br/>
+or hit the **Cancel** button to abort.
+
+'''
+    dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
+    dlg.CentreOnParent(wx.BOTH)
     result = dlg.ShowModal()
-    if result == wx.ID_OK:
-        print("User Pressed Ok.")
-    else:
-        print("User Pressed Cancel.")
+    dlg.Destroy()
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+    if result == 2:
         print("Aborting ...")
         return -1
     # find the newly created file and return
@@ -1195,8 +1239,8 @@ def manual_magisk(self, boot_file_name):
     res = run_shell(theCmd)
     if res.returncode == 0 and res.stderr == '':
         return os.path.basename(res.stdout.strip())
-    else:
-        return -1
+    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {res.stdout}\n{res.stderr}\n")
+    return -1
 
 
 # ============================================================================
@@ -1473,8 +1517,14 @@ def patch_boot_img(self, custom_patch = False):
                 if is_rooted:
                     data += "cp -f /data/local/tmp/pf/assets/stock_boot.img /data/adb/magisk/stock_boot.img\n"
                     # TODO see if we need to update the config SHA1
+                # cleanup /data/local/tmp directory of the stuff PF created.
+                data += "echo \"Cleaning up ...\"\n"
+                data += "rm -rf /data/local/tmp/pf\n"
+                data += "rm -f /data/local/tmp/pf.zip /data/local/tmp/pf_patch.sh /data/local/tmp/new-boot.img /data/local/tmp/busybox"
             else:
                 data += "mv new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
+                data += "echo \"Cleaning up ...\"\n"
+                data += "rm -f /data/local/tmp/pf_patch.sh"
 
             f.write(data)
             puml(f"note right\nPatch Script\n====\n{data}end note\n")
@@ -1552,7 +1602,8 @@ def patch_boot_img(self, custom_patch = False):
     print(f"  Magisk Version:         {m_version}")
     puml(f"note right\nMagisk Manager Version: {m_app_version}\nMagisk Version:         {m_version}\nend note\n")
 
-    if is_rooted:
+    # Temporary workaround for rooted Magisk Delta, don't ever recommend it.
+    if is_rooted and self.config.magisk != 'io.github.huskydg.magisk':
         method = 1  # rooted
         # disable app method if app is not found or is hidden.
         if not magisk_app_version or ( self.config.magisk not in ['', 'com.topjohnwu.magisk', 'io.github.vvb2060.magisk', 'io.github.huskydg.magisk'] ):
@@ -1687,13 +1738,18 @@ Unless you know what you're doing, it is recommended that you take the default s
 
     # Perform the patching
     if method == 1:
+        patch_method = 'root'
         magisk_patched_img = patch_script("rooted")
     elif method == 2:
+        patch_method = 'app'
         magisk_patched_img = patch_script("app")
     elif method == 3:
+        patch_method = 'ui-auto'
+        set_patched_with(device.magisk_app_version)
         magisk_patched_img = drive_magisk(self, boot_file_name=boot_img)
     elif method == 4:
-        set_patched_with(device.magisk_version)
+        patch_method = 'manual'
+        set_patched_with(device.magisk_app_version)
         magisk_patched_img = manual_magisk(self, boot_file_name=boot_img)
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexepected patch method.")
@@ -1850,8 +1906,8 @@ Unless you know what you're doing, it is recommended that you take the default s
         con.execute("PRAGMA foreign_keys = ON")
         con.commit()
         cursor = con.cursor()
-        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch) values(?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time())
+        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method) values(?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method)
         debug(f"Creating BOOT record, boot_hash: {checksum}")
         try:
             cursor.execute(sql, data)
@@ -1976,6 +2032,8 @@ def live_flash_boot_phone(self, option):
         if boot.is_patched == 1:
             message += "Patched:                Yes\n"
             message += f"With Magisk:            {boot.magisk_version}\n"
+            if boot.patch_method:
+                message += f"Patched Method:         {boot.patch_method}\n"
             message += f"Original boot.img from: {boot.package_sig}\n"
             message += f"Original boot.img Hash: {boot.package_boot_hash}\n"
         else:
@@ -2564,7 +2622,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         dlg.Destroy()
         if result == wx.ID_OK:
             # get the contents of modified flash_pf_file
-            with open(flash_pf_file, 'r') as f:
+            with open(flash_pf_file, 'r', encoding='ISO-8859-1', errors="replace") as f:
                 contents = f.read()
             print(f"\nflash_pf file has been modified!")
             print(f"The modified script content that will be executed:")

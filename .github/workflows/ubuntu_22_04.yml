@@ -50,9 +50,6 @@ jobs:
       - name: Install requirements
         run: pip install -r requirements.txt
 
-      - name: experimental step for Mint os
-        run: pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
-
       - name: List modules and their versions
         run: python3.10 -m pip freeze
 

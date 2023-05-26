@@ -1,0 +1,71 @@
+name: Build for Mint 21.1
+
+env:
+  ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# Controls when the workflow will run
+on:
+  # push:
+    # # Sequence of patterns matched against refs/tags
+    # tags:
+    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Build tags'
+
+jobs:
+  build_mint_21_1:
+    if: github.actor == 'badabing2005'
+    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+    runs-on: ubuntu-latest
+    container:
+      image: linuxmintd/mint21.1-amd64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        run: |
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt update
+          sudo apt install -y python3.10
+          sudo apt install -y python3.10-venv
+          sudo apt install -y python3-pip
+          python3.10 --version
+
+      - name: Create virtual environment
+        run: python3.10 -m venv myenv
+        shell: bash
+
+      - name: Activate virtual environment
+        run: source myenv/bin/activate
+        shell: bash
+
+      - name: Install wxPython
+        run: |
+          python3 -m pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp310-cp310-linux_x86_64.whl
+
+      - name: Install requirements
+        run: python3 -m pip install -r requirements.txt
+
+      - name: List modules and their versions
+        run: python3 -m pip freeze
+
+      - name: Build application
+        run: ./build.sh
+
+      - name: List contents of dist directory
+        run: ls dist
+
+      # Upload artifcats Mint 21.1 to Actions
+      - name: Upload Mint 21.1 Artifact
+        uses: actions/upload-artifact@v3
+        id: upload_artifacts_mint_21_1
+        with:
+          name: PixelFlasher_Mint_21_1
+          path: dist/PixelFlasher
+

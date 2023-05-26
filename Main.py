@@ -881,24 +881,26 @@ class PixelFlasher(wx.Frame):
         message += f"    Device Model:                    {device.hardware}\n"
         message += f"    Device Active Slot:              {device.active_slot}\n"
         message += f"    Device Mode:                     {device.true_mode}\n"
-        android_devices = get_android_devices()
-        android_device = android_devices[device.hardware]
-        if android_device:
-            message += f"    Device:                          {android_device['device']}\n"
-            message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
-            message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"
+        with contextlib.suppress(Exception):
+            android_devices = get_android_devices()
+            android_device = android_devices[device.hardware]
+            if android_device:
+                message += f"    Device:                          {android_device['device']}\n"
+                message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
+                message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"
         message += f"    Has init_boot partition:         {device.has_init_boot}\n"
         if device.mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
             message += f"    Device Build:                    {device.build}\n"
             message += f"    Device API Level:                {device.api_level}\n"
-            android_versions = get_android_versions()
-            android_version = android_versions[device.api_level]
-            message += f"    Android Version:                 {android_version['Version']}\n"
-            message += f"    Android Name:                    {android_version['Name']}\n"
-            message += f"    Android Codename:                {android_version['Codename']}\n"
-            message += f"    Android Release Date:            {android_version['Release date']}\n"
-            message += f"    Android Latest Update:           {android_version['Latest update']}\n"
+            with contextlib.suppress(Exception):
+                android_versions = get_android_versions()
+                android_version = android_versions[device.api_level]
+                message += f"    Android Version:                 {android_version['Version']}\n"
+                message += f"    Android Name:                    {android_version['Name']}\n"
+                message += f"    Android Codename:                {android_version['Codename']}\n"
+                message += f"    Android Release Date:            {android_version['Release date']}\n"
+                message += f"    Android Latest Update:           {android_version['Latest update']}\n"
             message += f"    Device Architecture:             {device.architecture}\n"
             message += f"    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
             message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"

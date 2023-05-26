@@ -2532,10 +2532,12 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     data += sleep_line
                     data += sleep_line
                     data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
-                # echo add testing of fastbootd mode if we are in dry run mode.
-                if self.config.flash_mode == 'dryRun':
+                # echo add testing of fastbootd mode if we are in dry run mode and sdk < 34
+                sdk_version_components = get_sdk_version().split('.')
+                sdk_major_version = int(sdk_version_components[0])
+                if self.config.flash_mode == 'dryRun' and sdk_major_version < 34:
                     data += "echo This is a test for fastbootd mode ...\n"
-                    data += "echo This process will wait for fastbootd indefinitly (untill it responds) ...\n"
+                    data += "echo This process will wait for fastbootd indefinitly until it responds ...\n"
                     data += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you'd have to kill it.. ...\n"
                     data += "echo rebooting to fastbootd ...\n"
                     data += f"\"{get_fastboot()}\" -s {device.id} reboot fastboot\n"

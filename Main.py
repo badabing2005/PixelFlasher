@@ -190,7 +190,17 @@ class PixelFlasher(wx.Frame):
             else:
                 try:
                     set_firmware_model(firmware[0])
-                    set_firmware_id(f"{firmware[0]}-{firmware[1]}")
+                    if firmware[1] == 'ota':
+                        set_firmware_id(f"{firmware[0]}-{firmware[1]}-{firmware[2]}")
+                        set_ota(True)
+                        self.enable_disable_radio_button('OTA', True, selected=True, just_select=True)
+                        self.config.flash_mode = 'OTA'
+                    else:
+                        set_firmware_id(f"{firmware[0]}-{firmware[1]}")
+                        if self.config.flash_mode == 'OTA':
+                            self.config.flash_mode = 'dryRun'
+                            self.enable_disable_radio_button('dryRun', True, selected=True, just_select=True)
+                        set_ota(False)
                 except Exception as e:
                     set_firmware_model(None)
                     set_firmware_id(filename)
@@ -235,12 +245,6 @@ class PixelFlasher(wx.Frame):
                 rom_hash = sha256(self.config.custom_rom_path)
                 self.config.rom_sha256 = rom_hash
             self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
-        if self.config.custom_rom:
-            self.custom_rom.Enable()
-            self.process_rom.Enable()
-        else:
-            self.custom_rom.Disable()
-            self.process_rom.Disable()
 
         # refresh boot.img list
         populate_boot_list(self)
@@ -310,8 +314,27 @@ class PixelFlasher(wx.Frame):
         # set the ui fonts
         self.set_ui_fonts()
 
+        # update widgets
+        self.update_widget_states()
+
         self.spinner.Hide()
         self.spinner_label.Hide()
+
+
+    # -----------------------------------------------
+    #           enable_disable_radio_buttons
+    # -----------------------------------------------
+    def enable_disable_radio_button(self, name, state, selected=False, just_select=False):
+        radio_buttons = self.mode_sizer.GetChildren()
+        if isinstance(name, str):
+            for child in radio_buttons:
+                radio_button = child.GetWindow()
+                if radio_button and radio_button.GetName() == f"mode-{name}":
+                    if not just_select:
+                        radio_button.Enable(state)
+                    if state and selected:
+                        radio_button.SetValue(True)
+
 
     # -----------------------------------------------
     #                  set_ui_fonts
@@ -660,6 +683,11 @@ class PixelFlasher(wx.Frame):
         print("Entrering Test function (used during development only) ...")
         # device = get_phone()
         # res = device.open_shell()
+        start_time = time.time()
+        self.update_widget_states()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"The function update_widget_states took {elapsed_time} seconds to execute.")
 
     # -----------------------------------------------
     #                  _on_help_about
@@ -694,10 +722,12 @@ class PixelFlasher(wx.Frame):
             self.config.pf_font_size = get_pf_font_size()
             self.set_ui_fonts()
         advanced_setting_dialog.Destroy()
+
         # show / hide advanced settings
         self._advanced_options_hide(not get_advanced_options())
         populate_boot_list(self)
         set_flash_button_state(self)
+        self.update_widget_states()
 
     # -----------------------------------------------
     #                  _on_package_manager
@@ -798,8 +828,13 @@ class PixelFlasher(wx.Frame):
             a = self.mode_radio_button.Name
             # if we're turning off advanced options, and the current mode is customFlash, change it to dryRun
             if self.mode_radio_button.Name == 'mode-customFlash' and self.mode_radio_button.GetValue():
-                self.mode_radio_button.PreviousInGroup.SetValue(True)
-                self.config.flash_mode = 'dryRun'
+                if get_ota():
+                    self.enable_disable_radio_button('OTA', True, selected=True, just_select=True)
+                    self.config.flash_mode = 'OTA'
+                else:
+                    #self.mode_radio_button.PreviousInGroup.SetValue(True)
+                    self.enable_disable_radio_button('dryRun', True, selected=True, just_select=True)
+                    self.config.flash_mode = 'dryRun'
         else:
             # flash options
             self.flash_both_slots_checkBox.Show()
@@ -968,27 +1003,11 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _update_custom_flash_options(self):
         boot = get_boot()
-        if not boot:
-            self.paste_boot.Enable(False)
         image_mode = get_image_mode()
         image_path = get_image_path()
-        if self.config.flash_mode == 'customFlash':
-            self.temporary_root_checkBox.Enable(False)
-            self.image_file_picker.Enable(True)
-            self.image_choice.Enable(True)
-            if boot:
-                self.paste_boot.Enable(True)
-        else:
-            # disable custom_flash_options
-            if boot and boot.is_patched == 1:
-                self.temporary_root_checkBox.Enable(True)
-            else:
-                self.temporary_root_checkBox.Enable(False)
+        if self.config.flash_mode != 'customFlash' or not boot:
             self.flash_radio_button.Enable(False)
             self.live_boot_radio_button.Enable(False)
-            self.image_file_picker.Enable(False)
-            self.image_choice.Enable(False)
-            self.paste_boot.Enable(False)
             return
         self.live_boot_radio_button.Enable(False)
         self.flash_radio_button.Enable(False)
@@ -998,8 +1017,6 @@ class PixelFlasher(wx.Frame):
                 filename, extension = os.path.splitext(image_path)
                 extension = extension.lower()
                 if image_mode == 'boot':
-                    if boot:
-                        self.paste_boot.Enable(True)
                     if extension == '.img':
                         self.live_boot_radio_button.Enable(True)
                         self.flash_radio_button.Enable(True)
@@ -1007,7 +1024,6 @@ class PixelFlasher(wx.Frame):
                     else:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
                 elif image_mode in ['image', 'SIDELOAD']:
-                    self.paste_boot.Enable(False)
                     if extension == '.zip':
                         self.live_boot_radio_button.Enable(False)
                         self.flash_radio_button.Enable(True)
@@ -1015,20 +1031,13 @@ class PixelFlasher(wx.Frame):
                         self.flash_radio_button.SetValue(True)
                     else:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .zip")
+                elif extension == '.img':
+                    self.live_boot_radio_button.Enable(False)
+                    self.flash_radio_button.Enable(True)
+                    self.flash_button.Enable(True)
+                    self.flash_radio_button.SetValue(True)
                 else:
-                    self.paste_boot.Enable(False)
-                    if extension == '.img':
-                        self.live_boot_radio_button.Enable(False)
-                        self.flash_radio_button.Enable(True)
-                        self.flash_button.Enable(True)
-                        self.flash_radio_button.SetValue(True)
-                    else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
-            elif image_mode == 'boot':
-                if boot:
-                    self.paste_boot.Enable(True)
-            else:
-                self.paste_boot.Enable(False)
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
 
     # -----------------------------------------------
     #                  _select_configured_device
@@ -1065,6 +1074,8 @@ class PixelFlasher(wx.Frame):
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} No Device is selected!")
             puml(f":Select Device;\nnote right:No Device is selected!\n")
         self._reflect_slots()
+        self.update_widget_states()
+
 
     # -----------------------------------------------
     #                  _reflect_slots
@@ -1072,87 +1083,214 @@ class PixelFlasher(wx.Frame):
     def _reflect_slots(self):
         device = get_phone()
         if device:
-            self.reboot_recovery_button.Enable(True)
-            if device.mode == 'adb':
-                self.reboot_download_button.Enable(True)
-                if device.rooted:
-                    self.reboot_safemode_button.Enable(True)
-                else:
-                    self.reboot_safemode_button.Enable(False)
-            else:
-                self.reboot_download_button.Enable(False)
-                self.reboot_safemode_button.Enable(False)
-            self.reboot_bootloader_button.Enable(True)
-            self.reboot_system_button.Enable(True)
-            self.shell_button.Enable(True)
-            self.info_button.Enable(True)
-            self.unlock_bootloader.Enable(True)
-            self.lock_bootloader.Enable(True)
-            self.install_magisk_button.Enable(True)
-            self.flash_both_slots_checkBox.Enable(True)
-            self.flash_to_inactive_slot_checkBox.Enable(True)
-            self.no_reboot_checkBox.Enable(True)
-            self.partition_manager_button.Enable(True)
-            if device.rooted:
-                self.backup_manager_button.Enable(True)
-            else:
-                self.backup_manager_button.Enable(False)
-            self.install_apk.Enable(True)
-            self.package_manager.Enable(True)
             if device.active_slot == 'a':
                 self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
-                self.a_radio_button.Enable(False)
-                self.b_radio_button.Enable(True)
                 self.b_radio_button.SetValue(True)
-                self.set_active_slot_button.Enable(True)
                 set_a_only(False)
             elif device.active_slot == 'b':
                 self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [B]"
-                self.a_radio_button.Enable(True)
-                self.b_radio_button.Enable(False)
                 self.a_radio_button.SetValue(True)
-                self.set_active_slot_button.Enable(True)
                 set_a_only(False)
             else:
                 self.device_label.Label = "ADB Connected Devices"
-                self.a_radio_button.Enable(False)
-                self.b_radio_button.Enable(False)
                 self.a_radio_button.SetValue(False)
                 self.b_radio_button.SetValue(False)
-                self.set_active_slot_button.Enable(False)
-                self.flash_both_slots_checkBox.Enable(False)
-                self.flash_to_inactive_slot_checkBox.Enable(False)
-                self.no_reboot_checkBox.Enable(False)
                 set_a_only(True)
-            if device.magisk_modules_summary == '':
-                self.magisk_button.Enable(False)
-            else:
-                self.magisk_button.Enable(True)
         else:
             self.device_label.Label = "ADB Connected Devices"
-            self.a_radio_button.Enable(False)
-            self.b_radio_button.Enable(False)
             self.a_radio_button.SetValue(False)
             self.b_radio_button.SetValue(False)
-            self.set_active_slot_button.Enable(False)
-            self.reboot_recovery_button.Enable(False)
-            self.reboot_download_button.Enable(False)
-            self.reboot_safemode_button.Enable(False)
-            self.reboot_bootloader_button.Enable(False)
-            self.reboot_system_button.Enable(False)
-            self.shell_button.Enable(False)
-            self.info_button.Enable(False)
-            self.magisk_button.Enable(False)
-            self.unlock_bootloader.Enable(False)
-            self.lock_bootloader.Enable(False)
-            self.install_magisk_button.Enable(False)
-            self.backup_manager_button.Enable(False)
-            self.partition_manager_button.Enable(False)
-            self.install_apk.Enable(False)
-            self.package_manager.Enable(False)
-            self.flash_both_slots_checkBox.Enable(False)
-            self.flash_to_inactive_slot_checkBox.Enable(False)
-            self.no_reboot_checkBox.Enable(False)
+
+
+    #-----------------------------------------------------------------------------
+    #                          evaluate_condition
+    #-----------------------------------------------------------------------------
+    # Define the rules engine
+    def evaluate_condition(self, condition):
+        try:
+            if condition == 'device_attached':
+                device = get_phone()
+                if device:
+                    return True
+                return False
+
+            elif condition == 'device_mode_adb':
+                device = get_phone()
+                if device and device.mode == 'adb':
+                    return True
+                return False
+
+            elif condition == 'device_is_rooted':
+                device = get_phone()
+                if device and device.rooted:
+                    return True
+                return False
+
+            elif condition == 'mode_is_not_ota':
+                if self.config.flash_mode != 'OTA':
+                    return True
+                return False
+
+            elif condition == 'custom_flash':
+                if self.config.flash_mode == 'customFlash':
+                    return True
+                return False
+
+            elif condition == 'custom_rom':
+                if self.config.custom_rom:
+                    return True
+                return False
+
+            elif condition == 'custom_rom_selected':
+                if self.config.custom_rom_path and os.path.exists(self.config.custom_rom_path):
+                    return True
+                return False
+
+            elif condition == 'firmware_selected':
+                if self.config.firmware_path and os.path.exists(self.config.firmware_path):
+                    return True
+                return False
+
+            elif condition == 'not_custom_flash':
+                if self.config.flash_mode != 'customFlash':
+                    return True
+                return False
+
+            elif condition == 'dual_slot':
+                device = get_phone()
+                if device and device.active_slot in ['a', 'b']:
+                    return True
+                return False
+
+            elif condition == 'slot_a':
+                device = get_phone()
+                if device and device.active_slot == 'a':
+                    return True
+                return False
+
+            elif condition == 'slot_b':
+                device = get_phone()
+                if device and device.active_slot =='b':
+                    return True
+                return False
+
+            elif condition == 'has_magisk_modules':
+                device = get_phone()
+                if device.magisk_modules_summary == '':
+                    return False
+                return True
+
+            elif condition == 'boot_is_selected':
+                boot = get_boot()
+                if boot:
+                    return True
+                return False
+
+            elif condition == 'boot_is_patched':
+                boot = get_boot()
+                if boot and boot.is_patched == 1:
+                    return True
+                return False
+
+            elif condition == 'boot_is_not_patched':
+                boot = get_boot()
+                if boot and boot.is_patched == 1:
+                    return False
+                return True
+
+            elif condition == 'custom_image_selected':
+                image_path = get_image_path()
+                if image_path:
+                    return True
+                return False
+
+            elif condition == 'custom_image_mode_is_boot':
+                image_mode = get_image_mode()
+                if image_mode == 'boot':
+                    return True
+                return False
+
+            elif condition == 'firmware_is_ota':
+                return get_ota()
+
+            elif condition == 'firmware_is_not_ota':
+                return not get_ota()
+
+            elif condition == 'sdk_ok':
+                return get_sdk_state()
+
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while evaluating a rule")
+            print(e)
+
+    #-----------------------------------------------------------------------------
+    #                                   update_widget_states
+    #-----------------------------------------------------------------------------
+    def update_widget_states(self):
+        try:
+            widget_conditions = {
+                self.reboot_recovery_button:            ['device_attached'],
+                self.reboot_bootloader_button:          ['device_attached'],
+                self.reboot_system_button:              ['device_attached'],
+                self.shell_button:                      ['device_attached'],
+                self.info_button:                       ['device_attached'],
+                self.unlock_bootloader:                 ['device_attached'],
+                self.lock_bootloader:                   ['device_attached'],
+                self.install_magisk_button:             ['device_attached'],
+                self.partition_manager_button:          ['device_attached'],
+                self.install_apk:                       ['device_attached'],
+                self.package_manager:                   ['device_attached'],
+                self.no_reboot_checkBox:                ['device_attached'],
+                self.image_file_picker:                 ['custom_flash'],
+                self.image_choice:                      ['custom_flash'],
+                self.custom_rom:                        ['custom_rom'],
+                self.scan_button:                       ['sdk_ok'],
+                self.wifi_adb:                          ['sdk_ok'],
+                self.device_choice:                     ['sdk_ok'],
+                self.process_firmware:                  ['firmware_selected'],
+                self.delete_boot_button:                ['boot_is_selected'],
+                self.boot_folder_button:                ['boot_is_selected'],
+                self.firmware_folder_button:            ['boot_is_selected'],
+                self.live_boot_button:                  ['boot_is_selected'],
+                self.flash_boot_button:                 ['boot_is_selected'],
+                self.paste_boot:                        ['boot_is_selected', 'custom_flash'],
+                self.patch_boot_button:                 ['boot_is_selected', 'boot_is_not_patched'],
+                self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
+                self.magisk_button:                     ['device_attached', 'has_magisk_modules'],
+                self.a_radio_button:                    ['device_attached', 'slot_b'],
+                self.b_radio_button:                    ['device_attached', 'slot_a'],
+                self.set_active_slot_button:            ['device_attached', 'dual_slot'],
+                self.reboot_download_button:            ['device_attached', 'device_mode_adb'],
+                self.backup_manager_button:             ['device_attached', 'device_is_rooted'],
+                self.reboot_safemode_button:            ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.flash_both_slots_checkBox:         ['device_attached', 'mode_is_not_ota', 'dual_slot'],
+                self.flash_to_inactive_slot_checkBox:   ['device_attached', 'mode_is_not_ota', 'dual_slot'],
+                self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
+                self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
+                # Special handling of non-widgets
+                'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
+                'mode_radio_button.keepData':           ['firmware_selected', 'firmware_is_not_ota'],
+                'mode_radio_button.wipeData':           ['firmware_selected', 'firmware_is_not_ota'],
+                'mode_radio_button.dryRun':             ['firmware_selected', 'firmware_is_not_ota'],
+            }
+
+            for widget, conditions in widget_conditions.items():
+                # Evaluate conditions for the widget using the rules engine
+                enable_widget = all(self.evaluate_condition(condition) for condition in conditions)
+
+                # Set the state of the widget
+                if isinstance(widget, str):
+                    # Handle special case for Flash Mode Radio Button Widget
+                    if widget.startswith('mode_radio_button'):
+                        name = widget.split('.')[1]
+                        self.enable_disable_radio_button(name, enable_widget)
+                else:
+                    # Handle widget objects
+                    widget.Enable(enable_widget)
+
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating widgets.")
+            print(e)
 
 
     #-----------------------------------------------------------------------------
@@ -1190,6 +1328,7 @@ class PixelFlasher(wx.Frame):
                         set_phone(device)
                         self._print_device_details(device)
                 self._reflect_slots()
+            self.update_widget_states()
             self._on_spin('stop')
 
         # -----------------------------------------------
@@ -1330,6 +1469,7 @@ class PixelFlasher(wx.Frame):
                 print(f"Flash mode changed to: {self.config.flash_mode}")
                 puml(f":Flash mode change;\n", True)
                 puml(f"note right:{self.config.flash_mode}\n")
+                self.update_widget_states()
             if self.config.flash_mode != 'customFlash':
                 set_flash_button_state(self)
             self._update_custom_flash_options()
@@ -1846,15 +1986,11 @@ class PixelFlasher(wx.Frame):
             if status:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Enabled Custom ROM")
                 puml(":Custom ROM: ON;\n", True)
-                self.custom_rom.Enable()
-                self.process_rom.Enable()
-                populate_boot_list(self)
             else:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Disabled Custom ROM")
                 puml(":Custom ROM: ON;\n", True)
-                self.custom_rom.Disable()
-                self.process_rom.Disable()
-                populate_boot_list(self)
+            populate_boot_list(self)
+            self.update_widget_states()
 
         # -----------------------------------------------
         #                  _on_show_all_boot
@@ -1943,15 +2079,6 @@ class PixelFlasher(wx.Frame):
                         debug("INFO: Duplicate PACKAGE_BOOT records found")
                 self.config.boot_id = boot.boot_id
                 self.config.selected_boot_md5 = boot.boot_hash
-                self.delete_boot_button.Enable(True)
-                self.boot_folder_button.Enable(True)
-                self.firmware_folder_button.Enable(True)
-                self.live_boot_button.Enable(True)
-                self.flash_boot_button.Enable(True)
-                if boot.magisk_version == '':
-                    self.patch_boot_button.Enable(True)
-                else:
-                    self.patch_boot_button.Enable(False)
                 print("Selected Boot:")
                 puml(":Select Boot;\n", True)
                 message = f"    File:                  {os.path.basename(urlparse(boot.boot_path).path)}\n"
@@ -1977,13 +2104,6 @@ class PixelFlasher(wx.Frame):
             else:
                 self.config.boot_id = None
                 self.config.selected_boot_md5 = None
-                self.patch_boot_button.Enable(False)
-                self.delete_boot_button.Enable(False)
-                self.boot_folder_button.Enable(False)
-                self.firmware_folder_button.Enable(False)
-                self.live_boot_button.Enable(False)
-                self.flash_boot_button.Enable(False)
-                self.paste_boot.Enable(False)
                 if self.list.ItemCount == 0 :
                     if self.config.firmware_path:
                         print("\nPlease Process the firmware!")
@@ -1992,6 +2112,7 @@ class PixelFlasher(wx.Frame):
             set_boot(boot)
             set_flash_button_state(self)
             self._update_custom_flash_options()
+            self.update_widget_states()
 
         # -----------------------------------------------
         #                  _on_delete_boot
@@ -2178,7 +2299,6 @@ class PixelFlasher(wx.Frame):
         self.wifi_adb = wx.BitmapButton(panel, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
         self.wifi_adb.SetBitmap(images.Wifi_ADB.GetBitmap())
         self.wifi_adb.SetToolTip(u"Connect/Disconnect to Remote Device (Wifi ADB)\nNote: ADB only, fastboot commands (example flashing)\ncannot be executed remotely.\nLeft click to connect, Right click to disconnect.")
-        self.wifi_adb.Enable(False)
         adb_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         adb_label_sizer.Add(self.device_label, 1, wx.EXPAND)
         adb_label_sizer.Add(self.wifi_adb, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=24)
@@ -2197,7 +2317,6 @@ class PixelFlasher(wx.Frame):
         self.scan_button = wx.Button(panel, label=u"Scan")
         self.scan_button.SetToolTip(u"Scan for Devices\nPlease manually select the device after the scan is completed.")
         self.scan_button.SetBitmap(images.Scan.GetBitmap())
-        self.scan_button.Enable(False)
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
         device_sizer = wx.BoxSizer(wx.HORIZONTAL)
         device_sizer.Add(self.device_choice, 1, wx.EXPAND)
@@ -2383,14 +2502,15 @@ class PixelFlasher(wx.Frame):
         list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND)
         list_sizer.Add(image_buttons_sizer, 0, wx.ALL|wx.EXPAND)
 
-        # 8th row widgets
+        # 8th row widgets (Flash Mode)
         mode_label = wx.StaticText(panel, label=u"Flash Mode")
-        mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
         # _add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
-        _add_mode_radio_button(mode_sizer, 0, 'keepData', "Keep Data", "Data will be kept intact.")
-        _add_mode_radio_button(mode_sizer, 1, 'wipeData', "WIPE all data", "CAUTION: This will wipe your data")
-        _add_mode_radio_button(mode_sizer, 2, 'dryRun', "Dry Run", "Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
-        _add_mode_radio_button(mode_sizer, 3, 'customFlash', "Custom Flash", "Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file.")
+        _add_mode_radio_button(self.mode_sizer, 0, 'keepData', "Keep Data", "Data will be kept intact.")
+        _add_mode_radio_button(self.mode_sizer, 1, 'wipeData', "WIPE all data", "CAUTION: This will wipe your data")
+        _add_mode_radio_button(self.mode_sizer, 2, 'dryRun', "Dry Run", "Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
+        _add_mode_radio_button(self.mode_sizer, 3, 'OTA', "Full OTA", "Flash full OTA, and have the choice of flashing patched image(s).")
+        _add_mode_radio_button(self.mode_sizer, 4, 'customFlash', "Custom Flash", "Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file.")
 
         # 9th row widgets (custom flash)
         self.live_boot_radio_button = wx.RadioButton(panel, wx.ID_ANY, u"Live Boot", wx.DefaultPosition, wx.DefaultSize, wx.RB_GROUP)
@@ -2429,7 +2549,7 @@ class PixelFlasher(wx.Frame):
         self.fastboot_verbose_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Verbose", wx.DefaultPosition, wx.DefaultSize, 0)
         self.fastboot_verbose_checkBox.SetToolTip(u"set fastboot option to verbose")
         self.temporary_root_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"Temporary Root", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if magisk will cause a bootloop.\n\nPlease be aware that factory image will be flashed, and if you reboot\nthe device will be unrooted.\nIf you want to make this permanent, just flash the patched boot.img")
+        self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image.")
         self.no_reboot_checkBox = wx.CheckBox(panel, wx.ID_ANY, u"No reboot", wx.DefaultPosition, wx.DefaultSize, 0)
         self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
         self.advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2500,7 +2620,7 @@ class PixelFlasher(wx.Frame):
                     (self.custom_rom_checkbox, 0, wx.ALIGN_CENTER_VERTICAL, 5), (custom_rom_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (label_v_sizer, 1, wx.EXPAND), (list_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
-                    (mode_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (mode_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (mode_label, 0, wx.ALIGN_CENTER_VERTICAL, 5), (self.mode_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (custom_advanced_options_sizer, 0, wx.ALIGN_CENTER_VERTICAL, 5), (custom_flash_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     self.advanced_options_label, self.advanced_options_sizer,
                     (wx.StaticText(panel, label="")), (self.flash_button, 1, wx.EXPAND),

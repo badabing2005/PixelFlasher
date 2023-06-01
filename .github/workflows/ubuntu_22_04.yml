@@ -18,7 +18,7 @@ on:
 
 jobs:
   build_ubuntu_22_04:
-    if: github.actor == 'badabing2005'
+    if: ${{ github.actor == 'badabing2005' || env.ACT }}
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     runs-on: ubuntu-latest
 
@@ -61,11 +61,18 @@ jobs:
 
       # Upload artifcats Ubuntu 22.04 to Actions
       - name: Upload Ubuntu 22.04 Artifact
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v3
         id: upload_artifacts_ubuntu_22_04
         with:
           name: PixelFlasher_Ubuntu_22_04
           path: dist/PixelFlasher
+
+      # Copy the artifact to a local directory
+      - name: Copy Ubuntu 22.04 Artifact locally
+        if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
+        run: |
+          cp dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04
 
       # # Create a release
       # - name: Create Release

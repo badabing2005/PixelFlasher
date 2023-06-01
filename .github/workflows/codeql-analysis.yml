@@ -22,6 +22,7 @@ on:
 
 jobs:
   analyze:
+    if: ${{ github.actor == 'badabing2005' || env.ACT }}
     name: Analyze
     runs-on: ubuntu-latest
     permissions:

@@ -72,6 +72,8 @@ android_devices = {}
 env_variables = os.environ.copy()
 boot_list_columns = 8
 boot_column_widths = column_widths = [0] * boot_list_columns
+is_ota = False
+sdk_is_ok = False
 
 # ============================================================================
 #                               Class Boot
@@ -575,6 +577,38 @@ def get_recovery_patch_settings():
 def set_recovery_patch_settings(value):
     global recovery_patch
     recovery_patch = value
+
+
+# ============================================================================
+#                               Function get_is_ota
+# ============================================================================
+def get_ota():
+    global is_ota
+    return is_ota
+
+
+# ============================================================================
+#                               Function set_is_ota
+# ============================================================================
+def set_ota(value):
+    global is_ota
+    is_ota = value
+
+
+# ============================================================================
+#                               Function get_sdk_state
+# ============================================================================
+def get_sdk_state():
+    global sdk_is_ok
+    return sdk_is_ok
+
+
+# ============================================================================
+#                               Function set_sdk_state
+# ============================================================================
+def set_sdk_state(value):
+    global sdk_is_ok
+    sdk_is_ok = value
 
 
 # ============================================================================

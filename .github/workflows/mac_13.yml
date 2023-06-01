@@ -18,7 +18,7 @@ on:
 
 jobs:
   build_mac_13:
-    if: github.actor == 'badabing2005'
+    if: ${{ github.actor == 'badabing2005' || env.ACT }}
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     # runs-on: macos-latest
     runs-on: macos-13
@@ -70,11 +70,18 @@ jobs:
 
       # Upload artifcats Mac-OS 13 to Actions
       - name: Upload Mac-OS 13 Artifact
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v3
         id: upload_artifact_macos_13
         with:
           name: PixelFlasher_MacOS_13.dmg
           path: dist/PixelFlasher.dmg
+
+      # Copy the artifact to a local directory
+      - name: Copy MacOS 13 Artifact locally
+        if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
+        run: |
+          cp dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_13.dmg
 
       # # Create a release
       # - name: Create Release

@@ -18,7 +18,7 @@ on:
 
 jobs:
   build_windows:
-    if: github.actor == 'badabing2005'
+    if: ${{ github.actor == 'badabing2005' || env.ACT }}
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     runs-on: windows-latest
 
@@ -64,11 +64,18 @@ jobs:
 
       # Upload artifcats Windows to Actions
       - name: Upload Windows Artifact
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v3
         id: upload_artifacts_windows
         with:
           name: PixelFlasher.exe
           path: dist/PixelFlasher.exe
+
+      # Copy the artifact to a local directory
+      - name: Copy Windows Artifact locally
+        if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
+        run: |
+          cp dist/PixelFlasher dist/PixelFlasher.exe
 
       # # Create a release
       # - name: Create Release

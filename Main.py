@@ -683,11 +683,11 @@ class PixelFlasher(wx.Frame):
         print("Entrering Test function (used during development only) ...")
         # device = get_phone()
         # res = device.open_shell()
-        start_time = time.time()
-        self.update_widget_states()
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"The function update_widget_states took {elapsed_time} seconds to execute.")
+        # start_time = time.time()
+        # self.update_widget_states()
+        # end_time = time.time()
+        # elapsed_time = end_time - start_time
+        # print(f"The function update_widget_states took {elapsed_time} seconds to execute.")
 
     # -----------------------------------------------
     #                  _on_help_about

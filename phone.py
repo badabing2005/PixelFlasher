@@ -1987,7 +1987,16 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             puml(":Opening an adb shell command;\n", True)
             theCmd = f"\"{get_adb()}\" -s {self.id} shell"
             debug(theCmd)
-            subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, env=get_env_variables())
+            if sys.platform.startswith("win"):
+                subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, env=get_env_variables())
+            elif sys.platform.startswith("linux"):
+                subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd])
+            elif sys.platform.startswith("darwin"):
+                script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
+                script_file.write(f'#!/bin/bash\n{theCmd}'.encode('utf-8'))
+                script_file.close()
+                os.chmod(script_file.name, 0o755)
+                subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], env=get_env_variables())
             return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")

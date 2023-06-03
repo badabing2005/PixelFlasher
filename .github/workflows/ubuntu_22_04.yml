@@ -27,37 +27,45 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          # python-version: '3.8'
-          # python-version: '3.9'
-          python-version: '3.10'
+        run: |
+          sudo apt update
+          sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt update
+          sudo apt install -y python3.10
+          sudo apt install -y python3.10-venv
+          sudo apt install -y python3-pip
+          python3.10 --version
 
-      - name: Create virtual environment
-        run: python -m venv myenv
+      - name: Install wxPython prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3.10-dev
+          sudo apt-get install -y libgtk-3-dev
+          sudo apt-get install -y libgstreamer1.0-dev
+          sudo apt-get install -y gstreamer1.0-plugins-base
+          sudo apt-get install -y freeglut3-dev
+          sudo apt-get install -y libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libjpeg-dev
+          sudo apt-get install -y libpng-dev
+          sudo apt-get install -y libtiff-dev
+          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libnotify-dev
+          sudo apt-get install -y libsm-dev
+
+      - name: Create virtual environment, install dependencies, and build
+        run: |
+          python3.10 -m venv myenv
+          . myenv/bin/activate
+          python --version
+          pip install -U pip
+          pip install -U six wheel setuptools
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
+          pip install -r requirements.txt
+          python --version && pip freeze
+          ./build.sh
+          ls dist
         shell: bash
-
-      - name: Activate virtual environment
-        run: source myenv/bin/activate
-        shell: bash
-
-      - name: Install wxPython
-        # run: pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp38-cp38-linux_x86_64.whl
-        # run: pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp39-cp39-linux_x86_64.whl
-        run: pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp310-cp310-linux_x86_64.whl
-
-
-      - name: Install requirements
-        run: pip install -r requirements.txt
-
-      - name: List modules and their versions
-        run: python3.10 -m pip freeze
-
-      - name: Build application
-        run: ./build.sh
-
-      - name: List contents of dist directory
-        run: ls dist
 
       # Upload artifcats Ubuntu 22.04 to Actions
       - name: Upload Ubuntu 22.04 Artifact

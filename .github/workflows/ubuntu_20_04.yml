@@ -18,7 +18,7 @@ on:
 
 jobs:
   build_ubuntu_20_04:
-    if: ${{ github.actor == 'badabing2005' || env.ACT }}
+    if: ${{ github.actor == 'badabing2005' }}
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     runs-on: ubuntu-20.04
 

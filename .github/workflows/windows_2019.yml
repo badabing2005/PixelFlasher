@@ -1,4 +1,4 @@
-name: Build for MacOS 11
+name: Build for Windows 2019
 
 env:
   ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -17,71 +17,65 @@ on:
         description: 'Build tags'
 
 jobs:
-  build_mac_11:
+  build_windows:
     if: ${{ github.actor == 'badabing2005' }}
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
-    # runs-on: macos-latest
-    runs-on: macos-11
+    runs-on: windows-2019
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: List Cellar directory Again
-        run: |
-          ls /usr/local/Cellar
-
-      # - name: Set up Python
-        # uses: actions/setup-python@v4
-        # with:
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          # python-version: '3.7'
+          python-version: '3.8'
           # python-version: '3.9'
-
-      - name: Install wxPython
-        run: brew install wxpython
-
-      - name: Install node graphicsmagick imagemagick
-        run: brew install node graphicsmagick imagemagick
-
-      - name: Install create-dmg
-        run: npm install --global create-dmg
-
-      - name: Add Python 3.10 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.10/bin:$PATH
+          # python-version: '3.10'
 
       - name: Create virtual environment
-        run: python3.10 -m venv myenv
-        shell: bash
+        run: python -m venv myenv
+        shell: powershell
 
       - name: Activate virtual environment
-        run: source myenv/bin/activate
-        shell: bash
+        run: .\myenv\Scripts\Activate.ps1
+        shell: powershell
+
+      - name: Install wxPython
+        # run: pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04/wxPython-4.1.0-cp38-cp38-linux_x86_64.whl
+        # run: pip install https://wxpython.org/Phoenix/snapshot-builds/wxPython-4.2.1a1.dev5564+33cabe97-cp37-cp37m-win_amd64.whl
+        run: pip install https://wxpython.org/Phoenix/snapshot-builds/wxPython-4.2.1a1.dev5564+33cabe97-cp38-cp38-win_amd64.whl
+        # run: pip install https://wxpython.org/Phoenix/snapshot-builds/wxPython-4.2.1a1.dev5564+33cabe97-cp39-cp39-win_amd64.whl
+        # run: pip install https://wxpython.org/Phoenix/snapshot-builds/wxPython-4.2.1a1.dev5564+33cabe97-cp310-cp310-win_amd64.whl
+
 
       - name: Install requirements
-        run: python3.10 -m pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: List modules and their versions
-        run: python3.10 -m pip freeze
+        run: pip freeze
 
       - name: Build application
-        run: ./build.sh
+        run: .\build.bat
 
       - name: List contents of dist directory
         run: ls dist
 
-      # Upload artifcats Mac-OS 11
-      - name: Upload Mac-OS 11 Artifact
+      # Upload artifcats Windows to Actions
+      - name: Upload Windows Artifact
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v3
-        id: upload_artifact_macos_11
+        id: upload_artifacts_windows
         with:
-          name: PixelFlasher_MacOS_11.dmg
-          path: dist/PixelFlasher.dmg
+          name: PixelFlasher_Win_2019.exe
+          path: dist/PixelFlasher.exe
 
       # Copy the artifact to a local directory
-      - name: Copy MacOS 11 Artifact locally
+      - name: Copy Windows Artifact locally
         if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
         run: |
-          cp dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_11.dmg
+          cp dist/PixelFlasher dist/PixelFlasher.exe
 
       # # Create a release
       # - name: Create Release
@@ -98,15 +92,18 @@ jobs:
           # name: Release ${{ github.ref }}
           # allowUpdates: "true"
           # draft: false
+          # prerelease: true
 
-      # # Upload the Mac-OS 11 artifact to release
-      # - name: Upload Mac-OS 11 Artifacts to release
+      # # Upload the Windows artifact to release
+      # - name: Upload Windows Artifact to release
         # uses: shogo82148/actions-upload-release-asset@v1
         # # uses: actions/upload-release-asset@v1
         # env:
           # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # with:
           # upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # asset_path: dist/PixelFlasher.dmg
-          # asset_name: PixelFlasher_MacOS_11.dmg
+          # asset_path: dist/PixelFlasher.exe
+          # asset_name: PixelFlasher.exe
           # asset_content_type: application/zip
+          # # asset_content_type: application/octet-stream
+

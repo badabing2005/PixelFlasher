@@ -4,6 +4,7 @@ import binascii
 import contextlib
 import hashlib
 import io
+import json
 import os
 import re
 import shutil
@@ -14,9 +15,9 @@ import tarfile
 import tempfile
 import time
 import zipfile
-import json
 from datetime import datetime
 
+import lz4.frame
 import requests
 import wx
 from packaging.version import parse
@@ -94,6 +95,7 @@ class Boot():
         self.package_sig = None
         self.package_path = None
         self.package_epoch = None
+        self.is_odin = None
 
 
 # ============================================================================
@@ -968,7 +970,7 @@ def init_db():
             );
         """)
 
-        # Check if the patch_method column already exists in the BOOT table
+        # Check if the patch_method and is_odin column already exists in the BOOT table
         # Added in version 5.1
         cursor = db.execute("PRAGMA table_info(BOOT)")
         columns = cursor.fetchall()
@@ -977,6 +979,9 @@ def init_db():
         if 'patch_method' not in column_names:
             # Add the patch_method column to the BOOT table
             db.execute("ALTER TABLE BOOT ADD COLUMN patch_method TEXT;")
+        if 'is_odin' not in column_names:
+            # Add the is_odin column to the BOOT table
+            db.execute("ALTER TABLE BOOT ADD COLUMN is_odin INTEGER;")
 
 
 # ============================================================================
@@ -1127,7 +1132,7 @@ def check_archive_contains_file(archive_file_path, file_to_check, nested=False, 
 
     if file_ext == '.zip':
         return check_zip_contains_file(archive_file_path, file_to_check, nested, is_recursive)
-    elif file_ext in ['.tgz', '.gz', '.tar']:
+    elif file_ext in ['.tgz', '.gz', '.tar', '.md5']:
         return check_tar_contains_file(archive_file_path, file_to_check, nested, is_recursive)
     else:
         debug("Unsupported file format.")
@@ -1194,6 +1199,15 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
                     return f'{member.name}/{nested_file_path}'
         debug(f"File {file_to_check} was NOT found")
         return ''
+
+
+# ============================================================================
+#                               Function get_zip_file_list
+# ============================================================================
+def get_zip_file_list(zip_file_path):
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+        file_list = zip_file.namelist()
+    return file_list
 
 
 # ============================================================================
@@ -1320,6 +1334,30 @@ def sha256(fname):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_sha256.update(chunk)
     return hash_sha256.hexdigest()
+
+
+# ============================================================================
+#                               Function unpack_lz4
+# ============================================================================
+def unpack_lz4(source, dest):
+    with open(source, 'rb') as file:
+        compressed_data = file.read()
+    decompressed_data = lz4.frame.decompress(compressed_data)
+    with open(dest, 'wb') as file:
+        file.write(decompressed_data)
+
+
+# ============================================================================
+#                               Function create_boot_tar
+# ============================================================================
+def create_boot_tar(dir, source='boot.img', dest='boot.tar'):
+    original_dir = os.getcwd()
+    try:
+        os.chdir(dir)
+        with tarfile.open(dest, 'w') as tar:
+            tar.add(source, arcname=source)
+    finally:
+        os.chdir(original_dir)
 
 
 # ============================================================================

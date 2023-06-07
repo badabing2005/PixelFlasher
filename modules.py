@@ -9,6 +9,7 @@ import sqlite3 as sl
 import sys
 import tempfile
 import time
+import fnmatch
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -164,7 +165,8 @@ def populate_boot_list(self):
             PACKAGE.type as package_type,
             PACKAGE.package_sig,
             PACKAGE.file_path as package_path,
-            PACKAGE.epoch as package_date
+            PACKAGE.epoch as package_date,
+            BOOT.is_odin
         FROM BOOT
         JOIN PACKAGE_BOOT
             ON BOOT.id = PACKAGE_BOOT.boot_id
@@ -491,6 +493,7 @@ def process_file(self, file_type):
     cursor = con.cursor()
     start_1 = time.time()
     checksum = ''
+    is_odin = False
 
     is_payload_bin = False
     factory_images = os.path.join(config_path, 'factory_images')
@@ -502,6 +505,7 @@ def process_file(self, file_type):
         found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
         found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=True)
         found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=True)
+        found_boot_img_lz4 = ''
         set_firmware_has_init_boot(False)
         if found_init_boot_img:
             set_firmware_has_init_boot(True)
@@ -524,9 +528,86 @@ def process_file(self, file_type):
             else:
                 print("Detected a firmware, with payload.bin")
         else:
-            print("Detected Unsupported firmware file.")
-            print("Aborting ...")
-            return
+            # -------------------------
+            # Samsung firmware handling
+            # -------------------------
+            # Get file list from zip
+            file_list = get_zip_file_list(file_to_process)
+            patterns = {
+                'AP': 'AP_*.tar.md5',
+                'BL': 'BL_*.tar.md5',
+                'HOME_CSC': 'HOME_CSC_*.tar.md5',
+                'CSC': 'CSC_*.tar.md5',
+            }
+            found_ap = ''
+            found_bl = ''
+            found_csc = ''
+            found_home_csc = ''
+            # see if we find AP_*.tar.md5, if yes set is_samsung flag
+            for file in file_list:
+                if not found_ap and fnmatch.fnmatch(file, patterns['AP']):
+                    # is_odin = 1
+                    is_odin = True
+                    print(f"Found {file} file.")
+                    found_ap = file
+                if not found_bl and fnmatch.fnmatch(file, patterns['BL']):
+                    print(f"Found {file} file.")
+                    found_bl = file
+                if not found_home_csc and fnmatch.fnmatch(file, patterns['HOME_CSC']):
+                    print(f"Found {file} file.")
+                    found_home_csc = file
+                if not found_csc and fnmatch.fnmatch(file, patterns['CSC']):
+                    print(f"Found {file} file.")
+                    found_csc = file
+
+            # TODO check settings, see if offer samsung extraction options is enabled
+            # if yes, offer list of found files to extract
+            if found_ap:
+                # assume Samsung firmware
+                print("Detected Samsung firmware")
+                image_file_path = os.path.join(package_dir_full, found_ap)
+                # Unzip the factory image
+                debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{file_to_process}\""
+                debug(theCmd)
+                res = run_shell2(theCmd)
+                # see if there is boot.img.lz4 in AP file
+                found_boot_img_lz4 = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="boot.img.lz4", nested=False)
+                if found_boot_img_lz4:
+                    print(f"Extracting boot.img.lz4 from {found_ap} ...")
+                    puml(f":Extract boot.img.lz4;\n")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" boot.img.lz4"
+                    debug(f"{theCmd}")
+                    res = run_shell(theCmd)
+                    # expect ret 0
+                    if res.returncode != 0:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.lz4")
+                        print(res.stderr)
+                        puml("#red:ERROR: Could not extract boot.img.lz4;\n")
+                        print("Aborting ...\n")
+                        return
+                    else:
+                        # unpack boot.img.lz4
+                        print("Unpacking boot.img.lz4 ...")
+                        puml(f":Unpack boot.img.lz4;\n")
+                        unpack_lz4(os.path.join(package_dir_full, 'boot.img.lz4'), os.path.join(package_dir_full, 'boot.img'))
+                        # Check if it exists
+                        if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
+                            found_boot_img = 'boot.img'
+                        else:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not unpack boot.img.lz4")
+                            puml("#red:ERROR: Could not unpack boot.img.lz4;\n")
+                            print("Aborting ...\n")
+                            return
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find boot.img.lz4")
+                    puml("#red:ERROR: Could not find boot.img.lz4;\n")
+                    print("Aborting ...\n")
+                    return
+            else:
+                print("Detected Unsupported firmware file.")
+                print("Aborting ...")
+                return
     else:
         file_to_process = self.config.custom_rom_path
         found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
@@ -587,6 +668,8 @@ def process_file(self, file_type):
             boot_file_name = 'init_boot.img'
             found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evalute to False
     else:
+        if is_odin:
+            shutil.copy(os.path.join(package_dir_full, 'boot.img'), os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
         if not os.path.exists(image_file_path):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The firmware file did not have the expected structure / contents.")
             if file_type == 'firmware':
@@ -604,24 +687,25 @@ def process_file(self, file_type):
             files_to_extract += 'init_boot.img '
         files_to_extract = files_to_extract.strip()
 
-        if not files_to_extract:
-            print(f"Nothing for extract from {file_type}")
-            print("Aborting ...")
-            puml("#red:Nothing for extract from {file_type};\n")
-            return
+        if not is_odin:
+            if not files_to_extract:
+                print(f"Nothing to extract from {file_type}")
+                print("Aborting ...")
+                puml("#red:Nothing to extract from {file_type};\n")
+                return
 
-        print(f"Extracting {boot_file_name} from {image_file_path} ...")
-        puml(f":Extract {boot_file_name};\n")
-        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
-        debug(f"{theCmd}")
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-            print(res.stderr)
-            puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
-            print("Aborting ...\n")
-            return
+            print(f"Extracting {boot_file_name} from {image_file_path} ...")
+            puml(f":Extract {boot_file_name};\n")
+            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
+            debug(f"{theCmd}")
+            res = run_shell(theCmd)
+            # expect ret 0
+            if res.returncode != 0:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
+                print(res.stderr)
+                puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                print("Aborting ...\n")
+                return
 
     # sometimes the return code is 0 but no file to extract, handle that case.
     # also handle the case of extraction from payload.bin
@@ -670,8 +754,8 @@ def process_file(self, file_type):
         package_id = pre_package_id
 
     # create BOOT db record
-    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method) values(?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-    data = checksum, cached_boot_img_path, 0, '', '', time.time(), ''
+    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin) values(?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+    data = checksum, cached_boot_img_path, 0, '', '', time.time(), '', is_odin
     try:
         cursor.execute(sql, data)
         con.commit()
@@ -1361,6 +1445,8 @@ def patch_boot_img(self, custom_patch = False):
         boot_img = f"{filename}_{stock_sha1}.img"
         magisk_patched_img = f"magisk_patched_{boot.boot_hash[:8]}.img"
     config_path = get_config_path()
+    factory_images = os.path.join(config_path, 'factory_images')
+    package_dir_full = os.path.join(factory_images, boot.package_sig)
     boot_images = os.path.join(config_path, get_boot_images_dir())
     tmp_dir_full = os.path.join(config_path, 'tmp')
 
@@ -1562,11 +1648,11 @@ def patch_boot_img(self, custom_patch = False):
                 # cleanup /data/local/tmp directory of the stuff PF created.
                 data += "echo \"Cleaning up ...\"\n"
                 data += "rm -rf /data/local/tmp/pf\n"
-                data += "rm -f /data/local/tmp/pf.zip /data/local/tmp/pf_patch.sh /data/local/tmp/new-boot.img /data/local/tmp/busybox"
+                data += "rm -f /data/local/tmp/pf.zip /data/local/tmp/pf_patch.sh /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
             else:
                 data += "mv new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
                 data += "echo \"Cleaning up ...\"\n"
-                data += "rm -f /data/local/tmp/pf_patch.sh"
+                data += "rm -f /data/local/tmp/pf_patch.sh\n"
 
             f.write(data)
             puml(f"note right\nPatch Script\n====\n{data}end note\n")
@@ -1948,8 +2034,8 @@ Unless you know what you're doing, it is recommended that you take the default s
         con.execute("PRAGMA foreign_keys = ON")
         con.commit()
         cursor = con.cursor()
-        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method) values(?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method)
+        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin) values(?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False)
         debug(f"Creating BOOT record, boot_hash: {checksum}")
         try:
             cursor.execute(sql, data)
@@ -1990,6 +2076,20 @@ Unless you know what you're doing, it is recommended that you take the default s
                 print(f"User Cancelled saving: {magisk_patched_img}")
                 return     # the user changed their mind
             shutil.copy(magisk_patched_img_file, fileDialog.GetPath(), follow_symlinks=True)
+
+    # if Samsung firmware, create boot.tar
+    if boot.is_odin == 1:
+        print(f"Creating boot.tar from patched boot.img ...")
+        puml(f":Create boot.tar;\n")
+        shutil.copy(magisk_patched_img_file, os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
+        create_boot_tar(tmp_dir_full)
+        if os.path.exists(os.path.join(tmp_dir_full, 'boot.tar')):
+            print("boot.tar file created.")
+            print(f"copying boot.tar to {package_dir_full} directory ...")
+            shutil.copy(os.path.join(tmp_dir_full, 'boot.tar'), os.path.join(package_dir_full, 'boot.tar'), follow_symlinks=True)
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create boot.tar file")
+            puml("#red:ERROR: Could not create boot.tar;\n")
 
     end = time.time()
     print(f"\nMagisk Version: {get_patched_with()}")
@@ -2234,34 +2334,38 @@ def flash_phone(self):
             puml("#red:Factory firmware is not selected;\n}\n")
             return
 
-        if get_firmware_model() in ['raven', 'oriole', 'bluejay'] and device.api_level and int(device.api_level) < 33:
-            if not (self.config.advanced_options and self.config.flash_both_slots):
-                title = "Tensor device not on Android 13 or higher"
-                message =  f"WARNING: Your phone OS version is lower than Android 13.\n\n"
-                message += f"If you are upgrading to Android 13 or newer,\n"
-                message += "make sure you at least flash the bootloader to both slots.\n"
-                message += "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
-                message += "a bootloader update that increments the anti-roll back version for the bootloader.\n"
-                message += "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
-                message += "After flashing an Android 13 build on these devices\n"
-                message += "you will not be able to flash and boot older Android 12 builds.\n\n"
-                message += "Selecting the option 'Flash to both slots'\n"
-                message += "Will take care of that.\n\n"
-                message += "Click OK to continue as is.\n"
-                message += "or Hit CANCEL to abort and change options."
-                puml(":API < 33 and device is Tensor;\n")
-                puml(f"note right\nDialog\n====\n{message}\nend note\n")
-                print(f"\n*** Dialog ***\n{message}\n______________\n")
-                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                result = dlg.ShowModal()
-                if result == wx.ID_OK:
-                    print("User pressed ok.")
-                    puml(":User Pressed OK;\n")
-                else:
-                    print("User pressed cancel.")
-                    print("Aborting ...\n")
-                    puml("#pink:User Pressed Cancel to abort;\n}\n")
-                    return
+        if (
+            get_firmware_model() in ['raven', 'oriole', 'bluejay']
+            and device.api_level
+            and int(device.api_level) < 33
+            and not (self.config.advanced_options and self.config.flash_both_slots)
+        ):
+            title = "Tensor device not on Android 13 or higher"
+            message =  f"WARNING: Your phone OS version is lower than Android 13.\n\n"
+            message += f"If you are upgrading to Android 13 or newer,\n"
+            message += "make sure you at least flash the bootloader to both slots.\n"
+            message += "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
+            message += "a bootloader update that increments the anti-roll back version for the bootloader.\n"
+            message += "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
+            message += "After flashing an Android 13 build on these devices\n"
+            message += "you will not be able to flash and boot older Android 12 builds.\n\n"
+            message += "Selecting the option 'Flash to both slots'\n"
+            message += "Will take care of that.\n\n"
+            message += "Click OK to continue as is.\n"
+            message += "or Hit CANCEL to abort and change options."
+            puml(":API < 33 and device is Tensor;\n")
+            puml(f"note right\nDialog\n====\n{message}\nend note\n")
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
+                puml(":User Pressed OK;\n")
+            else:
+                print("User pressed cancel.")
+                print("Aborting ...\n")
+                puml("#pink:User Pressed Cancel to abort;\n}\n")
+                return
 
         package_dir_full = os.path.join(factory_images, package_sig)
         boot = get_boot()
@@ -2639,11 +2743,12 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             data += "echo Live booting to pf_boot (temporary root) ...\n"
             data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
         else:
-            data += "echo flashing pf_boot ...\n"
-            if device.hardware in KNOWN_INIT_BOOT_DEVICES:
-                data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
-            else:
-                data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
+            if not (self.config.flash_mode == 'OTA' and not boot.is_patched):
+                data += "echo flashing pf_boot ...\n"
+                if device.hardware in KNOWN_INIT_BOOT_DEVICES:
+                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
+                else:
+                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
 
             # only reboot if no_reboot is not selected
             if not self.config.no_reboot:

@@ -1453,6 +1453,7 @@ class PixelFlasher(wx.Frame):
                 print(f"Selected ROM {rom_file} SHA-256: {rom_hash}")
                 puml(f"note right\n{rom_file}\nSHA-256: {rom_hash}\nend note\n")
                 populate_boot_list(self)
+                self.update_widget_states()
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a valid archive.")
                 puml("#red:The selected ROM file is not valid;\n")
@@ -2042,6 +2043,7 @@ class PixelFlasher(wx.Frame):
                         BOOT.patch_method,
                         BOOT.magisk_version,
                         BOOT.hardware,
+                        BOOT.is_odin,
                         BOOT.epoch as boot_date,
                         PACKAGE.id as package_id,
                         PACKAGE.boot_hash as package_boot_hash,
@@ -2067,13 +2069,14 @@ class PixelFlasher(wx.Frame):
                         boot.patch_method = row[4]
                         boot.magisk_version = row[5]
                         boot.hardware = row[6]
-                        boot.boot_epoch = row[7]
-                        boot.package_id = row[8]
-                        boot.package_boot_hash = row[9]
-                        boot.package_type = row[10]
-                        boot.package_sig = row[11]
-                        boot.package_path = row[12]
-                        boot.package_epoch = row[13]
+                        boot.is_odin = row[7]
+                        boot.boot_epoch = row[8]
+                        boot.package_id = row[9]
+                        boot.package_boot_hash = row[10]
+                        boot.package_type = row[11]
+                        boot.package_sig = row[12]
+                        boot.package_path = row[13]
+                        boot.package_epoch = row[14]
                         i += 1
                     if i > 1:
                         debug("INFO: Duplicate PACKAGE_BOOT records found")
@@ -2095,6 +2098,8 @@ class PixelFlasher(wx.Frame):
                     patched = False
                     message += f"    Patched:               {patched}\n"
                 ts = datetime.fromtimestamp(boot.boot_epoch)
+                if boot.is_odin == 1:
+                    message += f"    Samsung Boot:          True\n"
                 message += f"    Date:                  {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 message += f"    Firmware Fingerprint:  {boot.package_sig}\n"
                 message += f"    Firmware:              {boot.package_path}\n"
@@ -2230,13 +2235,12 @@ class PixelFlasher(wx.Frame):
         # -----------------------------------------------
         def _on_paste_boot(event):
             boot = get_boot()
-            if boot:
-                if boot.boot_path:
-                    print(f"Pasted {boot.boot_path} to custom flash")
-                    puml(f":Paste boot path;\nnote right:{boot.boot_path};\n", True)
-                    self.image_file_picker.SetPath(boot.boot_path)
-                    set_image_path(boot.boot_path)
-                    set_flash_button_state(self)
+            if boot and boot.boot_path:
+                print(f"Pasted {boot.boot_path} to custom flash")
+                puml(f":Paste boot path;\nnote right:{boot.boot_path};\n", True)
+                self.image_file_picker.SetPath(boot.boot_path)
+                set_image_path(boot.boot_path)
+                set_flash_button_state(self)
 
         # -----------------------------------------------
         #                  _on_patch_boot

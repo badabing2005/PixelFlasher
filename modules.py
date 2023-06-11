@@ -246,7 +246,9 @@ def identify_sdk_version(self):
             theCmd = f"\"{get_adb()}\" --version"
             response = run_shell(theCmd)
             if response.stdout:
-                for line in response.stdout.split('\n'):
+                # Split lines based on mixed EOL formats
+                lines = re.split(r'\r?\n', response.stdout)
+                for line in lines:
                     if 'Version' in line:
                         sdk_version = line.split()[1]
                         set_sdk_version(sdk_version)

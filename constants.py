@@ -2,7 +2,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '5.3.1.0'
+VERSION = '5.3.1.1'
 SDKVERSION = '33.0.3'
 WIDTH = 1400
 HEIGHT = 1040

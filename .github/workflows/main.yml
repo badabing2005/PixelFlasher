@@ -39,9 +39,15 @@ jobs:
         run: .\myenv\Scripts\Activate.ps1
         shell: powershell
 
-      - name: Install wxPython
-        run: pip install https://wxpython.org/Phoenix/snapshot-builds/wxPython-4.2.1a1.dev5564+33cabe97-cp310-cp310-win_amd64.whl
-
+      - name: Install wxPython and build
+        run: |
+          python -m venv myenv
+          .\myenv\Scripts\Activate.ps1
+          python --version
+          pip install -U pip
+          pip install -U six wheel setuptools
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.1 wxPython
+        shell: powershell
 
       - name: Install requirements
         run: pip install -r requirements.txt
@@ -85,9 +91,15 @@ jobs:
         run: .\myenv\Scripts\Activate.ps1
         shell: powershell
 
-      - name: Install wxPython
-        run: pip install https://wxpython.org/Phoenix/snapshot-builds/wxPython-4.2.1a1.dev5564+33cabe97-cp38-cp38-win_amd64.whl
-
+      - name: Install wxPython and build
+        run: |
+          python -m venv myenv
+          .\myenv\Scripts\Activate.ps1
+          python --version
+          pip install -U pip
+          pip install -U six wheel setuptools
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.1 wxPython
+        shell: powershell
 
       - name: Install requirements
         run: pip install -r requirements.txt

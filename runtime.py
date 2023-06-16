@@ -1262,9 +1262,29 @@ def compare_sha1(SHA1, Extracted_SHA1):
         return 0
     else:
         num_match = 0
-        for i, c in enumerate(SHA1):
-            if c == Extracted_SHA1[i]:
+        max_shift = 4  # Maximum allowed shift
+
+        for i in range(len(SHA1)):
+            if SHA1[i] == Extracted_SHA1[i]:
                 num_match += 1
+            else:
+                shift_count = 0
+                j = 1
+                while j <= max_shift:
+                    # Check if there is a match within the allowed shift range
+                    if i + j < len(SHA1) and SHA1[i] == Extracted_SHA1[i + j]:
+                        num_match += 1
+                        shift_count = j
+                        break
+                    elif i - j >= 0 and SHA1[i] == Extracted_SHA1[i - j]:
+                        num_match += 1
+                        shift_count = -j
+                        break
+                    j += 1
+
+                # Adjust the position for the next iteration based on the shift count
+                i += shift_count
+
         # return confidence level
         return num_match / len(SHA1)
 

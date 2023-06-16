@@ -1251,8 +1251,8 @@ class PixelFlasher(wx.Frame):
                 self.delete_boot_button:                ['boot_is_selected'],
                 self.boot_folder_button:                ['boot_is_selected'],
                 self.firmware_folder_button:            ['boot_is_selected'],
-                self.live_boot_button:                  ['boot_is_selected'],
-                self.flash_boot_button:                 ['boot_is_selected'],
+                self.live_boot_button:                  ['device_attached', 'boot_is_selected'],
+                self.flash_boot_button:                 ['device_attached', 'boot_is_selected'],
                 self.paste_boot:                        ['boot_is_selected', 'custom_flash'],
                 self.patch_boot_button:                 ['boot_is_selected', 'boot_is_not_patched'],
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
@@ -1267,7 +1267,7 @@ class PixelFlasher(wx.Frame):
                 self.flash_to_inactive_slot_checkBox:   ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
-                # Special handling of non-widgets
+                # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
                 'mode_radio_button.keepData':           ['firmware_selected', 'firmware_is_not_ota'],
                 'mode_radio_button.wipeData':           ['firmware_selected', 'firmware_is_not_ota'],
@@ -1912,6 +1912,16 @@ class PixelFlasher(wx.Frame):
                 time.sleep(5)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
+                # only reboot if no_reboot is not selected
+                if not self.config.no_reboot:
+                    print("Sleeping 5 seconds ...")
+                    time.sleep(5)
+                    print("echo rebooting to system ...\n")
+                    device.reboot_system()
+                    print("Sleeping 30 seconds ...")
+                    time.sleep(30)
+                    self.device_choice.SetItems(get_connected_devices())
+                    self._select_configured_device()
                 self._on_spin('stop')
 
         # -----------------------------------------------

@@ -291,6 +291,9 @@ def identify_sdk_version(self):
                         #     break
                         else:
                             set_sdk_state(True)
+            elif response.stderr:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {response.stderr}")
+
     self.update_widget_states()
     if get_sdk_state():
         return
@@ -2003,9 +2006,10 @@ Unless you know what you're doing, it is recommended that you take the default s
             print(f"The confidence level is: {confidence * 100}%")
             puml(f":Confidence level: {confidence * 100}%;\n")
             if confidence < 0.5:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Something is wrong with the patched file SHA1, we got a low match confidence.\nAborting\n")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Something is wrong with the patched file SHA1, we got a low match confidence.\n")
+                print("Please compare the two sha1 strings and decide for yourself if this is acceptable to use.")
                 puml(f"#red:ERROR: Something is wrong with the patched file\nSHA1: {patched_sha1}\nExpected SHA1: {boot_sha1};\n", True)
-                return
+                #return
             else:
                 print("Acceptable!")
         else:

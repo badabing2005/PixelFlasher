@@ -41,10 +41,7 @@ jobs:
 
       - name: Install wxPython and build
         run: |
-          python -m venv myenv
-          .\myenv\Scripts\Activate.ps1
           python --version
-          pip install -U pip
           pip install -U six wheel setuptools
           pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.1 wxPython
         shell: powershell

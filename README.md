@@ -45,6 +45,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - Active slot.
   - Android OS API version.
   - Convenient quick links to download Android platform tools or device firmware.
+  - And a lot more...
 - Magisk Manager installation UI, [screenshot](images/Magisk-Installer.png). Supported versions:
   - stable (official)
   - beta (official)
@@ -98,7 +99,7 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
 ## Prerequisites
 
 - [Android SDK Platform-Tools](https://developer.android.com/studio/releases/platform-tools.html).
-- [Android Pixel phone factory image](https://developers.google.com/android/images).
+- Android Pixel phone [factory image](https://developers.google.com/android/images) or Android Pixel phone [full OTA image](https://developers.google.com/android/ota).
 - Bootloader unlocked phone (see excellent guide links in credits section below).
 
 ## Installation
@@ -181,10 +182,9 @@ Run `build.bat` on Windows or `build.sh` on Linux / MacOS.
 Otherwise you'd have to select where it is installed.  
 You can download the lastest Android™ Platform Tools by clicking the ![Image of link](/images/open-link-16.png) next to it.  
 If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)  
-If you already have your phone connected to the PC, the application will detect all connected devices  
-(in adb, fastboot, sideload, recovery modes) and populate the combo box (2).  
-Otherwise connect your phone to your PC, and hit the `Scan` button and then select your device.
-2. Select your device from the list in the combo box.
+2. Hit the `Scan` button to detect connected devices, the application will detect all connected devices  
+(in adb, fastboot, sideload, recovery modes) and populate the combo box (2).
+3. Select your device from the list in the combo box.
 The following information about the connected device is displayed.  
     - (1st field) Rooted devices will be identified with a checkmark ✓.
     **Note:** If you want PixelFlasher to detect root, or automatically use Magisk to patch boot.img, you need to grant root permissions to `shell` in Magisk.  
@@ -195,36 +195,46 @@ The following information about the connected device is displayed.
     - (3rd field) Device ID.
     - (4th field) Device hardware.
     - (5th field) Current running firmware (in fastboot mode current firmware cannot be determined).
-3. Next select the factory image, the application will recognize the phone model from the image name.  
-You can download factory images by clicking the ![Image of link](/images/open-link-16.png) next to it.
-4. Process the factory image.
+4. Next select the factory or full OTA zip file (don't unzip), the application will recognize the phone model from the image name and validate the SHA-256 checksum.  
+You can download [factory images](https://developers.google.com/android/images) by clicking the ![Image of link](/images/open-link-16.png) next to it.
+You can download full OTA images from [here](https://developers.google.com/android/ota).
+5. Process the factory image.
 PixelFlasher will extract `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) file from the factory image and populate it in the list below (5).  
-5. Select `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) from the list, the selected file can be patched (6), or flashed (10).
-6. Optional: Select this option if you want to patch the `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) with Magisk. If Magisk is not already installed on your phone, PixelFlasher will install it for you.
+6. Select `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) from the list, the selected file can be patched (6), or flashed (10).
+7. Optional: Select this option if you want to patch the `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) with Magisk. If Magisk is not already installed on your phone, PixelFlasher will install it for you.
 Your phone does not need to be rooted to create a patched file.
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
 **Note:** See note above for granting root permissions to `shell`.  
 Whether the phone is rooted or not, the whole process is without any manual step.  
-7. If you want to flash (10) a patched `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) select the newly added entry.  
+8. If you want to flash (10) a patched `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) select the newly added entry.  
 The following details are listed.  
     - ![Image of patched-boot](/images/patched-16.png) Indicates that the selection is patched.
     - **SHA1** is (shortened for display only) sha1 of `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro)
     - **Source SHA1** (shortened for display only) SHA1 of source `boot.img` extracted from the image (This should be the same as SHA1 of an unpatched `boot.img`)
     - **Package Fingerprint** is just the filename portion of the image (without the extension).
     - **Patched with Magisk** indicates the version of Magisk used to patch the image (if applicable).
+    - **Patched Method** indicates what method PixelFlasher used to create a patch (possible options: `root`, `app`, `uiautomator`, `manual`)
     - **Patched on Device** indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
     - **Date** is the either the date the `boot.img` was extracted, or the date it was patched.
     - **Package Path** indicates the file from which `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) was extracted.
-8. Select the Flash Mode
-    - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`.
-    - **WIPE all data**: As the text suggests, this will wipe your data, use it with caution!  
-    If this mode is selected PixelFlasher will ask for confirmation during the flashing phase.
-    - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
-    This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
-9. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
+9. Select the Flash Mode
+    - If factory firmware is selected in step 4:
+      - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`.
+      - **WIPE all data**: As the text suggests, this will wipe your data, use it with caution!  
+      If this mode is selected PixelFlasher will ask for confirmation during the flashing phase.
+      - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
+      This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
+    - If full OTA image is selected in step 4:
+      - **Full OTA**: Will flash full OTA image in sideload mode.
+      Features of this mode:
+        - This will always flash to inactive slot similar to how OTA updates happen on the phone.
+        - If something goes wrong during flashing, the active flash is uneffected and the phone boots back to active functional slot.
+        - If you flash to both slots (ie flash twice in a row) then both slots would be bootable.
+        - Your phone's bootloader does not have to be unlocked to be able to flash full OTA image (stock boot only).
+10. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
 ![Image of PixelFlasher GUI](/images/magisk-modules-manager.png)
-10. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  
+11. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  
 **Note**: Unlike the previous versions of the PixelFlasher, all the options are dynamic, i.e. depending on what you select before clicking the Flash button, there is no more concept of prepared package.
 PixelFlasher will first present you the selected options and ask for your confirmation if you want to proceed with flashing.
 
@@ -237,8 +247,8 @@ To enable the export mode use the **File Menu | Advanced Configuration** and sel
 In this mode the following additional options are exposed (green bounding boxes), below notes are more for enumeration than a guide, as they should be trivial and obvious to an expert.
 
 1. Option to Change the Active Slot (the inactive slot is automatically selected).  
-Option to reboot to Recovery.
-2. Options to Lock / Unlock bootloader, Option to disable Magisk modules when bootlooping.
+Options to reboot to Recovery, Downloader, Safe Mode.
+2. Options to Lock / Unlock bootloader, Option to disable Magisk modules when bootlooping, partitions manager.
 3. Apply Custom ROM. This replaces the factory ROM image with the selected file.  
 PixelFlasher extracts `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) from the ROM image and displays below for selection or patching.
 Please make sure to read the documentation of the chosen ROM, as each custom ROM instructions could be different.  

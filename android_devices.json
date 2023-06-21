@@ -1,4 +1,9 @@
 {
+    "tangorpro": {
+        "device": "Pixel Tablet",
+        "android_version_end_date": "June 2026",
+        "security_update_end_date": "June 2027"
+    },
     "lynx": {
         "device": "Pixel 7a",
         "android_version_end_date": "May 2026",

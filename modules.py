@@ -173,16 +173,31 @@ def populate_boot_list(self):
         JOIN PACKAGE
             ON PACKAGE.id = PACKAGE_BOOT.package_id
     """
-    if self.config.show_all_boot:
-        sql += ";"
-    else:
+    # Apply filter if show all is not selected
+    if not self.config.show_all_boot:
         rom_path = ''
         firmware_path = ''
         if self.config.custom_rom and self.config.advanced_options:
             rom_path = self.config.custom_rom_path
         if self.config.firmware_path:
             firmware_path = self.config.firmware_path
-        sql += f"AND package.file_path IN (\'{firmware_path}\', \'{rom_path}\');"
+        sql += f"""
+            WHERE
+                (BOOT.is_patched = 0 AND PACKAGE.file_path IN ('{firmware_path}', '{rom_path}'))
+                OR
+                (BOOT.is_patched = 1 AND PACKAGE.boot_hash IN (
+                    SELECT PACKAGE.boot_hash
+                    FROM BOOT
+                    JOIN PACKAGE_BOOT
+                        ON BOOT.id = PACKAGE_BOOT.boot_id
+                    JOIN PACKAGE
+                        ON PACKAGE.id = PACKAGE_BOOT.package_id
+                    WHERE
+                        (BOOT.is_patched = 0 AND PACKAGE.file_path IN ('{firmware_path}', '{rom_path}'))
+                ))
+        """
+    # Order by is_patched in ascending order, then epoch in ascending order
+    sql += "ORDER BY BOOT.is_patched ASC, BOOT.epoch ASC;"
 
     with con:
         data = con.execute(sql)
@@ -1396,6 +1411,8 @@ def patch_boot_img(self, custom_patch = False):
         print("Aborting ...\n")
         puml("#red:Valid device is not selected;\n}\n")
         return
+    else:
+        print(f"Patching on device: {device.hardware}")
 
     if custom_patch:
         with wx.FileDialog(self, "boot / init_boot image to create patch from.", '', '', wildcard="Images (*.*.img)|*.img", style=wx.FD_OPEN) as fileDialog:

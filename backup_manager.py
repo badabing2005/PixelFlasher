@@ -496,8 +496,6 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         #                     self.getColumnText(self.currentItem, 3),
         #                     self.getColumnText(self.currentItem, 4),
         #                     self.getColumnText(self.currentItem, 5)))
-        # self.GetPackageDetails(self.list.GetItemText(self.currentItem))
-        # self.all_checkbox.Set3StateValue(2)
         event.Skip()
 
     # -----------------------------------------------

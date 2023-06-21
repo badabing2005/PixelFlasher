@@ -198,6 +198,7 @@ The following information about the connected device is displayed.
 4. Next select the factory or full OTA zip file (don't unzip), the application will recognize the phone model from the image name and validate the SHA-256 checksum.  
 You can download [factory images](https://developers.google.com/android/images) by clicking the ![Image of link](/images/open-link-16.png) next to it.
 You can download full OTA images from [here](https://developers.google.com/android/ota).
+**Note:** Because both firmware package and full OTA are complete images, you can upgrade to any newer version without worrying about jumping versions (downgrades might work, but are not recommended).
 5. Process the factory image.
 PixelFlasher will extract `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) file from the factory image and populate it in the list below (5).  
 6. Select `boot.img` (or `init_boot.img` for Pixel 7 / 7 Pro) from the list, the selected file can be patched (6), or flashed (10).

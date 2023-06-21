@@ -1254,19 +1254,20 @@ class PixelFlasher(wx.Frame):
                 self.live_boot_button:                  ['device_attached', 'boot_is_selected'],
                 self.flash_boot_button:                 ['device_attached', 'boot_is_selected'],
                 self.paste_boot:                        ['boot_is_selected', 'custom_flash'],
-                self.patch_boot_button:                 ['boot_is_selected', 'boot_is_not_patched'],
-                self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
-                self.magisk_button:                     ['device_attached', 'has_magisk_modules'],
+                self.patch_custom_boot_button:          ['device_attached', 'device_mode_adb'],
+                self.reboot_download_button:            ['device_attached', 'device_mode_adb'],
                 self.a_radio_button:                    ['device_attached', 'slot_b'],
                 self.b_radio_button:                    ['device_attached', 'slot_a'],
                 self.set_active_slot_button:            ['device_attached', 'dual_slot'],
-                self.reboot_download_button:            ['device_attached', 'device_mode_adb'],
-                self.backup_manager_button:             ['device_attached', 'device_is_rooted'],
+                self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
+                self.magisk_button:                     ['device_attached', 'device_mode_adb', 'has_magisk_modules'],
+                self.backup_manager_button:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.reboot_safemode_button:            ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.flash_both_slots_checkBox:         ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.flash_to_inactive_slot_checkBox:   ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
+                self.patch_boot_button:                 ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
                 'mode_radio_button.keepData':           ['firmware_selected', 'firmware_is_not_ota'],
@@ -1589,7 +1590,8 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 device = get_phone()
                 device.reboot_recovery()
-                time.sleep(5)
+                print("Sleeping 20 seconds ...")
+                time.sleep(20)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
                 self._on_spin('stop')
@@ -1602,7 +1604,8 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 device = get_phone()
                 device.reboot_download()
-                time.sleep(5)
+                print("Sleeping 10 seconds ...")
+                time.sleep(10)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
                 self._on_spin('stop')
@@ -1615,7 +1618,8 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 device = get_phone()
                 device.reboot_safemode()
-                time.sleep(5)
+                print("Sleeping 10 seconds ...")
+                time.sleep(10)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
                 self._on_spin('stop')
@@ -1628,7 +1632,8 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 device = get_phone()
                 device.reboot_system()
-                time.sleep(5)
+                print("Sleeping 10 seconds ...")
+                time.sleep(10)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
                 self._on_spin('stop')
@@ -1641,7 +1646,8 @@ class PixelFlasher(wx.Frame):
                 self._on_spin('start')
                 device = get_phone()
                 device.reboot_bootloader(fastboot_included = True)
-                time.sleep(5)
+                print("Sleeping 10 seconds ...")
+                time.sleep(10)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
                 self._on_spin('stop')
@@ -1711,6 +1717,16 @@ class PixelFlasher(wx.Frame):
                 time.sleep(5)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
+                # only reboot if no_reboot is not selected
+                if not self.config.no_reboot:
+                    print("Sleeping 5 seconds ...")
+                    time.sleep(5)
+                    print("echo rebooting to system ...\n")
+                    device.reboot_system()
+                    print("Sleeping 30 seconds ...")
+                    time.sleep(30)
+                    self.device_choice.SetItems(get_connected_devices())
+                    self._select_configured_device()
                 self._on_spin('stop')
 
         # -----------------------------------------------
@@ -1751,6 +1767,16 @@ class PixelFlasher(wx.Frame):
                 time.sleep(5)
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
+                # only reboot if no_reboot is not selected
+                if not self.config.no_reboot:
+                    print("Sleeping 5 seconds ...")
+                    time.sleep(5)
+                    print("echo rebooting to system ...\n")
+                    device.reboot_system()
+                    print("Sleeping 30 seconds ...")
+                    time.sleep(30)
+                    self.device_choice.SetItems(get_connected_devices())
+                    self._select_configured_device()
                 self._on_spin('stop')
 
         # -----------------------------------------------

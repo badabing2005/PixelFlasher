@@ -280,7 +280,7 @@ class Device():
         if self.hardware in KNOWN_INIT_BOOT_DEVICES:
             self._has_init_boot = True
         partitions = self.get_partitions()
-        if partitions != -1 and 'init_boot' in partitions:
+        if partitions != -1 and ('init_boot' in partitions or 'init_boot_a' in partitions or 'init_boot_b' in partitions):
             self._has_init_boot = True
 
     # ----------------------------------------------------------------------------
@@ -1954,7 +1954,6 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             time.sleep(5)
             self.refresh_phone_mode()
         if self.mode == 'f.b' and get_fastboot():
-            # TODO add a popup warning before continuing.
             print(f"Unlocking bootloader for device {self.id} ...")
             theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing unlock"
             debug(theCmd)

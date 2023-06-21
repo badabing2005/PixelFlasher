@@ -282,13 +282,13 @@ class MagiskDownloads(wx.Dialog):
         device = get_phone()
         if 'Namelesswonder' in self.url and not device.has_init_boot:
             print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
-            print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) are currently supported.")
+            print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.")
             print("         See details at: https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")
 
             title = "Device Not Supported"
             message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
             message += "The selected Magisk is not supported for your device\n"
-            message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) are currently supported.\n\n"
+            message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
             message += "Unless you know what you are doing, if you choose to continue\n"
             message += "you risk running into serious issues, proceed only if you are absolutely\n"
             message += "certian that this is what you want, you have been warned.\n\n"

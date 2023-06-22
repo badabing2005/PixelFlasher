@@ -2090,12 +2090,12 @@ class PixelFlasher(wx.Frame):
                     FROM BOOT
                     JOIN PACKAGE_BOOT
                         ON BOOT.id = PACKAGE_BOOT.boot_id
-                        AND BOOT.boot_hash LIKE '%s'
+                        AND BOOT.boot_hash LIKE ?
                     JOIN PACKAGE
                         ON PACKAGE.id = PACKAGE_BOOT.package_id;
-                """ % query
+                """
                 with con:
-                    data = con.execute(sql)
+                    data = con.execute(sql, (query,))
                     i = 0
                     for row in data:
                         boot.boot_id = row[0]
@@ -2171,11 +2171,11 @@ class PixelFlasher(wx.Frame):
                 con.commit()
                 sql = """
                     DELETE FROM PACKAGE_BOOT
-                    WHERE boot_id = '%s' AND package_id = '%s';
-                """ % (boot.boot_id, boot.package_id)
+                    WHERE boot_id = ? AND package_id = ?;
+                """
                 try:
                     with con:
-                        data = con.execute(sql)
+                        data = con.execute(sql, (boot.boot_id, boot.package_id))
                     con.commit()
                 except Exception as e:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
@@ -2183,11 +2183,11 @@ class PixelFlasher(wx.Frame):
                     print(e)
                 sql = """
                     DELETE FROM BOOT
-                    WHERE id = '%s';
-                """ % boot.boot_id
+                    WHERE id = ?;
+                """
                 try:
                     with con:
-                        data = con.execute(sql)
+                        data = con.execute(sql, (boot.boot_id,))
                     con.commit()
                 except Exception as e:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
@@ -2198,15 +2198,15 @@ class PixelFlasher(wx.Frame):
                 # Also delete unpacked files from factory_images cache
                 try:
                     cursor = con.cursor()
-                    cursor.execute(f"SELECT * FROM PACKAGE_BOOT WHERE package_id = '{boot.package_id}'")
+                    cursor.execute("SELECT * FROM PACKAGE_BOOT WHERE package_id = ?", (boot.package_id,))
                     data = cursor.fetchall()
                     if len(data) == 0:
                         sql = """
                             DELETE FROM PACKAGE
-                            WHERE id = '%s';
-                        """ % boot.package_id
+                            WHERE id = ?;
+                        """
                         with con:
-                            data = con.execute(sql)
+                            data = con.execute(sql, (boot.package_id,))
                         con.commit()
                         print(f"Cleared db entry for: {boot.package_path}")
                         config_path = get_config_path()

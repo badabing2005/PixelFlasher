@@ -174,6 +174,7 @@ def populate_boot_list(self):
             ON PACKAGE.id = PACKAGE_BOOT.package_id
     """
     # Apply filter if show all is not selected
+    parameters = []
     if not self.config.show_all_boot:
         rom_path = ''
         firmware_path = ''
@@ -181,9 +182,9 @@ def populate_boot_list(self):
             rom_path = self.config.custom_rom_path
         if self.config.firmware_path:
             firmware_path = self.config.firmware_path
-        sql += f"""
+        sql += """
             WHERE
-                (BOOT.is_patched = 0 AND PACKAGE.file_path IN ('{firmware_path}', '{rom_path}'))
+                (BOOT.is_patched = 0 AND PACKAGE.file_path IN (?, ?))
                 OR
                 (BOOT.is_patched = 1 AND PACKAGE.boot_hash IN (
                     SELECT PACKAGE.boot_hash
@@ -193,14 +194,15 @@ def populate_boot_list(self):
                     JOIN PACKAGE
                         ON PACKAGE.id = PACKAGE_BOOT.package_id
                     WHERE
-                        (BOOT.is_patched = 0 AND PACKAGE.file_path IN ('{firmware_path}', '{rom_path}'))
+                        (BOOT.is_patched = 0 AND PACKAGE.file_path IN (?, ?))
                 ))
         """
+        parameters.extend([firmware_path, rom_path, firmware_path, rom_path])
     # Order by is_patched in ascending order, then epoch in ascending order
     sql += "ORDER BY BOOT.is_patched ASC, BOOT.epoch ASC;"
 
     with con:
-        data = con.execute(sql)
+        data = con.execute(sql, parameters)
         i = 0
         for row in data:
             index = self.list.InsertItem(i, row[1][:8])                     # boot_hash (SHA1)

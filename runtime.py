@@ -1559,7 +1559,7 @@ def sanitize_db(filename):
                 file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
             else:
                 file_path_sanitized = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
-            cursor.execute(f"Update BOOT set file_path = '{file_path_sanitized}' where id = {id}")
+            cursor.execute("Update BOOT set file_path = ? where id = ?", (file_path_sanitized, id,))
             con.commit()
     with con:
         data = con.execute("SELECT id, file_path FROM PACKAGE")
@@ -1570,7 +1570,7 @@ def sanitize_db(filename):
                 file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
             else:
                 file_path_sanitized = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
-            cursor.execute(f"Update PACKAGE set file_path = '{file_path_sanitized}' where id = {id}")
+            cursor.execute("Update PACKAGE set file_path = ? where id = ?", (file_path_sanitized, id,))
             con.commit()
 
 

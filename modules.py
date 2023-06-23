@@ -271,26 +271,20 @@ def identify_sdk_version(self):
                         set_sdk_version(sdk_version)
                         # If version is old treat it as bad SDK
                         sdkver = sdk_version.split("-")[0]
-                        if parse(sdkver) < parse(SDKVERSION):
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected older Android Platform Tools version {sdk_version}")
+                        if parse(sdkver) < parse(SDKVERSION) or (sdkver in ('34.0.0', '34.0.1', '34.0.2', '34.0.3')):
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected old or problematic Android Platform Tools version {sdk_version}")
                             # confirm if you want to use older version
-                            dlg = wx.MessageDialog(None, f"You have an old Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest version to avoid any issues\nAre you sure want to continue?",'Old Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+                            dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest known good version to avoid any issues.\n(Android Platform-Tools version 33.0.3 is known to be good).\n\nAre you sure want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
                             result = dlg.ShowModal()
-                            puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected older Android Platform Tools version {sdk_version}\n")
+                            puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
                             if result == wx.ID_YES:
-                                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted older version {sdk_version} of Android platform tools.")
+                                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted the bad version {sdk_version} of Android platform tools.")
                                 set_sdk_state(True)
                                 puml("#red:User wanted to proceed regardless;\n")
                             else:
-                                print("Older Android platform tools is not accepted. For your protection, disabling device selection.")
+                                print("Bad Android platform tools is not accepted. For your protection, disabling device selection.")
                                 print("Please update Android SDK.\n")
                                 break
-                        elif (sdkver in ('34.0.0', '34.0.1')):
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version {sdkver} has known issues, please select another version.")
-                            puml(f"#red:Android Platform Tools version {sdkver} has known issues;\n")
-                            dlg = wx.MessageDialog(None, f"Android Platform Tools version {sdkver} has known issues, please select another version.",f"Android Platform Tools {sdkver}",wx.OK | wx.ICON_EXCLAMATION)
-                            result = dlg.ShowModal()
-                            break
                         # 34.01 is still broken, skip the whitelisted binaries
                         # elif sdkver == '34.0.1' and (
                         #             get_adb_sha256() not in (
@@ -542,6 +536,28 @@ def process_file(self, file_type):
             res = run_shell2(theCmd)
         elif found_boot_img or found_init_boot_img:
             print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
+            # TODO
+            # Check if the firmware file starts with image-* and warn the user or abort
+            firmware_file_name = os.path.basename(file_to_process)
+            if firmware_file_name.startswith('image-'):
+                title = "Possibly extracted firmware."
+                message =  f"WARNING: It looks like you have extracted the firmware file.\nand selected the image zip from it.\n\n"
+                message += f"You should not extract the file, please select the downloaded firmware file instead\n\n"
+                message += f"If this is not the case, and you want to continue with this selection\n"
+                message += "Click OK to accept and continue.\n"
+                message += "or Hit CANCEL to abort."
+                print(f"\n*** Dialog ***\n{message}\n______________\n")
+                puml("#orange:WARNING;\n", True)
+                puml(f"note right\n{message}\nend note\n")
+                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+                result = dlg.ShowModal()
+                if result != wx.ID_OK:
+                    print("User pressed cancel.")
+                    puml("#pink:User Pressed Cancel to abort;\n}\n")
+                    print("Aborting ...\n")
+                    return
+                print("User pressed ok.")
+                puml(":User Pressed OK to continue;\n")
             image_file_path = file_to_process
         elif check_zip_contains_file(file_to_process, "payload.bin"):
             is_payload_bin = True

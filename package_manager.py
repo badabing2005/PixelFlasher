@@ -221,7 +221,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         query = self.searchCtrl.GetValue().lower()
         if self.packages:
             i = 0
-            items = self.device.packages.items()
+            items = self.packages.items()
             for key, data in items:
                 alltext = f"{key.lower()} {str(data.label.lower())}"
                 if query.lower() in alltext:
@@ -269,10 +269,21 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             return -1
 
     # -----------------------------------------------
+    #                  OnColClick
+    # -----------------------------------------------
+    def OnColClick(self, event):
+        col = event.GetColumn()
+        if col == -1:
+            return # clicked outside any column.
+        rowid = self.list.GetColumn(col)
+        print(f"Sorting on Column {rowid.GetText()}")
+        event.Skip()
+
+    # -----------------------------------------------
     #          Function GetPackageDetails
     # -----------------------------------------------
     def GetPackageDetails(self, pkg, skip_details = False, ):
-        package = self.device.packages[pkg]
+        package = self.packages[pkg]
         labels = get_labels()
         if package.details == '':
             package.details, package.path2 = self.device.get_package_details(pkg)
@@ -726,7 +737,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         print("Refreshing the packages ...\n")
         self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         self.list.ClearAll()
-        wx.CallAfter(self.PopulateList)
+        itemDataMap = self.PopulateList()
+        if itemDataMap != -1:
+            self.itemDataMap = itemDataMap
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
     # -----------------------------------------------

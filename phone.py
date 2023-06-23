@@ -2148,43 +2148,38 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
 
             # Get all packages
             list = self.get_package_list('all')
-            if not list:
-                return -1
-            for item in list.split("\n"):
-                if item and item in self.packages:
-                    self.packages[item].installed = True
+            if list:
+                for item in list.split("\n"):
+                    if item and item in self.packages:
+                        self.packages[item].installed = True
 
             # Get 3rd party packages
             list = self.get_package_list('3rdparty')
-            if not list:
-                return -1
-            for item in list.split("\n"):
-                if item and item in self.packages:
-                    self.packages[item].type = '3rd Party'
+            if list:
+                for item in list.split("\n"):
+                    if item and item in self.packages:
+                        self.packages[item].type = '3rd Party'
 
             # Get disabled packages
             list = self.get_package_list('disabled')
-            if not list:
-                return -1
-            for item in list.split("\n"):
-                if item and item in self.packages:
-                    self.packages[item].enabled = False
+            if list:
+                for item in list.split("\n"):
+                    if item and item in self.packages:
+                        self.packages[item].enabled = False
 
             # Get enabled packages
             list = self.get_package_list('enabled')
-            if not list:
-                return -1
-            for item in list.split("\n"):
-                if item and item in self.packages:
-                    self.packages[item].enabled = True
+            if list:
+                for item in list.split("\n"):
+                    if item and item in self.packages:
+                        self.packages[item].enabled = True
 
             # Get user 0 packages
             list = self.get_package_list('user0')
-            if not list:
-                return -1
-            for item in list.split("\n"):
-                if item and item in self.packages:
-                    self.packages[item].user0 = True
+            if list:
+                for item in list.split("\n"):
+                    if item and item in self.packages:
+                        self.packages[item].user0 = True
 
         except Exception as e:
             print(e)

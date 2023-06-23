@@ -588,5 +588,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         print("Refreshing the backups ...\n")
         self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         self.list.ClearAll()
-        wx.CallAfter(self.PopulateList)
+        itemDataMap = self.PopulateList()
+        if itemDataMap != -1:
+            self.itemDataMap = itemDataMap
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))

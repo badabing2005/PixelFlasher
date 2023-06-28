@@ -1347,7 +1347,7 @@ class Device():
                 print(f"    Package Path: {pkg_path}")
             print(f"Getting package {pkg} label from the device ...")
             # theCmd = f"\"{get_adb()}\" -s {self.id} shell /data/local/tmp/aapt2 d badging {pkg_path} | grep \"application: label=\" |awk \"{{print $2}}\""
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell /data/local/tmp/aapt2 d badging {pkg_path} | grep \"application: label=\""
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"/data/local/tmp/aapt2 d badging {pkg_path} | grep 'application: label='\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 # print(res.stdout)
@@ -1360,7 +1360,7 @@ class Device():
                 return pkg_label, pkg_icon
             elif res.stderr.startswith("ERROR getting 'android:icon'"):
                 # try another way
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell /data/local/tmp/aapt2 d badging {pkg_path} | grep \"application-label:\""
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"/data/local/tmp/aapt2 d badging {pkg_path} | grep 'application-label:'\""
                 res = run_shell(theCmd)
                 # print(res.stdout)
                 regex = re.compile("application-label:'(.*)'")

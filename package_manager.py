@@ -441,6 +441,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def OnDisable(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Disable.")
         self.ApplyMultiAction('disable')
+        self.RefreshPackages()
 
     # -----------------------------------------------
     #                  OnEnable
@@ -448,6 +449,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def OnEnable(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Enable.")
         self.ApplyMultiAction('enable')
+        self.RefreshPackages()
 
     # -----------------------------------------------
     #                  OnUninstall
@@ -455,6 +457,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def OnUninstall(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Uninstall.")
         self.ApplyMultiAction('uninstall')
+        self.RefreshPackages()
 
     # -----------------------------------------------
     #                  OnInstallApk
@@ -684,18 +687,22 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnPopupDisable(self, event):
         self.ApplySingleAction(self.currentItem, 'disable')
+        self.RefreshPackages()
 
     # -----------------------------------------------
     #                  OnPopupEnable
     # -----------------------------------------------
     def OnPopupEnable(self, event):
         self.ApplySingleAction(self.currentItem, 'enable')
+        self.RefreshPackages()
 
     # -----------------------------------------------
     #                  OnPopupUninstall
     # -----------------------------------------------
     def OnPopupUninstall(self, event):
         self.ApplySingleAction(self.currentItem, 'uninstall')
+        self.RefreshPackages()
+
 
     # -----------------------------------------------
     #                  OnPopupDownload
@@ -714,13 +721,19 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnPopupRefresh(self, event):
         self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+        self.RefreshPackages
+        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+
+    # -----------------------------------------------
+    #                  OnPopupRefresh
+    # -----------------------------------------------
+    def RefreshPackages(self):
         res = self.device.get_detailed_packages()
         if res == 0:
             self.packages = self.device.packages
             self.packageCount = len(self.packages)
         else:
             self.packageCount = 0
-        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
         self.Refresh()
 
     # -----------------------------------------------

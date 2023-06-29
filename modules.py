@@ -536,7 +536,6 @@ def process_file(self, file_type):
             res = run_shell2(theCmd)
         elif found_boot_img or found_init_boot_img:
             print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
-            # TODO
             # Check if the firmware file starts with image-* and warn the user or abort
             firmware_file_name = os.path.basename(file_to_process)
             if firmware_file_name.startswith('image-'):
@@ -553,7 +552,7 @@ def process_file(self, file_type):
                 result = dlg.ShowModal()
                 if result != wx.ID_OK:
                     print("User pressed cancel.")
-                    puml("#pink:User Pressed Cancel to abort;\n}\n")
+                    puml("#pink:User Pressed Cancel to abort;\n")
                     print("Aborting ...\n")
                     return
                 print("User pressed ok.")
@@ -2715,7 +2714,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                         data += f"# pf_boot.img: {boot.boot_path}\n"
                         data += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
                     if self.config.flash_to_inactive_slot:
-                        data += "echo Switching active slot to the other ...\n"
+                        data += "\necho Switching active slot to the other ...\n"
                         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
                     continue
                 if f.type in ['sleep']:
@@ -2742,11 +2741,11 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     # flash on each slot separately
                     # https://forum.xda-developers.com/t/psa-do-not-try-to-boot-into-the-old-slot-after-updating-only-one-slot-to-android-13-unlocking-the-pixel-6-pro-bootloader-central-repository.4352027/post-87309913
                     if self.config.advanced_options and self.config.flash_both_slots:
-                        data += "echo Switching active slot to the other ...\n"
+                        data += "\necho Switching active slot to the other ...\n"
                         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
-                        data += "echo rebooting to bootloader ...\n"
+                        data += "\necho rebooting to bootloader ...\n"
                         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
-                        data += "echo Sleeping 5-10 seconds ...\n"
+                        data += "\necho Sleeping 5-10 seconds ...\n"
                         data += sleep_line
                         data += sleep_line
                         data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
@@ -2754,38 +2753,38 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     sdk_version_components = get_sdk_version().split('.')
                     sdk_major_version = int(sdk_version_components[0])
                     if self.config.flash_mode == 'dryRun' and sdk_major_version < 34:
-                        data += "echo This is a test for fastbootd mode ...\n"
+                        data += "\necho This is a test for fastbootd mode ...\n"
                         data += "echo This process will wait for fastbootd indefinitly until it responds ...\n"
                         data += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you'd have to kill it.. ...\n"
                         data += "echo rebooting to fastbootd ...\n"
                         data += f"\"{get_fastboot()}\" -s {device.id} reboot fastboot\n"
-                        data += "echo It looks like fastbootd worked.\n"
+                        data += "\necho It looks like fastbootd worked.\n"
 
         # ---------------
         # OTA and Factory
         # ---------------
         # add the boot.img flashing
-        data += "echo rebooting to bootloader ...\n"
+        data += "\necho rebooting to bootloader ...\n"
         if self.config.flash_mode == 'OTA':
             data += f"\"{get_adb()}\" -s {device.id} reboot bootloader\n"
         else:
             data += f"\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
-        data += "echo Sleeping 5-10 seconds ...\n"
+        data += "\necho Sleeping 5-10 seconds ...\n"
         data += sleep_line
         data += sleep_line
 
         # flash vbmeta if disabling verity / verification
         if self.config.flash_mode == 'OTA'and (self.config.disable_verity or self.config.disable_verification):
-            data += "echo flashing vbmeta ...\n"
+            data += "\necho flashing vbmeta ...\n"
             data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta vbmeta.img\n"
 
         # are we doing temporary root?
         if self.config.temporary_root and boot.is_patched:
-            data += "echo Live booting to pf_boot (temporary root) ...\n"
+            data += "\necho Live booting to pf_boot (temporary root) ...\n"
             data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
         else:
             if not (self.config.flash_mode == 'OTA' and not boot.is_patched):
-                data += "echo flashing pf_boot ...\n"
+                data += "\necho flashing pf_boot ...\n"
                 if device.hardware in KNOWN_INIT_BOOT_DEVICES:
                     data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
                 else:
@@ -2793,7 +2792,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
             # only reboot if no_reboot is not selected
             if not self.config.no_reboot:
-                data += "echo rebooting to system ...\n"
+                data += "\necho rebooting to system ...\n"
                 data += f"\"{get_fastboot()}\" -s {device.id} reboot"
 
         fin = open(flash_pf_file, "wt", encoding="ISO-8859-1", errors="replace")

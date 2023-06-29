@@ -104,6 +104,7 @@ class Device():
         self._has_init_boot = None
         self.packages = {}
         self.backups = {}
+        self._ro_kernel_version = None
 
     # ----------------------------------------------------------------------------
     #                               property adb_device_info
@@ -201,6 +202,7 @@ class Device():
                 s_api_level = "ro.build.version.sdk"
                 s_hardware = "ro.hardware"
                 s_architecture = "ro.product.cpu.abi"
+                s_ro_kernel_version = "ro.kernel.version"
                 # USNF related props
                 s_sys_oem_unlock_allowed = 'sys.oem_unlock_allowed'
                 s_ro_boot_flash_locked = 'ro.boot.flash.locked'
@@ -231,6 +233,8 @@ class Device():
                         self._hardware = self.extract_prop(s_hardware, line.strip())
                     elif s_architecture in line and not self._architecture:
                         self._architecture = self.extract_prop(s_architecture, line.strip())
+                    elif s_ro_kernel_version in line and not self._ro_kernel_version:
+                        self._ro_kernel_version = self.extract_prop(s_ro_kernel_version, line.strip())
                     elif s_sys_oem_unlock_allowed in line and not self._sys_oem_unlock_allowed:
                         self._sys_oem_unlock_allowed = self.extract_prop(s_sys_oem_unlock_allowed, line.strip())
                     elif s_ro_boot_flash_locked in line and not self._ro_boot_flash_locked:
@@ -378,6 +382,16 @@ class Device():
             return ''
         else:
             return self._architecture
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_kernel_version
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_kernel_version(self):
+        if self._ro_kernel_version is None:
+            return ''
+        else:
+            return self._ro_kernel_version
 
     # ----------------------------------------------------------------------------
     #                               property sys_oem_unlock_allowed
@@ -1346,7 +1360,6 @@ class Device():
                     return -1, -1
                 print(f"    Package Path: {pkg_path}")
             print(f"Getting package {pkg} label from the device ...")
-            # theCmd = f"\"{get_adb()}\" -s {self.id} shell /data/local/tmp/aapt2 d badging {pkg_path} | grep \"application: label=\" |awk \"{{print $2}}\""
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"/data/local/tmp/aapt2 d badging {pkg_path} | grep 'application: label='\""
             res = run_shell(theCmd)
             if res.returncode == 0:

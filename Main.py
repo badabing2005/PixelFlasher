@@ -937,6 +937,7 @@ class PixelFlasher(wx.Frame):
                 message += f"    Android Release Date:            {android_version['Release date']}\n"
                 message += f"    Android Latest Update:           {android_version['Latest update']}\n"
             message += f"    Device Architecture:             {device.architecture}\n"
+            message += f"    Device Kernel Version:           {device.ro_kernel_version}\n"
             message += f"    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
             message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
             message += f"    ro.boot.vbmeta.device_state:     {device.ro_boot_vbmeta_device_state}\n"
@@ -975,10 +976,10 @@ class PixelFlasher(wx.Frame):
     def _check_for_bad_magisk(self, m_version, m_app_version):
             bad_m_version = False
             bad_m_app_version = False
-            if m_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210', '69529ac5:25211', 'e2545e57:26001', '26.0:26000']:
+            if m_version in KNOWN_BAD_MAGISKS:
                 bad_m_version = True
                 print(f"WARNING! Problematic Magisk Version:         {m_version} is installed. Advised not to use this version.")
-            if m_app_version in ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210', '69529ac5:25211', 'e2545e57:26001', '26.0:26000']:
+            if m_app_version in KNOWN_BAD_MAGISKS:
                 bad_m_app_version = True
                 print(f"WARNING! Problematic Magisk Manager Version: {m_app_version} is installed. Advised not to use this version.")
 

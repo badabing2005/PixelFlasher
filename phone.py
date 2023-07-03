@@ -1524,9 +1524,7 @@ class Device():
     def stop_magisk(self):
         print("Stopping Magisk ...")
         with contextlib.suppress(Exception):
-            if self.mode == 'adb':
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell am force-stop {get_magisk_package()}"
-                res = run_shell(theCmd)
+            self.perform_package_action(get_magisk_package(), 'kill')
 
     # ----------------------------------------------------------------------------
     #                               property magisk_detailed_modules
@@ -1750,7 +1748,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     def rooted(self):
         if self._rooted is None and self.mode == 'adb':
             if get_adb():
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/\'\""
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c 'ls -l /data/adb/'\""
                 res = run_shell(theCmd)
                 if res.returncode == 0:
                     self._rooted = True
@@ -2070,7 +2068,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     # ----------------------------------------------------------------------------
     #                               method perform_package_action
     # ----------------------------------------------------------------------------
-    def perform_package_action(self, pkg, action, isSystem):
+    def perform_package_action(self, pkg, action, isSystem=False):
         # possible actions 'uninstall', 'disable', 'enable'
         if self.mode != 'adb':
             return
@@ -2092,6 +2090,10 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell pm enable {pkg}"
             elif action == 'launch':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell monkey -p {pkg} -c android.intent.category.LAUNCHER 1"
+            elif action == 'kill':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell am force-stop {pkg}"
+            elif action == 'clear-data':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm clear {pkg}"
 
             res = run_shell2(theCmd)
         except Exception as e:

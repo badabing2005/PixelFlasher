@@ -1148,7 +1148,7 @@ class Device():
                     print(f"Pushing local file as root: {local_file} to the device: {file_path} ...")
                     filename = os.path.basename(urlparse(local_file).path)
                     remote_file = f"/data/local/tmp/{filename}"
-                    res = self.push_file(local_file, remote_file, False)
+                    res = self.push_file(local_file, remote_file, with_su=False)
                     if res != 0:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {local_file}")
                         return -1

@@ -331,7 +331,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
             print(f"\nSelected {file_to_backup} for backup with SHA1 of {file_sha1}")
             try:
                 self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
-                res = self.device.push_file(f"{file_to_backup}", '/data/adb/magisk/stock_boot.img', True)
+                res = self.device.push_file(f"{file_to_backup}", '/data/adb/magisk/stock_boot.img', with_su=True)
                 if res != 0:
                     print("Aborting ...\n")
                     return
@@ -372,7 +372,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         if res != 0:
             return -1
         # Transfer the file with su
-        res = self.device.push_file(f"{backup_file}", f"/data/magisk_backup_{file_sha1}/boot.img.gz", True)
+        res = self.device.push_file(f"{backup_file}", f"/data/magisk_backup_{file_sha1}/boot.img.gz", with_su=True)
         if res != 0:
             return -1
 
@@ -419,7 +419,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                     print("Cannot create automatic backup file, you can still manually select and create one.")
                     print("Aborting ...")
 
-                res = self.device.push_file(f"{file_to_backup}", '/data/adb/magisk/stock_boot.img', True)
+                res = self.device.push_file(f"{file_to_backup}", '/data/adb/magisk/stock_boot.img', with_su=True)
                 if res != 0:
                     print("Aborting ...\n")
                     return

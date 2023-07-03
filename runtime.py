@@ -71,8 +71,6 @@ config_path = None
 android_versions = {}
 android_devices = {}
 env_variables = os.environ.copy()
-boot_list_columns = 8
-boot_column_widths = column_widths = [0] * boot_list_columns
 is_ota = False
 sdk_is_ok = False
 
@@ -96,6 +94,9 @@ class Boot():
         self.package_path = None
         self.package_epoch = None
         self.is_odin = None
+        self.is_stock_boot = None
+        self.is_init_boot = None
+        self.patch_source_sha1 = None
 
 
 # ============================================================================
@@ -339,22 +340,6 @@ def get_fastboot_sha256():
 def set_fastboot_sha256(value):
     global fastboot_sha256
     fastboot_sha256 = value
-
-
-# ============================================================================
-#                               Function get_boot_column_widths
-# ============================================================================
-def get_boot_column_widths():
-    global boot_column_widths
-    return boot_column_widths
-
-
-# ============================================================================
-#                               Function set_boot_column_widths
-# ============================================================================
-def set_boot_column_widths(value):
-    global boot_column_widths
-    boot_column_widths = value
 
 
 # ============================================================================
@@ -982,6 +967,16 @@ def init_db():
         if 'is_odin' not in column_names:
             # Add the is_odin column to the BOOT table
             db.execute("ALTER TABLE BOOT ADD COLUMN is_odin INTEGER;")
+        # Added in version 5.4
+        if 'is_stock_boot' not in column_names:
+            # Add the is_stock_boot column to the BOOT table
+            db.execute("ALTER TABLE BOOT ADD COLUMN is_stock_boot INTEGER;")
+        if 'is_init_boot' not in column_names:
+            # Add the is_init_boot column to the BOOT table
+            db.execute("ALTER TABLE BOOT ADD COLUMN is_init_boot INTEGER;")
+        if 'patch_source_sha1' not in column_names:
+            # Add the patch_source_sha1 column to the BOOT table
+            db.execute("ALTER TABLE BOOT ADD COLUMN patch_source_sha1 INTEGER;")
 
 
 # ============================================================================
@@ -1149,7 +1144,7 @@ def check_zip_contains_file(zip_file_path, file_to_check, nested=False, is_recur
         for name in zip_file.namelist():
             if name.endswith(f'/{file_to_check}') or name == file_to_check:
                 if not is_recursive:
-                    debug(f"Found: {name}")
+                    debug(f"Found: {name}\n")
                 return name
             elif nested and name.endswith('.zip'):
                 with zip_file.open(name, 'r') as nested_zip_file:
@@ -1159,9 +1154,9 @@ def check_zip_contains_file(zip_file_path, file_to_check, nested=False, is_recur
                         nested_file_path = check_zip_contains_file(nested_zip_stream, file_to_check, nested=True, is_recursive=True)
                         if nested_file_path:
                             if not is_recursive:
-                                debug(f"Found: {name}/{nested_file_path}")
+                                debug(f"Found: {name}/{nested_file_path}\n")
                             return f'{name}/{nested_file_path}'
-        debug(f"file: {file_to_check} was NOT found")
+        debug(f"file: {file_to_check} was NOT found\n")
         return ''
 
 
@@ -1175,14 +1170,14 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
         for member in tar_file.getmembers():
             if member.name.endswith(f'/{file_to_check}') or member.name == file_to_check:
                 if not is_recursive:
-                    debug(f"Found: {member.name}")
+                    debug(f"Found: {member.name}\n")
                 return member.name
             elif nested and member.name.endswith('.tar'):
                 nested_tar_file_path = tar_file.extractfile(member).read()
                 nested_file_path = check_tar_contains_file(nested_tar_file_path, file_to_check, nested=True, is_recursive=True)
                 if nested_file_path:
                     if not is_recursive:
-                        debug(f"Found: {member.name}/{nested_file_path}")
+                        debug(f"Found: {member.name}/{nested_file_path}\n")
                     return f'{member.name}/{nested_file_path}'
             elif nested and member.name.endswith('.zip'):
                 with tar_file.extractfile(member) as nested_zip_file:
@@ -1195,9 +1190,9 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
                 nested_file_path = check_zip_contains_file(temp_zip_file.name, file_to_check, nested=True, is_recursive=True)
                 if nested_file_path:
                     if not is_recursive:
-                        debug(f"Found: {member.name}/{nested_file_path}")
+                        debug(f"Found: {member.name}/{nested_file_path}\n")
                     return f'{member.name}/{nested_file_path}'
-        debug(f"File {file_to_check} was NOT found")
+        debug(f"File {file_to_check} was NOT found\n")
         return ''
 
 
@@ -1208,6 +1203,24 @@ def get_zip_file_list(zip_file_path):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
         file_list = zip_file.namelist()
     return file_list
+
+
+# ============================================================================
+#                               Function get_filenames_in_dir
+# ============================================================================
+def get_filenames_in_dir(directory, isFile = False):
+    # sourcery skip: inline-immediately-returned-variable, list-comprehension
+    if not directory:
+        return
+    if isFile:
+        dir_path = os.path.dirname(directory)
+    else:
+        dir_path = directory
+    file_names = []
+    for file in os.listdir(dir_path):
+        if os.path.isfile(os.path.join(dir_path, file)):
+            file_names.append(file)
+    return file_names
 
 
 # ============================================================================

@@ -56,6 +56,8 @@ class Config():
         self.pf_home = None
         self.firmware_sha256 = None
         self.rom_sha256 = None
+        self.boot_sort_column = 0
+        self.boot_sorting_direction = 'ASC'
 
     @classmethod
     def load(cls, file_path):

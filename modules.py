@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import contextlib
+import copy
+import fnmatch
 import math
 import ntpath
 import os
@@ -9,7 +11,6 @@ import sqlite3 as sl
 import sys
 import tempfile
 import time
-import fnmatch
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -145,7 +146,7 @@ def set_android_product_out(sdk_path):
 # ============================================================================
 #                               Function populate_boot_list
 # ============================================================================
-def populate_boot_list(self):
+def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
     self.list.DeleteAllItems()
     con = get_db()
     con.execute("PRAGMA foreign_keys = ON")
@@ -198,23 +199,68 @@ def populate_boot_list(self):
                 ))
         """
         parameters.extend([firmware_path, rom_path, firmware_path, rom_path])
-    # Order by is_patched in ascending order, then epoch in ascending order
-    sql += "ORDER BY BOOT.is_patched ASC, BOOT.epoch ASC;"
+
+    # Clear the previous sort order arrows
+    for i in range(self.list.GetColumnCount()):
+        col = self.list.GetColumn(i)
+        col_text = col.Text.rstrip(" ▲▼")
+        col.SetImage(-1)
+        col.SetText(f"{col_text}  ")
+        self.list.SetColumn(i, col)
+
+    # Order the query results based on the sortColumn and sorting_direction if provided
+    if sortColumn is not None:
+        # Set the sort order arrow for the current column
+        col = self.list.GetColumn(sortColumn - 1)
+        col_text = col.Text.strip()
+        if sorting_direction == 'ASC':
+            col.SetText(f"{col_text} ▲")
+            col.SetImage(-1)
+        elif sorting_direction == 'DESC':
+            col.SetText(f"{col_text} ▼")
+            col.SetImage(-1)
+        self.list.SetColumn(sortColumn - 1, col)
+
+        # Get the column name based on the sortColumn number
+        column_map = {
+            1: 'BOOT.boot_hash',
+            2: 'PACKAGE.boot_hash',
+            3: 'PACKAGE.package_sig',
+            4: 'BOOT.magisk_version',
+            5: 'BOOT.patch_method',
+            6: 'BOOT.hardware',
+            7: 'BOOT.epoch',
+            8: 'PACKAGE.file_path'
+        }
+        column_name = column_map.get(sortColumn, '')
+        if column_name:
+            sql += f" ORDER BY {column_name} {sorting_direction};"
+    else:
+        # Add default sorting
+        sql += " ORDER BY BOOT.is_patched ASC, BOOT.epoch ASC;"
 
     with con:
         data = con.execute(sql, parameters)
         i = 0
         for row in data:
-            index = self.list.InsertItem(i, row[1][:8])                     # boot_hash (SHA1)
-            self.list.SetItem(index, 1, row[9][:8])                         # package_boot_hash (Source SHA1)
-            self.list.SetItem(index, 2, row[11])                            # package_sig (Package Fingerprint)
+            boot_hash = row[1][:8] or ''
+            package_boot_hash = row[9][:8] or ''
+            package_sig = row[11] or ''
+            patched_with_magisk_version = str(row[5]) or ''
             patch_method = row[4] or ''
-            self.list.SetItem(index, 3, str(row[5]))                        # pacthed with magisk_version
-            self.list.SetItem(index, 4, patch_method)                       # patched_method
-            self.list.SetItem(index, 5, row[6])                             # hardware
+            hardware = row[6] or ''
             ts = datetime.fromtimestamp(row[7])
-            self.list.SetItem(index, 6, ts.strftime('%Y-%m-%d %H:%M:%S'))   # boot_date
-            self.list.SetItem(index, 7, row[12])                            # package_path
+            boot_date = ts.strftime('%Y-%m-%d %H:%M:%S')
+            package_path = row[12] or ''
+
+            index = self.list.InsertItem(i, boot_hash)                     # boot_hash (SHA1)
+            self.list.SetItem(index, 1, package_boot_hash)                 # package_boot_hash (Source SHA1)
+            self.list.SetItem(index, 2, package_sig)                       # package_sig (Package Fingerprint)
+            self.list.SetItem(index, 3, patched_with_magisk_version)       # patched with magisk_version
+            self.list.SetItem(index, 4, patch_method)                      # patched_method
+            self.list.SetItem(index, 5, hardware)                          # hardware
+            self.list.SetItem(index, 6, boot_date)                         # boot_date
+            self.list.SetItem(index, 7, package_path)                      # package_path
             if row[3]:
                 self.list.SetItemColumnImage(i, 0, 0)
             else:
@@ -223,7 +269,7 @@ def populate_boot_list(self):
 
     # auto size columns to largest text, including the header (except the last column)
     cw = 0
-    column_widths = get_boot_column_widths()
+    column_widths = copy.deepcopy(self.boot_column_widths)
     for i in range(self.list.ColumnCount - 1):
         self.list.SetColumnWidth(i, -1)  # Set initial width to -1 (default)
         width = self.list.GetColumnWidth(i)
@@ -237,7 +283,6 @@ def populate_boot_list(self):
     # Set the last column width to the available room
     available_width = self.list.BestVirtualSize.Width - cw - 10
     self.list.SetColumnWidth(self.list.ColumnCount - 1, available_width)
-    set_boot_column_widths(column_widths)
 
     # disable buttons
     self.config.boot_id = None
@@ -247,8 +292,9 @@ def populate_boot_list(self):
             print("\nPlease Process the firmware!")
     else:
         print("\nPlease select a boot image!")
-    self.process_firmware.SetFocus()
+    self.update_widget_states()
     # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
+    self.process_firmware.SetFocus()
 
 
 # ============================================================================
@@ -510,10 +556,13 @@ def process_file(self, file_type):
     start_1 = time.time()
     checksum = ''
     is_odin = False
+    is_init_boot = False
+    is_stock_boot = False
 
     is_payload_bin = False
     factory_images = os.path.join(config_path, 'factory_images')
     if file_type == 'firmware':
+        is_stock_boot = True
         file_to_process = self.config.firmware_path
         package_sig = get_firmware_id()
         package_dir_full = os.path.join(factory_images, package_sig)
@@ -525,6 +574,7 @@ def process_file(self, file_type):
         set_firmware_has_init_boot(False)
         if found_init_boot_img:
             set_firmware_has_init_boot(True)
+            is_init_boot = True
         if found_flash_all_bat and found_flash_all_sh and get_firmware_hash_validity():
             # assume Pixel factory file
             print("Detected Pixel firmware")
@@ -561,7 +611,7 @@ def process_file(self, file_type):
         elif check_zip_contains_file(file_to_process, "payload.bin"):
             is_payload_bin = True
             if get_firmware_hash_validity() and get_ota():
-                print("Detected OTA file, please select a firmware file")
+                print("Detected OTA file")
             else:
                 print("Detected a firmware, with payload.bin")
         else:
@@ -652,6 +702,7 @@ def process_file(self, file_type):
         set_rom_has_init_boot(False)
         if found_init_boot_img:
             set_rom_has_init_boot(True)
+            is_init_boot = True
         elif check_zip_contains_file(file_to_process, "payload.bin"):
             print("Detected a ROM, with payload.bin")
             is_payload_bin = True
@@ -660,22 +711,12 @@ def process_file(self, file_type):
         image_file_path = file_to_process
         puml(f"note right:{image_file_path}\n")
 
-    # see if we have a record for the firmware/rom being processed
-    cursor.execute(f"SELECT ID, boot_hash FROM PACKAGE WHERE package_sig = '{package_sig}' AND file_path = '{file_to_process}'")
-    data = cursor.fetchall()
-    if len(data) > 0:
-        pre_package_id = data[0][0]
-        pre_checksum = data[0][1]
-        debug(f"Found a previous {file_type} PACKAGE record id={pre_package_id} for package_sig: {package_sig} Firmware: {file_to_process}")
-    else:
-        pre_package_id = 0
-        pre_checksum = 'x'
-
     # delete all files in tmp folder to make sure we're dealing with new files only.
     delete_all(tmp_dir_full)
 
     if is_payload_bin:
         # extract the payload.bin into a temporary directory
+        is_stock_boot = True
         temp_dir = tempfile.TemporaryDirectory()
         temp_dir_path = temp_dir.name
         print(f"Extracting payload.bin from {file_to_process} ...")
@@ -704,6 +745,7 @@ def process_file(self, file_type):
             shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'init_boot.img'), follow_symlinks=True)
             boot_file_name = 'init_boot.img'
             found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evalute to False
+            is_init_boot = True
     else:
         if is_odin:
             shutil.copy(os.path.join(package_dir_full, 'boot.img'), os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
@@ -722,6 +764,7 @@ def process_file(self, file_type):
         if found_init_boot_img:
             boot_file_name = 'init_boot.img'
             files_to_extract += 'init_boot.img '
+            is_init_boot = True
         files_to_extract = files_to_extract.strip()
 
         if not is_odin:
@@ -775,60 +818,70 @@ def process_file(self, file_type):
     else:
         print(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
 
-    # create PACKAGE db record
-    sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
-    data = checksum, file_type, package_sig, file_to_process, time.time()
-    try:
-        cursor.execute(sql, data)
-        con.commit()
-    except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-        print(e)
-    package_id = cursor.lastrowid
-    print(f"Package ID: {package_id}")
-    # if we didn't insert a new record, let's use the pre_package_id in case we need to insert a record into PACKAGE_BOOT
-    if package_id == 0:
-        package_id = pre_package_id
-
-    # create BOOT db record
-    sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin) values(?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-    data = checksum, cached_boot_img_path, 0, '', '', time.time(), '', is_odin
-    try:
-        cursor.execute(sql, data)
-        con.commit()
-    except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-        print(e)
-    boot_id = cursor.lastrowid
-    print(f"Boot ID: {boot_id}")
-    # if boot_id record does not exist, set it to 0
-    cursor.execute(f"SELECT ID FROM BOOT WHERE id = '{boot_id}'")
+    # Let's see if we have a record for the firmware/rom being processed
+    print(f"Checking DB entry for PACKAGE: {file_to_process}")
+    package_id = 0
+    cursor.execute(f"SELECT ID, boot_hash FROM PACKAGE WHERE package_sig = '{package_sig}' AND file_path = '{file_to_process}'")
     data = cursor.fetchall()
-    if len(data) == 0:
-        boot_id = 0
-    # if we didn't insert in BOOT or id does not exist, see if we have a record for the boot being processed in case we need to insert a record into PACKAGE_BOOT
-    if boot_id == 0:
-        cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{pre_checksum}' OR boot_hash = '{checksum}'")
-        data = cursor.fetchall()
-        if len(data) > 0:
-            boot_id = data[0][0]
-            print(f"Found a previous BOOT record id={boot_id} for boot_hash: {pre_checksum} or {checksum}")
-        else:
-            boot_id = 0
+    if len(data) > 0:
+        package_id = data[0][0]
+        print(f"Found a previous {file_type} PACKAGE record id={package_id} for package_sig: {package_sig} Firmware: {file_to_process}")
+        print(f"Package ID: {package_id}")
+    else:
+        # create PACKAGE db record
+        print(f"Creating DB entry for PACKAGE: {file_to_process}")
+        sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
+        data = checksum, file_type, package_sig, file_to_process, time.time()
+        try:
+            cursor.execute(sql, data)
+            con.commit()
+            package_id = cursor.lastrowid
+            print(f"Package ID: {package_id}")
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+            print(e)
 
+    # Let's see if we already have an entry for the BOOT
+    print(f"Checking DB entry for BOOT: {checksum}")
+    boot_id = 0
+    cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{checksum}'")
+    data = cursor.fetchall()
+    if len(data) > 0:
+        boot_id = data[0][0]
+        print(f"Found a previous BOOT record id={boot_id} for boot_hash: {checksum}")
+        print(f"Boot_ID: {boot_id}")
+    else:
+        # create BOOT db record
+        print(f"Creating DB entry for BOOT: {checksum}")
+        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+        data = checksum, cached_boot_img_path, 0, '', '', time.time(), '', is_odin, is_stock_boot, is_init_boot
+        try:
+            cursor.execute(sql, data)
+            con.commit()
+            boot_id = cursor.lastrowid
+            print(f"Boot ID: {boot_id}")
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+            print(e)
+
+    # Let's see if we already have an entry for the PACKAGE_BOOT
+    print(f"Checking DB entry for PACKAGE_BOOT: package_id = '{package_id}' AND boot_id = '{boot_id}")
+    cursor.execute(f"SELECT package_id, boot_id FROM PACKAGE_BOOT WHERE package_id = '{package_id}' AND boot_id = '{boot_id}'")
+    data = cursor.fetchall()
+    if len(data) > 0:
+        package_boot_id = data[0][0]
+        print(f"Found a previous PACKAGE_BOOT record for package_id: {package_id},  boot_id: {boot_id}")
+        print(f"Package_Boot row id: {package_boot_id}")
+    else:
     # create PACKAGE_BOOT db record
-    if package_id > 0 and boot_id > 0:
-        debug(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
+        print(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
         sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
         data = package_id, boot_id, time.time()
         try:
             cursor.execute(sql, data)
             con.commit()
             package_boot_id = cursor.lastrowid
-            if package_boot_id == 0:
-                print(f"Record PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id} already exists")
-            else:
-                print(f"Package_Boot ID: {package_boot_id}")
+            print(f"Package_Boot row id: {package_boot_id}")
         except Exception as e:
             print(f"Record PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id} already exists")
 
@@ -1506,7 +1559,7 @@ def patch_boot_img(self, custom_patch = False):
             firmware_model = package_sig[0]
         except Exception as e:
             firmware_model = None
-        if firmware_model != device.hardware:
+        if not (len(device.hardware) >= 3 and device.hardware in firmware_model):
             title = "Boot Model Mismatch"
             message =  f"WARNING: Your phone model is: {device.hardware}\n\n"
             message += f"The selected {boot_file_name} is from: {boot.package_sig}\n\n"
@@ -1701,7 +1754,7 @@ def patch_boot_img(self, custom_patch = False):
         print("___________________________________________________\n")
 
         # Transfer extraction script to the phone
-        res = device.push_file(f"{dest}", script_path, perform_as_root)
+        res = device.push_file(f"{dest}", script_path, with_su=perform_as_root)
         if res != 0:
             print("Aborting ...\n")
             puml("#red:Failed to transfer Patch Script to the phone;\n")
@@ -2074,8 +2127,8 @@ Unless you know what you're doing, it is recommended that you take the default s
         con.execute("PRAGMA foreign_keys = ON")
         con.commit()
         cursor = con.cursor()
-        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin) values(?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False)
+        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False, False, boot.is_init_boot, boot_sha1_long)
         debug(f"Creating BOOT record, boot_hash: {checksum}")
         try:
             cursor.execute(sql, data)
@@ -2177,7 +2230,7 @@ def live_flash_boot_phone(self, option):
             except Exception as e:
                 firmware_model = None
         # Warn the user if it is not from the current phone model
-        if firmware_model != device.hardware:
+        if not (len(device.hardware) >= 3 and device.hardware in firmware_model):
             title = f"{option} Boot"
             message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
             message += f"The selected Boot is for: {boot.hardware}\n\n"
@@ -2567,13 +2620,11 @@ def flash_phone(self):
                 return
 
         # Make sure Phone model matches firmware model
-        if get_firmware_model() != device.hardware:
+        if not (len(device.hardware) >= 3 and device.hardware in get_firmware_model()):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware Model {get_firmware_model()}")
             puml(f"#orange:Hardware does not match firmware;\n")
             puml(f"note right\nAndroid device model {device.hardware}\nfirmware Model {get_firmware_model()}\nend note\n")
-            # return
 
-        # if firmware_model != device.hardware:
             title = "Device / Firmware Mismatch"
             message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
             message += f"The selected firmware is for: {get_firmware_model()}\n\n"
@@ -2783,9 +2834,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             data += "\necho Live booting to pf_boot (temporary root) ...\n"
             data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
         else:
-            if not (self.config.flash_mode == 'OTA' and not boot.is_patched):
+            if not boot.is_stock_boot:
                 data += "\necho flashing pf_boot ...\n"
-                if device.hardware in KNOWN_INIT_BOOT_DEVICES:
+                if boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES:
                     data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
                 else:
                     data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"

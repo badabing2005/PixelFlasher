@@ -25,10 +25,10 @@ import images as images
 with contextlib.suppress(Exception):
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
 
-from constants import *
 from advanced_settings import AdvancedSettings
 from backup_manager import BackupManager
 from config import Config
+from constants import *
 from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
 from message_box_ex import MessageBoxEx
@@ -675,6 +675,26 @@ class PixelFlasher(wx.Frame):
     def _on_exit_app(self, event):
         self.config.save(get_config_file_path())
         self.Close(True)
+
+    # -----------------------------------------------
+    #                  OnColClick
+    # -----------------------------------------------
+    def OnColClick(self, event):
+        column = event.GetColumn() + 1
+        current_sort_column = self.config.boot_sort_column
+
+        # Determine the sort column and direction based on the clicked column
+        if current_sort_column == column:
+            # Same column clicked, toggle the sorting direction
+            sorting_direction = 'DESC' if self.config.boot_sorting_direction == 'ASC' else 'ASC'
+        else:
+            # Different column clicked, default sorting direction is ASC
+            sorting_direction = 'ASC'
+
+        self.config.boot_sort_column = column
+        self.config.boot_sorting_direction = sorting_direction
+
+        populate_boot_list(self, sortColumn=column, sorting_direction=sorting_direction)
 
     # -----------------------------------------------
     #                  Test
@@ -2087,7 +2107,10 @@ class PixelFlasher(wx.Frame):
                         PACKAGE.type as package_type,
                         PACKAGE.package_sig,
                         PACKAGE.file_path as package_path,
-                        PACKAGE.epoch as package_date
+                        PACKAGE.epoch as package_date,
+                        BOOT.is_stock_boot,
+                        BOOT.is_init_boot,
+                        BOOT.patch_source_sha1
                     FROM BOOT
                     JOIN PACKAGE_BOOT
                         ON BOOT.id = PACKAGE_BOOT.boot_id
@@ -2097,7 +2120,7 @@ class PixelFlasher(wx.Frame):
                 """
                 with con:
                     data = con.execute(sql, (query,))
-                    i = 0
+                    package_boot_count = 0
                     for row in data:
                         boot.boot_id = row[0]
                         boot.boot_hash = row[1]
@@ -2114,9 +2137,10 @@ class PixelFlasher(wx.Frame):
                         boot.package_sig = row[12]
                         boot.package_path = row[13]
                         boot.package_epoch = row[14]
-                        i += 1
-                    if i > 1:
-                        debug("INFO: Duplicate PACKAGE_BOOT records found")
+                        boot.is_stock_boot = row[15]
+                        boot.is_init_boot = row[16]
+                        boot.patch_source_sha1 = row[17]
+                        package_boot_count += 1
                 self.config.boot_id = boot.boot_id
                 self.config.selected_boot_md5 = boot.boot_hash
                 print("Selected Boot:")
@@ -2129,6 +2153,8 @@ class PixelFlasher(wx.Frame):
                     message += f"    Patched:               {patched}\n"
                     if boot.patch_method:
                         message += f"    Patched Method:        {boot.patch_method}\n"
+                    if boot.patch_source_sha1:
+                        message += f"    Patch Source SHA1:     {boot.patch_source_sha1}\n"
                     message += f"    Patched With Magisk:   {boot.magisk_version}\n"
                     message += f"    Patched on Device:     {boot.hardware}\n"
                 else:
@@ -2137,10 +2163,20 @@ class PixelFlasher(wx.Frame):
                 ts = datetime.fromtimestamp(boot.boot_epoch)
                 if boot.is_odin == 1:
                     message += f"    Samsung Boot:          True\n"
+                if boot.is_stock_boot == 1:
+                    message += f"    Stock Boot:            True\n"
+                elif boot.is_stock_boot == 0:
+                    message += f"    Stock Boot:            False\n"
+                if boot.is_init_boot == 1:
+                    message += f"    Init Boot:             True\n"
+                if boot.is_init_boot == 0:
+                    message += f"    Init Boot:             False\n"
                 message += f"    Date:                  {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 message += f"    Firmware Fingerprint:  {boot.package_sig}\n"
                 message += f"    Firmware:              {boot.package_path}\n"
                 message += f"    Type:                  {boot.package_type}\n"
+                if package_boot_count > 1:
+                    message += f"\nINFO: Multiple PACKAGE_BOOT records found for {boot.boot_hash}."
                 print(f"{message}\n")
                 puml(f"note right\n{message}end note\n")
             else:
@@ -2170,6 +2206,8 @@ class PixelFlasher(wx.Frame):
                 con = get_db()
                 con.execute("PRAGMA foreign_keys = ON")
                 con.commit()
+
+                # Delete PACKAGE_BOOT record
                 sql = """
                     DELETE FROM PACKAGE_BOOT
                     WHERE boot_id = ? AND package_id = ?;
@@ -2182,18 +2220,59 @@ class PixelFlasher(wx.Frame):
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                     puml("#red:Encountered an error;\n", True)
                     print(e)
-                sql = """
-                    DELETE FROM BOOT
-                    WHERE id = ?;
-                """
+                    print("Aborting ...")
+                    set_boot(None)
+                    populate_boot_list(self)
+                    self._on_spin('stop')
+                    return
+
+                # Check to see if this is the last entry for the boot_id, if it is,
                 try:
-                    with con:
-                        data = con.execute(sql, (boot.boot_id,))
-                    con.commit()
+                    cursor = con.cursor()
+                    cursor.execute("SELECT * FROM PACKAGE_BOOT WHERE boot_id = ?", (boot.boot_id,))
+                    data = cursor.fetchall()
+                    if len(data) == 0:
+                        # delete the boot from db
+                        sql = """
+                            DELETE FROM BOOT
+                            WHERE id = ?;
+                        """
+                        try:
+                            with con:
+                                data = con.execute(sql, (boot.boot_id,))
+                            con.commit()
+                            print(f"Cleared db entry for BOOT: {boot.boot_id}")
+                            # delete the boot file
+                            print(f"Deleting Boot file: {boot.boot_path} ...")
+                            if os.path.exists(boot.boot_path):
+                                os.remove(boot.boot_path)
+                                boot_dir = os.path.dirname(boot.boot_path)
+                                # if deleting init_boot.img and boot.img exists, delete that as well
+                                boot_img_path = os.path.join(boot_dir, 'boot.img')
+                                if boot.is_init_boot and os.path.exists(boot_img_path):
+                                    print(f"Deleting {boot_img_path} ...")
+                                    os.remove(boot_img_path)
+                            else:
+                                print(f"Warning: Boot file: {boot.boot_path} does not exist")
+                        except Exception as e:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                            puml("#red:Encountered an error;\n", True)
+                            print(e)
+                            print("Aborting ...")
+                            set_boot(None)
+                            populate_boot_list(self)
+                            self._on_spin('stop')
+                            return
                 except Exception as e:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                     puml("#red:Encountered an error;\n", True)
                     print(e)
+                    print("Aborting ...")
+                    set_boot(None)
+                    populate_boot_list(self)
+                    self._on_spin('stop')
+                    return
+
                 # Check to see if this is the last entry for the package_id, if it is,
                 # delete the package from db and output a message that a firmware should be selected.
                 # Also delete unpacked files from factory_images cache
@@ -2202,29 +2281,39 @@ class PixelFlasher(wx.Frame):
                     cursor.execute("SELECT * FROM PACKAGE_BOOT WHERE package_id = ?", (boot.package_id,))
                     data = cursor.fetchall()
                     if len(data) == 0:
-                        sql = """
-                            DELETE FROM PACKAGE
-                            WHERE id = ?;
-                        """
-                        with con:
-                            data = con.execute(sql, (boot.package_id,))
-                        con.commit()
-                        print(f"Cleared db entry for: {boot.package_path}")
-                        config_path = get_config_path()
-                        tmp = os.path.join(config_path, 'factory_images', boot.package_sig)
-                        with contextlib.suppress(Exception):
-                            print(f"Deleting Firmware cache for: {tmp} ...")
-                            delete_all(tmp)
+                        delete_package = True
+                        # see if there are magisk_patched* files in the directory
+                        boot_dir = os.path.dirname(boot.boot_path)
+                        files = get_filenames_in_dir(boot_dir)
+                        for file in files:
+                            # if magisk* exists, we shouldn't delete the package
+                            if file.startswith('magisk_patched'):
+                                delete_package = False
+                                break
+                        if delete_package:
+                            sql = """
+                                DELETE FROM PACKAGE
+                                WHERE id = ?;
+                            """
+                            with con:
+                                data = con.execute(sql, (boot.package_id,))
+                            con.commit()
+                            print(f"Cleared db entry for PACKAGE: {boot.package_path}")
+                            config_path = get_config_path()
+                            package_path = os.path.join(config_path, 'factory_images', boot.package_sig)
+                            with contextlib.suppress(Exception):
+                                print(f"Deleting Firmware cache for: {package_path} ...")
+                                delete_all(package_path)
                 except Exception as e:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                     puml("#red:Encountered an error;\n", True)
                     print(e)
-                con.commit()
+                    print("Aborting ...")
+                    set_boot(None)
+                    populate_boot_list(self)
+                    self._on_spin('stop')
+                    return
 
-                # delete the boot file
-                print(f"Deleting Boot file: {boot.boot_path} ...")
-                if os.path.exists(boot.boot_path):
-                    os.remove(boot.boot_path)
                 set_boot(None)
                 populate_boot_list(self)
             self._on_spin('stop')
@@ -2475,15 +2564,15 @@ class PixelFlasher(wx.Frame):
             self.idx1 = self.il.Add(images.Patched_Small.GetBitmap())
         self.list  = wx.ListCtrl(panel, -1, size=(-1, self.CharHeight * 6), style = wx.LC_REPORT|wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
-        self.list.InsertColumn(0, 'SHA1', wx.LIST_FORMAT_LEFT, width = -1)
-        self.list.InsertColumn(1, 'Source SHA1', wx.LIST_FORMAT_LEFT, width = -1)
-        self.list.InsertColumn(2, 'Package Fingerprint', wx.LIST_FORMAT_LEFT, width = -1)
-        self.list.InsertColumn(3, 'Patched with Magisk', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(4, 'Patch Method', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(5, 'Patched on Device', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(6, 'Date', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(7, 'Package Path', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10))))
+        self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width = -1)
+        self.list.InsertColumn(1, 'Source SHA1  ', wx.LIST_FORMAT_LEFT, width = -1)
+        self.list.InsertColumn(2, 'Package Fingerprint  ', wx.LIST_FORMAT_LEFT, width = -1)
+        self.list.InsertColumn(3, 'Patched with Magisk  ', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(4, 'Patch Method  ', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(5, 'Patched on Device  ', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(6, 'Date  ', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(7, 'Package Path  ', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         if sys.platform != "win32":
             self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         self.list.SetColumnWidth(0, -2)
@@ -2502,6 +2591,12 @@ class PixelFlasher(wx.Frame):
         grow_column(self.list, 6, 20)
         self.list.SetColumnWidth(7, -2)
         grow_column(self.list, 7, 20)
+        # Initialize column width to header column size
+        column_widths = []
+        for i in range(self.list.ColumnCount):
+            column_widths.append(self.list.GetColumnWidth(i))
+        # Create a new list (will be by value and not by ref)
+        self.boot_column_widths = list(column_widths)
         self.flash_boot_button = wx.Button(panel, wx.ID_ANY, u"Flash Boot", wx.DefaultPosition, wx.DefaultSize, 0)
         self.flash_boot_button.SetBitmap(images.FlashBoot.GetBitmap())
         self.flash_boot_button.SetToolTip(u"Flash just the selected item")
@@ -2734,6 +2829,7 @@ class PixelFlasher(wx.Frame):
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, _on_show_all_boot)
         self.paste_boot.Bind(wx.EVT_BUTTON, _on_paste_boot)
         self.support_button.Bind(wx.EVT_BUTTON, self._on_support_zip)
+        self.list.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
 
         # Update UI
         self.Layout()

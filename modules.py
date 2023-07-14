@@ -1671,8 +1671,33 @@ def patch_boot_img(self, custom_patch = False):
             with_version = device.get_uncached_magisk_app_version()
             with_version_code = device.magisk_app_version_code
             perform_as_root = False
+        elif patch_method == "other":
+            patch_label = "Other Magisk App"
+            path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
+            script_path = "/data/local/tmp/pf_patch.sh"
+            exec_cmd = f"\"{get_adb()}\" -s {device.id} shell {busybox_shell_cmd} /data/local/tmp/pf_patch.sh"
+            perform_as_root = False
+            # select the Magisk to use for patching
+            with wx.FileDialog(self, "Select Magisk Application", '', '', wildcard="Images (*.*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
+                puml(":Other Magisk Application for patch use ;\n")
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled.")
+                    puml("#pink:User Cancelled;\n")
+                    return -1
+                other_magisk = fileDialog.GetPath()
+                print(f"\nSelected {other_magisk} for patch use.")
+                puml(f"note right\nSelected {other_magisk} for patch use.\nend note\n")
+            # Transfer user Magisk app to the phone
+            res = device.push_file(f"\"{other_magisk}\"", '/sdcard/Download/Magisk-Uploaded.apk', with_su=perform_as_root)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to transfer Magisk Application to the phone;\n")
+                return -1
+            with_version = "Other"
+            with_version_code = "Other"
         else:
-            print(f"ERROR: Unsupport patch method: {patch_method}")
+            print(f"ERROR: Unsupported patch method: {patch_method}")
+            puml("#red:Unsupported patch method;\n")
             return -1
 
         set_patched_with(with_version)
@@ -1687,10 +1712,15 @@ def patch_boot_img(self, custom_patch = False):
             data += f"MAGISK_VERSION=\"{with_version_code}\"\n"
             data += f"STOCK_SHA1={stock_sha1}\n"
             data += f"RECOVERYMODE={recovery}\n"
+            if patch_method == "other":
+                magisk_path = '/sdcard/Download/Magisk-Uploaded.apk'
+            else:
+                magisk_path = device.magisk_path
+            data += f"MAGISK_PATH={magisk_path}\n"
 
-            if patch_method == "app":
+            if patch_method == "app" or patch_method == "other":
                 data += f"ARCH={device.architecture}\n"
-                data += f"cp {device.magisk_path} /data/local/tmp/pf.zip\n"
+                data += f"cp {magisk_path} /data/local/tmp/pf.zip\n"
                 data += "cd /data/local/tmp\n"
                 data += "rm -rf pf\n"
                 data += "mkdir pf\n"
@@ -1706,6 +1736,13 @@ def patch_boot_img(self, custom_patch = False):
                 elif device.architecture == "arm64-v8a" and (device.ro_zygote != "zygote64" or "zygote64_32" in with_version.lower()):
                     data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
                 data += "chmod 755 *\n"
+                data += "if [[ -f \"/data/local/tmp/pf/assets/magisk32\" ]]; then\n"
+                data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk32 -c)\n"
+                data += "    echo \"PATCHING_MAGISK_VERSION: $PATCHING_MAGISK_VERSION\"\n"
+                data += "elif [[ -f \"/data/local/tmp/pf/assets.magisk64\" ]]; then\n"
+                data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk64 -c)\n"
+                data += "    echo \"PATCHING_MAGISK_VERSION: $PATCHING_MAGISK_VERSION\"\n"
+                data += "fi\n"
 
             data += "SYSTEM_ROOT=false\n"
             data += "grep \' / \' /proc/mounts | grep -qv \'rootfs\' && SYSTEM_ROOT=true\n"
@@ -1729,12 +1766,13 @@ def patch_boot_img(self, custom_patch = False):
             data += "PATCH_FILENAME=magisk_patched_${MAGISK_VERSION}_${STOCK_SHA1}_${PATCH_SHA1}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
             data += "echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
+            data += "if [[ -n \"$PATCHING_MAGISK_VERSION\" ]]; then echo $PATCHING_MAGISK_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
 
-            if patch_method == "app":
+            if patch_method == "app" or patch_method == "other":
                 data += "cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
 
                 # if we're rooted, copy the stock boot.img to /data/adb/magisk/stock_boot.img so that magisk can backup
-                if is_rooted:
+                if perform_as_root:
                     data += "cp -f /data/local/tmp/pf/assets/stock_boot.img /data/adb/magisk/stock_boot.img\n"
                     # TODO see if we need to update the config SHA1
                 # cleanup /data/local/tmp directory of the stuff PF created.
@@ -1767,7 +1805,7 @@ def patch_boot_img(self, custom_patch = False):
             puml("#red:Failed to set the executable bit on patch script;\n")
             return -1
 
-        if patch_method == "app":
+        if patch_method == "app" or patch_method == "other":
             # Transfer busybox to the phone
             res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
             if res != 0:
@@ -1798,7 +1836,10 @@ def patch_boot_img(self, custom_patch = False):
             puml("#red:Failed to pull pf_patch.log from the phone;\n")
             return -1
         else:
-            magisk_patched_img = res.strip('\n')
+            lines = res.split("\n")
+            magisk_patched_img = lines[0] if len(lines) > 0 else ""
+            if patch_method == "other":
+                set_patched_with(lines[1]) if len(lines) > 1 else ""
 
         # delete pf_patch.log from phone
         res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
@@ -1901,7 +1942,7 @@ def patch_boot_img(self, custom_patch = False):
     # -------------------------------
     if get_patch_methods_settings():
         title = "Patching decision"
-        buttons_text = ["Use Rooted Magisk", "Use Magisk Application", "Use UIAutomator", "Manual", "Cancel"]
+        buttons_text = ["Use Rooted Magisk", "Use Magisk Application", "Use UIAutomator", "Manual", "Other Magisk", "Cancel"]
         buttons_text[method -1] += " (Recommended)"
         if get_recovery_patch_settings():
             checkboxes=["Recovery"]
@@ -1918,12 +1959,16 @@ This is a summary of available methods.<br/>
 2. If Magisk application is not hidden, PixelFlasher can unpack it and utilize it to create a patch without user interaction.<br/>
 
 3. PixelFlasher can programatically control (using UIAutomator) the user interface of the installed Magisk and click on buttons to create a patch.
-This method is not supported on all phones, and is prone to problems due to timing issues, screen being locked, or user interacting with the screen while PixelFlasher is creating a patch.
-This method is usually not recommended.<br/>
+   This method is not supported on all phones, and is prone to problems due to timing issues, screen being locked, or user interacting with the screen while PixelFlasher is creating a patch.
+   This method is usually not recommended.<br/>
 
 4. PixelFlasher can transfer the stock file to /sdcard/Download/ (can be customized), Launch Magisk, and prompt the user to select the file and create a patch.
    PixelFlasher will wait for the user to complete the task and then hit OK to continue.
    This method involves user interaction hence it is also not recommended, and it is only kept for power users.<br/>
+
+5. PixelFlasher can create a patch from a Magisk App (apk) that you select and provide without installing the app.
+   This is handy when you want to create a patch using Magisk that is different than what is currently installed.
+   One common usecase would be when you want to create a patch with an older version of Magisk.
 
 Depending on the state of your phone (root, Magisk versions, Magisk hidden ...)
 PixelFlasher will offer available choices and recommend the best method to utilize for patching.
@@ -1944,7 +1989,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         puml(f":User Pressed {buttons_text[result - 1]};\n")
 
         method = result
-        if method == 5:
+        if method == 6:
             puml("}\n")
             print("Aborting ...\n")
             return
@@ -1971,6 +2016,10 @@ Unless you know what you're doing, it is recommended that you take the default s
         patch_method = 'manual'
         set_patched_with(device.magisk_app_version)
         magisk_patched_img = manual_magisk(self, boot_file_name=boot_img)
+    elif method == 5:
+        patch_method = 'other'
+        set_patched_with("Other")
+        magisk_patched_img = patch_script("other")
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexepected patch method.")
         puml("#red:Unexpected patch method;\nnote right:Abort\n}\n", True)
@@ -2806,7 +2855,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     if self.config.flash_mode == 'dryRun' and sdk_major_version < 34:
                         data += "\necho This is a test for fastbootd mode ...\n"
                         data += "echo This process will wait for fastbootd indefinitly until it responds ...\n"
-                        data += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you'd have to kill it.. ...\n"
+                        data += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you would have to kill it.. ...\n"
                         data += "echo rebooting to fastbootd ...\n"
                         data += f"\"{get_fastboot()}\" -s {device.id} reboot fastboot\n"
                         data += "\necho It looks like fastbootd worked.\n"
@@ -2831,7 +2880,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
         # are we doing temporary root?
         if self.config.temporary_root and boot.is_patched:
-            data += "\necho Live booting to pf_boot (temporary root) ...\n"
+            data += "\necho Live booting to pf_boot for temporary root ...\n"
             data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
         else:
             if not boot.is_stock_boot:

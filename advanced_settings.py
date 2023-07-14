@@ -28,158 +28,154 @@ ADB, MAGISK, ANDROID, AND ROOT.
 IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 '''
         # warning label
-        self.warning_label = wx.StaticText(self, wx.ID_ANY, warning_text, wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL)
+        self.warning_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=warning_text, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.ALIGN_CENTER_HORIZONTAL)
         self.warning_label.Wrap(-1)
         self.warning_label.SetForegroundColour(wx.Colour(255, 0, 0))
-        warning_sizer.Add(self.warning_label, 1, wx.ALL, 10)
-        vSizer.Add(warning_sizer, 1, wx.EXPAND, 5)
+        warning_sizer.Add(self.warning_label, proportion=0, flag=wx.LEFT|wx.RIGHT|wx.EXPAND, border=80)
+        vSizer.Add(warning_sizer, proportion=0, flag=wx.EXPAND, border=5)
 
         # advanced options
         advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        advanced_options_sizer.Add((20, 0), 0, 0, 5)
-        self.advanced_options_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Enable Advanced Options", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.advanced_options_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Enable Advanced Options", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.advanced_options_checkbox.SetValue(get_advanced_options())
         self.advanced_options_checkbox.SetToolTip(u"Expert mode")
-        advanced_options_sizer.Add(self.advanced_options_checkbox, 0, wx.ALL, 5)
-        vSizer.Add(advanced_options_sizer, 0, wx.EXPAND, 5)
+        advanced_options_sizer.Add(self.advanced_options_checkbox, proportion=0, flag=wx.ALL, border=5)
+        vSizer.Add(advanced_options_sizer, proportion=0, flag=wx.EXPAND, border=5)
 
         # static line
-        staticline = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-        vSizer.Add(staticline, 0, wx.EXPAND, 5)
+        staticline = wx.StaticLine(parent=self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LI_HORIZONTAL)
+        vSizer.Add(staticline, proportion=0, flag=wx.EXPAND, border=5)
 
         # gap
-        vSizer.Add((0, 20), 0, 0, 5)
+        # vSizer.Add((0, 20), proportion=0, flag=0, border=5)
+
+        NUMROWS = 9
+        fgs1 = wx.FlexGridSizer(rows=NUMROWS, cols=2, vgap=10, hgap=10)
+        # this makes the second column expandable (index starts at 0)
+        fgs1.AddGrowableCol(1, 1)
 
         # Magisk Package name
-        package_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        package_name_sizer.Add((20, 0), 0, 0, 5)
-        package_name_label = wx.StaticText(self, label=u"Magisk Package Name:")
-        self.package_name = wx.TextCtrl(self, -1, size=(300, -1))
+        package_name_label = wx.StaticText(parent=self, label=u"Magisk Package Name:")
+        self.package_name = wx.TextCtrl(parent=self, id=-1, size=(-1, -1))
         self.package_name.SetToolTip(u"If you have hidden Magisk,\nset this to the hidden package name.")
         self.package_name.SetValue(str(get_magisk_package()))
-        self.reset_magisk_pkg = wx.BitmapButton(self, wx.ID_ANY, wx.NullBitmap, wx.DefaultPosition, wx.DefaultSize, wx.BU_AUTODRAW|0)
+        self.reset_magisk_pkg = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.reset_magisk_pkg.SetBitmap(images.Scan.GetBitmap())
         self.reset_magisk_pkg.SetToolTip(u"Resets package name to default: com.topjohnwu.magisk")
-        package_name_sizer.Add(package_name_label, 0, wx.ALL, 5)
-        package_name_sizer.Add(self.package_name, 0, wx.LEFT, 10)
-        package_name_sizer.Add(self.reset_magisk_pkg, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        vSizer.Add(package_name_sizer, 0, wx.EXPAND, 5)
+        package_name_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+        package_name_sizer.Add(self.package_name, proportion=1, flag=wx.ALL, border=0)
+        package_name_sizer.Add(self.reset_magisk_pkg, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
 
-        # Linux File Explorer
-        file_explorer_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        file_explorer_sizer.Add((20, 0), 0, 0, 5)
-        file_explorer_label = wx.StaticText(self, label=u"Linux File Explorer:")
-        file_explorer_label.SetSize(self.package_name.GetSize())
-        self.file_explorer = wx.TextCtrl(self, -1, size=(300, -1))
-        self.file_explorer.SetToolTip(u"Set full path to File Explorer.\nDefault: Nautilus")
-        self.file_explorer.SetValue(str(get_file_explorer()))
-        file_explorer_sizer.Add(file_explorer_label, 0, wx.ALL, 5)
-        file_explorer_sizer.Add(self.file_explorer, 0, wx.LEFT, 10)
-        vSizer.Add(file_explorer_sizer, 0, wx.EXPAND, 5)
+        # only add if we're on linux
+        if sys.platform.startswith("linux"):
+            # Linux File Explorer
+            file_explorer_label = wx.StaticText(self, label=u"Linux File Explorer:")
+            file_explorer_label.SetSize(self.package_name.GetSize())
+            self.file_explorer = wx.TextCtrl(self, -1, size=(300, -1))
+            self.file_explorer.SetToolTip(u"Set full path to File Explorer.\nDefault: Nautilus")
+            self.file_explorer.SetValue(str(get_file_explorer()))
+            file_explorer_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+            file_explorer_sizer.Add((20, 0), proportion=0, flag=wx.ALL, border=5)
+            file_explorer_sizer.Add(self.file_explorer, proportion=0, flag=wx.LEFT, border=10)
 
-        # Linux Shell
-        shell_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        shell_sizer.Add((20, 0), 0, 0, 5)
-        shell_label = wx.StaticText(self, label=u"Linux Shell:")
-        shell_label.SetSize(self.package_name.GetSize())
-        self.shell = wx.TextCtrl(self, -1, size=(300, -1))
-        self.shell.SetToolTip(u"Set full path to Linux Shell.\nDefault: gnome-terminal")
-        self.shell.SetValue(str(get_linux_shell()))
-        shell_sizer.Add(shell_label, 0, wx.ALL, 5)
-        shell_sizer.Add(self.shell, 0, wx.LEFT, 10)
-        vSizer.Add(shell_sizer, 0, wx.EXPAND, 5)
+            # Linux Shell
+            shell_label = wx.StaticText(parent=self, label=u"Linux Shell:")
+            shell_label.SetSize(self.package_name.GetSize())
+            self.shell = wx.TextCtrl(parent=self, id=wx.ID_ANY, size=(300, -1))
+            self.shell.SetToolTip(u"Set full path to Linux Shell.\nDefault: gnome-terminal")
+            self.shell.SetValue(str(get_linux_shell()))
+            shell_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+            shell_sizer.Add((20, 0), proportion=0, flag=wx.ALL, border=5)
+            shell_sizer.Add(self.shell, proportion=0, flag=wx.LEFT, border=10)
 
         # Offer Patch methods
-        patch_methods_cb_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        patch_methods_cb_sizer.Add((20, 0), 0, 0, 5)
-        self.patch_methods_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Offer Patch Methods", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.patch_methods_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Offer Patch Methods", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.patch_methods_checkbox.SetValue(get_patch_methods_settings())
         self.patch_methods_checkbox.SetToolTip(u"When patching the choice of method is presented.")
-        self.recovery_patch_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Patching Recovery Partition", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.recovery_patch_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Patching Recovery Partition", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.recovery_patch_checkbox.SetValue(get_recovery_patch_settings())
         self.recovery_patch_checkbox.SetToolTip(u"Enabling this will show an option to patch a recovery partition.\nThis should be kept disabled unless you have an old device.\n(most A-only devices launched with Android 9, legacy SAR)")
-        patch_methods_cb_sizer.Add(self.patch_methods_checkbox, 0, wx.ALL, 5)
-        patch_methods_cb_sizer.Add(self.recovery_patch_checkbox, 0, wx.ALL, 5)
-        vSizer.Add(patch_methods_cb_sizer, 0, wx.EXPAND, 5)
 
         # Use Busybox Shell
-        use_busybox_shell_cb_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        use_busybox_shell_cb_sizer.Add((20, 0), 0, 0, 5)
-        self.use_busybox_shell_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Use Busybox Shell", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.use_busybox_shell_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Use Busybox Shell", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.use_busybox_shell_checkbox.SetValue(get_use_busybox_shell_settings())
         self.use_busybox_shell_checkbox.SetToolTip(u"When creating a patch, if this is checked, busybox ash will be used as shell.")
-        use_busybox_shell_cb_sizer.Add(self.use_busybox_shell_checkbox, 0, wx.ALL, 5)
-        vSizer.Add(use_busybox_shell_cb_sizer, 0, wx.EXPAND, 5)
 
         # Check for updates options
-        check_for_update_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        check_for_update_sizer.Add((20, 0), 0, 0, 5)
-        self.check_for_update_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Check for updates", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_for_update_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_update_checkbox.SetValue(get_update_check())
         self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
-        check_for_update_sizer.Add(self.check_for_update_checkbox, 0, wx.ALL, 5)
-        vSizer.Add(check_for_update_sizer, 0, wx.EXPAND, 5)
 
         # Force codepage
-        code_page_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        code_page_sizer.Add((20, 0), 0, 0, 5)
-        self.force_codepage_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Force codepage to:", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.force_codepage_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force codepage to:", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.force_codepage_checkbox.SetValue(get_codepage_setting())
         self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
-        self.code_page = wx.TextCtrl(self, -1, size=(300, -1))
+        self.code_page = wx.TextCtrl(parent=self, id=wx.ID_ANY, size=(-1, -1))
         self.code_page.SetValue(str(get_codepage_value()))
-        code_page_sizer.Add(self.force_codepage_checkbox, 0, wx.ALL, 5)
-        code_page_sizer.Add(self.code_page, 0, wx.ALL, 5)
-        vSizer.Add(code_page_sizer, 0, wx.EXPAND, 5)
 
         # Use Custom Font
-        use_custom_font_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        use_custom_font_sizer.Add((20, 0), 0, 0, 5)
-        self.use_custom_font_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Use Custom Font", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.use_custom_font_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Use Custom Fontface", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.use_custom_font_checkbox.SetValue(get_customize_font())
         self.use_custom_font_checkbox.SetToolTip(u"Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window.")
-        use_custom_font_sizer.Add(self.use_custom_font_checkbox, 0, wx.ALL, 5)
-        vSizer.Add(use_custom_font_sizer, 0, wx.EXPAND, 5)
 
         # Font Selection
         fonts = wx.FontEnumerator()
-        fonts.EnumerateFacenames(wx.FONTENCODING_SYSTEM,fixedWidthOnly=True)
-        font_list = fonts.GetFacenames(wx.FONTENCODING_SYSTEM,fixedWidthOnly=True)
-        list_text = wx.StaticText(self, -1, "Fontface:")
-        self.font = wx.ListBox(self, -1, size=(300, 100), choices=font_list)
-        self.font_size = wx.SpinCtrl(self, wx.ID_ANY, min=6, max=50, initial=get_pf_font_size())
-        self.sample = wx.StaticText(self, -1, "Sample ")
+        fonts.EnumerateFacenames(wx.FONTENCODING_SYSTEM, fixedWidthOnly=True)
+        font_list = fonts.GetFacenames(wx.FONTENCODING_SYSTEM, fixedWidthOnly=True)
+        self.font = wx.ListBox(parent=self, id=wx.ID_ANY, size=(300, 100), choices=font_list)
+        self.font_size = wx.SpinCtrl(parent=self, id=wx.ID_ANY, min=6, max=50, initial=get_pf_font_size())
+        self.sample = wx.StaticText(parent=self, id=wx.ID_ANY, label="Sample ")
         fonts_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        fonts_sizer.Add((20, 0), 0, 0, 5)
-        fonts_sizer.Add(list_text, 0, wx.ALL, 5)
-        fonts_sizer.Add(self.font, 0, wx.ALL, 5)
-        fonts_sizer.Add(self.font_size, 0, wx.ALL, 5)
-        fonts_sizer.Add(self.sample, 0, wx.ALL, 5)
+        fonts_sizer.Add(self.font, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
+        fonts_sizer.Add(self.font_size, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        fonts_sizer.Add(self.sample, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         self.font.SetSelection(-1)
         self.font.SetStringSelection(get_pf_font_face())
         self.font_size.SetToolTip('Select font size')
         self._onFontSelect(None)
-        vSizer.Add(fonts_sizer, 0, wx.EXPAND, 5)
+
+        # add the widgets to the grid in two columns, first fix size, the second expandable.
+        fgs1.Add(package_name_label, 0, wx.EXPAND)
+        fgs1.Add(package_name_sizer, 1, wx.EXPAND)
+
+        # only add if we're on linux
+        if sys.platform.startswith("linux"):
+            fgs1.Add(file_explorer_label, 0, wx.EXPAND)
+            fgs1.Add(file_explorer_sizer, 1, wx.EXPAND)
+
+            fgs1.Add(shell_label, 0, wx.EXPAND)
+            fgs1.Add(shell_sizer, 1, wx.EXPAND)
+
+        fgs1.Add(self.patch_methods_checkbox, 0, wx.EXPAND)
+        fgs1.Add(self.recovery_patch_checkbox, 0, wx.EXPAND)
+
+        fgs1.Add(self.use_busybox_shell_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.check_for_update_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
+        fgs1.Add(self.code_page, 1, wx.EXPAND)
+
+        fgs1.Add(self.use_custom_font_checkbox, 0, wx.EXPAND)
+        fgs1.Add(fonts_sizer, 1, wx.EXPAND)
+
+        # add flexgrid to vSizer
+        vSizer.Add(fgs1, proportion=0, flag=wx.ALL | wx.EXPAND, border=20)
 
         # gap
-        vSizer.Add((0, 20), 0, 0, 5)
+        vSizer.Add((0, 20), proportion=0, flag=0, border=5)
 
         # buttons
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
-        self.ok_button = wx.Button(self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0)
-        buttons_sizer.Add(self.ok_button, 0, wx.ALL, 20)
-        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
-        buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 20)
-        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
-        vSizer.Add(buttons_sizer, 0, wx.EXPAND, 5)
-
-        # Hide couple of settings if we're not on linux
-        if not sys.platform.startswith("linux"):
-            file_explorer_label.Hide()
-            self.file_explorer.Hide()
-            shell_label.Hide()
-            self.shell.Hide()
+        buttons_sizer.Add((0, 0), proportion=1, flag=wx.EXPAND, border=5)
+        self.ok_button = wx.Button(parent=self, id=wx.ID_ANY, label=u"OK", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        buttons_sizer.Add(self.ok_button, proportion=0, flag=wx.ALL, border=20)
+        self.cancel_button = wx.Button(parent=self, id=wx.ID_ANY, label=u"Cancel", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        buttons_sizer.Add(self.cancel_button, proportion=0, flag=wx.ALL, border=20)
+        buttons_sizer.Add((0, 0), proportion=1, flag=wx.EXPAND, border=5)
+        vSizer.Add(buttons_sizer, proportion=0, flag=wx.EXPAND, border=5)
 
         self.SetSizer(vSizer)
         self.Layout()
@@ -190,9 +186,34 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.font.Bind(wx.EVT_LISTBOX, self._onFontSelect)
         self.font_size.Bind(wx.EVT_SPINCTRL, self._onFontSelect)
         self.reset_magisk_pkg.Bind(wx.EVT_BUTTON, self._onResetMagiskPkg)
+        self.patch_methods_checkbox.Bind(wx.EVT_CHECKBOX, self._on_offer_patch_methods)
+        self.use_custom_font_checkbox.Bind(wx.EVT_CHECKBOX, self._on_use_custom_fontface)
+
+        # Enable / Disable Widgets
+        self.enable_disable_widgets()
 
         # Autosize the dialog
         self.SetSizerAndFit(vSizer)
+
+    def enable_disable_widgets(self):
+        if self.patch_methods_checkbox.GetValue():
+            self.recovery_patch_checkbox.Enable()
+        else:
+            self.recovery_patch_checkbox.Disable()
+        if self.use_custom_font_checkbox.GetValue():
+            self.font.Enable()
+            self.font_size.Enable()
+            self.sample.Enable()
+        else:
+            self.font.Disable()
+            self.font_size.Disable()
+            self.sample.Disable()
+
+    def _on_offer_patch_methods(self, event):
+        self.enable_disable_widgets()
+
+    def _on_use_custom_fontface(self, event):
+        self.enable_disable_widgets()
 
     def _onFontSelect(self, evt):
         facename = self.font.GetStringSelection()

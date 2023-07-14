@@ -901,12 +901,12 @@ class Device():
             if with_su:
                 if self.rooted:
                     print(f"Deleting {file_path} from the device as root ...")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -{flag}f {file_path}\'\""
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -{flag}f \"{file_path}\"\'\""
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not rooted.")
             else:
                 print(f"Deleting {file_path} from the device ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell rm -{flag}f {file_path}"
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell rm -{flag}f \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")
@@ -993,7 +993,7 @@ class Device():
             return -1
         try:
             print(f"Copying {source} to {dest} ...")
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp {source} {dest}\'\""
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\"\'\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")
@@ -1028,12 +1028,12 @@ class Device():
             if with_su:
                 if self.rooted:
                     print(f"Checking for {file_path} on the device as root ...")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls {file_path}\'\""
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls \"{file_path}\"\'\""
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not rooted.")
             else:
                 print(f"Checking for {file_path} on the device ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell ls {file_path}"
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell ls \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print(f"File: {file_path} is found on the device.")
@@ -1067,12 +1067,12 @@ class Device():
             if with_su:
                 if self.rooted:
                     print(f"Creating directory {dir_path} on the device as root ...")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'mkdir -p {dir_path}\'\""
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'mkdir -p \"{dir_path}\"\'\""
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory {dir_path}. Device is not rooted.")
             else:
                 print(f"Creating directory {dir_path} on the device ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell mkdir -p {dir_path}"
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell mkdir -p \"{dir_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")
@@ -1106,12 +1106,12 @@ class Device():
             if with_su:
                 if self.rooted:
                     print(f"Getting file content of {file_path} on the device as root ...")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat {file_path}\'\""
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat \"{file_path}\"\'\""
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not rooted.")
             else:
                 print(f"Getting file content of {file_path} on the device ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell cat {file_path}"
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell cat \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")
@@ -1147,7 +1147,7 @@ class Device():
                 if self.rooted:
                     print(f"Pushing local file as root: {local_file} to the device: {file_path} ...")
                     filename = os.path.basename(urlparse(local_file).path)
-                    remote_file = f"/data/local/tmp/{filename}"
+                    remote_file = f"\"/data/local/tmp/{filename}\""
                     res = self.push_file(local_file, remote_file, with_su=False)
                     if res != 0:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {local_file}")
@@ -1162,7 +1162,7 @@ class Device():
                     return -1
             else:
                 print(f"Pushing local file: {local_file} to the device: {file_path} ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} push \"{local_file}\" {file_path}"
+                theCmd = f"\"{get_adb()}\" -s {self.id} push \"{local_file}\" \"{file_path}\""
                 res = run_shell(theCmd)
                 if res.returncode == 0:
                     print("Return Code: 0")
@@ -1212,7 +1212,7 @@ class Device():
                     return -1
 
             print(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
-            theCmd = f"\"{get_adb()}\" -s {self.id} pull \"{remote_file}\" {local_file}"
+            theCmd = f"\"{get_adb()}\" -s {self.id} pull \"{remote_file}\" \"{local_file}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")
@@ -1250,12 +1250,12 @@ class Device():
             if with_su:
                 if self.rooted:
                     print(f"Setting permissions {permissions} on {file_path} as root ...")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'chmod {permissions} {file_path}\'\""
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'chmod {permissions} \"{file_path}\"\'\""
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not rooted.")
             else:
                 print(f"Setting permissions {permissions} on {file_path} on the device ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell chmod {permissions} {file_path}"
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell chmod {permissions} \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")

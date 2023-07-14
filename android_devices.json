@@ -1,4 +1,9 @@
 {
+    "felix": {
+        "device": "Pixel Fold",
+        "android_version_end_date": "June 2026",
+        "security_update_end_date": "June 2027"
+    },
     "tangorpro": {
         "device": "Pixel Tablet",
         "android_version_end_date": "June 2026",

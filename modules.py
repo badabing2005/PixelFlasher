@@ -267,6 +267,25 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
                 self.list.SetItemColumnImage(i, 0, -1)
             i += 1
 
+    auto_resize_boot_list(self)
+
+    # disable buttons
+    self.config.boot_id = None
+    self.config.selected_boot_md5 = None
+    if self.list.ItemCount == 0 :
+        if self.config.firmware_path:
+            print("\nPlease Process the firmware!")
+    else:
+        print("\nPlease select a boot image!")
+    self.update_widget_states()
+    # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
+    self.process_firmware.SetFocus()
+
+
+# ============================================================================
+#                               Function auto_resize_boot_list
+# ============================================================================
+def auto_resize_boot_list(self):
     # auto size columns to largest text, including the header (except the last column)
     cw = 0
     column_widths = copy.deepcopy(self.boot_column_widths)
@@ -283,18 +302,6 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
     # Set the last column width to the available room
     available_width = self.list.BestVirtualSize.Width - cw - 10
     self.list.SetColumnWidth(self.list.ColumnCount - 1, available_width)
-
-    # disable buttons
-    self.config.boot_id = None
-    self.config.selected_boot_md5 = None
-    if self.list.ItemCount == 0 :
-        if self.config.firmware_path:
-            print("\nPlease Process the firmware!")
-    else:
-        print("\nPlease select a boot image!")
-    self.update_widget_states()
-    # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
-    self.process_firmware.SetFocus()
 
 
 # ============================================================================

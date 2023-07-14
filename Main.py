@@ -35,7 +35,7 @@ from message_box_ex import MessageBoxEx
 from modules import (adb_kill_server, check_platform_tools, flash_phone,
                      live_flash_boot_phone, patch_boot_img, populate_boot_list,
                      process_file, select_firmware, set_flash_button_state,
-                     wifi_adb_connect)
+                     wifi_adb_connect, auto_resize_boot_list)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
 from phone import get_connected_devices
@@ -99,6 +99,8 @@ class PixelFlasher(wx.Frame):
         if self.config.pos_x and self.config.pos_y:
             self.SetPosition((self.config.pos_x,self.config.pos_y))
 
+        self.resizing = False
+        self.total_button_width = self._get_reboot_button_total__width()
         if not dont_initialize:
             self.initialize()
         self.Show(True)
@@ -320,7 +322,6 @@ class PixelFlasher(wx.Frame):
         self.spinner.Hide()
         self.spinner_label.Hide()
 
-
     # -----------------------------------------------
     #           enable_disable_radio_buttons
     # -----------------------------------------------
@@ -334,7 +335,6 @@ class PixelFlasher(wx.Frame):
                         radio_button.Enable(state)
                     if state and selected:
                         radio_button.SetValue(True)
-
 
     # -----------------------------------------------
     #                  set_ui_fonts
@@ -510,6 +510,16 @@ class PixelFlasher(wx.Frame):
         self.SetMenuBar(self.menuBar)
 
     # -----------------------------------------------
+    #                  _on_move_end
+    # -----------------------------------------------
+    def _on_move_end(self, event):
+        if self.resizing:
+            # Perform the action only if resizing is complete
+            self.resizing = False
+            auto_resize_boot_list(self)
+        event.Skip()
+
+    # -----------------------------------------------
     #                  _on_close
     # -----------------------------------------------
     def _on_close(self, event):
@@ -519,20 +529,72 @@ class PixelFlasher(wx.Frame):
         wx.Exit()
 
     # -----------------------------------------------
+    #        _get_reboot_button_total__width
+    # -----------------------------------------------
+    def _get_reboot_button_total__width(self):
+        return (
+            self.set_active_slot_button.GetBestSize().GetWidth() +
+            self.reboot_bootloader_button.GetBestSize().GetWidth() +
+            self.reboot_system_button.GetBestSize().GetWidth() +
+            self.reboot_safemode_button.GetBestSize().GetWidth() +
+            self.reboot_download_button.GetBestSize().GetWidth() +
+            self.reboot_recovery_button.GetBestSize().GetWidth() +
+            self.shell_button.GetBestSize().GetWidth() +
+            self.info_button.GetBestSize().GetWidth() +
+            self.magisk_button.GetBestSize().GetWidth() +
+            self.install_magisk_button.GetBestSize().GetWidth() +
+            self.backup_manager_button.GetBestSize().GetWidth() +
+            self.partition_manager_button.GetBestSize().GetWidth() +
+            self.sos_button.GetBestSize().GetWidth() +
+            self.lock_bootloader.GetBestSize().GetWidth() +
+            self.unlock_bootloader.GetBestSize().GetWidth() + 75
+        )
+
+    # -----------------------------------------------
     #                  _on_resize
     # -----------------------------------------------
     def _on_resize(self, event):
+        self.resizing = True
         self.config.width = self.Rect.Width
         self.config.height = self.Rect.Height
-        # auto size list columns to largest text, make the last column expand to the available room
+
+        # Get the sizer width
+        sizer_size = self.reboot_sizer.GetSize().GetWidth()
+
+        # If it is smaller than the total button widgets, change formatting to make them fit a bit better
+        if sizer_size < self.total_button_width:
+            self.set_active_slot_button.SetLabel("Set Active\nSlot")
+            self.reboot_bootloader_button.SetLabel("Reboot to\nBootloader")
+            self.reboot_system_button.SetLabel("Reboot to\nSystem")
+            self.reboot_safemode_button.SetLabel(" Reboot to\nSafe Mode")
+            self.reboot_download_button.SetLabel(" Reboot to\nDownloader")
+            self.reboot_recovery_button.SetLabel(" Reboot to\nRecovery")
+            self.flash_to_inactive_slot_checkBox.SetLabel("Flash to\ninactive slot")
+            self.flash_both_slots_checkBox.SetLabel("Flash to\nboth slots")
+            self.disable_verity_checkBox.SetLabel("Disable\nVerity")
+            self.disable_verification_checkBox.SetLabel("Disable\nVerification")
+            self.fastboot_force_checkBox.SetLabel("Force")
+            self.fastboot_verbose_checkBox.SetLabel("Verbose")
+            self.temporary_root_checkBox.SetLabel("Temporary\nRoot")
+            self.no_reboot_checkBox.SetLabel("No\nreboot")
+        else:
+            self.set_active_slot_button.SetLabel("Set Active Slot")
+            self.reboot_bootloader_button.SetLabel("Reboot to Bootloader")
+            self.reboot_system_button.SetLabel("Reboot to System")
+            self.reboot_safemode_button.SetLabel(" Reboot to Safe Mode")
+            self.reboot_download_button.SetLabel(" Reboot to Downloader")
+            self.reboot_recovery_button.SetLabel(" Reboot to Recovery")
+            self.flash_to_inactive_slot_checkBox.SetLabel("Flash to inactive slot")
+            self.flash_both_slots_checkBox.SetLabel("Flash to both slots")
+            self.disable_verity_checkBox.SetLabel("Disable Verity")
+            self.disable_verification_checkBox.SetLabel("Disable Verification")
+            self.fastboot_force_checkBox.SetLabel("Force")
+            self.fastboot_verbose_checkBox.SetLabel("Verbose")
+            self.temporary_root_checkBox.SetLabel("Temporary Root")
+            self.no_reboot_checkBox.SetLabel("No reboot")
+
+        self.Layout()
         event.Skip(True)
-        # TODO See if we can resize boot.img columns on frame resize
-        # populate_boot_list(self)
-        # cw = 0
-        # for i in range (0, self.list.ColumnCount - 1):
-        #     self.list.SetColumnWidth(i, -2)
-        #     cw += self.list.GetColumnWidth(i)
-        # self.list.SetColumnWidth(self.list.ColumnCount - 1, self.list.BestVirtualSize.Width - cw)
 
     # -----------------------------------------------
     #                  _on_report_an_issue
@@ -2518,22 +2580,22 @@ class PixelFlasher(wx.Frame):
         self.unlock_bootloader = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.unlock_bootloader.SetBitmap(images.Unlock.GetBitmap())
         self.unlock_bootloader.SetToolTip(u"Unlock Bootloader\nCaution Will Wipe Data")
-        reboot_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        reboot_sizer.Add(window=self.set_active_slot_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=10)
-        reboot_sizer.Add(window=self.reboot_recovery_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=10)
-        reboot_sizer.Add(window=self.reboot_download_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=10)
-        reboot_sizer.Add(window=self.reboot_safemode_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=10)
-        reboot_sizer.Add(window=self.reboot_system_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.reboot_bootloader_button, proportion=1, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.shell_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=10)
-        reboot_sizer.Add(window=self.info_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.install_magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.backup_manager_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.partition_manager_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.lock_bootloader, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        reboot_sizer.Add(window=self.unlock_bootloader, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=0)
+        self.reboot_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+        self.reboot_sizer.Add(window=self.set_active_slot_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.reboot_recovery_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.reboot_download_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.reboot_safemode_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.reboot_system_button, proportion=1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.reboot_bootloader_button, proportion=1, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=0)
+        self.reboot_sizer.Add(window=self.shell_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.info_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.install_magisk_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.backup_manager_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.partition_manager_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.sos_button, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.lock_bootloader, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.reboot_sizer.Add(window=self.unlock_bootloader, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=0)
 
         # 4th row, empty row, static line
         self.staticline1 = wx.StaticLine(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LI_HORIZONTAL)
@@ -2703,8 +2765,11 @@ class PixelFlasher(wx.Frame):
         self.flash_to_inactive_slot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to inactive slot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.flash_to_inactive_slot_checkBox.SetToolTip(u"This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact.")
         self.flash_both_slots_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to both slots", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_both_slots_checkBox.SetToolTip(u"This option when checked will flash to both slots.")
         self.disable_verity_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verity_checkBox.SetToolTip(u"Disables Verity")
         self.disable_verification_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verification", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verification_checkBox.SetToolTip(u"Disables Verification")
         self.fastboot_force_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Force", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.fastboot_force_checkBox.SetToolTip(u"Force a flash operation that may be unsafe (will wipe your data)")
         self.fastboot_verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Verbose", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -2714,22 +2779,14 @@ class PixelFlasher(wx.Frame):
         self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"No reboot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
         self.advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
-        self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
-        self.advanced_options_sizer.Add(window=self.disable_verity_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
-        self.advanced_options_sizer.Add(window=self.disable_verification_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
-        self.advanced_options_sizer.Add(window=self.fastboot_force_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
-        self.advanced_options_sizer.Add(window=self.fastboot_verbose_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
-        self.advanced_options_sizer.Add(window=self.temporary_root_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
-        self.advanced_options_sizer.Add(window=self.no_reboot_checkBox)
-        self.advanced_options_sizer.AddSpacer(10)
+        self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
+        self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.disable_verity_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.disable_verification_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.fastboot_force_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.fastboot_verbose_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.temporary_root_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.no_reboot_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         # 11th row widgets, Flash button
         self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Pixel Phone", pos=wx.DefaultPosition, size=wx.Size(-1, 50))
@@ -2774,7 +2831,7 @@ class PixelFlasher(wx.Frame):
         fgs1.AddMany([
                     (platform_tools_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (self.sdk_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (adb_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
-                    (active_slot_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (reboot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (active_slot_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (self.reboot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
                     self.staticline1, (self.staticline2, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20),
                     (firmware_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (self.firmware_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
@@ -2840,8 +2897,6 @@ class PixelFlasher(wx.Frame):
         self.lock_bootloader.Bind(wx.EVT_BUTTON, _on_lock_bootloader)
         self.unlock_bootloader.Bind(wx.EVT_BUTTON, _on_unlock_bootloader)
         self.set_active_slot_button.Bind(wx.EVT_BUTTON, _on_set_active_slot)
-        self.Bind(wx.EVT_CLOSE, self._on_close)
-        self.Bind(wx.EVT_SIZE, self._on_resize)
         self.image_file_picker.Bind(wx.EVT_FILEPICKER_CHANGED, _on_image_select)
         self.image_choice.Bind(wx.EVT_CHOICE, _on_image_choice)
         self.list.Bind(wx.EVT_LEFT_DOWN, _on_boot_selected)
@@ -2858,6 +2913,9 @@ class PixelFlasher(wx.Frame):
         self.paste_boot.Bind(wx.EVT_BUTTON, _on_paste_boot)
         self.support_button.Bind(wx.EVT_BUTTON, self._on_support_zip)
         self.list.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+        self.Bind(wx.EVT_SIZE, self._on_resize)
+        self.Bind(wx.EVT_MOVE_END, self._on_move_end)
 
         # Update UI
         self.Layout()

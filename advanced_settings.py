@@ -256,13 +256,15 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
                 print(f"Setting Magisk Package Name to: {self.package_name.GetValue()}")
             set_magisk_package(self.package_name.GetValue())
 
-        if self.file_explorer.GetValue() != get_file_explorer():
-            print(f"Setting Linux File Explorer to: {self.file_explorer.GetValue()}")
-        set_file_explorer(self.file_explorer.GetValue())
+        with contextlib.suppress(Exception):
+            if self.file_explorer.GetValue() != get_file_explorer():
+                print(f"Setting Linux File Explorer to: {self.file_explorer.GetValue()}")
+            set_file_explorer(self.file_explorer.GetValue())
 
-        if self.shell.GetValue() != get_linux_shell():
-            print(f"Setting Linux Shell to: {self.shell.GetValue()}")
-        set_linux_shell(self.shell.GetValue())
+        with contextlib.suppress(Exception):
+            if self.shell.GetValue() != get_linux_shell():
+                print(f"Setting Linux Shell to: {self.shell.GetValue()}")
+            set_linux_shell(self.shell.GetValue())
 
         if self.force_codepage_checkbox.GetValue():
             if self.code_page.GetValue() and self.code_page.GetValue().isnumeric():

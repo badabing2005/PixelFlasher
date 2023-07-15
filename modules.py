@@ -2056,7 +2056,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     # Transfer back magisk_patched.img
     print(f"Pulling {magisk_patched} from the phone to: {magisk_patched_img} ...")
     magisk_patched_img_file = os.path.join(tmp_dir_full, magisk_patched_img)
-    res = device.pull_file(magisk_patched, f"\"{magisk_patched_img_file}\"")
+    res = device.pull_file(magisk_patched, magisk_patched_img_file)
     if res != 0:
         print("Aborting ...\n")
         puml("#red:Failed to pull magisk_patched from the phone;\n}\n")

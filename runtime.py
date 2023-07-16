@@ -1444,6 +1444,16 @@ def which(program):
 
 
 # ============================================================================
+#                               Function remove_quotes
+# ============================================================================
+def remove_quotes(string):
+    if string.startswith('"') and string.endswith('"'):
+        # Remove existing double quotes
+        string = string[1:-1]
+    return string
+
+
+# ============================================================================
 #                               Function create_support_zip
 # ============================================================================
 def create_support_zip():

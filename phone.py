@@ -898,6 +898,7 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not in ADB mode.")
             return -1
         try:
+            file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
                     print(f"Deleting {file_path} from the device as root ...")
@@ -992,6 +993,8 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy. Device is not in ADB mode or is not rooted.")
             return -1
         try:
+            source = remove_quotes(source)
+            dest = remove_quotes(dest)
             print(f"Copying {source} to {dest} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\"\'\""
             res = run_shell(theCmd)
@@ -1025,6 +1028,7 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not in ADB mode.")
             return -1, None
         try:
+            file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
                     print(f"Checking for {file_path} on the device as root ...")
@@ -1064,6 +1068,7 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {dir_path}. Device is not in ADB mode.")
             return -1
         try:
+            dir_path = remove_quotes(dir_path)
             if with_su:
                 if self.rooted:
                     print(f"Creating directory {dir_path} on the device as root ...")
@@ -1103,6 +1108,7 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not in ADB mode.")
             return -1
         try:
+            file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
                     print(f"Getting file content of {file_path} on the device as root ...")
@@ -1143,6 +1149,8 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}. Device is not in ADB mode.")
             return -1
         try:
+            local_file = remove_quotes(local_file)
+            file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
                     print(f"Pushing local file as root: {local_file} to the device: {file_path} ...")
@@ -1197,6 +1205,8 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not in ADB mode.")
             return -1
         try:
+            remote_file = remove_quotes(remote_file)
+            local_file = remove_quotes(local_file)
             if with_su:
                 if self.rooted:
                     filename = os.path.basename(urlparse(remote_file).path)
@@ -1247,6 +1257,7 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not in ADB mode.")
             return -1
         try:
+            file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
                     print(f"Setting permissions {permissions} on {file_path} as root ...")
@@ -1753,6 +1764,10 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 if res.returncode == 0:
                     self._rooted = True
                 else:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell busybox --version"
+                    res = run_shell(theCmd)
+                    if res.returncode == 0:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device appears to be rooted, however adb root access is not granted.\Please grant root access to adb and scan again.")
                     self._rooted = False
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")

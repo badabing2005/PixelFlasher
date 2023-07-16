@@ -2,12 +2,12 @@
 
 import webbrowser
 
+import darkdetect
 import markdown
 import wx
 import wx.html
 
 from runtime import *
-
 
 class MessageBoxEx(wx.Dialog):
     def __init__(self, *args, title=None, message=None, button_texts=None, default_button=None, disable_buttons=None, is_md=False, size=(800, 600), checkbox_labels=None, **kwargs):
@@ -26,7 +26,23 @@ class MessageBoxEx(wx.Dialog):
         if is_md:
             self.html = wx.html.HtmlWindow(self, wx.ID_ANY, size=size)
             md_html = markdown.markdown(message)
-            self.html.SetPage(md_html)
+
+            # Adjust colors for dark mode on Mac and Linux
+            if darkdetect.isDark() and sys.platform != "win32":
+                dark_html = f"""
+                <!DOCTYPE html>
+                <html>
+                <body style="background-color:#656565; color:#ffffff;">
+                    {md_html}
+                </body>
+                </html>
+                """
+                self.html.SetPage(dark_html)
+                if "gtk2" in wx.PlatformInfo or "gtk3" in wx.PlatformInfo or sys.platform == "darwin":
+                    self.html.SetStandardFonts()
+            else:
+                self.html.SetPage(md_html)
+
             self.html.Bind(wx.html.EVT_HTML_LINK_CLICKED, self._onLinkClicked)
             message_sizer.Add(self.html, 1, wx.ALL | wx.EXPAND, 20)
         else:

@@ -577,6 +577,8 @@ class PixelFlasher(wx.Frame):
             self.fastboot_verbose_checkBox.SetLabel("Verbose")
             self.temporary_root_checkBox.SetLabel("Temporary\nRoot")
             self.no_reboot_checkBox.SetLabel("No\nreboot")
+            self.staticline1.Hide()
+            self.staticline2.Hide()
         else:
             self.set_active_slot_button.SetLabel("Set Active Slot")
             self.reboot_bootloader_button.SetLabel("Reboot to Bootloader")
@@ -592,6 +594,8 @@ class PixelFlasher(wx.Frame):
             self.fastboot_verbose_checkBox.SetLabel("Verbose")
             self.temporary_root_checkBox.SetLabel("Temporary Root")
             self.no_reboot_checkBox.SetLabel("No reboot")
+            self.staticline1.Show()
+            self.staticline2.Show()
 
         self.Layout()
         event.Skip(True)
@@ -2833,7 +2837,7 @@ class PixelFlasher(wx.Frame):
                     (adb_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (active_slot_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (self.reboot_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
-                    self.staticline1, (self.staticline2, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 20),
+                    self.staticline1, (self.staticline2, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 5),
                     (firmware_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (self.firmware_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (self.custom_rom_checkbox, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (custom_rom_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (boot_label_v_sizer, 0, wx.EXPAND), (list_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
@@ -2853,7 +2857,7 @@ class PixelFlasher(wx.Frame):
         fgs1.AddGrowableRow(NUMROWS - 2, 1)
 
         # add flexgrid to vbox
-        vbox.Add(fgs1, proportion=1, flag=wx.ALL | wx.EXPAND, border=15)
+        vbox.Add(fgs1, proportion=1, flag=wx.ALL | wx.EXPAND, border=10)
 
         # set the panel
         panel.SetSizer(vbox)

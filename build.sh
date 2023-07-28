@@ -6,6 +6,20 @@ DIST_NAME="PixelFlasher"
 
 pushd "$(dirname "$0")"
 
+# Check if venv exists and enter it. Create it first if not.
+if [ -d "./venv/" ] 
+then
+    echo "Activating virtual environment"
+    . venv/bin/activate 
+else
+    echo "Virtual environment not found. Creating venv and entering."
+    python3 -m venv venv
+    . venv/bin/activate 
+fi
+
+# Install/update requirements
+pip3 install -r requirements.txt
+
 if [[ $OSTYPE == 'darwin'* ]]; then
     echo "Building for MacOS"
     specfile=build-on-mac.spec

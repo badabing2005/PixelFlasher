@@ -49,7 +49,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.searchCtrl.ShowCancelButton(True)
 
         self.il = wx.ImageList(16, 16)
-        self.idx1 = self.il.Add(images.Official_Small.GetBitmap())
+        self.idx1 = self.il.Add(images.official_16.GetBitmap())
         self.sm_up = self.il.Add(images.SmallUpArrow.GetBitmap())
         self.sm_dn = self.il.Add(images.SmallDnArrow.GetBitmap())
 

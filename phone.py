@@ -21,6 +21,7 @@ class Package():
         self.installed = False
         self.enabled = False
         self.user0 = False
+        self.magisk_denylist = False
         self.details = ''
         self.path = ''
         self.path2 = ''
@@ -84,6 +85,7 @@ class Device():
         self._vendor_boot_verifiedbootstate = None
         self._ro_product_first_api_level = None
         self._ro_boot_verifiedbootstate = None
+        self._ro_boot_veritymode = None
         self._vendor_boot_vbmeta_device_state = None
         self._ro_boot_warranty_bit = None
         self._ro_warranty_bit = None
@@ -97,7 +99,7 @@ class Device():
         self._magisk_app_version = None
         self._magisk_version_code = None
         self._magisk_app_version_code = None
-        self._magisk_detailed_modules = None
+        self._get_magisk_detailed_modules = None
         self._magisk_modules_summary = None
         self._magisk_apks = None
         self._magisk_config_path = None
@@ -210,6 +212,7 @@ class Device():
                 s_vendor_boot_verifiedbootstate = 'vendor.boot.verifiedbootstate'
                 s_ro_product_first_api_level = 'ro.product.first_api_level'
                 s_ro_boot_verifiedbootstate = 'ro.boot.verifiedbootstate'
+                s_ro_boot_veritymode = 'ro.boot.veritymode'
                 s_vendor_boot_vbmeta_device_state = 'vendor.boot.vbmeta.device_state'
                 s_ro_boot_warranty_bit = 'ro.boot.warranty_bit'
                 s_ro_warranty_bit = 'ro.warranty_bit'
@@ -247,6 +250,8 @@ class Device():
                         self._ro_product_first_api_level = self.extract_prop(s_ro_product_first_api_level, line.strip())
                     elif s_ro_boot_verifiedbootstate in line and not self._ro_boot_verifiedbootstate:
                         self._ro_boot_verifiedbootstate = self.extract_prop(s_ro_boot_verifiedbootstate, line.strip())
+                    elif s_ro_boot_veritymode in line and not self._ro_boot_veritymode:
+                        self._ro_boot_veritymode = self.extract_prop(s_ro_boot_veritymode, line.strip())
                     elif s_vendor_boot_vbmeta_device_state in line and not self._vendor_boot_vbmeta_device_state:
                         self._vendor_boot_vbmeta_device_state = self.extract_prop(s_vendor_boot_vbmeta_device_state, line.strip())
                     elif s_ro_boot_warranty_bit in line and not self._ro_boot_warranty_bit:
@@ -454,6 +459,16 @@ class Device():
             return self._ro_boot_verifiedbootstate
 
     # ----------------------------------------------------------------------------
+    #                               property ro_boot_veritymode
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_boot_veritymode(self):
+        if self._ro_boot_veritymode is None:
+            return ''
+        else:
+            return self._ro_boot_veritymode
+
+    # ----------------------------------------------------------------------------
     #                               property vendor_boot_vbmeta_device_state
     # ----------------------------------------------------------------------------
     @property
@@ -645,6 +660,35 @@ class Device():
         return list
 
     # ----------------------------------------------------------------------------
+    #                               method get_verity_verification
+    # ----------------------------------------------------------------------------
+    def get_verity_verification(self, item):
+        if self.mode != 'adb':
+            return -1
+        if not self.rooted:
+            return -1
+
+        res = self.push_avbctl()
+        if res != 0:
+            return -1
+
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/avbctl get-{item}\'\""
+            print(f"Checking {item} status: ...")
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                return res.stdout
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}")
+            print(f"Stderr: {res.stderr}")
+            return -1
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get {item} status.")
+            puml(f"#red:ERROR: Could not get {item} status.;\n", True)
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               method get_magisk_backups
     # ----------------------------------------------------------------------------
     def get_magisk_backups(self):
@@ -747,8 +791,8 @@ class Device():
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
                     print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
                     print("Aborting run_migration ...\n")
                     return -2
 
@@ -806,8 +850,8 @@ class Device():
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                     print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
                     print("Aborting Backup...\n")
                 else:
                     print(res.stdout)
@@ -915,8 +959,8 @@ class Device():
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
                 print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             print(e)
@@ -967,8 +1011,8 @@ class Device():
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition.")
                 print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 return -1, ''
         except Exception as e:
             print(e)
@@ -1178,8 +1222,8 @@ class Device():
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
                     print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
                     return -1
         except Exception as e:
             print(e)
@@ -1230,8 +1274,8 @@ class Device():
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
                 print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             print(e)
@@ -1303,6 +1347,37 @@ class Device():
         if res != 0:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
             return -1
+        return 0
+
+    # ----------------------------------------------------------------------------
+    #                               Method push_avbctl
+    # ----------------------------------------------------------------------------
+    def push_avbctl(self, file_path = "/data/local/tmp/avbctl") -> int:
+        """Method pushes avbctl binary to the device.
+
+        Args:
+            file_path:      Full file path on the device (Default: /data/local/tmp/avbctl)
+
+        Returns:
+            0               On Success.
+            -1              if an exception is raised.
+        """
+        # Transfer extraction script to the phone
+        if self.architecture in ['armeabi-v7a', 'arm64-v8a']:
+            path_to_avbctl = os.path.join(get_bundle_dir(),'bin', 'avbctl')
+            res = self.push_file(f"{path_to_avbctl}", f"{file_path}")
+            if res != 0:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                return -1
+            # set the permissions.
+            res = self.set_file_permissions(f"{file_path}", "755")
+            if res != 0:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+                return -1
+            return 0
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: avbctl is not available for device architecture: {self.architecture}")
+            return -1
 
     # ----------------------------------------------------------------------------
     #                               Method get_package_path
@@ -1337,8 +1412,8 @@ class Device():
                         return pkg_path
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
                 print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             print(e)
@@ -1538,11 +1613,10 @@ class Device():
             self.perform_package_action(get_magisk_package(), 'kill')
 
     # ----------------------------------------------------------------------------
-    #                               property magisk_detailed_modules
+    #                               method get_magisk_detailed_modules
     # ----------------------------------------------------------------------------
-    @property
-    def  magisk_detailed_modules(self):
-        if self._magisk_detailed_modules is None:
+    def  get_magisk_detailed_modules(self, refresh=False):
+        if self._get_magisk_detailed_modules is None or refresh == True:
             try:
                 if self.mode == 'adb' and self.rooted:
                     if sys.platform == "win32":
@@ -1576,7 +1650,7 @@ class Device():
                                             key, value = line.split('=', 1)
                                             setattr(m, key, value)
                                     modules.append(m)
-                            self._magisk_detailed_modules = modules
+                            self._get_magisk_detailed_modules = modules
                         else:
                             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
                             print(f"Return Code: {res.returncode}.")
@@ -1587,8 +1661,8 @@ class Device():
                         res = run_shell(theCmd)
                         if res.returncode == 0:
                             modules = []
-                            self._magisk_detailed_modules = res.stdout.split('\n')
-                            for module in self._magisk_detailed_modules:
+                            self._get_magisk_detailed_modules = res.stdout.split('\n')
+                            for module in self._get_magisk_detailed_modules:
                                 if module:
                                     m = Magisk(module)
                                     if self.mode == 'adb' and get_adb():
@@ -1616,18 +1690,18 @@ class Device():
                                                     key, value = line.split('=', 1)
                                                     setattr(m, key, value)
                                             modules.append(m)
-                            self._magisk_detailed_modules = modules
+                            self._get_magisk_detailed_modules = modules
                         else:
                             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
                             print(f"Return Code: {res.returncode}.")
                             print(f"Stdout: {res.stdout}.")
                             print(f"Stderr: {res.stderr}.")
             except Exception as e:
-                self._magisk_detailed_modules is None
+                self._get_magisk_detailed_modules is None
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing\nException: {e}")
                 print(f"    Module: {module}\n    Line: {line}")
                 print(f"    module.prop:\n-----\n{res.stdout}-----\n")
-        return self._magisk_detailed_modules
+        return self._get_magisk_detailed_modules
 
     # ----------------------------------------------------------------------------
     #                               property magisk_apks
@@ -1742,9 +1816,9 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     @property
     def magisk_modules_summary(self):
         if self._magisk_modules_summary is None:
-            if self.magisk_detailed_modules:
+            if self.get_magisk_detailed_modules():
                 summary = ''
-                for module in self.magisk_detailed_modules:
+                for module in self.get_magisk_detailed_modules():
                     with contextlib.suppress(Exception):
                         summary += f"        {module.name:<36}{module.state:<10}{module.version}\n"
                 self._magisk_modules_summary = summary
@@ -1889,6 +1963,31 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             return res
 
     # ----------------------------------------------------------------------------
+    #                               Method get_magisk_denylist
+    # ----------------------------------------------------------------------------
+    def get_magisk_denylist(self):
+        if self.mode != 'adb' or not get_adb() or not self.rooted:
+            return []
+        print("Getting Magisk denylist ...")
+        puml(f":Magisk denylist;\n", True)
+        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist ls\'\""
+        debug(theCmd)
+        res = run_shell(theCmd)
+        if res.returncode != 0:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an errorwhile getting Magisk denylist")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+
+        lines = res.stdout.split('\n')
+        unique_packages = set()
+        for line in lines:
+            if line.strip():  # Skip empty lines if any
+                package = line.split('|')[0]
+                unique_packages.add(package)
+        return list(unique_packages)
+
+    # ----------------------------------------------------------------------------
     #                               Method install_apk
     # ----------------------------------------------------------------------------
     def install_apk(self, app, fastboot_included = False, owner_playstore = False):
@@ -1934,6 +2033,30 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             print(f"Setting active slot to slot [{slot}] for device {self.id} ...")
             puml(f":Setting Active slot to [{slot}];\n", True)
             theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={slot}"
+            debug(theCmd)
+            return run_shell(theCmd)
+
+    # ----------------------------------------------------------------------------
+    #                               Method switch_slot
+    # ----------------------------------------------------------------------------
+    def switch_slot(self):
+        if self.mode == 'adb' and get_adb():
+            self.reboot_bootloader()
+            print("Waiting 5 seconds ...")
+            time.sleep(5)
+            self.refresh_phone_mode()
+        if self.mode == 'f.b' and get_fastboot():
+            print(f"Switching to other slot. Current slot [{self.active_slot}] for device {self.id} ...")
+            puml(f":Switching slot. Currernt Slot [{self.active_slot}];\n", True)
+            if self.active_slot == 'a':
+                switch_to_slot = 'b'
+            elif self.active_slot == 'b':
+                switch_to_slot = 'a'
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Slot.")
+                puml("#red:ERROR: Unknown Slot;\n", True)
+                return 1
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={switch_to_slot}"
             debug(theCmd)
             return run_shell(theCmd)
 
@@ -1986,6 +2109,33 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             return run_shell(theCmd)
 
     # ----------------------------------------------------------------------------
+    #                               Method install_magisk_module
+    # ----------------------------------------------------------------------------
+    def install_magisk_module(self, module):
+        if self.mode == 'adb' and get_adb():
+            print(f"Installing magisk module {module} ...")
+            puml(":Install magisk module;\n", True)
+            puml(f"note right:{module};\n")
+            module_name = os.path.basename(module)
+            res = self.push_file(f"\"{module}\"", f"/sdcard/Download/{module_name}", with_su=False)
+            if res != 0:
+                puml("#red:Failed to transfer the module file to the phone;\n")
+                print("Aborting ...\n}\n")
+                return
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --install-module /sdcard/Download/{module_name}\'\""
+            debug(theCmd)
+            res = run_shell(theCmd)
+            if res.returncode != 0:
+                puml("#red:Failed to transfer the install module;\n")
+                print("Aborting ...\n}\n")
+                return -1
+            return 0
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
+            puml(f"#red:ERROR: Device {self.id} is not in adb mode;\n", True)
+            return 1
+
+    # ----------------------------------------------------------------------------
     #                               Method enable_magisk_module
     # ----------------------------------------------------------------------------
     def enable_magisk_module(self, dirname):
@@ -1993,7 +2143,6 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             print(f"Enabling magisk module {dirname} ...")
             puml(":Enable magisk module;\n", True)
             puml(f"note right:{dirname};\n")
-            theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/adb/modules/{dirname}/disable\'\""
             debug(theCmd)
             res = run_shell(theCmd)
@@ -2109,6 +2258,10 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell am force-stop {pkg}"
             elif action == 'clear-data':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm clear {pkg}"
+            elif action == 'add-to-denylist':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist add {pkg}\'\""
+            elif action == 'rm-from-denylist':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist rm {pkg}\'\""
 
             res = run_shell2(theCmd)
         except Exception as e:
@@ -2210,6 +2363,13 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 for item in list.split("\n"):
                     if item and item in self.packages:
                         self.packages[item].user0 = True
+
+            # Get magisk denylist packages
+            list = self.get_magisk_denylist()
+            if list:
+                for item in list:
+                    if item and item in self.packages:
+                        self.packages[item].magisk_denylist = True
 
         except Exception as e:
             print(e)

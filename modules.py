@@ -2707,25 +2707,59 @@ def flash_phone(self):
         # If OTA
         # ----------
         if self.config.flash_mode == 'OTA':
+            indent = "    "
             if sys.platform == "win32" and cp:
-                data = f"chcp {cp}\n"
+                data = "@echo off\n"
+                data += "setlocal enabledelayedexpansion\n"
+                data += f"chcp {cp}\n"
                 data += f":: This is a generated file by PixelFlasher v{VERSION}\n"
                 data += f":: cd {package_dir_full}\n"
                 data += f":: pf_boot.img: {boot.boot_path}\n"
                 data += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
+                data += f"set \"ACTIVE_SLOT={device.active_slot}\"\n"
+                data += "echo Current Active Slot is: [%ACTIVE_SLOT%]\n"
                 sleep_line = "ping -n 5 127.0.0.1 >nul\n"
+
+                slot_check_lines = "\necho Reading current slot value ...\n"
+                slot_check_lines += f"for /f \"tokens=2 delims=: \" %%a in ('call \"{get_fastboot()}\" -s {device.id} getvar current-slot 2^>^&1 ^| findstr /c:\"current-slot\"') do (\n"
+                slot_check_lines += "    set \"CURRENT_SLOT=%%a\"\n"
+                slot_check_lines += ")\n"
+                slot_check_lines += "echo Current slot: [%CURRENT_SLOT%]\n\n"
+                slot_check_lines += "echo Comparing the current slot with the previous active slot ...\n"
+                slot_check_lines += "if \"%CURRENT_SLOT%\"==\"%ACTIVE_SLOT%\" (\n"
+                slot_check_lines += "    echo \"Current slot is the same as the previous slot.\"\n"
+                slot_check_lines += "    echo \"It appears that OTA flashing did not properly switch slots.\"\n"
+                slot_check_lines += "    echo \"Aborting ...\"\n"
+                slot_check_lines += ") else (\n"
+                slot_check_lines += "    echo \"Current slot has changed, this is good.\"\n"
             else:
                 data = f"# This is a generated file by PixelFlasher v{VERSION}\n"
                 data += f"# cd {package_dir_full}\n"
                 data += f"# pf_boot.img: {boot.boot_path}\n"
                 data += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
                 sleep_line = "sleep 5\n"
+                data += f"ACTIVE_SLOT=\"{device.active_slot}\"\n"
+                data += "echo Current Active Slot is: [$ACTIVE_SLOT]\n"
+
+                slot_check_lines = "\necho Reading current slot value ...\n"
+                slot_check_lines += f"output=$(\"{get_fastboot()}\" -s {device.id} getvar current-slot 2>&1)\n"
+                slot_check_lines += "CURRENT_SLOT=$(echo \"$output\" | grep -oP 'current-slot:\s*\K\S+')\n"
+                slot_check_lines += "echo Current slot: [$CURRENT_SLOT]\n\n"
+                slot_check_lines += "echo Comparing the current slot with the previous active slot ...\n"
+                slot_check_lines += "if [ \"$CURRENT_SLOT\" = \"$ACTIVE_SLOT\" ]; then\n"
+                slot_check_lines += "    echo \"Current slot is the same as the previous slot.\"\n"
+                slot_check_lines += "    echo \"It appears that OTA flashing did not properly switch slots.\"\n"
+                slot_check_lines += "    echo \"Aborting ...\"\n"
+                slot_check_lines += "else\n"
+                slot_check_lines += "    echo \"Current slot has changed, this is good.\"\n"
+
             data += f"\"{get_adb()}\" -s {device.id} sideload \"{self.config.firmware_path}\"\n"
 
         # ----------
         # If not OTA
         # ----------
         else:
+            indent = ""
             # Check if the patch file is made by Magsik Zygote64_32
             if "zygote64_32" in boot.magisk_version.lower():
                 # Check we have Magisk Zygote64_32 rooted system already
@@ -2891,11 +2925,21 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
         else:
             if not boot.is_stock_boot:
-                data += "\necho flashing pf_boot ...\n"
+                pf_flash = f"{indent}echo flashing pf_boot ...\n"
                 if boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES:
-                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
+                    pf_flash += f"{indent}{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
                 else:
-                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
+                    pf_flash += f"{indent}{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
+
+                if self.config.flash_mode == 'OTA':
+                    data += slot_check_lines
+                    data += pf_flash
+                    if sys.platform == "win32":
+                        data += ")\n"
+                    else:
+                        data += "fi\n"
+                else:
+                    data += f"\n{pf_flash}"
 
             # only reboot if no_reboot is not selected
             if not self.config.no_reboot:

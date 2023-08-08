@@ -1572,6 +1572,7 @@ def sanitize_file(filename):
 def sanitize_db(filename):
     debug(f"Santizing {filename} ...")
     con = sl.connect(filename)
+    con.execute("PRAGMA secure_delete = ON;")
     cursor = con.cursor()
     with con:
         data = con.execute("SELECT id, file_path FROM BOOT")
@@ -1595,6 +1596,8 @@ def sanitize_db(filename):
                 file_path_sanitized = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
             cursor.execute("Update PACKAGE set file_path = ? where id = ?", (file_path_sanitized, id,))
             con.commit()
+    # Wipe the Write-Ahead log data
+    con.execute("VACUUM;")
 
 
 # ============================================================================

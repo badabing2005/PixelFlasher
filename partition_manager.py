@@ -64,7 +64,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.all_checkbox = wx.CheckBox(self, wx.ID_ANY, u"Check / Uncheck All", wx.DefaultPosition, wx.DefaultSize, style=wx.CHK_3STATE)
 
         self.il = wx.ImageList(16, 16)
-        self.idx1 = self.il.Add(images.Official_Small.GetBitmap())
+        self.idx1 = self.il.Add(images.official_16.GetBitmap())
         self.sm_up = self.il.Add(images.SmallUpArrow.GetBitmap())
         self.sm_dn = self.il.Add(images.SmallDnArrow.GetBitmap())
 

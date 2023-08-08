@@ -37,11 +37,54 @@ class MagiskModules(wx.Dialog):
 
         vSizer.Add(message_sizer, 0, wx.EXPAND, 5)
 
-        device = get_phone()
-        modules = device.magisk_detailed_modules
-
         list_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
         self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 18), style = wx.LC_REPORT)
+        self.PopulateList()
+
+        list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 10)
+
+        vSizer.Add(list_sizer , 1, wx.EXPAND, 5)
+
+        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+        self.ok_button = wx.Button(self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0)
+        buttons_sizer.Add(self.ok_button, 0, wx.ALL, 20)
+
+        self.install_module_button = wx.Button(self, wx.ID_ANY, u"Install Module", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.install_module_button.SetToolTip(u"Install magisk module.")
+        buttons_sizer.Add(self.install_module_button, 0, wx.ALL, 20)
+
+        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
+        buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 20)
+        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+
+        vSizer.Add(buttons_sizer, 0, wx.EXPAND, 5)
+
+        self.SetSizer(vSizer)
+        self.Layout()
+        self.Centre(wx.BOTH)
+
+        # Connect Events
+        self.ok_button.Bind(wx.EVT_BUTTON, self._onOk)
+        self.install_module_button.Bind(wx.EVT_BUTTON, self._onInstallModule)
+        self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
+
+        # Autosize the dialog
+        self.list.PostSizeEventToParent()
+        self.SetSizerAndFit(vSizer)
+        a = self.list.GetViewRect()
+        self.SetSize(vSizer.MinSize.Width + 120, vSizer.MinSize.Height + 140)
+
+        print("\nOpening Magisk Modules Manager ...")
+
+    # -----------------------------------------------
+    #              Function PopulateList
+    # -----------------------------------------------
+    def PopulateList(self, refresh=False):
+        device = get_phone()
+        modules = device.get_magisk_detailed_modules(refresh)
 
         self.list.InsertColumn(0, 'Name', width = -1)
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
@@ -73,36 +116,6 @@ class MagiskModules(wx.Dialog):
         self.list.SetColumnWidth(2, -2)
         grow_column(self.list, 2, 20)
 
-        list_sizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 10)
-
-        vSizer.Add(list_sizer , 1, wx.EXPAND, 5)
-
-        buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
-        self.ok_button = wx.Button(self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0)
-        buttons_sizer.Add(self.ok_button, 0, wx.ALL, 20)
-        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
-        buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 20)
-        buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
-
-        vSizer.Add(buttons_sizer, 0, wx.EXPAND, 5)
-
-        self.SetSizer(vSizer)
-        self.Layout()
-        self.Centre(wx.BOTH)
-
-        # Connect Events
-        self.ok_button.Bind(wx.EVT_BUTTON, self._onOk)
-        self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
-
-        # Autosize the dialog
-        self.list.PostSizeEventToParent()
-        self.SetSizerAndFit(vSizer)
-        a = self.list.GetViewRect()
-        self.SetSize(vSizer.MinSize.Width + 120, vSizer.MinSize.Height + 140)
-
-        print("\nOpening Magisk Modules Manager ...")
-
     # -----------------------------------------------
     #                  __del__
     # -----------------------------------------------
@@ -116,12 +129,34 @@ class MagiskModules(wx.Dialog):
         self.EndModal(wx.ID_CANCEL)
 
     # -----------------------------------------------
+    #                  _onInstallModule
+    # -----------------------------------------------
+    def _onInstallModule(self, e):
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Install Module.")
+        with wx.FileDialog(self, "select Module file to install", '', '', wildcard="Magisk Modules (*.*.zip)|*.zip", style=wx.FD_OPEN) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                print("User cancelled module install.")
+                return
+            # save the current contents in the file
+            device = get_phone()
+            pathname = fileDialog.GetPath()
+            print(f"\nSelected {pathname} for installation.")
+            try:
+                self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+                device.install_magisk_module(pathname)
+                self.list.ClearAll()
+                self.PopulateList(True)
+                self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+            except IOError:
+                wx.LogError(f"Cannot install module file '{pathname}'.")
+
+    # -----------------------------------------------
     #                  _onOk
     # -----------------------------------------------
     def _onOk(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
         device = get_phone()
-        modules = device.magisk_detailed_modules
+        modules = device.get_magisk_detailed_modules()
         for i in range(0, self.list.ItemCount, 1):
             if modules[i].state == 'enabled':
                 module_state = True

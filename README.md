@@ -248,7 +248,7 @@ To enable the export mode use the **File Menu | Advanced Configuration** and sel
 In this mode the following additional options are exposed (green bounding boxes), below notes are more for enumeration than a guide, as they should be trivial and obvious to an expert.
 
 1. Option to Change the Active Slot (the inactive slot is automatically selected).  
-Options to reboot to Recovery, Downloader, Safe Mode.
+Options to reboot to Recovery, Download, Safe Mode.
 2. Options to Lock / Unlock bootloader, Option to disable Magisk modules when bootlooping, partitions manager.
 3. Apply Custom ROM. This replaces the factory ROM image with the selected file.  
 PixelFlasher extracts `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) from the ROM image and displays below for selection or patching.

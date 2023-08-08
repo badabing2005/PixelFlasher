@@ -64,10 +64,10 @@ class MagiskDownloads(wx.Dialog):
         # list control
         if self.CharHeight > 20:
             self.il = wx.ImageList(24, 24)
-            self.idx1 = self.il.Add(images.Official.GetBitmap())
+            self.idx1 = self.il.Add(images.official_24.GetBitmap())
         else:
             self.il = wx.ImageList(16, 16)
-            self.idx1 = self.il.Add(images.Official_Small.GetBitmap())
+            self.idx1 = self.il.Add(images.official_16.GetBitmap())
         self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 15), style = wx.LC_REPORT)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 

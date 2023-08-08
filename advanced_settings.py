@@ -60,7 +60,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.package_name.SetToolTip(u"If you have hidden Magisk,\nset this to the hidden package name.")
         self.package_name.SetValue(str(get_magisk_package()))
         self.reset_magisk_pkg = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
-        self.reset_magisk_pkg.SetBitmap(images.Scan.GetBitmap())
+        self.reset_magisk_pkg.SetBitmap(images.scan_24.GetBitmap())
         self.reset_magisk_pkg.SetToolTip(u"Resets package name to default: com.topjohnwu.magisk")
         package_name_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         package_name_sizer.Add(self.package_name, proportion=1, flag=wx.ALL, border=0)

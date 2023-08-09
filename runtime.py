@@ -391,86 +391,6 @@ def set_system_codepage(value):
 
 
 # ============================================================================
-#                               Function get_codepage_setting
-# ============================================================================
-def get_codepage_setting():
-    global codepage_setting
-    return codepage_setting
-
-
-# ============================================================================
-#                               Function set_codepage_setting
-# ============================================================================
-def set_codepage_setting(value):
-    global codepage_setting
-    codepage_setting = value
-
-
-# ============================================================================
-#                               Function get_codepage_value
-# ============================================================================
-def get_codepage_value():
-    global codepage_value
-    return codepage_value
-
-
-# ============================================================================
-#                               Function set_codepage_value
-# ============================================================================
-def set_codepage_value(value):
-    global codepage_value
-    codepage_value = value
-
-
-# ============================================================================
-#                               Function get_pf_font_face
-# ============================================================================
-def get_pf_font_face():
-    global pf_font_face
-    return pf_font_face
-
-
-# ============================================================================
-#                               Function set_pf_font_face
-# ============================================================================
-def set_pf_font_face(value):
-    global pf_font_face
-    pf_font_face = value
-
-
-# ============================================================================
-#                               Function get_pf_font_size
-# ============================================================================
-def get_pf_font_size():
-    global pf_font_size
-    return pf_font_size
-
-
-# ============================================================================
-#                               Function set_pf_font_size
-# ============================================================================
-def set_pf_font_size(value):
-    global pf_font_size
-    pf_font_size = value
-
-
-# ============================================================================
-#                               Function get_customize_font
-# ============================================================================
-def get_customize_font():
-    global customize_font
-    return customize_font
-
-
-# ============================================================================
-#                               Function set_customize_font
-# ============================================================================
-def set_customize_font(value):
-    global customize_font
-    customize_font = value
-
-
-# ============================================================================
 #                               Function get_magisk_package
 # ============================================================================
 def get_magisk_package():
@@ -484,22 +404,6 @@ def get_magisk_package():
 def set_magisk_package(value):
     global magisk_package
     magisk_package = value
-
-
-# ============================================================================
-#                               Function get_file_explorer
-# ============================================================================
-def get_file_explorer():
-    global file_explorer
-    return file_explorer
-
-
-# ============================================================================
-#                               Function set_file_explorer
-# ============================================================================
-def set_file_explorer(value):
-    global file_explorer
-    file_explorer = value
 
 
 # ============================================================================
@@ -535,38 +439,6 @@ def set_advanced_options(value):
 
 
 # ============================================================================
-#                               Function get_patch_methods_settings
-# ============================================================================
-def get_patch_methods_settings():
-    global offer_patch_methods
-    return offer_patch_methods
-
-
-# ============================================================================
-#                               Function set_patch_methods_settings
-# ============================================================================
-def set_patch_methods_settings(value):
-    global offer_patch_methods
-    offer_patch_methods = value
-
-
-# ============================================================================
-#                               Function get_recovery_patch_settings
-# ============================================================================
-def get_recovery_patch_settings():
-    global recovery_patch
-    return recovery_patch
-
-
-# ============================================================================
-#                               Function get_recovery_patch_settings
-# ============================================================================
-def set_recovery_patch_settings(value):
-    global recovery_patch
-    recovery_patch = value
-
-
-# ============================================================================
 #                               Function get_is_ota
 # ============================================================================
 def get_ota():
@@ -596,38 +468,6 @@ def get_sdk_state():
 def set_sdk_state(value):
     global sdk_is_ok
     sdk_is_ok = value
-
-
-# ============================================================================
-#                               Function get_use_busybox_shell_settings
-# ============================================================================
-def get_use_busybox_shell_settings():
-    global use_busybox_shell
-    return use_busybox_shell
-
-
-# ============================================================================
-#                               Function set_use_busybox_shell_settings
-# ============================================================================
-def set_use_busybox_shell_settings(value):
-    global use_busybox_shell
-    use_busybox_shell = value
-
-
-# ============================================================================
-#                               Function get_update_check
-# ============================================================================
-def get_update_check():
-    global update_check
-    return update_check
-
-
-# ============================================================================
-#                               Function set_update_check
-# ============================================================================
-def set_update_check(value):
-    global update_check
-    update_check = value
 
 
 # ============================================================================
@@ -1079,7 +919,7 @@ def grow_column(list, col, value = 20):
 # ============================================================================
 #                               Function open_folder
 # ============================================================================
-def open_folder(path, isFile = False):
+def open_folder(self, path, isFile = False):
     if not path:
         return
     if isFile:
@@ -1091,8 +931,8 @@ def open_folder(path, isFile = False):
     elif sys.platform == "win32":
         os.system(f"start {dir_path}")
     # linux
-    elif get_file_explorer():
-        subprocess.Popen([get_file_explorer(), dir_path], env=get_env_variables())
+    elif self.config.linux_file_explorer:
+        subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())
     else:
         subprocess.Popen(["nautilus", dir_path], env=get_env_variables())
 
@@ -1100,7 +940,7 @@ def open_folder(path, isFile = False):
 # ============================================================================
 #                               Function open_terminal
 # ============================================================================
-def open_terminal(path, isFile=False):
+def open_terminal(self, path, isFile=False):
     if path:
         if isFile:
             dir_path = os.path.dirname(path)
@@ -1109,8 +949,8 @@ def open_terminal(path, isFile=False):
         if sys.platform.startswith("win"):
             subprocess.Popen(["start", "cmd.exe", "/k", "cd", "/d", dir_path], shell=True, env=get_env_variables())
         elif sys.platform.startswith("linux"):
-            if get_linux_shell():
-                subprocess.Popen([get_linux_shell(), "--working-directory", dir_path], env=get_env_variables())
+            if self.config.linux_shell:
+                subprocess.Popen([self.config.linux_shell, "--working-directory", dir_path], env=get_env_variables())
             else:
                 subprocess.Popen(["gnome-terminal", "--working-directory", dir_path], env=get_env_variables())
         elif sys.platform.startswith("darwin"):

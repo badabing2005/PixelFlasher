@@ -8,7 +8,6 @@ import math
 import ntpath
 import os
 import sys
-import threading
 import time
 import webbrowser
 from datetime import datetime
@@ -52,42 +51,23 @@ dont_initialize = False
 # ============================================================================
 #                               Class RedirectText
 # ============================================================================
-# class RedirectText():
-#     def __init__(self,aWxTextCtrl):
-#         self.out=aWxTextCtrl
-#         logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
-#         self.logfile = open(logfile, "w", buffering=1, encoding="ISO-8859-1", errors="replace")
-#         set_logfile(logfile)
+class RedirectText():
+    def __init__(self,aWxTextCtrl):
+        self.out=aWxTextCtrl
+        logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
+        self.logfile = open(logfile, "w", buffering=1, encoding="ISO-8859-1", errors="replace")
+        set_logfile(logfile)
 
-#     def write(self,string):
-#         wx.CallAfter(self.out.AppendText, string)
-#         if not self.logfile.closed:
-#             self.logfile.write(string)
-
-#     # noinspection PyMethodMayBeStatic
-#     def flush(self):
-#         # noinspection PyStatementEffect
-#         None
-class RedirectText:
-    def __init__(self, aWxTextCtrl):
-        self.out = aWxTextCtrl
-        self.logfile = None
-        self.lock = threading.Lock()
-
-    def write(self, string):
+    def write(self,string):
         wx.CallAfter(self.out.AppendText, string)
-        if self.logfile is not None:
-            with self.lock:
-                self.logfile.write(string)
-                self.logfile.flush()
+        if not self.logfile.closed:
+            self.logfile.write(string)
 
-    def set_logfile(self, logfile_path):
-        with self.lock:
-            self.logfile = open(logfile_path, "w", buffering=1, encoding="ISO-8859-1", errors="replace")
-            # self.logfile.write("Log started at: {}\n".format(datetime.now()))
-
+    # noinspection PyMethodMayBeStatic
     def flush(self):
-        pass
+        # noinspection PyStatementEffect
+        None
+
 
 # ============================================================================
 #                               Class PixelFlasher
@@ -168,11 +148,6 @@ class PixelFlasher(wx.Frame):
         print(f"File System Encoding:    {sys.getfilesystemencoding()}")
         get_code_page()
 
-        # load custom codepage settings
-        set_codepage_setting(self.config.force_codepage)
-        if self.config.force_codepage:
-            set_codepage_value(self.config.custom_codepage)
-
         # load android_versions into a dict.
         with contextlib.suppress(Exception):
             with open('android_versions.json', 'r', encoding='ISO-8859-1', errors="replace") as file:
@@ -187,9 +162,6 @@ class PixelFlasher(wx.Frame):
 
         # load Magisk Package Name
         set_magisk_package(self.config.magisk)
-
-        # load Linux File Explorer
-        set_file_explorer(self.config.linux_file_explorer)
 
         # load Linux Shell
         set_linux_shell(self.config.linux_shell)
@@ -309,17 +281,9 @@ class PixelFlasher(wx.Frame):
             self._select_configured_device()
             self._refresh_ui()
 
-        # enable / disable offer_patch_methods
-        set_patch_methods_settings(self.config.offer_patch_methods)
-        # enable / disable Patching Recovery Partition option
-        set_recovery_patch_settings(self.config.show_recovery_patching_option)
-        # enable / disable use_busybox_shell
-        set_use_busybox_shell_settings(self.config.use_busybox_shell)
-        # enable / disable update_check
-        set_update_check(self.config.update_check)
         # check version if we are running the latest
         l_version = check_latest_version()
-        if get_update_check() and parse(VERSION) < parse(l_version):
+        if self.config.update_check and parse(VERSION) < parse(l_version):
             print(f"\nA newer PixelFlasher v{l_version} can be downloaded from:")
             print("https://github.com/badabing2005/PixelFlasher/releases/latest")
             from About import AboutDlg
@@ -328,11 +292,6 @@ class PixelFlasher(wx.Frame):
             about.Destroy()
         end = time.time()
         print(f"Load time: {math.ceil(end - start)} seconds")
-
-        # load pf_font details
-        set_customize_font(self.config.customize_font)
-        set_pf_font_face(self.config.pf_font_face)
-        set_pf_font_size(self.config.pf_font_size)
 
         # set the ui fonts
         self.set_ui_fonts()
@@ -362,7 +321,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def set_ui_fonts(self):
         if self.config.customize_font:
-            font = wx.Font(get_pf_font_size(), family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName=get_pf_font_face())
+            font = wx.Font(self.config.pf_font_size, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName=self.config.pf_font_face)
 
             # device list
             self.device_choice.SetFont(font)
@@ -1100,21 +1059,6 @@ class PixelFlasher(wx.Frame):
         advanced_setting_dialog.CentreOnParent(wx.BOTH)
         print("Entering Advanced Configuration ...")
         res = advanced_setting_dialog.ShowModal()
-        if res == wx.ID_OK:
-            self.config.advanced_options = get_advanced_options()
-            self.config.offer_patch_methods = get_patch_methods_settings()
-            self.config.show_recovery_patching_option = get_recovery_patch_settings()
-            self.config.use_busybox_shell = get_use_busybox_shell_settings()
-            self.config.update_check = get_update_check()
-            self.config.force_codepage = get_codepage_setting()
-            self.config.custom_codepage = get_codepage_value()
-            self.config.magisk = get_magisk_package()
-            self.config.linux_file_explorer = get_file_explorer()
-            self.config.linux_shell = get_linux_shell()
-            self.config.customize_font = get_customize_font()
-            self.config.pf_font_face = get_pf_font_face()
-            self.config.pf_font_size = get_pf_font_size()
-            self.set_ui_fonts()
         advanced_setting_dialog.Destroy()
 
         # show / hide advanced settings
@@ -1320,7 +1264,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_open_config_folder(self, event):
         self._on_spin('start')
-        open_folder(get_sys_config_path())
+        open_folder(self, get_sys_config_path())
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -1328,7 +1272,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_open_pf_home(self, event):
         self._on_spin('start')
-        open_folder(get_config_path())
+        open_folder(self, get_config_path())
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -1397,18 +1341,7 @@ class PixelFlasher(wx.Frame):
         # self.update_widget_states()
         # end_time = time.time()
         # elapsed_time = end_time - start_time
-        #
-        # Long running task non-threaded
-        # self.run_long_task()
-        # long-running task in a separate thread
-        # task_thread = threading.Thread(target=self.run_long_task)
-        # task_thread.start()
-
-    # def run_long_task(self):
-    #     # Simulating a long-running task
-    #     for i in range(10):
-    #         print("Step", i)
-    #         time.sleep(1)
+        # print(f"The function update_widget_states took {elapsed_time} seconds to execute.")
 
     # -----------------------------------------------
     #                  _advanced_options_hide
@@ -1477,6 +1410,7 @@ class PixelFlasher(wx.Frame):
         if state == 'start':
             self.spinner.Show()
             self.spinner_label.Show()
+            self.support_button.Hide()
             self.spinner.Start()
             self.spinner.Refresh()
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
@@ -1484,6 +1418,7 @@ class PixelFlasher(wx.Frame):
             self.spinner.Stop()
             self.spinner.Hide()
             self.spinner_label.Hide()
+            self.support_button.Show()
             self.spinner.Refresh()
             self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
@@ -1565,6 +1500,7 @@ class PixelFlasher(wx.Frame):
             message += f"    Magisk Config SHA1:              {device.magisk_sha1}\n"
             message += "    Magisk Modules:\n"
             message += f"{device.magisk_modules_summary}\n"
+            message += f"{device.get_battery_details()}\n"
         else:
             print('')
         print(message)
@@ -2916,7 +2852,7 @@ class PixelFlasher(wx.Frame):
         self._on_spin('start')
         boot = get_boot()
         if boot:
-            open_folder(boot.boot_path, True)
+            open_folder(self, boot.boot_path, True)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -2928,7 +2864,7 @@ class PixelFlasher(wx.Frame):
         if boot:
             config_path = get_config_path()
             working_dir = os.path.join(config_path, 'factory_images', boot.package_sig)
-            open_folder(working_dir, False)
+            open_folder(self, working_dir, False)
         self._on_spin('stop')
 
     # -----------------------------------------------

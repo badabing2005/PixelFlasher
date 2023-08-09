@@ -1425,7 +1425,7 @@ def manual_magisk(self, boot_file_name):
     device.stop_magisk()
 
     # Launch Magisk
-    device.perform_package_action(get_magisk_package(), 'launch', False)
+    device.perform_package_action(self.config.magisk, 'launch', False)
 
     # Message Dialog Here to Patch Manually
     title = "Manual Patching"
@@ -1656,8 +1656,9 @@ def patch_boot_img(self, custom_patch = False):
     # ==========================================
     def patch_script(patch_method):
         print("Creating pf_patch.sh script ...")
-        if get_use_busybox_shell_settings():
-            busybox_shell_cmd = "export ASH_STANDALONE=1; /data/adb/magisk/busybox ash"
+        if self.config.use_busybox_shell:
+            # busybox_shell_cmd = "export ASH_STANDALONE=1; /data/adb/magisk/busybox ash"
+            busybox_shell_cmd = "/data/adb/magisk/busybox ash"
         else:
             busybox_shell_cmd = ""
         if patch_method == "rooted":
@@ -1772,24 +1773,30 @@ def patch_boot_img(self, custom_patch = False):
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += "PATCH_FILENAME=magisk_patched_${MAGISK_VERSION}_${STOCK_SHA1}_${PATCH_SHA1}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
-            data += "echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
-            data += "if [[ -n \"$PATCHING_MAGISK_VERSION\" ]]; then echo $PATCHING_MAGISK_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
 
             if patch_method == "app" or patch_method == "other":
                 data += "cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
-
                 # if we're rooted, copy the stock boot.img to /data/adb/magisk/stock_boot.img so that magisk can backup
                 if perform_as_root:
                     data += "cp -f /data/local/tmp/pf/assets/stock_boot.img /data/adb/magisk/stock_boot.img\n"
                     # TODO see if we need to update the config SHA1
-                # cleanup /data/local/tmp directory of the stuff PF created.
-                data += "echo \"Cleaning up ...\"\n"
-                data += "rm -rf /data/local/tmp/pf\n"
-                data += "rm -f /data/local/tmp/pf.zip /data/local/tmp/pf_patch.sh /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
             else:
                 data += "mv new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
-                data += "echo \"Cleaning up ...\"\n"
-                data += "rm -f /data/local/tmp/pf_patch.sh\n"
+
+            data += "if [[ -s /sdcard/Download/${PATCH_FILENAME} ]]; then\n"
+            data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
+            data += "	if [[ -n \"$PATCHING_MAGISK_VERSION\" ]]; then echo $PATCHING_MAGISK_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
+            data += "else\n"
+            data += "	echo \"\nERROR: Patching failed!\"\n"
+            data += "fi\n\n"
+            data += "echo \"Cleaning up ...\"\n"
+            # intentionally not including \n
+            data += "rm -f /data/local/tmp/pf_patch.sh"
+
+            if patch_method == "app" or patch_method == "other":
+                data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
+                data += "rm -rf /data/local/tmp/pf\n"
+            data += "\n"
 
             f.write(data)
             puml(f"note right\nPatch Script\n====\n{data}end note\n")
@@ -1833,6 +1840,7 @@ def patch_boot_img(self, custom_patch = False):
         print("Executing the pf_patch.sh script ...")
         print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
         puml(":Executing the patch script;\n")
+        debug(f"exec_cmd: {exec_cmd}")
         res = run_shell2(exec_cmd)
 
         # get the patched_filename
@@ -1892,7 +1900,7 @@ def patch_boot_img(self, custom_patch = False):
         puml("#orange:Magisk not found;\n")
         # Message to Launch Manually and Patch
         title = "Magisk Manager is not detected."
-        message =  f"WARNING: Magisk Manager [{get_magisk_package()}] is not found on the phone\n\n"
+        message =  f"WARNING: Magisk Manager [{self.config.magisk}] is not found on the phone\n\n"
         message += "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
         message += "If it is installed and hidden, then you should abort and then unhide it.\n"
         message += "If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n"
@@ -1947,11 +1955,11 @@ def patch_boot_img(self, custom_patch = False):
     # Call the patch option
     # Let the user select with Guidance
     # -------------------------------
-    if get_patch_methods_settings():
+    if self.config.offer_patch_methods:
         title = "Patching decision"
         buttons_text = ["Use Rooted Magisk", "Use Magisk Application", "Use UIAutomator", "Manual", "Other Magisk", "Cancel"]
         buttons_text[method -1] += " (Recommended)"
-        if get_recovery_patch_settings():
+        if self.config.show_recovery_patching_option:
             checkboxes=["Recovery"]
         else:
             checkboxes=None

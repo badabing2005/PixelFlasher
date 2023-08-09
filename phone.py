@@ -140,6 +140,26 @@ class Device():
             puml("#red:ERROR: Could not get package list;\n", True)
             return '', ''
 
+    # ----------------------------------------------------------------------------
+    #                               method get_package_details
+    # ----------------------------------------------------------------------------
+    def get_battery_details(self):
+        if self.mode != 'adb':
+            return
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys battery"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                # path = self.get_path_from_details(res.stdout)
+                return res.stdout #, path
+            else:
+                return '', ''
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get battery details.")
+            puml("#red:ERROR: Could not get battery details;\n", True)
+            return '', ''
+
     # -----------------------------------------------
     #    Function get_path_from_package_details
     # -----------------------------------------------
@@ -565,7 +585,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_path(self):
-        if self.mode == 'adb':
+        if self.mode == 'adb' and get_magisk_package():
             res = self.get_package_path(get_magisk_package(), True)
             if res != -1:
                 return res
@@ -1526,7 +1546,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_app_version(self):
-        if self._magisk_app_version is None and self.mode == 'adb':
+        if self._magisk_app_version is None and self.mode == 'adb' and get_magisk_package():
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()}"
                 res = run_shell(theCmd)

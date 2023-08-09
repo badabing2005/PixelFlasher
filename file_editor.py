@@ -113,10 +113,10 @@ class FileEditor(wx.Dialog):
             self.text_ctrl.SetValue(contents)
 
     def on_open_folder(self, event):
-        open_folder(self.file_path, True)
+        open_folder(self.Parent, self.file_path, True)
 
     def on_open_shell(self, event):
-        open_terminal(self.file_path, True)
+        open_terminal(self.Parent, self.file_path, True)
 
     def on_save(self, event):
         with open(self.file_path, 'w', encoding='ISO-8859-1', errors="replace", newline='\n') as f:

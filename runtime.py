@@ -15,6 +15,7 @@ import tarfile
 import tempfile
 import time
 import zipfile
+import psutil
 from datetime import datetime
 
 import lz4.frame
@@ -73,6 +74,7 @@ android_devices = {}
 env_variables = os.environ.copy()
 is_ota = False
 sdk_is_ok = False
+low_memory = False
 
 # ============================================================================
 #                               Class Boot
@@ -129,6 +131,22 @@ def get_labels():
 def set_labels(value):
     global app_labels
     app_labels = value
+
+
+# ============================================================================
+#                               Function get_low_memory
+# ============================================================================
+def get_low_memory():
+    global low_memory
+    return low_memory
+
+
+# ============================================================================
+#                               Function set_low_memory
+# ============================================================================
+def set_low_memory(value):
+    global low_memory
+    low_memory = value
 
 
 # ============================================================================
@@ -966,7 +984,7 @@ def check_archive_contains_file(archive_file_path, file_to_check, nested=False, 
     file_ext = os.path.splitext(archive_file_path)[1].lower()
 
     if file_ext == '.zip':
-        return check_zip_contains_file(archive_file_path, file_to_check, nested, is_recursive)
+        return check_zip_contains_file(archive_file_path, file_to_check, get_low_memory(), nested, is_recursive)
     elif file_ext in ['.tgz', '.gz', '.tar', '.md5']:
         return check_tar_contains_file(archive_file_path, file_to_check, nested, is_recursive)
     else:
@@ -977,26 +995,82 @@ def check_archive_contains_file(archive_file_path, file_to_check, nested=False, 
 # ============================================================================
 #                               Function check_zip_conatins_file
 # ============================================================================
-def check_zip_contains_file(zip_file_path, file_to_check, nested=False, is_recursive=False):
-    if not is_recursive:
-        debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested}")
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
-        for name in zip_file.namelist():
-            if name.endswith(f'/{file_to_check}') or name == file_to_check:
-                if not is_recursive:
-                    debug(f"Found: {name}\n")
-                return name
-            elif nested and name.endswith('.zip'):
-                with zip_file.open(name, 'r') as nested_zip_file:
-                    nested_zip_data = nested_zip_file.read()
-                with io.BytesIO(nested_zip_data) as nested_zip_stream:
-                    with zipfile.ZipFile(nested_zip_stream, 'r') as nested_zip:
-                        nested_file_path = check_zip_contains_file(nested_zip_stream, file_to_check, nested=True, is_recursive=True)
-                        if nested_file_path:
-                            if not is_recursive:
-                                debug(f"Found: {name}/{nested_file_path}\n")
-                            return f'{name}/{nested_file_path}'
-        debug(f"file: {file_to_check} was NOT found\n")
+def check_zip_contains_file(zip_file_path, file_to_check, low_mem, nested=False, is_recursive=False):
+    if low_mem:
+        return check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested, is_recursive)
+    else:
+        return check_zip_contains_file_fast(zip_file_path, file_to_check, nested, is_recursive)
+
+
+
+# ============================================================================
+#                               Function check_zip_conatins_file_fast
+# ============================================================================
+def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_recursive=False):
+    try:
+        if not is_recursive:
+            debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested}")
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+            for name in zip_file.namelist():
+                if name.endswith(f'/{file_to_check}') or name == file_to_check:
+                    if not is_recursive:
+                        debug(f"Found: {name}\n")
+                    return name
+                elif nested and name.endswith('.zip'):
+                    with zip_file.open(name, 'r') as nested_zip_file:
+                        nested_zip_data = nested_zip_file.read()
+                    with io.BytesIO(nested_zip_data) as nested_zip_stream:
+                        with zipfile.ZipFile(nested_zip_stream, 'r') as nested_zip:
+                            nested_file_path = check_zip_contains_file_fast(nested_zip_stream, file_to_check, nested=True, is_recursive=True)
+                            if nested_file_path:
+                                if not is_recursive:
+                                    debug(f"Found: {name}/{nested_file_path}\n")
+                                return f'{name}/{nested_file_path}'
+            debug(f"file: {file_to_check} was NOT found\n")
+            return ''
+    except Exception as e:
+        print(f"Failed to check_zip_contains_file_fast. Reason: {e}")
+        return ''
+
+
+# ============================================================================
+#                               Function check_zip_contains_file_lowmem
+# ============================================================================
+def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, is_recursive=False):
+    try:
+        if not is_recursive:
+            debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested} Low Memory version.")
+
+        stack = [(zip_file_path, '')]
+
+        while stack:
+            current_zip, current_path = stack.pop()
+
+            with zipfile.ZipFile(current_zip, 'r') as zip_file:
+                for name in zip_file.namelist():
+                    full_name = os.path.join(current_path, name)
+                    debug(f"Checking: {full_name}")
+
+                    # if full_name.endswith(f'/{file_to_check}') or full_name == file_to_check:
+                    if os.path.basename(full_name) == file_to_check:
+                        debug(f"Found: {full_name}")
+                        return full_name
+                    elif nested and name.endswith('.zip'):
+                        debug(f"Entering nested zip: {full_name}")
+                        with zip_file.open(name, 'r') as nested_zip_file:
+                            nested_zip_data = nested_zip_file.read()
+
+                        with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
+                            temp_zip_file.write(nested_zip_data)
+                            temp_zip_path = temp_zip_file.name
+
+                        stack.append((temp_zip_path, full_name))
+                        if is_recursive:
+                            stack.append((temp_zip_path, full_name))  # Add the nested zip to be processed recursively
+        debug(f"File {file_to_check} was NOT found")
+        return ''
+    except Exception as e:
+        print(f"Failed to check_zip_contains_file_lowmem. Reason: {e}")
         return ''
 
 
@@ -1027,7 +1101,7 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
                 with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
                     temp_zip_file.write(nested_zip_data)
 
-                nested_file_path = check_zip_contains_file(temp_zip_file.name, file_to_check, nested=True, is_recursive=True)
+                nested_file_path = check_zip_contains_file(temp_zip_file.name, file_to_check, get_low_memory(), nested=True, is_recursive=True)
                 if nested_file_path:
                     if not is_recursive:
                         debug(f"Found: {member.name}/{nested_file_path}\n")
@@ -1464,6 +1538,26 @@ def delete_all(dir):
                 shutil.rmtree(file_path)
         except Exception as e:
             print(f"Failed to delete {file_path}. Reason: {e}")
+
+
+# ============================================================================
+#                               Function get_free_memory
+# ============================================================================
+def get_free_memory():
+    memory = psutil.virtual_memory()
+    free_memory = memory.available
+    total_memory = memory.total
+    return free_memory, total_memory
+
+
+# ============================================================================
+#                               Function format_memory_size
+# ============================================================================
+def format_memory_size(size_bytes):
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024:
+            return f"{size_bytes:.2f} {unit}"
+        size_bytes /= 1024
 
 
 # ============================================================================

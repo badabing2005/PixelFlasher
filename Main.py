@@ -148,6 +148,12 @@ class PixelFlasher(wx.Frame):
         print(f"File System Encoding:    {sys.getfilesystemencoding()}")
         get_code_page()
 
+        # Get Available Memory
+        free_memory, total_memory = get_free_memory()
+        formatted_free_memory = format_memory_size(free_memory)
+        formatted_total_memory = format_memory_size(total_memory)
+        print(f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}")
+
         # load android_versions into a dict.
         with contextlib.suppress(Exception):
             with open('android_versions.json', 'r', encoding='ISO-8859-1', errors="replace") as file:

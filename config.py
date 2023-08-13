@@ -58,6 +58,7 @@ class Config():
         self.rom_sha256 = None
         self.boot_sort_column = 0
         self.boot_sorting_direction = 'ASC'
+        self.low_mem = False
 
         self.toolbar = {
             'tb_position': 'top',
@@ -183,6 +184,8 @@ class Config():
                     conf.firmware_sha256 = data['firmware_sha256']
                 with contextlib.suppress(KeyError):
                     conf.rom_sha256 = data['rom_sha256']
+                with contextlib.suppress(KeyError):
+                    conf.low_mem = data['low_mem']
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
                     toolbar_data = data['toolbar']
@@ -285,6 +288,7 @@ class Config():
             'pf_home': self.pf_home,
             'firmware_sha256': self.firmware_sha256,
             'rom_sha256': self.rom_sha256,
+            'low_mem': self.low_mem,
             'toolbar': self.toolbar  # Save the toolbar settings as well
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:

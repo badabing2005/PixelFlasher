@@ -93,6 +93,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.use_busybox_shell_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Use Busybox Shell", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.use_busybox_shell_checkbox.SetToolTip(u"When creating a patch, if this is checked, busybox ash will be used as shell.")
 
+        # Enable Low Memory
+        self.low_mem_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"System has low memory", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.low_mem_checkbox.SetToolTip(u"Use this option to sacrifice speed in favor of memory.")
+
         # Check for updates options
         self.check_for_update_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
@@ -131,6 +135,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.patch_methods_checkbox.SetValue(self.Parent.config.offer_patch_methods)
         self.recovery_patch_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
         self.use_busybox_shell_checkbox.SetValue(self.Parent.config.use_busybox_shell)
+        self.low_mem_checkbox.SetValue(self.Parent.config.low_mem)
         self.check_for_update_checkbox.SetValue(self.Parent.config.update_check)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
@@ -150,6 +155,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add(self.recovery_patch_checkbox, 0, wx.EXPAND)
 
         fgs1.Add(self.use_busybox_shell_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.low_mem_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
         fgs1.Add(self.check_for_update_checkbox, 0, wx.EXPAND)
@@ -246,6 +254,11 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             print(f"Setting Use Busybox Shell to: {self.use_busybox_shell_checkbox.GetValue()}")
         self.Parent.config.use_busybox_shell = self.use_busybox_shell_checkbox.GetValue()
 
+        if self.low_mem_checkbox.GetValue() != self.Parent.config.low_mem:
+            print(f"Setting Low Memory to: {self.low_mem_checkbox.GetValue()}")
+        self.Parent.config.low_mem = self.low_mem_checkbox.GetValue()
+        set_low_memory(self.low_mem_checkbox.GetValue())
+
         if self.check_for_update_checkbox.GetValue() != self.Parent.config.update_check:
             print(f"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}")
         self.Parent.config.update_check = self.check_for_update_checkbox.GetValue()
@@ -290,6 +303,5 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.Parent.config.pf_font_size = self.font_size.GetValue()
         if font_settings_changed:
             self.Parent.set_ui_fonts()
-
 
         self.EndModal(wx.ID_OK)

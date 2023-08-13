@@ -615,7 +615,7 @@ def process_file(self, file_type):
                 print("User pressed ok.")
                 puml(":User Pressed OK to continue;\n")
             image_file_path = file_to_process
-        elif check_zip_contains_file(file_to_process, "payload.bin"):
+        elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
             is_payload_bin = True
             if get_firmware_hash_validity() and get_ota():
                 print("Detected OTA file")
@@ -710,7 +710,7 @@ def process_file(self, file_type):
         if found_init_boot_img:
             set_rom_has_init_boot(True)
             is_init_boot = True
-        elif check_zip_contains_file(file_to_process, "payload.bin"):
+        elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
             print("Detected a ROM, with payload.bin")
             is_payload_bin = True
         package_sig = get_custom_rom_id()

@@ -2442,7 +2442,7 @@ def get_connected_devices():
             theCmd = f"\"{get_fastboot()}\" devices"
             response = run_shell(theCmd)
             for device in response.stdout.split('\n'):
-                if 'fastboot' in device:
+                if ('fastboot' in device) or ('GenesysLogic' in device):
                     d_id = device.split("\t")
                     d_id = d_id[0].strip()
                     device = Device(d_id, 'f.b')

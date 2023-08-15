@@ -45,11 +45,11 @@ jobs:
       - name: Install create-dmg
         run: npm install --global create-dmg
 
-      - name: Add Python 3.10 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.10/bin:$PATH
+      - name: Add Python 3.11 to PATH
+        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
 
       - name: Create virtual environment
-        run: python3.10 -m venv myenv
+        run: python3.11 -m venv myenv
         shell: bash
 
       - name: Activate virtual environment
@@ -57,10 +57,10 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: python3.10 -m pip install -r requirements.txt
+        run: python3.11 -m pip install -r requirements.txt
 
       - name: List modules and their versions
-        run: python3.10 -m pip freeze
+        run: python3.11 -m pip freeze
 
       - name: Build application
         run: ./build.sh

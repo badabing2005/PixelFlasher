@@ -32,13 +32,13 @@ jobs:
         run: |
           sudo add-apt-repository ppa:deadsnakes/ppa -y
           sudo apt update
-          sudo apt install -y python3.10
-          sudo apt install -y python3.10-venv
+          sudo apt install -y python3.11
+          sudo apt install -y python3.11-venv
           sudo apt install -y python3-pip
-          python3.10 --version
+          python3.11 --version
 
       - name: Create virtual environment
-        run: python3.10 -m venv myenv
+        run: python3.11 -m venv myenv
         shell: bash
 
       - name: Activate virtual environment

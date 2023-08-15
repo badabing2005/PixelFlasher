@@ -29,7 +29,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Create virtual environment
         run: python -m venv myenv
@@ -129,15 +129,15 @@ jobs:
           sudo apt install software-properties-common -y
           sudo add-apt-repository ppa:deadsnakes/ppa -y
           sudo apt update
-          sudo apt install -y python3.10
-          sudo apt install -y python3.10-venv
+          sudo apt install -y python3.11
+          sudo apt install -y python3.11-venv
           sudo apt install -y python3-pip
-          python3.10 --version
+          python3.11 --version
 
       - name: Install wxPython prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3.10-dev
+          sudo apt-get install -y python3.11-dev
           sudo apt-get install -y libgtk-3-dev
           sudo apt-get install -y libunwind-dev
           sudo apt-get install -y libgstreamer1.0-dev
@@ -153,7 +153,7 @@ jobs:
 
       - name: Create virtual environment, install dependencies, and build
         run: |
-          python3.10 -m venv myenv
+          python3.11 -m venv myenv
           . myenv/bin/activate
           python --version
           pip install -U pip
@@ -187,15 +187,15 @@ jobs:
           sudo apt install software-properties-common -y
           sudo add-apt-repository ppa:deadsnakes/ppa -y
           sudo apt update
-          sudo apt install -y python3.10
-          sudo apt install -y python3.10-venv
+          sudo apt install -y python3.11
+          sudo apt install -y python3.11-venv
           sudo apt install -y python3-pip
-          python3.10 --version
+          python3.11 --version
 
       - name: Install wxPython prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3.10-dev
+          sudo apt-get install -y python3.11-dev
           sudo apt-get install -y libgtk-3-dev
           sudo apt-get install -y libunwind-dev
           sudo apt-get install -y libgstreamer1.0-dev
@@ -211,7 +211,7 @@ jobs:
 
       - name: Create virtual environment, install dependencies, and build
         run: |
-          python3.10 -m venv myenv
+          python3.11 -m venv myenv
           . myenv/bin/activate
           python --version
           pip install -U pip
@@ -253,11 +253,11 @@ jobs:
       - name: Install create-dmg
         run: npm install --global create-dmg
 
-      - name: Add Python 3.10 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.10/bin:$PATH
+      - name: Add Python 3.11 to PATH
+        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
 
       - name: Create virtual environment
-        run: python3.10 -m venv myenv
+        run: python3.11 -m venv myenv
         shell: bash
 
       - name: Activate virtual environment
@@ -265,10 +265,10 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: python3.10 -m pip install -r requirements.txt
+        run: python3.11 -m pip install -r requirements.txt
 
       - name: List modules and their versions
-        run: python3.10 -m pip freeze
+        run: python3.11 -m pip freeze
 
       - name: Build application
         run: ./build.sh

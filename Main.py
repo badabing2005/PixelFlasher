@@ -137,7 +137,6 @@ class PixelFlasher(wx.Frame):
             puml("end note\n")
 
         # enable / disable advanced_options
-        set_advanced_options(self.config.advanced_options)
         if self.config.advanced_options:
             self._advanced_options_hide(False)
         else:
@@ -1066,15 +1065,15 @@ class PixelFlasher(wx.Frame):
         print("Entering Advanced Configuration ...")
         res = advanced_setting_dialog.ShowModal()
         advanced_setting_dialog.Destroy()
-
-        # show / hide advanced settings
-        self._advanced_options_hide(not get_advanced_options())
-        populate_boot_list(self)
-        set_flash_button_state(self)
-        self.toolbar_flags = self.get_toolbar_config()
-        # Rebuild the toolbar with the updated flags
-        self._build_toolbar(self.toolbar_flags, True)
-        self.update_widget_states()
+        if res == wx.ID_OK:
+            # show / hide advanced settings
+            self._advanced_options_hide(not self.config.advanced_options)
+            populate_boot_list(self)
+            set_flash_button_state(self)
+            self.toolbar_flags = self.get_toolbar_config()
+            # Rebuild the toolbar with the updated flags
+            self._build_toolbar(self.toolbar_flags, True)
+            self.update_widget_states()
 
     # -----------------------------------------------
     #                  _on_package_manager

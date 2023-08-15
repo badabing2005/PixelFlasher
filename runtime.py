@@ -441,22 +441,6 @@ def set_linux_shell(value):
 
 
 # ============================================================================
-#                               Function get_advanced_options
-# ============================================================================
-def get_advanced_options():
-    global advanced_options
-    return advanced_options
-
-
-# ============================================================================
-#                               Function set_advanced_options
-# ============================================================================
-def set_advanced_options(value):
-    global advanced_options
-    advanced_options = value
-
-
-# ============================================================================
 #                               Function get_is_ota
 # ============================================================================
 def get_ota():

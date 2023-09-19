@@ -99,9 +99,6 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLACK'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         self.list.EnableCheckBoxes(enable=True)
-        itemDataMap = self.PopulateList()
-        if itemDataMap != -1:
-            self.itemDataMap = itemDataMap
         listmix.ColumnSorterMixin.__init__(self, 7)
 
         vSizer1.Add(self.list , 1, wx.ALL|wx.EXPAND, 5)
@@ -200,6 +197,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         # for wxGTK
         self.list.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
         self.all_checkbox.Bind(wx.EVT_CHECKBOX, self.OnAllCheckbox)
+
+        self.Refresh()
 
     # -----------------------------------------------
     #              Function PopulateList
@@ -465,41 +464,51 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnDisable
     # -----------------------------------------------
     def OnDisable(self, e):
+        self._on_spin('start')
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Disable.")
         self.ApplyMultiAction('disable')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnEnable
     # -----------------------------------------------
     def OnEnable(self, e):
+        self._on_spin('start')
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Enable.")
         self.ApplyMultiAction('enable')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnUninstall
     # -----------------------------------------------
     def OnUninstall(self, e):
+        self._on_spin('start')
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Uninstall.")
         self.ApplyMultiAction('uninstall')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnAddToDeny
     # -----------------------------------------------
     def OnAddToDeny(self, e):
+        self._on_spin('start')
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Add To Denylist.")
         self.ApplyMultiAction('add-to-denylist')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnRmFromDeny
     # -----------------------------------------------
     def OnRmFromDeny(self, e):
+        self._on_spin('start')
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Remove Denylist.")
         self.ApplyMultiAction('rm-from-denylist')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnInstallApk
@@ -516,24 +525,25 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             try:
-                self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+                self._on_spin('start')
                 if self.device:
                     if result != wx.ID_YES:
                         self.device.install_apk(pathname, fastboot_included=True)
                     else:
                         puml("note right:Set ownership to Play Store;\n")
                         self.device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
-                self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+                self._on_spin('stop')
             except IOError:
                 wx.LogError(f"Cannot install file '{pathname}'.")
+                self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnGetAllNames
     # -----------------------------------------------
     def OnGetAllNames(self, e):
+        self._on_spin('start')
         start = time.time()
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Get All Application Names")
-        self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         labels = get_labels()
         for i in range(self.list.GetItemCount()):
             pkg = self.list.GetItemText(i)
@@ -554,17 +564,17 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                     self.itemDataMap[i + 1] = row_as_list
                     labels[pkg] = label
         set_labels(labels)
-        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
         end = time.time()
         print(f"App names extraction time: {math.ceil(end - start)} seconds")
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnExportList
     # -----------------------------------------------
     def OnExportList(self, e):
+        self._on_spin('start')
         start = time.time()
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Export List")
-        self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         with wx.FileDialog(self, "Export Package list", '', f"packages_{self.device.hardware}.csv", wildcard="Package list (*.csv)|*.csv",
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -583,16 +593,18 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 content += f"{package},{type},{installed},{enabled},{user0},{denylist},{name}\n"
             with open(pathname, "w", newline="\n") as f:
                 f.write(content)
-        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
         end = time.time()
         print(f"Export Package List time: {math.ceil(end - start)} seconds")
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnDownloadApk
     # -----------------------------------------------
     def OnDownloadApk(self, e):
+        self._on_spin('start')
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Download APK.")
         self.ApplyMultiAction('download')
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  DownloadApk
@@ -769,68 +781,86 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnPopupDisable
     # -----------------------------------------------
     def OnPopupDisable(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'disable')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupEnable
     # -----------------------------------------------
     def OnPopupEnable(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'enable')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupUninstall
     # -----------------------------------------------
     def OnPopupUninstall(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'uninstall')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupAddToDeny
     # -----------------------------------------------
     def OnPopupAddToDeny(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'add-to-denylist')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupRmFromDeny
     # -----------------------------------------------
     def OnPopupRmFromDeny(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'rm-from-denylist')
         self.RefreshPackages()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupDownload
     # -----------------------------------------------
     def OnPopupDownload(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'download')
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupLaunch
     # -----------------------------------------------
     def OnPopupLaunch(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'launch')
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupKill
     # -----------------------------------------------
     def OnPopupKill(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'kill')
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupClearData
     # -----------------------------------------------
     def OnPopupClearData(self, event):
+        self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'clear-data')
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupRefresh
     # -----------------------------------------------
     def OnPopupRefresh(self, event):
-        self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+        self._on_spin('start')
         self.RefreshPackages
-        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnPopupRefresh
@@ -855,13 +885,15 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  Function Refresh
     # -----------------------------------------------
     def Refresh(self):
+        self.list.Freeze()
         print("Refreshing the packages ...\n")
-        self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+        self._on_spin('start')
         self.list.ClearAll()
         itemDataMap = self.PopulateList()
         if itemDataMap != -1:
             self.itemDataMap = itemDataMap
-        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+        self._on_spin('stop')
+        self.list.Thaw()
 
     # -----------------------------------------------
     #          Function ApplySingleAction
@@ -927,3 +959,15 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 self.ApplySingleAction(index, action, multi, f"{i}/{count} ")
                 i += 1
         print(f"Total count of package actions attempted: {i}")
+
+    # -----------------------------------------------
+    #                  _on_spin
+    # -----------------------------------------------
+    def _on_spin(self, state):
+        wx.Yield
+        if state == 'start':
+            self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+            self.Parent._on_spin('start')
+        else:
+            self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+            self.Parent._on_spin('stop')

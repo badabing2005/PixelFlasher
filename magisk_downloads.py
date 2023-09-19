@@ -308,6 +308,7 @@ class MagiskDownloads(wx.Dialog):
                 # puml("#pink:User Pressed Cancel to abort;\n}\n")
                 proceed = False
         if proceed:
+            self._on_spin('start')
             print(f"Downloading Magisk: {self.channel} version: {self.version} versionCode: {self.versionCode} ...")
             download_file(self.url, filename)
             config_path = get_config_path()
@@ -317,7 +318,20 @@ class MagiskDownloads(wx.Dialog):
             set_magisk_package(self.package)
             self.Parent.config.magisk = self.package
             print('')
+            self._on_spin('stop')
             self.EndModal(wx.ID_OK)
+
+    # -----------------------------------------------
+    #                  _on_spin
+    # -----------------------------------------------
+    def _on_spin(self, state):
+        wx.Yield
+        if state == 'start':
+            self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+            self.Parent._on_spin('start')
+        else:
+            self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+            self.Parent._on_spin('stop')
 
 # ============================================================================
 #                               Function download_file

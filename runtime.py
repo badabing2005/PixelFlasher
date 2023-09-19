@@ -75,6 +75,7 @@ env_variables = os.environ.copy()
 is_ota = False
 sdk_is_ok = False
 low_memory = False
+config = {}
 
 # ============================================================================
 #                               Class Boot
@@ -99,6 +100,22 @@ class Boot():
         self.is_stock_boot = None
         self.is_init_boot = None
         self.patch_source_sha1 = None
+
+
+# ============================================================================
+#                               Function get_config
+# ============================================================================
+def get_config():
+    global config
+    return config
+
+
+# ============================================================================
+#                               Function set_config
+# ============================================================================
+def set_config(value):
+    global config
+    config = value
 
 
 # ============================================================================
@@ -451,9 +468,16 @@ def get_ota():
 # ============================================================================
 #                               Function set_is_ota
 # ============================================================================
-def set_ota(value):
+def set_ota(self, value):
     global is_ota
     is_ota = value
+    self.config.firmware_is_ota = value
+    if value:
+        self.enable_disable_radio_button('OTA', True, selected=True, just_select=True)
+        self.config.flash_mode = 'OTA'
+    elif self.config.flash_mode == 'OTA':
+            self.config.flash_mode = 'dryRun'
+            self.enable_disable_radio_button('dryRun', True, selected=True, just_select=True)
 
 
 # ============================================================================
@@ -820,6 +844,15 @@ def init_db():
             # Add the patch_source_sha1 column to the BOOT table
             db.execute("ALTER TABLE BOOT ADD COLUMN patch_source_sha1 INTEGER;")
 
+        # Check if the full_ota column already exists in the PACKAGE table
+        # Added in version 5.8
+        cursor = db.execute("PRAGMA table_info(PACKAGE)")
+        columns = cursor.fetchall()
+        column_names = [column[1] for column in columns]
+
+        if 'full_ota' not in column_names:
+            # Add the full_ota column to the BOOT table (values: 0:Not Full OTA, 1:Full OTA NULL:UNKNOWN)
+            db.execute("ALTER TABLE PACKAGE ADD COLUMN full_ota INTEGER;")
 
 # ============================================================================
 #                               Function get_config_file_path
@@ -856,6 +889,13 @@ def set_config_path(value):
 # ============================================================================
 def get_labels_file_path():
     return os.path.join(get_config_path(), "labels.json").strip()
+
+
+# ============================================================================
+#                               Function get_wifi_history_file_path
+# ============================================================================
+def get_wifi_history_file_path():
+    return os.path.join(get_config_path(), "wireless.json").strip()
 
 
 # ============================================================================
@@ -1285,7 +1325,7 @@ def create_boot_tar(dir, source='boot.img', dest='boot.tar'):
     original_dir = os.getcwd()
     try:
         os.chdir(dir)
-        with tarfile.open(dest, 'w') as tar:
+        with tarfile.open(dest, 'w', format=tarfile.GNU_FORMAT) as tar:
             tar.add(source, arcname=source)
     finally:
         os.chdir(original_dir)
@@ -1572,13 +1612,16 @@ def run_shell(cmd, timeout=None):
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
 # no returncode is available.
-def run_shell2(cmd, timeout=None):
+def run_shell2(cmd, timeout=None, detached=False, directory=None):
     try:
         class obj(object):
             pass
 
         response = obj()
-        proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", env=get_env_variables())
+        if directory is None:
+            proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", start_new_session=detached, env=get_env_variables())
+        else:
+            proc = subprocess.Popen(f"{cmd}", cwd=directory, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", start_new_session=detached, env=get_env_variables())
 
         print
         stdout = ''

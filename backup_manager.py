@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import gzip
-import json
 import shutil
 
 import clipboard
@@ -330,10 +329,11 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
             file_sha1 = sha1(file_to_backup)
             print(f"\nSelected {file_to_backup} for backup with SHA1 of {file_sha1}")
             try:
-                self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+                self._on_spin('start')
                 res = self.device.push_file(f"{file_to_backup}", '/data/adb/magisk/stock_boot.img', with_su=True)
                 if res != 0:
                     print("Aborting ...\n")
+                    self._on_spin('stop')
                     return
                 # run the migration.
                 res = self.device.run_magisk_migration(file_sha1)
@@ -346,14 +346,16 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                     self.ZipAndPush(file_to_backup, file_sha1)
                     if res != 0:
                         print("Aborting ...\n")
+                        self._on_spin('stop')
                         return
 
                 # Refresh the list
                 self.Refresh()
 
-                self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+                self._on_spin('stop')
             except Exception as e:
                 print(f"Cannot backup file '{file_to_backup}'.")
+                self._on_spin('stop')
 
     # -----------------------------------------------
     #                  ZipAndPush
@@ -404,7 +406,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         if patched_sha1:
             try:
-                self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+                self._on_spin('start')
                 print(f"Checking to see if we have a copy of {patched_sha1} ...")
                 source_init_boot = os.path.join(config_path, get_boot_images_dir(), patched_sha1, 'init_boot.img')
                 source_boot = os.path.join(config_path, get_boot_images_dir(), patched_sha1, 'boot.img')
@@ -417,11 +419,14 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 else:
                     print(f"ERROR: Did not find a local copy of source boot / init_boot with SHA1 of {patched_sha1}")
                     print("Cannot create automatic backup file, you can still manually select and create one.")
-                    print("Aborting ...")
+                    print("Aborting ...\n")
+                    self._on_spin('stop')
+                    return
 
                 res = self.device.push_file(f"{file_to_backup}", '/data/adb/magisk/stock_boot.img', with_su=True)
                 if res != 0:
                     print("Aborting ...\n")
+                    self._on_spin('stop')
                     return
                 # run the migration.
                 res = self.device.run_magisk_migration(patched_sha1)
@@ -434,14 +439,16 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                     self.ZipAndPush(file_to_backup, patched_sha1)
                     if res != 0:
                         print("Aborting ...\n")
+                        self._on_spin('stop')
                         return
 
                 # Refresh the list
                 self.Refresh()
-                self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+                self._on_spin('stop')
             except Exception as e:
                 print("Cannot create automatic backup file, you can still manually select and create one.")
                 print("Aborting ...")
+                self._on_spin('stop')
                 return
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The dumped partition does not contain source boot's SHA1")
@@ -586,9 +593,21 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def Refresh(self):
         print("Refreshing the backups ...\n")
-        self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+        self._on_spin('start')
         self.list.ClearAll()
         itemDataMap = self.PopulateList()
         if itemDataMap != -1:
             self.itemDataMap = itemDataMap
-        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_spin
+    # -----------------------------------------------
+    def _on_spin(self, state):
+        wx.Yield
+        if state == 'start':
+            self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+            self.Parent._on_spin('start')
+        else:
+            self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+            self.Parent._on_spin('stop')

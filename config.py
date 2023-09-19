@@ -13,6 +13,7 @@ class Config():
     def __init__(self):
         self.flash_mode = 'dryRun'
         self.firmware_path = None
+        self.firmware_is_ota = False
         self.platform_tools_path = None
         self.device = None
         self.phone_path = '/storage/emulated/0/Download'
@@ -59,6 +60,8 @@ class Config():
         self.boot_sort_column = 0
         self.boot_sorting_direction = 'ASC'
         self.low_mem = False
+        self.extra_img_extracts = False
+        self.create_boot_tar = False
 
         self.toolbar = {
             'tb_position': 'top',
@@ -68,12 +71,14 @@ class Config():
                 'install_apk': True,
                 'package_manager': True,
                 'adb_shell': True,
+                'scrcpy': True,
                 'device_info': True,
                 'check_verity': True,
                 'partition_manager': True,
                 'switch_slot': True,
                 'reboot_system': True,
                 'reboot_bootloader': True,
+                'reboot_fastbootd': True,
                 'reboot_recovery': True,
                 'reboot_safe_mode': True,
                 'reboot_download': True,
@@ -85,6 +90,11 @@ class Config():
                 'unlock_bootloader': True,
                 'configuration': True
             }
+        }
+
+        self.scrcpy = {
+            'folder': '',
+            'flags': ''
         }
 
     @classmethod
@@ -100,6 +110,8 @@ class Config():
                     conf.device = data['device']
                 with contextlib.suppress(KeyError):
                     conf.firmware_path = data['firmware_path']
+                with contextlib.suppress(KeyError):
+                    conf.firmware_is_ota = data['firmware_is_ota']
                 with contextlib.suppress(KeyError):
                     conf.platform_tools_path = data['platform_tools_path']
                 with contextlib.suppress(KeyError):
@@ -186,6 +198,10 @@ class Config():
                     conf.rom_sha256 = data['rom_sha256']
                 with contextlib.suppress(KeyError):
                     conf.low_mem = data['low_mem']
+                with contextlib.suppress(KeyError):
+                    conf.extra_img_extracts = data['extra_img_extracts']
+                with contextlib.suppress(KeyError):
+                    conf.create_boot_tar = data['create_boot_tar']
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
                     toolbar_data = data['toolbar']
@@ -202,6 +218,8 @@ class Config():
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['adb_shell'] = toolbar_data['visible']['adb_shell']
                     with contextlib.suppress(KeyError):
+                        conf.toolbar['visible']['scrcpy'] = toolbar_data['visible']['scrcpy']
+                    with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['device_info'] = toolbar_data['visible']['device_info']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['check_verity'] = toolbar_data['visible']['check_verity']
@@ -213,6 +231,8 @@ class Config():
                         conf.toolbar['visible']['reboot_system'] = toolbar_data['visible']['reboot_system']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['reboot_bootloader'] = toolbar_data['visible']['reboot_bootloader']
+                    with contextlib.suppress(KeyError):
+                        conf.toolbar['visible']['reboot_fastbootd'] = toolbar_data['visible']['reboot_fastbootd']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['reboot_recovery'] = toolbar_data['visible']['reboot_recovery']
                     with contextlib.suppress(KeyError):
@@ -233,7 +253,13 @@ class Config():
                         conf.toolbar['visible']['unlock_bootloader'] = toolbar_data['visible']['unlock_bootloader']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['configuration'] = toolbar_data['visible']['configuration']
-
+                # read the scrcpy section
+                with contextlib.suppress(KeyError):
+                    scrcpy_data = data['scrcpy']
+                    with contextlib.suppress(KeyError):
+                        conf.scrcpy['folder'] = scrcpy_data['folder']
+                    with contextlib.suppress(KeyError):
+                        conf.scrcpy['flags'] = scrcpy_data['flags']
             else:
                 conf.first_run = True
         except Exception as e:
@@ -248,6 +274,7 @@ class Config():
         data = {
             'device': self.device,
             'firmware_path': self.firmware_path,
+            'firmware_is_ota': self.firmware_is_ota,
             'platform_tools_path': self.platform_tools_path,
             'mode': self.flash_mode,
             'phone_path': self.phone_path,
@@ -289,7 +316,10 @@ class Config():
             'firmware_sha256': self.firmware_sha256,
             'rom_sha256': self.rom_sha256,
             'low_mem': self.low_mem,
-            'toolbar': self.toolbar  # Save the toolbar settings as well
+            'extra_img_extracts': self.extra_img_extracts,
+            'create_boot_tar': self.create_boot_tar,
+            'toolbar': self.toolbar,  # Save the toolbar settings as well
+            'scrcpy': self.scrcpy  # Save the scrcpy settings as well
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

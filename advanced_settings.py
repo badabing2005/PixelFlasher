@@ -97,6 +97,15 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.low_mem_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"System has low memory", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.low_mem_checkbox.SetToolTip(u"Use this option to sacrifice speed in favor of memory.")
 
+        # Extra img extraction
+        self.extra_img_extracts_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Extra img extraction", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.extra_img_extracts_checkbox.SetToolTip(u"When checked and available in payload.bin\nAlso extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img")
+
+        # Always Create boot.tar
+        self.create_boot_tar_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Always create boot.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.create_boot_tar_checkbox.SetToolTip(u"When checked, PixelFlasher always creates boot.tar of the patched boot file.\nIf unchecked, only for Samsung firmware boot.tar will be created.")
+        self.create_boot_tar_checkbox.Disable()
+
         # Check for updates options
         self.check_for_update_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
@@ -125,6 +134,36 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.font_size.SetToolTip('Select font size')
         self._onFontSelect(None)
 
+        # scrcpy 1st row widgets, select path
+        self.scrcpy_folder_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Srccpy Folder")
+        self.srccpy_link = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.srccpy_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
+        self.srccpy_link.SetToolTip("Download Srccpy")
+        self.scrcpy_folder_picker = wx.DirPickerCtrl(parent=self, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
+        self.scrcpy_folder_picker.SetToolTip("Select scrcpy folder")
+        self.scrcpy_h1sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+        self.scrcpy_h1sizer.Add(window=self.scrcpy_folder_label, proportion=0, flag=wx.EXPAND)
+        self.scrcpy_h1sizer.AddSpacer(10)
+        self.scrcpy_h1sizer.Add(window=self.srccpy_link, proportion=0, flag=wx.EXPAND)
+        self.scrcpy_h1sizer.AddSpacer(10)
+        self.scrcpy_h1sizer.Add(window=self.scrcpy_folder_picker, proportion=1, flag=wx.EXPAND)
+
+        # scrcpy 2nd row flags
+        self.scrcpy_flags = wx.SearchCtrl(self, style=wx.TE_LEFT)
+        self.scrcpy_flags.ShowCancelButton(True)
+        self.scrcpy_flags.SetDescriptiveText("Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)")
+
+        # build the sizers for scrcpy
+        scrcpy_sb = wx.StaticBox(self, -1, "Scrcpy settings")
+        scrcpy_vsizer = wx.StaticBoxSizer(scrcpy_sb, wx.VERTICAL)
+        scrcpy_vsizer.Add(self.scrcpy_h1sizer, proportion=1, flag=wx.ALL|wx.EXPAND, border=5)
+        scrcpy_vsizer.Add(self.scrcpy_flags, proportion=1, flag=wx.ALL|wx.EXPAND, border=5)
+        #
+        scrcpy_outer_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        scrcpy_outer_sizer.AddSpacer(20)
+        scrcpy_outer_sizer.Add(scrcpy_vsizer, proportion=1, flag=wx.EXPAND, border=10)
+        scrcpy_outer_sizer.AddSpacer(20)
+
         # add the widgets to the grid in two columns, first fix size, the second expandable.
         fgs1.Add(package_name_label, 0, wx.EXPAND)
         fgs1.Add(package_name_sizer, 1, wx.EXPAND)
@@ -136,11 +175,19 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.recovery_patch_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
         self.use_busybox_shell_checkbox.SetValue(self.Parent.config.use_busybox_shell)
         self.low_mem_checkbox.SetValue(self.Parent.config.low_mem)
+        self.extra_img_extracts_checkbox.SetValue(self.Parent.config.extra_img_extracts)
+        self.create_boot_tar_checkbox.SetValue(self.Parent.config.create_boot_tar)
         self.check_for_update_checkbox.SetValue(self.Parent.config.update_check)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
         self.use_custom_font_checkbox.SetValue(self.Parent.config.customize_font)
         self.font.SetStringSelection(self.Parent.config.pf_font_face)
+
+        if self.Parent.config.scrcpy and self.Parent.config.scrcpy['folder'] != '' and os.path.exists(self.Parent.config.scrcpy['folder']):
+            self.scrcpy_folder_picker.SetPath(self.Parent.config.scrcpy['folder'])
+        if self.Parent.config.scrcpy and self.Parent.config.scrcpy['flags'] != '':
+            self.scrcpy_flags.SetValue(self.Parent.config.scrcpy['flags'])
+
         if sys.platform.startswith("linux"):
             self.file_explorer.SetValue(self.Parent.config.linux_file_explorer)
             self.shell.SetValue(self.Parent.config.linux_shell)
@@ -160,6 +207,12 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add(self.low_mem_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
+        fgs1.Add(self.extra_img_extracts_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.create_boot_tar_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
         fgs1.Add(self.check_for_update_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
@@ -171,6 +224,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
         # add flexgrid to vSizer
         vSizer.Add(fgs1, proportion=0, flag=wx.ALL | wx.EXPAND, border=20)
+
+        # Add more stuff after the flexgrid
+        vSizer.Add(scrcpy_outer_sizer, proportion=1, flag=wx.EXPAND)
 
         # gap
         vSizer.Add((0, 20), proportion=0, flag=0, border=5)
@@ -259,6 +315,14 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.Parent.config.low_mem = self.low_mem_checkbox.GetValue()
         set_low_memory(self.low_mem_checkbox.GetValue())
 
+        if self.extra_img_extracts_checkbox.GetValue() != self.Parent.config.extra_img_extracts:
+            print(f"Setting Extra img extraction to: {self.extra_img_extracts_checkbox.GetValue()}")
+        self.Parent.config.extra_img_extracts = self.extra_img_extracts_checkbox.GetValue()
+
+        if self.create_boot_tar_checkbox.GetValue() != self.Parent.config.create_boot_tar:
+            print(f"Setting Always create boot.tar: {self.create_boot_tar_checkbox.GetValue()}")
+        self.Parent.config.create_boot_tar = self.create_boot_tar_checkbox.GetValue()
+
         if self.check_for_update_checkbox.GetValue() != self.Parent.config.update_check:
             print(f"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}")
         self.Parent.config.update_check = self.check_for_update_checkbox.GetValue()
@@ -301,6 +365,24 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.Parent.config.customize_font = self.use_custom_font_checkbox.GetValue()
         self.Parent.config.pf_font_face = self.font.GetStringSelection()
         self.Parent.config.pf_font_size = self.font_size.GetValue()
+
+        value = self.scrcpy_folder_picker.GetPath()
+        if value is None:
+            value = ''
+        if value != self.Parent.config.scrcpy['folder'] and os.path.exists(value):
+            print(f"Setting scrcpy folder path to: {value}")
+            self.Parent.config.scrcpy['folder'] = value
+
+        value = self.scrcpy_flags.GetValue()
+        if value is None:
+            value = ''
+        if value != self.Parent.config.scrcpy['flags']:
+            print(f"Setting scrcpy flags to: {value}")
+            self.Parent.config.scrcpy['flags'] = value
+
+        # update the runtime config
+        set_config(self.Parent.config)
+
         if font_settings_changed:
             self.Parent.set_ui_fonts()
 

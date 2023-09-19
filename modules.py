@@ -167,7 +167,8 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
             PACKAGE.package_sig,
             PACKAGE.file_path as package_path,
             PACKAGE.epoch as package_date,
-            BOOT.is_odin
+            BOOT.is_odin,
+            PACKAGE.full_ota
         FROM BOOT
         JOIN PACKAGE_BOOT
             ON BOOT.id = PACKAGE_BOOT.boot_id
@@ -252,6 +253,8 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
             ts = datetime.fromtimestamp(row[7])
             boot_date = ts.strftime('%Y-%m-%d %H:%M:%S')
             package_path = row[12] or ''
+            if self.config.firmware_path == package_path:
+                full_ota = row[15]
 
             index = self.list.InsertItem(i, boot_hash)                     # boot_hash (SHA1)
             self.list.SetItem(index, 1, package_boot_hash)                 # package_boot_hash (Source SHA1)
@@ -266,6 +269,8 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
             else:
                 self.list.SetItemColumnImage(i, 0, -1)
             i += 1
+        if i > 0 and full_ota is not None:
+            set_ota(self, bool(full_ota))
 
     auto_resize_boot_list(self)
 
@@ -514,20 +519,16 @@ def select_firmware(self):
         else:
             try:
                 set_firmware_model(firmware[0])
-                if firmware[1] == 'ota':
+                if firmware[1] == 'ota' or firmware[0] == 'crDroidAndroid':
                     set_firmware_id(f"{firmware[0]}-{firmware[1]}-{firmware[2]}")
-                    set_ota(True)
-                    self.enable_disable_radio_button('OTA', True, selected=True, just_select=True)
-                    self.config.flash_mode = 'OTA'
+                    self.config.firmware_is_ota = True
                 else:
                     set_firmware_id(f"{firmware[0]}-{firmware[1]}")
-                    if self.config.flash_mode == 'OTA':
-                        self.config.flash_mode = 'dryRun'
-                        self.enable_disable_radio_button('dryRun', True, selected=True, just_select=True)
-                    set_ota(False)
+                    self.config.firmware_is_ota = False
             except Exception as e:
                 set_firmware_model(None)
                 set_firmware_id(filename)
+        set_ota(self, self.config.firmware_is_ota)
         if get_firmware_id():
             set_flash_button_state(self)
         else:
@@ -571,6 +572,7 @@ def process_file(self, file_type):
     if file_type == 'firmware':
         is_stock_boot = True
         file_to_process = self.config.firmware_path
+        puml(f"note right:{file_to_process}\n")
         package_sig = get_firmware_id()
         package_dir_full = os.path.join(factory_images, package_sig)
         found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
@@ -579,6 +581,7 @@ def process_file(self, file_type):
         found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=True)
         found_boot_img_lz4 = ''
         set_firmware_has_init_boot(False)
+        set_ota(self, False)
         if found_init_boot_img:
             set_firmware_has_init_boot(True)
             is_init_boot = True
@@ -617,6 +620,7 @@ def process_file(self, file_type):
             image_file_path = file_to_process
         elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
             is_payload_bin = True
+            set_ota(self, True)
             if get_firmware_hash_validity() and get_ota():
                 print("Detected OTA file")
             else:
@@ -738,11 +742,26 @@ def process_file(self, file_type):
             puml("#red:ERROR: Could not extract payload.bin;\n")
             print("Aborting ...\n")
             return
-        # extract boot.img, init_boot.img, vbmeta.img from payload.bin
+        # extract boot.img, init_boot.img, vbmeta.img from payload.bin, ...
         payload_file_path = os.path.join(temp_dir_path, "payload.bin")
         if not os.path.exists(package_dir_full):
             os.makedirs(package_dir_full, exist_ok=True)
-        extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
+        if self.config.extra_img_extracts:
+            extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
+            if os.path.exists(os.path.join(package_dir_full, 'dtbo.img')):
+                dtbo_img_file = os.path.join(package_dir_full, 'dtbo.img')
+                shutil.copy(dtbo_img_file, os.path.join(tmp_dir_full, 'dtbo.img'), follow_symlinks=True)
+            if os.path.exists(os.path.join(package_dir_full, 'super_empty.img')):
+                super_empty_img_file = os.path.join(package_dir_full, 'super_empty.img')
+                shutil.copy(super_empty_img_file, os.path.join(tmp_dir_full, 'super_empty.img'), follow_symlinks=True)
+            if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
+                vendor_boot_img_file = os.path.join(package_dir_full, 'vendor_boot.img')
+                shutil.copy(vendor_boot_img_file, os.path.join(tmp_dir_full, 'vendor_boot.img'), follow_symlinks=True)
+            if os.path.exists(os.path.join(package_dir_full, 'vendor_kernel_boot.img')):
+                vendor_kernel_boot_img_file = os.path.join(package_dir_full, 'vendor_kernel_boot.img')
+                shutil.copy(vendor_kernel_boot_img_file, os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), follow_symlinks=True)
+        else:
+            extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
         if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
             boot_img_file = os.path.join(package_dir_full, 'boot.img')
             shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
@@ -837,8 +856,8 @@ def process_file(self, file_type):
     else:
         # create PACKAGE db record
         print(f"Creating DB entry for PACKAGE: {file_to_process}")
-        sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch ) values(?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
-        data = checksum, file_type, package_sig, file_to_process, time.time()
+        sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch, full_ota ) values(?, ?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
+        data = checksum, file_type, package_sig, file_to_process, time.time(), self.config.firmware_is_ota
         try:
             cursor.execute(sql, data)
             con.commit()
@@ -1528,6 +1547,8 @@ def patch_boot_img(self, custom_patch = False):
 
     start = time.time()
 
+    config_path = get_config_path()
+    factory_images = os.path.join(config_path, 'factory_images')
     if custom_patch:
         boot_path = file_to_patch
         boot_file_name = os.path.basename(boot_path)
@@ -1535,6 +1556,8 @@ def patch_boot_img(self, custom_patch = False):
         stock_sha1 = file_sha1[:8]
         boot_img = f"{filename}_{stock_sha1}.img"
         magisk_patched_img = f"magisk_patched_{file_sha1[:8]}.img"
+        package_dir_full = os.path.join(factory_images, get_firmware_id())
+        is_odin = 0
     else:
         boot = get_boot()
         boot_path = boot.boot_path
@@ -1543,9 +1566,8 @@ def patch_boot_img(self, custom_patch = False):
         stock_sha1 = boot.boot_hash[:8]
         boot_img = f"{filename}_{stock_sha1}.img"
         magisk_patched_img = f"magisk_patched_{boot.boot_hash[:8]}.img"
-    config_path = get_config_path()
-    factory_images = os.path.join(config_path, 'factory_images')
-    package_dir_full = os.path.join(factory_images, boot.package_sig)
+        package_dir_full = os.path.join(factory_images, boot.package_sig)
+        is_odin = boot.is_odin
     boot_images = os.path.join(config_path, get_boot_images_dir())
     tmp_dir_full = os.path.join(config_path, 'tmp')
 
@@ -1787,7 +1809,7 @@ def patch_boot_img(self, custom_patch = False):
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
             data += "	if [[ -n \"$PATCHING_MAGISK_VERSION\" ]]; then echo $PATCHING_MAGISK_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
-            data += "	echo \"\nERROR: Patching failed!\"\n"
+            data += "	echo \"ERROR: Patching failed!\"\n"
             data += "fi\n\n"
             data += "echo \"Cleaning up ...\"\n"
             # intentionally not including \n
@@ -1799,7 +1821,7 @@ def patch_boot_img(self, custom_patch = False):
             data += "\n"
 
             f.write(data)
-            puml(f"note right\nPatch Script\n====\n{data}end note\n")
+            puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
 
         print("PixelFlasher patching script contents:")
         print(f"___________________________________________________\n{data}")
@@ -1995,7 +2017,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
         print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
         puml(":Dialog;\n", True)
-        puml(f"note right\n{clean_message}end note\n")
+        puml(f"note right\n{clean_message}\nend note\n")
         dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=method, disable_buttons=disabled_buttons, is_md=True, size=[800,660], checkbox_labels=checkboxes)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -2235,7 +2257,7 @@ Unless you know what you're doing, it is recommended that you take the default s
             shutil.copy(magisk_patched_img_file, fileDialog.GetPath(), follow_symlinks=True)
 
     # if Samsung firmware, create boot.tar
-    if boot.is_odin == 1:
+    if is_odin == 1 or self.config.create_boot_tar:
         print(f"Creating boot.tar from patched boot.img ...")
         puml(f":Create boot.tar;\n")
         shutil.copy(magisk_patched_img_file, os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
@@ -2800,7 +2822,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     clean_message = message.replace("<br/>", "")
                     print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
                     puml(":Dialog;\n", True)
-                    puml(f"note right\n{clean_message}end note\n")
+                    puml(f"note right\n{clean_message}\nend note\n")
                     dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=2, is_md=True, size=[700,400])
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
@@ -2996,7 +3018,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     print(f"___________________________________________________\n{data}")
     print("___________________________________________________\n")
     puml(":Dialog;\n", True)
-    puml(f"note right\n{message}end note\n")
+    puml(f"note right\n{message}\nend note\n")
     puml(":Script;\n")
     puml(f"note right\nFlash Script\n====\n{data}\nend note\n")
     try:

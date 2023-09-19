@@ -2176,21 +2176,54 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
     #                               Method open_shell
     # ----------------------------------------------------------------------------
     def open_shell(self):
+        config = get_config()
         if self.mode == 'adb' and get_adb():
             print(f"Opening an adb shell command for device: {self.id} ...")
             puml(":Opening an adb shell command;\n", True)
             theCmd = f"\"{get_adb()}\" -s {self.id} shell"
             debug(theCmd)
             if sys.platform.startswith("win"):
-                subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, env=get_env_variables())
-            elif sys.platform.startswith("linux"):
-                subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd])
+                subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, start_new_session=True, env=get_env_variables())
+            elif sys.platform.startswith("linux") and config.linux_shell:
+                subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
             elif sys.platform.startswith("darwin"):
                 script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
                 script_file.write(f'#!/bin/bash\n{theCmd}'.encode('utf-8'))
                 script_file.close()
                 os.chmod(script_file.name, 0o755)
-                subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], env=get_env_variables())
+                subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+            return 0
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")
+            puml("#red:ERROR: The Device {self.id} is not in adb mode;\n", True)
+            return 1
+
+    # ----------------------------------------------------------------------------
+    #                               Method scrcpy
+    # ----------------------------------------------------------------------------
+    def scrcpy(self):
+        config = get_config()
+        scrcpy_folder = config.scrcpy['folder']
+        flags = config.scrcpy['flags']
+        scrcpy_path = os.path.join(scrcpy_folder, 'scrcpy.exe')
+        if not os.path.exists(scrcpy_path):
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: invalid scrcpy path {scrcpy_path} ")
+            return 1
+        if self.mode == 'adb' and get_adb():
+            print(f"Launching scrcpy for device: {self.id} ...")
+            puml(":Launching scrcpy;\n", True)
+            theCmd = f"\"{scrcpy_path}\" -s {self.id} {flags}"
+            debug(theCmd)
+            if sys.platform.startswith("win"):
+                subprocess.Popen(theCmd, cwd=scrcpy_folder, start_new_session=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+            elif sys.platform.startswith("linux") and config.linux_shell:
+                subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
+            elif sys.platform.startswith("darwin"):
+                script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
+                script_file.write(f'#!/bin/bash\n{theCmd}'.encode('utf-8'))
+                script_file.close()
+                os.chmod(script_file.name, 0o755)
+                subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
             return 0
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device {self.id} is not in adb mode.")

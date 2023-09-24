@@ -47,8 +47,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         # gap
         # vSizer.Add((0, 20), proportion=0, flag=0, border=5)
 
-        NUMROWS = 9
-        fgs1 = wx.FlexGridSizer(rows=NUMROWS, cols=2, vgap=10, hgap=10)
+        fgs1 = wx.FlexGridSizer(cols=2, vgap=10, hgap=10)
         # this makes the second column expandable (index starts at 0)
         fgs1.AddGrowableCol(1, 1)
 

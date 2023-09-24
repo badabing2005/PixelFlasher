@@ -3252,8 +3252,7 @@ class PixelFlasher(wx.Frame):
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(orient=wx.VERTICAL)
 
-        NUMROWS = 12
-        fgs1 = wx.FlexGridSizer(rows=NUMROWS, cols=2, vgap=10, hgap=10)
+        fgs1 = wx.FlexGridSizer(cols=2, vgap=10, hgap=10)
 
         # Add the toolbar
         self._build_toolbar(self.toolbar_flags)
@@ -3556,8 +3555,9 @@ class PixelFlasher(wx.Frame):
         # this makes the second column expandable (index starts at 0)
         fgs1.AddGrowableCol(1, 1)
 
+        row_count = fgs1.EffectiveRowsCount
         # this makes the console row expandable (index starts at 0)
-        fgs1.AddGrowableRow(NUMROWS - 2, 1)
+        fgs1.AddGrowableRow(row_count - 2, 1)
 
         # add flexgrid to vbox
         vbox.Add(fgs1, proportion=1, flag=wx.ALL | wx.EXPAND, border=10)

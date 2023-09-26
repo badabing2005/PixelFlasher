@@ -19,6 +19,13 @@ jobs:
         id: list_issues
         run: echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < (now - "2 weeks" | fromdate)]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
 
+      - name: Add comment before closing
+        run: |
+          for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do
+            echo "Adding a comment to issue $issue"
+            curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "Closing this issue after a prolonged period of inactivity. If this issue is still present in the latest release, feel free to provide up-to-date information."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue/comments"
+          done
+
       - name: Close inactive issues
         run: |
           for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do

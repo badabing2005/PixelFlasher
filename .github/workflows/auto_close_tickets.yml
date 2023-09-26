@@ -1,0 +1,27 @@
+name: Auto Close Inactive Tickets
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs every day at midnight UTC
+
+jobs:
+  close_tickets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Git
+        run: git config --global user.email "actions@github.com" && git config --global user.name "GitHub Actions"
+
+      - name: List all open issues
+        id: list_issues
+        run: echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < (now - "2 weeks" | fromdate)]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
+
+      - name: Close inactive issues
+        run: |
+          for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do
+            echo "Closing issue $issue"
+            curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue"
+          done

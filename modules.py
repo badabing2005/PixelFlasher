@@ -2793,6 +2793,7 @@ def flash_phone(self):
             # Check if the patch file is made by Magsik Zygote64_32
             if "zygote64_32" in boot.magisk_version.lower():
                 # Check we have Magisk Zygote64_32 rooted system already
+                warn = False
                 if device.rooted:
                     # Warn if current firmware is the same as the one being flashed and wipe is not selected.
                     if device.build.lower() in package_sig and not self.config.flash_mode == 'Wipe':

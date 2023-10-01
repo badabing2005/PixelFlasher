@@ -17,7 +17,8 @@ jobs:
 
       - name: List all open issues
         id: list_issues
-        run: echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < (now - "2 weeks" | fromdate)]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
+        run: |
+          echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < (now - "2 weeks" | fromdate))]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
 
       - name: Add comment before closing
         run: |
@@ -30,5 +31,5 @@ jobs:
         run: |
           for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do
             echo "Closing issue $issue"
-            curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue"
+            curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue"
           done

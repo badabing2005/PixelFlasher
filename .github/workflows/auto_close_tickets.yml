@@ -3,7 +3,7 @@ name: Auto Close Inactive Tickets
 on:
   schedule:
     - cron: '0 0 * * *' # Runs every day at midnight UTC
-  workflow_dispatch:    
+  workflow_dispatch:
 
 jobs:
   close_tickets:
@@ -16,16 +16,20 @@ jobs:
       - name: Set up Git
         run: git config --global user.email "actions@github.com" && git config --global user.name "GitHub Actions"
 
+      - name: Calculate date threshold
+        id: calculate_date
+        run: echo "::set-output name=date::$(date -u -d '2 weeks ago' +'%Y-%m-%dT%H:%M:%SZ')"
+
       - name: List all open issues
         id: list_issues
         run: |
-          echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < (now - "2 weeks" | fromdate))]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
+          echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < ${{ steps.calculate_date.outputs.date }})]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
 
       - name: Add comment before closing
         run: |
           for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do
             echo "Adding a comment to issue $issue"
-            curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "Closing this issue after a prolonged period of inactivity. If this issue is still present in the latest release, feel free to provide up-to-date information."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue/comments"
+            curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue/comments"
           done
 
       - name: Close inactive issues

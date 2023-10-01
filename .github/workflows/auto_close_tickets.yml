@@ -16,14 +16,14 @@ jobs:
       - name: Set up Git
         run: git config --global user.email "actions@github.com" && git config --global user.name "GitHub Actions"
 
-      - name: Calculate date threshold
-        id: calculate_date
-        run: echo "::set-output name=date::$(date -u -d '2 weeks ago' +'%Y-%m-%dT%H:%M:%SZ')"
+      - name: Calculate epoch date threshold
+        id: calculate_epoch_date
+        run: echo "::set-output name=epoch_date::$(date -u -d '2 weeks ago' +%s)"
 
       - name: List all open issues
         id: list_issues
         run: |
-          echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < ${{ steps.calculate_date.outputs.date }})]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
+          echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < ${{ steps.calculate_epoch_date.outputs.epoch_date }})]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
 
       - name: Add comment before closing
         run: |
@@ -33,8 +33,13 @@ jobs:
           done
 
       - name: Close inactive issues
+        id: close_issues
         run: |
           for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do
             echo "Closing issue $issue"
             curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue"
           done
+
+      - name: Print closed issues
+        run: |
+          echo "Closed issues: ${{ steps.close_issues.outputs.close_issues }}"

@@ -3,6 +3,7 @@ name: Auto Close Inactive Tickets
 on:
   schedule:
     - cron: '0 0 * * *' # Runs every day at midnight UTC
+  workflow_dispatch:    
 
 jobs:
   close_tickets:

@@ -18,16 +18,16 @@ jobs:
 
       - name: Calculate epoch date threshold
         id: calculate_epoch_date
-        run: echo "::set-output name=epoch_date::$(date -u -d '2 weeks ago' +%s)"
+        run: echo "$(date -u -d '2 weeks ago' +%s)" >> epoch_date.txt
 
       - name: List all open issues
         id: list_issues
         run: |
-          echo "::set-output name=issues::$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < ${{ steps.calculate_epoch_date.outputs.epoch_date }})]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")"
+          echo "$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < '$(cat epoch_date.txt)')]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")" >> issues.json
 
       - name: Add comment before closing
         run: |
-          for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do
+          for issue in $(jq -r '.[].number' issues.json); do
             echo "Adding a comment to issue $issue"
             curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue/comments"
           done
@@ -35,11 +35,15 @@ jobs:
       - name: Close inactive issues
         id: close_issues
         run: |
-          for issue in $(echo "${{ steps.list_issues.outputs.issues }}" | jq -r '.[].number'); do
+          for issue in $(jq -r '.[].number' issues.json); do
             echo "Closing issue $issue"
             curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue"
           done
 
       - name: Print closed issues
         run: |
-          echo "Closed issues: ${{ steps.close_issues.outputs.close_issues }}"
+          echo "Closed issues: $(jq -r '.[].number' issues.json)" >> closed_issues.txt
+
+      - name: Create environment file
+        run: |
+          echo "CLOSED_ISSUES=$(cat closed_issues.txt)" >> $GITHUB_ENV

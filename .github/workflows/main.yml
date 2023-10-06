@@ -26,10 +26,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Cache virtual environment
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pip
+            ~/myenv
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: pip
 
       - name: Create virtual environment
         run: python -m venv myenv
@@ -58,7 +67,7 @@ jobs:
       - name: List contents of dist directory
         run: ls dist
 
-      # Upload artifcats Windows
+      # Upload artifacts Windows
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v3
         id: upload_artifacts_windows
@@ -75,10 +84,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Cache virtual environment
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pip
+            ~/myenv
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.8'
+          cache: pip
 
       - name: Create virtual environment
         run: python -m venv myenv
@@ -107,10 +125,10 @@ jobs:
       - name: List contents of dist directory
         run: ls dist
 
-      # Upload artifcats Windows to Actions
-      - name: Upload Windows Artifact
+      # Upload artifacts Windows 2019
+      - name: Upload Windows 2019 Artifact
         uses: actions/upload-artifact@v3
-        id: upload_artifacts_windows
+        id: upload_artifacts_windows_2019
         with:
           name: PixelFlasher_Win_2019.exe
           path: dist/PixelFlasher.exe
@@ -122,6 +140,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Cache virtual environment
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pip
+            ~/myenv
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: Set up Python
         run: |
@@ -165,7 +191,7 @@ jobs:
           ls dist
         shell: bash
 
-      # Upload artifcats Ubuntu 20.04 to Actions
+      # Upload artifacts Ubuntu 20.04
       - name: Upload Ubuntu 20.04 Artifact
         uses: actions/upload-artifact@v3
         id: upload_artifacts_ubuntu_20_04
@@ -180,6 +206,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Cache virtual environment
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pip
+            ~/myenv
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: Set up Python
         run: |
@@ -223,7 +257,7 @@ jobs:
           ls dist
         shell: bash
 
-      # Upload artifcats Ubuntu 22.04 to Actions
+      # Upload artifacts Ubuntu 22.04
       - name: Upload Ubuntu 22.04 Artifact
         uses: actions/upload-artifact@v3
         id: upload_artifacts_ubuntu_22_04
@@ -239,6 +273,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Cache virtual environment
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/pip
+            ~/myenv
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: List Cellar directory Again
         run: |
@@ -276,7 +318,7 @@ jobs:
       - name: List contents of dist directory
         run: ls dist
 
-      # Upload artifcats Mac-OS
+      # Upload artifacts Mac-OS
       - name: Upload Mac-OS 11 Artifact
         uses: actions/upload-artifact@v3
         id: upload_artifact_macos_11
@@ -419,3 +461,25 @@ jobs:
           asset_content_type: application/zip
         continue-on-error: true
 
+      # Generate SHA-256 checksums for each artifact
+      - name: Generate SHA-256 checksums
+        run: |
+          cd ${{ github.workspace }}/dist-windows
+          sha256sum PixelFlasher.exe > PixelFlasher.exe.sha256
+          cd ${{ github.workspace }}/dist-windows-2019
+          sha256sum PixelFlasher_Win_2019.exe > PixelFlasher_Win_2019.exe.sha256
+          cd ${{ github.workspace }}/dist-ubuntu_20_04
+          sha256sum PixelFlasher > PixelFlasher_Ubuntu_20_04.sha256
+          cd ${{ github.workspace }}/dist-ubuntu_22_04
+          sha256sum PixelFlasher > PixelFlasher_Ubuntu_22_04.sha256
+          cd ${{ github.workspace }}/dist-mac_11
+          sha256sum PixelFlasher.dmg > PixelFlasher.dmg.sha256
+        continue-on-error: true
+
+      # Upload the generated SHA-256 checksums as artifacts
+      - name: Upload SHA-256 checksums
+        uses: actions/upload-artifact@v3
+        with:
+          name: checksums
+          path: ${{ github.workspace }}/dist*/**/*.sha256
+        continue-on-error: true

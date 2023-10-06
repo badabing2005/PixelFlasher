@@ -136,8 +136,8 @@ class Device():
                 return '', ''
         except Exception as e:
             print(e)
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
-            puml("#red:ERROR: Could not get package list;\n", True)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get_package_details.")
+            puml("#red:ERROR: Could not get_package_details;\n", True)
             return '', ''
 
     # ----------------------------------------------------------------------------
@@ -1431,9 +1431,7 @@ class Device():
                         print(f"Package Path is: {pkg_path}")
                         return pkg_path
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}")
-                print(f"Stderr: {res.stderr}")
+                print(f"{details}")
                 return -1
         except Exception as e:
             print(e)
@@ -2348,14 +2346,14 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             res = run_shell(theCmd)
             if res.returncode == 0:
                 return res.stdout.replace('package:','')
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
             return None
         except Exception as e:
             print(e)
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
             return None
 
 
@@ -2426,8 +2424,8 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
 
         except Exception as e:
             print(e)
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list.")
-            puml("#red:ERROR: Could not get package list;\n", True)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get detailed packages.")
+            puml("#red:ERROR: Could not get detailed packages;\n", True)
             return -1
         return 0
 

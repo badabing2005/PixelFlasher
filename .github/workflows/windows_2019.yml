@@ -58,7 +58,7 @@ jobs:
       - name: List contents of dist directory
         run: ls dist
 
-      # Upload artifcats Windows to Actions
+      # Upload artifacts Windows to Actions
       - name: Upload Windows Artifact
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v3
@@ -71,7 +71,8 @@ jobs:
       - name: Copy Windows Artifact locally
         if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
         run: |
-          cp dist/PixelFlasher dist/PixelFlasher.exe
+          cp dist/PixelFlasher dist/PixelFlasher_Win_2019.exe
+          sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
 
       # # Create a release
       # - name: Create Release

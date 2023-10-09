@@ -61,7 +61,7 @@ jobs:
       - name: List contents of dist directory
         run: ls dist
 
-      # Upload artifcats Mint 21.1 to Actions
+      # Upload artifacts Mint 21.1 to Actions
       - name: Upload Mint 21.1 Artifact
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v3
@@ -75,4 +75,5 @@ jobs:
         if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
         run: |
           cp dist/PixelFlasher dist/PixelFlasher_Mint_21_1
+          sha256sum dist/PixelFlasher_Mint_21_1 > dist/PixelFlasher_Mint_21_1.sha256
 

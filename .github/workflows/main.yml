@@ -17,6 +17,9 @@ on:
         description: 'Build tags'
 
 jobs:
+  # ---------------------------------------------------------------------------
+  #                              build_windows
+  # ---------------------------------------------------------------------------
   build_windows:
     if: github.actor == 'badabing2005'
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
@@ -26,19 +29,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Cache virtual environment
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/pip
-            ~/myenv
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          cache: pip
 
       - name: Create virtual environment
         run: python -m venv myenv
@@ -63,6 +57,9 @@ jobs:
 
       - name: Build application
         run: .\build.bat
+
+      - name: Get sha256
+        run: sha256sum dist/PixelFlasher.exe > dist/PixelFlasher.exe.sha256
 
       - name: List contents of dist directory
         run: ls dist
@@ -72,9 +69,14 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifacts_windows
         with:
-          name: PixelFlasher.exe
-          path: dist/PixelFlasher.exe
+          name: PixelFlasher.exe Artifacts
+          path: |
+            dist/PixelFlasher.exe
+            dist/PixelFlasher.exe.sha256
 
+  # ---------------------------------------------------------------------------
+  #                              build_windows_2019
+  # ---------------------------------------------------------------------------
   build_windows_2019:
     if: github.actor == 'badabing2005'
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
@@ -84,19 +86,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Cache virtual environment
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/pip
-            ~/myenv
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.8'
-          cache: pip
 
       - name: Create virtual environment
         run: python -m venv myenv
@@ -122,6 +115,12 @@ jobs:
       - name: Build application
         run: .\build.bat
 
+      - name: Rename the file
+        run: mv dist/PixelFlasher.exe dist/PixelFlasher_Win_2019.exe
+
+      - name: Get sha256
+        run: sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
+
       - name: List contents of dist directory
         run: ls dist
 
@@ -130,9 +129,14 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifacts_windows_2019
         with:
-          name: PixelFlasher_Win_2019.exe
-          path: dist/PixelFlasher.exe
+          name: PixelFlasher_Win_2019.exe Artifacts
+          path: |
+            dist/PixelFlasher_Win_2019.exe
+            dist/PixelFlasher_Win_2019.exe.sha256
 
+  # ---------------------------------------------------------------------------
+  #                              build_ubuntu_20_04
+  # ---------------------------------------------------------------------------
   build_ubuntu_20_04:
     if: github.actor == 'badabing2005'
     runs-on: ubuntu-20.04
@@ -140,14 +144,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Cache virtual environment
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/pip
-            ~/myenv
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: Set up Python
         run: |
@@ -188,6 +184,8 @@ jobs:
           pip install -r requirements.txt
           python --version && pip freeze
           ./build.sh
+          mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_20_04
+          sha256sum dist/PixelFlasher_Ubuntu_20_04 > dist/PixelFlasher_Ubuntu_20_04.sha256
           ls dist
         shell: bash
 
@@ -196,9 +194,14 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifacts_ubuntu_20_04
         with:
-          name: PixelFlasher_Ubuntu_20_04
-          path: dist/PixelFlasher
+          name: PixelFlasher_Ubuntu_20_04 Artifacts
+          path: |
+            dist/PixelFlasher_Ubuntu_20_04
+            dist/PixelFlasher_Ubuntu_20_04.sha256
 
+  # ---------------------------------------------------------------------------
+  #                              build_ubuntu_22_04
+  # ---------------------------------------------------------------------------
   build_ubuntu_22_04:
     if: github.actor == 'badabing2005'
     runs-on: ubuntu-latest
@@ -206,14 +209,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Cache virtual environment
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/pip
-            ~/myenv
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: Set up Python
         run: |
@@ -254,6 +249,8 @@ jobs:
           pip install -r requirements.txt
           python --version && pip freeze
           ./build.sh
+          mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04
+          sha256sum dist/PixelFlasher_Ubuntu_22_04 > dist/PixelFlasher_Ubuntu_22_04.sha256
           ls dist
         shell: bash
 
@@ -262,9 +259,14 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifacts_ubuntu_22_04
         with:
-          name: PixelFlasher_Ubuntu_22_04
-          path: dist/PixelFlasher
+          name: PixelFlasher_Ubuntu_22_04 Artifacts
+          path: |
+            dist/PixelFlasher_Ubuntu_22_04
+            dist/PixelFlasher_Ubuntu_22_04.sha256
 
+  # ---------------------------------------------------------------------------
+  #                              build_mac_11
+  # ---------------------------------------------------------------------------
   build_mac_11:
     if: github.actor == 'badabing2005'
     # runs-on: macos-latest
@@ -273,14 +275,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Cache virtual environment
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/pip
-            ~/myenv
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
       - name: List Cellar directory Again
         run: |
@@ -315,6 +309,9 @@ jobs:
       - name: Build application
         run: ./build.sh
 
+      - name: Get sha256
+        run: sha256sum dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+
       - name: List contents of dist directory
         run: ls dist
 
@@ -323,9 +320,14 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifact_macos_11
         with:
-          name: PixelFlasher.dmg
-          path: dist/PixelFlasher.dmg
+          name: PixelFlasher.dmg Artifacts
+          path: |
+            dist/PixelFlasher.dmg
+            dist/PixelFlasher.dmg.sha256
 
+  # ---------------------------------------------------------------------------
+  #                              deploy
+  # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
     needs: [build_windows, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_11]
@@ -333,153 +335,71 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Create a release
-      - name: Create Release
-        id: create_release
-        # uses: actions/create-release@v1
-        uses: ncipollo/release-action@v1.11.1
-        # env:
-          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          # release_name: Release ${{ github.ref }}
-          # name: Release ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          allowUpdates: "true"
-          draft: false
-          prerelease: true
+      # Get version
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              version=${GITHUB_REF#refs/tags/v}
+          else
+              version=0.0.0.${GITHUB_REF#refs/heads/}
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
       # Download the Windows artifact from the build_windows job
       - name: Download Windows Artifact
         uses: actions/download-artifact@v3
         with:
-          name: PixelFlasher.exe
-          path: dist-windows
+          name: PixelFlasher.exe Artifacts
+          path: release
         continue-on-error: true
 
       # Download the Windows-2019 artifact from the build_windows_2019 job
       - name: Download Windows-2019 Artifact
         uses: actions/download-artifact@v3
         with:
-          name: PixelFlasher_Win_2019.exe
-          path: dist-windows-2019
+          name: PixelFlasher_Win_2019.exe Artifacts
+          path: release
         continue-on-error: true
 
       # Download the Ubuntu_20_04 artifact from the build_ubuntu_20_04 job
       - name: Download Ubuntu_20_04 Artifact
         uses: actions/download-artifact@v3
         with:
-          name: PixelFlasher_Ubuntu_20_04
-          path: dist-ubuntu_20_04
+          name: PixelFlasher_Ubuntu_20_04 Artifacts
+          path: release
         continue-on-error: true
 
       # Download the Ubuntu_22_04 artifact from the build_ubuntu_22_04 job
       - name: Download Ubuntu_22_04 Artifact
         uses: actions/download-artifact@v3
         with:
-          name: PixelFlasher_Ubuntu_22_04
-          path: dist-ubuntu_22_04
+          name: PixelFlasher_Ubuntu_22_04 Artifacts
+          path: release
         continue-on-error: true
 
       # Download the Mac-OS artifacts from the build_mac_11 job
       - name: Download Mac-OS Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: PixelFlasher.dmg
-          path: dist-mac_11
+          name: PixelFlasher.dmg Artifacts
+          path: release
         continue-on-error: true
 
       # List the artifacts downloaded
       - name: List contents of dist directory
-        run: ls ${{ github.workspace }}/dist*
+        run: ls ${{ github.workspace }}/release*
 
-      # Upload the Windows artifact to release
-      - name: Upload Windows Artifact to release
-        uses: shogo82148/actions-upload-release-asset@v1
-        # uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist-windows/PixelFlasher.exe
-          asset_name: PixelFlasher.exe
-          asset_content_type: application/zip
-          # asset_content_type: application/octet-stream
-        continue-on-error: true
-
-      # Upload the Windows 2019 artifact to release
-      - name: Upload Windows 2019 Artifact to release
-        uses: shogo82148/actions-upload-release-asset@v1
-        # uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist-windows-2019/PixelFlasher.exe
-          asset_name: PixelFlasher_Win_2019.exe
-          asset_content_type: application/zip
-          # asset_content_type: application/octet-stream
-        continue-on-error: true
-
-      # Upload the Ubuntu 20.04 artifact to release
-      - name: Upload Ubuntu 20.04 Artifact to release
-        uses: shogo82148/actions-upload-release-asset@v1
-        # uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist-ubuntu_20_04/PixelFlasher
-          asset_name: PixelFlasher_Ubuntu_20_04
-          asset_content_type: application/zip
-        continue-on-error: true
-
-      # Upload the Ubuntu 22.04 artifact to release
-      - name: Upload Ubuntu 22.04 Artifact to release
-        uses: shogo82148/actions-upload-release-asset@v1
-        # uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist-ubuntu_22_04/PixelFlasher
-          asset_name: PixelFlasher_Ubuntu_22_04
-          asset_content_type: application/zip
-        continue-on-error: true
-
-      # Upload the Mac-OS 11 artifact to release
-      - name: Upload Mac-OS 11 Artifacts to release
-        uses: shogo82148/actions-upload-release-asset@v1
-        # uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist-mac_11/PixelFlasher.dmg
-          asset_name: PixelFlasher.dmg
-          asset_content_type: application/zip
-        continue-on-error: true
-
-      # Generate SHA-256 checksums for each artifact
-      - name: Generate SHA-256 checksums
-        run: |
-          cd ${{ github.workspace }}/dist-windows
-          sha256sum PixelFlasher.exe > PixelFlasher.exe.sha256
-          cd ${{ github.workspace }}/dist-windows-2019
-          sha256sum PixelFlasher_Win_2019.exe > PixelFlasher_Win_2019.exe.sha256
-          cd ${{ github.workspace }}/dist-ubuntu_20_04
-          sha256sum PixelFlasher > PixelFlasher_Ubuntu_20_04.sha256
-          cd ${{ github.workspace }}/dist-ubuntu_22_04
-          sha256sum PixelFlasher > PixelFlasher_Ubuntu_22_04.sha256
-          cd ${{ github.workspace }}/dist-mac_11
-          sha256sum PixelFlasher.dmg > PixelFlasher.dmg.sha256
-        continue-on-error: true
-
-      # Upload the generated SHA-256 checksums as artifacts
-      - name: Upload SHA-256 checksums
-        uses: actions/upload-artifact@v3
-        with:
-          name: checksums
-          path: ${{ github.workspace }}/dist*/**/*.sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          # body_path: RELEASE.md
+          draft: false
+          prerelease: true
+          files: |
+            release/*
         continue-on-error: true

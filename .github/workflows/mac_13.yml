@@ -68,7 +68,7 @@ jobs:
       - name: List contents of dist directory
         run: ls dist
 
-      # Upload artifcats Mac-OS 13 to Actions
+      # Upload artifacts Mac-OS 13 to Actions
       - name: Upload Mac-OS 13 Artifact
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v3
@@ -82,6 +82,7 @@ jobs:
         if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
         run: |
           cp dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_13.dmg
+          sha256sum dist/PixelFlasher_MacOS_13.dmg > dist/PixelFlasher_MacOS_13.dmg.sha256
 
       # # Create a release
       # - name: Create Release

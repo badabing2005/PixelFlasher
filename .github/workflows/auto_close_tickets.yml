@@ -18,31 +18,73 @@ jobs:
 
       - name: Calculate epoch date threshold
         id: calculate_epoch_date
-        run: echo "$(date -u -d '2 weeks ago' +%s)" >> epoch_date.txt
+        run: echo "$(date -u -d '15 days ago' +%s)" >> epoch_date.txt
 
-      - name: List all open issues
-        id: list_issues
+      - name: Debug - Show epoch date threshold
+        run: cat epoch_date.txt
+
+      - name: List all open issues older than 15 days
+        id: list_old_issues
         run: |
-          echo "$(jq -c '[.[] | select(.state=="open" and .labels[].name=="need more info" and .updated_at < '$(cat epoch_date.txt)')]' <<< "$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues")")" >> issues.json
+          echo "Listing issues older than 15 days..."
+          threshold_date="$(date -u -d '15 days ago' --iso-8601=seconds)"
+          echo "Threshold date: $threshold_date"
+
+          older_than_15_days_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues?q=updated:<$threshold_date")
+          echo "$older_than_15_days_json" >> older_than_15_days.json
+
+          if [[ $(jq length older_than_15_days.json) -eq 0 ]]; then
+            echo "No issues older than 15 days found."
+          else
+            echo "Found issues older than 15 days:"
+            cat older_than_15_days.json
+          fi
+
+      - name: List all issues with label 'need more info'
+        id: list_need_more_info_issues
+        run: |
+          echo "Listing issues with 'need more info' label..."
+          need_more_info_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues?q=label:\"need more info\"")
+          echo "$need_more_info_json" >> need_more_info.json
+
+          if [[ $(jq length need_more_info.json) -eq 0 ]]; then
+            echo "No issues with 'need more info' label found."
+          else
+            echo "Found issues with 'need more info' label:"
+            cat need_more_info.json
+          fi
+
+      - name: List all issues older than 15 days with 'need more info' label
+        id: list_old_and_need_more_info_issues
+        run: |
+          echo "Listing issues older than 15 days with 'need more info' label..."
+          old_and_need_more_info_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues?q=label:\"need more info\"+updated:<$threshold_date")
+          echo "$old_and_need_more_info_json" >> old_and_need_more_info.json
+
+          if [[ $(jq length old_and_need_more_info.json) -eq 0 ]]; then
+            echo "No issues older than 15 days with 'need more info' label found."
+          else
+            echo "Found issues older than 15 days with 'need more info' label:"
+            cat old_and_need_more_info.json
+          fi
 
       - name: Add comment before closing
         run: |
-          for issue in $(jq -r '.[].number' issues.json); do
+          for issue in $(jq -r '.[].number' old_and_need_more_info.json); do
             echo "Adding a comment to issue $issue"
             curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue/comments"
           done
 
       - name: Close inactive issues
-        id: close_issues
         run: |
-          for issue in $(jq -r '.[].number' issues.json); do
+          for issue in $(jq -r '.[].number' old_and_need_more_info.json); do
             echo "Closing issue $issue"
             curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue"
           done
 
       - name: Print closed issues
         run: |
-          echo "Closed issues: $(jq -r '.[].number' issues.json)" >> closed_issues.txt
+          echo "Closed issues: $(jq -r '.[].number' old_and_need_more_info.json)" >> closed_issues.txt
 
       - name: Create environment file
         run: |

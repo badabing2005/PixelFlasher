@@ -60,7 +60,7 @@ jobs:
 
       - name: Get sha256
         run: |
-          sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
+          certutil -hashfile dist/PixelFlasher_Win_2019.exe SHA256 > dist/PixelFlasher_Win_2019.exe.sha256
           cat dist/PixelFlasher_Win_2019.exe.sha256
 
       - name: List contents of dist directory
@@ -76,40 +76,4 @@ jobs:
           path: |
             dist/PixelFlasher_Win_2019.exe
             dist/PixelFlasher_Win_2019.exe.sha256
-
-      # # Copy the artifact to a local directory
-      # - name: Copy Windows Artifact locally
-      #   if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
-      #   run: |
-      #     cp dist/PixelFlasher dist/PixelFlasher_Win_2019.exe
-
-      # # Create a release
-      # - name: Create Release
-        # id: create_release
-        # # uses: actions/create-release@v1
-        # uses: ncipollo/release-action@v1.11.1
-        # # env:
-          # # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-          # token: ${{ secrets.GITHUB_TOKEN }}
-          # tag: ${{ github.ref }}
-          # # release_name: Release ${{ github.ref }}
-          # # name: Release ${{ github.ref }}
-          # name: Release ${{ github.ref }}
-          # allowUpdates: "true"
-          # draft: false
-          # prerelease: true
-
-      # # Upload the Windows artifact to release
-      # - name: Upload Windows Artifact to release
-        # uses: shogo82148/actions-upload-release-asset@v1
-        # # uses: actions/upload-release-asset@v1
-        # env:
-          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-          # upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # asset_path: dist/PixelFlasher.exe
-          # asset_name: PixelFlasher.exe
-          # asset_content_type: application/zip
-          # # asset_content_type: application/octet-stream
 

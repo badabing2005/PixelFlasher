@@ -60,7 +60,7 @@ jobs:
 
       - name: Get sha256
         run: |
-          sha256sum dist/PixelFlasher.exe > dist/PixelFlasher.exe.sha256
+          certutil -hashfile dist/PixelFlasher.exe SHA256 > dist/PixelFlasher.exe.sha256
           cat dist/PixelFlasher.exe.sha256
 
       - name: List contents of dist directory
@@ -122,7 +122,7 @@ jobs:
 
       - name: Get sha256
         run: |
-          sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
+          certutil -hashfile dist/PixelFlasher_Win_2019.exe SHA256 > dist/PixelFlasher_Win_2019.exe.sha256
           cat dist/PixelFlasher_Win_2019.exe.sha256
 
       - name: List contents of dist directory

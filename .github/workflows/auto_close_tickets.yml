@@ -52,20 +52,9 @@ jobs:
               echo "Issue $issue_number has 'need more info' label."
               echo "Adding a comment to issue $issue_number"
               curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number/comments"
+              echo "Closing issue $issue_number"
+              curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number"
+            else
+              echo "Issue $issue_number does not have 'need more info' label."
             fi
           done
-
-      - name: Close inactive issues
-        run: |
-          for issue_number in $(jq -r '.[].number' older_than_15_days.json); do
-            echo "Closing issue $issue_number"
-            curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number"
-          done
-
-      - name: Print closed issues
-        run: |
-          echo "Closed issues: $(jq -r '.[].number' older_than_15_days.json)" >> closed_issues.txt
-
-      - name: Create environment file
-        run: |
-          echo "CLOSED_ISSUES=$(cat closed_issues.txt)" >> $GITHUB_ENV

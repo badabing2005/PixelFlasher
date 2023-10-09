@@ -40,51 +40,31 @@ jobs:
             cat older_than_15_days.json
           fi
 
-      - name: List all issues with label 'need more info'
-        id: list_need_more_info_issues
+      - name: Fetch labels for issues
         run: |
-          echo "Listing issues with 'need more info' label..."
-          need_more_info_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues?q=label:\"need more info\"")
-          echo "$need_more_info_json" >> need_more_info.json
+          for issue_number in $(jq -r '.[].number' older_than_15_days.json); do
+            echo "Fetching labels for issue $issue_number..."
+            labels_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number/labels")
+            echo "$labels_json" > labels_$issue_number.json
 
-          if [[ $(jq length need_more_info.json) -eq 0 ]]; then
-            echo "No issues with 'need more info' label found."
-          else
-            echo "Found issues with 'need more info' label:"
-            cat need_more_info.json
-          fi
-
-      - name: List all issues older than 15 days with 'need more info' label
-        id: list_old_and_need_more_info_issues
-        run: |
-          echo "Listing issues older than 15 days with 'need more info' label..."
-          old_and_need_more_info_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues?q=label:\"need more info\"+updated:<$threshold_date")
-          echo "$old_and_need_more_info_json" >> old_and_need_more_info.json
-
-          if [[ $(jq length old_and_need_more_info.json) -eq 0 ]]; then
-            echo "No issues older than 15 days with 'need more info' label found."
-          else
-            echo "Found issues older than 15 days with 'need more info' label:"
-            cat old_and_need_more_info.json
-          fi
-
-      - name: Add comment before closing
-        run: |
-          for issue in $(jq -r '.[].number' old_and_need_more_info.json); do
-            echo "Adding a comment to issue $issue"
-            curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue/comments"
+            # Check if the issue has the 'need more info' label
+            if jq -e '.[].name | contains("need more info")' < labels_$issue_number.json >/dev/null; then
+              echo "Issue $issue_number has 'need more info' label."
+              echo "Adding a comment to issue $issue_number"
+              curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number/comments"
+            fi
           done
 
       - name: Close inactive issues
         run: |
-          for issue in $(jq -r '.[].number' old_and_need_more_info.json); do
-            echo "Closing issue $issue"
-            curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue"
+          for issue_number in $(jq -r '.[].number' older_than_15_days.json); do
+            echo "Closing issue $issue_number"
+            curl -X PATCH -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"state": "closed"}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number"
           done
 
       - name: Print closed issues
         run: |
-          echo "Closed issues: $(jq -r '.[].number' old_and_need_more_info.json)" >> closed_issues.txt
+          echo "Closed issues: $(jq -r '.[].number' older_than_15_days.json)" >> closed_issues.txt
 
       - name: Create environment file
         run: |

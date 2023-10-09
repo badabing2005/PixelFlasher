@@ -59,7 +59,9 @@ jobs:
         run: .\build.bat
 
       - name: Get sha256
-        run: sha256sum dist/PixelFlasher.exe > dist/PixelFlasher.exe.sha256
+        run: |
+          sha256sum dist/PixelFlasher.exe > dist/PixelFlasher.exe.sha256
+          cat dist/PixelFlasher.exe.sha256
 
       - name: List contents of dist directory
         run: ls dist
@@ -119,7 +121,9 @@ jobs:
         run: mv dist/PixelFlasher.exe dist/PixelFlasher_Win_2019.exe
 
       - name: Get sha256
-        run: sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
+        run: |
+          sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
+          cat dist/PixelFlasher_Win_2019.exe.sha256
 
       - name: List contents of dist directory
         run: ls dist
@@ -186,6 +190,7 @@ jobs:
           ./build.sh
           mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_20_04
           sha256sum dist/PixelFlasher_Ubuntu_20_04 > dist/PixelFlasher_Ubuntu_20_04.sha256
+          cat dist/PixelFlasher_Ubuntu_20_04.sha256
           ls dist
         shell: bash
 
@@ -251,6 +256,7 @@ jobs:
           ./build.sh
           mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04
           sha256sum dist/PixelFlasher_Ubuntu_22_04 > dist/PixelFlasher_Ubuntu_22_04.sha256
+          cat dist/PixelFlasher_Ubuntu_22_04.sha256
           ls dist
         shell: bash
 
@@ -310,7 +316,9 @@ jobs:
         run: ./build.sh
 
       - name: Get sha256
-        run: sha256sum dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+        run: |
+          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+          cat dist/PixelFlasher.dmg.sha256
 
       - name: List contents of dist directory
         run: ls dist

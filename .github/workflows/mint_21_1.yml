@@ -58,6 +58,14 @@ jobs:
       - name: Build application
         run: ./build.sh
 
+      - name: Rename the file
+        run: mv dist/PixelFlasher dist/PixelFlasher_Mint_21_1
+
+      - name: Get sha256
+        run: |
+          sha256sum dist/PixelFlasher_Mint_21_1 > dist/PixelFlasher_Mint_21_1.sha256
+          cat dist/PixelFlasher_Mint_21_1.sha256
+
       - name: List contents of dist directory
         run: ls dist
 
@@ -67,13 +75,7 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifacts_mint_21_1
         with:
-          name: PixelFlasher_Mint_21_1
-          path: dist/PixelFlasher
-
-      # Copy the artifact to a local directory
-      - name: Copy Mint 21.1 Artifact locally
-        if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
-        run: |
-          cp dist/PixelFlasher dist/PixelFlasher_Mint_21_1
-          sha256sum dist/PixelFlasher_Mint_21_1 > dist/PixelFlasher_Mint_21_1.sha256
-
+          name: PixelFlasher_Mint_21_1 Artifacts
+          path: |
+            dist/PixelFlasher_Mint_21_1
+            dist/PixelFlasher_Mint_21_1.sha256

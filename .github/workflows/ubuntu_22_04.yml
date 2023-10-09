@@ -65,6 +65,9 @@ jobs:
           pip install -r requirements.txt
           python --version && pip freeze
           ./build.sh
+          mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04
+          sha256sum dist/PixelFlasher_Ubuntu_22_04 > dist/PixelFlasher_Ubuntu_22_04.sha256
+          cat dist/PixelFlasher_Ubuntu_22_04.sha256
           ls dist
         shell: bash
 
@@ -74,15 +77,16 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifacts_ubuntu_22_04
         with:
-          name: PixelFlasher_Ubuntu_22_04
-          path: dist/PixelFlasher
+          name: PixelFlasher_Ubuntu_22_04 Artifacts
+          path: |
+            dist/PixelFlasher_Ubuntu_22_04
+            dist/PixelFlasher_Ubuntu_22_04.sha256
 
-      # Copy the artifact to a local directory
-      - name: Copy Ubuntu 22.04 Artifact locally
-        if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
-        run: |
-          cp dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04
-          sha256sum dist/PixelFlasher_Ubuntu_22_04 > dist/PixelFlasher_Ubuntu_22_04.sha256
+      # # Copy the artifact to a local directory
+      # - name: Copy Ubuntu 22.04 Artifact locally
+      #   if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
+      #   run: |
+      #     cp dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04
 
       # # Create a release
       # - name: Create Release

@@ -55,6 +55,14 @@ jobs:
       - name: Build application
         run: .\build.bat
 
+      - name: Rename the file
+        run: mv dist/PixelFlasher.exe dist/PixelFlasher_Win_2019.exe
+
+      - name: Get sha256
+        run: |
+          sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
+          cat dist/PixelFlasher_Win_2019.exe.sha256
+
       - name: List contents of dist directory
         run: ls dist
 
@@ -64,15 +72,16 @@ jobs:
         uses: actions/upload-artifact@v3
         id: upload_artifacts_windows
         with:
-          name: PixelFlasher_Win_2019.exe
-          path: dist/PixelFlasher.exe
+          name: PixelFlasher_Win_2019.exe Artifacts
+          path: |
+            dist/PixelFlasher_Win_2019.exe
+            dist/PixelFlasher_Win_2019.exe.sha256
 
-      # Copy the artifact to a local directory
-      - name: Copy Windows Artifact locally
-        if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
-        run: |
-          cp dist/PixelFlasher dist/PixelFlasher_Win_2019.exe
-          sha256sum dist/PixelFlasher_Win_2019.exe > dist/PixelFlasher_Win_2019.exe.sha256
+      # # Copy the artifact to a local directory
+      # - name: Copy Windows Artifact locally
+      #   if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
+      #   run: |
+      #     cp dist/PixelFlasher dist/PixelFlasher_Win_2019.exe
 
       # # Create a release
       # - name: Create Release

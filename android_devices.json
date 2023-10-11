@@ -1,4 +1,14 @@
 {
+    "husky": {
+        "device": "Pixel 8 Pro",
+        "android_version_end_date": "September 2026",
+        "security_update_end_date": "September 2030"
+    },
+    "shiba": {
+        "device": "Pixel 8",
+        "android_version_end_date": "September 2026",
+        "security_update_end_date": "September 2027"
+    },
     "felix": {
         "device": "Pixel Fold",
         "android_version_end_date": "June 2026",

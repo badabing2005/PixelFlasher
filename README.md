@@ -195,7 +195,7 @@ The following information about the connected device is displayed.
     - (3rd field) Device ID.
     - (4th field) Device hardware.
     - (5th field) Current running firmware (in fastboot mode current firmware cannot be determined).
-4. Next select the factory or full OTA zip file (don't unzip), the application will recognize the phone model from the image name and validate the SHA-256 checksum.  
+4. Next select the full OTA (recommended) or factory zip file (don't unzip), the application will recognize the phone model from the image name and validate the SHA-256 checksum.  
 You can download [factory images](https://developers.google.com/android/images) by clicking the ![Image of link](/images/open-link-16.png) next to it.
 You can download full OTA images from [here](https://developers.google.com/android/ota).
 **Note:** Because both firmware package and full OTA are complete images, you can upgrade to any newer version without worrying about jumping versions (downgrades might work, but are not recommended).
@@ -229,10 +229,12 @@ The following details are listed.
     - If full OTA image is selected in step 4:
       - **Full OTA**: Will flash full OTA image in sideload mode.
       Features of this mode:
-        - This will always flash to inactive slot similar to how OTA updates happen on the phone.
+        - This will always flash to **inactive slot only**, (hence why the option to flash to both slots is disabled) similar to how OTA updates happen on the phone.
+        - It will always be **Keep Data**, there is no option for **Wipe**, hence why the option is disabled.
         - If something goes wrong during flashing, the active flash is uneffected and the phone boots back to active functional slot.
         - If you flash to both slots (ie flash twice in a row) then both slots would be bootable.
         - Your phone's bootloader does not have to be unlocked to be able to flash full OTA image (stock boot only).
+        - You cannot downgrade with OTA, the version being installed has to be equal or higher.
 10. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
 ![Image of PixelFlasher GUI](/images/magisk-modules-manager.png)
 11. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  

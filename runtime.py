@@ -951,6 +951,16 @@ def check_latest_version():
 
 
 # ============================================================================
+#                               Function enabled_disabled
+# ============================================================================
+def enabled_disabled(data):
+    if data:
+        return "Enabled"
+    else:
+        return "Disabled"
+
+
+# ============================================================================
 #                               Function grow_column
 # ============================================================================
 def grow_column(list, col, value = 20):
@@ -1159,6 +1169,16 @@ def get_filenames_in_dir(directory, isFile = False):
         if os.path.isfile(os.path.join(dir_path, file)):
             file_names.append(file)
     return file_names
+
+
+# ============================================================================
+#                               Function find_file_by_prefix
+# ============================================================================
+def find_file_by_prefix(directory, prefix):
+    for filename in os.listdir(directory):
+        if filename.startswith(prefix):
+            return os.path.join(directory, filename)
+    return None
 
 
 # ============================================================================

@@ -40,6 +40,20 @@ class Backup():
 
 
 # ============================================================================
+#                               Class Vbmeta
+# ============================================================================
+class Vbmeta():
+    def __init__(self):
+        self.clear()
+
+    def clear(self):
+        self.type = '' # one of ["a_only", "ab", "none"]
+        self.verity_a = None
+        self.verity_b = None
+        self.verification_a = None
+        self.verification_b = None
+
+# ============================================================================
 #                               Class Magisk
 # ============================================================================
 class Magisk():
@@ -106,7 +120,10 @@ class Device():
         self._has_init_boot = None
         self.packages = {}
         self.backups = {}
+        self.vbmeta = {}
         self._ro_kernel_version = None
+        # Get vbmeta details
+        self.vbmeta = self.get_vbmeta_details()
 
     # ----------------------------------------------------------------------------
     #                               property adb_device_info
@@ -707,6 +724,88 @@ class Device():
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get {item} status.")
             puml(f"#red:ERROR: Could not get {item} status.;\n", True)
             return -1
+
+    # ----------------------------------------------------------------------------
+    #                               method get_vbmeta_details
+    # ----------------------------------------------------------------------------
+    def get_vbmeta_details(self):
+        if self.mode != 'adb' or not self.rooted:
+            return None
+        try:
+            self.vbmeta.clear()
+            vbmeta_a = ''
+            vbmeta_b = ''
+            vbmeta_a_only = ''
+            vbmeta = Vbmeta()
+            vbmeta.type = 'none'
+            partitions = self.get_partitions()
+
+            if "vbmeta_a" in partitions:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/vbmeta_a bs=1 skip=123 count=1 status=none | xxd -p\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    vbmeta.type = 'ab'
+                    vbmeta_a = int(res.stdout.strip('\n'))
+            if "vbmeta_b" in partitions:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/vbmeta_b bs=1 skip=123 count=1 status=none | xxd -p\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    vbmeta.type = 'ab'
+                    vbmeta_b = int(res.stdout.strip('\n'))
+            if "vbmeta_a" not in partitions and "vbmeta_b" not in partitions and "vbmeta" in partitions:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/vbmeta bs=1 skip=123 count=1 status=none | xxd -p\'\""
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    vbmeta.type = 'a_only'
+                    vbmeta_a_only = int(res.stdout.strip('\n'))
+
+            if vbmeta_a == 0:
+                vbmeta.verity_a = True
+                vbmeta.verification_a = True
+            elif vbmeta_a == 1:
+                vbmeta.verity_a = False
+                vbmeta.verification_a = True
+            elif vbmeta_a == 2:
+                vbmeta.verity_a = True
+                vbmeta.verification_a = False
+            elif vbmeta_a == 3:
+                vbmeta.verity_a = False
+                vbmeta.verification_a = False
+
+            if vbmeta_b == 0:
+                vbmeta.verity_b = True
+                vbmeta.verification_b = True
+            elif vbmeta_b == 1:
+                vbmeta.verity_b = False
+                vbmeta.verification_b = True
+            elif vbmeta_b == 2:
+                vbmeta.verity_b = True
+                vbmeta.verification_b = False
+            elif vbmeta_b == 3:
+                vbmeta.verity_b = False
+                vbmeta.verification_b = False
+
+            if vbmeta.type == "a_only":
+                if vbmeta_a_only == 0:
+                    vbmeta.verity_a = True
+                    vbmeta.verification_a = True
+                elif vbmeta_a_only == 1:
+                    vbmeta.verity_a = False
+                    vbmeta.verification_a = True
+                elif vbmeta_a_only == 2:
+                    vbmeta.verity_a = True
+                    vbmeta.verification_a = False
+                elif vbmeta_a_only == 3:
+                    vbmeta.verity_a = False
+                    vbmeta.verification_a = False
+
+            self.vbmeta = vbmeta
+        except Exception as e:
+            print(e)
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get vbmeta details.")
+            puml("#red:ERROR: Could not get vbmeta details.;\n", True)
+            return vbmeta
+        return vbmeta
 
     # ----------------------------------------------------------------------------
     #                               method get_magisk_backups

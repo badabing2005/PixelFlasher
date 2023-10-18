@@ -243,6 +243,7 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
     with con:
         data = con.execute(sql, parameters)
         i = 0
+        full_ota = None
         for row in data:
             boot_hash = row[1][:8] or ''
             package_boot_hash = row[9][:8] or ''
@@ -579,6 +580,7 @@ def process_file(self, file_type):
         found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
         found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=True)
         found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=True)
+        found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=True)
         found_boot_img_lz4 = ''
         set_firmware_has_init_boot(False)
         set_ota(self, False)
@@ -710,6 +712,7 @@ def process_file(self, file_type):
         file_to_process = self.config.custom_rom_path
         found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
         found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=False)
+        found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=False)
         set_rom_has_init_boot(False)
         if found_init_boot_img:
             set_rom_has_init_boot(True)
@@ -791,6 +794,8 @@ def process_file(self, file_type):
             boot_file_name = 'init_boot.img'
             files_to_extract += 'init_boot.img '
             is_init_boot = True
+        if found_vbmeta_img:
+            files_to_extract += 'vbmeta.img '
         files_to_extract = files_to_extract.strip()
 
         if not is_odin:
@@ -843,6 +848,9 @@ def process_file(self, file_type):
             shutil.copy(os.path.join(tmp_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
     else:
         print(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
+    if found_vbmeta_img and os.path.exists(package_dir_full):
+        # we copy vbmeta.img so that we can do selective vbmeta verity / verification patching.
+        shutil.copy(os.path.join(tmp_dir_full, 'vbmeta.img'), package_dir_full, follow_symlinks=True)
 
     # Let's see if we have a record for the firmware/rom being processed
     print(f"Checking DB entry for PACKAGE: {file_to_process}")
@@ -2590,6 +2598,8 @@ def flash_phone(self):
                 message += f"Force:                  {self.config.fastboot_force}\n"
             message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
             message += f"Temporary Root:         {self.config.temporary_root}\n"
+            message += f"No Reboot:              {self.config.no_reboot}\n"
+            message += f"Wipe:                   {self.wipe}\n"
     if self.config.flash_mode != 'OTA':
         message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
 
@@ -2654,6 +2664,13 @@ def flash_phone(self):
                     action = f"flash {image_mode}"
                     msg  = f"\nFlash {image_mode:<18}"
                 data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} \"{get_image_path()}\"\n"
+                if self.wipe:
+                    data += "\necho wiping userdata ...\n"
+                    data += f"\"{get_fastboot()}\" -s {device.id} -w\n"
+                # only reboot if no_reboot is not selected
+                if not self.config.no_reboot:
+                    data += "\necho rebooting to system ...\n"
+                    data += f"\"{get_fastboot()}\" -s {device.id} reboot"
 
             f.write(data)
             f.close()
@@ -2949,11 +2966,6 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         data += sleep_line
         data += sleep_line
 
-        # flash vbmeta if disabling verity / verification
-        if self.config.flash_mode == 'OTA'and (self.config.disable_verity or self.config.disable_verification):
-            data += "\necho flashing vbmeta ...\n"
-            data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta vbmeta.img\n"
-
         # are we doing temporary root?
         if self.config.temporary_root and boot.is_patched:
             data += "\necho Live booting to pf_boot for temporary root ...\n"
@@ -2968,6 +2980,10 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
                 if self.config.flash_mode == 'OTA':
                     data += slot_check_lines
+                    # flash vbmeta if disabling verity / verification
+                    if self.config.disable_verity or self.config.disable_verification:
+                        data += "\n    echo flashing vbmeta ...\n"
+                        data += f"    \"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta vbmeta.img\n"
                     data += pf_flash
                     if sys.platform == "win32":
                         data += ")\n"
@@ -3159,11 +3175,21 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
                 puml("#pink:User cancelled flashing;\n}\n")
                 return
+        # confirm for wipe flag
+        if self.config.advanced_options and self.wipe:
+            print("Flash Option: Wipe")
+            dlg = wx.MessageDialog(None, "You have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Wipe',wx.YES_NO | wx.ICON_EXCLAMATION)
+            puml(f"note right\nDialog\n====\nYou have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?\nend note\n")
+            result = dlg.ShowModal()
+            if result != wx.ID_YES:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
+                puml("#pink:User cancelled flashing;\n}\n")
+                return
         # confirm for force flag
-        if self.config.advanced_options and self.config.fastboot_force:
+        elif self.config.advanced_options and self.config.fastboot_force:
             print("Flash Option: Force")
-            dlg = wx.MessageDialog(None, "You have selected to flash option: Force\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Force',wx.YES_NO | wx.ICON_EXCLAMATION)
-            puml(f"note right\nDialog\n====\nYou have selected to flash option: Force\nThis will wipe your data\nAre you sure want to continue?\nend note\n")
+            dlg = wx.MessageDialog(None, "You have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Force',wx.YES_NO | wx.ICON_EXCLAMATION)
+            puml(f"note right\nDialog\n====\nYou have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?\nend note\n")
             result = dlg.ShowModal()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")

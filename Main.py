@@ -77,6 +77,8 @@ class PixelFlasher(wx.Frame):
     def __init__(self, parent, title):
         config_file = get_config_file_path()
         self.config = Config.load(config_file)
+        self.init_complete = False
+        self.wipe = False
         set_config(self.config)
         init_db()
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
@@ -258,6 +260,7 @@ class PixelFlasher(wx.Frame):
         self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
         self.temporary_root_checkBox.SetValue(self.config.temporary_root)
         self.no_reboot_checkBox.SetValue(self.config.no_reboot)
+        self.wipe_checkBox.SetValue(self.wipe)
 
         # get the image choice and update UI
         set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
@@ -303,6 +306,7 @@ class PixelFlasher(wx.Frame):
 
         self.spinner.Hide()
         self.spinner_label.Hide()
+        self.init_complete = True
 
     # -----------------------------------------------
     #           enable_disable_radio_buttons
@@ -1468,6 +1472,7 @@ class PixelFlasher(wx.Frame):
             self.fastboot_force_checkBox.Hide()
             self.fastboot_verbose_checkBox.Hide()
             self.temporary_root_checkBox.Hide()
+            self.wipe_checkBox.Hide()
             # ROM options
             self.custom_rom_checkbox.Hide()
             self.custom_rom.Hide()
@@ -1480,7 +1485,7 @@ class PixelFlasher(wx.Frame):
             self.flash_radio_button.Hide()
             self.image_choice.Hide()
             self.image_file_picker.Hide()
-            self.paste_boot.Hide()
+            self.paste_selection.Hide()
             a = self.mode_radio_button.Name
             # if we're turning off advanced options, and the current mode is customFlash, change it to dryRun
             if self.mode_radio_button.Name == 'mode-customFlash' and self.mode_radio_button.GetValue():
@@ -1499,6 +1504,7 @@ class PixelFlasher(wx.Frame):
             self.fastboot_force_checkBox.Show()
             self.fastboot_verbose_checkBox.Show()
             self.temporary_root_checkBox.Show()
+            self.wipe_checkBox.Show()
             # ROM options
             self.custom_rom_checkbox.Show()
             self.custom_rom.Show()
@@ -1510,7 +1516,7 @@ class PixelFlasher(wx.Frame):
             self.flash_radio_button.Show()
             self.image_choice.Show()
             self.image_file_picker.Show()
-            self.paste_boot.Show()
+            self.paste_selection.Show()
         self.Thaw()
         self._refresh_ui()
 
@@ -1600,6 +1606,8 @@ class PixelFlasher(wx.Frame):
             message += f"    ro.vendor.product.cpu.abilist:   {device.ro_vendor_product_cpu_abilist}\n"
             message += f"    ro.vendor.product.cpu.abilist32: {device.ro_vendor_product_cpu_abilist32}\n"
             message += f"    Device Bootloader Version:       {device.bootloader_version}\n"
+            if device.rooted:
+                message += self.get_vbmeta(device, message)
             m_app_version = device.magisk_app_version
             message += f"    Magisk Manager Version:          {m_app_version}\n"
             message += f"    Magisk Path:                     {device.magisk_path}\n"
@@ -1618,6 +1626,40 @@ class PixelFlasher(wx.Frame):
         print(message)
         puml(f"note right\n{message}\nend note\n")
         self._check_for_bad_magisk(m_version, m_app_version)
+
+    # -----------------------------------------------
+    #                  get_vbmeta
+    # -----------------------------------------------
+    def get_vbmeta(self, device, message=''):
+        try:
+            if device.vbmeta is None:
+                message += f"    vbmeta:                          UNKNOWN\n"
+            elif device.vbmeta.type == 'none':
+                message += f"    vbmeta:                          Not Present\n"
+            else:
+                alert = ''
+                message += f"    vbmeta type:                     {device.vbmeta.type}\n"
+                if device.vbmeta.type == 'ab':
+                    message += f"    Slot A Verity:                   {enabled_disabled(device.vbmeta.verity_a)}\n"
+                    message += f"    Slot A Verification:             {enabled_disabled(device.vbmeta.verification_a)}\n"
+                    message += f"    Slot B Verity:                   {enabled_disabled(device.vbmeta.verity_b)}\n"
+                    message += f"    Slot B Verification:             {enabled_disabled(device.vbmeta.verification_b)}\n"
+                    if ( device.vbmeta.verity_a != device.vbmeta.verity_b ) or ( device.vbmeta.verification_a != device.vbmeta.verification_b ):
+                        alert += "    WARNING! WARNING! WARNING!       Slot a verity / verification does not match slot b verity / verification"
+                else:
+                    message += f"    Verity:                          {enabled_disabled(device.vbmeta.verity_a)}\n"
+                    message += f"    Verification:                    {enabled_disabled(device.vbmeta.verification_a)}\n"
+                # self.config.disable_verification is a disable flag, which is the inverse of device.vbmeta.verification
+                if ( device.vbmeta.verity_a == self.config.disable_verity ) or ( device.vbmeta.verity_b == self.config.disable_verity ):
+                    alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+                if ( device.vbmeta.verification_a == self.config.disable_verification ) or ( device.vbmeta.verification_b == self.config.disable_verification ):
+                    alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+                    alert += "                                     This has a device wipe implications, please double check."
+                message += alert
+            return message
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while getting vbmeta data.")
+            print(e)
 
     # -----------------------------------------------
     #                  _check_for_bad_magisk
@@ -1830,6 +1872,16 @@ class PixelFlasher(wx.Frame):
                     return True
                 return False
 
+            elif condition == 'valid_paste':
+                image_mode = self.image_choice.Items[self.image_choice.GetSelection()]
+                if image_mode in ['boot', 'init_boot']:
+                    boot = get_boot()
+                    if boot:
+                        return True
+                elif image_mode in ["vbmeta", "bootloader", "radio", "image"]:
+                    return True
+                return False
+
             elif condition == 'boot_is_patched':
                 boot = get_boot()
                 if boot and boot.is_patched == 1:
@@ -1909,18 +1961,21 @@ class PixelFlasher(wx.Frame):
                 self.firmware_folder_button:            ['boot_is_selected'],
                 self.live_boot_button:                  ['device_attached', 'boot_is_selected'],
                 self.flash_boot_button:                 ['device_attached', 'boot_is_selected'],
-                self.paste_boot:                        ['boot_is_selected', 'custom_flash'],
+                self.paste_selection:                   ['device_attached','custom_flash', 'valid_paste'],
                 self.patch_custom_boot_button:          ['device_attached', 'device_mode_adb'],
                 self.reboot_download_menu:              ['device_attached', 'device_mode_adb'],
                 self.switch_slot_menu:                  ['device_attached', 'dual_slot'],
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
-                self.magisk_modules_menu:               ['device_attached', 'device_mode_adb', 'has_magisk_modules'],
+                self.magisk_modules_menu:               ['device_attached', 'device_mode_adb'],
                 self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.disable_verity_checkBox:           ['device_attached'],
+                self.disable_verification_checkBox:     ['device_attached'],
                 self.flash_both_slots_checkBox:         ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.flash_to_inactive_slot_checkBox:   ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
+                self.wipe_checkBox:                     ['device_attached', 'custom_flash'],
                 self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
                 self.patch_boot_button:                 ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 # Special handling of non-singular widgets
@@ -1943,7 +1998,7 @@ class PixelFlasher(wx.Frame):
                 130:                                    ['device_attached'],                                            # Reboot Recovery
                 140:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Reboot Safe Mode
                 150:                                    ['device_attached', 'device_mode_adb'],                         # Reboot Download
-                200:                                    ['device_attached', 'device_mode_adb', 'has_magisk_modules'],   # Magisk Modules
+                200:                                    ['device_attached', 'device_mode_adb'],   # Magisk Modules
                 210:                                    ['device_attached'],                                            # Magisk Install
                 220:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Magisk Backup Manager
                 230:                                    ['no_rule'],                                                    # SOS
@@ -2106,6 +2161,7 @@ class PixelFlasher(wx.Frame):
             choice = event.GetEventObject()
             set_image_mode(choice.GetString(choice.GetSelection()))
             self._update_custom_flash_options()
+            self.update_widget_states()
             self._on_spin('stop')
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while choosing an image")
@@ -2174,6 +2230,8 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_mode_changed(self, event):
         self.mode_radio_button = event.GetEventObject()
+        self.wipe = False
+        self.wipe_checkBox.SetValue(False)
         if self.mode_radio_button.GetValue():
             self.config.flash_mode = self.mode_radio_button.mode
             print(f"Flash mode changed to: {self.config.flash_mode}")
@@ -2222,6 +2280,7 @@ class PixelFlasher(wx.Frame):
         puml(":Flash Option change;\n", True)
         puml(f"note right:Disable Verity {status}\n")
         self.config.disable_verity = status
+        self.vbmeta_alert(show_alert=False)
 
     # -----------------------------------------------
     #                  _on_disable_verification
@@ -2233,6 +2292,27 @@ class PixelFlasher(wx.Frame):
         puml(":Flash Option change;\n", True)
         puml(f"note right:Disable Verification {status}\n")
         self.config.disable_verification = status
+        self.vbmeta_alert(show_alert=True)
+
+    # -----------------------------------------------
+    #                  vbmeta_alert
+    # -----------------------------------------------
+    def vbmeta_alert(self, show_alert=False):
+        device = get_phone()
+        if self.init_complete:
+            device.get_vbmeta_details()
+        alert = self.get_vbmeta(device)
+        if show_alert and "WARNING!" in alert:
+            try:
+                dlg = MessageBoxEx(parent=None, title="vbmeta issue.", message=f"Warning!\n{alert}", button_texts=["OK"], default_button=1)
+                puml(f"note right\nDialog\n====\nWarning!\n{alert}\nend note\n")
+                dlg.CentreOnParent(wx.BOTH)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                print(e)
+        print(alert)
 
     # -----------------------------------------------
     #                  _on_fastboot_force
@@ -2277,6 +2357,17 @@ class PixelFlasher(wx.Frame):
         puml(":Flash Option change;\n", True)
         puml(f"note right:No Reboot {status}\n")
         self.config.no_reboot = status
+
+    # -----------------------------------------------
+    #                  _on_wipe
+    # -----------------------------------------------
+    def _on_wipe(self, event):
+        self._on_wipe_checkBox = event.GetEventObject()
+        status = self._on_wipe_checkBox.GetValue()
+        print(f"Flash Option: Wipe {status}")
+        puml(":Flash Option change;\n", True)
+        puml(f"note right:Wipe {status}\n")
+        self.wipe = status
 
     # -----------------------------------------------
     #                  _on_verbose
@@ -3164,16 +3255,39 @@ class PixelFlasher(wx.Frame):
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  _on_paste_boot
+    #                  _on_paste_selection
     # -----------------------------------------------
-    def _on_paste_boot(self, event):
-        boot = get_boot()
-        if boot and boot.boot_path:
-            print(f"Pasted {boot.boot_path} to custom flash")
-            puml(f":Paste boot path;\nnote right:{boot.boot_path};\n", True)
-            self.image_file_picker.SetPath(boot.boot_path)
-            set_image_path(boot.boot_path)
+    def _on_paste_selection(self, event):
+        config_path = get_config_path()
+        factory_images = os.path.join(config_path, 'factory_images')
+        package_sig = get_firmware_id()
+        package_dir_full = os.path.join(factory_images, package_sig)
+        image_mode = self.image_choice.Items[self.image_choice.GetSelection()]
+        flag = True
+        if image_mode in ['boot', 'init_boot']:
+            boot = get_boot()
+            if boot and boot.boot_path:
+                pasted_filename = boot.boot_path
+        elif image_mode == "vbmeta":
+            pasted_filename = find_file_by_prefix(package_dir_full, "vbmeta.img")
+        elif image_mode == "bootloader":
+            pasted_filename = find_file_by_prefix(package_dir_full, "bootloader-")
+        elif image_mode == "radio":
+            pasted_filename = find_file_by_prefix(package_dir_full, "radio-")
+        elif image_mode == "image":
+            pasted_filename = find_file_by_prefix(package_dir_full, "image-")
+        else:
+            print("Nothing to paste!")
+            flag = False
+            return
+        if flag and os.path.exists(pasted_filename):
+            print(f"Pasted {pasted_filename} to custom flash")
+            puml(f":Paste boot path;\nnote right:{pasted_filename};\n", True)
+            self.image_file_picker.SetPath(pasted_filename)
+            set_image_path(pasted_filename)
             set_flash_button_state(self)
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file: {pasted_filename} Not Found.")
 
     # -----------------------------------------------
     #                  _on_patch_boot
@@ -3457,13 +3571,13 @@ class PixelFlasher(wx.Frame):
         self.image_choice = wx.Choice(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=image_choices, style=0)
         self.image_choice.SetSelection(-1)
         self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Flashable files (*.img;*.zip)|*.img;*.zip", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.paste_boot = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
-        self.paste_boot.SetBitmap(images.paste_24.GetBitmap())
-        self.paste_boot.SetToolTip(u"Paste the selected boot.img as custom image.")
+        self.paste_selection = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.paste_selection.SetBitmap(images.paste_24.GetBitmap())
+        self.paste_selection.SetToolTip(u"Depending on the flash selection, paste the appropriate path as custom image.")
         custom_flash_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_flash_sizer.Add(window=self.image_choice, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         custom_flash_sizer.Add(window=self.image_file_picker, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
-        custom_flash_sizer.Add(window=self.paste_boot, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        custom_flash_sizer.Add(window=self.paste_selection, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
 
 
         # 10th row widgets, Flash options
@@ -3484,6 +3598,8 @@ class PixelFlasher(wx.Frame):
         self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if Magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image.")
         self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"No reboot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
+        self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Wipe", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.wipe_checkBox.SetToolTip(u"This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.")
         self.advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -3493,6 +3609,7 @@ class PixelFlasher(wx.Frame):
         self.advanced_options_sizer.Add(window=self.fastboot_verbose_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         self.advanced_options_sizer.Add(window=self.temporary_root_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         self.advanced_options_sizer.Add(window=self.no_reboot_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.wipe_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         # 11th row widgets, Flash button
         self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Pixel Phone", pos=wx.DefaultPosition, size=wx.Size(-1, 50))
@@ -3581,6 +3698,7 @@ class PixelFlasher(wx.Frame):
         self.flash_both_slots_checkBox.Bind(wx.EVT_CHECKBOX, self._on_flash_both_slots)
         self.flash_to_inactive_slot_checkBox.Bind(wx.EVT_CHECKBOX, self._on_flash_to_inactive_slot)
         self.no_reboot_checkBox.Bind(wx.EVT_CHECKBOX, self._on_no_reboot)
+        self.wipe_checkBox.Bind(wx.EVT_CHECKBOX, self._on_wipe)
         self.disable_verity_checkBox.Bind(wx.EVT_CHECKBOX, self._on_disable_verity)
         self.fastboot_force_checkBox.Bind(wx.EVT_CHECKBOX, self._on_fastboot_force)
         self.fastboot_verbose_checkBox.Bind(wx.EVT_CHECKBOX, self._on_fastboot_verbose)
@@ -3601,7 +3719,7 @@ class PixelFlasher(wx.Frame):
         self.process_firmware.Bind(wx.EVT_BUTTON, self._on_process_firmware)
         self.process_rom.Bind(wx.EVT_BUTTON, self._on_process_rom)
         self.show_all_boot_checkBox.Bind(wx.EVT_CHECKBOX, self._on_show_all_boot)
-        self.paste_boot.Bind(wx.EVT_BUTTON, self._on_paste_boot)
+        self.paste_selection.Bind(wx.EVT_BUTTON, self._on_paste_selection)
         self.support_button.Bind(wx.EVT_BUTTON, self._on_support_zip)
         self.list.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
         self.Bind(wx.EVT_CLOSE, self._on_close)

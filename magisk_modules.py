@@ -97,7 +97,10 @@ class MagiskModules(wx.Dialog):
         i = 0
         for module in modules:
             if module.id == '':
-                index = self.list.InsertItem(i, module.name)
+                if len(modules) == 1:
+                    continue
+                else:
+                    index = self.list.InsertItem(i, module.name)
             else:
                 index = self.list.InsertItem(i, module.id)
             if module.version == '':

@@ -343,16 +343,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Get version
-      - name: Get version from tag
+      # https://github.com/actions/checkout/issues/290
+      - name: Preserve tag annotations
+        run: git fetch -f origin ${{ github.ref }}:${{ github.ref }}
+
+      - name: Get version from git describe
         id: get_version
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-              version=${GITHUB_REF#refs/tags/v}
-          else
-              version=0.0.0.${GITHUB_REF#refs/heads/}
-          fi
-          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          version=$(git describe | sed -E 's/v([0-9]*\.[0-9]*)-([0-9]+)-g([0-9a-f]+)/v\1.r\2.g\3/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       # Download the Windows artifact from the build_windows job
       - name: Download Windows Artifact
@@ -406,8 +405,8 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: Release v${{ steps.get_version.outputs.version }}
           # body_path: RELEASE.md
-          draft: false
-          prerelease: true
+          draft: true
+          prerelease: false
           files: |
             release/*
         continue-on-error: true

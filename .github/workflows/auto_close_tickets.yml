@@ -17,11 +17,12 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
+        shell: bash
 
       - name: Calculate date threshold
         id: calculate_date
         run: |
-          date_threshold="::set-output name=date::$(date -u -d '15 days ago' +'%Y-%m-%dT%H:%M:%SZ')"
+          date_threshold=$(date -u -d '15 days ago' +'%Y-%m-%dT%H:%M:%SZ')
           echo "Debug: Date threshold: $date_threshold"
         shell: bash
 
@@ -31,16 +32,14 @@ jobs:
           echo "Getting all open issues with tag: 'need more info' ..."
           open_issues_with_tag_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues?labels=need%20more%20info&state=open")
           echo "Debug: All Open Issues with Tag (need more info): $open_issues_with_tag_json"
-          threshold="${{ steps.calculate_date.outputs.date }}"
-          filtered_issues=$(jq --arg threshold "$threshold" '.[] | select(.updated_at < $threshold)' <<< "$open_issues_with_tag_json")
+          filtered_issues=$(jq --arg threshold "$date_threshold" '.[] | select(.updated_at < $threshold)' <<< "$open_issues_with_tag_json")
           echo "Debug: Filtered Issues: $filtered_issues"
-          echo "::set-output name=filtered_issues::$filtered_issues"
         shell: bash
 
       - name: Iterate and close filtered issues
         run: |
           closed_issues=""
-          for issue_number in $(echo "${{ steps.list_open_issues_with_tag.outputs.filtered_issues }}" | jq -r '.[].number'); do
+          for issue_number in $(echo "$filtered_issues" | jq -r '.[].number'); do
             echo "Adding a comment to issue $issue_number"
             curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number/comments"
             echo "Closing issue $issue_number"

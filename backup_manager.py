@@ -3,7 +3,7 @@
 import gzip
 import shutil
 
-import clipboard
+import pyperclip
 import wx
 import wx.html
 import wx.lib.mixins.listctrl as listmix
@@ -586,7 +586,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnCopyClipboard(self, event):
         item = self.list.GetItem(self.currentItem)
-        clipboard.copy(item.Text)
+        pyperclip.copy(item.Text)
 
     # -----------------------------------------------
     #                  Function Refresh

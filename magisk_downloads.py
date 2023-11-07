@@ -3,7 +3,7 @@
 import webbrowser
 from urllib.parse import urlparse
 
-import clipboard
+import pyperclip
 import darkdetect
 import markdown
 import wx
@@ -212,14 +212,14 @@ class MagiskDownloads(wx.Dialog):
     # -----------------------------------------------
     def _OnCopyPackageId(self, event):
         item = self.list.GetItem(self.currentItem, 4)
-        clipboard.copy(item.Text)
+        pyperclip.copy(item.Text)
 
     # -----------------------------------------------
     #                  _OnCopyURL
     # -----------------------------------------------
     def _OnCopyURL(self, event):
         item = self.list.GetItem(self.currentItem, 3)
-        clipboard.copy(item.Text)
+        pyperclip.copy(item.Text)
 
     # -----------------------------------------------
     #                  __del__

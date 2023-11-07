@@ -4,7 +4,7 @@ import json
 import math
 import time
 
-import clipboard
+import pyperclip
 import darkdetect
 import wx
 import wx.html
@@ -879,7 +879,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnCopyClipboard(self, event):
         item = self.list.GetItem(self.currentItem)
-        clipboard.copy(item.Text)
+        pyperclip.copy(item.Text)
 
     # -----------------------------------------------
     #                  Function Refresh

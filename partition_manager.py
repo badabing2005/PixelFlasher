@@ -2,7 +2,7 @@
 
 import json
 
-import clipboard
+import pyperclip
 import wx
 import wx.html
 import wx.lib.mixins.listctrl as listmix
@@ -469,7 +469,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     # -----------------------------------------------
     def OnCopyClipboard(self, event):
         item = self.list.GetItem(self.currentItem)
-        clipboard.copy(item.Text)
+        pyperclip.copy(item.Text)
 
     # -----------------------------------------------
     #         Function GetItemsCheckedCount

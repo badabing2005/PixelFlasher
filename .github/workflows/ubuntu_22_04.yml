@@ -63,6 +63,8 @@ jobs:
           pip install -U six wheel setuptools
           pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
           pip install -r requirements.txt
+          # Remove the line that bundles libreadline
+          sed -i '/bundled_libs.append("libreadline")/d' build.sh          
           python --version && pip freeze
           ./build.sh
           mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04

@@ -11,6 +11,7 @@ import sqlite3 as sl
 import sys
 import tempfile
 import time
+import traceback
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -23,9 +24,10 @@ from file_editor import FileEditor
 from magisk_downloads import MagiskDownloads
 from message_box_ex import MessageBoxEx
 from payload_dumper import extract_payload
-from phone import get_connected_devices
+from phone import get_connected_devices, update_phones
 from runtime import *
 
+console_widget = None
 
 # ============================================================================
 #                               Class FlashFile
@@ -62,68 +64,73 @@ class FlashFile():
 #                               Function check_platform_tools
 # ============================================================================
 def check_platform_tools(self):
-    if sys.platform == "win32":
-        adb_binary = 'adb.exe'
-        fastboot_binary = 'fastboot.exe'
-    else:
-        adb_binary = 'adb'
-        fastboot_binary = 'fastboot'
-    if self.config.platform_tools_path:
-        adb = os.path.join(self.config.platform_tools_path, adb_binary)
-        fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
-        if os.path.exists(fastboot) and os.path.exists(adb):
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Selected Platform Tools Path:\n{self.config.platform_tools_path}.")
+    try:
+        if sys.platform == "win32":
+            adb_binary = 'adb.exe'
+            fastboot_binary = 'fastboot.exe'
+        else:
+            adb_binary = 'adb'
+            fastboot_binary = 'fastboot'
+        if self.config.platform_tools_path:
             adb = os.path.join(self.config.platform_tools_path, adb_binary)
             fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
-            set_adb(adb)
-            set_fastboot(fastboot)
-            set_adb_sha256(sha256(adb))
-            set_fastboot_sha256(sha256(fastboot))
-            res = identify_sdk_version(self)
-            print(f"SDK Version:      {get_sdk_version()}")
-            print(f"Adb SHA256:       {get_adb_sha256()}")
-            print(f"Fastboot SHA256:  {get_fastboot_sha256()}")
-            puml(f":Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:{get_sdk_version()}\n")
-            if res == -1:
-                return -1
-            set_android_product_out(self.config.platform_tools_path)
-            return
-        else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected path {self.config.platform_tools_path} does not have adb and or fastboot")
-            puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:The selected path does not have adb and or fastboot\n")
-            self.config.platform_tools_path = None
-            set_adb(None)
-            set_fastboot(None)
-
-    if not self.config.platform_tools_path:
-        print("Looking for Android Platform Tools in system PATH environment ...")
-        adb = which(adb_binary)
-        if adb:
-            folder_path = os.path.dirname(adb)
-            print(f"Found Android Platform Tools in {folder_path}")
-            adb = os.path.join(folder_path, adb_binary)
-            fastboot = os.path.join(folder_path, fastboot_binary)
-            set_adb(adb)
-            set_fastboot(fastboot)
-            set_adb_sha256(sha256(adb))
-            if os.path.exists(get_fastboot()):
-                self.config.platform_tools_path = folder_path
-                res = identify_sdk_version(self)
+            if os.path.exists(fastboot) and os.path.exists(adb):
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Selected Platform Tools Path:\n{self.config.platform_tools_path}.")
+                adb = os.path.join(self.config.platform_tools_path, adb_binary)
+                fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
+                set_adb(adb)
+                set_fastboot(fastboot)
+                set_adb_sha256(sha256(adb))
                 set_fastboot_sha256(sha256(fastboot))
+                res = identify_sdk_version(self)
                 print(f"SDK Version:      {get_sdk_version()}")
                 print(f"Adb SHA256:       {get_adb_sha256()}")
                 print(f"Fastboot SHA256:  {get_fastboot_sha256()}")
+                puml(f":Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:{get_sdk_version()}\n")
                 if res == -1:
                     return -1
                 set_android_product_out(self.config.platform_tools_path)
                 return
             else:
-                print(f"fastboot is not found in: {self.config.platform_tools_path}")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected path {self.config.platform_tools_path} does not have adb and or fastboot")
+                puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:The selected path does not have adb and or fastboot\n")
                 self.config.platform_tools_path = None
                 set_adb(None)
                 set_fastboot(None)
-        else:
-            print("Android Platform Tools is not found.")
+
+        if not self.config.platform_tools_path:
+            print("Looking for Android Platform Tools in system PATH environment ...")
+            adb = which(adb_binary)
+            if adb:
+                folder_path = os.path.dirname(adb)
+                print(f"Found Android Platform Tools in {folder_path}")
+                adb = os.path.join(folder_path, adb_binary)
+                fastboot = os.path.join(folder_path, fastboot_binary)
+                set_adb(adb)
+                set_fastboot(fastboot)
+                set_adb_sha256(sha256(adb))
+                if os.path.exists(get_fastboot()):
+                    self.config.platform_tools_path = folder_path
+                    res = identify_sdk_version(self)
+                    set_fastboot_sha256(sha256(fastboot))
+                    print(f"SDK Version:      {get_sdk_version()}")
+                    print(f"Adb SHA256:       {get_adb_sha256()}")
+                    print(f"Fastboot SHA256:  {get_fastboot_sha256()}")
+                    if res == -1:
+                        return -1
+                    set_android_product_out(self.config.platform_tools_path)
+                    return
+                else:
+                    print(f"fastboot is not found in: {self.config.platform_tools_path}")
+                    self.config.platform_tools_path = None
+                    set_adb(None)
+                    set_fastboot(None)
+            else:
+                print("Android Platform Tools is not found.")
+    except Exception as e:
+        traceback.print_exc()
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for platform tools.")
+
     with contextlib.suppress(Exception):
         if self.config.platform_tools_path:
             self.platform_tools_picker.SetPath(self.config.platform_tools_path)
@@ -147,332 +154,322 @@ def set_android_product_out(sdk_path):
 #                               Function populate_boot_list
 # ============================================================================
 def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
-    self.list.DeleteAllItems()
-    con = get_db()
-    con.execute("PRAGMA foreign_keys = ON")
-    con.commit()
-    sql = """
-        SELECT
-            BOOT.id as boot_id,
-            BOOT.boot_hash,
-            BOOT.file_path as boot_path,
-            BOOT.is_patched,
-            BOOT.patch_method,
-            BOOT.magisk_version,
-            BOOT.hardware,
-            BOOT.epoch as boot_date,
-            PACKAGE.id as package_id,
-            PACKAGE.boot_hash as package_boot_hash,
-            PACKAGE.type as package_type,
-            PACKAGE.package_sig,
-            PACKAGE.file_path as package_path,
-            PACKAGE.epoch as package_date,
-            BOOT.is_odin,
-            PACKAGE.full_ota
-        FROM BOOT
-        JOIN PACKAGE_BOOT
-            ON BOOT.id = PACKAGE_BOOT.boot_id
-        JOIN PACKAGE
-            ON PACKAGE.id = PACKAGE_BOOT.package_id
-    """
-    # Apply filter if show all is not selected
-    parameters = []
-    if not self.config.show_all_boot:
-        rom_path = ''
-        firmware_path = ''
-        if self.config.custom_rom and self.config.advanced_options:
-            rom_path = self.config.custom_rom_path
-        if self.config.firmware_path:
-            firmware_path = self.config.firmware_path
-        sql += """
-            WHERE
-                (BOOT.is_patched = 0 AND PACKAGE.file_path IN (?, ?))
-                OR
-                (BOOT.is_patched = 1 AND PACKAGE.boot_hash IN (
-                    SELECT PACKAGE.boot_hash
-                    FROM BOOT
-                    JOIN PACKAGE_BOOT
-                        ON BOOT.id = PACKAGE_BOOT.boot_id
-                    JOIN PACKAGE
-                        ON PACKAGE.id = PACKAGE_BOOT.package_id
-                    WHERE
-                        (BOOT.is_patched = 0 AND PACKAGE.file_path IN (?, ?))
-                ))
+    try:
+        self.list.DeleteAllItems()
+        con = get_db()
+        con.execute("PRAGMA foreign_keys = ON")
+        con.commit()
+        sql = """
+            SELECT
+                BOOT.id as boot_id,
+                BOOT.boot_hash,
+                BOOT.file_path as boot_path,
+                BOOT.is_patched,
+                BOOT.patch_method,
+                BOOT.magisk_version,
+                BOOT.hardware,
+                BOOT.epoch as boot_date,
+                PACKAGE.id as package_id,
+                PACKAGE.boot_hash as package_boot_hash,
+                PACKAGE.type as package_type,
+                PACKAGE.package_sig,
+                PACKAGE.file_path as package_path,
+                PACKAGE.epoch as package_date,
+                BOOT.is_odin,
+                PACKAGE.full_ota
+            FROM BOOT
+            JOIN PACKAGE_BOOT
+                ON BOOT.id = PACKAGE_BOOT.boot_id
+            JOIN PACKAGE
+                ON PACKAGE.id = PACKAGE_BOOT.package_id
         """
-        parameters.extend([firmware_path, rom_path, firmware_path, rom_path])
+        # Apply filter if show all is not selected
+        parameters = []
+        if not self.config.show_all_boot:
+            rom_path = ''
+            firmware_path = ''
+            if self.config.custom_rom and self.config.advanced_options:
+                rom_path = self.config.custom_rom_path
+            if self.config.firmware_path:
+                firmware_path = self.config.firmware_path
+            sql += """
+                WHERE
+                    (BOOT.is_patched = 0 AND PACKAGE.file_path IN (?, ?))
+                    OR
+                    (BOOT.is_patched = 1 AND PACKAGE.boot_hash IN (
+                        SELECT PACKAGE.boot_hash
+                        FROM BOOT
+                        JOIN PACKAGE_BOOT
+                            ON BOOT.id = PACKAGE_BOOT.boot_id
+                        JOIN PACKAGE
+                            ON PACKAGE.id = PACKAGE_BOOT.package_id
+                        WHERE
+                            (BOOT.is_patched = 0 AND PACKAGE.file_path IN (?, ?))
+                    ))
+            """
+            parameters.extend([firmware_path, rom_path, firmware_path, rom_path])
 
-    # Clear the previous sort order arrows
-    for i in range(self.list.GetColumnCount()):
-        col = self.list.GetColumn(i)
-        col_text = col.Text.rstrip(" ▲▼")
-        col.SetImage(-1)
-        col.SetText(f"{col_text}  ")
-        self.list.SetColumn(i, col)
-
-    # Order the query results based on the sortColumn and sorting_direction if provided
-    if sortColumn is not None:
-        # Set the sort order arrow for the current column
-        col = self.list.GetColumn(sortColumn - 1)
-        col_text = col.Text.strip()
-        if sorting_direction == 'ASC':
-            col.SetText(f"{col_text} ▲")
+        # Clear the previous sort order arrows
+        for i in range(self.list.GetColumnCount()):
+            col = self.list.GetColumn(i)
+            col_text = col.Text.rstrip(" ▲▼")
             col.SetImage(-1)
-        elif sorting_direction == 'DESC':
-            col.SetText(f"{col_text} ▼")
-            col.SetImage(-1)
-        self.list.SetColumn(sortColumn - 1, col)
+            col.SetText(f"{col_text}  ")
+            self.list.SetColumn(i, col)
 
-        # Get the column name based on the sortColumn number
-        column_map = {
-            1: 'BOOT.boot_hash',
-            2: 'PACKAGE.boot_hash',
-            3: 'PACKAGE.package_sig',
-            4: 'BOOT.magisk_version',
-            5: 'BOOT.patch_method',
-            6: 'BOOT.hardware',
-            7: 'BOOT.epoch',
-            8: 'PACKAGE.file_path'
-        }
-        column_name = column_map.get(sortColumn, '')
-        if column_name:
-            sql += f" ORDER BY {column_name} {sorting_direction};"
-    else:
-        # Add default sorting
-        sql += " ORDER BY BOOT.is_patched ASC, BOOT.epoch ASC;"
+        # Order the query results based on the sortColumn and sorting_direction if provided
+        if sortColumn is not None:
+            # Set the sort order arrow for the current column
+            col = self.list.GetColumn(sortColumn - 1)
+            col_text = col.Text.strip()
+            if sorting_direction == 'ASC':
+                col.SetText(f"{col_text} ▲")
+                col.SetImage(-1)
+            elif sorting_direction == 'DESC':
+                col.SetText(f"{col_text} ▼")
+                col.SetImage(-1)
+            self.list.SetColumn(sortColumn - 1, col)
 
-    with con:
-        data = con.execute(sql, parameters)
-        i = 0
-        full_ota = None
-        for row in data:
-            boot_hash = row[1][:8] or ''
-            package_boot_hash = row[9][:8] or ''
-            package_sig = row[11] or ''
-            patched_with_magisk_version = str(row[5]) or ''
-            patch_method = row[4] or ''
-            hardware = row[6] or ''
-            ts = datetime.fromtimestamp(row[7])
-            boot_date = ts.strftime('%Y-%m-%d %H:%M:%S')
-            package_path = row[12] or ''
-            if self.config.firmware_path == package_path:
-                full_ota = row[15]
+            # Get the column name based on the sortColumn number
+            column_map = {
+                1: 'BOOT.boot_hash',
+                2: 'PACKAGE.boot_hash',
+                3: 'PACKAGE.package_sig',
+                4: 'BOOT.magisk_version',
+                5: 'BOOT.patch_method',
+                6: 'BOOT.hardware',
+                7: 'BOOT.epoch',
+                8: 'PACKAGE.file_path'
+            }
+            column_name = column_map.get(sortColumn, '')
+            if column_name:
+                sql += f" ORDER BY {column_name} {sorting_direction};"
+        else:
+            # Add default sorting
+            sql += " ORDER BY BOOT.is_patched ASC, BOOT.epoch ASC;"
 
-            index = self.list.InsertItem(i, boot_hash)                     # boot_hash (SHA1)
-            self.list.SetItem(index, 1, package_boot_hash)                 # package_boot_hash (Source SHA1)
-            self.list.SetItem(index, 2, package_sig)                       # package_sig (Package Fingerprint)
-            self.list.SetItem(index, 3, patched_with_magisk_version)       # patched with magisk_version
-            self.list.SetItem(index, 4, patch_method)                      # patched_method
-            self.list.SetItem(index, 5, hardware)                          # hardware
-            self.list.SetItem(index, 6, boot_date)                         # boot_date
-            self.list.SetItem(index, 7, package_path)                      # package_path
-            if row[3]:
-                self.list.SetItemColumnImage(i, 0, 0)
-            else:
-                self.list.SetItemColumnImage(i, 0, -1)
-            i += 1
-        if i > 0 and full_ota is not None:
-            set_ota(self, bool(full_ota))
+        with con:
+            data = con.execute(sql, parameters)
+            i = 0
+            full_ota = None
+            for row in data:
+                boot_hash = row[1][:8] or ''
+                package_boot_hash = row[9][:8] or ''
+                package_sig = row[11] or ''
+                patched_with_magisk_version = str(row[5]) or ''
+                patch_method = row[4] or ''
+                hardware = row[6] or ''
+                ts = datetime.fromtimestamp(row[7])
+                boot_date = ts.strftime('%Y-%m-%d %H:%M:%S')
+                package_path = row[12] or ''
+                if self.config.firmware_path == package_path:
+                    full_ota = row[15]
 
-    auto_resize_boot_list(self)
+                index = self.list.InsertItem(i, boot_hash)                     # boot_hash (SHA1)
+                self.list.SetItem(index, 1, package_boot_hash)                 # package_boot_hash (Source SHA1)
+                self.list.SetItem(index, 2, package_sig)                       # package_sig (Package Fingerprint)
+                self.list.SetItem(index, 3, patched_with_magisk_version)       # patched with magisk_version
+                self.list.SetItem(index, 4, patch_method)                      # patched_method
+                self.list.SetItem(index, 5, hardware)                          # hardware
+                self.list.SetItem(index, 6, boot_date)                         # boot_date
+                self.list.SetItem(index, 7, package_path)                      # package_path
+                if row[3]:
+                    self.list.SetItemColumnImage(i, 0, 0)
+                else:
+                    self.list.SetItemColumnImage(i, 0, -1)
+                i += 1
+            if i > 0 and full_ota is not None:
+                set_ota(self, bool(full_ota))
 
-    # disable buttons
-    self.config.boot_id = None
-    self.config.selected_boot_md5 = None
-    if self.list.ItemCount == 0 :
-        if self.config.firmware_path:
-            print("\nPlease Process the firmware!")
-    else:
-        print("\nPlease select a boot image!")
-    self.update_widget_states()
-    # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
-    self.process_firmware.SetFocus()
+        auto_resize_boot_list(self)
+
+        # disable buttons
+        self.config.boot_id = None
+        self.config.selected_boot_md5 = None
+        if self.list.ItemCount == 0 :
+            if self.config.firmware_path:
+                print("\nPlease Process the firmware!")
+        else:
+            print("\nPlease select a boot image!")
+        self.update_widget_states()
+        # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
+        self.process_firmware.SetFocus()
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating boot list")
+        puml("#red:Encountered an error while populating boot list;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function auto_resize_boot_list
 # ============================================================================
 def auto_resize_boot_list(self):
-    # auto size columns to largest text, including the header (except the last column)
-    cw = 0
-    column_widths = copy.deepcopy(self.boot_column_widths)
-    for i in range(self.list.ColumnCount - 1):
-        self.list.SetColumnWidth(i, -1)  # Set initial width to -1 (default)
-        width = self.list.GetColumnWidth(i)
-        self.list.SetColumnWidth(i, -2)  # Auto-size column width to largest text
-        width = max(width, self.list.GetColumnWidth(i), column_widths[i])  # Get the maximum width
-        if width > column_widths[i]:
-            column_widths[i] = width  # Store / update the width in the array
-        self.list.SetColumnWidth(i, width)  # Set the column width
-        cw += width
+    try:
+        # auto size columns to largest text, including the header (except the last column)
+        cw = 0
+        column_widths = copy.deepcopy(self.boot_column_widths)
+        for i in range(self.list.ColumnCount - 1):
+            self.list.SetColumnWidth(i, -1)  # Set initial width to -1 (default)
+            width = self.list.GetColumnWidth(i)
+            self.list.SetColumnWidth(i, -2)  # Auto-size column width to largest text
+            width = max(width, self.list.GetColumnWidth(i), column_widths[i])  # Get the maximum width
+            if width > column_widths[i]:
+                column_widths[i] = width  # Store / update the width in the array
+            self.list.SetColumnWidth(i, width)  # Set the column width
+            cw += width
 
-    # Set the last column width to the available room
-    available_width = self.list.BestVirtualSize.Width - cw - 10
-    self.list.SetColumnWidth(self.list.ColumnCount - 1, available_width)
+        # Set the last column width to the available room
+        available_width = self.list.BestVirtualSize.Width - cw - 10
+        self.list.SetColumnWidth(self.list.ColumnCount - 1, available_width)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while auto resizing boot list")
+        puml("#red:Encountered an error while auto resizing boot list;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function identify_sdk_version
 # ============================================================================
 def identify_sdk_version(self):
-    sdk_version = None
-    set_sdk_state(False)
-    # Let's grab the adb version
-    with contextlib.suppress(Exception):
-        if get_adb():
-            theCmd = f"\"{get_adb()}\" --version"
-            response = run_shell(theCmd)
-            if response.stdout:
-                # Split lines based on mixed EOL formats
-                lines = re.split(r'\r?\n', response.stdout)
-                for line in lines:
-                    if 'Version' in line:
-                        sdk_version = line.split()[1]
-                        set_sdk_version(sdk_version)
-                        # If version is old treat it as bad SDK
-                        sdkver = sdk_version.split("-")[0]
-                        if parse(sdkver) < parse(SDKVERSION) or (sdkver in ('34.0.0', '34.0.1', '34.0.2', '34.0.3')):
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected old or problematic Android Platform Tools version {sdk_version}")
-                            # confirm if you want to use older version
-                            dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest known good version to avoid any issues.\n(Android Platform-Tools version 33.0.3 is known to be good).\n\nAre you sure want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
-                            result = dlg.ShowModal()
-                            puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
-                            if result == wx.ID_YES:
-                                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted the bad version {sdk_version} of Android platform tools.")
-                                set_sdk_state(True)
-                                puml("#red:User wanted to proceed regardless;\n")
+    try:
+        sdk_version = None
+        set_sdk_state(False)
+        # Let's grab the adb version
+        with contextlib.suppress(Exception):
+            if get_adb():
+                theCmd = f"\"{get_adb()}\" --version"
+                response = run_shell(theCmd)
+                if response.stdout:
+                    # Split lines based on mixed EOL formats
+                    lines = re.split(r'\r?\n', response.stdout)
+                    for line in lines:
+                        if 'Version' in line:
+                            sdk_version = line.split()[1]
+                            set_sdk_version(sdk_version)
+                            # If version is old treat it as bad SDK
+                            sdkver = sdk_version.split("-")[0]
+                            if parse(sdkver) < parse(SDKVERSION) or (sdkver in ('34.0.0', '34.0.1', '34.0.2', '34.0.3')):
+                                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected old or problematic Android Platform Tools version {sdk_version}")
+                                # confirm if you want to use older version
+                                dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest known good version to avoid any issues.\n(Android Platform-Tools version 33.0.3 is known to be good).\n\nAre you sure want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+                                result = dlg.ShowModal()
+                                puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
+                                if result == wx.ID_YES:
+                                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted the bad version {sdk_version} of Android platform tools.")
+                                    set_sdk_state(True)
+                                    puml("#red:User wanted to proceed regardless;\n")
+                                else:
+                                    print("Bad Android platform tools is not accepted. For your protection, disabling device selection.")
+                                    print("Please update Android SDK.\n")
+                                    break
+                            # 34.01 is still broken, skip the whitelisted binaries
+                            # elif sdkver == '34.0.1' and (
+                            #             get_adb_sha256() not in (
+                            #                 '30c68c1c1a9814a724f47ca544f273b8097263677383046ddb7a0e8c26f7dc60',
+                            #                 'bfd5ea39c672b8f0f51796d6fe5439f152e86eafbba9f402d3abda802050e956',
+                            #                 '9d8e3e278b4415416b5da6f94f752e808f8a71fa8397bb6a765c1b44bb807bb2')
+                            #             or get_fastboot_sha256() not in (
+                            #                 'd765b626aa5b54d9d226eb1a915657c6197379835bde67742f9a2832c8c5c2a9',
+                            #                 'e8e6b8f4e8d69401967d16531308b48f144202e459662eae656a0c6e68c2741f',
+                            #                 '29c66b605521dea3c3e32f3b1fd7c30a1637ec3eb729820a48bd6827e4659a20')):
+                            #     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected Android Platform Tools version {sdkver} has known issues, please select another version.")
+                            #     puml(f"#red:Android Platform Tools version {sdkver} has known issues;\n")
+                            #     dlg = wx.MessageDialog(None, f"Android Platform Tools version {sdkver} has known issues, please select another version.",f"Android Platform Tools {sdkver}",wx.OK | wx.ICON_EXCLAMATION)
+                            #     result = dlg.ShowModal()
+                            #     break
                             else:
-                                print("Bad Android platform tools is not accepted. For your protection, disabling device selection.")
-                                print("Please update Android SDK.\n")
-                                break
-                        # 34.01 is still broken, skip the whitelisted binaries
-                        # elif sdkver == '34.0.1' and (
-                        #             get_adb_sha256() not in (
-                        #                 '30c68c1c1a9814a724f47ca544f273b8097263677383046ddb7a0e8c26f7dc60',
-                        #                 'bfd5ea39c672b8f0f51796d6fe5439f152e86eafbba9f402d3abda802050e956',
-                        #                 '9d8e3e278b4415416b5da6f94f752e808f8a71fa8397bb6a765c1b44bb807bb2')
-                        #             or get_fastboot_sha256() not in (
-                        #                 'd765b626aa5b54d9d226eb1a915657c6197379835bde67742f9a2832c8c5c2a9',
-                        #                 'e8e6b8f4e8d69401967d16531308b48f144202e459662eae656a0c6e68c2741f',
-                        #                 '29c66b605521dea3c3e32f3b1fd7c30a1637ec3eb729820a48bd6827e4659a20')):
-                        #     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected Android Platform Tools version {sdkver} has known issues, please select another version.")
-                        #     puml(f"#red:Android Platform Tools version {sdkver} has known issues;\n")
-                        #     dlg = wx.MessageDialog(None, f"Android Platform Tools version {sdkver} has known issues, please select another version.",f"Android Platform Tools {sdkver}",wx.OK | wx.ICON_EXCLAMATION)
-                        #     result = dlg.ShowModal()
-                        #     break
-                        else:
-                            set_sdk_state(True)
-            elif response.stderr:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {response.stderr}")
+                                set_sdk_state(True)
+                elif response.stderr:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {response.stderr}")
 
-    self.update_widget_states()
-    if get_sdk_state():
-        return
+        self.update_widget_states()
+        if get_sdk_state():
+            return
 
-    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version is not available or is too old.")
-    print("                           For your protection, disabling device selection.")
-    print("                           Please select valid Android SDK.\n")
-    puml("#pink:For your protection, disabled device selection;\n")
-    self.config.device = None
-    self.device_choice.SetItems([''])
-    self.device_choice.Select(-1)
-    return -1
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version is not available or is too old.")
+        print("                           For your protection, disabling device selection.")
+        print("                           Please select valid Android SDK.\n")
+        puml("#pink:For your protection, disabled device selection;\n")
+        self.config.device = None
+        self.device_choice.SetItems([''])
+        self.device_choice.Select(-1)
+        return -1
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while identifying sdk version")
+        puml("#red:Encountered an error while identifying sdk version;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function get_flash_settings
 # ============================================================================
 def get_flash_settings(self):
-    message = ''
-    isPatched = ''
+    try:
+        message = ''
+        isPatched = ''
 
-    p_custom_rom = self.config.custom_rom and self.config.advanced_options
-    p_custom_rom_path = self.config.custom_rom_path
-    boot = get_boot()
-    device = get_phone()
-    if not device:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-        return
+        p_custom_rom = self.config.custom_rom and self.config.advanced_options
+        p_custom_rom_path = self.config.custom_rom_path
+        boot = get_boot()
+        device = get_phone()
+        if not device:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            return
 
-    message += f"Android SDK Version:    {get_sdk_version()}\n"
-    message += f"Device:                 {self.config.device} {device.hardware} {device.build}\n"
-    message += f"Factory Image:          {self.config.firmware_path}\n"
-    if p_custom_rom :
-        message += f"Custom Rom:             {str(p_custom_rom)}\n"
-        message += f"Custom Rom File:        {p_custom_rom_path}\n"
-        rom_file = ntpath.basename(p_custom_rom_path)
-        set_custom_rom_file(rom_file)
-    message += f"\nBoot image:             {boot.boot_hash[:8]} / {boot.package_boot_hash[:8]} \n"
-    message += f"                        From: {boot.package_path}\n"
-    if boot.is_patched:
-        if boot.patch_method:
-            message += f"                        Patched with Magisk {boot.magisk_version} on {boot.hardware} method: {boot.patch_method}\n"
-        else:
-            message += f"                        Patched with Magisk {boot.magisk_version} on {boot.hardware}\n"
-    message += f"\nFlash Mode:             {self.config.flash_mode}\n"
-    message += "\n"
-    return message
-
-
-# ============================================================================
-#                               Function wifi_adb_connect
-# ============================================================================
-def wifi_adb_connect(self, value, disconnect = False):
-    if disconnect:
-        command = 'disconnect'
-    else:
-        command = 'connect'
-    print(f"Remote ADB {command}ing: {value}")
-    if get_adb():
-        puml(":Wifi ADB;\n", True)
-        if ':' in value:
-            ip,port = value.split(':')
-        else:
-            ip = value.strip()
-            port = '5555'
-        theCmd = f"\"{get_adb()}\" {command} {ip}:{port}"
-        res = run_shell(theCmd)
-        puml(f"note right\n=== {command} to: {ip}:{port}\nend note\n")
-        if res.returncode == 0 and 'cannot' not in res.stdout and 'failed' not in res.stdout:
-            print(f"ADB {command}ed: {ip}:{port}")
-            puml(f"#palegreen:Succeeded;\n")
-            self.device_choice.SetItems(get_connected_devices())
-            self._select_configured_device()
-            if not disconnect:
-                print(f"Please select the device: {ip}:{port}")
-            return 0
-        else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port}\n")
-            print(f"{res.stderr}")
-            print(f"{res.stdout}")
-            puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
-            return -1
+        message += f"Android SDK Version:    {get_sdk_version()}\n"
+        message += f"Device:                 {self.config.device} {device.hardware} {device.build}\n"
+        message += f"Factory Image:          {self.config.firmware_path}\n"
+        if p_custom_rom :
+            message += f"Custom Rom:             {str(p_custom_rom)}\n"
+            message += f"Custom Rom File:        {p_custom_rom_path}\n"
+            rom_file = ntpath.basename(p_custom_rom_path)
+            set_custom_rom_file(rom_file)
+        message += f"\nBoot image:             {boot.boot_hash[:8]} / {boot.package_boot_hash[:8]} \n"
+        message += f"                        From: {boot.package_path}\n"
+        if boot.is_patched:
+            if boot.patch_method:
+                message += f"                        Patched with Magisk {boot.magisk_version} on {boot.hardware} method: {boot.patch_method}\n"
+            else:
+                message += f"                        Patched with Magisk {boot.magisk_version} on {boot.hardware}\n"
+        message += f"\nFlash Mode:             {self.config.flash_mode}\n"
+        message += "\n"
+        return message
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting flash settings")
+        puml("#red:Encountered an error while while getting flash settings;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function adb_kill_server
 # ============================================================================
 def adb_kill_server(self):
-    if get_adb():
-        print("Invoking adb kill-server ...")
-        puml(":adb kill-server;\n", True)
-        theCmd = f"\"{get_adb()}\" kill-server"
-        res = run_shell(theCmd)
-        if res.returncode == 0:
-            print("returncode: 0")
-            puml(f"#palegreen:Succeeded;\n")
-            self.device_choice.SetItems(get_connected_devices())
-            self._select_configured_device()
-            return 0
+    try:
+        if get_adb():
+            print("Invoking adb kill-server ...")
+            puml(":adb kill-server;\n", True)
+            theCmd = f"\"{get_adb()}\" kill-server"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                print("returncode: 0")
+                puml(f"#palegreen:Succeeded;\n")
+                self.device_choice.SetItems(get_connected_devices())
+                self._select_configured_device()
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not kill adb server.\n")
+                print(f"{res.stderr}")
+                print(f"{res.stdout}")
+                puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
+                return -1
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not kill adb server.\n")
-            print(f"{res.stderr}")
-            print(f"{res.stdout}")
-            puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Android platform tools.\n")
+            puml(f"#red:Missing Android platform tools;\n")
             return -1
-    else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Android platform tools.\n")
-        puml(f"#red:Missing Android platform tools;\n")
-        return -1
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while killing adb servere")
+        puml("#red:Encountered an error while killing adb server;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -481,11 +478,12 @@ def adb_kill_server(self):
 def set_flash_button_state(self):
     try:
         boot = get_boot()
-        if self.config.firmware_path and os.path.exists(boot.package_path):
+        if self.config.firmware_path and boot and os.path.exists(boot.package_path):
             self.flash_button.Enable()
         else:
             self.flash_button.Disable()
     except Exception:
+        traceback.print_exc()
         self.flash_button.Disable()
 
 
@@ -493,589 +491,631 @@ def set_flash_button_state(self):
 #                               Function select_firmware
 # ============================================================================
 def select_firmware(self):
-    puml(":Selecting Firmware;\n", True)
-    firmware = ntpath.basename(self.config.firmware_path)
-    filename, extension = os.path.splitext(firmware)
-    extension = extension.lower()
-    if extension in ['.zip', '.tgz', '.tar']:
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
-        firmware_hash = sha256(self.config.firmware_path)
-        print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
-        puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
+    try:
+        puml(":Selecting Firmware;\n", True)
+        firmware = ntpath.basename(self.config.firmware_path)
+        filename, extension = os.path.splitext(firmware)
+        extension = extension.lower()
+        if extension in ['.zip', '.tgz', '.tar']:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
 
-        # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
-        if firmware_hash[:8] in firmware:
-            print(f"Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
-            puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
-            set_firmware_hash_validity(True)
-        else:
-            print(f"WARNING: Expected to match {firmware_hash[:8]} in the filename but didn't, please double check to make sure the checksum is good.")
-            puml("#orange:Unable to match the checksum in the filename;\n")
-            set_firmware_hash_validity(False)
+            firmware_hash = sha256(self.config.firmware_path)
+            print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
+            puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
 
-        firmware = filename.split("-")
-        if len(firmware) == 1:
-            set_firmware_model(None)
-            set_firmware_id(filename)
-        else:
-            try:
-                set_firmware_model(firmware[0])
-                if firmware[1] == 'ota' or firmware[0] == 'crDroidAndroid':
-                    set_firmware_id(f"{firmware[0]}-{firmware[1]}-{firmware[2]}")
-                    self.config.firmware_is_ota = True
-                else:
-                    set_firmware_id(f"{firmware[0]}-{firmware[1]}")
-                    self.config.firmware_is_ota = False
-            except Exception as e:
+            # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
+            if firmware_hash[:8] in firmware:
+                print(f"Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
+                puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
+                self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
+                set_firmware_hash_validity(True)
+            else:
+                print(f"WARNING: Expected to match {firmware_hash[:8]} in the filename but didn't, please double check to make sure the checksum is good.")
+                puml("#orange:Unable to match the checksum in the filename;\n")
+                self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                set_firmware_hash_validity(False)
+
+            firmware = filename.split("-")
+            if len(firmware) == 1:
                 set_firmware_model(None)
                 set_firmware_id(filename)
-        set_ota(self, self.config.firmware_is_ota)
-        if get_firmware_id():
-            set_flash_button_state(self)
+            else:
+                try:
+                    set_firmware_model(firmware[0])
+                    if firmware[1] == 'ota' or firmware[0] == 'crDroidAndroid':
+                        set_firmware_id(f"{firmware[0]}-{firmware[1]}-{firmware[2]}")
+                        self.config.firmware_is_ota = True
+                    else:
+                        set_firmware_id(f"{firmware[0]}-{firmware[1]}")
+                        self.config.firmware_is_ota = False
+                except Exception as e:
+                    traceback.print_exc()
+                    set_firmware_model(None)
+                    set_firmware_id(filename)
+            set_ota(self, self.config.firmware_is_ota)
+            if get_firmware_id():
+                set_flash_button_state(self)
+            else:
+                self.flash_button.Disable()
+            populate_boot_list(self)
+            self.update_widget_states()
+            return firmware_hash
         else:
-            self.flash_button.Disable()
-        populate_boot_list(self)
-        self.update_widget_states()
-        return firmware_hash
-    else:
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a valid archive file.")
-        puml("#red:The selected firmware is not valid;\n")
-        self.config.firmware_path = None
-        self.firmware_picker.SetPath('')
-        return 'Select Pixel Firmware'
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a valid archive file.")
+            puml("#red:The selected firmware is not valid;\n")
+            self.config.firmware_path = None
+            self.firmware_picker.SetPath('')
+            return 'Select Pixel Firmware'
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting ota/firmware file:")
+        puml("#red:Encountered an error while selecting ota/firmware file;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function process_file
 # ============================================================================
 def process_file(self, file_type):
-    print("")
-    print("==============================================================================")
-    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}         Processing {file_type} file ...")
-    print("==============================================================================")
-    puml(f"#cyan:Process {file_type};\n", True)
-    config_path = get_config_path()
-    path_to_7z = get_path_to_7z()
-    boot_images = os.path.join(config_path, get_boot_images_dir())
-    tmp_dir_full = os.path.join(config_path, 'tmp')
-    con = get_db()
-    con.execute("PRAGMA foreign_keys = ON")
-    con.commit()
-    cursor = con.cursor()
-    start_1 = time.time()
-    checksum = ''
-    is_odin = False
-    is_init_boot = False
-    is_stock_boot = False
+    try:
+        print("")
+        print("==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}         Processing {file_type} file ...")
+        print("==============================================================================")
+        puml(f"#cyan:Process {file_type};\n", True)
+        config_path = get_config_path()
+        path_to_7z = get_path_to_7z()
+        boot_images = os.path.join(config_path, get_boot_images_dir())
+        tmp_dir_full = os.path.join(config_path, 'tmp')
+        con = get_db()
+        con.execute("PRAGMA foreign_keys = ON")
+        con.commit()
+        cursor = con.cursor()
+        start_1 = time.time()
+        checksum = ''
+        is_odin = False
+        is_init_boot = False
+        is_stock_boot = False
 
-    is_payload_bin = False
-    factory_images = os.path.join(config_path, 'factory_images')
-    if file_type == 'firmware':
-        is_stock_boot = True
-        file_to_process = self.config.firmware_path
-        puml(f"note right:{file_to_process}\n")
-        package_sig = get_firmware_id()
-        package_dir_full = os.path.join(factory_images, package_sig)
-        found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
-        found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
-        found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=True)
-        found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=True)
-        found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=True)
-        found_boot_img_lz4 = ''
-        set_firmware_has_init_boot(False)
-        set_ota(self, False)
-        if found_init_boot_img:
-            set_firmware_has_init_boot(True)
-            is_init_boot = True
-        if found_flash_all_bat and found_flash_all_sh and get_firmware_hash_validity():
-            # assume Pixel factory file
-            print("Detected Pixel firmware")
-            image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
-            # Unzip the factory image
-            debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
-            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
-            debug(theCmd)
-            res = run_shell2(theCmd)
-        elif found_boot_img or found_init_boot_img:
-            print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
-            # Check if the firmware file starts with image-* and warn the user or abort
-            firmware_file_name = os.path.basename(file_to_process)
-            if firmware_file_name.startswith('image-'):
-                title = "Possibly extracted firmware."
-                message =  f"WARNING: It looks like you have extracted the firmware file.\nand selected the image zip from it.\n\n"
-                message += f"You should not extract the file, please select the downloaded firmware file instead\n\n"
-                message += f"If this is not the case, and you want to continue with this selection\n"
-                message += "Click OK to accept and continue.\n"
-                message += "or Hit CANCEL to abort."
-                print(f"\n*** Dialog ***\n{message}\n______________\n")
-                puml("#orange:WARNING;\n", True)
-                puml(f"note right\n{message}\nend note\n")
-                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-                result = dlg.ShowModal()
-                if result != wx.ID_OK:
-                    print("User pressed cancel.")
-                    puml("#pink:User Pressed Cancel to abort;\n")
-                    print("Aborting ...\n")
-                    return
-                print("User pressed ok.")
-                puml(":User Pressed OK to continue;\n")
-            image_file_path = file_to_process
-        elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
-            is_payload_bin = True
-            set_ota(self, True)
-            if get_firmware_hash_validity() and get_ota():
-                print("Detected OTA file")
-            else:
-                print("Detected a firmware, with payload.bin")
-        else:
-            # -------------------------
-            # Samsung firmware handling
-            # -------------------------
-            # Get file list from zip
-            file_list = get_zip_file_list(file_to_process)
-            patterns = {
-                'AP': 'AP_*.tar.md5',
-                'BL': 'BL_*.tar.md5',
-                'HOME_CSC': 'HOME_CSC_*.tar.md5',
-                'CSC': 'CSC_*.tar.md5',
-            }
-            found_ap = ''
-            found_bl = ''
-            found_csc = ''
-            found_home_csc = ''
-            # see if we find AP_*.tar.md5, if yes set is_samsung flag
-            for file in file_list:
-                if not found_ap and fnmatch.fnmatch(file, patterns['AP']):
-                    # is_odin = 1
-                    is_odin = True
-                    print(f"Found {file} file.")
-                    found_ap = file
-                if not found_bl and fnmatch.fnmatch(file, patterns['BL']):
-                    print(f"Found {file} file.")
-                    found_bl = file
-                if not found_home_csc and fnmatch.fnmatch(file, patterns['HOME_CSC']):
-                    print(f"Found {file} file.")
-                    found_home_csc = file
-                if not found_csc and fnmatch.fnmatch(file, patterns['CSC']):
-                    print(f"Found {file} file.")
-                    found_csc = file
-
-            # TODO check settings, see if offer samsung extraction options is enabled
-            # if yes, offer list of found files to extract
-            if found_ap:
-                # assume Samsung firmware
-                print("Detected Samsung firmware")
-                image_file_path = os.path.join(package_dir_full, found_ap)
+        is_payload_bin = False
+        factory_images = os.path.join(config_path, 'factory_images')
+        if file_type == 'firmware':
+            is_stock_boot = True
+            file_to_process = self.config.firmware_path
+            puml(f"note right:{file_to_process}\n")
+            package_sig = get_firmware_id()
+            package_dir_full = os.path.join(factory_images, package_sig)
+            found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
+            found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
+            found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=True)
+            found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=True)
+            found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=True)
+            found_boot_img_lz4 = ''
+            set_firmware_has_init_boot(False)
+            set_ota(self, False)
+            if found_init_boot_img:
+                set_firmware_has_init_boot(True)
+                is_init_boot = True
+            if found_flash_all_bat and found_flash_all_sh and get_firmware_hash_validity():
+                # assume Pixel factory file
+                print("Detected Pixel firmware")
+                image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
                 # Unzip the factory image
                 debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{file_to_process}\""
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
                 debug(theCmd)
                 res = run_shell2(theCmd)
-                # see if there is boot.img.lz4 in AP file
-                found_boot_img_lz4 = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="boot.img.lz4", nested=False)
-                if found_boot_img_lz4:
-                    print(f"Extracting boot.img.lz4 from {found_ap} ...")
-                    puml(f":Extract boot.img.lz4;\n")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" boot.img.lz4"
-                    debug(f"{theCmd}")
-                    res = run_shell(theCmd)
-                    # expect ret 0
-                    if res.returncode != 0:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.lz4")
-                        print(res.stderr)
-                        puml("#red:ERROR: Could not extract boot.img.lz4;\n")
+            elif found_boot_img or found_init_boot_img:
+                print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
+                # Check if the firmware file starts with image-* and warn the user or abort
+                firmware_file_name = os.path.basename(file_to_process)
+                if firmware_file_name.startswith('image-'):
+                    title = "Possibly extracted firmware."
+                    message =  f"WARNING: It looks like you have extracted the firmware file.\nand selected the image zip from it.\n\n"
+                    message += f"You should not extract the file, please select the downloaded firmware file instead\n\n"
+                    message += f"If this is not the case, and you want to continue with this selection\n"
+                    message += "Click OK to accept and continue.\n"
+                    message += "or Hit CANCEL to abort."
+                    print(f"\n*** Dialog ***\n{message}\n______________\n")
+                    puml("#orange:WARNING;\n", True)
+                    puml(f"note right\n{message}\nend note\n")
+                    dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+                    result = dlg.ShowModal()
+                    if result != wx.ID_OK:
+                        print("User pressed cancel.")
+                        puml("#pink:User Pressed Cancel to abort;\n")
                         print("Aborting ...\n")
                         return
-                    else:
-                        # unpack boot.img.lz4
-                        print("Unpacking boot.img.lz4 ...")
-                        puml(f":Unpack boot.img.lz4;\n")
-                        unpack_lz4(os.path.join(package_dir_full, 'boot.img.lz4'), os.path.join(package_dir_full, 'boot.img'))
-                        # Check if it exists
-                        if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
-                            found_boot_img = 'boot.img'
-                        else:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not unpack boot.img.lz4")
-                            puml("#red:ERROR: Could not unpack boot.img.lz4;\n")
-                            print("Aborting ...\n")
-                            return
+                    print("User pressed ok.")
+                    puml(":User Pressed OK to continue;\n")
+                image_file_path = file_to_process
+            elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
+                is_payload_bin = True
+                set_ota(self, True)
+                if get_firmware_hash_validity() and get_ota():
+                    print("Detected OTA file")
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find boot.img.lz4")
-                    puml("#red:ERROR: Could not find boot.img.lz4;\n")
-                    print("Aborting ...\n")
-                    return
+                    print("Detected a firmware, with payload.bin")
             else:
-                print("Detected Unsupported firmware file.")
-                print("Aborting ...")
-                return
-    else:
-        file_to_process = self.config.custom_rom_path
-        found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
-        found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=False)
-        found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=False)
-        set_rom_has_init_boot(False)
-        if found_init_boot_img:
-            set_rom_has_init_boot(True)
-            is_init_boot = True
-        elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
-            print("Detected a ROM, with payload.bin")
-            is_payload_bin = True
-        package_sig = get_custom_rom_id()
-        package_dir_full = os.path.join(factory_images, package_sig)
-        image_file_path = file_to_process
-        puml(f"note right:{image_file_path}\n")
+                # -------------------------
+                # Samsung firmware handling
+                # -------------------------
+                # Get file list from zip
+                file_list = get_zip_file_list(file_to_process)
+                patterns = {
+                    'AP': 'AP_*.tar.md5',
+                    'BL': 'BL_*.tar.md5',
+                    'HOME_CSC': 'HOME_CSC_*.tar.md5',
+                    'CSC': 'CSC_*.tar.md5',
+                }
+                found_ap = ''
+                found_bl = ''
+                found_csc = ''
+                found_home_csc = ''
+                # see if we find AP_*.tar.md5, if yes set is_samsung flag
+                for file in file_list:
+                    if not found_ap and fnmatch.fnmatch(file, patterns['AP']):
+                        # is_odin = 1
+                        is_odin = True
+                        print(f"Found {file} file.")
+                        found_ap = file
+                    if not found_bl and fnmatch.fnmatch(file, patterns['BL']):
+                        print(f"Found {file} file.")
+                        found_bl = file
+                    if not found_home_csc and fnmatch.fnmatch(file, patterns['HOME_CSC']):
+                        print(f"Found {file} file.")
+                        found_home_csc = file
+                    if not found_csc and fnmatch.fnmatch(file, patterns['CSC']):
+                        print(f"Found {file} file.")
+                        found_csc = file
 
-    # delete all files in tmp folder to make sure we're dealing with new files only.
-    delete_all(tmp_dir_full)
-
-    if is_payload_bin:
-        # extract the payload.bin into a temporary directory
-        is_stock_boot = True
-        temp_dir = tempfile.TemporaryDirectory()
-        temp_dir_path = temp_dir.name
-        print(f"Extracting payload.bin from {file_to_process} ...")
-        puml(":Extract payload.bin;\n")
-        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" payload.bin"
-        debug(f"{theCmd}")
-        res = run_shell(theCmd)
-        # expect ret 0
-        if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
-            print(res.stderr)
-            puml("#red:ERROR: Could not extract payload.bin;\n")
-            print("Aborting ...\n")
-            return
-        # extract boot.img, init_boot.img, vbmeta.img from payload.bin, ...
-        payload_file_path = os.path.join(temp_dir_path, "payload.bin")
-        if not os.path.exists(package_dir_full):
-            os.makedirs(package_dir_full, exist_ok=True)
-        if self.config.extra_img_extracts:
-            extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
-            if os.path.exists(os.path.join(package_dir_full, 'dtbo.img')):
-                dtbo_img_file = os.path.join(package_dir_full, 'dtbo.img')
-                shutil.copy(dtbo_img_file, os.path.join(tmp_dir_full, 'dtbo.img'), follow_symlinks=True)
-            if os.path.exists(os.path.join(package_dir_full, 'super_empty.img')):
-                super_empty_img_file = os.path.join(package_dir_full, 'super_empty.img')
-                shutil.copy(super_empty_img_file, os.path.join(tmp_dir_full, 'super_empty.img'), follow_symlinks=True)
-            if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
-                vendor_boot_img_file = os.path.join(package_dir_full, 'vendor_boot.img')
-                shutil.copy(vendor_boot_img_file, os.path.join(tmp_dir_full, 'vendor_boot.img'), follow_symlinks=True)
-            if os.path.exists(os.path.join(package_dir_full, 'vendor_kernel_boot.img')):
-                vendor_kernel_boot_img_file = os.path.join(package_dir_full, 'vendor_kernel_boot.img')
-                shutil.copy(vendor_kernel_boot_img_file, os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), follow_symlinks=True)
+                # TODO check settings, see if offer samsung extraction options is enabled
+                # if yes, offer list of found files to extract
+                if found_ap:
+                    # assume Samsung firmware
+                    print("Detected Samsung firmware")
+                    image_file_path = os.path.join(package_dir_full, found_ap)
+                    # Unzip the factory image
+                    debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{file_to_process}\""
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+                    # see if there is boot.img.lz4 in AP file
+                    found_boot_img_lz4 = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="boot.img.lz4", nested=False)
+                    if found_boot_img_lz4:
+                        print(f"Extracting boot.img.lz4 from {found_ap} ...")
+                        puml(f":Extract boot.img.lz4;\n")
+                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" boot.img.lz4"
+                        debug(f"{theCmd}")
+                        res = run_shell(theCmd)
+                        # expect ret 0
+                        if res.returncode != 0:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.lz4")
+                            print(res.stderr)
+                            puml("#red:ERROR: Could not extract boot.img.lz4;\n")
+                            print("Aborting ...\n")
+                            self.toast("Process action", "Could not extract boot.img.lz4.")
+                            return
+                        else:
+                            # unpack boot.img.lz4
+                            print("Unpacking boot.img.lz4 ...")
+                            puml(f":Unpack boot.img.lz4;\n")
+                            unpack_lz4(os.path.join(package_dir_full, 'boot.img.lz4'), os.path.join(package_dir_full, 'boot.img'))
+                            # Check if it exists
+                            if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
+                                found_boot_img = 'boot.img'
+                            else:
+                                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not unpack boot.img.lz4")
+                                puml("#red:ERROR: Could not unpack boot.img.lz4;\n")
+                                print("Aborting ...\n")
+                                self.toast("Process action", "Could not unpack boot.img.lz4.")
+                                return
+                    else:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find boot.img.lz4")
+                        puml("#red:ERROR: Could not find boot.img.lz4;\n")
+                        print("Aborting ...\n")
+                        self.toast("Process action", "Could not find boot.img.lz4.")
+                        return
+                else:
+                    print("Detected Unsupported firmware file.")
+                    print("Aborting ...")
+                    self.toast("Process action", "Detected unsupported firmware.")
+                    return
         else:
-            extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
-        if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
-            boot_img_file = os.path.join(package_dir_full, 'boot.img')
-            shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
-            boot_file_name = 'boot.img'
-        if os.path.exists(os.path.join(package_dir_full, 'init_boot.img')):
-            boot_img_file = os.path.join(package_dir_full, 'init_boot.img')
-            shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'init_boot.img'), follow_symlinks=True)
-            boot_file_name = 'init_boot.img'
-            found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evalute to False
-            is_init_boot = True
-    else:
-        if is_odin:
-            shutil.copy(os.path.join(package_dir_full, 'boot.img'), os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
-        if not os.path.exists(image_file_path):
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The firmware file did not have the expected structure / contents.")
-            if file_type == 'firmware':
-                print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
-                puml("#red:The selected firmware is not valid;\n")
-            print("Aborting ...\n")
-            return
+            file_to_process = self.config.custom_rom_path
+            found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
+            found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=False)
+            found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=False)
+            set_rom_has_init_boot(False)
+            if found_init_boot_img:
+                set_rom_has_init_boot(True)
+                is_init_boot = True
+            elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
+                print("Detected a ROM, with payload.bin")
+                is_payload_bin = True
+            package_sig = get_custom_rom_id()
+            package_dir_full = os.path.join(factory_images, package_sig)
+            image_file_path = file_to_process
+            puml(f"note right:{image_file_path}\n")
 
-        files_to_extract = ''
-        if found_boot_img:
-            boot_file_name = 'boot.img'
-            files_to_extract += 'boot.img '
-        if found_init_boot_img:
-            boot_file_name = 'init_boot.img'
-            files_to_extract += 'init_boot.img '
-            is_init_boot = True
-        if found_vbmeta_img:
-            files_to_extract += 'vbmeta.img '
-        files_to_extract = files_to_extract.strip()
+        # delete all files in tmp folder to make sure we're dealing with new files only.
+        delete_all(tmp_dir_full)
 
-        if not is_odin:
-            if not files_to_extract:
-                print(f"Nothing to extract from {file_type}")
-                print("Aborting ...")
-                puml("#red:Nothing to extract from {file_type};\n")
-                return
-
-            print(f"Extracting {boot_file_name} from {image_file_path} ...")
-            puml(f":Extract {boot_file_name};\n")
-            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
+        if is_payload_bin:
+            # extract the payload.bin into a temporary directory
+            is_stock_boot = True
+            temp_dir = tempfile.TemporaryDirectory()
+            temp_dir_path = temp_dir.name
+            print(f"Extracting payload.bin from {file_to_process} ...")
+            puml(":Extract payload.bin;\n")
+            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" payload.bin"
             debug(f"{theCmd}")
             res = run_shell(theCmd)
             # expect ret 0
             if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
                 print(res.stderr)
-                puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                puml("#red:ERROR: Could not extract payload.bin;\n")
                 print("Aborting ...\n")
+                self.toast("Process action", "Could not extract payload.bin.")
+                return
+            # extract boot.img, init_boot.img, vbmeta.img from payload.bin, ...
+            payload_file_path = os.path.join(temp_dir_path, "payload.bin")
+            if not os.path.exists(package_dir_full):
+                os.makedirs(package_dir_full, exist_ok=True)
+            if self.config.extra_img_extracts:
+                print("Option to copy extra img files is enabled.")
+                extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
+                if os.path.exists(os.path.join(package_dir_full, 'dtbo.img')):
+                    dtbo_img_file = os.path.join(package_dir_full, 'dtbo.img')
+                    debug(f"Copying {dtbo_img_file}")
+                    shutil.copy(dtbo_img_file, os.path.join(tmp_dir_full, 'dtbo.img'), follow_symlinks=True)
+                if os.path.exists(os.path.join(package_dir_full, 'super_empty.img')):
+                    super_empty_img_file = os.path.join(package_dir_full, 'super_empty.img')
+                    debug(f"Copying {super_empty_img_file}")
+                    shutil.copy(super_empty_img_file, os.path.join(tmp_dir_full, 'super_empty.img'), follow_symlinks=True)
+                if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
+                    vendor_boot_img_file = os.path.join(package_dir_full, 'vendor_boot.img')
+                    debug(f"Copying {vendor_boot_img_file}")
+                    shutil.copy(vendor_boot_img_file, os.path.join(tmp_dir_full, 'vendor_boot.img'), follow_symlinks=True)
+                if os.path.exists(os.path.join(package_dir_full, 'vendor_kernel_boot.img')):
+                    vendor_kernel_boot_img_file = os.path.join(package_dir_full, 'vendor_kernel_boot.img')
+                    debug(f"Copying {vendor_kernel_boot_img_file}")
+                    shutil.copy(vendor_kernel_boot_img_file, os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), follow_symlinks=True)
+            else:
+                print("Extracting files from payload.bin ...")
+                extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
+            if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
+                boot_img_file = os.path.join(package_dir_full, 'boot.img')
+                debug(f"Copying {boot_img_file}")
+                shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
+                boot_file_name = 'boot.img'
+            if os.path.exists(os.path.join(package_dir_full, 'init_boot.img')):
+                boot_img_file = os.path.join(package_dir_full, 'init_boot.img')
+                debug(f"Copying {boot_img_file}")
+                shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'init_boot.img'), follow_symlinks=True)
+                boot_file_name = 'init_boot.img'
+                found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evalute to False
+                is_init_boot = True
+        else:
+            if is_odin:
+                shutil.copy(os.path.join(package_dir_full, 'boot.img'), os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
+            if not os.path.exists(image_file_path):
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The firmware file did not have the expected structure / contents.")
+                if file_type == 'firmware':
+                    print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
+                    puml("#red:The selected firmware is not valid;\n")
+                print("Aborting ...\n")
+                self.toast("Process action", "The selected firmware is not valid.")
                 return
 
-    # sometimes the return code is 0 but no file to extract, handle that case.
-    # also handle the case of extraction from payload.bin
-    boot_img_file = os.path.join(tmp_dir_full, boot_file_name)
-    if not os.path.exists(boot_img_file):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}, ")
-        print(f"Please make sure the file: {image_file_path} has {boot_file_name} in it.")
-        puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
-        print("Aborting ...\n")
-        return
+            files_to_extract = ''
+            if found_boot_img:
+                boot_file_name = 'boot.img'
+                files_to_extract += 'boot.img '
+            if found_init_boot_img:
+                boot_file_name = 'init_boot.img'
+                files_to_extract += 'init_boot.img '
+                is_init_boot = True
+            if found_vbmeta_img:
+                files_to_extract += 'vbmeta.img '
+            files_to_extract = files_to_extract.strip()
 
-    # get the checksum of the boot_file_name
-    checksum = sha1(os.path.join(boot_img_file))
-    print(f"sha1 of {boot_file_name}: {checksum}")
-    puml(f"note right:sha1 of {boot_file_name}: {checksum}\n")
+            if not is_odin:
+                if not files_to_extract:
+                    print(f"Nothing to extract from {file_type}")
+                    print("Aborting ...")
+                    puml("#red:Nothing to extract from {file_type};\n")
+                    self.toast("Process action", f"Nothing to extract from {file_type}")
+                    return
 
-    # if a matching boot_file_name is not found, store it.
-    cached_boot_img_dir_full = os.path.join(boot_images, checksum)
-    cached_boot_img_path = os.path.join(cached_boot_img_dir_full, boot_file_name)
-    print(f"Checking for cached copy of {boot_file_name}")
-    if not os.path.exists(cached_boot_img_dir_full):
-        os.makedirs(cached_boot_img_dir_full, exist_ok=True)
-    if not os.path.exists(cached_boot_img_path):
-        print(f"Cached copy of {boot_file_name} with sha1: {checksum} is not found.")
-        print(f"Copying {boot_img_file} to {cached_boot_img_dir_full}")
-        shutil.copy(boot_img_file, cached_boot_img_dir_full, follow_symlinks=True)
-        if found_init_boot_img:
-            # we need to copy boot.img for Pixel 7, 7P, 7a so that we can do live boot.
-            shutil.copy(os.path.join(tmp_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
-    else:
-        print(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
-    if found_vbmeta_img and os.path.exists(package_dir_full):
-        # we copy vbmeta.img so that we can do selective vbmeta verity / verification patching.
-        shutil.copy(os.path.join(tmp_dir_full, 'vbmeta.img'), package_dir_full, follow_symlinks=True)
+                print(f"Extracting {boot_file_name} from {image_file_path} ...")
+                puml(f":Extract {boot_file_name};\n")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
+                debug(f"{theCmd}")
+                res = run_shell(theCmd)
+                # expect ret 0
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
+                    print(res.stderr)
+                    puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                    self.toast("Process action", f"Could not extract {boot_file_name}")
+                    print("Aborting ...\n")
+                    return
 
-    # Let's see if we have a record for the firmware/rom being processed
-    print(f"Checking DB entry for PACKAGE: {file_to_process}")
-    package_id = 0
-    cursor.execute(f"SELECT ID, boot_hash FROM PACKAGE WHERE package_sig = '{package_sig}' AND file_path = '{file_to_process}'")
-    data = cursor.fetchall()
-    if len(data) > 0:
-        package_id = data[0][0]
-        print(f"Found a previous {file_type} PACKAGE record id={package_id} for package_sig: {package_sig} Firmware: {file_to_process}")
-        print(f"Package ID: {package_id}")
-    else:
-        # create PACKAGE db record
-        print(f"Creating DB entry for PACKAGE: {file_to_process}")
-        sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch, full_ota ) values(?, ?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
-        data = checksum, file_type, package_sig, file_to_process, time.time(), self.config.firmware_is_ota
-        try:
-            cursor.execute(sql, data)
-            con.commit()
-            package_id = cursor.lastrowid
+        # sometimes the return code is 0 but no file to extract, handle that case.
+        # also handle the case of extraction from payload.bin
+        boot_img_file = os.path.join(tmp_dir_full, boot_file_name)
+        if not os.path.exists(boot_img_file):
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}, ")
+            print(f"Please make sure the file: {image_file_path} has {boot_file_name} in it.")
+            puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+            print("Aborting ...\n")
+            self.toast("Process action", f"Could not extract {boot_file_name}")
+            return
+
+        # get the checksum of the boot_file_name
+        checksum = sha1(os.path.join(boot_img_file))
+        print(f"sha1 of {boot_file_name}: {checksum}")
+        puml(f"note right:sha1 of {boot_file_name}: {checksum}\n")
+
+        # if a matching boot_file_name is not found, store it.
+        cached_boot_img_dir_full = os.path.join(boot_images, checksum)
+        cached_boot_img_path = os.path.join(cached_boot_img_dir_full, boot_file_name)
+        print(f"Checking for cached copy of {boot_file_name}")
+        if not os.path.exists(cached_boot_img_dir_full):
+            os.makedirs(cached_boot_img_dir_full, exist_ok=True)
+        if not os.path.exists(cached_boot_img_path):
+            print(f"Cached copy of {boot_file_name} with sha1: {checksum} is not found.")
+            print(f"Copying {boot_img_file} to {cached_boot_img_dir_full}")
+            shutil.copy(boot_img_file, cached_boot_img_dir_full, follow_symlinks=True)
+            if found_init_boot_img:
+                # we need to copy boot.img for Pixel 7, 7P, 7a so that we can do live boot.
+                shutil.copy(os.path.join(tmp_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
+        else:
+            print(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
+        if found_vbmeta_img and os.path.exists(package_dir_full):
+            # we copy vbmeta.img so that we can do selective vbmeta verity / verification patching.
+            shutil.copy(os.path.join(tmp_dir_full, 'vbmeta.img'), package_dir_full, follow_symlinks=True)
+
+        # Let's see if we have a record for the firmware/rom being processed
+        print(f"Checking DB entry for PACKAGE: {file_to_process}")
+        package_id = 0
+        cursor.execute(f"SELECT ID, boot_hash FROM PACKAGE WHERE package_sig = '{package_sig}' AND file_path = '{file_to_process}'")
+        data = cursor.fetchall()
+        if len(data) > 0:
+            package_id = data[0][0]
+            print(f"Found a previous {file_type} PACKAGE record id={package_id} for package_sig: {package_sig} Firmware: {file_to_process}")
             print(f"Package ID: {package_id}")
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-            print(e)
+        else:
+            # create PACKAGE db record
+            print(f"Creating DB entry for PACKAGE: {file_to_process}")
+            sql = 'INSERT INTO PACKAGE (boot_hash, type, package_sig, file_path, epoch, full_ota ) values(?, ?, ?, ?, ?, ?) ON CONFLICT (file_path) DO NOTHING'
+            data = checksum, file_type, package_sig, file_to_process, time.time(), self.config.firmware_is_ota
+            try:
+                cursor.execute(sql, data)
+                con.commit()
+                package_id = cursor.lastrowid
+                print(f"Package ID: {package_id}")
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                traceback.print_exc()
 
-    # Let's see if we already have an entry for the BOOT
-    print(f"Checking DB entry for BOOT: {checksum}")
-    boot_id = 0
-    cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{checksum}'")
-    data = cursor.fetchall()
-    if len(data) > 0:
-        boot_id = data[0][0]
-        print(f"Found a previous BOOT record id={boot_id} for boot_hash: {checksum}")
-        print(f"Boot_ID: {boot_id}")
-    else:
-        # create BOOT db record
-        print(f"Creating DB entry for BOOT: {checksum}")
-        sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-        data = checksum, cached_boot_img_path, 0, '', '', time.time(), '', is_odin, is_stock_boot, is_init_boot
-        try:
-            cursor.execute(sql, data)
-            con.commit()
-            boot_id = cursor.lastrowid
-            print(f"Boot ID: {boot_id}")
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-            print(e)
+        # Let's see if we already have an entry for the BOOT
+        print(f"Checking DB entry for BOOT: {checksum}")
+        boot_id = 0
+        cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{checksum}'")
+        data = cursor.fetchall()
+        if len(data) > 0:
+            boot_id = data[0][0]
+            print(f"Found a previous BOOT record id={boot_id} for boot_hash: {checksum}")
+            print(f"Boot_ID: {boot_id}")
+        else:
+            # create BOOT db record
+            print(f"Creating DB entry for BOOT: {checksum}")
+            sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
+            data = checksum, cached_boot_img_path, 0, '', '', time.time(), '', is_odin, is_stock_boot, is_init_boot
+            try:
+                cursor.execute(sql, data)
+                con.commit()
+                boot_id = cursor.lastrowid
+                print(f"Boot ID: {boot_id}")
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                traceback.print_exc()
 
-    # Let's see if we already have an entry for the PACKAGE_BOOT
-    print(f"Checking DB entry for PACKAGE_BOOT: package_id = '{package_id}' AND boot_id = '{boot_id}")
-    cursor.execute(f"SELECT package_id, boot_id FROM PACKAGE_BOOT WHERE package_id = '{package_id}' AND boot_id = '{boot_id}'")
-    data = cursor.fetchall()
-    if len(data) > 0:
-        package_boot_id = data[0][0]
-        print(f"Found a previous PACKAGE_BOOT record for package_id: {package_id},  boot_id: {boot_id}")
-        print(f"Package_Boot row id: {package_boot_id}")
-    else:
-    # create PACKAGE_BOOT db record
-        print(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
-        sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
-        data = package_id, boot_id, time.time()
-        try:
-            cursor.execute(sql, data)
-            con.commit()
-            package_boot_id = cursor.lastrowid
+        # Let's see if we already have an entry for the PACKAGE_BOOT
+        print(f"Checking DB entry for PACKAGE_BOOT: package_id = '{package_id}' AND boot_id = '{boot_id}")
+        cursor.execute(f"SELECT package_id, boot_id FROM PACKAGE_BOOT WHERE package_id = '{package_id}' AND boot_id = '{boot_id}'")
+        data = cursor.fetchall()
+        if len(data) > 0:
+            package_boot_id = data[0][0]
+            print(f"Found a previous PACKAGE_BOOT record for package_id: {package_id},  boot_id: {boot_id}")
             print(f"Package_Boot row id: {package_boot_id}")
-        except Exception as e:
-            print(f"Record PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id} already exists")
+        else:
+        # create PACKAGE_BOOT db record
+            print(f"Creating PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id}")
+            sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
+            data = package_id, boot_id, time.time()
+            try:
+                cursor.execute(sql, data)
+                con.commit()
+                package_boot_id = cursor.lastrowid
+                print(f"Package_Boot row id: {package_boot_id}")
+            except Exception as e:
+                print(f"Record PACKAGE_BOOT record, package_id: {package_id} boot_id: {boot_id} already exists")
+                traceback.print_exc()
 
-    set_db(con)
-    populate_boot_list(self)
-    end_1 = time.time()
-    print(f"Process {file_type} time: {math.ceil(end_1 - start_1)} seconds")
-    print("------------------------------------------------------------------------------\n")
+        set_db(con)
+        populate_boot_list(self)
+        end_1 = time.time()
+        print(f"Process {file_type} time: {math.ceil(end_1 - start_1)} seconds")
+        print("------------------------------------------------------------------------------\n")
+        self.toast("Process action", f"Process {file_type} time: {math.ceil(end_1 - start_1)} seconds")
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing ota/firmware file:")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function process_flash_all_file
 # ============================================================================
 def process_flash_all_file(filepath):
-    cwd = os.getcwd()
-    flash_file_lines = []
-    with open(filepath) as fp:
-        #1st line, platform
-        line = fp.readline()
-        if line[:9] == "@ECHO OFF":
-            filetype = 'bat'
-        elif line[:9] == "#!/bin/sh":
-            filetype = 'sh'
-        else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected first line: {line} in file: {filepath}")
-        flash = FlashFile(1, platform = filetype, type = "init", command = line.strip())
-        flash_file_lines.append(flash)
-
-        cnt = 1
-        in_if_block = False
-        if_block_data = ''
-        while line:
+    try:
+        cwd = os.getcwd()
+        flash_file_lines = []
+        with open(filepath) as fp:
+            #1st line, platform
             line = fp.readline()
+            if line[:9] == "@ECHO OFF":
+                filetype = 'bat'
+            elif line[:9] == "#!/bin/sh":
+                filetype = 'sh'
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected first line: {line} in file: {filepath}")
+            flash = FlashFile(1, platform = filetype, type = "init", command = line.strip())
+            flash_file_lines.append(flash)
 
-            #---------------------------------
-            # Line that should not be captured
-            if line.strip() == '':
-                # blank line, ignore it
-                continue
-            elif line[:2] == "::":
-                # comment line windows, ignore it
-                continue
-            elif line[:1] == "#":
-                # comment line Linux, ignore it
-                continue
-            elif line[:10] == "pause >nul":
-                # pause line, ignore it
-                continue
-            elif line[:4] == "exit":
-                # exit line, ignore it
-                continue
-            elif line[:26] == "echo Press any key to exit":
-                # exit line, ignore it
-                continue
+            cnt = 1
+            in_if_block = False
+            if_block_data = ''
+            while line:
+                line = fp.readline()
 
-            #-----------------------
-            # line that are relevant
-            elif line[:4] == "if !":
-                # if line to check fastboot version, grab it differently (all as one block)
-                in_if_block = True
-                if_block_data += line
-                continue
-            elif line[:7] == "  echo ":
-                # part of the previous if, grab it differently (all as one block)
-                if in_if_block:
+                #---------------------------------
+                # Line that should not be captured
+                if line.strip() == '':
+                    # blank line, ignore it
+                    continue
+                elif line[:2] == "::":
+                    # comment line windows, ignore it
+                    continue
+                elif line[:1] == "#":
+                    # comment line Linux, ignore it
+                    continue
+                elif line[:10] == "pause >nul":
+                    # pause line, ignore it
+                    continue
+                elif line[:4] == "exit":
+                    # exit line, ignore it
+                    continue
+                elif line[:26] == "echo Press any key to exit":
+                    # exit line, ignore it
+                    continue
+
+                #-----------------------
+                # line that are relevant
+                elif line[:4] == "if !":
+                    # if line to check fastboot version, grab it differently (all as one block)
+                    in_if_block = True
                     if_block_data += line
-                continue
-            elif line[:6] == "  exit":
-                # part of the previous if, grab it differently (all as one block)
-                if in_if_block:
-                    if_block_data += line
-                continue
-            elif line[:2] == "fi":
-                # part of the previous if, grab it differently (all as one block)
-                if in_if_block:
-                    if_block_data += line
-                in_if_block = False
-                flash = FlashFile(cnt, platform = filetype, type = "if_block", command = if_block_data.strip())
-                flash_file_lines.append(flash)
-                continue
-            elif line[:5] == "PATH=":
-                flash = FlashFile(cnt, platform = filetype, type = "path", command = line.strip())
-                flash_file_lines.append(flash)
-                continue
-
-            elif line[:5] == "ping " or line[:6] == "sleep ":
-                flash = FlashFile(cnt, platform = filetype, type = "sleep", command = line.strip())
-                flash_file_lines.append(flash)
-                continue
-
-            elif line[:8] == "fastboot":
-                parts = line.split()
-                if parts[1] == 'flash':
-                    flash = FlashFile(cnt, platform = filetype, type = "fastboot", command = "fastboot", action = "flash", arg1 = parts[2], arg2 = parts[3])
+                    continue
+                elif line[:7] == "  echo ":
+                    # part of the previous if, grab it differently (all as one block)
+                    if in_if_block:
+                        if_block_data += line
+                    continue
+                elif line[:6] == "  exit":
+                    # part of the previous if, grab it differently (all as one block)
+                    if in_if_block:
+                        if_block_data += line
+                    continue
+                elif line[:2] == "fi":
+                    # part of the previous if, grab it differently (all as one block)
+                    if in_if_block:
+                        if_block_data += line
+                    in_if_block = False
+                    flash = FlashFile(cnt, platform = filetype, type = "if_block", command = if_block_data.strip())
                     flash_file_lines.append(flash)
                     continue
-                elif parts[1] == 'reboot-bootloader':
-                    flash = FlashFile(cnt, platform = filetype, type = "fastboot", command = "fastboot", action = "reboot-bootloader")
+                elif line[:5] == "PATH=":
+                    flash = FlashFile(cnt, platform = filetype, type = "path", command = line.strip())
                     flash_file_lines.append(flash)
                     continue
-                elif parts[1] == '-w' and parts[2] == 'update':
-                    flash = FlashFile(cnt, platform = filetype, type = "fastboot", command = "fastboot", action = "-w update", arg1 = parts[3])
+
+                elif line[:5] == "ping " or line[:6] == "sleep ":
+                    flash = FlashFile(cnt, platform = filetype, type = "sleep", command = line.strip())
                     flash_file_lines.append(flash)
                     continue
+
+                elif line[:8] == "fastboot":
+                    parts = line.split()
+                    if parts[1] == 'flash':
+                        flash = FlashFile(cnt, platform = filetype, type = "fastboot", command = "fastboot", action = "flash", arg1 = parts[2], arg2 = parts[3])
+                        flash_file_lines.append(flash)
+                        continue
+                    elif parts[1] == 'reboot-bootloader':
+                        flash = FlashFile(cnt, platform = filetype, type = "fastboot", command = "fastboot", action = "reboot-bootloader")
+                        flash_file_lines.append(flash)
+                        continue
+                    elif parts[1] == '-w' and parts[2] == 'update':
+                        flash = FlashFile(cnt, platform = filetype, type = "fastboot", command = "fastboot", action = "-w update", arg1 = parts[3])
+                        flash_file_lines.append(flash)
+                        continue
+                    else:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR! Encountered an unexpected fastboot line while parsing {filepath}")
+                        print(line)
+                        return "ERROR"
+
+                #-----------------
+                # Unexpected lines
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR! Encountered an unexpected fastboot line while parsing {filepath}")
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR! Encountered an unexpected line while parsing {filepath}")
                     print(line)
                     return "ERROR"
 
-            #-----------------
-            # Unexpected lines
-            else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR! Encountered an unexpected line while parsing {filepath}")
-                print(line)
-                return "ERROR"
-
-            cnt += 1
-        return flash_file_lines
+                cnt += 1
+            return flash_file_lines
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing flash_all file")
+        puml("#red:Encountered an error while processing flash_all file;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function ui_action
 # ============================================================================
 def ui_action(device, dump_file, local_file, look_for):
-    # Get uiautomator dump of view1
-    # the_view = "view1.xml"
-    res = device.uiautomator_dump(dump_file)
-    if res == -1:
-        puml("#red:Failed to uiautomator dump;\n}\n")
-        return -1
+    try:
+        # Get uiautomator dump of view1
+        # the_view = "view1.xml"
+        res = device.uiautomator_dump(dump_file)
+        if res == -1:
+            puml("#red:Failed to uiautomator dump;\n}\n")
+            return -1
 
-    # Pull dump_file
-    print(f"Pulling {dump_file} from the phone to: {local_file} ...")
-    res = device.pull_file(dump_file, local_file)
-    if res != 0:
-        puml("#red:Failed to pull uiautomator dump from the phone;\n}\n")
-        return -1
+        # Pull dump_file
+        print(f"Pulling {dump_file} from the phone to: {local_file} ...")
+        res = device.pull_file(dump_file, local_file)
+        if res != 0:
+            puml("#red:Failed to pull uiautomator dump from the phone;\n}\n")
+            return -1
 
-    # get bounds
-    coords = get_ui_cooridnates(local_file, look_for)
+        # get bounds
+        coords = get_ui_cooridnates(local_file, look_for)
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\n")
-        return -1
+        # Check for Display being locked again
+        if not device.is_display_unlocked():
+            print("ERROR: The device display is Locked!\n")
+            return -1
 
-    # Click on coordinates
-    res = device.click(coords)
-    if res == -1:
-        puml("#red:Failed to click;\n}\n")
-        return -1
+        # Click on coordinates
+        res = device.click(coords)
+        if res == -1:
+            puml("#red:Failed to click;\n}\n")
+            return -1
 
-    # Sleep 2 seconds
-    print("Sleeping 2 seconds to make sure the view is loaded ...")
-    time.sleep(2)
+        # Sleep 2 seconds
+        print("Sleeping 2 seconds to make sure the view is loaded ...")
+        time.sleep(2)
 
-    # Check for Display being locked again
-    if not device.is_display_unlocked():
-        print("ERROR: The device display is Locked!\n")
-        return -1
+        # Check for Display being locked again
+        if not device.is_display_unlocked():
+            print("ERROR: The device display is Locked!\n")
+            return -1
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing ui action")
+        puml("#red:Encountered an error while performing ui action;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1420,77 +1460,82 @@ def drive_magisk(self, boot_file_name):
 #                               Function manual_magisk
 # ============================================================================
 def manual_magisk(self, boot_file_name):
-    start = time.time()
-    print("")
-    print("==============================================================================")
-    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Manual Patching ")
-    print("==============================================================================")
+    try:
+        start = time.time()
+        print("")
+        print("==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Manual Patching ")
+        print("==============================================================================")
 
-    device = get_phone()
+        device = get_phone()
 
-    if not device.is_display_unlocked():
-        title = "Display is Locked!"
-        message =  "ERROR: Your phone display is Locked.\n\n"
-        message += "Make sure you unlock your display\n"
-        message += "And set the display timeout to at least 1 minute.\n\n"
-        message += "After doing so, Click OK to accept and continue.\n"
-        message += "or Hit CANCEL to abort."
-        print(f"\n*** Dialog ***\n{message}\n______________\n")
-        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
-        result = dlg.ShowModal()
-        if result == wx.ID_OK:
-            print("User pressed ok.")
-            if not device.is_display_unlocked():
-                print("ERROR: The device display is still Locked!\nAborting ...\n")
+        if not device.is_display_unlocked():
+            title = "Display is Locked!"
+            message =  "ERROR: Your phone display is Locked.\n\n"
+            message += "Make sure you unlock your display\n"
+            message += "And set the display timeout to at least 1 minute.\n\n"
+            message += "After doing so, Click OK to accept and continue.\n"
+            message += "or Hit CANCEL to abort."
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                print("User pressed ok.")
+                if not device.is_display_unlocked():
+                    print("ERROR: The device display is still Locked!\nAborting ...\n")
+                    return -1
+            else:
+                print("User pressed cancel.")
+                print("Aborting ...\n")
                 return -1
-        else:
-            print("User pressed cancel.")
-            print("Aborting ...\n")
+
+        # First stop magisk in case it is running
+        device.stop_magisk()
+
+        # Launch Magisk
+        device.perform_package_action(self.config.magisk, 'launch', False)
+
+        # Message Dialog Here to Patch Manually
+        title = "Manual Patching"
+        buttons_text = ["Done creating the patch, continue", "Cancel"]
+        message = '''
+    ## Magisk should now be running on your phone
+
+    _If it is not, you  can try starting in manually._
+
+    Please follow these steps in Magisk.
+
+    - Click on **Install** or **Upgrade** in the section under **Magisk** block (Not App)
+    - Click on **Select and patch a file**
+    '''
+        message += f"- Select `{boot_file_name}` in `{self.config.phone_path}` \n"
+        message += '''
+    - Then hit **Let's go**
+
+    When done creating the patch in Magisk <br/>
+    Click on **Done creating the patch, continue** button <br/>
+    or hit the **Cancel** button to abort.
+
+    '''
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+        if result == 2:
+            print("Aborting ...")
             return -1
-
-    # First stop magisk in case it is running
-    device.stop_magisk()
-
-    # Launch Magisk
-    device.perform_package_action(self.config.magisk, 'launch', False)
-
-    # Message Dialog Here to Patch Manually
-    title = "Manual Patching"
-    buttons_text = ["Done creating the patch, continue", "Cancel"]
-    message = '''
-## Magisk should now be running on your phone
-
-_If it is not, you  can try starting in manually._
-
-Please follow these steps in Magisk.
-
-- Click on **Install** or **Upgrade** in the section under **Magisk** block (Not App)
-- Click on **Select and patch a file**
-'''
-    message += f"- Select `{boot_file_name}` in `{self.config.phone_path}` \n"
-    message += '''
-- Then hit **Let's go**
-
-When done creating the patch in Magisk <br/>
-Click on **Done creating the patch, continue** button <br/>
-or hit the **Cancel** button to abort.
-
-'''
-    dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
-    dlg.CentreOnParent(wx.BOTH)
-    result = dlg.ShowModal()
-    dlg.Destroy()
-    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
-    if result == 2:
-        print("Aborting ...")
+        # find the newly created file and return
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -t {self.config.phone_path}/magisk_patched-* | head -1"
+        res = run_shell(theCmd)
+        if res.returncode == 0 and res.stderr == '':
+            return os.path.basename(res.stdout.strip())
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {res.stdout}\n{res.stderr}\n")
         return -1
-    # find the newly created file and return
-    theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -t {self.config.phone_path}/magisk_patched-* | head -1"
-    res = run_shell(theCmd)
-    if res.returncode == 0 and res.stderr == '':
-        return os.path.basename(res.stdout.strip())
-    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {res.stdout}\n{res.stderr}\n")
-    return -1
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running manual Magisk")
+        puml("#red:Encountered an error while running manual Magisk;\n")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1595,6 +1640,7 @@ def patch_boot_img(self, custom_patch = False):
         try:
             firmware_model = package_sig[0]
         except Exception as e:
+            traceback.print_exc()
             firmware_model = None
         if not (len(device.hardware) >= 3 and device.hardware in firmware_model):
             title = "Boot Model Mismatch"
@@ -1974,6 +2020,7 @@ def patch_boot_img(self, custom_patch = False):
                     puml("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n", True)
                     return
             except Exception:
+                traceback.print_exc()
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
                 puml("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n", True)
                 print("Aborting ...\n")
@@ -2300,6 +2347,13 @@ def live_flash_boot_phone(self, option):
     puml(f"#cyan:{option} Boot;\n", True)
     puml(f"partition \"**{option} Boot**\"")
     puml(" {\n")
+
+    print("")
+    print("==============================================================================")
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}             {option} Boot")
+    print("==============================================================================")
+    puml(":Flashing / Live Booting;\n", True)
+
     if not get_adb():
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
         puml("#red:Valid Anroid Platform Tools is not selected;\n}\n")
@@ -2312,11 +2366,13 @@ def live_flash_boot_phone(self, option):
         return
 
     if device.hardware in KNOWN_INIT_BOOT_DEVICES and option == 'Live':
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or Pixel 7p or Pixel 7a is not supported yet.")
-        puml("#red:Live booting Pixel 7 or Pixel 7p or Pixel 7a is not supported yet;\n}\n")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported yet.")
+        puml("#red:Live booting Pixel 7 or newer are not supported yet;\n}\n")
         return
 
     boot = get_boot()
+    print(f"Flashing / Live Booting\n     {boot.boot_path} ...")
+    puml(f"note right:File: {boot.boot_path};\n")
     if boot:
         if boot.is_patched:
             firmware_model = boot.hardware
@@ -2326,6 +2382,7 @@ def live_flash_boot_phone(self, option):
             try:
                 firmware_model = package_sig_array[0]
             except Exception as e:
+                traceback.print_exc()
                 firmware_model = None
         # Warn the user if it is not from the current phone model
         if not (len(device.hardware) >= 3 and device.hardware in firmware_model):
@@ -2403,14 +2460,6 @@ def live_flash_boot_phone(self, option):
         puml("#red:Unable to get boot image path;\n}\n")
         return
 
-    if device.mode == 'adb':
-        device.reboot_bootloader()
-        print("Waiting 10 seconds ...")
-        puml(":Sleep 10 seconds;\n")
-        time.sleep(10)
-        self.device_choice.SetItems(get_connected_devices())
-        self._select_configured_device()
-
     device = get_phone()
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
@@ -2421,14 +2470,16 @@ def live_flash_boot_phone(self, option):
         puml("}\n")
         return
 
-    if device.mode == 'f.b' and get_fastboot():
+    mode = device.get_device_state()
+    if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+        res = device.reboot_bootloader()
+        if res == 0:
+            mode = "fastboot"
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+
+    if mode == 'fastboot' and get_fastboot():
         startFlash = time.time()
-        print("")
-        print("==============================================================================")
-        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Flashing / Live Booting\n     {boot.boot_path} ...")
-        print("==============================================================================")
-        puml(":Flashing / Live Booting;\n", True)
-        puml(f"note right:File: {boot.boot_path};\n")
         # if device.hardware in KNOWN_INIT_BOOT_DEVICES:
         #     # Pixel 7 and 7P need a special command to Live Boot.
         #     # https://forum.xda-developers.com/t/td1a-220804-031-factory-image-zip-is-up-unlock-bootloader-root-pixel-7-pro-cheetah-limited-safetynet-all-relevant-links.4502805/post-87571843
@@ -2472,18 +2523,16 @@ def live_flash_boot_phone(self, option):
         print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
         print("------------------------------------------------------------------------------\n")
         done_flashing = True
-        # clear the selected device option
-        set_phone(None)
-        self.device_label.Label = "ADB Connected Devices"
-        self.config.device = None
-        self.device_choice.SetItems([''])
-        self.device_choice.Select(-1)
-        # Live automatically reboots, so we can only control the Flash one.
-        if option == 'Flash' and not self.config.no_reboot:
+        if option == 'Live':
+            res = device.adb_wait_for(timeout=60, wait_for='device')
+            update_phones(device.id)
+            self.refresh_device()
+            return
+        elif option == 'Flash' and not self.config.no_reboot:
             puml(":Reboot to System;\n")
             device.reboot_system()
     else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
         puml("#red:Device is not in bootloader mode;\n}\n")
 
@@ -2491,6 +2540,7 @@ def live_flash_boot_phone(self, option):
     if done_flashing:
         puml(f"note right:Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds\n")
     puml("}\n")
+    self.refresh_device()
     return
 
 
@@ -2498,33 +2548,114 @@ def live_flash_boot_phone(self, option):
 #                               Function flash_phone
 # ============================================================================
 def flash_phone(self):
+    # 1 Do the necessary validations
+    # 2 Prepare the necessary script contents
+    # 3 Put the device in the correct state (bootloader / sideload / fastbootd)
+    # 4 Run the script
+    # 5 Finish up Do the additional checks and flashing / rebooting
+
     puml("#cyan:Flash Firmware;\n", True)
     puml("partition \"**Flash Firmware**\" {\n")
-    if not get_adb():
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
-        puml("#red:Android Platform Tools is not set;\n}\n")
-        return
 
+    # -------------------------------------------------------------------------
+    # 1 Do the necessary validations
+    # -------------------------------------------------------------------------
+    # check for platform tools
+    if not get_adb():
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.\n")
+        puml("#red:Android Platform Tools is not set;\n}\n")
+        self.toast("Flash Option", "Android Platform Tools is not set.")
+        return -1
+
+    # check for device
     device = get_phone()
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid adb device.")
         puml("#red:Valid device is not selected;\n}\n")
-        return
+        self.toast("Flash Option", "Valid device is not selected.")
+        return -1
 
+    # Check if we're flashing older OTA
+    if self.config.flash_mode == 'OTA':
+        print("Checking OTA version against the currently installed firmware.")
+        print(f"Firmware ID:                  {get_firmware_id()}")
+        print(f"Currently installed firmware: {device.build}")
+        pattern1 = r'(?:.*)-(?:.*)-(?:.*)\.(\d{6})\.(?:.*)'
+        pattern2 = r'(?:.*)\.(\d{6})\.(?:.*)'
+        match1 = re.search(pattern1, get_firmware_id())
+        match2 = re.search(pattern2, device.build)
+        if match1 and match2:
+            number1 = int(match1.group(1))
+            number2 = int(match2.group(1))
+            print(f"OTA date:                     {number1}")
+            print(f"Currently firmware date:      {number2}\n")
+            if number1 < number2:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You can only sidload OTA that is equal or higher than the currently installed version.")
+                puml("#red:You can only sidload OTA that is equal or higher than the currently installed version.;\n}\n")
+                self.toast("Flash Option", "You can only sidload OTA that is equal or higher than the currently installed version.")
+                return -1
+
+    # confirm for wipe data
+    if self.config.flash_mode == 'wipeData':
+        print("Flash Mode: Wipe Data")
+        puml(f":Flash Mode: Wipe Data;\n")
+        dlg = wx.MessageDialog(None, "You have selected to WIPE data\nAre you sure want to continue?",'Wipe Data',wx.YES_NO | wx.ICON_EXCLAMATION)
+        puml(f"note right\nDialog\n====\nYou have selected to WIPE data\nAre you sure want to continue?\nend note\n")
+        result = dlg.ShowModal()
+        if result != wx.ID_YES:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
+            puml("#pink:User cancelled flashing;\n}\n")
+            return -1
+        self.toast("Flash Option", "Wipe Data is accepted.")
+    # confirm for wipe flag
+    if self.config.advanced_options and self.wipe:
+        print("Flash Option: Wipe")
+        dlg = wx.MessageDialog(None, "You have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Wipe',wx.YES_NO | wx.ICON_EXCLAMATION)
+        puml(f"note right\nDialog\n====\nYou have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?\nend note\n")
+        result = dlg.ShowModal()
+        if result != wx.ID_YES:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
+            puml("#pink:User cancelled flashing;\n}\n")
+            return -1
+        self.toast("Flash Option", "Wipe is accepted.")
+    # confirm for force flag
+    elif self.config.advanced_options and self.config.fastboot_force and self.config.flash_mode != 'OTA':
+        print("Flash Option: Force")
+        dlg = wx.MessageDialog(None, "You have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Force',wx.YES_NO | wx.ICON_EXCLAMATION)
+        puml(f"note right\nDialog\n====\nYou have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?\nend note\n")
+        result = dlg.ShowModal()
+        if result != wx.ID_YES:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
+            puml("#pink:User cancelled flashing;\n}\n")
+            return -1
+        self.toast("Flash Option", "Force flag is accepted.")
+
+    # set some variables
+    slot_before_flash = device.active_slot
     cwd = os.getcwd()
     config_path = get_config_path()
     factory_images = os.path.join(config_path, 'factory_images')
 
     if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-        image_mode = get_image_mode()
         package_dir_full = os.path.join(config_path, 'tmp')
     else:
+        # check for free space >= 5G
+        if get_free_space() < 5 or get_free_space(get_config_path()) < 5:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Please check available disk space, you do not have safe levels of availabe storage to flash without risk.")
+            print("Aborting ...\n")
+            puml("#red:Not enough disk space;\n}\n")
+            self.toast("Flash action", "Not enough disk space.")
+            return -1
+
+        # check for package selection
         package_sig = get_firmware_id()
         if not package_sig:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a factory firmware file.")
-            puml("#red:Factory firmware is not selected;\n}\n")
-            return
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a OTA or factory firmware file.")
+            puml("#red:Factory OTA or firmware is not selected;\n}\n")
+            self.toast("Flash action", "Full OTA or factory image must be selected.")
+            return -1
 
+        # check for bootloader rollback protection issue on 'raven', 'oriole', 'bluejay'
         if (
             get_firmware_model() in ['raven', 'oriole', 'bluejay']
             and device.api_level
@@ -2552,17 +2683,21 @@ def flash_phone(self):
             if result == wx.ID_OK:
                 print("User pressed ok.")
                 puml(":User Pressed OK;\n")
+                self.toast("Flash action", "Anti rollback warning acknowledged and bypassed.")
             else:
                 print("User pressed cancel.")
                 print("Aborting ...\n")
                 puml("#pink:User Pressed Cancel to abort;\n}\n")
-                return
+                return -1
 
         package_dir_full = os.path.join(factory_images, package_sig)
         boot = get_boot()
 
     message = ''
 
+    # -------------------------------------------------------------------------
+    # 2 Prepare the necessary script contents
+    # -------------------------------------------------------------------------
     # if advanced options is set, and we have flash options ...
     fastboot_options = ''
     fastboot_options2 = ''
@@ -2587,6 +2722,7 @@ def flash_phone(self):
         if self.config.flash_mode == 'OTA':
             fastboot_options = sideload_options
         message = f"Custom Flash Options:   {self.config.advanced_options}\n"
+        image_mode = get_image_mode()
         if self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD':
             message += "   ATTENTION!           Flash Options Don\'t apply to Sideloading. (Except: No Reboot)\n"
         else:
@@ -2603,33 +2739,36 @@ def flash_phone(self):
     if self.config.flash_mode != 'OTA':
         message += f"Flash To Inactive Slot: {self.config.flash_to_inactive_slot}\n"
 
-    if sys.platform == "win32":
-        flash_pf_file = os.path.join(package_dir_full, "flash-pf.bat")
-        if self.config.force_codepage:
-            cp = str(self.config.custom_codepage)
-            if cp == '':
-                cp = None
-        else:
-            cp = get_system_codepage()
-        if cp:
-            first_line = f"chcp {cp}\n@ECHO OFF\n"
-        else:
-            first_line = f"@ECHO OFF\n"
-        if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-            version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
-        else:
-            version_sig = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
+    flash_pf_file_win = os.path.join(package_dir_full, "flash-pf.bat")
+    flash_pf_file_linux = os.path.join(package_dir_full, "flash-pf.sh")
+    if self.config.force_codepage:
+        cp = str(self.config.custom_codepage)
+        if cp == '':
+            cp = None
     else:
-        flash_pf_file = os.path.join(package_dir_full, "flash-pf.sh")
-        first_line = "#!/bin/sh\n"
-        if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-            version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
-        else:
-            version_sig = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
+        cp = get_system_codepage()
+    if cp:
+        first_line_win = f"chcp {cp}\n@ECHO OFF\n"
+    else:
+        first_line_win = f"@ECHO OFF\n"
+    first_line_linux = "#!/bin/sh\n"
+    if self.config.advanced_options and self.config.flash_mode == 'customFlash':
+        version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
+        version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
+    else:
+        version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
+        version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
 
     # delete previous flash-pf.bat file if it exists
-    if os.path.exists(flash_pf_file):
-        os.remove(flash_pf_file)
+    if os.path.exists(flash_pf_file_win):
+        os.remove(flash_pf_file_win)
+
+    # delete previous flash-pf.sh file if it exists
+    if os.path.exists(flash_pf_file_linux):
+        os.remove(flash_pf_file_linux)
+
+    data_win = ''
+    data_linux = ''
 
     #-------------------------------
     # if we are in custom Flash mode
@@ -2640,16 +2779,30 @@ def flash_phone(self):
         if image_mode and get_image_path():
             title = "Advanced Flash Options"
             # create flash-pf.bat based on the custom options.
-            f = open(flash_pf_file.strip(), "w", encoding="ISO-8859-1", errors="replace")
-            data = first_line
-            if sys.platform == "win32":
-                data += "PATH=%PATH%;\"%SYSTEMROOT%\System32\"\n"
+            f_win = open(flash_pf_file_win.strip(), "w", encoding="ISO-8859-1", errors="replace")
+            f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
+            data_win = first_line_win
+            data_linux = first_line_linux
+            data_win += "PATH=%PATH%;\"%SYSTEMROOT%\System32\"\n"
             # Sideload
             if image_mode == 'SIDELOAD':
                 msg  = "\nADB Sideload:           "
-                data += f"\"{get_adb()}\" -s {device.id} sideload \"{get_image_path()}\"\n"
+                data_win += f"call \"{get_adb()}\" -s {device.id} sideload \"{get_image_path()}\"\n"
+                data_win += "if errorlevel 1 (\n"
+                data_win += "    echo Error: The sideload command encountered an error, aborting ...\n"
+                data_win += "    echo You should manually reboot to system if necessary.\n"
+                data_win += "    exit/b 1\n"
+                data_win += ")\n"
+
+                data_linux += f"\"{get_adb()}\" -s {device.id} sideload \"{get_image_path()}\"\n"
+                data_linux += "if [ $? -ne 0 ]; then\n"
+                data_linux += "    echo Error: The sideload command encountered an error, aborting ...\n"
+                data_linux += "    echo You should manually reboot to system if necessary.\n"
+                data_linux += "    exit 1\n"
+                data_linux += "fi\n"
             else:
-                data += version_sig
+                data_win += version_sig_win
+                data_linux += version_sig_linux
                 if image_mode == 'image':
                     action = "update"
                     msg  = f"\nFlash {image_mode:<18}"
@@ -2657,28 +2810,27 @@ def flash_phone(self):
                     action = "boot"
                     msg  = "\nLive Boot to:           "
                     if device.hardware in KNOWN_INIT_BOOT_DEVICES:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or Pixel 7p or Pixel 7a are not supported yet.")
-                        puml("#orange:Live booting Pixel 7 or Pixel 7p or Pixel 7a are not supported yet;\n}\n")
-                        return
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported yet.")
+                        puml("#orange:Live booting Pixel 7 or newer are not supported yet;\n}\n")
+                        self.toast("Flash action", "Live booting Pixel 7 or newer devices is not supported.")
+                        return -1
                 else:
                     action = f"flash {image_mode}"
                     msg  = f"\nFlash {image_mode:<18}"
-                data += f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} \"{get_image_path()}\"\n"
-                if self.wipe:
-                    data += "\necho wiping userdata ...\n"
-                    data += f"\"{get_fastboot()}\" -s {device.id} -w\n"
-                # only reboot if no_reboot is not selected
-                if not self.config.no_reboot:
-                    data += "\necho rebooting to system ...\n"
-                    data += f"\"{get_fastboot()}\" -s {device.id} reboot"
+                data_tmp = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} \"{get_image_path()}\"\n"
+                data_win += data_tmp
+                data_linux += data_tmp
 
-            f.write(data)
-            f.close()
+            f_win.write(data_win)
+            f_win.close()
+            f_linux.write(data_linux)
+            f_linux.close()
             message += f"{msg}{get_image_path()}\n\n"
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No image file is selected.")
             puml("#red:Image file is not selected;\n}\n")
-            return
+            self.toast("Flash action", "Image file is not selected.")
+            return -1
 
     #---------------------------
     # do the standard flash mode
@@ -2690,7 +2842,8 @@ def flash_phone(self):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot file: {boot.boot_path} is not found.")
             print("Aborting ...\n")
             puml("#red:boot file is not found;\n}\n")
-            return
+            self.toast("Flash action", "Boot file is not found.")
+            return -1
         else:
             # copy boot file to package directory, but first delete an old one to be sure
             pf = os.path.join(package_dir_full, "pf_boot.img")
@@ -2702,7 +2855,8 @@ def flash_phone(self):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} boot file: {pf} is not found.")
             print("Aborting ...\n")
             puml("#red:boot file is not found;\n}\n")
-            return
+            self.toast("Flash action", "Boot file is not found.")
+            return -1
 
         # check for rom file (if not OTA)
         if self.config.custom_rom and self.config.advanced_options and self.config.flash_mode != 'OTA':
@@ -2710,7 +2864,8 @@ def flash_phone(self):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: ROM file: {self.config.custom_rom_path} is not found.")
                 print("Aborting ...\n")
                 puml("#red:ROM file is not found;\n}\n")
-                return
+                self.toast("Flash action", "ROM file is not found.")
+                return -1
             else:
                 # copy ROM file to package directory, but first delete an old one to be sure
                 rom_file = ntpath.basename(self.config.custom_rom_path)
@@ -2724,7 +2879,8 @@ def flash_phone(self):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ROM file: {rom} is not found.")
                 print("Aborting ...\n")
                 puml("#red:ROM file is not found;\n}\n")
-                return
+                self.toast("Flash action", "ROM file is not found.")
+                return -1
 
         # Make sure Phone model matches firmware model
         if not (len(device.hardware) >= 3 and device.hardware in get_firmware_model()):
@@ -2748,63 +2904,50 @@ def flash_phone(self):
             if result == wx.ID_OK:
                 print("User pressed ok.")
                 puml(":User Pressed OK;\n")
+                self.toast("Flash action", "Device / Firmware mismatch acknowledged.")
             else:
                 print("User pressed cancel.")
                 print("Aborting ...\n")
                 puml("#pink:User Pressed Cancel to abort;\n}\n")
-                return
+                return -1
 
         # ----------
         # If OTA
         # ----------
         if self.config.flash_mode == 'OTA':
             indent = "    "
-            if sys.platform == "win32" and cp:
-                data = "@echo off\n"
-                data += "setlocal enabledelayedexpansion\n"
-                data += f"chcp {cp}\n"
-                data += f":: This is a generated file by PixelFlasher v{VERSION}\n"
-                data += f":: cd {package_dir_full}\n"
-                data += f":: pf_boot.img: {boot.boot_path}\n"
-                data += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
-                data += f"set \"ACTIVE_SLOT={device.active_slot}\"\n"
-                data += "echo Current Active Slot is: [%ACTIVE_SLOT%]\n"
-                sleep_line = "ping -n 5 127.0.0.1 >nul\n"
+            data_win = "@echo off\n"
+            data_win += "setlocal enabledelayedexpansion\n"
+            data_win += f"chcp {cp}\n"
+            data_win += f":: This is a generated file by PixelFlasher v{VERSION}\n"
+            data_win += f":: cd {package_dir_full}\n"
+            data_win += f":: pf_boot.img: {boot.boot_path}\n"
+            data_win += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
+            data_win += f"set \"ACTIVE_SLOT={device.active_slot}\"\n"
+            data_win += f"set \"INACTIVE_SLOT={device.inactive_slot}\"\n"
+            data_win += "echo Current active slot is:   [%ACTIVE_SLOT%]\n"
+            data_win += "echo Current inactive slot is: [%INACTIVE_SLOT%]\n"
+            data_win += f"call \"{get_adb()}\" -s {device.id} sideload \"{self.config.firmware_path}\"\n"
+            data_win += "if errorlevel 1 (\n"
+            data_win += "    echo Error: The sideload command encountered an error, aborting ...\n"
+            data_win += "    echo You should manually reboot to system if necessary.\n"
+            data_win += "    exit /b 1\n"
+            data_win += ")\n"
 
-                slot_check_lines = "\necho Reading current slot value ...\n"
-                slot_check_lines += f"for /f \"tokens=2 delims=: \" %%a in ('call \"{get_fastboot()}\" -s {device.id} getvar current-slot 2^>^&1 ^| findstr /c:\"current-slot\"') do (\n"
-                slot_check_lines += "    set \"CURRENT_SLOT=%%a\"\n"
-                slot_check_lines += ")\n"
-                slot_check_lines += "echo Current slot: [%CURRENT_SLOT%]\n\n"
-                slot_check_lines += "echo Comparing the current slot with the previous active slot ...\n"
-                slot_check_lines += "if \"%CURRENT_SLOT%\"==\"%ACTIVE_SLOT%\" (\n"
-                slot_check_lines += "    echo \"Current slot is the same as the previous slot.\"\n"
-                slot_check_lines += "    echo \"It appears that OTA flashing did not properly switch slots.\"\n"
-                slot_check_lines += "    echo \"Aborting ...\"\n"
-                slot_check_lines += ") else (\n"
-                slot_check_lines += "    echo \"Current slot has changed, this is good.\"\n"
-            else:
-                data = f"# This is a generated file by PixelFlasher v{VERSION}\n"
-                data += f"# cd {package_dir_full}\n"
-                data += f"# pf_boot.img: {boot.boot_path}\n"
-                data += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
-                sleep_line = "sleep 5\n"
-                data += f"ACTIVE_SLOT=\"{device.active_slot}\"\n"
-                data += "echo Current Active Slot is: [$ACTIVE_SLOT]\n"
-
-                slot_check_lines = "\necho Reading current slot value ...\n"
-                slot_check_lines += f"output=$(\"{get_fastboot()}\" -s {device.id} getvar current-slot 2>&1)\n"
-                slot_check_lines += "CURRENT_SLOT=$(echo \"$output\" | grep -oP 'current-slot:\s*\K\S+')\n"
-                slot_check_lines += "echo Current slot: [$CURRENT_SLOT]\n\n"
-                slot_check_lines += "echo Comparing the current slot with the previous active slot ...\n"
-                slot_check_lines += "if [ \"$CURRENT_SLOT\" = \"$ACTIVE_SLOT\" ]; then\n"
-                slot_check_lines += "    echo \"Current slot is the same as the previous slot.\"\n"
-                slot_check_lines += "    echo \"It appears that OTA flashing did not properly switch slots.\"\n"
-                slot_check_lines += "    echo \"Aborting ...\"\n"
-                slot_check_lines += "else\n"
-                slot_check_lines += "    echo \"Current slot has changed, this is good.\"\n"
-
-            data += f"\"{get_adb()}\" -s {device.id} sideload \"{self.config.firmware_path}\"\n"
+            data_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n"
+            data_linux += f"# cd {package_dir_full}\n"
+            data_linux += f"# pf_boot.img: {boot.boot_path}\n"
+            data_linux += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
+            data_linux += f"ACTIVE_SLOT=\"{device.active_slot}\"\n"
+            data_linux += f"INACTIVE_SLOT=\"{device.inactive_slot}\"\n"
+            data_linux += "echo Current active Slot is:   [$ACTIVE_SLOT]\n"
+            data_linux += "echo Current inactive Slot is: [$ACTIVE_SLOT]\n"
+            data_linux += f"\"{get_adb()}\" -s {device.id} sideload \"{self.config.firmware_path}\"\n"
+            data_linux += "if [ $? -ne 0 ]; then\n"
+            data_linux += "    echo Error: The sideload command encountered an error, aborting ...\n"
+            data_linux += "    echo You should manually reboot to system if necessary.\n"
+            data_linux += "    exit 1\n"
+            data_linux += "fi\n"
 
         # ----------
         # If not OTA
@@ -2824,7 +2967,7 @@ def flash_phone(self):
                 if warn:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Wipe is required.")
                     print("Aborting ...\n")
-                    puml("#red:Error WARNING, wipe is required;\n}\n")
+                    puml("#red:Error WARNING, wipe is required;\n")
                     # dialog to accept / abort
                     title = "Wipe is required."
                     buttons_text = ["Continue Flashing (I know what I'm doing)", "Cancel (Recommended)"]
@@ -2854,19 +2997,19 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     if result == 2:
                         puml("}\n")
                         print("Aborting ...\n")
-                        return
+                        return -1
 
             # Process flash_all files
             flash_all_win32 = process_flash_all_file(os.path.join(package_dir_full, "flash-all.bat"))
             if (flash_all_win32 == 'ERROR'):
                 print("Aborting ...\n")
                 puml("#red:Error processing flash_all.bat file;\n}\n")
-                return
+                return -1
             flash_all_linux = process_flash_all_file(os.path.join(package_dir_full, "flash-all.sh"))
             if (flash_all_linux == 'ERROR'):
                 print("Aborting ...\n")
                 puml("#red:Error processing flash_all.sh file;\n}\n")
-                return
+                return -1
             s1 = ''
             s2 = ''
             for f in flash_all_win32:
@@ -2882,10 +3025,10 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                 debug(f"bat file:\n{s1}")
                 debug(f"\nsh file\n{s2}\n")
 
-            if sys.platform == "win32" and cp:
-                data = f"chcp {cp}\n"
+            if cp:
+                data_win = f"chcp {cp}\n"
             else:
-                data = ''
+                data_win = ''
             if self.config.flash_mode == 'dryRun':
                 add_echo = 'echo '
 
@@ -2895,33 +3038,41 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                 flash_all_file = flash_all_linux
             for f in flash_all_file:
                 if f.type == 'init':
-                    data += f"{f.full_line}\n"
-                    if sys.platform == "win32":
-                        data += f":: This is a generated file by PixelFlasher v{VERSION}\n"
-                        data += f":: cd {package_dir_full}\n"
-                        data += f":: pf_boot.img: {boot.boot_path}\n"
-                        data += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
-                    else:
-                        data += f"# This is a generated file by PixelFlasher v{VERSION}\n"
-                        data += f"# cd {package_dir_full}\n"
-                        data += f"# pf_boot.img: {boot.boot_path}\n"
-                        data += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
+                    data_win += f"{f.full_line}\n"
+                    data_linux += f"{f.full_line}\n"
+                    data_win += f":: This is a generated file by PixelFlasher v{VERSION}\n"
+                    data_win += f":: cd {package_dir_full}\n"
+                    data_win += f":: pf_boot.img: {boot.boot_path}\n"
+                    data_win += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
+                    data_linux += f"# This is a generated file by PixelFlasher v{VERSION}\n"
+                    data_linux += f"# cd {package_dir_full}\n"
+                    data_linux += f"# pf_boot.img: {boot.boot_path}\n"
+                    data_linux += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
                     if self.config.flash_to_inactive_slot:
-                        data += "\necho Switching active slot to the other ...\n"
-                        data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
+                        data_tmp = "\necho Switching active slot to the other ...\n"
+                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
+                        data_win += data_tmp
+                        data_linux += data_tmp
                     continue
                 if f.type in ['sleep']:
-                    sleep_line = f"{f.full_line}\n"
-                    data += f"{f.full_line}\n"
+                    sleep_line_win = f"{f.full_line}\n"
+                    sleep_line_linux = f"{f.full_line}\n"
+                    data_win += sleep_line_win
+                    data_linux += sleep_line_linux
                     continue
                 if f.type in ['path']:
-                    data += f"{f.full_line}\n"
+                    data_win += f"{f.full_line}\n"
+                    data_linux += f"{f.full_line}\n"
                     continue
                 if f.action == 'reboot-bootloader':
-                    data += f"\"{get_fastboot()}\" -s {device.id} {f.action} {f.arg1} {f.arg2}\n"
+                    data_tmp = f"\"{get_fastboot()}\" -s {device.id} {f.action} {f.arg1} {f.arg2}\n"
+                    data_win += data_tmp
+                    data_linux += data_tmp
                     continue
                 if f.action == 'flash':
-                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
+                    data_tmp = f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
+                    data_win += data_tmp
+                    data_linux += data_tmp
                     continue
                 if f.action == '-w update':
                     action = '--skip-reboot update'
@@ -2930,76 +3081,46 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                         action = '--skip-reboot -w update'
                     if self.config.custom_rom and self.config.advanced_options:
                         arg1 = f"\"{get_custom_rom_file()}\""
-                    data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
+                    data_tmp = f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
+                    data_win += data_tmp
+                    data_linux += data_tmp
                     # flash on each slot separately
                     # https://forum.xda-developers.com/t/psa-do-not-try-to-boot-into-the-old-slot-after-updating-only-one-slot-to-android-13-unlocking-the-pixel-6-pro-bootloader-central-repository.4352027/post-87309913
                     if self.config.advanced_options and self.config.flash_both_slots:
-                        data += "\necho Switching active slot to the other ...\n"
-                        data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
-                        data += "\necho rebooting to bootloader ...\n"
-                        data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
-                        data += "\necho Sleeping 5-10 seconds ...\n"
-                        data += sleep_line
-                        data += sleep_line
-                        data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
+                        data_tmp = "\necho Switching active slot to the other ...\n"
+                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
+                        data_tmp += "\necho rebooting to bootloader ...\n"
+                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
+                        data_tmp += "\necho Sleeping 5-10 seconds ...\n"
+                        data_win += data_tmp
+                        data_linux += data_tmp
+                        data_win += sleep_line_win
+                        data_win += sleep_line_win
+                        data_linux += sleep_line_linux
+                        data_linux += sleep_line_linux
+                        data_win += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
+                        data_linux += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
                     # echo add testing of fastbootd mode if we are in dry run mode and sdk < 34
                     sdk_version_components = get_sdk_version().split('.')
                     sdk_major_version = int(sdk_version_components[0])
                     if self.config.flash_mode == 'dryRun' and sdk_major_version < 34:
-                        data += "\necho This is a test for fastbootd mode ...\n"
-                        data += "echo This process will wait for fastbootd indefinitly until it responds ...\n"
-                        data += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you would have to kill it.. ...\n"
-                        data += "echo rebooting to fastbootd ...\n"
-                        data += f"\"{get_fastboot()}\" -s {device.id} reboot fastboot\n"
-                        data += "\necho It looks like fastbootd worked.\n"
+                        data_tmp = "\necho This is a test for fastbootd mode ...\n"
+                        data_tmp += "echo This process will wait for fastbootd indefinitly until it responds ...\n"
+                        data_tmp += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you would have to kill it.. ...\n"
+                        data_tmp += "echo rebooting to fastbootd ...\n"
+                        data_tmp += f"\"{get_fastboot()}\" -s {device.id} reboot fastboot\n"
+                        data_tmp += "\necho It looks like fastbootd worked.\n"
+                        data_win += data_tmp
+                        data_linux += data_tmp
 
-        # ---------------
-        # OTA and Factory
-        # ---------------
-        # add the boot.img flashing
-        data += "\necho rebooting to bootloader ...\n"
-        if self.config.flash_mode == 'OTA':
-            data += f"\"{get_adb()}\" -s {device.id} reboot bootloader\n"
+        if sys.platform == "win32":
+            fin = open(flash_pf_file_win, "wt", encoding="ISO-8859-1", errors="replace")
+            fin.write(data_win)
+            fin.close()
         else:
-            data += f"\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
-        data += "\necho Sleeping 5-10 seconds ...\n"
-        data += sleep_line
-        data += sleep_line
-
-        # are we doing temporary root?
-        if self.config.temporary_root and boot.is_patched:
-            data += "\necho Live booting to pf_boot for temporary root ...\n"
-            data += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot pf_boot.img\n"
-        else:
-            if not boot.is_stock_boot:
-                pf_flash = f"{indent}echo flashing pf_boot ...\n"
-                if boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES:
-                    pf_flash += f"{indent}{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash init_boot pf_boot.img\n"
-                else:
-                    pf_flash += f"{indent}{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash boot pf_boot.img\n"
-
-                if self.config.flash_mode == 'OTA':
-                    data += slot_check_lines
-                    # flash vbmeta if disabling verity / verification
-                    if self.config.disable_verity or self.config.disable_verification:
-                        data += "\n    echo flashing vbmeta ...\n"
-                        data += f"    \"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta vbmeta.img\n"
-                    data += pf_flash
-                    if sys.platform == "win32":
-                        data += ")\n"
-                    else:
-                        data += "fi\n"
-                else:
-                    data += f"\n{pf_flash}"
-
-            # only reboot if no_reboot is not selected
-            if not self.config.no_reboot:
-                data += "\necho rebooting to system ...\n"
-                data += f"\"{get_fastboot()}\" -s {device.id} reboot"
-
-        fin = open(flash_pf_file, "wt", encoding="ISO-8859-1", errors="replace")
-        fin.write(data)
-        fin.close()
+            fin = open(flash_pf_file_linux, "wt", encoding="ISO-8859-1", errors="replace")
+            fin.write(data_linux)
+            fin.close()
 
         title = "Flash Options"
         message = get_flash_settings(self) + message + '\n'
@@ -3009,17 +3130,22 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     #----------------------------------------
     # make the sh script executable
     if sys.platform != "win32":
-        theCmd = f"chmod 755 \"{flash_pf_file}\""
+        flash_pf_file = flash_pf_file_linux
+        data = data_linux
+        theCmd = f"chmod 755 \"{flash_pf_file_linux}\""
         debug(theCmd)
         res = run_shell(theCmd)
         if res.returncode != 0:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file}")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
             print("Aborting ...\n")
             puml("#red:Could not set the permissions on flash script;\n}\n")
-            return
+            return -1
+    else:
+        flash_pf_file = flash_pf_file_win
+        data = data_win
 
     message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
     if self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD':
@@ -3049,7 +3175,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         dlg.Destroy()
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-        print(e)
+        traceback.print_exc()
 
     if result == 1: # OK
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
@@ -3057,7 +3183,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         # continue flashing
     elif result == 2: # Edit
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
-        puml("#pink:User Pressed Edit Script;\n}\n")
+        puml("#pink:User Pressed Edit Script;\n")
         dlg = FileEditor(self, flash_pf_file)
         dlg.CenterOnParent()
         result = dlg.ShowModal()
@@ -3075,13 +3201,16 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         else:
             print("User cancelled editing flash_phone file.")
             puml(f"note right\nCancelled and Aborted\nend note\n")
-            return
+            return -1
     elif result == 3: # Cancel
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
         print("Aborting ...\n")
         puml("#pink:User Pressed Cancel;\n}\n")
-        return
+        return -1
 
+    # -------------------------------------------------------------------------
+    # 3 Put the device in the correct state (bootloader / sideload / fastbootd)
+    # -------------------------------------------------------------------------
     print("")
     print("==============================================================================")
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Flashing Phone    ")
@@ -3091,134 +3220,170 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     print(f"Android Platform Tools Version: {get_sdk_version()}")
     puml(f"note right\nPixelFlasher {VERSION}\nAndroid Platform Tools Version: {get_sdk_version()}\nend note\n")
 
-    # If we're doing Sideload image flashing or OTA
+    mode = device.get_device_state()
+    if mode:
+        print(f"Currently the device is in {mode} mode.")
+
+    # If we're doing OTA or Sideload image flashing, be in sideload mode
     if self.config.flash_mode == 'OTA' or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD'):
-        device.reboot_sideload()
-        print("Waiting 20 seconds ...")
-        time.sleep(20)
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
-        puml(f":Flashing device {device.id};\n", True)
-        theCmd = flash_pf_file
-        os.chdir(package_dir_full)
-        debug(f"Running in Directory: {package_dir_full}")
-        theCmd = f"\"{theCmd}\""
-        debug(theCmd)
-        run_shell2(theCmd)
-        if self.config.flash_mode != 'OTA' and not self.config.no_reboot:
-            time.sleep(5)
-            device.reboot_system()
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
-        endFlash = time.time()
-        print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
-        print("------------------------------------------------------------------------------\n")
-        os.chdir(cwd)
-        puml("#cee7ee:End Flashing;\n", True)
-        puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
-        puml("}\n")
-        # clear the selected device option
-        set_phone(None)
-        self.device_label.Label = "ADB Connected Devices"
-        self.config.device = None
-        self.device_choice.SetItems([''])
-        self.device_choice.Select(-1)
-        return
-
-    if device.mode == 'adb':
-        device.reboot_bootloader()
-        print("Waiting 10 seconds ...")
-        time.sleep(10)
-        # device.refresh_phone_mode()
-        self.device_choice.SetItems(get_connected_devices())
-        self._select_configured_device()
-
-    device = get_phone()
-    if not device:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
-        puml("#red:Valid device is not detected;\n}\n")
-        # let's try one more time just in case
-        print("Waiting 10 seconds ...")
-        time.sleep(10)
-        self.device_choice.SetItems(get_connected_devices())
-        self._select_configured_device()
-        device = get_phone()
-        if not device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
-            puml("#red:Valid device is not detected;\n}\n")
-        return
-
-    if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD')):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
-        print("Aborting ...\n")
-        puml("#red:Bootloader is locked, can't flash;\n}\n")
-        return
-
-    # some images need to be flashed in fastbootd mode
+        res = device.reboot_sideload()
+        if res == -1:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
+            print("Aborting ...\n")
+            puml("#red:Encountered an error while rebooting to sideload;\n}\n")
+            self.toast("Flash action", "Encountered an error while rebooting to sideload.")
+            return -1
+    # Some images need to be flashed in fastbootd mode
     # note: system and vendor, typically get flashed to both slots. '--skip-secondary' will not flash secondary slots in flashall/update
     # TODO check which Pixels and newer support fastbootd, Probably Pixel 5 and newer.
-    if self.config.advanced_options and self.config.flash_mode == 'customFlash' and get_image_mode() in ['super','product','system','system_dlkm','system_ext','vendor','vendor_dlkm']:
-        device.reboot_fastboot()
-        print("Waiting 5 seconds ...")
-        time.sleep(5)
-
-    # if in bootloader mode, Start flashing
-    if device.mode == 'f.b' and get_fastboot():
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device {device.id} ...")
-        puml(f":Flashing device {device.id};\n", True)
-        # confirm for wipe data
-        if self.config.flash_mode == 'wipeData':
-            print("Flash Mode: Wipe Data")
-            puml(f":Flash Mode: Wipe Data;\n")
-            dlg = wx.MessageDialog(None, "You have selected to WIPE data\nAre you sure want to continue?",'Wipe Data',wx.YES_NO | wx.ICON_EXCLAMATION)
-            puml(f"note right\nDialog\n====\nYou have selected to WIPE data\nAre you sure want to continue?\nend note\n")
-            result = dlg.ShowModal()
-            if result != wx.ID_YES:
-                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
-                puml("#pink:User cancelled flashing;\n}\n")
-                return
-        # confirm for wipe flag
-        if self.config.advanced_options and self.wipe:
-            print("Flash Option: Wipe")
-            dlg = wx.MessageDialog(None, "You have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Wipe',wx.YES_NO | wx.ICON_EXCLAMATION)
-            puml(f"note right\nDialog\n====\nYou have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?\nend note\n")
-            result = dlg.ShowModal()
-            if result != wx.ID_YES:
-                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
-                puml("#pink:User cancelled flashing;\n}\n")
-                return
-        # confirm for force flag
-        elif self.config.advanced_options and self.config.fastboot_force:
-            print("Flash Option: Force")
-            dlg = wx.MessageDialog(None, "You have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?",'Flash option: Force',wx.YES_NO | wx.ICON_EXCLAMATION)
-            puml(f"note right\nDialog\n====\nYou have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?\nend note\n")
-            result = dlg.ShowModal()
-            if result != wx.ID_YES:
-                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
-                puml("#pink:User cancelled flashing;\n}\n")
-                return
-
-        theCmd = flash_pf_file
-        os.chdir(package_dir_full)
-        theCmd = f"\"{theCmd}\""
-        debug(theCmd)
-        run_shell2(theCmd)
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
-        endFlash = time.time()
-        print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
-        print("------------------------------------------------------------------------------\n")
-        puml("#cee7ee:End Flashing;\n", True)
-        puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
-        puml("}\n")
-        os.chdir(cwd)
-        # clear the selected device option
-        set_phone(None)
-        self.device_label.Label = "ADB Connected Devices"
-        self.config.device = None
-        self.device_choice.SetItems([''])
-        self.device_choice.Select(-1)
-        if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-            print("\nNote: The device is intentionally kept in bootloader mode\nin case you want to flash or do more things before booting to system.\nYou can reboot to system by pressing the button in PixelFlasher, or on your phone.\n")
+    elif self.config.advanced_options and self.config.flash_mode == 'customFlash' and get_image_mode() in ['super','product','system','system_dlkm','system_ext','vendor','vendor_dlkm']:
+        res = device.reboot_fastboot()
+        if res == -1:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fastbootd")
+            print("Aborting ...\n")
+            puml("#red:Encountered an error while rebooting to fastbootd;\n}\n")
+            self.toast("Flash action", "Encountered an error while rebooting to fastbootd.")
+            return -1
+    # be in bootloader mode for flashing
     else:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device {device.id} not in bootloader mode.")
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
-        puml("#red:Device is not in bootloader mode;\n}\n")
+        res = device.reboot_bootloader(fastboot_included = True)
+        if res == -1:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+            print("Aborting ...\n")
+            puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
+            self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
+            return -1
+        # Check for bootloader locked
+        image_mode = get_image_mode()
+        self.refresh_device()
+        device = get_phone()
+        if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD') or self.config.flash_mode == 'OTA'):
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
+            print("Aborting ...\n")
+            puml("#red:Bootloader is locked, can't flash;\n}\n")
+            self.toast("Flash action", "Bootloader is locked, cannot flash.")
+            return -1
 
+    # -------------------------------------------------------------------------
+    # 4 Run the script
+    # -------------------------------------------------------------------------
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device: {device.id} ...")
+    puml(f":Flashing device: {device.id};\n", True)
+    theCmd = flash_pf_file
+    os.chdir(package_dir_full)
+    theCmd = f"\"{theCmd}\""
+    debug(theCmd)
+    res = run_shell2(theCmd)
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
+        print("Aborting ...\n")
+        puml("#red:Encountered an error while running flash script.;\n}\n")
+        self.toast("Flash action", "Encountered an error while running the flash script.")
+        return -1
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done script flashing!")
+
+    # -------------------------------------------------------------------------
+    # 5 Finish up Do the additional checks and flashing / rebooting
+    # -------------------------------------------------------------------------
+    # At this point when pf_script completes the execution,
+    # the device should be in bootloader mode for factory and custom flashing,
+    # And in recovery for sideload
+    # To be safe let's give it 10 seconds
+    print("Sleeping 10 seconds ...")
+    time.sleep(10)
+    mode = device.get_device_state()
+    if mode:
+        print(f"Currently the device is in {mode} mode.")
+
+    if self.config.flash_mode == 'customFlash':
+        # if wipe is selected perform wipe.
+        if self.wipe:
+            print("Wiping userdata ...")
+            cmd= f"\"{get_fastboot()}\" -s {device.id} -w"
+    else:
+        # reboot to bootloader
+        res = device.reboot_bootloader(fastboot_included = True)
+        if res == -1:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+            print("Aborting ...\n")
+            puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
+            self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
+            return -1
+        image_mode = get_image_mode()
+        self.refresh_device()
+        device = get_phone()
+
+        # If we're doing Sideload image flashing
+        if self.config.flash_mode == 'OTA':
+            # check slot
+            slot_after_flash = device.get_current_slot()
+            print(f"Current slot: [{slot_after_flash}]")
+            print("Comparing the current slot with the previous active slot ...")
+            if slot_after_flash == "UNKNOWN" or slot_after_flash == slot_before_flash:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It appears that OTA flashing did not properly switch slots.")
+                print("Aborting ...")
+                puml("#red:It appears that OTA flashing did not properly switch slots.;\n}\n")
+                self.toast("Flash action", "It appears that OTA flashing did not properly switch slots.")
+                return -1
+            print("Current slot has changed, this is good.")
+
+            # flash vbmeta if disabling verity / verification
+            vbmeta_file = os.path.join(package_dir_full, "vbmeta.img")
+            if self.config.disable_verity or self.config.disable_verification and os.path.exists(vbmeta_file):
+                print("flashing vbmeta ...")
+                theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta {vbmeta_file}"
+                debug(theCmd)
+                res = run_shell(theCmd)
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vbmeta flashing did not return the expected result.")
+                    print("Aborting ...")
+                    puml("#red:vbmeta flashing did not return the expected result.;\n}\n")
+                    self.toast("Flash action", "vbmeta flashing did not return the expected result.")
+                    return -1
+
+        # flash patched boot / init_boot
+        if not boot.is_stock_boot:
+            if device.unlocked:
+                # we do not want to flash if we have selected Temporary root
+                if self.config.advanced_options and self.config.temporary_root and boot.is_patched:
+                    flash = ''
+                else:
+                    # flash the patch
+                    flash = "flash"
+
+                if boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES:
+                    print("Flashing patched init_boot ...")
+                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} init_boot {boot.boot_path}\n"
+                else:
+                    print("Flashing patched boot ...")
+                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} boot {boot.boot_path}\n"
+                debug(theCmd)
+                res = run_shell(theCmd)
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing the patch.")
+                    print("Aborting ...")
+                    puml("#red:Encountered an error while flashing the patch.;\n}\n")
+                    self.toast("Flash action", "Encountered an error while flashing the patch.")
+                    return -1
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Bootloader is locked, skipping flashing ...")
+                puml("#orange:Bootloader is locked, skipping flashing.;\n")
+
+    # reboot to system if no_reboot is not checked
+    if not self.config.no_reboot:
+        device = get_phone()
+        if device:
+            res = device.reboot_system()
+            if res == -1:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+
+    ### Done
+    endFlash = time.time()
+    print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
+    print("------------------------------------------------------------------------------\n")
+    puml("#cee7ee:End Flashing;\n", True)
+    puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
+    self.toast("Flash action", f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
+    puml("}\n")
+    os.chdir(cwd)
+    return 0

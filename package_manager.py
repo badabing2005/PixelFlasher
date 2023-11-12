@@ -6,6 +6,7 @@ import time
 
 import pyperclip
 import darkdetect
+import traceback
 import wx
 import wx.html
 import wx.lib.mixins.listctrl as listmix
@@ -534,6 +535,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                         self.device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
                 self._on_spin('stop')
             except IOError:
+                traceback.print_exc()
                 wx.LogError(f"Cannot install file '{pathname}'.")
                 self._on_spin('stop')
 
@@ -646,6 +648,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 print(f"Downloading apk file to: {pathname}")
                 self.device.pull_file(path, pathname)
         except IOError:
+            traceback.print_exc()
             wx.LogError(f"Cannot save apk file '{pathname}'.")
 
     # -----------------------------------------------
@@ -964,7 +967,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  _on_spin
     # -----------------------------------------------
     def _on_spin(self, state):
-        wx.Yield
+        wx.YieldIfNeeded()
         if state == 'start':
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
             self.Parent._on_spin('start')

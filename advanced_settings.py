@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import wx
-
 import images as images
 from runtime import *
 
@@ -52,7 +51,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.AddGrowableCol(1, 1)
 
         # Magisk Package name
-        package_name_label = wx.StaticText(parent=self, label=u"Magisk Package Name:")
+        package_name_label = wx.StaticText(parent=self, label=u"Magisk Package Name")
         self.package_name = wx.TextCtrl(parent=self, id=-1, size=(-1, -1))
         self.package_name.SetToolTip(u"If you have hidden Magisk,\nset this to the hidden package name.")
         self.reset_magisk_pkg = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
@@ -100,6 +99,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.extra_img_extracts_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Extra img extraction", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.extra_img_extracts_checkbox.SetToolTip(u"When checked and available in payload.bin\nAlso extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img")
 
+        # Show Notifications
+        self.show_notifications_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Show notifications", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_notifications_checkbox.SetToolTip(u"When checked PixelFlasher will display system toast notifications.")
+
         # Always Create boot.tar
         self.create_boot_tar_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Always create boot.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.create_boot_tar_checkbox.SetToolTip(u"When checked, PixelFlasher always creates boot.tar of the patched boot file.\nIf unchecked, only for Samsung firmware boot.tar will be created.")
@@ -110,9 +113,17 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
 
         # Force codepage
-        self.force_codepage_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force codepage to:", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.force_codepage_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force codepage to", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
         self.code_page = wx.TextCtrl(parent=self, id=wx.ID_ANY, size=(-1, -1))
+
+        # Delete Bundle libs
+        self.delete_bundled_libs_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Delete bundled libs")
+        self.delete_bundled_libs_label.SetToolTip(u"The listed libraries would be deleted from the PF bundle to allow system defined ones to be used.")
+        self.delete_bundled_libs = wx.SearchCtrl(self, style=wx.TE_LEFT)
+        self.delete_bundled_libs.ShowCancelButton(True)
+        self.delete_bundled_libs.SetDescriptiveText("Example: libreadline.so.8, libgdk*")
+        self.delete_bundled_libs.ShowSearchButton(False)
 
         # Use Custom Font
         self.use_custom_font_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Use Custom Fontface", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -134,23 +145,25 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self._onFontSelect(None)
 
         # scrcpy 1st row widgets, select path
-        self.scrcpy_folder_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Srccpy Folder")
+        self.scrcpy_path_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Srccpy Path")
         self.srccpy_link = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.srccpy_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
         self.srccpy_link.SetToolTip("Download Srccpy")
-        self.scrcpy_folder_picker = wx.DirPickerCtrl(parent=self, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
-        self.scrcpy_folder_picker.SetToolTip("Select scrcpy folder")
+        self.scrcpy_path_picker = wx.FilePickerCtrl(parent=self, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select scrcpy executable", wildcard=u"Scrcpy executable (*.exe;*)|*.exe;*", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+
+        self.scrcpy_path_picker.SetToolTip("Select scrcpy executable")
         self.scrcpy_h1sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.scrcpy_h1sizer.Add(window=self.scrcpy_folder_label, proportion=0, flag=wx.EXPAND)
+        self.scrcpy_h1sizer.Add(window=self.scrcpy_path_label, proportion=0, flag=wx.EXPAND)
         self.scrcpy_h1sizer.AddSpacer(10)
         self.scrcpy_h1sizer.Add(window=self.srccpy_link, proportion=0, flag=wx.EXPAND)
         self.scrcpy_h1sizer.AddSpacer(10)
-        self.scrcpy_h1sizer.Add(window=self.scrcpy_folder_picker, proportion=1, flag=wx.EXPAND)
+        self.scrcpy_h1sizer.Add(window=self.scrcpy_path_picker, proportion=1, flag=wx.EXPAND)
 
         # scrcpy 2nd row flags
         self.scrcpy_flags = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.scrcpy_flags.ShowCancelButton(True)
         self.scrcpy_flags.SetDescriptiveText("Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)")
+        self.scrcpy_flags.ShowSearchButton(False)
 
         # build the sizers for scrcpy
         scrcpy_sb = wx.StaticBox(self, -1, "Scrcpy settings")
@@ -175,15 +188,17 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.use_busybox_shell_checkbox.SetValue(self.Parent.config.use_busybox_shell)
         self.low_mem_checkbox.SetValue(self.Parent.config.low_mem)
         self.extra_img_extracts_checkbox.SetValue(self.Parent.config.extra_img_extracts)
+        self.show_notifications_checkbox.SetValue(self.Parent.config.show_notifications)
         self.create_boot_tar_checkbox.SetValue(self.Parent.config.create_boot_tar)
         self.check_for_update_checkbox.SetValue(self.Parent.config.update_check)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
+        self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
         self.use_custom_font_checkbox.SetValue(self.Parent.config.customize_font)
         self.font.SetStringSelection(self.Parent.config.pf_font_face)
 
-        if self.Parent.config.scrcpy and self.Parent.config.scrcpy['folder'] != '' and os.path.exists(self.Parent.config.scrcpy['folder']):
-            self.scrcpy_folder_picker.SetPath(self.Parent.config.scrcpy['folder'])
+        if self.Parent.config.scrcpy and self.Parent.config.scrcpy['path'] != '' and os.path.exists(self.Parent.config.scrcpy['path']):
+            self.scrcpy_path_picker.SetPath(self.Parent.config.scrcpy['path'])
         if self.Parent.config.scrcpy and self.Parent.config.scrcpy['flags'] != '':
             self.scrcpy_flags.SetValue(self.Parent.config.scrcpy['flags'])
 
@@ -209,6 +224,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add(self.extra_img_extracts_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
+        fgs1.Add(self.show_notifications_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
         fgs1.Add(self.create_boot_tar_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
@@ -217,6 +235,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
         fgs1.Add(self.code_page, 1, wx.EXPAND)
+
+        fgs1.Add(self.delete_bundled_libs_label, 0, wx.EXPAND)
+        fgs1.Add(self.delete_bundled_libs, 1, wx.EXPAND)
 
         fgs1.Add(self.use_custom_font_checkbox, 0, wx.EXPAND)
         fgs1.Add(fonts_sizer, 1, wx.EXPAND)
@@ -318,6 +339,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             print(f"Setting Extra img extraction to: {self.extra_img_extracts_checkbox.GetValue()}")
         self.Parent.config.extra_img_extracts = self.extra_img_extracts_checkbox.GetValue()
 
+        if self.show_notifications_checkbox.GetValue() != self.Parent.config.show_notifications:
+            print(f"Setting Show notifications to: {self.show_notifications_checkbox.GetValue()}")
+        self.Parent.config.show_notifications = self.show_notifications_checkbox.GetValue()
+
         if self.create_boot_tar_checkbox.GetValue() != self.Parent.config.create_boot_tar:
             print(f"Setting Always create boot.tar: {self.create_boot_tar_checkbox.GetValue()}")
         self.Parent.config.create_boot_tar = self.create_boot_tar_checkbox.GetValue()
@@ -349,6 +374,13 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if self.code_page.GetValue() and self.code_page.GetValue().isnumeric():
             self.Parent.config.custom_codepage = int(self.code_page.GetValue())
 
+        value = self.delete_bundled_libs.GetValue()
+        if value is None:
+            value = ''
+        if value != self.Parent.config.delete_bundled_libs:
+            print(f"Setting Delete bundled libs to: {value}")
+            self.Parent.config.delete_bundled_libs = value
+
         font_settings_changed = False
         if self.use_custom_font_checkbox.GetValue() != self.Parent.config.customize_font:
             print("Enabling Custom Font")
@@ -365,12 +397,12 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.Parent.config.pf_font_face = self.font.GetStringSelection()
         self.Parent.config.pf_font_size = self.font_size.GetValue()
 
-        value = self.scrcpy_folder_picker.GetPath()
+        value = self.scrcpy_path_picker.GetPath()
         if value is None:
             value = ''
-        if value != self.Parent.config.scrcpy['folder'] and os.path.exists(value):
-            print(f"Setting scrcpy folder path to: {value}")
-            self.Parent.config.scrcpy['folder'] = value
+        if value != self.Parent.config.scrcpy['path'] and os.path.exists(value):
+            print(f"Setting scrcpy path path to: {value}")
+            self.Parent.config.scrcpy['path'] = value
 
         value = self.scrcpy_flags.GetValue()
         if value is None:

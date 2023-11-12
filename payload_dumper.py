@@ -7,7 +7,8 @@ import io
 import os
 try:
     import lzma
-except ImportError:
+except ImportError as e:
+    print(f"Error importing lzma: {e}")
     from backports import lzma
 
 import update_metadata_pb2 as um
@@ -92,14 +93,14 @@ def extract_payload(payload_file_path, out='output', diff=False, old='old', imag
         return data
 
     def dump_part(part):
-        sys.stdout.write("Processing %s partition" % part.partition_name)
+        sys.stdout.write(f"Processing {part.partition_name} partition")
         sys.stdout.flush()
 
-        with open('%s/%s.img' % (out, part.partition_name), 'wb') as out_file:
+        with open(f'{out}/{part.partition_name}.img', 'wb') as out_file:
             h = hashlib.sha256()
 
             if diff:
-                with open('%s/%s.img' % (old, part.partition_name), 'rb') as old_file:
+                with open(f'{old}/{part.partition_name}.img', 'rb') as old_file:
                     for op in part.operations:
                         data = data_for_op(op, out_file, old_file)
                         sys.stdout.write(".")

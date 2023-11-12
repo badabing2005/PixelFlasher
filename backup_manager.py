@@ -4,6 +4,7 @@ import gzip
 import shutil
 
 import pyperclip
+import traceback
 import wx
 import wx.html
 import wx.lib.mixins.listctrl as listmix
@@ -355,6 +356,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 self._on_spin('stop')
             except Exception as e:
                 print(f"Cannot backup file '{file_to_backup}'.")
+                traceback.print_exc()
                 self._on_spin('stop')
 
     # -----------------------------------------------
@@ -447,6 +449,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 self._on_spin('stop')
             except Exception as e:
                 print("Cannot create automatic backup file, you can still manually select and create one.")
+                traceback.print_exc()
                 print("Aborting ...")
                 self._on_spin('stop')
                 return
@@ -604,7 +607,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  _on_spin
     # -----------------------------------------------
     def _on_spin(self, state):
-        wx.Yield
+        wx.YieldIfNeeded()
         if state == 'start':
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
             self.Parent._on_spin('start')

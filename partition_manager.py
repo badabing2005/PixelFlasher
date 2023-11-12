@@ -3,6 +3,7 @@
 import json
 
 import pyperclip
+import traceback
 import wx
 import wx.html
 import wx.lib.mixins.listctrl as listmix
@@ -350,6 +351,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
                 self.device.pull_file(path, pathname)
                 res = self.device.delete(path)
         except IOError:
+            traceback.print_exc()
             wx.LogError(f"Cannot save img file '{pathname}'.")
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 

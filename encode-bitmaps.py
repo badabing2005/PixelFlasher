@@ -55,6 +55,7 @@ command_lines = [
     "-a -F -i -n reboot-24 images/reboot-24.png images.py",
     "-a -F -i -n reboot-64 images/reboot-64.png images.py",
     "-a -F -i -n reboot-System-24 images/reboot-system-24.png images.py",
+    "-a -F -i -n reboot-system-64 images/reboot-system-64.png images.py",
     "-a -F -i -n reboot-bootloader-24 images/reboot-bootloader-24.png images.py",
     "-a -F -i -n reboot-bootloader-64 images/reboot-bootloader-64.png images.py",
     "-a -F -i -n reboot-fastbootd-24 images/reboot-fastbootd-24.png images.py",
@@ -65,7 +66,8 @@ command_lines = [
     "-a -F -i -n reboot-recovery-64 images/reboot-recovery-64.png images.py",
     "-a -F -i -n reboot-safe-mode-24 images/reboot-safe-mode-24.png images.py",
     "-a -F -i -n reboot-safe-mode-64 images/reboot-safe-mode-64.png images.py",
-    "-a -F -i -n reboot-system-64 images/reboot-system-64.png images.py",
+    "-a -F -i -n reboot-sideload-24 images/reboot-sideload-24.png images.py",
+    "-a -F -i -n reboot-sideload-64 images/reboot-sideload-64.png images.py",
     "-a -F -i -n right-24 images/right-24.png images.py",
     "-a -F -i -n scan-24 images/scan-24.png images.py",
     "-a -F -i -n shell-24 images/shell-24.png images.py",
@@ -86,6 +88,9 @@ command_lines = [
     "-a -F -i -n unlock-64 images/unlock-64.png images.py",
     "-a -F -i -n update-check-24 images/update-check-24.png images.py",
     "-a -F -i -n wifi-adb-24 images/wifi-adb-24.png images.py",
+    "-a -F -i -n slot-a-48 images/slot-a-48.png images.py",
+    "-a -F -i -n slot-b-48 images/slot-b-48.png images.py",
+    "-a -F -i -n rooted images/rooted.png images.py",
 ]
 
 if __name__ == "__main__":

@@ -52,6 +52,8 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
         self.Refresh()
 
         self.ip_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
+        ip_ctrl_default_height = self.ip_ctrl.GetSize().GetHeight()
+        self.ip_ctrl.SetMinSize((200, ip_ctrl_default_height))
         self.ip_ctrl.ShowCancelButton(True)
         self.ip_ctrl.SetDescriptiveText("IP/Hostname")
         self.ip_ctrl.ShowSearchButton(False)
@@ -130,91 +132,96 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     #              Function PopulateList
     # -----------------------------------------------
     def PopulateList(self):
-        info = wx.ListItem()
-        info.Mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
-        info.Image = -1
-        info.Align = 0
-        info.Width = -1
-        info.SetWidth(-1)
-        info.Text = "Date"
-        self.list.InsertColumn(0, info)
+        try:
+            info = wx.ListItem()
+            info.Mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
+            info.Image = -1
+            info.Align = 0
+            info.Width = -1
+            info.SetWidth(-1)
+            info.Text = "Date"
+            self.list.InsertColumn(0, info)
 
-        info.Align = wx.LIST_FORMAT_LEFT # 0
-        info.Text = "Action"
-        self.list.InsertColumn(1, info)
+            info.Align = wx.LIST_FORMAT_LEFT # 0
+            info.Text = "Action"
+            self.list.InsertColumn(1, info)
 
-        info.Align = wx.LIST_FORMAT_LEFT # 0
-        info.Text = "IP/Hostname"
-        self.list.InsertColumn(2, info)
+            info.Align = wx.LIST_FORMAT_LEFT # 0
+            info.Text = "IP/Hostname"
+            self.list.InsertColumn(2, info)
 
-        info.Align = wx.LIST_FORMAT_LEFT # 0
-        info.Text = "Port"
-        self.list.InsertColumn(3, info)
+            info.Align = wx.LIST_FORMAT_LEFT # 0
+            info.Text = "Port"
+            self.list.InsertColumn(3, info)
 
-        info.Align = wx.LIST_FORMAT_LEFT # 0
-        info.Text = "Pairing Code"
-        self.list.InsertColumn(4, info)
+            info.Align = wx.LIST_FORMAT_LEFT # 0
+            info.Text = "Pairing Code"
+            self.list.InsertColumn(4, info)
 
-        info.Align = wx.LIST_FORMAT_LEFT # 0
-        info.Text = "Note"
-        self.list.InsertColumn(5, info)
+            info.Align = wx.LIST_FORMAT_LEFT # 0
+            info.Text = "Note"
+            self.list.InsertColumn(5, info)
 
-        itemDataMap = {}
-        query = self.searchCtrl.GetValue().lower()
-        if self.history:
-            i = 0
-            items = self.history.items()
-            # date in epoc is the key
-            for key, data in items:
-                action = data["action"]
-                ip = data["ip"]
-                port = data["port"]
-                pair = data["pair"]
-                if pair is None:
-                    pair = ''
-                note = data["note"]
-                if note is None:
-                    note = ''
-                status = data["status"]
-                ts = datetime.fromtimestamp(int(key))
-                action_date = ts.strftime('%Y-%m-%d %H:%M:%S')
-                alltext = f"{action_date} {action.lower()} {status.lower()} {ip.lower()} {port.lower()} {pair.lower()} {note.lower()}"
-                if query.lower() in alltext:
-                    index = self.list.InsertItem(self.list.GetItemCount(), action_date)
-                    itemDataMap[i + 1] = (key, action, ip, port, pair, note)
-                    row = self.list.GetItem(index)
-                    self.list.SetItem(index, 1, action)
-                    self.list.SetItem(index, 2, ip)
-                    self.list.SetItem(index, 3, port)
-                    self.list.SetItem(index, 4, pair)
-                    self.list.SetItem(index, 5, note)
-                    if status == 'Success':
-                        row.SetTextColour(dark_green)
-                    elif status == 'Failed':
-                        row.SetTextColour(wx.RED)
-                    self.list.SetItem(row)
-                    self.list.SetItemData(index, i + 1)
-                    # hide image
-                    self.list.SetItemColumnImage(i, 0, -1)
-                    i += 1
-        self.list.SetColumnWidth(0, -2)
-        grow_column(self.list, 0, 20)
-        self.list.SetColumnWidth(1, -2)
-        grow_column(self.list, 1, 20)
-        self.list.SetColumnWidth(2, -2)
-        grow_column(self.list, 1, 40)
-        self.list.SetColumnWidth(3, -2)
-        grow_column(self.list, 1, 40)
-        self.list.SetColumnWidth(4, -2)
-        grow_column(self.list, 1, 20)
-        self.list.SetColumnWidth(5, 200)
-        grow_column(self.list, 1, 20)
+            itemDataMap = {}
+            query = self.searchCtrl.GetValue().lower()
+            if self.history:
+                i = 0
+                items = self.history.items()
+                # date in epoc is the key
+                for key, data in items:
+                    action = data["action"]
+                    ip = data["ip"]
+                    port = data["port"]
+                    pair = data["pair"]
+                    if pair is None:
+                        pair = ''
+                    note = data["note"]
+                    if note is None:
+                        note = ''
+                    status = data["status"]
+                    ts = datetime.fromtimestamp(int(key))
+                    action_date = ts.strftime('%Y-%m-%d %H:%M:%S')
+                    alltext = f"{action_date} {action.lower()} {status.lower()} {ip.lower()} {port.lower()} {pair.lower()} {note.lower()}"
+                    if query.lower() in alltext:
+                        index = self.list.InsertItem(self.list.GetItemCount(), action_date)
+                        itemDataMap[i + 1] = (key, action, ip, port, pair, note)
+                        row = self.list.GetItem(index)
+                        self.list.SetItem(index, 1, action)
+                        self.list.SetItem(index, 2, ip)
+                        self.list.SetItem(index, 3, port)
+                        self.list.SetItem(index, 4, pair)
+                        self.list.SetItem(index, 5, note)
+                        if status == 'Success':
+                            row.SetTextColour(dark_green)
+                        elif status == 'Failed':
+                            row.SetTextColour(wx.RED)
+                        self.list.SetItem(row)
+                        self.list.SetItemData(index, i + 1)
+                        # hide image
+                        self.list.SetItemColumnImage(i, 0, -1)
+                        i += 1
+            self.list.SetColumnWidth(0, -2)
+            grow_column(self.list, 0, 20)
+            self.list.SetColumnWidth(1, -2)
+            grow_column(self.list, 1, 20)
+            self.list.SetColumnWidth(2, -2)
+            grow_column(self.list, 1, 40)
+            self.list.SetColumnWidth(3, -2)
+            grow_column(self.list, 1, 40)
+            self.list.SetColumnWidth(4, -2)
+            grow_column(self.list, 1, 20)
+            self.list.SetColumnWidth(5, 200)
+            grow_column(self.list, 1, 20)
 
-        self.currentItem = 0
-        if itemDataMap:
-            return itemDataMap
-        else:
-            return -1
+            self.currentItem = 0
+            if itemDataMap:
+                return itemDataMap
+            else:
+                return -1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating wifi history")
+            puml("#red:Encountered an error while populating wifi history;\n")
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  on_ip_change
@@ -315,42 +322,63 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnConnect
     # -----------------------------------------------
     def OnConnect(self, e):
-        if self.ip_ctrl.Value:
-            self._on_spin('start')
-            res = self.wifi_adb_action(self.ip_ctrl.Value, self.port.Value)
-            if res:
-                self.add_to_history(action='connect', status="Failed", note=res)
-            else:
-                self.add_to_history(action='connect', status="Success")
-                self.Parent.device_choice.Popup()
+        try:
+            if self.ip_ctrl.Value:
+                self._on_spin('start')
+                res = self.wifi_adb_action(self.ip_ctrl.Value, self.port.Value)
+                if res:
+                    self.add_to_history(action='connect', status="Failed", note=res)
+                else:
+                    self.add_to_history(action='connect', status="Success")
+                    device_id = f"{self.ip_ctrl.Value}:{self.port.Value}"
+                    set_phone_id(device_id)
+                    self.Parent.config.device = device_id
+                    self.Parent.refresh_device()
+                self._on_spin('stop')
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while wifi connecting")
+            puml("#red:Encountered an error while wifi connecting;\n")
             self._on_spin('stop')
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  OnDisconnect
     # -----------------------------------------------
     def OnDisconnect(self, e):
-        if self.ip_ctrl.Value:
-            self._on_spin('start')
-            res = self.wifi_adb_action(self.ip_ctrl.Value, self.port.Value, disconnect=True)
-            if res:
-                self.add_to_history(action='disconnect', status="Failed", note=res)
-            else:
-                self.add_to_history(action='disconnect', status="Success")
-                self.Parent.device_choice.Popup()
+        try:
+            if self.ip_ctrl.Value:
+                self._on_spin('start')
+                res = self.wifi_adb_action(self.ip_ctrl.Value, self.port.Value, disconnect=True)
+                if res:
+                    self.add_to_history(action='disconnect', status="Failed", note=res)
+                else:
+                    self.add_to_history(action='disconnect', status="Success")
+                    self.Parent.device_choice.Popup()
+                self._on_spin('stop')
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while disconnecting a wireless devcice")
+            puml("#red:Encountered an error while disconnecting a wireless device;\n")
             self._on_spin('stop')
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  OnPair
     # -----------------------------------------------
     def OnPair(self, e):
-        if self.pairing_code.Value:
-            self._on_spin('start')
-            res = self.wifi_adb_action(self.ip_ctrl.Value, self.port.Value, disconnect=False, pairing_code=self.pairing_code.Value)
-            if res is None:
-                self.add_to_history(action='pair', status="Success")
-            else:
-                self.add_to_history(action='pair', status="Failed", note=res)
+        try:
+            if self.pairing_code.Value:
+                self._on_spin('start')
+                res = self.wifi_adb_action(self.ip_ctrl.Value, self.port.Value, disconnect=False, pairing_code=self.pairing_code.Value)
+                if res is None:
+                    self.add_to_history(action='pair', status="Success")
+                else:
+                    self.add_to_history(action='pair', status="Failed", note=res)
+                self._on_spin('stop')
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pairing a device")
+            puml("#red:Encountered an error while pairing a device;\n")
             self._on_spin('stop')
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  GetListCtrl
@@ -452,7 +480,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     #                  _on_spin
     # -----------------------------------------------
     def _on_spin(self, state):
-        wx.Yield
+        wx.YieldIfNeeded()
         if state == 'start':
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
             self.Parent._on_spin('start')

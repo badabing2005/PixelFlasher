@@ -3,7 +3,9 @@
 import contextlib
 import json
 import os
+import sys
 
+from datetime import datetime
 from constants import *
 
 # ============================================================================
@@ -41,6 +43,8 @@ class Config():
         self.data = None
         self.show_all_boot=False
         self.first_run=False
+        self.first_run_date = None
+        self.last_run_date = None
         self.force_codepage = False
         self.custom_codepage = None
         self.customize_font = False
@@ -61,7 +65,9 @@ class Config():
         self.boot_sorting_direction = 'ASC'
         self.low_mem = False
         self.extra_img_extracts = False
+        self.show_notifications = False
         self.create_boot_tar = False
+        self.delete_bundled_libs = ''
 
         self.toolbar = {
             'tb_position': 'top',
@@ -73,7 +79,6 @@ class Config():
                 'adb_shell': True,
                 'scrcpy': True,
                 'device_info': True,
-                'check_verity': True,
                 'partition_manager': True,
                 'switch_slot': True,
                 'reboot_system': True,
@@ -82,6 +87,7 @@ class Config():
                 'reboot_recovery': True,
                 'reboot_safe_mode': True,
                 'reboot_download': True,
+                'reboot_sideload': True,
                 'magisk_modules': True,
                 'install_magisk': True,
                 'magisk_backup_manager': True,
@@ -93,7 +99,7 @@ class Config():
         }
 
         self.scrcpy = {
-            'folder': '',
+            'path': '',
             'flags': ''
         }
 
@@ -105,7 +111,9 @@ class Config():
             if os.path.exists(file_path):
                 with open(file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
                     data = json.load(f)
-                    f.close()
+                    conf.data = data
+                with contextlib.suppress(KeyError):
+                    conf.first_run_date = data['first_run_date']
                 with contextlib.suppress(KeyError):
                     conf.device = data['device']
                 with contextlib.suppress(KeyError):
@@ -201,7 +209,11 @@ class Config():
                 with contextlib.suppress(KeyError):
                     conf.extra_img_extracts = data['extra_img_extracts']
                 with contextlib.suppress(KeyError):
+                    conf.show_notifications = data['show_notifications']
+                with contextlib.suppress(KeyError):
                     conf.create_boot_tar = data['create_boot_tar']
+                with contextlib.suppress(KeyError):
+                    conf.delete_bundled_libs = data['delete_bundled_libs']
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
                     toolbar_data = data['toolbar']
@@ -221,8 +233,8 @@ class Config():
                         conf.toolbar['visible']['scrcpy'] = toolbar_data['visible']['scrcpy']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['device_info'] = toolbar_data['visible']['device_info']
-                    with contextlib.suppress(KeyError):
-                        conf.toolbar['visible']['check_verity'] = toolbar_data['visible']['check_verity']
+                    # with contextlib.suppress(KeyError):
+                    #     conf.toolbar['visible']['check_verity'] = toolbar_data['visible']['check_verity']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['partition_manager'] = toolbar_data['visible']['partition_manager']
                     with contextlib.suppress(KeyError):
@@ -240,6 +252,8 @@ class Config():
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['reboot_download'] = toolbar_data['visible']['reboot_download']
                     with contextlib.suppress(KeyError):
+                        conf.toolbar['visible']['reboot_sideload'] = toolbar_data['visible']['reboot_sideload']
+                    with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['magisk_modules'] = toolbar_data['visible']['magisk_modules']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['install_magisk'] = toolbar_data['visible']['install_magisk']
@@ -254,15 +268,30 @@ class Config():
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['configuration'] = toolbar_data['visible']['configuration']
                 # read the scrcpy section
+                scrcpy_folder = ''
                 with contextlib.suppress(KeyError):
                     scrcpy_data = data['scrcpy']
                     with contextlib.suppress(KeyError):
-                        conf.scrcpy['folder'] = scrcpy_data['folder']
+                        scrcpy_folder = scrcpy_data['folder']
+                    with contextlib.suppress(KeyError):
+                        conf.scrcpy['path'] = scrcpy_data['path']
+                    with contextlib.suppress(KeyError):
+                        # handle legacy folder instead of path situation.
+                        if scrcpy_folder and not conf.scrcpy['path']:
+                            if sys.platform == "win32":
+                                conf.scrcpy['path'] = os.path.join(scrcpy_folder, 'scrcpy.exe')
+                            else:
+                                conf.scrcpy['path'] = os.path.join(scrcpy_folder, 'scrcpy')
+                            scrcpy_folder = ''
                     with contextlib.suppress(KeyError):
                         conf.scrcpy['flags'] = scrcpy_data['flags']
             else:
                 conf.first_run = True
+                conf.first_run_date = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
         except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during configuartion file loading.")
+            print(f"Exception: {e}")
+            print("Deleting the configuration file to recover ...")
             os.remove(file_path)
         return conf
 
@@ -279,6 +308,8 @@ class Config():
             'mode': self.flash_mode,
             'phone_path': self.phone_path,
             'magisk': self.magisk,
+            'first_run_date': self.first_run_date,
+            'last_run_date': f"{datetime.now():%Y-%m-%d %H:%M:%S}",
             'width': self.width,
             'height': self.height,
             'custom_rom': self.custom_rom,
@@ -317,7 +348,9 @@ class Config():
             'rom_sha256': self.rom_sha256,
             'low_mem': self.low_mem,
             'extra_img_extracts': self.extra_img_extracts,
+            'show_notifications': self.show_notifications,
             'create_boot_tar': self.create_boot_tar,
+            'delete_bundled_libs': self.delete_bundled_libs,
             'toolbar': self.toolbar,  # Save the toolbar settings as well
             'scrcpy': self.scrcpy  # Save the scrcpy settings as well
         }

@@ -14,10 +14,10 @@ The application has two modes, normal mode (basic) and advanced mode (expert).
 **Basic mode:** Should suit most users. Some of the features in basic mode are:
 
 - Simple UI interface, click and go. No more command line, no more placing all files in one directory.
-- `boot.img` management UI, select the boot.img file to patch and click the patch button.
+- `boot.img` / `init_boot.img` management UI, select the boot / init_boot file to patch and click the patch button.
 Fully Automated patching with Magisk (without manual steps) and perform upgrades without losing root.  
 No more manually extracting files transferring to the phone, patching / re-flashing and doing multiple reboots.  
-No more setting airplane mode and clearing storage to retain Safetynet passing.
+No more setting airplane mode and clearing storage to retain Safetynet / Play Integrity passing.
 - Display details of `boot.img` (or `init_boot.img` for Pixel 7 or newer devices).
   - SHA1 checksum.
   - Origin (file it was extracted from).
@@ -28,9 +28,9 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
     - The SHA1 of the source boot.img file.
   - Option to Live boot from a choice of boot.img or patched image.
   - Flash just the boot / init_boot image.
-- Choose to keep data or wipe data while flashing.
+- Choose to keep data or wipe data while flashing (Full OTA flashing always keeps data).
 - Ability to flash even if multiple devices are connected to the computer.
-- Option to flash to inactive slot.
+- Option to flash to inactive slot (Full OTA always flashes to inactive slot).
 - Display information about the phone.
   - ID
   - Hardware model.
@@ -67,8 +67,11 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - Enabled / Disabled.
 - Display Android Platform Tools (SDK) version and warn / block if the version is old.
 - Install APK (an app) file from the computer onto the device.
+- Wireless Manager, to wirelessly connect to adb debug or adb wireless with pairing support.
 - Advanced features are hidden to keep the interface simple and easy to follow.
-- A lot of checks and validations for smooth operation.
+- Easily open ADB shell to the device.
+- Support for Genymotion Scrcpy to mirror Android devices (video and audio) via USB or over TCP/IP, and allows to control the device with the keyboard and the mouse of the computer.
+- A lot of checks and validations for smooth operation with quite verbose console output to inform about every step of the operation.
 - Automatic check for program updates.
 - Package (Application) Manager, [screenshot](images/Package-Manager.png):
   - Disable (Freeze)
@@ -78,20 +81,24 @@ No more setting airplane mode and clearing storage to retain Safetynet passing.
   - Download APK
   - Multi-Select
   - Show Package Details.
+  - Add app to Magisk denylist.
 
 **Expert mode:** (should only be turned on by experienced users). In addition to the basic features, you get:
 
-- The ability to flash custom ROM (with or without patching `boot.img`)
+- The ability to flash custom ROM (with or without patching `boot` / `init_boot`)
 - Option to flash to both slots.
 - Options to disable verity and or verification.
 - Ability to change the active slot.
-- Ability to live boot to custom `boot.img` (temporary root).
-- Ability to boot to recovery.
+- Ability to live boot to custom `boot` / `init_boot` (temporary root).
+- Ability to boot to recovery, fastbootd, safe mode, download mode and sideload.
 - Ability to flash custom image: boot, recovery, radio, kernel, ...
 - Ability to sideload an image.
 - Lock / Unlock bootloader.
 - Option to gain temporary root (good for testing or checking things out).
 - SOS Disable Magisk modules to get out of bootloop (experimental).
+- Force option when flashing.
+- Option to skip rebooting.
+- Option to wipe.
 - Partition Manager:
   - Erase single or multi partitions.
   - Dump / create backup of single or multi partitions and save to PC.
@@ -198,9 +205,9 @@ The following information about the connected device is displayed.
 4. Next select the full OTA (recommended) or factory zip file (don't unzip), the application will recognize the phone model from the image name and validate the SHA-256 checksum.  
 You can download [factory images](https://developers.google.com/android/images) by clicking the ![Image of link](/images/open-link-16.png) next to it.
 You can download full OTA images from [here](https://developers.google.com/android/ota).
-**Note:** Because both firmware package and full OTA are complete images, you can upgrade to any newer version without worrying about jumping versions (downgrades might work, but are not recommended).
-5. Process the factory image.
-PixelFlasher will extract `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) file from the factory image and populate it in the list below (5).  
+**Note:** Because both firmware package and full OTA are complete images, you can upgrade to any newer version without worrying about jumping versions (downgrades with factory image are possible only with wipe data).
+5. Process the full OTA or factory image.
+PixelFlasher will extract `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) file from the image and populate it in the list below (5).  
 6. Select `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) from the list, the selected file can be patched (6), or flashed (10).
 7. Optional: Select this option if you want to patch the `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) with Magisk. If Magisk is not already installed on your phone, PixelFlasher will install it for you.
 Your phone does not need to be rooted to create a patched file.
@@ -219,13 +226,7 @@ The following details are listed.
     - **Patched on Device** indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
     - **Date** is the either the date the `boot.img` was extracted, or the date it was patched.
     - **Package Path** indicates the file from which `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) was extracted.
-9. Select the Flash Mode
-    - If factory firmware is selected in step 4:
-      - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`.
-      - **WIPE all data**: As the text suggests, this will wipe your data, use it with caution!  
-      If this mode is selected PixelFlasher will ask for confirmation during the flashing phase.
-      - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
-      This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
+9. Select the Flash Mode, PixelFalsher will automatically select applicable flash mode based on the selected image type.
     - If full OTA image is selected in step 4:
       - **Full OTA**: Will flash full OTA image in sideload mode.
       Features of this mode:
@@ -235,11 +236,19 @@ The following details are listed.
         - If you flash to both slots (ie flash twice in a row) then both slots would be bootable.
         - Your phone's bootloader does not have to be unlocked to be able to flash full OTA image (stock boot only).
         - You cannot downgrade with OTA, the version being installed has to be equal or higher.
-10. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (the below list has never caused issues for me, so I keep them enabled YMMV).  
+    - If factory firmware is selected in step 4:
+      - **Keep Data**: In this mode `-w` flag is removed from the flash scripts so that data is not wiped. This is commonly known as `dirty flashing`.
+      - **WIPE all data**: As the text suggests, this will wipe your data, use it with caution!  
+      If this mode is selected PixelFlasher will ask for confirmation during the flashing phase.
+      - **Dry Run**: In this mode, the phone will reboot to bootloader, and then mimic the flash actions (i.e. reboot into bootloader) without actually flashing anything (it prints to the console the steps it would have performed if dry run was not chosen).
+      This is handy for testing to check if the PixelFlasher properly is able to control fastboot commands.
+10. Optional: Open Magisk Modules Manager and disable (uncheck) modules known to cause issues during upgrades (highly recommended). (The list below has never caused issues for me, so I keep them enabled YMMV).  
 ![Image of PixelFlasher GUI](/images/magisk-modules-manager.png)
 11. **Flash Pixel Phone** This is the final step, to actually flash the phone in the selected `Flash Mode`.  
 **Note**: Unlike the previous versions of the PixelFlasher, all the options are dynamic, i.e. depending on what you select before clicking the Flash button, there is no more concept of prepared package.
 PixelFlasher will first present you the selected options and ask for your confirmation if you want to proceed with flashing.
+12. Monitor the **console** output and observe the performed actions and their outcomes.
+13. In case of trouble, click on **Support** button to generate santized (redacted) support logs archive.
 
 ### Expert Mode
 
@@ -292,7 +301,7 @@ Select the appropriate flash options.
 
 - First and foremost [Magisk](https://github.com/topjohnwu/Magisk/releases) by [John Wu](https://github.com/topjohnwu) which made rooting Pixel™ phones possible, without it none of this would have mattered.
 - Big thanks to [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://forum.xda-developers.com/m/t-ryder.3705546/) for his valuable ideas, feedback and testing. Your contributions are very much appreciated.
-- [[Homeboy76]](https://forum.xda-developers.com/m/homeboy76.4810220/) and [[v0latyle]](https://forum.xda-developers.com/m/v0latyle.3690504/) at [xda](https://forum.xda-developers.com/) for their excellent guides [[here](https://forum.xda-developers.com/t/guide-root-pixel-6-android-12-with-magisk.4388733/) and [here](https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/)] on Pixel™ series phones.
+- [[Homeboy76]](https://xdaforums.com/m/homeboy76.4810220/), [[v0latyle]](https://xdaforums.com/m/v0latyle.3690504/) and [[roirraW-edor-ehT]](https://xdaforums.com/m/roirraw-edor-eht.2560614/) at [xda](https://xdaforums.com/) for their excellent guides [[here](https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/), [here](https://xdaforums.com/t/guide-pixel-6-oriole-unlock-bootloader-update-root-pass-safetynet.4356233/) and [here](https://xdaforums.com/t/november-6-2023-ud1a-231105-004-magisk-stable-v26-4-released-unlock-bootloader-root-pixel-8-pro-husky-safetynet.4633839/)] on Pixel™ series phones.
 This program could not have been possible without their easy to follow guides.  
 I strongly encourage all beginners to follow those guides rather than use this program, it is important to understand the basic steps involved before diving into one click tools or advanced tasks.
 - Marcel Stör's [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher) source code which jump started my introduction to [wxPython](https://www.wxpython.org/) and eventually this program.
@@ -301,6 +310,14 @@ I strongly encourage all beginners to follow those guides rather than use this p
 - Endless counts of [xda](https://forum.xda-developers.com/) members and their posts that tirelessly answer questions and share tools. Too many to enumerate.
 - Artwork / graphics / icons, designed and supplied by: [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://forum.xda-developers.com/m/t-ryder.3705546/) based on [material-design-icons](https://github.com/google/material-design-icons/blob/master/LICENSE)
 - vm03's [payload_dumper](https://github.com/vm03/payload_dumper) source code to extract images from payload.bin files.
+
+## Troublsehooting
+
+If you need support or assistance, please **generate and provide a support file** from within PixelFlasher.
+You can hit that big Support button on the main screen, or select it from the Help menu.
+The generated support.zip file is sanitized (redacted) to keep your sensitive information (username device id ...) private.
+
+- If your anti-virus program is telling you that PixelFlasher is a malware, or you are concerned in any way, please check [this post](https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/post-89090938).
 
 ## Disclaimer
 

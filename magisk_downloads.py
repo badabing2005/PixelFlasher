@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 import pyperclip
 import darkdetect
 import markdown
+import traceback
 import wx
 import wx.html
 import wx.lib.mixins.listctrl as listmix
@@ -325,7 +326,7 @@ class MagiskDownloads(wx.Dialog):
     #                  _on_spin
     # -----------------------------------------------
     def _on_spin(self, state):
-        wx.Yield
+        wx.YieldIfNeeded()
         if state == 'start':
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
             self.Parent._on_spin('start')
@@ -353,6 +354,7 @@ def download_file(url, filename = None):
                 return
         except Exception:
             print (f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
+            traceback.print_exc()
             return 'ERROR'
     return downloaded_file_path
 

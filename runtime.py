@@ -2,18 +2,21 @@
 
 import binascii
 import contextlib
+import fnmatch
 import hashlib
 import io
 import json
 import os
 import re
 import shutil
+import signal
 import sqlite3 as sl
 import subprocess
 import sys
 import tarfile
 import tempfile
 import time
+import traceback
 import zipfile
 import psutil
 from datetime import datetime
@@ -23,7 +26,6 @@ import requests
 import wx
 from packaging.version import parse
 from platformdirs import *
-
 from constants import *
 
 verbose = False
@@ -32,7 +34,8 @@ fastboot = None
 adb_sha256 = None
 fastboot_sha256 = None
 phones = []
-phone = None
+device_list = []
+phone_id = None
 advanced_options = False
 update_check = True
 firmware_model = None
@@ -116,6 +119,25 @@ def get_config():
 def set_config(value):
     global config
     config = value
+
+# ============================================================================
+#                               Function set_console_widget
+# ============================================================================
+def set_console_widget(widget):
+    global console_widget
+    console_widget = widget
+
+
+# ============================================================================
+#                               Function flush_output
+# ============================================================================
+def flush_output():
+    global console_widget
+    wx.YieldIfNeeded()
+    if console_widget:
+        sys.stdout.flush()
+        wx.CallAfter(console_widget.Update)
+        wx.YieldIfNeeded()
 
 
 # ============================================================================
@@ -262,10 +284,10 @@ def get_boot_images_dir():
 # ============================================================================
 def get_factory_images_dir():
     # factory_images only changed after version 5
-    if parse(VERSION) < parse('6.0.0'):
+    if parse(VERSION) < parse('7.0.0'):
         return 'factory_images'
     else:
-        return 'factory_images6'
+        return 'factory_images7'
 
 
 # ============================================================================
@@ -275,10 +297,10 @@ def get_pf_db():
     # we have different db schemas for each of these versions
     if parse(VERSION) < parse('4.0.0'):
         return 'PixelFlasher.db'
-    elif parse(VERSION) < parse('6.0.0'):
+    elif parse(VERSION) < parse('7.0.0'):
         return 'PixelFlasher4.db'
     else:
-        return 'PixelFlasher6.db'
+        return 'PixelFlasher7.db'
 
 
 # ============================================================================
@@ -394,19 +416,47 @@ def set_phones(value):
 
 
 # ============================================================================
+#                               Function get_device_list
+# ============================================================================
+def get_device_list():
+    global device_list
+    return device_list
+
+
+# ============================================================================
+#                               Function set_device_list
+# ============================================================================
+def set_device_list(value):
+    global device_list
+    device_list = value
+
+
+# ============================================================================
+#                               Function get_phone_id
+# ============================================================================
+def get_phone_id():
+    global phone_id
+    return phone_id
+
+
+# ============================================================================
+#                               Function set_phone_id
+# ============================================================================
+def set_phone_id(value):
+    global phone_id
+    phone_id = value
+
+
+# ============================================================================
 #                               Function get_phone
 # ============================================================================
 def get_phone():
-    global phone
-    return phone
-
-
-# ============================================================================
-#                               Function set_phone
-# ============================================================================
-def set_phone(value):
-    global phone
-    phone = value
+    devices = get_phones()
+    phone_id = get_phone_id()
+    if phone_id and devices:
+        for phone in devices:
+            if phone.id == phone_id:
+                return phone
 
 
 # ============================================================================
@@ -750,109 +800,117 @@ def puml(message='', left_ts = False, mode='a'):
 #                               Function init_config_path
 # ============================================================================
 def init_config_path():
-    config_path = get_sys_config_path()
-    set_config_path(config_path)
-    with contextlib.suppress(Exception):
-        file_path = os.path.join(config_path, CONFIG_FILE_NAME)
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
-                data = json.load(f)
-                f.close()
-            pf_home = data['pf_home']
-            if pf_home and os.path.exists(pf_home):
-                set_config_path(pf_home)
-    config_path = get_config_path()
-    if not os.path.exists(os.path.join(config_path, 'logs')):
-        os.makedirs(os.path.join(config_path, 'logs'), exist_ok=True)
-    if not os.path.exists(os.path.join(config_path, 'factory_images')):
-        os.makedirs(os.path.join(config_path, 'factory_images'), exist_ok=True)
-    if not os.path.exists(os.path.join(config_path, get_boot_images_dir())):
-        os.makedirs(os.path.join(config_path, get_boot_images_dir()), exist_ok=True)
-    if not os.path.exists(os.path.join(config_path, 'tmp')):
-        os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
-    if not os.path.exists(os.path.join(config_path, 'puml')):
-        os.makedirs(os.path.join(config_path, 'puml'), exist_ok=True)
+    try:
+        config_path = get_sys_config_path()
+        set_config_path(config_path)
+        with contextlib.suppress(Exception):
+            file_path = os.path.join(config_path, CONFIG_FILE_NAME)
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
+                    data = json.load(f)
+                    f.close()
+                pf_home = data['pf_home']
+                if pf_home and os.path.exists(pf_home):
+                    set_config_path(pf_home)
+        config_path = get_config_path()
+        if not os.path.exists(os.path.join(config_path, 'logs')):
+            os.makedirs(os.path.join(config_path, 'logs'), exist_ok=True)
+        if not os.path.exists(os.path.join(config_path, 'factory_images')):
+            os.makedirs(os.path.join(config_path, 'factory_images'), exist_ok=True)
+        if not os.path.exists(os.path.join(config_path, get_boot_images_dir())):
+            os.makedirs(os.path.join(config_path, get_boot_images_dir()), exist_ok=True)
+        if not os.path.exists(os.path.join(config_path, 'tmp')):
+            os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
+        if not os.path.exists(os.path.join(config_path, 'puml')):
+            os.makedirs(os.path.join(config_path, 'puml'), exist_ok=True)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_config_path")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function init_db
 # ============================================================================
 def init_db():
-    global db
-    config_path = get_sys_config_path()
-    # connect / create db
-    db = sl.connect(os.path.join(config_path, get_pf_db()))
-    db.execute("PRAGMA foreign_keys = ON")
-    # create tables
-    with db:
-        # PACKAGE Table
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS PACKAGE (
-                id INTEGER NOT NULL PRIMARY KEY,
-                boot_hash TEXT NOT NULL,
-                type TEXT CHECK (type IN ('firmware', 'rom')) NOT NULL,
-                package_sig TEXT NOT NULL,
-                file_path TEXT NOT NULL UNIQUE,
-                epoch INTEGER NOT NULL
-            );
-        """)
-        # BOOT Table
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS BOOT (
-                id INTEGER NOT NULL PRIMARY KEY,
-                boot_hash TEXT NOT NULL UNIQUE,
-                file_path TEXT NOT NULL,
-                is_patched INTEGER CHECK (is_patched IN (0, 1)),
-                magisk_version TEXT,
-                hardware TEXT,
-                epoch INTEGER NOT NULL,
-                patch_method TEXT
-            );
-        """)
-        # PACKAGE_BOOT Table
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS PACKAGE_BOOT (
-                package_id INTEGER,
-                boot_id INTEGER,
-                epoch INTEGER NOT NULL,
-                PRIMARY KEY (package_id, boot_id),
-                FOREIGN KEY (package_id) REFERENCES PACKAGE(id),
-                FOREIGN KEY (boot_id) REFERENCES BOOT(id)
-            );
-        """)
+    try:
+        global db
+        config_path = get_sys_config_path()
+        # connect / create db
+        db = sl.connect(os.path.join(config_path, get_pf_db()))
+        db.execute("PRAGMA foreign_keys = ON")
+        # create tables
+        with db:
+            # PACKAGE Table
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS PACKAGE (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    boot_hash TEXT NOT NULL,
+                    type TEXT CHECK (type IN ('firmware', 'rom')) NOT NULL,
+                    package_sig TEXT NOT NULL,
+                    file_path TEXT NOT NULL UNIQUE,
+                    epoch INTEGER NOT NULL
+                );
+            """)
+            # BOOT Table
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS BOOT (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    boot_hash TEXT NOT NULL UNIQUE,
+                    file_path TEXT NOT NULL,
+                    is_patched INTEGER CHECK (is_patched IN (0, 1)),
+                    magisk_version TEXT,
+                    hardware TEXT,
+                    epoch INTEGER NOT NULL,
+                    patch_method TEXT
+                );
+            """)
+            # PACKAGE_BOOT Table
+            db.execute("""
+                CREATE TABLE IF NOT EXISTS PACKAGE_BOOT (
+                    package_id INTEGER,
+                    boot_id INTEGER,
+                    epoch INTEGER NOT NULL,
+                    PRIMARY KEY (package_id, boot_id),
+                    FOREIGN KEY (package_id) REFERENCES PACKAGE(id),
+                    FOREIGN KEY (boot_id) REFERENCES BOOT(id)
+                );
+            """)
 
-        # Check if the patch_method and is_odin column already exists in the BOOT table
-        # Added in version 5.1
-        cursor = db.execute("PRAGMA table_info(BOOT)")
-        columns = cursor.fetchall()
-        column_names = [column[1] for column in columns]
+            # Check if the patch_method and is_odin column already exists in the BOOT table
+            # Added in version 5.1
+            cursor = db.execute("PRAGMA table_info(BOOT)")
+            columns = cursor.fetchall()
+            column_names = [column[1] for column in columns]
 
-        if 'patch_method' not in column_names:
-            # Add the patch_method column to the BOOT table
-            db.execute("ALTER TABLE BOOT ADD COLUMN patch_method TEXT;")
-        if 'is_odin' not in column_names:
-            # Add the is_odin column to the BOOT table
-            db.execute("ALTER TABLE BOOT ADD COLUMN is_odin INTEGER;")
-        # Added in version 5.4
-        if 'is_stock_boot' not in column_names:
-            # Add the is_stock_boot column to the BOOT table
-            db.execute("ALTER TABLE BOOT ADD COLUMN is_stock_boot INTEGER;")
-        if 'is_init_boot' not in column_names:
-            # Add the is_init_boot column to the BOOT table
-            db.execute("ALTER TABLE BOOT ADD COLUMN is_init_boot INTEGER;")
-        if 'patch_source_sha1' not in column_names:
-            # Add the patch_source_sha1 column to the BOOT table
-            db.execute("ALTER TABLE BOOT ADD COLUMN patch_source_sha1 INTEGER;")
+            if 'patch_method' not in column_names:
+                # Add the patch_method column to the BOOT table
+                db.execute("ALTER TABLE BOOT ADD COLUMN patch_method TEXT;")
+            if 'is_odin' not in column_names:
+                # Add the is_odin column to the BOOT table
+                db.execute("ALTER TABLE BOOT ADD COLUMN is_odin INTEGER;")
+            # Added in version 5.4
+            if 'is_stock_boot' not in column_names:
+                # Add the is_stock_boot column to the BOOT table
+                db.execute("ALTER TABLE BOOT ADD COLUMN is_stock_boot INTEGER;")
+            if 'is_init_boot' not in column_names:
+                # Add the is_init_boot column to the BOOT table
+                db.execute("ALTER TABLE BOOT ADD COLUMN is_init_boot INTEGER;")
+            if 'patch_source_sha1' not in column_names:
+                # Add the patch_source_sha1 column to the BOOT table
+                db.execute("ALTER TABLE BOOT ADD COLUMN patch_source_sha1 INTEGER;")
 
-        # Check if the full_ota column already exists in the PACKAGE table
-        # Added in version 5.8
-        cursor = db.execute("PRAGMA table_info(PACKAGE)")
-        columns = cursor.fetchall()
-        column_names = [column[1] for column in columns]
+            # Check if the full_ota column already exists in the PACKAGE table
+            # Added in version 5.8
+            cursor = db.execute("PRAGMA table_info(PACKAGE)")
+            columns = cursor.fetchall()
+            column_names = [column[1] for column in columns]
 
-        if 'full_ota' not in column_names:
-            # Add the full_ota column to the BOOT table (values: 0:Not Full OTA, 1:Full OTA NULL:UNKNOWN)
-            db.execute("ALTER TABLE PACKAGE ADD COLUMN full_ota INTEGER;")
+            if 'full_ota' not in column_names:
+                # Add the full_ota column to the BOOT table (values: 0:Not Full OTA, 1:Full OTA NULL:UNKNOWN)
+                db.execute("ALTER TABLE PACKAGE ADD COLUMN full_ota INTEGER;")
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_db")
+        traceback.print_exc()
 
 # ============================================================================
 #                               Function get_config_file_path
@@ -916,6 +974,29 @@ def get_path_to_7z():
 
 
 # ============================================================================
+#                               Function delete_bundled_library
+# ============================================================================
+# Example usage
+# delete_bundled_library("libreadline.so.8, libgtk*")
+def delete_bundled_library(library_names):
+    try:
+        if not getattr(sys, 'frozen', False):
+            return
+        bundle_dir = sys._MEIPASS
+        debug(f"Bundle Directory: {bundle_dir}")
+        if bundle_dir:
+            names = library_names.split(",")
+            for file_name in os.listdir(bundle_dir):
+                for name in names:
+                    if fnmatch.fnmatch(file_name, name.strip()):
+                        file_path = os.path.join(bundle_dir, file_name)
+                        print(f"Found library and deleted: {file_path}")
+                        os.remove(file_path)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while deleting bundled library")
+        traceback.print_exc()
+
+# ============================================================================
 #                               Function get_bundle_dir
 # ============================================================================
 # set by PyInstaller, see http://pyinstaller.readthedocs.io/en/v3.2/runtime-information.html
@@ -972,58 +1053,70 @@ def grow_column(list, col, value = 20):
 #                               Function open_folder
 # ============================================================================
 def open_folder(self, path, isFile = False):
-    if not path:
-        return
-    if isFile:
-        dir_path = os.path.dirname(path)
-    else:
-        dir_path = path
-    if sys.platform == "darwin":
-        subprocess.Popen(["open", dir_path], env=get_env_variables())
-    elif sys.platform == "win32":
-        os.system(f"start {dir_path}")
-    # linux
-    elif self.config.linux_file_explorer:
-        subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())
-    else:
-        subprocess.Popen(["nautilus", dir_path], env=get_env_variables())
+    try:
+        if not path:
+            return
+        if isFile:
+            dir_path = os.path.dirname(path)
+        else:
+            dir_path = path
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", dir_path], env=get_env_variables())
+        elif sys.platform == "win32":
+            os.system(f"start {dir_path}")
+        # linux
+        elif self.config.linux_file_explorer:
+            subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())
+        else:
+            subprocess.Popen(["nautilus", dir_path], env=get_env_variables())
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a folder.")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function open_terminal
 # ============================================================================
 def open_terminal(self, path, isFile=False):
-    if path:
-        if isFile:
-            dir_path = os.path.dirname(path)
-        else:
-            dir_path = path
-        if sys.platform.startswith("win"):
-            subprocess.Popen(["start", "cmd.exe", "/k", "cd", "/d", dir_path], shell=True, env=get_env_variables())
-        elif sys.platform.startswith("linux"):
-            if self.config.linux_shell:
-                subprocess.Popen([self.config.linux_shell, "--working-directory", dir_path], env=get_env_variables())
+    try:
+        if path:
+            if isFile:
+                dir_path = os.path.dirname(path)
             else:
-                subprocess.Popen(["gnome-terminal", "--working-directory", dir_path], env=get_env_variables())
-        elif sys.platform.startswith("darwin"):
-            subprocess.Popen(["open", "-a", "Terminal", dir_path], env=get_env_variables())
+                dir_path = path
+            if sys.platform.startswith("win"):
+                subprocess.Popen(["start", "cmd.exe", "/k", "cd", "/d", dir_path], shell=True, env=get_env_variables())
+            elif sys.platform.startswith("linux"):
+                if self.config.linux_shell:
+                    subprocess.Popen([self.config.linux_shell, "--working-directory", dir_path], env=get_env_variables())
+                else:
+                    subprocess.Popen(["gnome-terminal", "--working-directory", dir_path], env=get_env_variables())
+            elif sys.platform.startswith("darwin"):
+                subprocess.Popen(["open", "-a", "Terminal", dir_path], env=get_env_variables())
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a terminal.")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function check_archive_contains_file
 # ============================================================================
 def check_archive_contains_file(archive_file_path, file_to_check, nested=False, is_recursive=False):
-    debug(f"Looking for {file_to_check} in file {archive_file_path} with nested: {nested}")
+    try:
+        debug(f"Looking for {file_to_check} in file {archive_file_path} with nested: {nested}")
 
-    file_ext = os.path.splitext(archive_file_path)[1].lower()
+        file_ext = os.path.splitext(archive_file_path)[1].lower()
 
-    if file_ext == '.zip':
-        return check_zip_contains_file(archive_file_path, file_to_check, get_low_memory(), nested, is_recursive)
-    elif file_ext in ['.tgz', '.gz', '.tar', '.md5']:
-        return check_tar_contains_file(archive_file_path, file_to_check, nested, is_recursive)
-    else:
-        debug("Unsupported file format.")
-        return ''
+        if file_ext == '.zip':
+            return check_zip_contains_file(archive_file_path, file_to_check, get_low_memory(), nested, is_recursive)
+        elif file_ext in ['.tgz', '.gz', '.tar', '.md5']:
+            return check_tar_contains_file(archive_file_path, file_to_check, nested, is_recursive)
+        else:
+            debug("Unsupported file format.")
+            return ''
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_archive_contains_file.")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1064,6 +1157,7 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
             return ''
     except Exception as e:
         print(f"Failed to check_zip_contains_file_fast. Reason: {e}")
+        traceback.print_exc()
         return ''
 
 
@@ -1105,6 +1199,7 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
         return ''
     except Exception as e:
         print(f"Failed to check_zip_contains_file_lowmem. Reason: {e}")
+        traceback.print_exc()
         return ''
 
 
@@ -1112,45 +1207,53 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
 #                               Function check_tar_contains_file
 # ============================================================================
 def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recursive=False):
-    if not is_recursive:
-        debug(f"Looking for {file_to_check} in tarfile {tar_file_path} with tar-nested: {nested}")
-    with tarfile.open(tar_file_path, 'r') as tar_file:
-        for member in tar_file.getmembers():
-            if member.name.endswith(f'/{file_to_check}') or member.name == file_to_check:
-                if not is_recursive:
-                    debug(f"Found: {member.name}\n")
-                return member.name
-            elif nested and member.name.endswith('.tar'):
-                nested_tar_file_path = tar_file.extractfile(member).read()
-                nested_file_path = check_tar_contains_file(nested_tar_file_path, file_to_check, nested=True, is_recursive=True)
-                if nested_file_path:
+    try:
+        if not is_recursive:
+            debug(f"Looking for {file_to_check} in tarfile {tar_file_path} with tar-nested: {nested}")
+        with tarfile.open(tar_file_path, 'r') as tar_file:
+            for member in tar_file.getmembers():
+                if member.name.endswith(f'/{file_to_check}') or member.name == file_to_check:
                     if not is_recursive:
-                        debug(f"Found: {member.name}/{nested_file_path}\n")
-                    return f'{member.name}/{nested_file_path}'
-            elif nested and member.name.endswith('.zip'):
-                with tar_file.extractfile(member) as nested_zip_file:
-                    nested_zip_data = nested_zip_file.read()
+                        debug(f"Found: {member.name}\n")
+                    return member.name
+                elif nested and member.name.endswith('.tar'):
+                    nested_tar_file_path = tar_file.extractfile(member).read()
+                    nested_file_path = check_tar_contains_file(nested_tar_file_path, file_to_check, nested=True, is_recursive=True)
+                    if nested_file_path:
+                        if not is_recursive:
+                            debug(f"Found: {member.name}/{nested_file_path}\n")
+                        return f'{member.name}/{nested_file_path}'
+                elif nested and member.name.endswith('.zip'):
+                    with tar_file.extractfile(member) as nested_zip_file:
+                        nested_zip_data = nested_zip_file.read()
 
-                # Create a temporary file to write the nested zip data
-                with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
-                    temp_zip_file.write(nested_zip_data)
+                    # Create a temporary file to write the nested zip data
+                    with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
+                        temp_zip_file.write(nested_zip_data)
 
-                nested_file_path = check_zip_contains_file(temp_zip_file.name, file_to_check, get_low_memory(), nested=True, is_recursive=True)
-                if nested_file_path:
-                    if not is_recursive:
-                        debug(f"Found: {member.name}/{nested_file_path}\n")
-                    return f'{member.name}/{nested_file_path}'
-        debug(f"File {file_to_check} was NOT found\n")
-        return ''
+                    nested_file_path = check_zip_contains_file(temp_zip_file.name, file_to_check, get_low_memory(), nested=True, is_recursive=True)
+                    if nested_file_path:
+                        if not is_recursive:
+                            debug(f"Found: {member.name}/{nested_file_path}\n")
+                        return f'{member.name}/{nested_file_path}'
+            debug(f"File {file_to_check} was NOT found\n")
+            return ''
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_tar_contains_file.")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function get_zip_file_list
 # ============================================================================
 def get_zip_file_list(zip_file_path):
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
-        file_list = zip_file.namelist()
-    return file_list
+    try:
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+            file_list = zip_file.namelist()
+        return file_list
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting sip file list.")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1228,62 +1331,70 @@ def extract_sha1(binfile, length=8):
 #                               Function compare_sha1
 # ============================================================================
 def compare_sha1(SHA1, Extracted_SHA1):
-    if len(SHA1) != len(Extracted_SHA1):
-        print("Warning!: The SHA1 values have different lengths")
-        return 0
-    else:
-        num_match = 0
-        max_shift = 4  # Maximum allowed shift
+    try:
+        if len(SHA1) != len(Extracted_SHA1):
+            print("Warning!: The SHA1 values have different lengths")
+            return 0
+        else:
+            num_match = 0
+            max_shift = 4  # Maximum allowed shift
 
-        for i in range(len(SHA1)):
-            if SHA1[i] == Extracted_SHA1[i]:
-                num_match += 1
-            else:
-                shift_count = 0
-                j = 1
-                while j <= max_shift:
-                    # Check if there is a match within the allowed shift range
-                    if i + j < len(SHA1) and SHA1[i] == Extracted_SHA1[i + j]:
-                        num_match += 1
-                        shift_count = j
-                        break
-                    elif i - j >= 0 and SHA1[i] == Extracted_SHA1[i - j]:
-                        num_match += 1
-                        shift_count = -j
-                        break
-                    j += 1
+            for i in range(len(SHA1)):
+                if SHA1[i] == Extracted_SHA1[i]:
+                    num_match += 1
+                else:
+                    shift_count = 0
+                    j = 1
+                    while j <= max_shift:
+                        # Check if there is a match within the allowed shift range
+                        if i + j < len(SHA1) and SHA1[i] == Extracted_SHA1[i + j]:
+                            num_match += 1
+                            shift_count = j
+                            break
+                        elif i - j >= 0 and SHA1[i] == Extracted_SHA1[i - j]:
+                            num_match += 1
+                            shift_count = -j
+                            break
+                        j += 1
 
-                # Adjust the position for the next iteration based on the shift count
-                i += shift_count
+                    # Adjust the position for the next iteration based on the shift count
+                    i += shift_count
 
-        # return confidence level
-        return num_match / len(SHA1)
+            # return confidence level
+            return num_match / len(SHA1)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while comparing sha1.")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function extract_fingerprint
 # ============================================================================
 def extract_fingerprint(binfile):
-    with open(binfile, 'rb') as f:
-        s = f.read()
-        # Find fingerprint=
-        pos = s.find(b'\x66\x69\x6E\x67\x65\x72\x70\x72\x69\x6E\x74')
-        # Move to that location
-        if pos == -1:
-            return None
-        # move to 12 characters from the found position
-        f.seek(pos + 12, 0)
-        # read 65 bytes
-        byte_string = f.read(65)
-        # convert byte string to hex string
-        hex_string = binascii.hexlify(byte_string).decode('ascii')
-        # convert hex string to ASCII string
-        ascii_string = binascii.unhexlify(hex_string).decode('ascii', errors='replace')
-        # replace non-decodable characters with ~
-        ascii_string = ascii_string.replace('\ufffd', '~')
-        # replace non-printable characters with !
-        ascii_string = ''.join(['!' if ord(c) < 32 or ord(c) > 126 else c for c in ascii_string])
-        return ascii_string
+    try:
+        with open(binfile, 'rb') as f:
+            s = f.read()
+            # Find fingerprint=
+            pos = s.find(b'\x66\x69\x6E\x67\x65\x72\x70\x72\x69\x6E\x74')
+            # Move to that location
+            if pos == -1:
+                return None
+            # move to 12 characters from the found position
+            f.seek(pos + 12, 0)
+            # read 65 bytes
+            byte_string = f.read(65)
+            # convert byte string to hex string
+            hex_string = binascii.hexlify(byte_string).decode('ascii')
+            # convert hex string to ASCII string
+            ascii_string = binascii.unhexlify(hex_string).decode('ascii', errors='replace')
+            # replace non-decodable characters with ~
+            ascii_string = ascii_string.replace('\ufffd', '~')
+            # replace non-printable characters with !
+            ascii_string = ''.join(['!' if ord(c) < 32 or ord(c) > 126 else c for c in ascii_string])
+            return ascii_string
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while extracting fingerprint.")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1298,44 +1409,60 @@ def debug(message):
 #                               Function md5
 # ============================================================================
 def md5(fname):
-    hash_md5 = hashlib.md5()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    return hash_md5.hexdigest()
+    try:
+        hash_md5 = hashlib.md5()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error computing md5.")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function sha1
 # ============================================================================
 def sha1(fname):
-    hash_sha1 = hashlib.sha1()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_sha1.update(chunk)
-    return hash_sha1.hexdigest()
+    try:
+        hash_sha1 = hashlib.sha1()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha1.update(chunk)
+        return hash_sha1.hexdigest()
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha1")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function sha256
 # ============================================================================
 def sha256(fname):
-    hash_sha256 = hashlib.sha256()
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_sha256.update(chunk)
-    return hash_sha256.hexdigest()
+    try:
+        hash_sha256 = hashlib.sha256()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha256.update(chunk)
+        return hash_sha256.hexdigest()
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha256")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function unpack_lz4
 # ============================================================================
 def unpack_lz4(source, dest):
-    with open(source, 'rb') as file:
-        compressed_data = file.read()
-    decompressed_data = lz4.frame.decompress(compressed_data)
-    with open(dest, 'wb') as file:
-        file.write(decompressed_data)
+    try:
+        with open(source, 'rb') as file:
+            compressed_data = file.read()
+        decompressed_data = lz4.frame.decompress(compressed_data)
+        with open(dest, 'wb') as file:
+            file.write(decompressed_data)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unpacking lz4")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1355,29 +1482,34 @@ def create_boot_tar(dir, source='boot.img', dest='boot.tar'):
 #                               Function get_code_page
 # ============================================================================
 def get_code_page():
-    if sys.platform != "win32":
-        return
-    cp = get_system_codepage()
-    if cp:
-        print(f"Active code page: {cp}")
-    else:
-        theCmd = "chcp"
-        res = run_shell(theCmd)
-        if res.returncode == 0:
-            # extract the code page portion
-            try:
-                debug(f"CP: {res.stdout}")
-                cp = res.stdout.split(":")
-                cp = cp[1].strip()
-                cp = int(cp.replace('.',''))
-                print(f"Active code page: {cp}")
-                set_system_codepage(cp)
-            except Exception:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
-                print(f"{res.stderr}")
-                print(f"{res.stdout}")
+    try:
+        if sys.platform != "win32":
+            return
+        cp = get_system_codepage()
+        if cp:
+            print(f"Active code page: {cp}")
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+            theCmd = "chcp"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                # extract the code page portion
+                try:
+                    debug(f"CP: {res.stdout}")
+                    cp = res.stdout.split(":")
+                    cp = cp[1].strip()
+                    cp = int(cp.replace('.',''))
+                    print(f"Active code page: {cp}")
+                    set_system_codepage(cp)
+                except Exception:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+                    traceback.print_exc()
+                    print(f"{res.stderr}")
+                    print(f"{res.stdout}")
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting codepage.")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1415,89 +1547,93 @@ def remove_quotes(string):
 #                               Function create_support_zip
 # ============================================================================
 def create_support_zip():
-    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
-    config_path = get_config_path()
-    tmp_dir_full = os.path.join(config_path, 'tmp')
-    support_dir_full = os.path.join(config_path, 'support')
-    support_zip = os.path.join(tmp_dir_full, 'support.zip')
+    try:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
+        config_path = get_config_path()
+        tmp_dir_full = os.path.join(config_path, 'tmp')
+        support_dir_full = os.path.join(config_path, 'support')
+        support_zip = os.path.join(tmp_dir_full, 'support.zip')
 
-    # if a previous support dir exist delete it allong with support.zip
-    if os.path.exists(support_dir_full):
-        debug("Deleting old support files ...")
-        delete_all(support_dir_full)
-    if os.path.exists(support_zip):
-        debug("Deleting old support.zip ...")
-        os.remove(support_zip)
+        # if a previous support dir exist delete it allong with support.zip
+        if os.path.exists(support_dir_full):
+            debug("Deleting old support files ...")
+            delete_all(support_dir_full)
+        if os.path.exists(support_zip):
+            debug("Deleting old support.zip ...")
+            os.remove(support_zip)
 
-    # create support folder if it does not exist
-    if not os.path.exists(support_dir_full):
-        os.makedirs(support_dir_full, exist_ok=True)
+        # create support folder if it does not exist
+        if not os.path.exists(support_dir_full):
+            os.makedirs(support_dir_full, exist_ok=True)
 
-    # copy PixelFlasher.json to tmp\support folder
-    to_copy = os.path.join(config_path, 'PixelFlasher.json')
-    if os.path.exists(to_copy):
-        debug(f"Copying {to_copy} to {support_dir_full}")
-        shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
-    # copy PixelFlasher.db to tmp\support folder
-    to_copy = os.path.join(config_path, get_pf_db())
-    if os.path.exists(to_copy):
-        debug(f"Copying {to_copy} to {support_dir_full}")
-        shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
-    # copy labels.json to tmp\support folder
-    to_copy = os.path.join(config_path, 'labels.json')
-    if os.path.exists(to_copy):
-        debug(f"Copying {to_copy} to {support_dir_full}")
-        shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
-    # copy logs to support folder
-    to_copy = os.path.join(config_path, 'logs')
-    logs_dir = os.path.join(support_dir_full, 'logs')
-    if os.path.exists(to_copy):
-        debug(f"Copying {to_copy} to {support_dir_full}")
-        shutil.copytree(to_copy, logs_dir)
-    # copy puml to support folder
-    to_copy = os.path.join(config_path, 'puml')
-    puml_dir = os.path.join(support_dir_full, 'puml')
-    if os.path.exists(to_copy):
-        debug(f"Copying {to_copy} to {support_dir_full}")
-        shutil.copytree(to_copy, puml_dir)
+        # copy PixelFlasher.json to tmp\support folder
+        to_copy = os.path.join(config_path, 'PixelFlasher.json')
+        if os.path.exists(to_copy):
+            debug(f"Copying {to_copy} to {support_dir_full}")
+            shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+        # copy PixelFlasher.db to tmp\support folder
+        to_copy = os.path.join(config_path, get_pf_db())
+        if os.path.exists(to_copy):
+            debug(f"Copying {to_copy} to {support_dir_full}")
+            shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+        # copy labels.json to tmp\support folder
+        to_copy = os.path.join(config_path, 'labels.json')
+        if os.path.exists(to_copy):
+            debug(f"Copying {to_copy} to {support_dir_full}")
+            shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+        # copy logs to support folder
+        to_copy = os.path.join(config_path, 'logs')
+        logs_dir = os.path.join(support_dir_full, 'logs')
+        if os.path.exists(to_copy):
+            debug(f"Copying {to_copy} to {support_dir_full}")
+            shutil.copytree(to_copy, logs_dir)
+        # copy puml to support folder
+        to_copy = os.path.join(config_path, 'puml')
+        puml_dir = os.path.join(support_dir_full, 'puml')
+        if os.path.exists(to_copy):
+            debug(f"Copying {to_copy} to {support_dir_full}")
+            shutil.copytree(to_copy, puml_dir)
 
-    # create directory/file listing
-    if sys.platform == "win32":
-        theCmd = f"dir /s /b \"{config_path}\" > \"{os.path.join(support_dir_full, 'files.txt')}\""
-    else:
-        theCmd = f"ls -lRgn \"{config_path}\" > \"{os.path.join(support_dir_full, 'files.txt')}\""
-    debug(f"{theCmd}")
-    res = run_shell(theCmd)
+        # create directory/file listing
+        if sys.platform == "win32":
+            theCmd = f"dir /s /b \"{config_path}\" > \"{os.path.join(support_dir_full, 'files.txt')}\""
+        else:
+            theCmd = f"ls -lRgn \"{config_path}\" > \"{os.path.join(support_dir_full, 'files.txt')}\""
+        debug(f"{theCmd}")
+        res = run_shell(theCmd)
 
-    # sanitize json
-    file_path = os.path.join(support_dir_full, 'PixelFlasher.json')
-    if os.path.exists(file_path):
-        sanitize_file(file_path)
-    # sanitize files.txt
-    file_path = os.path.join(support_dir_full, 'files.txt')
-    if os.path.exists(file_path):
-        sanitize_file(file_path)
-
-    # for each file in logs, sanitize
-    for filename in os.listdir(logs_dir):
-        file_path = os.path.join(logs_dir, filename)
+        # sanitize json
+        file_path = os.path.join(support_dir_full, 'PixelFlasher.json')
+        if os.path.exists(file_path):
+            sanitize_file(file_path)
+        # sanitize files.txt
+        file_path = os.path.join(support_dir_full, 'files.txt')
         if os.path.exists(file_path):
             sanitize_file(file_path)
 
-    # for each file in logs, sanitize
-    for filename in os.listdir(puml_dir):
-        file_path = os.path.join(puml_dir, filename)
+        # for each file in logs, sanitize
+        for filename in os.listdir(logs_dir):
+            file_path = os.path.join(logs_dir, filename)
+            if os.path.exists(file_path):
+                sanitize_file(file_path)
+
+        # for each file in logs, sanitize
+        for filename in os.listdir(puml_dir):
+            file_path = os.path.join(puml_dir, filename)
+            if os.path.exists(file_path):
+                sanitize_file(file_path)
+
+        # sanitize db
+        file_path = os.path.join(support_dir_full, get_pf_db())
         if os.path.exists(file_path):
-            sanitize_file(file_path)
+            sanitize_db(file_path)
 
-    # sanitize db
-    file_path = os.path.join(support_dir_full, get_pf_db())
-    if os.path.exists(file_path):
-        sanitize_db(file_path)
-
-    # zip support folder
-    debug(f"Zipping {support_dir_full} ...")
-    shutil.make_archive(support_dir_full, 'zip', support_dir_full)
+        # zip support folder
+        debug(f"Zipping {support_dir_full} ...")
+        shutil.make_archive(support_dir_full, 'zip', support_dir_full)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while creating support.zip.")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1513,6 +1649,7 @@ def sanitize_file(filename):
         data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(device\s+\')(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(Flashing device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(waiting for\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
@@ -1582,6 +1719,31 @@ def delete_all(dir):
                 shutil.rmtree(file_path)
         except Exception as e:
             print(f"Failed to delete {file_path}. Reason: {e}")
+            traceback.print_exc()
+
+
+# ============================================================================
+#                               Function get_free_space
+# ============================================================================
+def get_free_space(path=''):
+    # sourcery skip: inline-immediately-returned-variable
+    try:
+        if not path:
+            path_to_check = tempfile.gettempdir()
+        else:
+            path = os.path.abspath(path)
+            partitions = psutil.disk_partitions(all=True)
+            for partition in partitions:
+                if path.startswith(partition.mountpoint):
+                    path_to_check = partition.device
+
+        if not path_to_check:
+            return 0
+        disk_usage = psutil.disk_usage(path_to_check)
+        return int(disk_usage.free / (1024 ** 3))
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting free space.")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -1612,19 +1774,28 @@ def format_memory_size(size_bytes):
 # stderr are only available when the call is completed.
 def run_shell(cmd, timeout=None):
     try:
-        response = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", timeout=timeout, env=get_env_variables())
-        wx.Yield()
-        return response
+        flush_output()
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", env=get_env_variables())
+        # Wait for the process to complete or timeout
+        stdout, stderr = process.communicate(timeout=timeout)
+        # Return the response
+        return subprocess.CompletedProcess(args=cmd, returncode=process.returncode, stdout=stdout, stderr=stderr)
     except subprocess.TimeoutExpired as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
         puml("#red:Command timed out;\n", True)
         puml(f"note right\n{e}\nend note\n")
+        # Send CTRL + C signal to the process
+        process.send_signal(signal.SIGTERM)
+        process.terminate()
+        return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
+
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell")
-        print(e)
+        traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")
         raise e
+        # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')
 
 
 # ============================================================================
@@ -1634,24 +1805,18 @@ def run_shell(cmd, timeout=None):
 # no returncode is available.
 def run_shell2(cmd, timeout=None, detached=False, directory=None):
     try:
-        class obj(object):
-            pass
-
-        response = obj()
+        flush_output()
         if directory is None:
             proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", start_new_session=detached, env=get_env_variables())
         else:
             proc = subprocess.Popen(f"{cmd}", cwd=directory, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", start_new_session=detached, env=get_env_variables())
 
         print
-        stdout = ''
-        start_time = time.time()
         while True:
             line = proc.stdout.readline()
-            wx.Yield()
+            wx.YieldIfNeeded()
             if line.strip() != "":
                 print(line.strip())
-                stdout += line
             if not line:
                 break
             if timeout is not None and time.time() > timeout:
@@ -1659,15 +1824,16 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
                 puml("#red:Command timed out;\n", True)
                 puml(f"note right\nCommand timed out after {timeout} seconds\nend note\n")
-                return None
+                return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
         proc.wait()
-        response.stdout = stdout
-        return response
+        # Wait for the process to complete and capture the output
+        stdout, stderr = proc.communicate()
+        return subprocess.CompletedProcess(args=cmd, returncode=proc.returncode, stdout=stdout, stderr=stderr)
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2")
-        print(e)
+        traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")
         raise e
-
+        # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')
 

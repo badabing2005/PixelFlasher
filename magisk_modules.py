@@ -2,6 +2,7 @@
 
 import wx
 import wx.lib.mixins.listctrl as listmix
+import traceback
 from runtime import *
 
 
@@ -94,23 +95,24 @@ class MagiskModules(wx.Dialog):
 
         self.list.EnableCheckBoxes()
 
-        i = 0
-        for module in modules:
-            if module.id == '':
-                if len(modules) == 1:
-                    continue
+        if modules:
+            i = 0
+            for module in modules:
+                if module.id == '':
+                    if len(modules) == 1:
+                        continue
+                    else:
+                        index = self.list.InsertItem(i, module.name)
                 else:
-                    index = self.list.InsertItem(i, module.name)
-            else:
-                index = self.list.InsertItem(i, module.id)
-            if module.version == '':
-                self.list.SetItem(index, 1, module.versionCode)
-            else:
-                self.list.SetItem(index, 1, module.version)
-            self.list.SetItem(index, 2, module.description)
-            if module.state == 'enabled':
-                self.list.CheckItem(index, check=True)
-            i += 1
+                    index = self.list.InsertItem(i, module.id)
+                if module.version == '':
+                    self.list.SetItem(index, 1, module.versionCode)
+                else:
+                    self.list.SetItem(index, 1, module.version)
+                self.list.SetItem(index, 2, module.description)
+                if module.state == 'enabled':
+                    self.list.CheckItem(index, check=True)
+                i += 1
 
         self.list.SetColumnWidth(0, -2)
         grow_column(self.list, 0, 20)
@@ -152,6 +154,7 @@ class MagiskModules(wx.Dialog):
                 self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
             except IOError:
                 wx.LogError(f"Cannot install module file '{pathname}'.")
+                traceback.print_exc()
 
     # -----------------------------------------------
     #                  _onOk

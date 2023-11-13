@@ -1188,6 +1188,9 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
                         with zip_file.open(name, 'r') as nested_zip_file:
                             nested_zip_data = nested_zip_file.read()
 
+                        # Close the temporary zip file
+                        temp_zip_file.close()
+
                         with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
                             temp_zip_file.write(nested_zip_data)
                             temp_zip_path = temp_zip_file.name

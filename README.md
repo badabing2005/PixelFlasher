@@ -226,7 +226,7 @@ The following details are listed.
     - **Patched on Device** indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
     - **Date** is the either the date the `boot.img` was extracted, or the date it was patched.
     - **Package Path** indicates the file from which `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) was extracted.
-9. Select the Flash Mode, PixelFalsher will automatically select applicable flash mode based on the selected image type.
+9. Select the Flash Mode, PixelFlasher will automatically select applicable flash mode based on the selected image type.
     - If full OTA image is selected in step 4:
       - **Full OTA**: Will flash full OTA image in sideload mode.
       Features of this mode:

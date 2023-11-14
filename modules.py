@@ -2640,7 +2640,7 @@ def flash_phone(self):
         package_dir_full = os.path.join(config_path, 'tmp')
     else:
         # check for free space >= 5G
-        if get_free_space() < 5 or get_free_space(get_config_path()) < 5:
+        if self.config.check_for_disk_space and get_free_space() < 5 or get_free_space(get_config_path()) < 5:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Please check available disk space, you do not have safe levels of availabe storage to flash without risk.")
             print("Aborting ...\n")
             puml("#red:Not enough disk space;\n}\n")

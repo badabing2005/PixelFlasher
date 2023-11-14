@@ -112,6 +112,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_update_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
 
+        # Check for Minimum Disk space options
+        self.check_for_disk_space_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for Minumum Disk (5Gb)", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_disk_space_checkbox.SetToolTip(u"Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues.")
+
         # Force codepage
         self.force_codepage_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force codepage to", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
@@ -191,6 +195,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.show_notifications_checkbox.SetValue(self.Parent.config.show_notifications)
         self.create_boot_tar_checkbox.SetValue(self.Parent.config.create_boot_tar)
         self.check_for_update_checkbox.SetValue(self.Parent.config.update_check)
+        self.check_for_disk_space_checkbox.SetValue(self.Parent.config.check_for_disk_space)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
@@ -231,6 +236,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add((0, 0))
 
         fgs1.Add(self.check_for_update_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.check_for_disk_space_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
@@ -350,6 +358,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if self.check_for_update_checkbox.GetValue() != self.Parent.config.update_check:
             print(f"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}")
         self.Parent.config.update_check = self.check_for_update_checkbox.GetValue()
+
+        if self.check_for_disk_space_checkbox.GetValue() != self.Parent.config.check_for_disk_space:
+            print(f"Setting Check for Miminum Disk Space to: {self.check_for_disk_space_checkbox.GetValue()}")
+        self.Parent.config.check_for_disk_space = self.check_for_disk_space_checkbox.GetValue()
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):

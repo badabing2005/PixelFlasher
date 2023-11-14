@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import contextlib
 import ctypes
 import json
@@ -50,6 +51,9 @@ locale.setlocale(locale.LC_ALL, 'C')
 inspector = False
 dont_initialize = False
 
+# Declare global_args at the global scope
+global_args = None
+
 # ============================================================================
 #                               Class RedirectText
 # ============================================================================
@@ -62,6 +66,12 @@ class RedirectText():
 
     def write(self,string):
         wx.CallAfter(self.out.AppendText, string)
+
+        global global_args
+        if hasattr(global_args, 'console') and global_args.console:
+            # Print to console as well
+            sys.__stdout__.write(string)
+
         if not self.logfile.closed:
             self.logfile.write(string)
 
@@ -126,7 +136,9 @@ class PixelFlasher(wx.Frame):
         # check timezone
         timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
         print(f"System Timezone: {time.tzname} Offset: {timezone_offset / 60 / 60 * -1}")
-        print(f"Configuration Path: {get_config_path()}")
+        print(f"Configuration Folder Path: {get_config_path()}")
+        print(f"Configuration File Path: {get_config_file_path()}")
+
         puml(":Loading Configuration;\n")
         puml(f"note left: {get_config_path()}\n")
         # load verbose settings
@@ -153,6 +165,7 @@ class PixelFlasher(wx.Frame):
         get_code_page()
 
         # delete specified libraries from the bundle
+        print(f"Bundle Directory: {get_bundle_dir()}")
         delete_bundled_library(self.config.delete_bundled_libs)
 
         # Get Available Memory
@@ -3912,12 +3925,22 @@ class MySplashScreen(wx.adv.SplashScreen):
 #                               Class App
 # ============================================================================
 class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
+    def __init__(self, global_args, *args, **kwargs):
+        self.global_args = global_args
+        super(App, self).__init__(*args, **kwargs)
+
     def OnInit(self):
         # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
         self.ResetLocale()
         wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
         self.SetAppName("PixelFlasher")
-        init_config_path()
+        print(f"global_args.config: {self.global_args.config}")
+
+        if self.global_args.config:
+            init_config_path(self.global_args.config)
+        else:
+            init_config_path()
+
         t = f"{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}"
         pumlfile = os.path.join(get_config_path(), 'puml', f"PixelFlasher_{t}.puml")
         set_pumlfile(pumlfile)
@@ -3945,6 +3968,24 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
 
 
 # ============================================================================
+#                               Class GlobalArgs
+# ============================================================================
+class GlobalArgs():
+    pass
+
+
+# ============================================================================
+#                               Function parse_arguments
+# ============================================================================
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Process command-line arguments")
+    parser.add_argument("-c", "--config", help="Path to the configuration file")
+    parser.add_argument("-l", "--console", action="store_true", help="Log to console as well")
+    args  = parser.parse_args()
+    return args
+
+
+# ============================================================================
 #                               Function ask
 # ============================================================================
 def ask(parent=None, message='', default_value=''):
@@ -3959,7 +4000,16 @@ def ask(parent=None, message='', default_value=''):
 #                               Function Main
 # ============================================================================
 def main():
-    app = App(False)
+    # Parse the command-line arguments and store them in the global object
+    global global_args
+    try:
+        global_args = parse_arguments()
+    except SystemExit:
+        # Handle the case where parsing arguments fails
+        print("Failed to parse command-line arguments.")
+        return
+
+    app = App(global_args, False)
     if inspector:
         wx.lib.inspection.InspectionTool().Show()
 

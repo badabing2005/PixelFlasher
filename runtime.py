@@ -79,6 +79,7 @@ is_ota = False
 sdk_is_ok = False
 low_memory = False
 config = {}
+config_file_path = ''
 
 # ============================================================================
 #                               Class Boot
@@ -799,14 +800,17 @@ def puml(message='', left_ts = False, mode='a'):
 # ============================================================================
 #                               Function init_config_path
 # ============================================================================
-def init_config_path():
+def init_config_path(config_file_path=''):
     try:
         config_path = get_sys_config_path()
         set_config_path(config_path)
         with contextlib.suppress(Exception):
-            file_path = os.path.join(config_path, CONFIG_FILE_NAME)
-            if os.path.exists(file_path):
-                with open(file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
+            if config_file_path == '':
+                config_file_path = os.path.join(config_path, CONFIG_FILE_NAME)
+            print(f"config_file_path: {config_file_path}")
+            set_config_file_path(config_file_path)
+            if os.path.exists(config_file_path):
+                with open(config_file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
                     data = json.load(f)
                     f.close()
                 pf_home = data['pf_home']
@@ -916,7 +920,17 @@ def init_db():
 #                               Function get_config_file_path
 # ============================================================================
 def get_config_file_path():
-    return os.path.join(get_sys_config_path(), CONFIG_FILE_NAME).strip()
+    # return os.path.join(get_sys_config_path(), CONFIG_FILE_NAME).strip()
+    global config_file_path
+    return config_file_path
+
+
+# ============================================================================
+#                               Function set_config
+# ============================================================================
+def set_config_file_path(value):
+    global config_file_path
+    config_file_path = value
 
 
 # ============================================================================
@@ -1188,12 +1202,12 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
                         with zip_file.open(name, 'r') as nested_zip_file:
                             nested_zip_data = nested_zip_file.read()
 
-                        # Close the temporary zip file
-                        temp_zip_file.close()
-
                         with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
                             temp_zip_file.write(nested_zip_data)
                             temp_zip_path = temp_zip_file.name
+
+                        # Close the temporary zip file
+                        temp_zip_file.close()
 
                         stack.append((temp_zip_path, full_name))
                         if is_recursive:
@@ -1729,20 +1743,19 @@ def delete_all(dir):
 #                               Function get_free_space
 # ============================================================================
 def get_free_space(path=''):
-    # sourcery skip: inline-immediately-returned-variable
     try:
+        path_to_check = ''
         if not path:
             path_to_check = tempfile.gettempdir()
         else:
-            path = os.path.abspath(path)
-            partitions = psutil.disk_partitions(all=True)
-            for partition in partitions:
-                if path.startswith(partition.mountpoint):
-                    path_to_check = partition.device
-
-        if not path_to_check:
-            return 0
-        disk_usage = psutil.disk_usage(path_to_check)
+            path_to_check = os.path.realpath(path)
+        partitions = psutil.disk_partitions(all=True)
+        for partition in partitions:
+            if path_to_check.startswith(partition.mountpoint):
+                partition_to_check = partition.device
+                debug(f"Path: {path_to_check} is on partition: {partition_to_check}")
+                break
+        disk_usage = psutil.disk_usage(partition_to_check)
         return int(disk_usage.free / (1024 ** 3))
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting free space.")

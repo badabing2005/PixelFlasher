@@ -68,6 +68,7 @@ class Config():
         self.show_notifications = False
         self.create_boot_tar = False
         self.delete_bundled_libs = ''
+        self.check_for_disk_space = True
 
         self.toolbar = {
             'tb_position': 'top',
@@ -214,6 +215,8 @@ class Config():
                     conf.create_boot_tar = data['create_boot_tar']
                 with contextlib.suppress(KeyError):
                     conf.delete_bundled_libs = data['delete_bundled_libs']
+                with contextlib.suppress(KeyError):
+                    conf.check_for_disk_space = data['check_for_disk_space']
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
                     toolbar_data = data['toolbar']
@@ -351,6 +354,7 @@ class Config():
             'show_notifications': self.show_notifications,
             'create_boot_tar': self.create_boot_tar,
             'delete_bundled_libs': self.delete_bundled_libs,
+            'check_for_disk_space': self.check_for_disk_space,
             'toolbar': self.toolbar,  # Save the toolbar settings as well
             'scrcpy': self.scrcpy  # Save the scrcpy settings as well
         }

@@ -31,10 +31,15 @@ jobs:
         run: |
           ls /usr/local/Cellar
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+      # - name: Set up Python
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: '3.11'
+
+      - name: Uninstall Pythons other than 3.11
+        run: |
+          brew uninstall python@3.10
+          brew uninstall python@3.12
 
       - name: Install wxPython
         run: brew install wxpython

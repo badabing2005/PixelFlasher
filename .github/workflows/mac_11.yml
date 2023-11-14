@@ -31,18 +31,23 @@ jobs:
         run: |
           ls /usr/local/Cellar
 
-      # - name: Set up Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: '3.11'
-
       - name: Uninstall Pythons other than 3.11
         run: |
-          brew uninstall python@3.10
-          brew uninstall python@3.12
+          brew uninstall --ignore-dependencies python@3.10
+          brew uninstall --ignore-dependencies python@3.12
+          echo "doing brew list"
+          brew list
+          echo "getting directory list for /usr/local/Cellar"
+          ls /usr/local/Cellar
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
       - name: Install wxPython
-        run: brew install wxpython
+        # run: brew install wxpython
+        run: pip install wxPython
 
       - name: Install node graphicsmagick imagemagick
         run: brew install node graphicsmagick imagemagick

@@ -6,6 +6,7 @@ import fnmatch
 import hashlib
 import io
 import json
+import ntpath
 import os
 import re
 import shutil
@@ -1583,27 +1584,42 @@ def create_support_zip():
         if not os.path.exists(support_dir_full):
             os.makedirs(support_dir_full, exist_ok=True)
 
-        # copy PixelFlasher.json to tmp\support folder
+        # copy the default PixelFlasher.json to tmp\support folder
         to_copy = os.path.join(config_path, 'PixelFlasher.json')
         if os.path.exists(to_copy):
             debug(f"Copying {to_copy} to {support_dir_full}")
             shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+
+        # copy the loaded config json if it is different
+        current_config = get_config_file_path()
+        if to_copy != current_config:
+            filename = ntpath.basename(current_config)
+            folder = os.path.dirname(current_config)
+            if filename.lower() == "pixelflasher.json":
+                filename = "PixelFlasher_Custom.json"
+            custom_config_file = os.path.join(folder, filename)
+            debug(f"Copying {custom_config_file} to {support_dir_full}")
+            shutil.copy(custom_config_file, support_dir_full, follow_symlinks=True)
+
         # copy PixelFlasher.db to tmp\support folder
         to_copy = os.path.join(config_path, get_pf_db())
         if os.path.exists(to_copy):
             debug(f"Copying {to_copy} to {support_dir_full}")
             shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+
         # copy labels.json to tmp\support folder
         to_copy = os.path.join(config_path, 'labels.json')
         if os.path.exists(to_copy):
             debug(f"Copying {to_copy} to {support_dir_full}")
             shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
+
         # copy logs to support folder
         to_copy = os.path.join(config_path, 'logs')
         logs_dir = os.path.join(support_dir_full, 'logs')
         if os.path.exists(to_copy):
             debug(f"Copying {to_copy} to {support_dir_full}")
             shutil.copytree(to_copy, logs_dir)
+
         # copy puml to support folder
         to_copy = os.path.join(config_path, 'puml')
         puml_dir = os.path.join(support_dir_full, 'puml')
@@ -1756,7 +1772,7 @@ def get_free_space(path=''):
                 debug(f"Path: {path_to_check} is on partition: {partition_to_check}")
                 break
         disk_usage = psutil.disk_usage(partition_to_check)
-        return int(disk_usage.free / (1024 ** 3))
+        return int((disk_usage.total - disk_usage.used) / (1024 ** 3))
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting free space.")
         traceback.print_exc()

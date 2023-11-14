@@ -193,6 +193,9 @@ class PixelFlasher(wx.Frame):
         # load Magisk Package Name
         set_magisk_package(self.config.magisk)
 
+        # load the low_mem settings
+        set_low_memory(self.config.low_mem)
+
         # load Linux Shell
         set_linux_shell(self.config.linux_shell)
 

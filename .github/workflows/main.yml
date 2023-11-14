@@ -273,72 +273,83 @@ jobs:
   # ---------------------------------------------------------------------------
   #                              build_mac_11
   # ---------------------------------------------------------------------------
-  # build_mac_11:
-  #   if: github.actor == 'badabing2005'
-  #   # runs-on: macos-latest
-  #   runs-on: macos-11
+  build_mac_11:
+    if: github.actor == 'badabing2005'
+    # runs-on: macos-latest
+    runs-on: macos-11
 
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  #     - name: List Cellar directory Again
-  #       run: |
-  #         ls /usr/local/Cellar
+      - name: List Cellar directory Again
+        run: |
+          ls /usr/local/Cellar
 
-  #     - name: Install wxPython
-  #       run: brew install wxpython
+      - name: Uninstall Pythons other than 3.11
+        run: |
+          brew uninstall --ignore-dependencies python@3.10
+          brew uninstall --ignore-dependencies python@3.12
 
-  #     - name: Install node graphicsmagick imagemagick
-  #       run: brew install node graphicsmagick imagemagick
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-  #     - name: Install create-dmg
-  #       run: npm install --global create-dmg
+      - name: Install wxPython
+        # run: brew install wxpython
+        run: pip install wxPython
 
-  #     - name: Add Python 3.11 to PATH
-  #       run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
+      - name: Install node graphicsmagick imagemagick
+        run: brew install node graphicsmagick imagemagick
 
-  #     - name: Create virtual environment
-  #       run: python3.11 -m venv myenv
-  #       shell: bash
+      - name: Install create-dmg
+        run: npm install --global create-dmg
 
-  #     - name: Activate virtual environment
-  #       run: source myenv/bin/activate
-  #       shell: bash
+      - name: Add Python 3.11 to PATH
+        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
 
-  #     - name: Install requirements
-  #       run: python3.11 -m pip install -r requirements.txt
+      - name: Create virtual environment
+        run: python3.11 -m venv myenv
+        shell: bash
 
-  #     - name: List modules and their versions
-  #       run: python3.11 -m pip freeze
+      - name: Activate virtual environment
+        run: source myenv/bin/activate
+        shell: bash
 
-  #     - name: Build application
-  #       run: ./build.sh
+      - name: Install requirements
+        run: python3.11 -m pip install -r requirements.txt
 
-  #     - name: Get sha256
-  #       run: |
-  #         shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
-  #         cat dist/PixelFlasher.dmg.sha256
+      - name: List modules and their versions
+        run: python3.11 -m pip freeze
 
-  #     - name: List contents of dist directory
-  #       run: ls dist
+      - name: Build application
+        run: ./build.sh
 
-  #     # Upload artifacts Mac-OS
-  #     - name: Upload Mac-OS 11 Artifact
-  #       uses: actions/upload-artifact@v3
-  #       id: upload_artifact_macos_11
-  #       with:
-  #         name: PixelFlasher.dmg Artifacts
-  #         path: |
-  #           dist/PixelFlasher.dmg
-  #           dist/PixelFlasher.dmg.sha256
+      - name: Get sha256
+        run: |
+          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+          cat dist/PixelFlasher.dmg.sha256
+
+      - name: List contents of dist directory
+        run: ls dist
+
+      # Upload artifacts Mac-OS
+      - name: Upload Mac-OS 11 Artifact
+        uses: actions/upload-artifact@v3
+        id: upload_artifact_macos_11
+        with:
+          name: PixelFlasher.dmg Artifacts
+          path: |
+            dist/PixelFlasher.dmg
+            dist/PixelFlasher.dmg.sha256
 
   # ---------------------------------------------------------------------------
   #                              deploy
   # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_11]
 
     runs-on: ubuntu-latest
 

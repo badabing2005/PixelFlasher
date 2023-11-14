@@ -561,6 +561,7 @@ def process_file(self, file_type):
         print("==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}         Processing {file_type} file ...")
         print("==============================================================================")
+        print(f"Low memory option: {self.config.low_mem}")
         puml(f"#cyan:Process {file_type};\n", True)
         config_path = get_config_path()
         path_to_7z = get_path_to_7z()
@@ -628,7 +629,7 @@ def process_file(self, file_type):
                     print("User pressed ok.")
                     puml(":User Pressed OK to continue;\n")
                 image_file_path = file_to_process
-            elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
+            elif check_zip_contains_file(file_to_process, "payload.bin", self.config.low_mem):
                 is_payload_bin = True
                 set_ota(self, True)
                 if get_firmware_hash_validity() and get_ota():
@@ -729,7 +730,7 @@ def process_file(self, file_type):
             if found_init_boot_img:
                 set_rom_has_init_boot(True)
                 is_init_boot = True
-            elif check_zip_contains_file(file_to_process, "payload.bin", get_low_memory()):
+            elif check_zip_contains_file(file_to_process, "payload.bin", self.config.low_mem):
                 print("Detected a ROM, with payload.bin")
                 is_payload_bin = True
             package_sig = get_custom_rom_id()
@@ -3373,7 +3374,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     if not self.config.no_reboot:
         device = get_phone()
         if device:
-            res = device.reboot_system()
+            res = device.reboot_system(timeout=90)
             if res == -1:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
 

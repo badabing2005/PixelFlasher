@@ -1794,6 +1794,16 @@ def format_memory_size(size_bytes):
 
 
 # ============================================================================
+#                               Function format_memory_size
+# ============================================================================
+def get_printable_memory():
+    free_memory, total_memory = get_free_memory()
+    formatted_free_memory = format_memory_size(free_memory)
+    formatted_total_memory = format_memory_size(total_memory)
+    return f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}"
+
+
+# ============================================================================
 #                               Function run_shell
 # ============================================================================
 # We use this when we want to capture the returncode and also selectively

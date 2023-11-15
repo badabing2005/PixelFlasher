@@ -562,6 +562,7 @@ def process_file(self, file_type):
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}         Processing {file_type} file ...")
         print("==============================================================================")
         print(f"Low memory option: {self.config.low_mem}")
+        print(get_printable_memory())
         puml(f"#cyan:Process {file_type};\n", True)
         config_path = get_config_path()
         path_to_7z = get_path_to_7z()

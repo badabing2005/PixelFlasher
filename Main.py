@@ -1415,7 +1415,7 @@ class PixelFlasher(wx.Frame):
             self._on_spin('start')
             open_folder(self, get_config_path())
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening PixelFalsher working directory")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening PixelFlasher working directory")
             traceback.print_exc()
         self._on_spin('stop')
 

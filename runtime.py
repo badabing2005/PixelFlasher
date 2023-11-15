@@ -1760,19 +1760,14 @@ def delete_all(dir):
 # ============================================================================
 def get_free_space(path=''):
     try:
-        path_to_check = ''
-        if not path:
-            path_to_check = tempfile.gettempdir()
-        else:
-            path_to_check = os.path.realpath(path)
-        partitions = psutil.disk_partitions(all=True)
-        for partition in partitions:
-            if path_to_check.startswith(partition.mountpoint):
-                partition_to_check = partition.device
-                debug(f"Path: {path_to_check} is on partition: {partition_to_check}")
-                break
-        disk_usage = psutil.disk_usage(partition_to_check)
-        return int((disk_usage.total - disk_usage.used) / (1024 ** 3))
+        path_to_check = path or tempfile.gettempdir()
+        path_to_check = os.path.realpath(path_to_check)
+
+        total, used, free = shutil.disk_usage(path_to_check)
+
+        debug(f"Path: {path_to_check} - Total: {round(total / (1024 ** 3), 2)} GB, Used: {round(used / (1024 ** 3), 2)} GB, Free: {round(free / (1024 ** 3), 2)} GB")
+
+        return int(round(free / (1024 ** 3)))
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting free space.")
         traceback.print_exc()

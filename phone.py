@@ -2206,11 +2206,12 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
                 if res.returncode == 0:
-                    res = self.adb_wait_for(timeout=timeout, wait_for='device')
-                    if res == 1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
-                        return -1
-                    update_phones(self.id)
+                    if timeout:
+                        res = self.adb_wait_for(timeout=timeout, wait_for='device')
+                        if res == 1:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
+                            return -1
+                        update_phones(self.id)
                     return res
             elif mode == 'fastboot' and get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
@@ -2238,11 +2239,12 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
                 if res.returncode == 0:
-                    res = self.adb_wait_for(timeout=timeout, wait_for='recovery')
-                    if res == 1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
-                        return -1
-                    update_phones(self.id)
+                    if timeout:
+                        res = self.adb_wait_for(timeout=timeout, wait_for='recovery')
+                        if res == 1:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
+                            return -1
+                        update_phones(self.id)
                     return res
             elif mode == 'fastboot' and get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot recovery"
@@ -2323,12 +2325,13 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
                 if res.returncode == 0:
-                    res = self.fastboot_wait_for_bootloader(timeout=timeout)
-                    if res == 1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
-                        return -1
-                    update_phones(self.id)
-                    return res
+                    if timeout:
+                        res = self.fastboot_wait_for_bootloader(timeout=timeout)
+                        if res == 1:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
+                            return -1
+                        update_phones(self.id)
+                        return res
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
                     print(f"stdout: {res.stdout}   stderr: {res.stderr}")
@@ -2386,12 +2389,13 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
                 if res.returncode == 0:
-                    res = self.adb_wait_for(timeout=timeout, wait_for='sideload')
-                    if res == 1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_ssideload")
-                        return -1
-                    update_phones(self.id)
-                    return res
+                    if timeout:
+                        res = self.adb_wait_for(timeout=timeout, wait_for='sideload')
+                        if res == 1:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_ssideload")
+                            return -1
+                        update_phones(self.id)
+                        return res
             elif mode == 'fastboot' and get_fastboot():
                 print("Device is in bootloader mode, first rebooting to system (this could take some time) ...")
                 res = self.reboot_system(timeout=timeout)

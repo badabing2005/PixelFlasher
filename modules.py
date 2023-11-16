@@ -458,8 +458,9 @@ def adb_kill_server(self):
                 return 0
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not kill adb server.\n")
-                print(f"{res.stderr}")
-                print(f"{res.stdout}")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
                 puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
                 return -1
         else:
@@ -606,6 +607,15 @@ def process_file(self, file_type):
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
                 debug(theCmd)
                 res = run_shell2(theCmd)
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    puml("#red:ERROR: Could not extract image;\n")
+                    print("Aborting ...\n")
+                    self.toast(f"Process action", "Could not extract {file_to_process}")
+                    return
             elif found_boot_img or found_init_boot_img:
                 print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
                 # Check if the firmware file starts with image-* and warn the user or abort
@@ -692,7 +702,9 @@ def process_file(self, file_type):
                         # expect ret 0
                         if res.returncode != 0:
                             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.lz4")
-                            print(res.stderr)
+                            print(f"Return Code: {res.returncode}.")
+                            print(f"Stdout: {res.stdout}.")
+                            print(f"Stderr: {res.stderr}.")
                             puml("#red:ERROR: Could not extract boot.img.lz4;\n")
                             print("Aborting ...\n")
                             self.toast("Process action", "Could not extract boot.img.lz4.")
@@ -756,7 +768,9 @@ def process_file(self, file_type):
                 # expect ret 0
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
-                    print(res.stderr)
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
                     puml("#red:ERROR: Could not extract payload.bin;\n")
                     print("Aborting ...\n")
                     self.toast("Process action", "Could not extract payload.bin.")
@@ -841,7 +855,9 @@ def process_file(self, file_type):
                 # expect ret 0
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-                    print(res.stderr)
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
                     puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
                     self.toast("Process action", f"Could not extract {boot_file_name}")
                     print("Aborting ...\n")
@@ -2601,6 +2617,7 @@ def flash_phone(self):
                 return -1
 
     # confirm for wipe data
+    wipe_flag = False
     if self.config.flash_mode == 'wipeData':
         print("Flash Mode: Wipe Data")
         puml(f":Flash Mode: Wipe Data;\n")
@@ -2612,6 +2629,7 @@ def flash_phone(self):
             puml("#pink:User cancelled flashing;\n}\n")
             return -1
         self.toast("Flash Option", "Wipe Data is accepted.")
+        wipe_flag = True
     # confirm for wipe flag
     if self.config.advanced_options and self.wipe:
         print("Flash Option: Wipe")
@@ -2623,6 +2641,7 @@ def flash_phone(self):
             puml("#pink:User cancelled flashing;\n}\n")
             return -1
         self.toast("Flash Option", "Wipe is accepted.")
+        wipe_flag = True
     # confirm for force flag
     elif self.config.advanced_options and self.config.fastboot_force and self.config.flash_mode != 'OTA':
         print("Flash Option: Force")
@@ -2971,7 +2990,6 @@ def flash_phone(self):
                     warn = True
                 if warn:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Wipe is required.")
-                    print("Aborting ...\n")
                     puml("#red:Error WARNING, wipe is required;\n")
                     # dialog to accept / abort
                     title = "Wipe is required."
@@ -3003,6 +3021,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                         puml("}\n")
                         print("Aborting ...\n")
                         return -1
+                    wipe_flag = True
 
             # Process flash_all files
             flash_all_win32 = process_flash_all_file(os.path.join(package_dir_full, "flash-all.bat"))
@@ -3281,6 +3300,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     res = run_shell2(theCmd)
     if res.returncode != 0:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
         print("Aborting ...\n")
         puml("#red:Encountered an error while running flash script.;\n}\n")
         self.toast("Flash action", "Encountered an error while running the flash script.")
@@ -3305,6 +3327,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         if self.wipe:
             print("Wiping userdata ...")
             cmd= f"\"{get_fastboot()}\" -s {device.id} -w"
+            wipe_flag = True
     else:
         # reboot to bootloader
         res = device.reboot_bootloader(fastboot_included = True)
@@ -3341,6 +3364,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                 res = run_shell(theCmd)
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vbmeta flashing did not return the expected result.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
                     print("Aborting ...")
                     puml("#red:vbmeta flashing did not return the expected result.;\n}\n")
                     self.toast("Flash action", "vbmeta flashing did not return the expected result.")
@@ -3366,6 +3392,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                 res = run_shell(theCmd)
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing the patch.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
                     print("Aborting ...")
                     puml("#red:Encountered an error while flashing the patch.;\n}\n")
                     self.toast("Flash action", "Encountered an error while flashing the patch.")
@@ -3378,7 +3407,11 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     if not self.config.no_reboot:
         device = get_phone()
         if device:
-            res = device.reboot_system(timeout=90)
+            if wipe_flag:
+                timeout = None
+            else:
+                timeout = 90
+            res = device.reboot_system(timeout=timeout)
             if res == -1:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
 

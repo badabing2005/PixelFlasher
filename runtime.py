@@ -1213,6 +1213,9 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
                         stack.append((temp_zip_path, full_name))
                         if is_recursive:
                             stack.append((temp_zip_path, full_name))  # Add the nested zip to be processed recursively
+
+                        # Clean up the temporary zip file
+                        os.remove(temp_zip_path)
         debug(f"File {file_to_check} was NOT found")
         return ''
     except Exception as e:
@@ -1248,12 +1251,16 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
                     # Create a temporary file to write the nested zip data
                     with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
                         temp_zip_file.write(nested_zip_data)
+                        temp_zip_path = temp_zip_file.name
 
-                    nested_file_path = check_zip_contains_file(temp_zip_file.name, file_to_check, get_low_memory(), nested=True, is_recursive=True)
+                    nested_file_path = check_zip_contains_file(temp_zip_path, file_to_check, get_low_memory(), nested=True, is_recursive=True)
                     if nested_file_path:
                         if not is_recursive:
                             debug(f"Found: {member.name}/{nested_file_path}\n")
                         return f'{member.name}/{nested_file_path}'
+
+                    # Clean up the temporary zip file
+                    os.remove(temp_zip_path)
             debug(f"File {file_to_check} was NOT found\n")
             return ''
     except Exception as e:

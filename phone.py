@@ -2818,6 +2818,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     script_file.close()
                     os.chmod(script_file.name, 0o755)
                     subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+                    os.remove(script_file.name)
                 return 0
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
@@ -2856,6 +2857,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     script_file.close()
                     os.chmod(script_file.name, 0o755)
                     subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+                    os.remove(script_file.name)
                 return 0
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")

@@ -747,57 +747,60 @@ def process_file(self, file_type):
             is_stock_boot = True
             temp_dir = tempfile.TemporaryDirectory()
             temp_dir_path = temp_dir.name
-            print(f"Extracting payload.bin from {file_to_process} ...")
-            puml(":Extract payload.bin;\n")
-            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" payload.bin"
-            debug(f"{theCmd}")
-            res = run_shell(theCmd)
-            # expect ret 0
-            if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
-                print(res.stderr)
-                puml("#red:ERROR: Could not extract payload.bin;\n")
-                print("Aborting ...\n")
-                self.toast("Process action", "Could not extract payload.bin.")
-                return
-            # extract boot.img, init_boot.img, vbmeta.img from payload.bin, ...
-            payload_file_path = os.path.join(temp_dir_path, "payload.bin")
-            if not os.path.exists(package_dir_full):
-                os.makedirs(package_dir_full, exist_ok=True)
-            if self.config.extra_img_extracts:
-                print("Option to copy extra img files is enabled.")
-                extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
-                if os.path.exists(os.path.join(package_dir_full, 'dtbo.img')):
-                    dtbo_img_file = os.path.join(package_dir_full, 'dtbo.img')
-                    debug(f"Copying {dtbo_img_file}")
-                    shutil.copy(dtbo_img_file, os.path.join(tmp_dir_full, 'dtbo.img'), follow_symlinks=True)
-                if os.path.exists(os.path.join(package_dir_full, 'super_empty.img')):
-                    super_empty_img_file = os.path.join(package_dir_full, 'super_empty.img')
-                    debug(f"Copying {super_empty_img_file}")
-                    shutil.copy(super_empty_img_file, os.path.join(tmp_dir_full, 'super_empty.img'), follow_symlinks=True)
-                if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
-                    vendor_boot_img_file = os.path.join(package_dir_full, 'vendor_boot.img')
-                    debug(f"Copying {vendor_boot_img_file}")
-                    shutil.copy(vendor_boot_img_file, os.path.join(tmp_dir_full, 'vendor_boot.img'), follow_symlinks=True)
-                if os.path.exists(os.path.join(package_dir_full, 'vendor_kernel_boot.img')):
-                    vendor_kernel_boot_img_file = os.path.join(package_dir_full, 'vendor_kernel_boot.img')
-                    debug(f"Copying {vendor_kernel_boot_img_file}")
-                    shutil.copy(vendor_kernel_boot_img_file, os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), follow_symlinks=True)
-            else:
-                print("Extracting files from payload.bin ...")
-                extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
-            if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
-                boot_img_file = os.path.join(package_dir_full, 'boot.img')
-                debug(f"Copying {boot_img_file}")
-                shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
-                boot_file_name = 'boot.img'
-            if os.path.exists(os.path.join(package_dir_full, 'init_boot.img')):
-                boot_img_file = os.path.join(package_dir_full, 'init_boot.img')
-                debug(f"Copying {boot_img_file}")
-                shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'init_boot.img'), follow_symlinks=True)
-                boot_file_name = 'init_boot.img'
-                found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evalute to False
-                is_init_boot = True
+            try:
+                print(f"Extracting payload.bin from {file_to_process} ...")
+                puml(":Extract payload.bin;\n")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" payload.bin"
+                debug(f"{theCmd}")
+                res = run_shell(theCmd)
+                # expect ret 0
+                if res.returncode != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
+                    print(res.stderr)
+                    puml("#red:ERROR: Could not extract payload.bin;\n")
+                    print("Aborting ...\n")
+                    self.toast("Process action", "Could not extract payload.bin.")
+                    return
+                # extract boot.img, init_boot.img, vbmeta.img from payload.bin, ...
+                payload_file_path = os.path.join(temp_dir_path, "payload.bin")
+                if not os.path.exists(package_dir_full):
+                    os.makedirs(package_dir_full, exist_ok=True)
+                if self.config.extra_img_extracts:
+                    print("Option to copy extra img files is enabled.")
+                    extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
+                    if os.path.exists(os.path.join(package_dir_full, 'dtbo.img')):
+                        dtbo_img_file = os.path.join(package_dir_full, 'dtbo.img')
+                        debug(f"Copying {dtbo_img_file}")
+                        shutil.copy(dtbo_img_file, os.path.join(tmp_dir_full, 'dtbo.img'), follow_symlinks=True)
+                    if os.path.exists(os.path.join(package_dir_full, 'super_empty.img')):
+                        super_empty_img_file = os.path.join(package_dir_full, 'super_empty.img')
+                        debug(f"Copying {super_empty_img_file}")
+                        shutil.copy(super_empty_img_file, os.path.join(tmp_dir_full, 'super_empty.img'), follow_symlinks=True)
+                    if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
+                        vendor_boot_img_file = os.path.join(package_dir_full, 'vendor_boot.img')
+                        debug(f"Copying {vendor_boot_img_file}")
+                        shutil.copy(vendor_boot_img_file, os.path.join(tmp_dir_full, 'vendor_boot.img'), follow_symlinks=True)
+                    if os.path.exists(os.path.join(package_dir_full, 'vendor_kernel_boot.img')):
+                        vendor_kernel_boot_img_file = os.path.join(package_dir_full, 'vendor_kernel_boot.img')
+                        debug(f"Copying {vendor_kernel_boot_img_file}")
+                        shutil.copy(vendor_kernel_boot_img_file, os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), follow_symlinks=True)
+                else:
+                    print("Extracting files from payload.bin ...")
+                    extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
+                if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
+                    boot_img_file = os.path.join(package_dir_full, 'boot.img')
+                    debug(f"Copying {boot_img_file}")
+                    shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
+                    boot_file_name = 'boot.img'
+                if os.path.exists(os.path.join(package_dir_full, 'init_boot.img')):
+                    boot_img_file = os.path.join(package_dir_full, 'init_boot.img')
+                    debug(f"Copying {boot_img_file}")
+                    shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'init_boot.img'), follow_symlinks=True)
+                    boot_file_name = 'init_boot.img'
+                    found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evalute to False
+                    is_init_boot = True
+            finally:
+                temp_dir.cleanup()
         else:
             if is_odin:
                 shutil.copy(os.path.join(package_dir_full, 'boot.img'), os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)

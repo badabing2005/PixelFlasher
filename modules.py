@@ -2378,18 +2378,18 @@ def live_flash_boot_phone(self, option):
     if not get_adb():
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
         puml("#red:Valid Anroid Platform Tools is not selected;\n}\n")
-        return
+        return -1
 
     device = get_phone()
     if not device:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
         puml("#red:Valid device is not selected;\n}\n")
-        return
+        return -1
 
     if device.hardware in KNOWN_INIT_BOOT_DEVICES and option == 'Live':
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported yet.")
         puml("#red:Live booting Pixel 7 or newer are not supported yet;\n}\n")
-        return
+        return -1
 
     boot = get_boot()
     print(f"Flashing / Live Booting\n     {boot.boot_path} ...")
@@ -2427,11 +2427,11 @@ def live_flash_boot_phone(self, option):
                 print("User pressed cancel.")
                 puml("#pink:User Pressed Cancel to abort;\n}\n")
                 print("Aborting ...\n")
-                return
+                return -1
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to access boot object, aborting ...\n")
         puml("#red:Unable to access boot object\n}\n")
-        return
+        return -1
 
     # Make sure boot exists
     if boot.boot_path:
@@ -2474,12 +2474,12 @@ def live_flash_boot_phone(self, option):
             puml("#pink:User Pressed Cancel to abort;\n}\n")
             print("Aborting ...\n")
             dlg.Destroy()
-            return
+            return -1
         dlg.Destroy()
     else:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get boot.img path, aborting ...\n")
         puml("#red:Unable to get boot image path;\n}\n")
-        return
+        return -1
 
     device = get_phone()
     if not device:
@@ -2489,7 +2489,7 @@ def live_flash_boot_phone(self, option):
         puml("#red:Valid device is not detected;\n")
         puml(f"note right\nYou can try scanning for devices and selecting your device (it should be in bootloader mode).\nand then press the same {option} button again.\nend note\n")
         puml("}\n")
-        return
+        return -1
 
     mode = device.get_device_state()
     if mode in ['adb', 'recovery', 'sideload'] and get_adb():
@@ -2500,6 +2500,17 @@ def live_flash_boot_phone(self, option):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
 
     if mode == 'fastboot' and get_fastboot():
+        # Check for bootloader unlocked
+        if self.config.check_for_bootloader_unlocked:
+            self.refresh_device()
+            device = get_phone()
+            if not device.unlocked:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
+                print("Aborting ...\n")
+                puml("#red:Bootloader is locked, can't flash;\n}\n")
+                self.toast("Flash action", "Bootloader is locked, cannot flash.")
+                return -1
+
         startFlash = time.time()
         # if device.hardware in KNOWN_INIT_BOOT_DEVICES:
         #     # Pixel 7 and 7P need a special command to Live Boot.
@@ -2510,7 +2521,7 @@ def live_flash_boot_phone(self, option):
         #     else:
         #         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Kernel {kernel} ...\n")
         #         print(f"Aborting ...\n")
-        #         return
+        #         return -1
         # else:
         fastboot_options = ''
         slot = ''
@@ -2538,7 +2549,7 @@ def live_flash_boot_phone(self, option):
             print("Aborting ...\n")
             puml("#red:{option} Boot failed!;\n}\n")
             puml("}\n")
-            return
+            return -1
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
         endFlash = time.time()
         print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
@@ -2664,7 +2675,7 @@ def flash_phone(self):
         package_dir_full = os.path.join(config_path, 'tmp')
     else:
         # check for free space >= 5G
-        if self.config.check_for_disk_space and get_free_space() < 5 or get_free_space(get_config_path()) < 5:
+        if self.config.check_for_disk_space and (get_free_space() < 5 or get_free_space(get_config_path()) < 5):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Please check available disk space, you do not have safe levels of availabe storage to flash without risk.")
             print("Aborting ...\n")
             puml("#red:Not enough disk space;\n}\n")
@@ -3277,16 +3288,17 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
             self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
             return -1
-        # Check for bootloader locked
-        image_mode = get_image_mode()
-        self.refresh_device()
-        device = get_phone()
-        if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD') or self.config.flash_mode == 'OTA'):
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
-            print("Aborting ...\n")
-            puml("#red:Bootloader is locked, can't flash;\n}\n")
-            self.toast("Flash action", "Bootloader is locked, cannot flash.")
-            return -1
+        # Check for bootloader unlocked
+        if self.config.check_for_bootloader_unlocked:
+            image_mode = get_image_mode()
+            self.refresh_device()
+            device = get_phone()
+            if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD') or self.config.flash_mode == 'OTA'):
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
+                print("Aborting ...\n")
+                puml("#red:Bootloader is locked, can't flash;\n}\n")
+                self.toast("Flash action", "Bootloader is locked, cannot flash.")
+                return -1
 
     # -------------------------------------------------------------------------
     # 4 Run the script
@@ -3300,6 +3312,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     res = run_shell2(theCmd)
     if res.returncode != 0:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
+        print(f"theCmd: {theCmd}")
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
@@ -3359,11 +3372,12 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             vbmeta_file = os.path.join(package_dir_full, "vbmeta.img")
             if self.config.disable_verity or self.config.disable_verification and os.path.exists(vbmeta_file):
                 print("flashing vbmeta ...")
-                theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta {vbmeta_file}"
+                theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta \"{vbmeta_file}\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vbmeta flashing did not return the expected result.")
+                    print(f"theCmd: {theCmd}")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")
@@ -3372,8 +3386,8 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     self.toast("Flash action", "vbmeta flashing did not return the expected result.")
                     return -1
 
-        # flash patched boot / init_boot
-        if not boot.is_stock_boot:
+        # flash patched boot / init_boot if dry run is not selected.
+        if not boot.is_stock_boot and self.config.flash_mode != 'dryRun':
             if device.unlocked:
                 # we do not want to flash if we have selected Temporary root
                 if self.config.advanced_options and self.config.temporary_root and boot.is_patched:
@@ -3384,14 +3398,15 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
                 if boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES:
                     print("Flashing patched init_boot ...")
-                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} init_boot {boot.boot_path}\n"
+                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
                 else:
                     print("Flashing patched boot ...")
-                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} boot {boot.boot_path}\n"
+                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} boot \"{boot.boot_path}\"\n"
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res.returncode != 0:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing the patch.")
+                    print(f"theCmd: {theCmd}")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")

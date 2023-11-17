@@ -116,6 +116,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_disk_space_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for Minumum Disk (5Gb)", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_disk_space_checkbox.SetToolTip(u"Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues.")
 
+        # Check for Bootloader unlocked options
+        self.check_for_bootloader_unlocked_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for bootloader unlocked", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_bootloader_unlocked_checkbox.SetToolTip(u"Checks to make sure bootloader is unlocked before flashing.")
+
         # Force codepage
         self.force_codepage_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force codepage to", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
@@ -196,6 +200,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.create_boot_tar_checkbox.SetValue(self.Parent.config.create_boot_tar)
         self.check_for_update_checkbox.SetValue(self.Parent.config.update_check)
         self.check_for_disk_space_checkbox.SetValue(self.Parent.config.check_for_disk_space)
+        self.check_for_bootloader_unlocked_checkbox.SetValue(self.Parent.config.check_for_bootloader_unlocked)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
@@ -239,6 +244,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add((0, 0))
 
         fgs1.Add(self.check_for_disk_space_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.check_for_bootloader_unlocked_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
@@ -362,6 +370,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if self.check_for_disk_space_checkbox.GetValue() != self.Parent.config.check_for_disk_space:
             print(f"Setting Check for Miminum Disk Space to: {self.check_for_disk_space_checkbox.GetValue()}")
         self.Parent.config.check_for_disk_space = self.check_for_disk_space_checkbox.GetValue()
+
+        if self.check_for_bootloader_unlocked_checkbox.GetValue() != self.Parent.config.check_for_bootloader_unlocked:
+            print(f"Setting Check for Miminum Disk Space to: {self.check_for_bootloader_unlocked_checkbox.GetValue()}")
+        self.Parent.config.check_for_bootloader_unlocked = self.check_for_bootloader_unlocked_checkbox.GetValue()
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):

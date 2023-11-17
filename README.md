@@ -51,7 +51,6 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - beta (official)
   - canary (official)
   - debug (official)
-  - alpha  
   - delta
   - special build that disables modules, used to recover from bootloops due to bad module(s) when safe mode does not work.
 - Magisk Backup Manager, [screenshot](images/Magisk-Backup-Manager.png).

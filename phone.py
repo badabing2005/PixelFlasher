@@ -2039,7 +2039,7 @@ class Device():
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['stable', 'beta', 'canary', 'debug', 'alpha', 'delta', 'zygote64_32 stable', 'zygote64_32 beta', 'zygote64_32 canary', 'zygote64_32 debug', 'special']
+                mlist = ['stable', 'beta', 'canary', 'debug', 'delta', 'zygote64_32 stable', 'zygote64_32 beta', 'zygote64_32 canary', 'zygote64_32 debug', 'special 25203', "special 26401"]
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     if apk:
@@ -2058,25 +2058,32 @@ class Device():
         ma = MagiskApk(channel)
         if channel == 'stable':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/stable.json"
+
         elif channel == 'beta':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/beta.json"
+
         elif channel == 'canary':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/canary.json"
+
         elif channel == 'debug':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/debug.json"
-        elif channel == 'alpha':
-            url = "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/alpha.json"
+
         elif channel == 'delta':
             url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
+
         elif channel == 'zygote64_32 stable':
             url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/stable.json"
+
         elif channel == 'zygote64_32 beta':
             url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/beta.json"
+
         elif channel == 'zygote64_32 canary':
             url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/canary.json"
+
         elif channel == 'zygote64_32 debug':
             url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/debug.json"
-        elif channel == 'special':
+
+        elif channel == 'special 25203':
             url = ""
             setattr(ma, 'version', "f9e82c9e")
             setattr(ma, 'versionCode', "25203")
@@ -2106,9 +2113,29 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             """
             setattr(ma, 'release_notes', release_notes)
             return ma
+
+        elif channel == 'special 26401':
+            url = ""
+            setattr(ma, 'version', "76aef836")
+            setattr(ma, 'versionCode', "26401")
+            setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_26401/app-release.apk")
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', 'com.topjohnwu.magisk')
+            release_notes = """
+## 2023.11.12 Special Magisk v26.4 Build\n\n
+This is a special Magisk build\n\n
+- Based on build versionCode: 26401 versionName: 76aef836\n
+- Modified to disable loading modules while keep root.\n
+- Made to recover from bootloops due to bad / incompatible Modules.\n\n
+### Steps to follow [here](https://github.com/badabing2005/Magisk)\n
+            """
+            setattr(ma, 'release_notes', release_notes)
+            return ma
+
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
             return
+
         try:
             payload={}
             headers = {
@@ -2123,12 +2150,12 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
             note_link = data['magisk']['note']
             setattr(ma, 'note_link', note_link)
             setattr(ma, 'package', 'com.topjohnwu.magisk')
-            if channel == 'alpha':
-                # Magisk alpha app link is not a full url, build it from url
-                setattr(ma, 'link', f"https://github.com/vvb2060/magisk_files/raw/alpha/{ma.link}")
-                setattr(ma, 'note_link', "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/README.md")
-                setattr(ma, 'package', 'io.github.vvb2060.magisk')
-            elif channel == 'delta':
+            # if channel == 'alpha':
+            #     # Magisk alpha app link is not a full url, build it from url
+            #     setattr(ma, 'link', f"https://github.com/vvb2060/magisk_files/raw/alpha/{ma.link}")
+            #     setattr(ma, 'note_link', "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/README.md")
+            #     setattr(ma, 'package', 'io.github.vvb2060.magisk')
+            if channel == 'delta':
                 setattr(ma, 'package', 'io.github.huskydg.magisk')
             # Get the note contents
             headers = {}
@@ -2209,21 +2236,35 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='device')
                         if res == 1:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during adb_wait_for in reboot_system")
+                            # puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
                             return -1
                         update_phones(self.id)
+                    puml("note right:State ADB;\n")
                     return res
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                puml(f"note right:ERROR: during reboot_system;\n")
             elif mode == 'fastboot' and get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
                 if res.returncode == 0:
                     res = self.adb_wait_for(timeout=timeout, wait_for='device')
+                    # puml(f"note right:Res [{res}];\n")
                     update_phones(self.id)
                     return res
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_system")
             traceback.print_exc()
+            puml(f"note right:Exception: during reboot_system;\n")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -2243,8 +2284,10 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                         res = self.adb_wait_for(timeout=timeout, wait_for='recovery')
                         if res == 1:
                             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
+                            # puml(f"note right:ERROR: during adb_wait_for in reboot_recovery;\n")
                             return -1
                         update_phones(self.id)
+                    puml("note right:State recovery;\n")
                     return res
             elif mode == 'fastboot' and get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot recovery"
@@ -2252,11 +2295,18 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                 res = run_shell(theCmd, timeout=timeout)
                 if res.returncode == 0:
                     res = self.adb_wait_for(timeout=timeout, wait_for='recovery')
+                    # puml(f"note right:Res [{res}];\n")
                     update_phones(self.id)
                     return res
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                puml(f"note right:ERROR: during adb_wait_for in reboot_recovery;\n")
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_recovery")
             traceback.print_exc()
+            puml(f"note right:Exception: during reboot_recovery;\n")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -2276,14 +2326,17 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     mode = self.get_device_state()
                     if mode and mode != 'ERROR':
                         print(f"Device is now in {mode} mode.")
+                        # puml(f"note right:ERROR: during get_device_state in reboot_download;\n")
                         id = self.id
                     else:
                         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Download state cannot be confirmed, please check your device.")
+                        puml(f"note right:Download state cannot be confirmed, please check your device.;\n")
                         id = None
                 return res
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_download")
             traceback.print_exc()
+            puml(f"note right:Exception: during reboot_download;\n")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -2305,6 +2358,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")
+                    puml(f"note right:ERROR: during reboot_safemode;\n")
                     res = res.returncode
                 return res
         except Exception as e:
@@ -2329,12 +2383,15 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                         res = self.fastboot_wait_for_bootloader(timeout=timeout)
                         if res == 1:
                             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
+                            # puml(f"note right:ERROR: during fastboot_wait_for_bootloader in reboot_bootloader;\n")
                             return -1
                         update_phones(self.id)
+                        puml("note right:State Bootloader;\n")
                         return res
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
                     print(f"stdout: {res.stdout}   stderr: {res.stderr}")
+                    puml(f"note right:ERROR: during reboot_bootloader;\n")
                     return -1
             elif mode == 'fastboot' and fastboot_included and get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot bootloader"
@@ -2344,9 +2401,15 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     res = self.fastboot_wait_for_bootloader(timeout=timeout)
                     update_phones(self.id)
                     return res
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                puml(f"note right:ERROR: during reboot_bootloader;\n")
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_bootloader")
             traceback.print_exc()
+            puml(f"note right:Exception: during reboot_bootloader;\n")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -2371,9 +2434,15 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     res = self.fastboot_wait_for_bootloader(timeout=timeout)
                     update_phones(self.id)
                     return res
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_fastboot")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                puml(f"note right:ERROR: during adb_wait_for in reboot_fastboot;\n")
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_fastbootd")
             traceback.print_exc()
+            puml(f"note right:Exception: during reboot_fastboot;\n")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -2393,21 +2462,35 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                         res = self.adb_wait_for(timeout=timeout, wait_for='sideload')
                         if res == 1:
                             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_ssideload")
+                            # puml(f"note right:ERROR: during adb_wait_for in reboot_sideload;\n")
                             return -1
                         update_phones(self.id)
+                        puml("note right:State sideload;\n")
                         return res
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    puml(f"note right:ERROR: during reboot_sideload;\n")
             elif mode == 'fastboot' and get_fastboot():
                 print("Device is in bootloader mode, first rebooting to system (this could take some time) ...")
                 res = self.reboot_system(timeout=timeout)
                 if res == 0:
                     res = self.adb_wait_for(timeout=timeout, wait_for='device')
+                    # puml(f"note right:Res [{res}];\n")
                     update_phones(self.id)
                     debug("Calling reboot_sideload ...")
                     res = self.reboot_sideload(timeout=timeout)
                     return res
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_sideload")
             traceback.print_exc()
+            puml(f"note right:Exception: during reboot_sideload;\n")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -2444,13 +2527,17 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     if res.returncode == 0:
                         device_mode = res.stdout.strip('\n')
                         if device_mode == "device":
+                            puml("note right:State ADB;\n")
                             return "adb"
                         else:
-                            return res.stdout.strip('\n')
+                            state = res.stdout.strip('\n')
+                            puml(f"note right:State {state};\n")
+                            return state
                 if get_fastboot():
                     theCmd = f"\"{get_fastboot()}\" devices"
                     res = run_shell(theCmd, timeout=timeout)
                     if res.returncode == 0 and device_id in res.stdout:
+                        puml("note right:State fastboot;\n")
                         return 'fastboot'
                 time.sleep(1)
             update_phones(device_id)
@@ -2458,6 +2545,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during get_device_state for device: {device_id}")
             traceback.print_exc()
+            puml(f"note right:ERROR: Exception during get_device_state for device;\n")
             return 'ERROR'
 
     # ----------------------------------------------------------------------------
@@ -2485,11 +2573,13 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
                     mode = self.get_device_state()
                     if mode:
                         print(f"Device is now in {mode} mode.")
+                        puml(f":device is now in {mode} mode;\n", True)
                 with contextlib.suppress(Exception):
                     return res.returncode
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during adb_wait_for: {wait_for}")
             traceback.print_exc()
+            puml(f"note right:ERROR: Exception during adb_wait_for: {wait_for};\n")
             return -1
 
     # ----------------------------------------------------------------------------

@@ -3981,6 +3981,7 @@ class GlobalArgs():
 #                               Function parse_arguments
 # ============================================================================
 def parse_arguments():
+    # sourcery skip: inline-immediately-returned-variable
     parser = argparse.ArgumentParser(description="Process command-line arguments")
     parser.add_argument("-c", "--config", help="Path to the configuration file")
     parser.add_argument("-l", "--console", action="store_true", help="Log to console as well")

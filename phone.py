@@ -28,6 +28,7 @@ class Package():
         self.path2 = ''
         self.label = ''
         self.icon = ''
+        self.uid = ''
 
 
 # ============================================================================
@@ -1086,6 +1087,162 @@ class Device():
             return _magisk_sha1
         else:
             return ''
+
+    # ----------------------------------------------------------------------------
+    #                               method exec_magisk_settings
+    # ----------------------------------------------------------------------------
+    def exec_magisk_settings(self, data):
+        if self.mode != 'adb' or not self.rooted:
+            return
+        try:
+            if not data:
+                return -1
+
+            config = get_config()
+            config_path = get_config_path()
+            if config.use_busybox_shell:
+                busybox_shell_cmd = "/data/adb/magisk/busybox ash"
+            else:
+                busybox_shell_cmd = ""
+            script_path = "/data/local/tmp/pfmagisk_settings.sh"
+            exec_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'{busybox_shell_cmd} {script_path}\'\""
+            the_script = os.path.join(config_path, 'tmp', 'pfmagisk_settings.sh')
+
+            # create the script
+            with open(the_script.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+                # data += "\n"
+                f.write(data)
+                puml(f"note right\nMagisk update script\n====\n{data}\nend note\n")
+            print("PixelFlasher Magisk update script contents:")
+            print(f"___________________________________________________\n{data}")
+            print("___________________________________________________\n")
+
+            # Transfer Magisk update script to the phone
+            res = self.push_file(f"{the_script}", script_path, with_su=False)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to transfer Magisk update script to the phone;\n")
+                return -1
+
+            # set the permissions.
+            res = self.set_file_permissions(script_path, "755", False)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to set the executable bit on Magisk update script;\n")
+                return -1
+
+            #------------------------------------
+            # Execute the pfmagisk_settings.sh script
+            #------------------------------------
+            print("Executing the pfmagisk_settings.sh script ...")
+            puml(":Executing the pfmagisk_settings script;\n")
+            debug(f"exec_cmd: {exec_cmd}")
+            res = run_shell2(exec_cmd)
+            if res.returncode == 0:
+                # delete existing pfmagisk_settings.sh from phone
+                res = self.delete("/data/local/tmp/pfmagisk_settings.sh")
+                if res != 0:
+                    print("Failed to delete temporary pfmagisk_settings.sh file\n")
+                    puml("#red:Failed to delete temporary pfmagisk_settings.sh file;\n")
+                    return -1
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during pfmagisk_settings script execution")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                puml(f"note right:ERROR: during pfmagisk_settings script execution;\n")
+                return -1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during exec_magisk_settings opeation.")
+            traceback.print_exc()
+            puml("#red:Exception during exec_magisk_settings opeation.;\n", True)
+            return -1
+
+
+    # ----------------------------------------------------------------------------
+    #                               method magisk_enable_zygisk
+    # ----------------------------------------------------------------------------
+    def magisk_enable_zygisk(self, enable):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                value = "1" if enable else "0"
+                print(f"Updating Zygisk flag value to: {value}")
+                puml(f":Updating Zygisk flag value to: {value};\n", True)
+
+                data = f"magisk --sqlite \"UPDATE settings SET value = {value} WHERE key = 'zygisk';\""
+                res = self.exec_magisk_settings(data)
+                if res == 0:
+                    print("Updating Zygisk flag succeeded")
+                    puml(f"note right:Updating Zygisk flag succeeded;\n")
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Zygisk flag")
+                    puml(f"note right:ERROR: Updating Zygisk flag;\n")
+                    return -1
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk opeation.")
+                traceback.print_exc()
+                puml("#red:Exception during magisk_enable_zygisk opeation.;\n", True)
+
+
+    # ----------------------------------------------------------------------------
+    #                               method magisk_enable_denylist
+    # ----------------------------------------------------------------------------
+    def magisk_enable_denylist(self, enable):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                value = "1" if enable else "0"
+                print(f"Updating Enforce denylist flag value to: {value}")
+                puml(f":Updating Enforce denylist flag value to: {value};\n", True)
+
+                data = f"magisk --sqlite \"UPDATE settings SET value = {value} WHERE key = 'denylist';\""
+                res = self.exec_magisk_settings(data)
+                if res == 0:
+                    print("Updating Enforce denylist flag succeeded")
+                    puml(f"note right:Updating Enforce denylist flag succeeded;\n")
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Enforce denylist flag")
+                    puml(f"note right:ERROR: Updating Enforce denylist flag;\n")
+                    return -1
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist opeation.")
+                traceback.print_exc()
+                puml("#red:Exception during magisk_enable_denylist opeation.;\n", True)
+
+
+    # ----------------------------------------------------------------------------
+    #                               method magisk_update_su
+    # ----------------------------------------------------------------------------
+    def magisk_update_su(self, uid, policy, logging, notification, until=0, label=''):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                if policy == "allow":
+                    value = 2
+                elif policy == "deny":
+                    value = 1
+                else:
+                    return
+                print(f"\nSetting SU permissions for: {label}")
+                print(f"    uid:          {uid}")
+                print(f"    rights:       {policy}")
+                print(f"    Notification: {notification}")
+                print(f"    Logging:      {logging}")
+                puml(f":Setting SU permissions for: {label} {uid};\n", True)
+
+                data = f"magisk --sqlite \"INSERT OR REPLACE INTO policies (uid, policy, logging, notification, until) VALUES ('{uid}', {value}, {logging}, {notification}, {until});\""
+                res = self.exec_magisk_settings(data)
+                if res == 0:
+                    print("Setting SU permissions succeeded")
+                    puml(f"note right:Setting SU permissions succeeded;\n")
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to Setting SU permissions")
+                    puml(f"note right:ERROR: Setting SU permissions flag;\n")
+                    return -1
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_update_su opeation.")
+                traceback.print_exc()
+                puml("#red:Exception during magisk_update_su opeation.;\n", True)
+
 
     # ----------------------------------------------------------------------------
     #                               Method run_magisk_migration
@@ -3075,7 +3232,7 @@ This is a special Magisk build\n\n
     #                               method get_package_list
     # ----------------------------------------------------------------------------
     def get_package_list(self, state = ''):
-        # possible options 'all', 'all+uninstalled', 'disabled', 'enabled', 'system', '3rdparty', 'user0'
+        # possible options 'all', 'all+uninstalled', 'disabled', 'enabled', 'system', '3rdparty', 'user0', 'uid'
         if self.mode != 'adb':
             return
         try:
@@ -3093,6 +3250,8 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -3"
             elif state == 'user0':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -s --user 0"
+            elif state == 'uid':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -U"
 
             res = run_shell(theCmd)
             if res.returncode == 0:
@@ -3172,6 +3331,16 @@ This is a special Magisk build\n\n
                 for item in list:
                     if item and item in self.packages:
                         self.packages[item].magisk_denylist = True
+
+            # Get package UIDs
+            list = self.get_package_list('uid')
+            if list:
+                for item in list.split("\n"):
+                    if item:
+                        package, uid = item.split(" ", 1)
+                        uid = uid.replace("uid:", "")
+                        if package in self.packages:
+                            self.packages[package].uid = uid
 
         except Exception as e:
             traceback.print_exc()

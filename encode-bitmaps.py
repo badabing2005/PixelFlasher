@@ -91,6 +91,20 @@ command_lines = [
     "-a -F -i -n slot-a-48 images/slot-a-48.png images.py",
     "-a -F -i -n slot-b-48 images/slot-b-48.png images.py",
     "-a -F -i -n rooted images/rooted.png images.py",
+    "-a -F -i -n watch-green-24 images/watch-green-24.png images.py",
+    "-a -F -i -n watch-blue-24 images/watch-blue-24.png images.py",
+    "-a -F -i -n phone-green-24 images/phone-green-24.png images.py",
+    "-a -F -i -n phone-blue-24 images/phone-blue-24.png images.py",
+    "-a -F -i -n disable-24 images/disable-24.png images.py",
+    "-a -F -i -n enable-24 images/enable-24.png images.py",
+    "-a -F -i -n download-24 images/download-24.png images.py",
+    "-a -F -i -n uninstall-24 images/uninstall-24.png images.py",
+    "-a -F -i -n launch-24 images/launch-24.png images.py",
+    "-a -F -i -n kill-24 images/kill-24.png images.py",
+    "-a -F -i -n clear-24 images/clear-24.png images.py",
+    "-a -F -i -n check-24 images/check-24.png images.py",
+    "-a -F -i -n uncheck-24 images/uncheck-24.png images.py",
+    "-a -F -i -n clipboard-24 images/clipboard-24.png images.py",
 ]
 
 if __name__ == "__main__":

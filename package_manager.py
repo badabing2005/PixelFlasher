@@ -15,6 +15,7 @@ import wx.lib.wxpTag
 import images as images
 from runtime import *
 
+from datetime import datetime, timedelta
 
 # ============================================================================
 #                               Class ListCtrl
@@ -23,6 +24,118 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
     def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
         wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
         listmix.ListCtrlAutoWidthMixin.__init__(self)
+
+
+# ============================================================================
+#                               Class SuPermissionDialog
+# ============================================================================
+class SuPermissionDialog(wx.Dialog):
+    def __init__(self, parent, pkg, uid, label=None):
+        super().__init__(parent, title="Set SU Permission")
+        self.pkg = pkg
+        self.uid = uid
+
+        # Label
+        if label is not None:
+            label_text = wx.StaticText(self, label=label)
+        else:
+            label_text = wx.StaticText(self, label="Enter SU Permission details:")
+        font = label_text.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        label_text.SetFont(font)
+
+        # Checkbox for notification
+        self.notification_checkbox = wx.CheckBox(self, label="Enable Notification")
+
+        # Checkbox for logging
+        self.logging_checkbox = wx.CheckBox(self, label="Enable Logging")
+
+        # Dropdown for Until
+        until_choices = ['Forever', '10 mins', '20 mins', '30 mins', '60 mins']
+        self.until_dropdown = wx.ComboBox(self, choices=until_choices, style=wx.CB_DROPDOWN| wx.CB_READONLY)
+        # Set "Forever" as the default selection
+        self.until_dropdown.SetSelection(0)
+
+        # Buttons
+        allow_button = wx.Button(self, label="Allow")
+        deny_button = wx.Button(self, label="Deny")
+        revoke_button = wx.Button(self, label="Revoke")
+        cancel_button = wx.Button(self, label="Cancel")
+
+        # Bind buttons to functions
+        allow_button.Bind(wx.EVT_BUTTON, self.OnAllow)
+        deny_button.Bind(wx.EVT_BUTTON, self.OnDeny)
+        revoke_button.Bind(wx.EVT_BUTTON, self.OnRevoke)
+        cancel_button.Bind(wx.EVT_BUTTON, self.OnCancel)
+
+        # Sizer to arrange the elements
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(label_text, 0, wx.ALL, 10)
+        sizer.Add(self.notification_checkbox, 0, wx.ALL, 10)
+        sizer.Add(self.logging_checkbox, 0, wx.ALL, 10)
+        sizer.Add(self.until_dropdown, 0, wx.ALL, 10)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(allow_button, 0, wx.ALL, 10)
+        button_sizer.Add(deny_button, 0, wx.ALL, 10)
+        button_sizer.Add(revoke_button, 0, wx.ALL, 10)
+        button_sizer.Add(cancel_button, 0, wx.ALL, 10)
+
+        sizer.Add(button_sizer, 0, wx.ALIGN_CENTER)
+
+        self.SetSizerAndFit(sizer)
+
+    def OnAllow(self, event):
+        until_text = self.until_dropdown.GetValue()
+        until = self.ComputeEpoch(until_text)
+        notification = self.notification_checkbox.GetValue()
+        logging = self.logging_checkbox.GetValue()
+        print(f"Allow button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
+        device = get_phone()
+        device.magisk_update_su(uid=self.uid, policy='allow', logging=logging, notification=notification, until=until)
+        self.EndModal(wx.ID_CANCEL)
+
+    def OnDeny(self, event):
+        until_text = self.until_dropdown.GetValue()
+        until = self.ComputeEpoch(until_text)
+        notification = self.notification_checkbox.GetValue()
+        logging = self.logging_checkbox.GetValue()
+        print(f"Deny button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
+        device = get_phone()
+        device.magisk_update_su(uid=self.uid, policy='deny', logging=logging, notification=notification, until=until)
+        self.EndModal(wx.ID_CANCEL)
+
+    def OnRevoke(self, event):
+        until_text = 'Revoke'
+        until = self.ComputeEpoch(until_text)
+        print(f"Revoke button clicked. Until: {until_text}, Notification: 1, Logging: 1, Epoch: {until}")
+        device = get_phone()
+        device.magisk_update_su(uid=self.uid, policy='deny', logging=1, notification=1, until=until)
+        self.EndModal(wx.ID_CANCEL)
+
+    def OnCancel(self, event):
+        print("Cancel button clicked")
+        self.EndModal(wx.ID_CANCEL)
+
+    def ComputeEpoch(self, until):
+        # Compute the epoch value based on the 'until' dropdown choice
+        now = datetime.now()
+        if until == 'Forever':
+            return 0
+        elif until == '10 mins':
+            future = now + timedelta(minutes=10)
+        elif until == '20 mins':
+            future = now + timedelta(minutes=20)
+        elif until == '30 mins':
+            future = now + timedelta(minutes=30)
+        elif until == '60 mins':
+            future = now + timedelta(minutes=60)
+        elif until == 'Revoke':
+            future = now - timedelta(minutes=1)
+        else:
+            return 0
+
+        return int(future.timestamp())
 
 
 # ============================================================================
@@ -235,8 +348,12 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.list.InsertColumn(5, info)
 
         info.Align = wx.LIST_FORMAT_LEFT # 0
-        info.Text = "Name"
+        info.Text = "UID"
         self.list.InsertColumn(6, info)
+
+        info.Align = wx.LIST_FORMAT_LEFT # 0
+        info.Text = "Name"
+        self.list.InsertColumn(7, info)
 
         itemDataMap = {}
         query = self.searchCtrl.GetValue().lower()
@@ -248,14 +365,15 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 if query.lower() in alltext:
                     index = self.list.InsertItem(self.list.GetItemCount(), key)
                     if data.type:
-                        itemDataMap[i + 1] = (key, data.type, data.installed, data.enabled, data.user0, data.magisk_denylist, data.label)
+                        itemDataMap[i + 1] = (key, data.type, data.installed, data.enabled, data.user0, data.magisk_denylist, data.uid, data.label)
                         row = self.list.GetItem(index)
                         self.list.SetItem(index, 1, data.type)
                         self.list.SetItem(index, 2, str(data.installed))
                         self.list.SetItem(index, 3, str(data.enabled))
                         self.list.SetItem(index, 4, str(data.user0))
                         self.list.SetItem(index, 5, str(data.magisk_denylist))
-                        self.list.SetItem(index, 6, str(data.label))
+                        self.list.SetItem(index, 6, str(data.uid))
+                        self.list.SetItem(index, 7, str(data.label))
                         if data.type == 'System':
                             row.SetTextColour(wx.RED)
                         elif darkdetect.isLight():
@@ -283,8 +401,10 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         grow_column(self.list, 4, 20)
         self.list.SetColumnWidth(5, -2)
         grow_column(self.list, 5, 20)
-        self.list.SetColumnWidth(6, 200)
+        self.list.SetColumnWidth(6, -2)
         grow_column(self.list, 6, 20)
+        self.list.SetColumnWidth(7, 200)
+        grow_column(self.list, 7, 20)
 
         self.currentItem = 0
         if itemDataMap:
@@ -323,9 +443,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             if label != -1:
                 package.label = label
                 package.icon = icon
-                self.list.SetItem(self.currentItem, 6, label)
+                self.list.SetItem(self.currentItem, 7, label)
                 row_as_list = list(self.itemDataMap[self.currentItem + 1])
-                row_as_list[6] = label
+                row_as_list[7] = label
                 self.itemDataMap[self.currentItem + 1] = row_as_list
                 labels[pkg] = label
                 set_labels(labels)
@@ -560,9 +680,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 if label != -1:
                     package.label = label
                     package.icon = icon
-                    self.list.SetItem(i, 6, label)
+                    self.list.SetItem(i, 7, label)
                     row_as_list = list(self.itemDataMap[i + 1])
-                    row_as_list[6] = label
+                    row_as_list[7] = label
                     self.itemDataMap[i + 1] = row_as_list
                     labels[pkg] = label
         set_labels(labels)
@@ -583,7 +703,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 return     # the user changed their mind
             # save the current contents in the file
             pathname = fileDialog.GetPath()
-            content = "package,type,installed,enabled,user0,denylist,name\n"
+            content = "package,type,installed,enabled,user0,denylist,uid,name\n"
             for i in range(self.list.GetItemCount()):
                 package = self.list.GetItemText(i)
                 type = self.list.GetItemText(i, 1)
@@ -591,8 +711,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 enabled = self.list.GetItemText(i, 3)
                 user0 = self.list.GetItemText(i, 4)
                 denylist = self.list.GetItemText(i, 5)
-                name = self.list.GetItemText(i, 6)
-                content += f"{package},{type},{installed},{enabled},{user0},{denylist},{name}\n"
+                uid = self.list.GetItemText(i, 6)
+                name = self.list.GetItemText(i, 7)
+                content += f"{package},{type},{installed},{enabled},{user0},{denylist},{uid},{name}\n"
             with open(pathname, "w", newline="\n") as f:
                 f.write(content)
         end = time.time()
@@ -626,7 +747,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             print("Aborting download ...")
             return
         label = package.label
-        label = self.getColumnText(self.currentItem, 6)
+        label = self.getColumnText(self.currentItem, 7)
         if multiple:
             if not self.download_folder:
                 with wx.DirDialog(None, "Choose a directory where all apks should be saved.", style=wx.DD_DEFAULT_STYLE) as folderDialog:
@@ -744,6 +865,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.popupCheckAllBoxes = wx.NewIdRef()
             self.popupUnCheckAllBoxes = wx.NewIdRef()
             self.popupCopyClipboard = wx.NewIdRef()
+            self.popupSuPermission = wx.NewIdRef()
 
             self.Bind(wx.EVT_MENU, self.OnPopupDisable, id=self.popupDisable)
             self.Bind(wx.EVT_MENU, self.OnPopupEnable, id=self.popupEnable)
@@ -758,22 +880,44 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.Bind(wx.EVT_MENU, self.OnCheckAllBoxes, id=self.popupCheckAllBoxes)
             self.Bind(wx.EVT_MENU, self.OnUnCheckAllBoxes, id=self.popupUnCheckAllBoxes)
             self.Bind(wx.EVT_MENU, self.OnCopyClipboard, id=self.popupCopyClipboard)
+            self.Bind(wx.EVT_MENU, self.OnSuPermission, id=self.popupSuPermission)
 
         # build the menu
         menu = wx.Menu()
-        menu.Append(self.popupDisable, "Disable Package")
-        menu.Append(self.popupEnable, "Enable Package")
-        menu.Append(self.popupUninstall, "Uninstall Package")
-        menu.Append(self.popupAddToDeny, "Add Package to Magisk Denylist")
-        menu.Append(self.popupRmFromDeny, "Remove Package from Magisk Denylist")
-        menu.Append(self.popupDownload, "Download Package")
-        menu.Append(self.popupLaunch, "Launch Package")
-        menu.Append(self.popupKill, "Kill Application")
-        menu.Append(self.popupClearData, "Clear Application Data")
-        menu.Append(self.popupRefresh, "Refresh")
-        menu.Append(self.popupCheckAllBoxes, "Check All")
-        menu.Append(self.popupUnCheckAllBoxes, "UnCheck All")
-        menu.Append(self.popupCopyClipboard, "Copy to Clipboard")
+        disableItem = menu.Append(self.popupDisable, "Disable Package")
+        enableItem = menu.Append(self.popupEnable, "Enable Package")
+        uninstallItem = menu.Append(self.popupUninstall, "Uninstall Package")
+        downloadItem = menu.Append(self.popupDownload, "Download Package")
+        launchItem = menu.Append(self.popupLaunch, "Launch Package")
+        killItem = menu.Append(self.popupKill, "Kill Application")
+        clearItem = menu.Append(self.popupClearData, "Clear Application Data")
+        # Add a separator
+        menu.AppendSeparator()
+        refreshItem = menu.Append(self.popupRefresh, "Refresh")
+        checkItem = menu.Append(self.popupCheckAllBoxes, "Check All")
+        unCheckItem = menu.Append(self.popupUnCheckAllBoxes, "UnCheck All")
+        clipboardItem=menu.Append(self.popupCopyClipboard, "Copy to Clipboard")
+        # Add a separator
+        menu.AppendSeparator()
+        addDenyItem = menu.Append(self.popupAddToDeny, "Add Package to Magisk Denylist")
+        removeDenyItem = menu.Append(self.popupRmFromDeny, "Remove Package from Magisk Denylist")
+        suPermissionItem = menu.Append(self.popupSuPermission, "SU Permission ...")
+
+        # set icons
+        disableItem.SetBitmap(images.disable_24.GetBitmap())
+        enableItem.SetBitmap(images.enable_24.GetBitmap())
+        uninstallItem.SetBitmap(images.uninstall_24.GetBitmap())
+        downloadItem.SetBitmap(images.download_24.GetBitmap())
+        launchItem.SetBitmap(images.launch_24.GetBitmap())
+        killItem.SetBitmap(images.kill_24.GetBitmap())
+        clearItem.SetBitmap(images.clear_24.GetBitmap())
+        refreshItem.SetBitmap(images.scan_24.GetBitmap())
+        checkItem.SetBitmap(images.check_24.GetBitmap())
+        unCheckItem.SetBitmap(images.uncheck_24.GetBitmap())
+        clipboardItem.SetBitmap(images.clipboard_24.GetBitmap())
+        addDenyItem.SetBitmap(images.magisk_24.GetBitmap())
+        removeDenyItem.SetBitmap(images.magisk_24.GetBitmap())
+        suPermissionItem.SetBitmap(images.magisk_24.GetBitmap())
 
         # Popup the menu.  If an item is selected then its handler
         # will be called before PopupMenu returns.
@@ -814,6 +958,27 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'add-to-denylist')
         self.RefreshPackages()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  OnSuPermission
+    # -----------------------------------------------
+    def OnSuPermission(self, event):
+        self._on_spin('start')
+        index = self.currentItem
+        pkg = self.list.GetItem(index).Text
+        uid = self.list.GetItem(index, 6).Text
+        label = self.list.GetItem(index, 7).Text
+        text = f"Set SU Permission for: {pkg} {uid} {label}"
+        print(f"{text} ...")
+
+        # Popup a small dialog to display SU Permission selection
+        dialog = SuPermissionDialog(self, pkg=pkg, uid=uid, label=text)
+        if dialog.ShowModal() != wx.ID_OK:
+            print("User pressed Cancel")
+        dialog.Destroy()
+
+        # self.RefreshPackages()
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -904,12 +1069,13 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def ApplySingleAction(self, index, action, fromMulti = False, counter = ''):
         pkg = self.list.GetItem(index).Text
         type = self.list.GetItem(index, 1).Text
-        label = self.list.GetItem(index, 6).Text
+        label = self.list.GetItem(index, 7).Text
         # installed = self.list.GetItem(index, 2).Text
         # enabled = self.list.GetItem(index, 3).Text
         # user0 = self.list.GetItem(index, 4).Text
         # magisk_denylist = self.list.GetItem(index, 5).Text
-        # label = self.list.GetItem(index, 6).Text
+        # uid = self.list.GetItem(index, 6).Text
+        # label = self.list.GetItem(index, 7).Text
         if type == 'System':
             isSystem = True
         else:

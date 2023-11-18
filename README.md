@@ -52,18 +52,24 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - canary (official)
   - debug (official)
   - delta
-  - special build that disables modules, used to recover from bootloops due to bad module(s) when safe mode does not work.
+  - special builds that disable modules (used to recover from bootloops due to bad module(s) when safe mode does not work).
 - Magisk Backup Manager, [screenshot](images/Magisk-Backup-Manager.png).
   - List all Magisk backups currently on the device.
   - Highlight the one that is backup of the current installed version.
   - Delete backups.
   - Manually add backup from PC.
   - Auto Backup: PixelFlasher figures out what needs to be backed up, and if it finds it on the PC, it creates the backup.
-- Magisk modules management, enable / disable modules selectively, this comes in handy to disable suspect modules before an upgrade [screenshot](images/magisk-modules-manager.png):
-  - Name
-  - Version
-  - Description
-  - Enabled / Disabled.
+- Magisk settings management, [screenshot](images/magisk-settings.png):
+  - Enable / disable Magisk modules, this comes in handy to disable suspect modules before an upgrade.
+  - Install Magisk module.
+  - Enable / disable Zygisk.
+  - Enable / disable Magisk denylist.
+  - Add / remove application to Magisk denylist (through PixelFlasher's App Manger).
+  - Grant / deny / SU permissions to an app, with control of (through PixelFlasher's App Manger):
+    - Enable / disable notifications
+    - Enable / disable logging
+    - Grant until (Forever, 10 min, 20 min, 30 min, 60 min)
+  - Revoke SU permissions
 - Display Android Platform Tools (SDK) version and warn / block if the version is old.
 - Install APK (an app) file from the computer onto the device.
 - Wireless Manager, to wirelessly connect to adb debug or adb wireless with pairing support.
@@ -81,6 +87,7 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - Multi-Select
   - Show Package Details.
   - Add app to Magisk denylist.
+  - Control app's superuser permissions, [screenshot](images/su-permissions.png).
 
 **Expert mode:** (should only be turned on by experienced users). In addition to the basic features, you get:
 

@@ -1,13 +1,23 @@
 {
+    "eos": {
+        "device": "Google Pixel Watch 2 (LTE)",
+        "android_version_end_date": "October 2026",
+        "security_update_end_date": "October 2027"
+    },
+    "aurora": {
+        "device": "Google Pixel Watch 2 (Bluetooth/Wi-Fi)",
+        "android_version_end_date": "October 2026",
+        "security_update_end_date": "October 2027"
+    },
     "husky": {
         "device": "Pixel 8 Pro",
-        "android_version_end_date": "September 2026",
-        "security_update_end_date": "September 2030"
+        "android_version_end_date": "October 2026",
+        "security_update_end_date": "October 2030"
     },
     "shiba": {
         "device": "Pixel 8",
-        "android_version_end_date": "September 2026",
-        "security_update_end_date": "September 2027"
+        "android_version_end_date": "October 2026",
+        "security_update_end_date": "October 2027"
     },
     "felix": {
         "device": "Pixel Fold",
@@ -23,6 +33,16 @@
         "device": "Pixel 7a",
         "android_version_end_date": "May 2026",
         "security_update_end_date": "May 2027"
+    },
+    "r11": {
+        "device": "Google Pixel Watch (LTE)",
+        "android_version_end_date": "October 2025",
+        "security_update_end_date": "October 2026"
+    },
+    "r11btwifi": {
+        "device": "Google Pixel Watch (Bluetooth/Wi-Fi)",
+        "android_version_end_date": "October 2025",
+        "security_update_end_date": "October 2026"
     },
     "cheetah": {
         "device": "Pixel 7 Pro",

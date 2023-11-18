@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 import darkdetect
 import wx
 import wx.adv
+import wx.lib.agw.aui as aui
 import wx.lib.inspection
 import wx.lib.mixins.inspection
 from packaging.version import parse
@@ -79,6 +80,30 @@ class RedirectText():
     def flush(self):
         # noinspection PyStatementEffect
         None
+
+
+# ============================================================================
+#                               Class DropDownButton
+# ============================================================================
+class DropDownButton(wx.BitmapButton):
+    def __init__(self, parent, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW):
+        super().__init__(parent, id, bitmap, pos, size, style)
+        self.Bind(wx.EVT_BUTTON, self.OnButtonClick)
+        self.popup_menu = wx.Menu()
+
+    def OnButtonClick(self, event):
+        self.PopupMenu(self.popup_menu)
+
+    def AddLink(self, label, url, icon=None):
+        item = self.popup_menu.Append(wx.ID_ANY, label)
+        if icon:
+            item.SetBitmap(icon)
+        self.Bind(wx.EVT_MENU, lambda event, url=url: self.OnLinkSelected(event, url), item)
+
+    def OnLinkSelected(self, event, url):
+        # Handle the selected link here
+        print(f"Selected link: {url}")
+        open_device_image_download_link(url)
 
 
 # ============================================================================
@@ -521,9 +546,9 @@ class PixelFlasher(wx.Frame):
             if self.config.toolbar['visible']['reboot_system'] or self.config.toolbar['visible']['reboot_bootloader'] or (self.config.toolbar['visible']['reboot_recovery'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_safe_mode'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_download'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_sideload'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_fastbootd'] and self.config.advanced_options):
                 tb.AddSeparator()
 
-            # Manage Magisk Modules
+            # Manage Magisk Settings (json file knows this and magisk_modules)
             if self.config.toolbar['visible']['magisk_modules']:
-                tb.AddTool(toolId=200, label="Modules", bitmap=images.magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Manage Magisk Modules", longHelp="Manage Magisk Modules", clientData=None)
+                tb.AddTool(toolId=200, label="Magisk", bitmap=images.magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Manage Magisk modules and settings", longHelp="Manage Magisk modules and settings", clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=200)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=200)
 
@@ -639,7 +664,7 @@ class PixelFlasher(wx.Frame):
         elif id == 160:
             self._on_reboot_sideload(event)
         elif id == 200:
-            self._on_magisk_modules(event)
+            self._on_magisk(event)
         elif id == 210:
             self._on_magisk_install(event)
         elif id == 220:
@@ -798,10 +823,10 @@ class PixelFlasher(wx.Frame):
         self.reboot_menu.SetBitmap(images.reboot_24.GetBitmap())
         # seperator
         device_menu.AppendSeparator()
-        # Magisk Modules
-        self.magisk_modules_menu = device_menu.Append(wx.ID_ANY, "Magisk Modules", "Manage Magisk Modules")
-        self.magisk_modules_menu.SetBitmap(images.magisk_24.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_magisk_modules, self.magisk_modules_menu)
+        # Magisk Settings
+        self.magisk_menu = device_menu.Append(wx.ID_ANY, "Magisk", "Manage Magisk modules and settings")
+        self.magisk_menu.SetBitmap(images.magisk_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_magisk, self.magisk_menu)
         # Install Magisk
         self.install_magisk_menu = device_menu.Append(wx.ID_ANY, "Install Magisk", "Download and Install Magisk")
         self.install_magisk_menu.SetBitmap(images.install_magisk_24.GetBitmap())
@@ -880,7 +905,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Append(140, "Reboot Safe Mode", "", wx.ITEM_CHECK).SetBitmap(images.reboot_safe_mode_24.GetBitmap())
         tb_buttons_menu.Append(150, "Reboot Download", "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
         tb_buttons_menu.Append(160, "Reboot Sideload", "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
-        tb_buttons_menu.Append(200, "Magisk Modules", "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
+        tb_buttons_menu.Append(200, "Magisk", "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
         tb_buttons_menu.Append(210, "Install Magisk", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
         tb_buttons_menu.Append(220, "Magisk Backup Manager", "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
         tb_buttons_menu.Append(230, "SOS", "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
@@ -2040,7 +2065,7 @@ class PixelFlasher(wx.Frame):
                 self.reboot_sideload_menu:              ['device_attached'],
                 self.switch_slot_menu:                  ['device_attached', 'dual_slot'],
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
-                self.magisk_modules_menu:               ['device_attached', 'device_mode_adb'],
+                self.magisk_menu:                       ['device_attached', 'device_mode_adb'],
                 self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 # self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
@@ -2800,9 +2825,9 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  _on_magisk_modules
+    #                  _on_magisk
     # -----------------------------------------------
-    def _on_magisk_modules(self, event):
+    def _on_magisk(self, event):
         self._on_spin('start')
         try:
             dlg = MagiskModules(self)
@@ -2913,46 +2938,6 @@ class PixelFlasher(wx.Frame):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
             traceback.print_exc()
         self.refresh_device()
-        self._on_spin('stop')
-
-    # -----------------------------------------------
-    #                  _open_firmware_link
-    # -----------------------------------------------
-    def _open_firmware_link(self, event):
-        try:
-            self._on_spin('start')
-            with contextlib.suppress(Exception):
-                device = get_phone()
-                if device:
-                    hardware = device.hardware
-                else:
-                    hardware = ''
-            print(f"Launching browser for Firmware download URL: https://developers.google.com/android/images#{hardware}")
-            webbrowser.open_new(f"https://developers.google.com/android/images#{hardware}")
-            puml(f":Open Link;\nnote right\n=== {hardware} Firmware Link\n[[https://developers.google.com/android/images#{hardware}]]\nend note\n", True)
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware link")
-            traceback.print_exc()
-        self._on_spin('stop')
-
-    # -----------------------------------------------
-    #                  _open_ota_link
-    # -----------------------------------------------
-    def _open_ota_link(self, event):
-        try:
-            self._on_spin('start')
-            with contextlib.suppress(Exception):
-                device = get_phone()
-                if device:
-                    hardware = device.hardware
-                else:
-                    hardware = ''
-            print(f"Launching browser for Full OTA download URL: https://developers.google.com/android/ota#{hardware}")
-            webbrowser.open_new(f"https://developers.google.com/android/ota#{hardware}")
-            puml(f":Open Link;\nnote right\n=== {hardware} Full OTA Link\n[[https://developers.google.com/android/ota#{hardware}]]\nend note\n", True)
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening OTA link")
-            traceback.print_exc()
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -3586,13 +3571,14 @@ class PixelFlasher(wx.Frame):
         self.staticline1.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT))
 
         # 5th row widgets, firmware file
-        firmware_label = wx.StaticText(parent=panel, label=u"Phone Image")
-        self.firmware_link = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
-        self.firmware_link.SetBitmap(images.open_link_24.GetBitmap())
-        self.firmware_link.SetToolTip(u"Download Pixel Factory Firmware")
-        self.ota_link = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
-        self.ota_link.SetBitmap(images.open_link_24.GetBitmap())
-        self.ota_link.SetToolTip(u"Download Pixel Full OTA Firmware")
+        firmware_label = wx.StaticText(parent=panel, label=u"Device Image")
+        firmware_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        firmware_button.SetBitmap(images.open_link_24.GetBitmap())
+        firmware_button.SetToolTip(u"Download image file for Pixel devices.")
+        firmware_button.AddLink("Full OTA Images for Pixel Phones / Tablets", FULL_OTA_IMAGES_FOR_PIXEL_DEVICES, images.phone_green_24.GetBitmap())
+        firmware_button.AddLink("Factory Images for Pixel Phones / Tablets", FACTORY_IMAGES_FOR_PIXEL_DEVICES, images.phone_blue_24.GetBitmap())
+        firmware_button.AddLink("Full OTA Images for Pixel Watches", FULL_OTA_IMAGES_FOR_WATCH_DEVICES, images.watch_green_24.GetBitmap())
+        firmware_button.AddLink("Factory Images for Pixel Watches", FACTORY_IMAGES_FOR_WATCH_DEVICES, images.watch_blue_24.GetBitmap())
         self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
         self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
         self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -3601,8 +3587,7 @@ class PixelFlasher(wx.Frame):
         firmware_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         firmware_label_sizer.Add(window=firmware_label, proportion=0, flag=wx.ALL, border=5)
         firmware_label_sizer.AddStretchSpacer(1)
-        firmware_label_sizer.Add(window=self.firmware_link, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        firmware_label_sizer.Add(window=self.ota_link, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
+        firmware_label_sizer.Add(window=firmware_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.firmware_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.firmware_sizer.Add(window=self.firmware_picker, proportion=1, flag=wx.EXPAND)
         self.firmware_sizer.Add(window=self.process_firmware, flag=wx.LEFT, border=5)
@@ -3850,8 +3835,6 @@ class PixelFlasher(wx.Frame):
         self.device_choice.Bind(wx.EVT_COMBOBOX, self._on_select_device)
         self.scan_button.Bind(wx.EVT_BUTTON, self._on_scan)
         self.firmware_picker.Bind(wx.EVT_FILEPICKER_CHANGED, self._on_select_firmware)
-        self.firmware_link.Bind(wx.EVT_BUTTON, self._open_firmware_link)
-        self.ota_link.Bind(wx.EVT_BUTTON, self._open_ota_link)
         self.platform_tools_picker.Bind(wx.EVT_DIRPICKER_CHANGED, self._on_select_platform_tools)
         self.device_label.Bind(wx.EVT_LEFT_DCLICK, self._on_adb_kill_server)
         self.sdk_link.Bind(wx.EVT_BUTTON, self._open_sdk_link)
@@ -3988,6 +3971,24 @@ def parse_arguments():
     args  = parser.parse_args()
     return args
 
+
+# ============================================================================
+#                    Function _open_device_image_download_link
+# ============================================================================
+def open_device_image_download_link(url):
+    try:
+        with contextlib.suppress(Exception):
+            device = get_phone()
+            if device:
+                hardware = device.hardware
+            else:
+                hardware = ''
+        print(f"Launching browser for Google image download URL: {url}#{hardware}")
+        webbrowser.open_new(f"{url}#{hardware}")
+        puml(f":Open Link;\nnote right\n=== {hardware} Firmware Link\n[[{url}#{hardware}]]\nend note\n", True)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware link")
+        traceback.print_exc()
 
 # ============================================================================
 #                               Function ask

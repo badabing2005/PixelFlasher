@@ -21,6 +21,7 @@ import traceback
 import zipfile
 import psutil
 from datetime import datetime
+from urllib.parse import urlparse
 
 import lz4.frame
 import requests
@@ -81,6 +82,7 @@ sdk_is_ok = False
 low_memory = False
 config = {}
 config_file_path = ''
+unlocked_devices = []
 
 # ============================================================================
 #                               Class Boot
@@ -108,6 +110,14 @@ class Boot():
 
 
 # ============================================================================
+#                               Class ModuleUpdate
+# ============================================================================
+class ModuleUpdate():
+    def __init__(self, url):
+        self.url = url
+
+
+# ============================================================================
 #                               Function get_config
 # ============================================================================
 def get_config():
@@ -121,6 +131,30 @@ def get_config():
 def set_config(value):
     global config
     config = value
+
+
+# ============================================================================
+#                               Function check_for_unlocked
+# ============================================================================
+def check_for_unlocked(item):
+    return item in unlocked_devices
+
+
+# ============================================================================
+#                               Function add_unlocked_device
+# ============================================================================
+def add_unlocked_device(item):
+    if item not in unlocked_devices:
+        unlocked_devices.append(item)
+
+
+# ============================================================================
+#                               Function remove_unlocked_device
+# ============================================================================
+def remove_unlocked_device(item):
+    if item in unlocked_devices:
+        unlocked_devices.remove(item)
+
 
 # ============================================================================
 #                               Function set_console_widget
@@ -1763,6 +1797,35 @@ def delete_all(dir):
 
 
 # ============================================================================
+#                               Function check_module_update
+# ============================================================================
+def check_module_update(url):
+    try:
+        payload={}
+        headers = {
+            'Content-Type': "application/json"
+        }
+        response = requests.request("GET", url, headers=headers, data=payload)
+        if response.status_code == 404:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
+            return -1
+        response.raise_for_status()
+        data = response.json()
+        mu = ModuleUpdate(url)
+        setattr(mu, 'version', data['version'])
+        setattr(mu, 'versionCode', data['versionCode'])
+        setattr(mu, 'zipUrl', data['zipUrl'])
+        setattr(mu, 'changelog', data['changelog'])
+        headers = {}
+        response = requests.request("GET", mu.changelog, headers=headers, data=payload)
+        setattr(mu, 'changelog', response.text)
+        return mu
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during getUpdateDetails url: {url} processing")
+        traceback.print_exc()
+        return -1
+
+# ============================================================================
 #                               Function get_free_space
 # ============================================================================
 def get_free_space(path=''):
@@ -1808,6 +1871,31 @@ def get_printable_memory():
     formatted_free_memory = format_memory_size(free_memory)
     formatted_total_memory = format_memory_size(total_memory)
     return f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}"
+
+
+# ============================================================================
+#                               Function download_file
+# ============================================================================
+def download_file(url, filename = None):
+    if url:
+        print (f"Downloading File: {url}")
+        try:
+            response = requests.get(url)
+            config_path = get_config_path()
+            if not filename:
+                filename = os.path.basename(urlparse(url).path)
+            downloaded_file_path = os.path.join(config_path, 'tmp', filename)
+            open(downloaded_file_path, "wb").write(response.content)
+            # check if filename got downloaded
+            if not os.path.exists(downloaded_file_path):
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
+                print("Aborting ...\n")
+                return 'ERROR'
+        except Exception:
+            print (f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
+            traceback.print_exc()
+            return 'ERROR'
+    return downloaded_file_path
 
 
 # ============================================================================

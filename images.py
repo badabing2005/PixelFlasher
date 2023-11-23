@@ -2515,6 +2515,17 @@ enable_24 = PyEmbeddedImage(
     b'OvciKYE0zXBvCYE7KwiFme53VjBWMrngBSl6hxnXra1IAAAAAElFTkSuQmCC')
 
 #----------------------------------------------------------------------
+download_16 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1B'
+    b'AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEWSURBVDhPxZI7bsJAEIbNQ4gQpaOG'
+    b'gkNEygUioMgNohwB5SQcAcEJKJK0qXKA9CniDokOhzwEge/fXa+8tikQBZ/0a2ZnZ2ZnZEen'
+    b'UnE2YDCOFW+h9H6H1s+jjmxA1dk8Kv5ACyf5ihU41EAvXyEVSfJLpz3U4N8pJX/2BF2H4/iC'
+    b'Jeu46QqXisMX6qE1BZunUefbRCE/wTV6RzHK7ixfMd0pxxM0oPMrLzziJig7nfxEd8qxIUs2'
+    b'ycMqfVaZ4rZtJFqSeE/xizt7ShsImtzRZCKfpAeK5+biGGhyK7ljKcEE/IFNjL6CgQn+ZElq'
+    b'mIBlwx/54/zCV5ihVSoKf6VsDCnHk5/gBtNFWxMoUkOfTPBmj+cnivYIfEiPJqGh0gAAAABJ'
+    b'RU5ErkJggg==')
+
+#----------------------------------------------------------------------
 download_24 = PyEmbeddedImage(
     b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAnklEQVRIS+2U2w2AIAxFZREG'
     b'0mVwEllGB2IRpR8mhLTcNob4iPz4QbmH4knd0Hm5zvnDMwBjTDvX6RY8vCAsoOAfAEV63xNN'

@@ -320,6 +320,14 @@ class Device():
                     s_ro_zygote = 'ro.zygote'
                     s_ro_vendor_product_cpu_abilist = 'ro.vendor.product.cpu.abilist'
                     s_ro_vendor_product_cpu_abilist32 = 'ro.vendor.product.cpu.abilist32'
+                    # TODO add these.
+                    # pif_product = 'ro.build.name' or 'ro.build.product'
+                    pif_device = 'ro.product.device'
+                    pif_manufacturer = 'ro.product.manufacturer'
+                    pif_brand = 'ro.product.brand'
+                    pif_model = 'ro.product.model'
+                    pif_fingerprint = s_build
+                    pif_security_patch = 'ro.build.version.security_patch'
                     for line in device_info.split("\n"):
                         if s_active_slot in line and not self._active_slot:
                             self._active_slot = self.extract_prop(s_active_slot, line.strip())
@@ -341,6 +349,8 @@ class Device():
                             self._sys_oem_unlock_allowed = self.extract_prop(s_sys_oem_unlock_allowed, line.strip())
                         elif s_ro_boot_flash_locked in line and not self._ro_boot_flash_locked:
                             self._ro_boot_flash_locked = self.extract_prop(s_ro_boot_flash_locked, line.strip())
+                            if self._ro_boot_flash_locked == '0':
+                                add_unlocked_device(self.id)
                         elif s_ro_boot_vbmeta_device_state in line and not self._ro_boot_vbmeta_device_state:
                             self._ro_boot_vbmeta_device_state = self.extract_prop(s_ro_boot_vbmeta_device_state, line.strip())
                         elif s_vendor_boot_verifiedbootstate in line and not self._vendor_boot_verifiedbootstate:
@@ -387,6 +397,7 @@ class Device():
                             self._unlocked = self.extract_prop(s_unlocked, line.strip())
                             if self._unlocked == 'yes':
                                 self._unlocked = True
+                                add_unlocked_device(self.id)
                             else:
                                 self._unlocked = False
                         elif s_bootloader_version in line and not self._bootloader_version:
@@ -756,6 +767,7 @@ class Device():
         if self._unlocked is None:
             return ''
         else:
+            add_unlocked_device(self.id)
             return self._unlocked
 
     # ----------------------------------------------------------------------------
@@ -1151,13 +1163,58 @@ class Device():
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
-                puml(f"note right:ERROR: during pfmagisk_settings script execution;\n")
+                puml("note right:ERROR: during pfmagisk_settings script execution;\n")
                 return -1
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during exec_magisk_settings opeation.")
             traceback.print_exc()
             puml("#red:Exception during exec_magisk_settings opeation.;\n", True)
             return -1
+
+
+    # ----------------------------------------------------------------------------
+    #                               method magisk_add_systemless_hosts
+    # ----------------------------------------------------------------------------
+    def magisk_add_systemless_hosts(self):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                print("Magisk adding built-in systemless hosts module ...")
+                puml(":Magisk adding built-in systemless hosts module;\n", True)
+
+                data = """
+add_hosts_module() {
+  # Do not touch existing hosts module
+  [ -d $NVBASE/modules/hosts ] && return
+  cd $NVBASE/modules
+  mkdir -p hosts/system/etc
+  cat << EOF > hosts/module.prop
+id=hosts
+name=Systemless Hosts
+version=1.0
+versionCode=1
+author=Magisk
+description=Magisk app built-in systemless hosts module
+EOF
+  magisk --clone /system/etc/hosts hosts/system/etc/hosts
+  touch hosts/update
+  cd /
+}
+
+NVBASE=/data/adb
+add_hosts_module
+                """
+                res = self.exec_magisk_settings(data)
+                if res == 0:
+                    print("Magisk adding built-in systemless hosts module succeeded")
+                    puml("note right:Magisk adding built-in systemless hosts module;\n")
+                else:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to add built-in systemless hosts module.")
+                    puml("note right:ERROR: Failed to add built-in systemless hosts module;\n")
+                    return -1
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_add_systemless_hosts opeation.")
+                traceback.print_exc()
+                puml("#red:Exception during magisk_add_systemless_hosts opeation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -1174,10 +1231,10 @@ class Device():
                 res = self.exec_magisk_settings(data)
                 if res == 0:
                     print("Updating Zygisk flag succeeded")
-                    puml(f"note right:Updating Zygisk flag succeeded;\n")
+                    puml("note right:Updating Zygisk flag succeeded;\n")
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Zygisk flag")
-                    puml(f"note right:ERROR: Updating Zygisk flag;\n")
+                    puml("note right:ERROR: Updating Zygisk flag;\n")
                     return -1
             except Exception as e:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk opeation.")
@@ -1199,10 +1256,10 @@ class Device():
                 res = self.exec_magisk_settings(data)
                 if res == 0:
                     print("Updating Enforce denylist flag succeeded")
-                    puml(f"note right:Updating Enforce denylist flag succeeded;\n")
+                    puml("note right:Updating Enforce denylist flag succeeded;\n")
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Enforce denylist flag")
-                    puml(f"note right:ERROR: Updating Enforce denylist flag;\n")
+                    puml("note right:ERROR: Updating Enforce denylist flag;\n")
                     return -1
             except Exception as e:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist opeation.")
@@ -1233,10 +1290,10 @@ class Device():
                 res = self.exec_magisk_settings(data)
                 if res == 0:
                     print("Setting SU permissions succeeded")
-                    puml(f"note right:Setting SU permissions succeeded;\n")
+                    puml("note right:Setting SU permissions succeeded;\n")
                 else:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to Setting SU permissions")
-                    puml(f"note right:ERROR: Setting SU permissions flag;\n")
+                    puml("note right:ERROR: Setting SU permissions flag;\n")
                     return -1
             except Exception as e:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_update_su opeation.")
@@ -1512,7 +1569,10 @@ class Device():
                 print("Return Code: 0")
                 return 0
             else:
-                print("Copy failed.")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             traceback.print_exc()
@@ -2120,6 +2180,10 @@ class Device():
                                     setattr(m, 'versionCode', '')
                                     setattr(m, 'author', '')
                                     setattr(m, 'description', '')
+                                    setattr(m, 'name', '')
+                                    setattr(m, 'updateJson', '')
+                                    setattr(m, 'updateDetails', {})
+                                    setattr(m, 'updateAvailable', False)
                                     for line in module_prop:
                                         # ignore empty lines
                                         if line == '':
@@ -2133,6 +2197,11 @@ class Device():
                                         if line.strip() and '=' in line:
                                             key, value = line.split('=', 1)
                                             setattr(m, key, value)
+                                    if m.updateJson:
+                                        setattr(m, 'updateDetails', check_module_update(m.updateJson))
+                                    with contextlib.suppress(Exception):
+                                        if m.versionCode and m.updateDetails and m.updateDetails.versionCode and int(m.updateDetails.versionCode) > int(m.versionCode):
+                                            m.updateAvailable = True
                                     modules.append(m)
                             self._get_magisk_detailed_modules = modules
                         else:
@@ -2166,6 +2235,8 @@ class Device():
                                             setattr(m, 'versionCode', '')
                                             setattr(m, 'author', '')
                                             setattr(m, 'description', '')
+                                            setattr(m, 'name', '')
+                                            setattr(m, 'updateDetails', {})
                                             for line in module_prop:
                                                 # ignore comment lines
                                                 if line[:1] == "#":
@@ -2196,7 +2267,7 @@ class Device():
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['stable', 'beta', 'canary', 'debug', 'delta', 'zygote64_32 stable', 'zygote64_32 beta', 'zygote64_32 canary', 'zygote64_32 debug', 'special 25203', "special 26401"]
+                mlist = ['stable', 'beta', 'canary', 'debug', 'zygote64_32 stable', 'zygote64_32 beta', 'zygote64_32 canary', 'zygote64_32 debug', 'special 25203', "special 26401"]
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     if apk:
@@ -2312,8 +2383,8 @@ This is a special Magisk build\n\n
             #     setattr(ma, 'link', f"https://github.com/vvb2060/magisk_files/raw/alpha/{ma.link}")
             #     setattr(ma, 'note_link', "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/README.md")
             #     setattr(ma, 'package', 'io.github.vvb2060.magisk')
-            if channel == 'delta':
-                setattr(ma, 'package', 'io.github.huskydg.magisk')
+            # if channel == 'delta':
+            #     setattr(ma, 'package', 'io.github.huskydg.magisk')
             # Get the note contents
             headers = {}
             response = requests.request("GET", ma.note_link, headers=headers, data=payload)
@@ -2334,7 +2405,10 @@ This is a special Magisk build\n\n
                 summary = ''
                 for module in self.get_magisk_detailed_modules():
                     with contextlib.suppress(Exception):
-                        summary += f"        {module.name:<36}{module.state:<10}{module.version}\n"
+                        updateText = ''
+                        if module.updateAvailable:
+                            updateText = "\t [Update Available]"
+                        summary += f"        {module.name:<36}{module.state:<10}{module.version}{updateText}\n"
                 self._magisk_modules_summary = summary
             else:
                 self._magisk_modules_summary = ''

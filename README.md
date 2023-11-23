@@ -317,7 +317,7 @@ I strongly encourage all beginners to follow those guides rather than use this p
 - Artwork / graphics / icons, designed and supplied by: [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://forum.xda-developers.com/m/t-ryder.3705546/) based on [material-design-icons](https://github.com/google/material-design-icons/blob/master/LICENSE)
 - vm03's [payload_dumper](https://github.com/vm03/payload_dumper) source code to extract images from payload.bin files.
 
-## Troublsehooting
+## Troubleshooting
 
 If you need support or assistance, please **generate and provide a support file** from within PixelFlasher.
 You can hit that big Support button on the main screen, or select it from the Help menu.

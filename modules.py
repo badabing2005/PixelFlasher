@@ -97,36 +97,8 @@ def check_platform_tools(self):
                 self.config.platform_tools_path = None
                 set_adb(None)
                 set_fastboot(None)
-
-        if not self.config.platform_tools_path:
-            print("Looking for Android Platform Tools in system PATH environment ...")
-            adb = which(adb_binary)
-            if adb:
-                folder_path = os.path.dirname(adb)
-                print(f"Found Android Platform Tools in {folder_path}")
-                adb = os.path.join(folder_path, adb_binary)
-                fastboot = os.path.join(folder_path, fastboot_binary)
-                set_adb(adb)
-                set_fastboot(fastboot)
-                set_adb_sha256(sha256(adb))
-                if os.path.exists(get_fastboot()):
-                    self.config.platform_tools_path = folder_path
-                    res = identify_sdk_version(self)
-                    set_fastboot_sha256(sha256(fastboot))
-                    print(f"SDK Version:      {get_sdk_version()}")
-                    print(f"Adb SHA256:       {get_adb_sha256()}")
-                    print(f"Fastboot SHA256:  {get_fastboot_sha256()}")
-                    if res == -1:
-                        return -1
-                    set_android_product_out(self.config.platform_tools_path)
-                    return
-                else:
-                    print(f"fastboot is not found in: {self.config.platform_tools_path}")
-                    self.config.platform_tools_path = None
-                    set_adb(None)
-                    set_fastboot(None)
-            else:
-                print("Android Platform Tools is not found.")
+        else:
+            print("Android Platform Tools is not found.")
     except Exception as e:
         traceback.print_exc()
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for platform tools.")
@@ -2501,15 +2473,17 @@ def live_flash_boot_phone(self, option):
 
     if mode == 'fastboot' and get_fastboot():
         # Check for bootloader unlocked
-        if self.config.check_for_bootloader_unlocked:
+        if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device.id):
             self.refresh_device()
             device = get_phone()
+            print("Checking if the bootloader is unlocked ...")
             if not device.unlocked:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
                 print("Aborting ...\n")
                 puml("#red:Bootloader is locked, can't flash;\n}\n")
                 self.toast("Flash action", "Bootloader is locked, cannot flash.")
                 return -1
+            print("Bootloader is unlocked, continuing ...")
 
         startFlash = time.time()
         # if device.hardware in KNOWN_INIT_BOOT_DEVICES:
@@ -3289,16 +3263,18 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
             return -1
         # Check for bootloader unlocked
-        if self.config.check_for_bootloader_unlocked:
+        if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device.id):
             image_mode = get_image_mode()
             self.refresh_device()
             device = get_phone()
+            print("Checking if the bootloader is unlocked ...")
             if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD') or self.config.flash_mode == 'OTA'):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
                 print("Aborting ...\n")
                 puml("#red:Bootloader is locked, can't flash;\n}\n")
                 self.toast("Flash action", "Bootloader is locked, cannot flash.")
                 return -1
+            print("Bootloader is unlocked, continuing ...")
 
     # -------------------------------------------------------------------------
     # 4 Run the script
@@ -3388,7 +3364,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
         # flash patched boot / init_boot if dry run is not selected.
         if not boot.is_stock_boot and self.config.flash_mode != 'dryRun':
-            if device.unlocked:
+            print("Checking if the bootloader is unlocked ...")
+            if check_for_unlocked(device.id) or device.unlocked:
+                print("Bootloader is unlocked, continuing ...")
                 # we do not want to flash if we have selected Temporary root
                 if self.config.advanced_options and self.config.temporary_root and boot.is_patched:
                     flash = ''

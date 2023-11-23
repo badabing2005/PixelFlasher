@@ -213,7 +213,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLACK'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         self.list.EnableCheckBoxes(enable=True)
-        listmix.ColumnSorterMixin.__init__(self, 7)
+        listmix.ColumnSorterMixin.__init__(self, 8)
 
         vSizer1.Add(self.list , 1, wx.ALL|wx.EXPAND, 5)
 

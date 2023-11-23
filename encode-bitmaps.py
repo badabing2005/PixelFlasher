@@ -97,6 +97,7 @@ command_lines = [
     "-a -F -i -n phone-blue-24 images/phone-blue-24.png images.py",
     "-a -F -i -n disable-24 images/disable-24.png images.py",
     "-a -F -i -n enable-24 images/enable-24.png images.py",
+    "-a -F -i -n download-16 images/download-16.png images.py",
     "-a -F -i -n download-24 images/download-24.png images.py",
     "-a -F -i -n uninstall-24 images/uninstall-24.png images.py",
     "-a -F -i -n launch-24 images/launch-24.png images.py",

@@ -704,6 +704,20 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_pif_info
+    # -----------------------------------------------
+    def _on_pif_info(self, event):
+        try:
+            if self.config.device:
+                self._on_spin('start')
+                device = get_phone()
+                print(f"Current device's Print:\n------------\n{device.current_device_print}\n------------\n")
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device print")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_verity_check
     # -----------------------------------------------
     # def _on_verity_check(self, event):
@@ -762,6 +776,10 @@ class PixelFlasher(wx.Frame):
         self.install_apk = device_menu.Append(wx.ID_ANY, "Install APK", "Install APK")
         self.install_apk.SetBitmap(images.install_apk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_install_apk, self.install_apk)
+        # Bulk Install APK
+        self.bulk_install_apk = device_menu.Append(wx.ID_ANY, "Bulk Install APK", "Bulk Install APK")
+        self.bulk_install_apk.SetBitmap(images.install_apk_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_bulk_install_apk, self.bulk_install_apk)
         # Package Manager
         self.package_manager = device_menu.Append(wx.ID_ANY, "Package Manager", "Package Manager")
         self.package_manager.SetBitmap(images.packages_24.GetBitmap())
@@ -780,6 +798,10 @@ class PixelFlasher(wx.Frame):
         self.device_info_menu_item = device_menu.Append(wx.ID_ANY, "Device Info", "Dump Full Device Info")
         self.device_info_menu_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_device_info, self.device_info_menu_item)
+        # Get PIF Print Menu
+        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif pirnt")
+        self.pif_info_menu_item.SetBitmap(images.json_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_pif_info, self.pif_info_menu_item)
         # # Verity / Verification Menu
         # self.verity_menu_item = device_menu.Append(wx.ID_ANY, "Verity / Verification Status", "Check Verity / Verification Status")
         # self.verity_menu_item.SetBitmap(images.shield_24.GetBitmap())
@@ -819,8 +841,18 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_reboot_safemode, self.reboot_safe_mode_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_download, self.reboot_download_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_sideload, self.reboot_sideload_menu)
-        self.reboot_menu = device_menu.Append(wx.ID_ANY, 'reboot', reboot)
+        self.reboot_menu = device_menu.Append(wx.ID_ANY, 'Reboot', reboot)
         self.reboot_menu.SetBitmap(images.reboot_24.GetBitmap())
+        # Push File Submenu
+        push_file = wx.Menu()
+        self.push_file_to_tmp_menu = push_file.Append(wx.ID_ANY, "/data/local/tmp/")
+        self.push_file_to_download_menu = push_file.Append(wx.ID_ANY, "/sdcard/Download/")
+        self.push_file_to_tmp_menu.SetBitmap(images.push_24.GetBitmap())
+        self.push_file_to_download_menu.SetBitmap(images.push_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_push_to_tmp, self.push_file_to_tmp_menu)
+        self.Bind(wx.EVT_MENU, self._on_push_to_download, self.push_file_to_download_menu)
+        self.push_menu = device_menu.Append(wx.ID_ANY, 'Push file to', push_file)
+        self.push_menu.SetBitmap(images.push_cart_24.GetBitmap())
         # seperator
         device_menu.AppendSeparator()
         # Magisk Settings
@@ -1245,6 +1277,45 @@ class PixelFlasher(wx.Frame):
                 traceback.print_exc()
                 wx.LogError(f"Cannot install file '{pathname}'.")
             self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_bulk_install_apk
+    # -----------------------------------------------
+    def _on_bulk_install_apk(self, event):
+        try:
+            with wx.DirDialog(self, "Select folder to bulk install APKs", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+                if folderDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled folder selection.")
+                    return
+                selected_folder = folderDialog.GetPath()
+
+            self._on_spin('start')
+            device = get_phone()
+            if device:
+                apk_files = [file for file in os.listdir(selected_folder) if file.endswith(".apk")]
+                show_playstore_prompt = True
+                for apk_file in apk_files:
+                    if show_playstore_prompt:
+                        dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: This will apply to all the current bulk apks.\n(Android auto apps require that they be installed from the Play Market.)",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+                        result = dlg.ShowModal()
+                        if result != wx.ID_YES:
+                            owner_playstore = False
+                        else:
+                            owner_playstore = True
+                        show_playstore_prompt = False
+                    apk_path = os.path.join(selected_folder, apk_file)
+                    res = device.install_apk(apk_path, fastboot_included=True, owner_playstore=owner_playstore)
+                    if res.returncode != 0:
+                        print(f"Return Code: {res.returncode}.")
+                        print(f"Stdout: {res.stdout}")
+                        print(f"Stderr: {res.stderr}")
+                        print("Aborting ...\n")
+                        self._on_spin('stop')
+                        return res
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing APKs")
+            traceback.print_exc()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_move_end
@@ -2040,6 +2111,9 @@ class PixelFlasher(wx.Frame):
                 self.shell_menu_item:                   ['device_attached'],
                 self.scrcpy_menu_item:                  ['device_attached', 'scrcpy_path_is_set'],
                 self.device_info_menu_item:             ['device_attached'],
+                self.pif_info_menu_item:                ['device_attached'],
+                self.push_file_to_tmp_menu:             ['device_attached'],
+                self.push_file_to_download_menu:        ['device_attached'],
                 self.bootloader_unlock_menu:            ['device_attached'],
                 self.bootloader_lock_menu:              ['device_attached'],
                 self.install_magisk_menu:               ['device_attached'],
@@ -2561,6 +2635,46 @@ class PixelFlasher(wx.Frame):
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  select_file_and_push
+    # -----------------------------------------------
+    def select_file_and_push(self, destination):
+        try:
+            with wx.FileDialog(self, "Select file to push", '', '', wildcard="All files (*.*)|*.*", style=wx.FD_OPEN) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled file push.")
+                    return
+                selected_file = fileDialog.GetPath()
+
+            self._on_spin('start')
+            device = get_phone()
+            if device:
+                # push the file
+                res = device.push_file(selected_file, "/data/local/tmp/", False)
+                if res != 0:
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
+                    print("Aborting ...\n")
+                    self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+                    return -1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_push_to_tmp
+    # -----------------------------------------------
+    def _on_push_to_tmp(self, event):
+        self.select_file_and_push('/data/local/tmp/')
+
+    # -----------------------------------------------
+    #                  _on_push_to_download
+    # -----------------------------------------------
+    def _on_push_to_download(self, event):
+        self.select_file_and_push('/sdcard/Download')
 
     # -----------------------------------------------
     #                  _on_reboot_system

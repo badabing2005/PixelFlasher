@@ -109,6 +109,19 @@ class Device():
         self._ro_zygote = None
         self._ro_vendor_product_cpu_abilist = None
         self._ro_vendor_product_cpu_abilist32 = None
+        self._ro_product_name = None
+        self._ro_product_device = None
+        self._ro_product_manufacturer = None
+        self._ro_product_brand = None
+        self._ro_product_model = None
+        self._ro_build_version_security_patch = None
+        self._ro_build_version_release = None
+        self._ro_build_id = None
+        self._ro_build_version_incremental = None
+        self._ro_build_type = None
+        self._ro_build_tags = None
+        self._ro_build_fingerprint = None
+        self._current_device_print = None
         self._rooted = None
         self._unlocked = None
         self._magisk_version = None
@@ -320,14 +333,17 @@ class Device():
                     s_ro_zygote = 'ro.zygote'
                     s_ro_vendor_product_cpu_abilist = 'ro.vendor.product.cpu.abilist'
                     s_ro_vendor_product_cpu_abilist32 = 'ro.vendor.product.cpu.abilist32'
-                    # TODO add these.
-                    # pif_product = 'ro.build.name' or 'ro.build.product'
-                    pif_device = 'ro.product.device'
-                    pif_manufacturer = 'ro.product.manufacturer'
-                    pif_brand = 'ro.product.brand'
-                    pif_model = 'ro.product.model'
-                    pif_fingerprint = s_build
-                    pif_security_patch = 'ro.build.version.security_patch'
+                    s_ro_product_name = 'ro.product.name'
+                    s_ro_product_device = 'ro.product.device'
+                    s_ro_product_manufacturer = 'ro.product.manufacturer'
+                    s_ro_product_brand = 'ro.product.brand'
+                    s_ro_product_model = 'ro.product.model'
+                    s_ro_build_version_security_patch = 'ro.build.version.security_patch'
+                    s_ro_build_version_release = 'ro.build.version.release'
+                    s_ro_build_id = 'ro.build.id'
+                    s_ro_build_version_incremental = 'ro.build.version.incremental'
+                    s_ro_build_type = 'ro.build.type'
+                    s_ro_build_tags = 'ro.build.tags'
                     for line in device_info.split("\n"):
                         if s_active_slot in line and not self._active_slot:
                             self._active_slot = self.extract_prop(s_active_slot, line.strip())
@@ -335,7 +351,8 @@ class Device():
                         elif s_bootloader_version in line and not self._bootloader_version:
                             self._bootloader_version = self.extract_prop(s_bootloader_version, line.strip())
                         elif s_build in line and not self._build:
-                            self._build = self.extract_prop(s_build, line.strip())
+                            self._ro_build_fingerprint = self.extract_prop(s_build, line.strip())
+                            self._build = self._ro_build_fingerprint
                             self._build = self._build.split('/')[3]
                         elif s_api_level in line and not self._api_level:
                             self._api_level = self.extract_prop(s_api_level, line.strip())
@@ -375,6 +392,30 @@ class Device():
                             self._ro_vendor_product_cpu_abilist = self.extract_prop(s_ro_vendor_product_cpu_abilist, line.strip())
                         elif s_ro_vendor_product_cpu_abilist32 in line and not self._ro_vendor_product_cpu_abilist32:
                             self._ro_vendor_product_cpu_abilist32 = self.extract_prop(s_ro_vendor_product_cpu_abilist32, line.strip())
+                        elif s_ro_product_name in line and not self._ro_product_name:
+                            self._ro_product_name = self.extract_prop(s_ro_product_name, line.strip())
+                        elif s_ro_product_device in line and not self._ro_product_device:
+                            self._ro_product_device = self.extract_prop(s_ro_product_device, line.strip())
+                        elif s_ro_product_brand in line and not self._ro_product_brand:
+                            self._ro_product_brand = self.extract_prop(s_ro_product_brand, line.strip())
+                        elif s_ro_product_manufacturer in line and not self._ro_product_manufacturer:
+                            self._ro_product_manufacturer = self.extract_prop(s_ro_product_manufacturer, line.strip())
+                        elif s_ro_product_model in line and not self._ro_product_model:
+                            self._ro_product_model = self.extract_prop(s_ro_product_model, line.strip())
+                        elif s_ro_build_version_security_patch in line and not self._ro_build_version_security_patch:
+                            self._ro_build_version_security_patch = self.extract_prop(s_ro_build_version_security_patch, line.strip())
+                        elif s_ro_build_version_release in line and not self._ro_build_version_release:
+                            self._ro_build_version_release = self.extract_prop(s_ro_build_version_release, line.strip())
+                        elif s_ro_build_id in line and not self._ro_build_id:
+                            self._ro_build_id = self.extract_prop(s_ro_build_id, line.strip())
+                        elif s_ro_build_version_incremental in line and not self._ro_build_version_incremental:
+                            self._ro_build_version_incremental = self.extract_prop(s_ro_build_version_incremental, line.strip())
+                        elif s_ro_build_type in line and not self._ro_build_type:
+                            self._ro_build_type = self.extract_prop(s_ro_build_type, line.strip())
+                        elif s_ro_build_tags in line and not self._ro_build_tags:
+                            self._ro_build_tags = self.extract_prop(s_ro_build_tags, line.strip())
+                    if not _ro_build_fingerprint:
+                        _ro_build_fingerprint = f"{self._ro_product_brand}/{self._ro_product_name}/{self._ro_product_device}:{self._ro_build_version_release}/{self._ro_build_id}/{self._ro_build_version_incremental}:{self._ro_build_type}/{self._ro_build_tags}"
             elif mode == 'f.b':
                 device_info = self.fastboot_device_info
                 if device_info:
@@ -610,6 +651,126 @@ class Device():
             return self._architecture
 
     # ----------------------------------------------------------------------------
+    #                               property ro_product_name
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_product_name(self):
+        if self._ro_product_name is None:
+            return ''
+        else:
+            return self._ro_product_name
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_product_device
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_product_device(self):
+        if self._ro_product_device is None:
+            return ''
+        else:
+            return self._ro_product_device
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_product_manufacturer
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_product_manufacturer(self):
+        if self._ro_product_manufacturer is None:
+            return ''
+        else:
+            return self._ro_product_manufacturer
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_product_brand
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_product_brand(self):
+        if self._ro_product_brand is None:
+            return ''
+        else:
+            return self._ro_product_brand
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_product_model
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_product_model(self):
+        if self._ro_product_model is None:
+            return ''
+        else:
+            return self._ro_product_model
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_build_version_security_patch
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_build_version_security_patch(self):
+        if self._ro_build_version_security_patch is None:
+            return ''
+        else:
+            return self._ro_build_version_security_patch
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_build_version_release
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_build_version_release(self):
+        if self._ro_build_version_release is None:
+            return ''
+        else:
+            return self._ro_build_version_release
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_build_id
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_build_id(self):
+        if self._ro_build_id is None:
+            return ''
+        else:
+            return self._ro_build_id
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_build_version_incremental
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_build_version_incremental(self):
+        if self._ro_build_version_incremental is None:
+            return ''
+        else:
+            return self._ro_build_version_incremental
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_build_type
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_build_type(self):
+        if self._ro_build_type is None:
+            return ''
+        else:
+            return self._ro_build_type
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_build_tags
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_build_tags(self):
+        if self._ro_build_tags is None:
+            return ''
+        else:
+            return self._ro_build_tags
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_build_fingerprint
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_build_fingerprint(self):
+        if self._ro_build_fingerprint is None:
+            return ''
+        else:
+            return self._ro_build_fingerprint
+
+    # ----------------------------------------------------------------------------
     #                               property ro_kernel_version
     # ----------------------------------------------------------------------------
     @property
@@ -766,9 +927,8 @@ class Device():
     def unlocked(self):
         if self._unlocked is None:
             return ''
-        else:
-            add_unlocked_device(self.id)
-            return self._unlocked
+        add_unlocked_device(self.id)
+        return self._unlocked
 
     # ----------------------------------------------------------------------------
     #                               property root_symbol
@@ -856,6 +1016,24 @@ class Device():
                 puml("#red:ERROR: Could not get magisk sha1;\n", True)
                 self._magisk_config_path = None
         return self._magisk_config_path
+
+    # ----------------------------------------------------------------------------
+    #                               property current_device_print
+    # ----------------------------------------------------------------------------
+    @property
+    def current_device_print(self):
+        if self._current_device_print is None:
+            self._current_device_print = "{\n"
+            self._current_device_print += f"    \"PRODUCT\" : \"{self.ro_product_name}\",\n"
+            self._current_device_print += f"    \"DEVICE\" : \"{self.ro_product_device}\",\n"
+            self._current_device_print += f"    \"MANUFACTURER\" : \"{self.ro_product_manufacturer}\",\n"
+            self._current_device_print += f"    \"BRAND\" : \"{self.ro_product_brand}\",\n"
+            self._current_device_print += f"    \"MODEL\" : \"{self.ro_product_model}\",\n"
+            self._current_device_print += f"    \"FINGERPRINT\" : \"{self.ro_build_fingerprint}\",\n"
+            self._current_device_print += f"    \"SECURITY_PATCH\" : \"{self.ro_build_version_security_patch}\",\n"
+            self._current_device_print += f"    \"FIRST_API_LEVEL\" : \"{self.ro_product_first_api_level}\"\n"
+            self._current_device_print += "}"
+        return self._current_device_print
 
     # ----------------------------------------------------------------------------
     #                               method get_partitions
@@ -1793,7 +1971,7 @@ add_hosts_module
                     temp_remote_file = f"/data/local/tmp/{filename}"
                     res = self.su_cp_on_device(remote_file, temp_remote_file)
                     if res != 0:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Device is not rooted.")
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Perhaps the file does not exist.")
                         return -1
                     else:
                         remote_file = temp_remote_file
@@ -2692,7 +2870,7 @@ This is a special Magisk build\n\n
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='sideload')
                         if res == 1:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_ssideload")
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
                             # puml(f"note right:ERROR: during adb_wait_for in reboot_sideload;\n")
                             return -1
                         update_phones(self.id)
@@ -2800,6 +2978,7 @@ This is a special Magisk build\n\n
                 if res == 0:
                     print(f"device: {device_id} is now in {wait_for} mode.")
                     puml(f":device: {device_id} is now in {wait_for} mode;\n", True)
+                    return 0
                 else:
                     mode = self.get_device_state()
                     if mode:
@@ -3267,7 +3446,7 @@ This is a special Magisk build\n\n
     #                               method perform_package_action
     # ----------------------------------------------------------------------------
     def perform_package_action(self, pkg, action, isSystem=False):
-        # possible actions 'uninstall', 'disable', 'enable'
+        # possible actions 'uninstall', 'disable', 'enable', 'launch', 'kill', killall', 'clear-data', 'add-to-denylist', 'rm-from-denylist'
         if self.mode != 'adb':
             return
         try:
@@ -3290,6 +3469,8 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell monkey -p {pkg} -c android.intent.category.LAUNCHER 1"
             elif action == 'kill':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell am force-stop {pkg}"
+            elif action == 'killall':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'killall {pkg}\'\""
             elif action == 'clear-data':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm clear {pkg}"
             elif action == 'add-to-denylist':
@@ -3297,7 +3478,7 @@ This is a special Magisk build\n\n
             elif action == 'rm-from-denylist':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist rm {pkg}\'\""
 
-            res = run_shell2(theCmd)
+            return run_shell2(theCmd)
         except Exception as e:
             traceback.print_exc()
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {action} {pkg}.")

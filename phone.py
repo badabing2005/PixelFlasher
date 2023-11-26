@@ -414,8 +414,8 @@ class Device():
                             self._ro_build_type = self.extract_prop(s_ro_build_type, line.strip())
                         elif s_ro_build_tags in line and not self._ro_build_tags:
                             self._ro_build_tags = self.extract_prop(s_ro_build_tags, line.strip())
-                    if not _ro_build_fingerprint:
-                        _ro_build_fingerprint = f"{self._ro_product_brand}/{self._ro_product_name}/{self._ro_product_device}:{self._ro_build_version_release}/{self._ro_build_id}/{self._ro_build_version_incremental}:{self._ro_build_type}/{self._ro_build_tags}"
+                    if self._ro_build_fingerprint is None:
+                        self._ro_build_fingerprint = f"{self._ro_product_brand}/{self._ro_product_name}/{self._ro_product_device}:{self._ro_build_version_release}/{self._ro_build_id}/{self._ro_build_version_incremental}:{self._ro_build_type}/{self._ro_build_tags}"
             elif mode == 'f.b':
                 device_info = self.fastboot_device_info
                 if device_info:

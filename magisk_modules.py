@@ -47,8 +47,10 @@ class MagiskModules(wx.Dialog):
         self.message_label.SetForegroundColour(wx.Colour(255, 0, 0))
 
         # Module label
-        modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Magisk Modules")
-        modules_label.SetToolTip(u"Enable / Disable Magisk modules")
+        self.modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Magisk Modules")
+        self.modules_label.SetToolTip(u"Enable / Disable Magisk modules")
+        font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.modules_label.SetFont(font)
 
         # Modules list control
         if self.CharHeight > 20:
@@ -144,6 +146,7 @@ class MagiskModules(wx.Dialog):
 
         # populate the list
         self.PopulateList()
+        self.add_magisk_details()
 
         # Sizers
         message_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -186,7 +189,7 @@ class MagiskModules(wx.Dialog):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(message_sizer, 0, wx.EXPAND, 5)
-        vSizer.Add(modules_label, 0, wx.LEFT, 10)
+        vSizer.Add(self.modules_label, 0, wx.LEFT, 10)
         vSizer.Add(outside_modules_sizer, 1, wx.EXPAND, 0)
         vSizer.Add(management_label, 0, wx.LEFT, 10)
         vSizer.Add(h_buttons_sizer, 0, wx.EXPAND, 5)
@@ -287,6 +290,20 @@ class MagiskModules(wx.Dialog):
         grow_column(self.list, 2, 20)
         self.list.SetColumnWidth(3, -2)
         grow_column(self.list, 3, 20)
+
+    # -----------------------------------------------
+    #                  add_magisk_details
+    # -----------------------------------------------
+    def add_magisk_details(self):
+        device = get_phone()
+        if not device:
+            return
+
+        data = f"Magisk Manager Version:  {device.magisk_app_version}\n"
+        if device.rooted:
+            data += f"Magisk Version:          {device.magisk_version}\n"
+        data += "\nMagisk Modules"
+        self.modules_label.SetLabel(data)
 
     # -----------------------------------------------
     #                  check_pif_json

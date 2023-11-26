@@ -333,28 +333,3 @@ class MagiskDownloads(wx.Dialog):
         else:
             self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
             self.Parent._on_spin('stop')
-
-# ============================================================================
-#                               Function download_file
-# ============================================================================
-def download_file(url, filename = None):
-    if url:
-        print (f"Downloading File: {url}")
-        try:
-            response = requests.get(url)
-            config_path = get_config_path()
-            if not filename:
-                filename = os.path.basename(urlparse(url).path)
-            downloaded_file_path = os.path.join(config_path, 'tmp', filename)
-            open(downloaded_file_path, "wb").write(response.content)
-            # check if filename got downloaded
-            if not os.path.exists(downloaded_file_path):
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
-                print("Aborting ...\n")
-                return
-        except Exception:
-            print (f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
-            traceback.print_exc()
-            return 'ERROR'
-    return downloaded_file_path
-

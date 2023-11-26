@@ -63,7 +63,7 @@ class FileEditor(wx.Dialog):
         else:
             self.open_folder.SetToolTip(u"Open Folder in working directory\nNote: PF_FILEMANAGER needs to be set.")
             self.open_shell.SetToolTip(u"Open Terminal shell in working directory")
-        self.save_button.SetToolTip(u"Save the file and continue to flashing.")
+        self.save_button.SetToolTip(u"Save the file and continue.")
         self.cancel_button.SetToolTip(u"Cancel and Abort.")
 
         sizer = wx.BoxSizer(wx.VERTICAL)

@@ -2445,7 +2445,7 @@ add_hosts_module
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['stable', 'beta', 'canary', 'debug', 'zygote64_32 stable', 'zygote64_32 beta', 'zygote64_32 canary', 'zygote64_32 debug', 'special 25203', "special 26401"]
+                mlist = ['stable', 'beta', 'canary', 'debug', 'delta canary', 'delta debug', 'special 25203', "special 26401"]
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     if apk:
@@ -2474,8 +2474,11 @@ add_hosts_module
         elif channel == 'debug':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/debug.json"
 
-        elif channel == 'delta':
+        elif channel == 'delta canary':
             url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
+
+        elif channel == 'delta debug':
+            url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/debug.json"
 
         elif channel == 'zygote64_32 stable':
             url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/stable.json"
@@ -2561,12 +2564,14 @@ This is a special Magisk build\n\n
             #     setattr(ma, 'link', f"https://github.com/vvb2060/magisk_files/raw/alpha/{ma.link}")
             #     setattr(ma, 'note_link', "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/README.md")
             #     setattr(ma, 'package', 'io.github.vvb2060.magisk')
-            # if channel == 'delta':
-            #     setattr(ma, 'package', 'io.github.huskydg.magisk')
+            if channel in ['delta canary', 'delta debug']:
+                setattr(ma, 'package', 'io.github.huskydg.magisk')
             # Get the note contents
             headers = {}
-            response = requests.request("GET", ma.note_link, headers=headers, data=payload)
-            setattr(ma, 'release_notes', response.text)
+            with contextlib.suppress(Exception):
+                setattr(ma, 'release_notes', '')
+                response = requests.request("GET", ma.note_link, headers=headers, data=payload)
+                setattr(ma, 'release_notes', response.text)
             return ma
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links: {url} processing")

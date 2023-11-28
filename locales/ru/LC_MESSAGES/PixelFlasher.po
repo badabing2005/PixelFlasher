@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PixelFlasher\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2023-11-28 20:22+0400\n"
-"PO-Revision-Date: 2023-11-28 22:17+0400\n"
+"PO-Revision-Date: 2023-11-28 22:43+0400\n"
 "Last-Translator: Camellan <camellan@yandex.ru>\n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -56,6 +56,39 @@ msgid ""
 "</body>\n"
 "</html>\n"
 msgstr ""
+"\n"
+"<html>\n"
+"<body bgcolor=\"#DCDCDC\" style=\"font-family: Arial; background-color: "
+"#DCDCDC;\">\n"
+"<center>\n"
+"    <img src=\"{0}/images/icon-64.png\" width=\"64\" height=\"64\" "
+"alt=\"PixelFlasher\">\n"
+"\n"
+"    <h1>PixelFlasher</h1>\n"
+"    <p>Автор Badabing</p>\n"
+"    <h3>Версия {1}</h3>\n"
+"\n"
+"    {2}\n"
+"\n"
+"    <p>Форк <a style=\"color: #004CE5;\" href=\"https://github.com/"
+"badabing2005/PixelFlasher/fork\">проекта на\n"
+"    GitHub</a> и помогите улучшить его для всех!</p>\n"
+"\n"
+"    <p> Остерегайтесь! </p>\n"
+"    <p> Если вас просят пожертвовать или заплатить деньги за эту программу, "
+"проверьте источник. </p>\n"
+"    <p> Эта программа бесплатна и всегда будет оставаться полностью "
+"бесплатной, без рекламы и даже без пожертвований.</p>\n"
+"\n"
+"    <p>\n"
+"        <wxp module=\"wx\" class=\"Button\">\n"
+"            <param name=\"label\" value=\"Close\">\n"
+"            <param name=\"id\" value=\"ID_OK\">\n"
+"        </wxp>\n"
+"    </p>\n"
+"</center>\n"
+"</body>\n"
+"</html>\n"
 
 #: About.py:53
 msgid "About PixelFlasher"
@@ -353,7 +386,7 @@ msgstr "Fastbootd"
 
 #: Main.py:837
 msgid "Download and Install Magisk"
-msgstr "Скачать и установить Magisk "
+msgstr "Скачать и установить Magisk"
 
 #: Main.py:841
 msgid "Manage Magisk Backups"
@@ -457,7 +490,7 @@ msgstr "Руководство от V0latyle"
 
 #: Main.py:972
 msgid "roirraW's Guide"
-msgstr "Руководство от roirraW"
+msgstr "руководство от roirraW"
 
 #: Main.py:973
 msgid "kdrag0n's safetynet-fix"
@@ -742,7 +775,7 @@ msgstr "note right:Известно, что эти версии Magisk имею�
 
 #: Main.py:1761
 msgid "Problematic Magisk Version."
-msgstr "Проблемная версия Magisk"
+msgstr "Проблемная версия Magisk."
 
 #: Main.py:1763
 msgid "note right:This version of Magisk is known to have problems."
@@ -964,7 +997,7 @@ msgstr ""
 
 #: advanced_settings.py:133
 msgid "Example: libreadline.so.8, libgdk*"
-msgstr "Пример: libreadline.so.8, libgdk*."
+msgstr "Пример: libreadline.so.8, libgdk*"
 
 #: advanced_settings.py:137
 msgid "Use Custom Fontface"
@@ -981,7 +1014,7 @@ msgstr ""
 
 #: advanced_settings.py:146
 msgid "Sample "
-msgstr "Пример"
+msgstr "Пример "
 
 #: advanced_settings.py:152
 msgid "Select font size"

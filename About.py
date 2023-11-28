@@ -19,7 +19,7 @@ t = gettext.translation('PixelFlasher', localedir='locales', languages=['ru'])
 t.install()
 
 class AboutDlg(wx.Dialog):
-    text = _('''
+    text = '''
 <html>
 <body bgcolor="#DCDCDC" style="font-family: Arial; background-color: #DCDCDC;">
 <center>
@@ -27,7 +27,7 @@ class AboutDlg(wx.Dialog):
 
     <h1>PixelFlasher</h1>
     <p>By Badabing</p>
-    <h3>Version {1}</h3>
+    <h3>"Version {1}</h3>
 
     {2}
 
@@ -47,7 +47,7 @@ class AboutDlg(wx.Dialog):
 </center>
 </body>
 </html>
-''')
+'''
 
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, _("About PixelFlasher"))

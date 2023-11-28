@@ -30,7 +30,7 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     def __init__(self, *args, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs, style = wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
-        self.SetTitle("ADB Wireless")
+        self.SetTitle(_("ADB Wireless"))
         self.history = {}
         self.load_history()
 
@@ -55,33 +55,33 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
         ip_ctrl_default_height = self.ip_ctrl.GetSize().GetHeight()
         self.ip_ctrl.SetMinSize((200, ip_ctrl_default_height))
         self.ip_ctrl.ShowCancelButton(True)
-        self.ip_ctrl.SetDescriptiveText("IP/Hostname")
+        self.ip_ctrl.SetDescriptiveText(_("IP/Hostname"))
         self.ip_ctrl.ShowSearchButton(False)
 
         self.port = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.port.ShowCancelButton(True)
-        self.port.SetDescriptiveText("Port (Default:5555)")
+        self.port.SetDescriptiveText(_("Port (Default:5555)"))
         self.port.ShowSearchButton(False)
 
         self.pairing_code = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.pairing_code.ShowCancelButton(True)
-        self.pairing_code.SetDescriptiveText("Pairing Code")
+        self.pairing_code.SetDescriptiveText(_("Pairing Code"))
         self.pairing_code.ShowSearchButton(False)
 
-        self.connect_button = wx.Button(self, wx.ID_ANY, u"Connect", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.connect_button.SetToolTip(u"Connect to device")
+        self.connect_button = wx.Button(self, wx.ID_ANY, _(u"Connect"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.connect_button.SetToolTip(_(u"Connect to device"))
         self.connect_button.Disable()
 
-        self.disconnect_button = wx.Button(self, wx.ID_ANY, u"Disconnect", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.disconnect_button.SetToolTip(u"Disconnect device")
+        self.disconnect_button = wx.Button(self, wx.ID_ANY, _(u"Disconnect"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.disconnect_button.SetToolTip(_(u"Disconnect device"))
         self.disconnect_button.Disable()
 
-        self.pair_button = wx.Button(self, wx.ID_ANY, u"Pair", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pair_button.SetToolTip(u"Pairs with device (only needed once per device)")
+        self.pair_button = wx.Button(self, wx.ID_ANY, _(u"Pair"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pair_button.SetToolTip(_(u"Pairs with device (only needed once per device)"))
         self.pair_button.Disable()
 
-        self.close_button = wx.Button(self, wx.ID_ANY, u"Close", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.close_button.SetToolTip(u"Closes this dialog")
+        self.close_button = wx.Button(self, wx.ID_ANY, _(u"Close"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.close_button.SetToolTip(_(u"Closes this dialog"))
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         search_hsizer = wx.BoxSizer( wx.HORIZONTAL )
@@ -139,27 +139,27 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
             info.Align = 0
             info.Width = -1
             info.SetWidth(-1)
-            info.Text = "Date"
+            info.Text = _("Date")
             self.list.InsertColumn(0, info)
 
             info.Align = wx.LIST_FORMAT_LEFT # 0
-            info.Text = "Action"
+            info.Text = _("Action")
             self.list.InsertColumn(1, info)
 
             info.Align = wx.LIST_FORMAT_LEFT # 0
-            info.Text = "IP/Hostname"
+            info.Text = _("IP/Hostname")
             self.list.InsertColumn(2, info)
 
             info.Align = wx.LIST_FORMAT_LEFT # 0
-            info.Text = "Port"
+            info.Text = _("Port")
             self.list.InsertColumn(3, info)
 
             info.Align = wx.LIST_FORMAT_LEFT # 0
-            info.Text = "Pairing Code"
+            info.Text = _("Pairing Code")
             self.list.InsertColumn(4, info)
 
             info.Align = wx.LIST_FORMAT_LEFT # 0
-            info.Text = "Note"
+            info.Text = _("Note")
             self.list.InsertColumn(5, info)
 
             itemDataMap = {}
@@ -219,8 +219,8 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
             else:
                 return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating wifi history")
-            puml("#red:Encountered an error while populating wifi history;\n")
+            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating wifi history"))
+            puml(_("#red:Encountered an error while populating wifi history;\n"))
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -250,7 +250,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnSearch(self, event):
         query = self.searchCtrl.GetValue()
-        print(f"Searching for: {query}")
+        print(_(f"Searching for: {query}"))
         self.Refresh()
 
     # -----------------------------------------------
@@ -280,7 +280,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnClose
     # -----------------------------------------------
     def OnClose(self, e):
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close.")
+        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close."))
         self.EndModal(wx.ID_CANCEL)
 
     # ============================================================================
@@ -293,9 +293,9 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
             command = 'pair'
         else:
             command = 'connect'
-        print(f"Remote ADB {command}ing: {ip}:{port} {pairing_code}")
+        print(_(f"Remote ADB {command}ing: {ip}:{port} {pairing_code}"))
         if get_adb():
-            puml(":Wifi ADB;\n", True)
+            puml(_(":Wifi ADB;\n"), True)
             ip = ip.strip()
             port = port.strip()
             if port == '':
@@ -304,18 +304,18 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
             res = run_shell(theCmd)
             puml(f"note right\n=== {command} to: {ip}:{port} {pairing_code}\nend note\n")
             if res.returncode == 0 and 'cannot' not in res.stdout and 'failed' not in res.stdout:
-                print(f"ADB {command}ed: {ip}:{port}")
-                puml(f"#palegreen:Succeeded;\n")
+                print(_(f"ADB {command}ed: {ip}:{port}"))
+                puml(_(f"#palegreen:Succeeded;\n"))
                 self.Parent.device_choice.SetItems(get_connected_devices())
                 self.Parent._select_configured_device()
                 if command == 'connect':
-                    print(f"Please select the device: {ip}:{port}")
+                    print(_(f"Please select the device: {ip}:{port}"))
                 return
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port} {pairing_code}\n")
+                print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port} {pairing_code}\n"))
                 print(f"{res.stderr}")
                 print(f"{res.stdout}")
-                puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
+                puml(_(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n"))
                 return f"{res.stderr} {res.stdout}"
 
     # -----------------------------------------------
@@ -336,8 +336,8 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.Parent.refresh_device()
                 self._on_spin('stop')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while wifi connecting")
-            puml("#red:Encountered an error while wifi connecting;\n")
+            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while wifi connecting"))
+            puml(_("#red:Encountered an error while wifi connecting;\n"))
             self._on_spin('stop')
             traceback.print_exc()
 
@@ -356,8 +356,8 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.Parent.device_choice.Popup()
                 self._on_spin('stop')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while disconnecting a wireless devcice")
-            puml("#red:Encountered an error while disconnecting a wireless device;\n")
+            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while disconnecting a wireless devcice"))
+            puml(_("#red:Encountered an error while disconnecting a wireless device;\n"))
             self._on_spin('stop')
             traceback.print_exc()
 
@@ -375,8 +375,8 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.add_to_history(action='pair', status="Failed", note=res)
                 self._on_spin('stop')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pairing a device")
-            puml("#red:Encountered an error while pairing a device;\n")
+            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pairing a device"))
+            puml(_("#red:Encountered an error while pairing a device;\n"))
             self._on_spin('stop')
             traceback.print_exc()
 

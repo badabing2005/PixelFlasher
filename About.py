@@ -10,9 +10,16 @@ from constants import *
 from runtime import get_bundle_dir
 from runtime import check_latest_version
 from packaging.version import parse
+import gettext
+
+gettext.bindtextdomain('PixelFlasher', 'locales')
+gettext.textdomain('PixelFlasher')
+_ = gettext.gettext
+t = gettext.translation('PixelFlasher', localedir='locales', languages=['ru'])
+t.install()
 
 class AboutDlg(wx.Dialog):
-    text = '''
+    text = _('''
 <html>
 <body bgcolor="#DCDCDC" style="font-family: Arial; background-color: #DCDCDC;">
 <center>
@@ -40,10 +47,10 @@ class AboutDlg(wx.Dialog):
 </center>
 </body>
 </html>
-'''
+''')
 
     def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, wx.ID_ANY, "About PixelFlasher")
+        wx.Dialog.__init__(self, parent, wx.ID_ANY, _("About PixelFlasher"))
         html = HtmlWindow(self, wx.ID_ANY, size=(420, -1))
         if "gtk2" in wx.PlatformInfo or "gtk3" in wx.PlatformInfo:
             html.SetStandardFonts()
@@ -51,9 +58,9 @@ class AboutDlg(wx.Dialog):
         # check version if we are running the latest
         l_version = check_latest_version()
         if parse(VERSION) < parse(l_version):
-            update_text = f"<p><b>Update </b> <a style=\"color: #004CE5;\" href=\"https://github.com/badabing2005/PixelFlasher/releases/latest\">Version v{l_version}</a> is available.</p>"
+            update_text = _(f"<p><b>Update </b> <a style=\"color: #004CE5;\" href=\"https://github.com/badabing2005/PixelFlasher/releases/latest\">Version v{l_version}</a> is available.</p>")
         else:
-            update_text = "<p> You're up to date! </p>"
+            update_text = _("<p> You're up to date! </p>")
 
         txt = self.text.format(get_bundle_dir(), VERSION, update_text, datetime.datetime.now().year)
         html.SetPage(txt)

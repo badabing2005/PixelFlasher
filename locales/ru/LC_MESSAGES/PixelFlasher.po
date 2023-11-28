@@ -1,0 +1,1273 @@
+# Translations template for PROJECT.
+# Copyright (C) 2023 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PixelFlasher\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2023-11-28 20:22+0400\n"
+"PO-Revision-Date: 2023-11-28 22:17+0400\n"
+"Last-Translator: Camellan <camellan@yandex.ru>\n"
+"Language-Team: \n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.13.1\n"
+"X-Generator: Poedit 3.4.1\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: About.py:22
+msgid ""
+"\n"
+"<html>\n"
+"<body bgcolor=\"#DCDCDC\" style=\"font-family: Arial; background-color: "
+"#DCDCDC;\">\n"
+"<center>\n"
+"    <img src=\"{0}/images/icon-64.png\" width=\"64\" height=\"64\" "
+"alt=\"PixelFlasher\">\n"
+"\n"
+"    <h1>PixelFlasher</h1>\n"
+"    <p>By Badabing</p>\n"
+"    <h3>Version {1}</h3>\n"
+"\n"
+"    {2}\n"
+"\n"
+"    <p>Fork the <a style=\"color: #004CE5;\" href=\"https://github.com/"
+"badabing2005/PixelFlasher/fork\">project on\n"
+"    GitHub</a> and help improve it for all!</p>\n"
+"\n"
+"    <p> Beware! </p>\n"
+"    <p> If you are asked to donate or pay money for this program, check your "
+"source. </p>\n"
+"    <p> This program is free, will always remain totally free, ad free, even "
+"donation free.</p>\n"
+"\n"
+"    <p>\n"
+"        <wxp module=\"wx\" class=\"Button\">\n"
+"            <param name=\"label\" value=\"Close\">\n"
+"            <param name=\"id\" value=\"ID_OK\">\n"
+"        </wxp>\n"
+"    </p>\n"
+"</center>\n"
+"</body>\n"
+"</html>\n"
+msgstr ""
+
+#: About.py:53
+msgid "About PixelFlasher"
+msgstr "О PixelFlasher"
+
+#: About.py:63
+msgid "<p> You're up to date! </p>"
+msgstr "<p> Это новейшая версия! </p>"
+
+#: Main.py:173
+msgid ":Loading Configuration;\n"
+msgstr ":Загрузка конфигурации;\n"
+
+#: Main.py:180
+msgid "First Run: No previous configuration file is found."
+msgstr "Первый запуск: Не найден предыдущий файл конфигурации."
+
+#: Main.py:183
+msgid "note right\n"
+msgstr "примечание справа\n"
+
+#: Main.py:185
+msgid "end note\n"
+msgstr "примечание в конце\n"
+
+#: Main.py:262
+msgid "Using previously stored firmware SHA-256 ..."
+msgstr "Использование ранее сохраненной SHA-256 прошивки ..."
+
+#: Main.py:265
+msgid "Computing firmware SHA-256 ..."
+msgstr "Вычисление SHA-256 прошивки ..."
+
+#: Main.py:278
+msgid "#orange:Unable to match the checksum in the filename;\n"
+msgstr "#orange:Невозможно сопоставить контрольную сумму в имени файла;\n"
+
+#: Main.py:279
+msgid "Firmware SHA256"
+msgstr "SHA256 прошивки"
+
+#: Main.py:331
+msgid ""
+"\n"
+"Loading Device list ..."
+msgstr ""
+"\n"
+"Загрузка списка устройств ..."
+
+#: Main.py:332
+msgid ":Loading device list;\n"
+msgstr ":Загрузка списка устройств;\n"
+
+#: Main.py:333
+msgid "This could take a while, please be patient.\n"
+msgstr "Это может занять некоторое время, пожалуйста, будьте терпеливы.\n"
+
+#: Main.py:335
+msgid "Populate device list"
+msgstr "Заполнение списка устройств"
+
+#: Main.py:342
+msgid "select configured device"
+msgstr "выбор настроенного устройства"
+
+#: Main.py:453 Main.py:768 Main.py:899
+msgid "Install APK"
+msgstr "Установить APK"
+
+#: Main.py:453
+msgid "Install APK on the device"
+msgstr "Установка APK на устройство"
+
+#: Main.py:459
+msgid "App Manager"
+msgstr "Менеджер приложений"
+
+#: Main.py:459 Main.py:772 Main.py:900
+msgid "Package Manager"
+msgstr "Менеджер пакетов"
+
+#: Main.py:459
+msgid "Manage Apps / Packages"
+msgstr "Управление приложениями / пакетами"
+
+#: Main.py:469 Main.py:778 Main.py:901
+msgid "ADB Shell"
+msgstr "ADB Shell"
+
+#: Main.py:469
+msgid "Open ADB shell to the device."
+msgstr "Открыть ADB shell на устройстве."
+
+#: Main.py:469 Main.py:778
+msgid "Open adb shell to the device"
+msgstr "Открывает adb shell на устройстве"
+
+#: Main.py:475 Main.py:782 Main.py:902
+msgid "Scrcpy"
+msgstr "Scrcpy"
+
+#: Main.py:475 Main.py:782
+msgid "Launch Screen Copy"
+msgstr "Запуск Screen Copy"
+
+#: Main.py:481 Main.py:786 Main.py:903
+msgid "Device Info"
+msgstr "Информация об устройстве"
+
+#: Main.py:481 Main.py:786
+msgid "Dump Full Device Info"
+msgstr "Получить полную информацию об устройстве"
+
+#: Main.py:493
+msgid "Partitions"
+msgstr "Разделы"
+
+#: Main.py:493 partition_manager.py:31
+msgid "Partition Manager"
+msgstr "Менеджер разделов"
+
+#: Main.py:503 Main.py:800 Main.py:906
+msgid "Switch Slot"
+msgstr "Переключить слот"
+
+#: Main.py:503
+msgid "Switch to the other Slot"
+msgstr "Переключение на другой слот"
+
+#: Main.py:511 Main.py:807
+msgid "System"
+msgstr "Система"
+
+#: Main.py:511
+msgid "Reboot to System"
+msgstr "Перезагрузка в систему"
+
+#: Main.py:517 Main.py:808
+msgid "Bootloader"
+msgstr "Bootloader"
+
+#: Main.py:517
+msgid "Reboot to Bootloader"
+msgstr "Перезагрузка в Bootloader"
+
+#: Main.py:523
+msgid "fastbootd"
+msgstr "fastbootd"
+
+#: Main.py:523
+msgid "Reboot to userspace fastboot (fastbootd)"
+msgstr "Перезагрузка в fastboot (fastbootd)"
+
+#: Main.py:529 Main.py:810
+msgid "Recovery"
+msgstr "Recovery"
+
+#: Main.py:529
+msgid "Reboot to Recovery"
+msgstr "Перезагрузка в Recovery"
+
+#: Main.py:535 Main.py:811
+msgid "Safe Mode"
+msgstr "Безопасный режим"
+
+#: Main.py:535
+msgid "Reboot to Safe Mode"
+msgstr "Перезагрузка в безопасный режим"
+
+#: Main.py:541 Main.py:812
+msgid "Download"
+msgstr "Download"
+
+#: Main.py:541
+msgid "Reboot to Download Mode"
+msgstr "Перезагрузка в Download Mode"
+
+#: Main.py:547 Main.py:813
+msgid "Sideload"
+msgstr "Sideload"
+
+#: Main.py:547
+msgid "Reboot to Sideload Mode"
+msgstr "Перезагрузка в Sideload"
+
+#: Main.py:557 Main.py:833 Main.py:914
+msgid "Magisk"
+msgstr "Magisk"
+
+#: Main.py:557 Main.py:833
+msgid "Manage Magisk modules and settings"
+msgstr "Управление модулями и настройками Magisk"
+
+#: Main.py:563 Main.py:837 Main.py:915
+msgid "Install Magisk"
+msgstr "Установка Magisk"
+
+#: Main.py:563
+msgid "Download and Install Magisk Manager"
+msgstr "Скачать и установить Magisk Manager"
+
+#: Main.py:569
+msgid "Magisk Backup"
+msgstr "Magisk Backup"
+
+#: Main.py:569 Main.py:841 Main.py:916
+msgid "Magisk Backup Manager"
+msgstr "Magisk Backup Manager"
+
+#: Main.py:575 Main.py:845 Main.py:917
+msgid "SOS"
+msgstr "SOS"
+
+#: Main.py:575
+msgid ""
+"Disable Magisk Modules\n"
+"This button issues the following command:\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"This helps for cases where device bootloops due to incompatible magisk "
+"modules(YMMV)."
+msgstr ""
+"Отключить модули Magisk\n"
+"Эта кнопка выдает следующую команду:\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"Это помогает в случаях, когда устройство зацикливается из-за несовместимых "
+"модулей Magisk (YMMV)."
+
+#: Main.py:585
+msgid "Lock"
+msgstr "Заблокировать"
+
+#: Main.py:585 Main.py:851 Main.py:918
+msgid "Lock Bootloader"
+msgstr "Блокировка загрузчика"
+
+#: Main.py:591
+msgid "UnLock"
+msgstr "Разблокировать"
+
+#: Main.py:591
+msgid ""
+"UnLock Bootloader\n"
+"Caution will wipe data"
+msgstr ""
+"Разблокировать загрузчик\n"
+"Осторожно, данные будут стерты"
+
+#: Main.py:591
+msgid "UnLock Bootloader"
+msgstr "Разблокировать загрузчик"
+
+#: Main.py:603 Main.py:754
+msgid "Settings"
+msgstr "Настройки"
+
+#: Main.py:603
+msgid "Configuration Settings"
+msgstr "Настройки конфигурации"
+
+#: Main.py:609
+msgid "Support"
+msgstr "Поддержка"
+
+#: Main.py:609
+msgid "Create Support file"
+msgstr "Создание файла для поддержки"
+
+#: Main.py:623
+msgid "Exception occurred while building the toolbar:"
+msgstr "При построении панели инструментов возникло исключение:"
+
+#: Main.py:761
+msgid "E&xit\tCtrl-Q"
+msgstr "Вы&ход\tCtrl-Q"
+
+#: Main.py:761
+msgid "Exit PixelFlasher"
+msgstr "Выход из программы PixelFlasher"
+
+#: Main.py:794 Main.py:905
+msgid "Partitions Manager"
+msgstr "Менеджер разделов"
+
+#: Main.py:794
+msgid "Backup / Erase Partitions"
+msgstr "Резервное копирование / стирание разделов"
+
+#: Main.py:800
+msgid "Switch to the other slot"
+msgstr "Переключение на другой слот"
+
+#: Main.py:809
+msgid "Fastbootd"
+msgstr "Fastbootd"
+
+#: Main.py:837
+msgid "Download and Install Magisk"
+msgstr "Скачать и установить Magisk "
+
+#: Main.py:841
+msgid "Manage Magisk Backups"
+msgstr "Magisk Backup"
+
+#: Main.py:845
+msgid "Disable Magisk Modules"
+msgstr "Отключить модули Magisk"
+
+#: Main.py:855 Main.py:919
+msgid "Unlock Bootloader"
+msgstr "Разблокировать загрузчик"
+
+#: Main.py:855
+msgid "Unlock Bootloader (Will wipe data)"
+msgstr "Разблокировать загрузчик (сотрет данные)"
+
+#: Main.py:862
+msgid "Top"
+msgstr "Вверху"
+
+#: Main.py:868
+msgid "Left"
+msgstr "Слева"
+
+#: Main.py:874
+msgid "Right"
+msgstr "Справа"
+
+#: Main.py:880
+msgid "Bottom"
+msgstr "Внизу"
+
+#: Main.py:888
+msgid "Show Button Text"
+msgstr "Показать текст кнопки"
+
+#: Main.py:892
+msgid "Show Button Icon"
+msgstr "Показать иконку кнопки"
+
+#: Main.py:907
+msgid "Reboot System"
+msgstr "Перезагрузка в систему"
+
+#: Main.py:908
+msgid "Reboot Bootloader"
+msgstr "Перезагрузка в Bootloader"
+
+#: Main.py:909
+msgid "Reboot Fastbootd"
+msgstr "Перезагрузка в Fastbootd"
+
+#: Main.py:910
+msgid "Reboot Recovery"
+msgstr "Перезагрузка в Recovery"
+
+#: Main.py:911
+msgid "Reboot Safe Mode"
+msgstr "Перезагрузка в безопасный режим"
+
+#: Main.py:912
+msgid "Reboot Download"
+msgstr "Перезагрузка в Download Mode"
+
+#: Main.py:913
+msgid "Reboot Sideload"
+msgstr "Перезагрузка в Sideload"
+
+#: Main.py:920
+msgid "Configuration"
+msgstr "Конфигурация"
+
+#: Main.py:922
+msgid "Show / Hide Buttons"
+msgstr "Показать/скрыть кнопки"
+
+#: Main.py:951
+msgid "Report an Issue"
+msgstr "Сообщить о проблеме"
+
+#: Main.py:955
+msgid "Feature Request"
+msgstr "Запрос функции"
+
+#: Main.py:959
+msgid "PixelFlasher Project Page"
+msgstr "Страница проекта PixelFlasher"
+
+#: Main.py:963
+msgid "PixelFlasher Community (Forum)"
+msgstr "Сообщество PixelFlasher (Форум)"
+
+#: Main.py:970
+msgid "Homeboy76's Guide"
+msgstr "Руководство от Homeboy76"
+
+#: Main.py:971
+msgid "V0latyle's Guide"
+msgstr "Руководство от V0latyle"
+
+#: Main.py:972
+msgid "roirraW's Guide"
+msgstr "Руководство от roirraW"
+
+#: Main.py:973
+msgid "kdrag0n's safetynet-fix"
+msgstr "kdrag0n's safetynet-fix"
+
+#: Main.py:974
+msgid "Displax's safetynet-fix"
+msgstr "Displax's safetynet-fix"
+
+#: Main.py:975
+msgid "Get the Google USB Driver"
+msgstr "Получить драйвер Google USB"
+
+#: Main.py:976
+msgid "Android Security Update Bulletins"
+msgstr "Бюллетени обновлений безопасности Android"
+
+#: Main.py:991
+msgid "Links"
+msgstr "Ссылки"
+
+#: Main.py:996
+msgid "Open Configuration Folder"
+msgstr "Открыть папку конфигурации"
+
+#: Main.py:1001
+msgid "Open PixelFlasher Working Directory"
+msgstr "Откройте рабочий каталог PixelFlasher"
+
+#: Main.py:1005
+msgid "Create a Sanitized support.zip"
+msgstr "Создание файла support.zip для поддержки"
+
+#: Main.py:1011
+msgid "Check for New Version"
+msgstr "Проверка наличия новой версии"
+
+#: Main.py:1017
+msgid "&About PixelFlasher"
+msgstr "&О PixelFlasher"
+
+#: Main.py:1017
+msgid "About"
+msgstr "О программе"
+
+#: Main.py:1022
+msgid "&File"
+msgstr "&Файл"
+
+#: Main.py:1024
+msgid "&Device"
+msgstr "&Устройство"
+
+#: Main.py:1026
+msgid "&Toolbar"
+msgstr "&Панель инструментов"
+
+#: Main.py:1028
+msgid "&Help"
+msgstr "&Помощь"
+
+#: Main.py:1032
+msgid "Test1"
+msgstr "Тест1"
+
+#: Main.py:1034
+msgid "&Test"
+msgstr "&Тест"
+
+#: Main.py:1178
+msgid "Entering Advanced Configuration ..."
+msgstr "Вход в расширенную конфигурацию ..."
+
+#: Main.py:1223
+msgid "ERROR: Please select a device before attempting APK Installation"
+msgstr "ОШИБКА: Пожалуйста, выберите устройство перед попыткой установки APK"
+
+#: Main.py:1224
+msgid "APK Install"
+msgstr "Установка APK"
+
+#: Main.py:1227
+msgid "Select APK file to install"
+msgstr "Выберите APK-файл для установки"
+
+#: Main.py:1235
+msgid ""
+"Do you want to set the ownership to Play Store Market?\n"
+"Note: Android auto apps require that they be installed from the Play Market."
+msgstr ""
+"Вы хотите установить право собственности на Play Store Market?\\n\n"
+"Примечание: Приложения для Android auto должны быть установлены из Play "
+"Market."
+
+#: Main.py:1235
+msgid "APK Installation"
+msgstr "Установка APK"
+
+#: Main.py:1243
+msgid "note right:Set ownership to Play Store;\n"
+msgstr "note right:Установите принадлежность к Play Store;\\n\n"
+
+#: Main.py:1248
+msgid "note right:Cancelled APK installation;\n"
+msgstr "note right:Отмена установки APK;\\n\n"
+
+#: Main.py:1249
+msgid "User cancelled apk installation."
+msgstr "Пользователь отменил установку apk."
+
+#: Main.py:1271
+msgid ""
+"#palegreen:Exit PixelFlasher;\n"
+"end\n"
+"@enduml\n"
+msgstr ""
+"#palegreen:Выход из PixelFlasher;\n"
+"end\n"
+"@enduml\n"
+
+#: Main.py:1306
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Feature Request\n"
+"[[https://github.com/badabing2005/PixelFlasher/issues/new]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1319
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Github Project Page\n"
+"[[https://github.com/badabing2005/PixelFlasher]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1332
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== PixelFlasher @XDA\n"
+"[[https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-"
+"flashing-updating-pixel-phones.4415453/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1345
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Homeboy76's Guide\n"
+"[[https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-"
+"bootloader-pass-safetynet-both-slots-bootable-more.4638510/"
+"#post-89128833/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1358
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== V0latyle's Guide\n"
+"[[https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-"
+"magisk.4356233/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1371
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== roirraW's Guide\n"
+"[[https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-"
+"global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-"
+"safetynet.4502805/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1384
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== kdrag0n's Universal Safetynet Fix\n"
+"[[https://github.com/kdrag0n/safetynet-fix/releases]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1397
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Displax's Universal Safetynet Fix\n"
+"[[https://github.com/Displax/safetynet-fix/releases]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1410
+#, python-format
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Google USB Driver\n"
+"[[https://developer.android.com/studio/run/win-usb?authuser=1%2F]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1423
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Android security bulletins\n"
+"[[https://source.android.com/docs/security/bulletin/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1458
+msgid "Save support file"
+msgstr "Сохранить файл для поддержки"
+
+#: Main.py:1458
+msgid "Support files (*.zip)|*.zip"
+msgstr "Файлы поддержки (*.zip)|*.zip"
+
+#: Main.py:1522
+msgid "Entrering Test function (used during development only) ..."
+msgstr ""
+"Ввод функции тестирования (используется только во время разработки) ..."
+
+#: Main.py:1699
+msgid "    Magisk Modules:\n"
+msgstr "    Модули Magisk:\n"
+
+#: Main.py:1714
+msgid "    vbmeta:                          UNKNOWN\n"
+msgstr "    vbmeta:                          НЕИЗВЕСТНО\n"
+
+#: Main.py:1716
+msgid "    vbmeta:                          Not Present\n"
+msgstr "    vbmeta:                          Отсутствует\n"
+
+#: Main.py:1726
+msgid ""
+"    WARNING! WARNING! WARNING!       Slot a verity / verification does not "
+"match slot b verity / verification"
+msgstr ""
+"    ВНИМАНИЕ! ВНИМАНИЕ! ВНИМАНИЕ!       Верификация/проверка слота a не "
+"соответствует верификации/проверке слота b"
+
+#: Main.py:1732
+msgid ""
+"    WARNING! WARNING! WARNING!       There is a mismatch of currently "
+"selected vbmeta verity state and device's verity state\n"
+msgstr ""
+"    ВНИМАНИЕ! ВНИМАНИЕ! ВНИМАНИЕ!       Имеется несоответствие между текущим "
+"состоянием верификации vbmeta и состоянием верификации устройства\n"
+
+#: Main.py:1734
+msgid ""
+"    WARNING! WARNING! WARNING!       There is a mismatch of currently "
+"selected vbmeta verification state and device's verification state\n"
+msgstr ""
+"    ВНИМАНИЕ! ВНИМАНИЕ! ВНИМАНИЕ!       Имеется несоответствие текущего "
+"выбранного состояния проверки vbmeta и состояния проверки устройства\n"
+
+#: Main.py:1735
+msgid ""
+"                                     This has a device wipe implications, "
+"please double check."
+msgstr ""
+"                                     Это связано со сбросом устройства, "
+"пожалуйста, проверьте еще раз."
+
+#: Main.py:1756
+msgid "Problematic Magisk Versions."
+msgstr "Проблемные версии Magisk."
+
+#: Main.py:1758
+msgid "note right:These versions of Magisk are known to have problems."
+msgstr "note right:Известно, что эти версии Magisk имеют проблемы."
+
+#: Main.py:1761
+msgid "Problematic Magisk Version."
+msgstr "Проблемная версия Magisk"
+
+#: Main.py:1763
+msgid "note right:This version of Magisk is known to have problems."
+msgstr "note right:Известно, что в этой версии Magisk есть проблемы."
+
+#: Main.py:1766
+msgid "Problematic Magisk Manager Version."
+msgstr "Проблемная версия Magisk Manager."
+
+#: Main.py:1768
+msgid "note right:This version of Magisk Manager is known to have problems;\n"
+msgstr ""
+"note right:Известно, что в этой версии Magisk Manager есть проблемы;\n"
+"\n"
+
+#: advanced_settings.py:14
+msgid "Advanced Configuration Settings"
+msgstr "Расширенные настройки конфигурации"
+
+#: advanced_settings.py:18
+msgid ""
+"WARNING!\n"
+"This is advanced configuration.\n"
+"Unless you know what you are doing,\n"
+"you should not be enabling it.\n"
+"\n"
+"YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n"
+"THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n"
+"ADB, MAGISK, ANDROID, AND ROOT.\n"
+"IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n"
+msgstr ""
+"ВНИМАНИЕ!\n"
+"Это расширенная конфигурация.\n"
+"Если вы не знаете, что делаете,\n"
+"вы не должны ее включать.\n"
+"\n"
+"ВЫ И ТОЛЬКО ВЫ ОТВЕЧАЕТЕ ЗА ЛЮБОЕ, ЧТО ПРОИСХОДИТ С ВАШИМ УСТРОЙСТВОМ.\n"
+"ЭТОТ ИНСТРУМЕНТ СОЗДАН С УСЛОВИЕМ, ЧТО ВЫ ЗНАКОМЫ С\n"
+"ADB, MAGISK, ANDROID и ROOT.\n"
+"\\n ВАША ОТВЕТСТВЕННОСТЬ УБЕДИТЬСЯ В ТОМ, ЧТО ВЫ ЗНАЕТЕ, ЧТО ДЕЛАЕТЕ.\n"
+"\n"
+
+#: advanced_settings.py:37
+msgid "Enable Advanced Options"
+msgstr "Включить расширенные параметры"
+
+#: advanced_settings.py:38
+msgid "Expert mode"
+msgstr "Режим эксперта"
+
+#: advanced_settings.py:54
+msgid "Magisk Package Name"
+msgstr "Имя пакета Magisk"
+
+#: advanced_settings.py:56
+msgid ""
+"If you have hidden Magisk,\n"
+"set this to the hidden package name."
+msgstr ""
+"Если вы скрыли Magisk,\n"
+"установите это значение на имя скрытого пакета."
+
+#: advanced_settings.py:59
+msgid "Resets package name to default: com.topjohnwu.magisk"
+msgstr "Установите имя пакета по умолчанию: com.topjohnwu.magisk"
+
+#: advanced_settings.py:67
+msgid "Linux File Explorer:"
+msgstr "Файловый менеджер Linux:"
+
+#: advanced_settings.py:70
+msgid ""
+"Set full path to File Explorer.\n"
+"Default: Nautilus"
+msgstr ""
+"Установите полный путь к файловому менеджеру.\n"
+"По умолчанию: Nautilus"
+
+#: advanced_settings.py:76
+msgid "Linux Shell:"
+msgstr "Linux Shell:"
+
+#: advanced_settings.py:79
+msgid ""
+"Set full path to Linux Shell.\n"
+"Default: gnome-terminal"
+msgstr ""
+"Установите полный путь к Linux Shell.\n"
+"По умолчанию: gnome-terminal"
+
+#: advanced_settings.py:85
+msgid "Offer Patch Methods"
+msgstr "Предлагаемые методы патча"
+
+#: advanced_settings.py:86
+msgid "When patching the choice of method is presented."
+msgstr "При наложении патчей предоставляется выбор метода."
+
+#: advanced_settings.py:87
+msgid "Patching Recovery Partition"
+msgstr "Патч Recovery раздела"
+
+#: advanced_settings.py:88
+msgid ""
+"Enabling this will show an option to patch a recovery partition.\n"
+"This should be kept disabled unless you have an old device.\n"
+"(most A-only devices launched with Android 9, legacy SAR)"
+msgstr ""
+"Если включить эту опцию, появится возможность подключить раздел "
+"восстановления.\n"
+"Эту опцию следует держать отключенной, если только у вас не устаревшее "
+"устройство.\n"
+"(большинство устройств A-only, выпущенных с Android 9, устаревший SAR)"
+
+#: advanced_settings.py:91
+msgid "Use Busybox Shell"
+msgstr "Использовать Busybox Shell"
+
+#: advanced_settings.py:92
+msgid ""
+"When creating a patch, if this is checked, busybox ash will be used as shell."
+msgstr ""
+"При создании патча, если этот флажок установлен, в качестве оболочки будет "
+"использоваться busybox ash."
+
+#: advanced_settings.py:95
+msgid "System has low memory"
+msgstr "В системе мало оперативной памяти"
+
+#: advanced_settings.py:96
+msgid "Use this option to sacrifice speed in favor of memory."
+msgstr "Используйте эту опцию, чтобы пожертвовать скоростью в пользу памяти."
+
+#: advanced_settings.py:99
+msgid "Extra img extraction"
+msgstr "Извлечение дополнительных img"
+
+#: advanced_settings.py:100
+msgid ""
+"When checked and available in payload.bin\n"
+"Also extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty."
+"img"
+msgstr ""
+"Когда отмечено и доступно в файле payload.bin\\n\n"
+"Также извлекает vendor_boot.img, vendor_kernel_boot.img, dtbo.img, "
+"super_empty.img"
+
+#: advanced_settings.py:103
+msgid "Show notifications"
+msgstr "Показывать уведомления"
+
+#: advanced_settings.py:104
+msgid "When checked PixelFlasher will display system toast notifications."
+msgstr ""
+"Если флажок установлен, PixelFlasher будет отображать системные уведомления."
+
+#: advanced_settings.py:107
+msgid "Always create boot.tar"
+msgstr "Всегда создавать boot.tar"
+
+#: advanced_settings.py:108
+msgid ""
+"When checked, PixelFlasher always creates boot.tar of the patched boot "
+"file.\n"
+"If unchecked, only for Samsung firmware boot.tar will be created."
+msgstr ""
+"Если флажок установлен, PixelFlasher всегда создает boot.tar из "
+"исправленного загрузочного файла.\n"
+"Если флажок снят, будет создан boot.tar только для прошивки Samsung."
+
+#: advanced_settings.py:112
+msgid "Check for updates"
+msgstr "Проверка обновлений"
+
+#: advanced_settings.py:113
+msgid "Checks for available updates on startup"
+msgstr "Проверяет наличие обновлений при запуске"
+
+#: advanced_settings.py:116
+msgid "Check for Minumum Disk (5Gb)"
+msgstr "Проверка наличия минимального объема диска (5 Гб)"
+
+#: advanced_settings.py:117
+msgid ""
+"Enforces minimum disk space of 5 Gb to allow flashing.\n"
+"This avoids storage related issues."
+msgstr ""
+"Обеспечивает минимальный объем дискового пространства в 5 Гб для прошивки.\n"
+"Это позволяет избежать проблем, связанных с хранением данных."
+
+#: advanced_settings.py:120
+msgid "Check for bootloader unlocked"
+msgstr "Проверка разблокировки загрузчика"
+
+#: advanced_settings.py:121
+msgid "Checks to make sure bootloader is unlocked before flashing."
+msgstr "Проверяет, разблокирован ли загрузчик перед прошивкой."
+
+#: advanced_settings.py:124
+msgid "Force codepage to"
+msgstr "Принудительная установка кодовой страницы"
+
+#: advanced_settings.py:125
+msgid "Uses specified code page instead of system code page"
+msgstr ""
+"Использует указанную кодовую страницу вместо системной кодовой страницы"
+
+#: advanced_settings.py:129
+msgid "Delete bundled libs"
+msgstr "Удалить встроенные библиотеки"
+
+#: advanced_settings.py:130
+msgid ""
+"The listed libraries would be deleted from the PF bundle to allow system "
+"defined ones to be used."
+msgstr ""
+"Перечисленные библиотеки будут удалены из пакета PF, чтобы можно было "
+"использовать библиотеки, определенные системой."
+
+#: advanced_settings.py:133
+msgid "Example: libreadline.so.8, libgdk*"
+msgstr "Пример: libreadline.so.8, libgdk*."
+
+#: advanced_settings.py:137
+msgid "Use Custom Fontface"
+msgstr "Использовать пользовательский шрифт"
+
+#: advanced_settings.py:138
+msgid ""
+"Use custom font for monospace fonts\n"
+"Might require PixelFlasher restart to properly apply to the Console window."
+msgstr ""
+"Используйте пользовательский шрифт для моноширинных шрифтов\n"
+"Может потребоваться перезапуск PixelFlasher для правильного применения в "
+"окне консоли."
+
+#: advanced_settings.py:146
+msgid "Sample "
+msgstr "Пример"
+
+#: advanced_settings.py:152
+msgid "Select font size"
+msgstr "Выбор размера шрифта"
+
+#: advanced_settings.py:156
+msgid "Srccpy Path"
+msgstr "Путь к Srccpy"
+
+#: advanced_settings.py:159
+msgid "Download Srccpy"
+msgstr "Скачать Srccpy"
+
+#: advanced_settings.py:160 advanced_settings.py:162
+msgid "Select scrcpy executable"
+msgstr "Выберите исполняемый файл scrcpy"
+
+#: advanced_settings.py:160
+msgid "Scrcpy executable (*.exe;*)|*.exe;*"
+msgstr "Исполняемый файл Scrcpy (*.exe;*)|*.exe;*"
+
+#: advanced_settings.py:173
+msgid ""
+"Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)"
+msgstr ""
+"Флаги/аргументы (Пример: --video-bit-rate 2M --max-fps=30 --max-size 1024)"
+
+#: advanced_settings.py:177
+msgid "Scrcpy settings"
+msgstr "Параметры Scrcpy"
+
+#: advanced_settings.py:273
+msgid "OK"
+msgstr "Да"
+
+#: advanced_settings.py:275
+msgid "Cancel"
+msgstr "Отмена"
+
+#: advanced_settings.py:410
+msgid "Enabling Custom Font"
+msgstr "Включить пользовательский шрифт"
+
+#: file_editor.py:16
+msgid "File Editor"
+msgstr "Редактор файлов"
+
+#: file_editor.py:56
+msgid "Open Folder"
+msgstr "Открыть папку"
+
+#: file_editor.py:57
+msgid "Open Shell"
+msgstr "Открыть командную строку"
+
+#: file_editor.py:58
+msgid "Save and Continue"
+msgstr "Сохранить и продолжить"
+
+#: file_editor.py:59
+msgid "Cancel and Abort"
+msgstr "Отменить и прервать"
+
+#: file_editor.py:61
+msgid "Open Folder in working directory"
+msgstr "Открыть папку в рабочем каталоге"
+
+#: file_editor.py:62
+msgid "Open command shell in working directory"
+msgstr "Откройте командную строку в рабочем каталоге"
+
+#: file_editor.py:64
+msgid ""
+"Open Folder in working directory\n"
+"Note: PF_FILEMANAGER needs to be set."
+msgstr ""
+"Открыть папку в рабочем каталоге\n"
+"Примечание: необходимо установить PF_FILEMANAGER."
+
+#: file_editor.py:65
+msgid "Open Terminal shell in working directory"
+msgstr "Откройте оболочку терминала в рабочем каталоге"
+
+#: file_editor.py:66
+msgid "Save the file and continue."
+msgstr "Сохранить файл и продолжить работу."
+
+#: file_editor.py:67
+msgid "Cancel and Abort."
+msgstr "Отменить и прервать."
+
+#: partition_manager.py:42
+msgid ""
+"WARNING!\n"
+"This is advanced feature.\n"
+"Unless you know what you are doing,\n"
+"you should not be touching this.\n"
+"\n"
+"YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n"
+"THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n"
+"ADB, MAGISK, ANDROID, ROOT AND PARTITION MANIPULATION.\n"
+"IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n"
+msgstr ""
+"ВНИМАНИЕ!\n"
+"Это расширенная функциональность.\n"
+"Если вы не знаете, что делаете,\n"
+"вы не должны прикасаться к этому.\n"
+"\n"
+"ВЫ И ТОЛЬКО ВЫ ОТВЕЧАЕТЕ ЗА ВСЁ, ЧТО ПРОИЗОЙДЁТ С ВАШИМ УСТРОЙСТВОМ.\n"
+"ЭТОТ ИНСТРУМЕНТ СОЗДАН С УСЛОВИЕМ, ЧТО ВЫ ЗНАКОМЫ С\n"
+"ADB, MAGISK, ANDROID, ROOT и МАНИПУЛИРОВАНИЕ ЧАСТЯМИ.\n"
+"ВАША ОТВЕТСТВЕННОСТЬ УБЕДИТЬСЯ, ЧТО ВЫ ЗНАЕТЕ, ЧТО ДЕЛАЕТЕ.\n"
+
+#: partition_manager.py:65
+msgid "Check / Uncheck All"
+msgstr "Отметить/Отменить все"
+
+#: partition_manager.py:81
+msgid "Erase"
+msgstr "Стереть"
+
+#: partition_manager.py:82
+msgid "Erase checked partitions"
+msgstr "Стереть отмеченные разделы"
+
+#: partition_manager.py:85
+msgid "Dump / Backup"
+msgstr "Дамп / Резервное копирование"
+
+#: partition_manager.py:86
+msgid "Dumps / Backups the checked partitions"
+msgstr "Дампы / Резервные копии проверенных разделов"
+
+#: partition_manager.py:90 wifi.py:83
+msgid "Close"
+msgstr "Закрыть"
+
+#: partition_manager.py:91 wifi.py:84
+msgid "Closes this dialog"
+msgstr "Закрывает это диалоговое окно"
+
+#: partition_manager.py:149
+msgid "Partition"
+msgstr "Разделы"
+
+#: partition_manager.py:186
+msgid "checking all Partitions\n"
+msgstr "выбор всех разделов\n"
+
+#: partition_manager.py:189
+msgid "Unchecking all Partitions\n"
+msgstr "Снятие флажков со всех разделов\n"
+
+#: partition_manager.py:320 partition_manager.py:327
+msgid "Aborting ...\n"
+msgstr "Прерывание ...\n"
+
+#: partition_manager.py:321
+msgid ""
+"#red:Failed to delete old partition image from the phone;\n"
+"}\n"
+msgstr ""
+"#red:Не удалось удалить старый образ раздела с телефона;\n"
+"}\n"
+
+#: partition_manager.py:328
+msgid ""
+"#red:Failed to dump partition on the phone;\n"
+"}\n"
+msgstr ""
+"#red:Не удалось создать дамп раздела на телефоне;\n"
+"}\n"
+
+#: partition_manager.py:333
+msgid "Choose a directory where all the partition dumps should be saved."
+msgstr "Выберите каталог, в котором будут сохранены все дампы разделов."
+
+#: partition_manager.py:335
+msgid "User Cancelled dumping partitions (option: folder)."
+msgstr "Пользователь отменил сброс разделов (option: folder)."
+
+#: partition_manager.py:342
+msgid "Dump partition"
+msgstr "Дамп раздела"
+
+#: partition_manager.py:342
+msgid "IMG files (*.img)|*.img"
+msgstr "Файлы IMG (*.img)|*.img"
+
+#: partition_manager.py:444
+msgid "Erase Partition"
+msgstr "Стирание раздела"
+
+#: partition_manager.py:445
+msgid "Dump Partition"
+msgstr "Дамп раздела"
+
+#: partition_manager.py:446
+msgid "Check All"
+msgstr "Выбрать все"
+
+#: partition_manager.py:447
+msgid "UnCheck All"
+msgstr "Снять все"
+
+#: partition_manager.py:448
+msgid "Copy to Clipboard"
+msgstr "Скопировать в буфер обмена"
+
+#: wifi.py:33
+msgid "ADB Wireless"
+msgstr "Отладка по WIFI"
+
+#: wifi.py:58 wifi.py:150
+msgid "IP/Hostname"
+msgstr "IP/Имя хоста"
+
+#: wifi.py:63
+msgid "Port (Default:5555)"
+msgstr "Порт (по умолчанию:5555)"
+
+#: wifi.py:68 wifi.py:158
+msgid "Pairing Code"
+msgstr "Код сопряжения"
+
+#: wifi.py:71
+msgid "Connect"
+msgstr "Подключить"
+
+#: wifi.py:72
+msgid "Connect to device"
+msgstr "Подключение к устройству"
+
+#: wifi.py:75
+msgid "Disconnect"
+msgstr "Отключить"
+
+#: wifi.py:76
+msgid "Disconnect device"
+msgstr "Отключение устройства"
+
+#: wifi.py:79
+msgid "Pair"
+msgstr "Сопряжение"
+
+#: wifi.py:80
+msgid "Pairs with device (only needed once per device)"
+msgstr ""
+"Сопряжение с устройством (требуется только один раз для одного устройства)"
+
+#: wifi.py:142
+msgid "Date"
+msgstr "Дата"
+
+#: wifi.py:146
+msgid "Action"
+msgstr "Действие"
+
+#: wifi.py:154
+msgid "Port"
+msgstr "Порт"
+
+#: wifi.py:162
+msgid "Note"
+msgstr "Заметка"
+
+#: wifi.py:223
+msgid "#red:Encountered an error while populating wifi history;\n"
+msgstr "#red:Возникла ошибка при заполнении истории wifi;\n"
+
+#: wifi.py:298
+msgid ":Wifi ADB;\n"
+msgstr ":Отладка по WIFI;\n"
+
+#: wifi.py:308
+msgid "#palegreen:Succeeded;\n"
+msgstr "#palegreen:Успешно;\n"
+
+#: wifi.py:340
+msgid "#red:Encountered an error while wifi connecting;\n"
+msgstr "#red:Возникла ошибка при подключении к wifi;\n"
+
+#: wifi.py:360
+msgid "#red:Encountered an error while disconnecting a wireless device;\n"
+msgstr "#red:Возникла ошибка при отключении беспроводного устройства;\n"
+
+#: wifi.py:379
+msgid "#red:Encountered an error while pairing a device;\n"
+msgstr "#red:Возникла ошибка при сопряжении устройства;\n"

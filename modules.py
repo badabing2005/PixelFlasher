@@ -451,7 +451,8 @@ def adb_kill_server(self):
 def set_flash_button_state(self):
     try:
         boot = get_boot()
-        if self.config.firmware_path and boot and os.path.exists(boot.package_path):
+        factory_images = os.path.join(get_config_path(), 'factory_images')
+        if boot and os.path.exists(boot.boot_path) and os.path.exists(os.path.join(factory_images, boot.package_sig)):
             self.flash_button.Enable()
         else:
             self.flash_button.Disable()
@@ -3193,7 +3194,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     elif result == 2: # Edit
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
         puml("#pink:User Pressed Edit Script;\n")
-        dlg = FileEditor(self, flash_pf_file)
+        dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600)
         dlg.CenterOnParent()
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -3235,7 +3236,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
     # If we're doing OTA or Sideload image flashing, be in sideload mode
     if self.config.flash_mode == 'OTA' or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD'):
-        res = device.reboot_sideload()
+        res = device.reboot_sideload(90)
         if res == -1:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
             print("Aborting ...\n")

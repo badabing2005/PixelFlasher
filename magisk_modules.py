@@ -47,8 +47,10 @@ class MagiskModules(wx.Dialog):
         self.message_label.SetForegroundColour(wx.Colour(255, 0, 0))
 
         # Module label
-        modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Magisk Modules")
-        modules_label.SetToolTip(u"Enable / Disable Magisk modules")
+        self.modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Magisk Modules")
+        self.modules_label.SetToolTip(u"Enable / Disable Magisk modules")
+        font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        self.modules_label.SetFont(font)
 
         # Modules list control
         if self.CharHeight > 20:
@@ -85,10 +87,19 @@ class MagiskModules(wx.Dialog):
         self.pif_button = wx.Button(self, wx.ID_ANY, u"Install Pif Module", wx.DefaultPosition, wx.DefaultSize, 0)
         self.pif_button.SetToolTip(u"Install Play Integrity Fix module.")
 
-        # Edit pif.prop button
-        self.edit_pif_button = wx.Button(self, wx.ID_ANY, u"Edit pif.prop", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.edit_pif_button.SetToolTip(u"Edit pif.prop.")
+        # option button json / prop
+        json_prop_option_button = wx.RadioBox(self, choices=["json", "prop"], style=wx.RA_SPECIFY_COLS)
+        json_prop_option_button.Enable(False)
+
+        # Edit pif.json button
+        self.edit_pif_button = wx.Button(self, wx.ID_ANY, u"Edit pif.json", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.edit_pif_button.SetToolTip(u"Edit pif.json.")
         self.edit_pif_button.Enable(False)
+
+        # Kill  gms button
+        self.kill_gms_button = wx.Button(self, wx.ID_ANY, u"Kill Google GMS", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.kill_gms_button.SetToolTip(u"Kill Google GMS process, required after pif edit to avoid a reboot.")
+        self.kill_gms_button.Enable(False)
 
         # Systemless hosts button
         self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, u"Systemless Hosts", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -119,6 +130,7 @@ class MagiskModules(wx.Dialog):
         self.update_module_button.SetMinSize((button_width, -1))
         self.pif_button.SetMinSize((button_width, -1))
         self.edit_pif_button.SetMinSize((button_width, -1))
+        self.kill_gms_button.SetMinSize((button_width, -1))
         self.systemless_hosts_button.SetMinSize((button_width, -1))
         self.enable_zygisk_button.SetMinSize((button_width, -1))
         self.disable_zygisk_button.SetMinSize((button_width, -1))
@@ -132,7 +144,9 @@ class MagiskModules(wx.Dialog):
         font.SetStyle(wx.FONTSTYLE_ITALIC)
         management_label.SetFont(font)
 
+        # populate the list
         self.PopulateList()
+        self.add_magisk_details()
 
         # Sizers
         message_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -153,12 +167,17 @@ class MagiskModules(wx.Dialog):
         v_buttons_sizer.Add(self.install_module_button, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.update_module_button, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.pif_button, 0, wx.ALL, 10)
-        v_buttons_sizer.Add(self.edit_pif_button, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.systemless_hosts_button, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.enable_zygisk_button, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.disable_zygisk_button, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.enable_denylist_button, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.disable_denylist_button, 0, wx.ALL, 10)
+        v_buttons_sizer.AddSpacer(90)
+        v_buttons_sizer.Add(json_prop_option_button, 0, wx.ALL, 10)
+        v_buttons_sizer.Add((0, 0), proportion=1, flag=wx.EXPAND, border=0)
+        v_buttons_sizer.Add(self.edit_pif_button, 0, wx.ALL, 10)
+        v_buttons_sizer.Add(self.kill_gms_button, 0, wx.ALL, 10)
+
 
         modules_sizer = wx.BoxSizer(wx.VERTICAL)
         modules_sizer.Add(list_sizer, 2, wx.EXPAND, 5)
@@ -170,7 +189,7 @@ class MagiskModules(wx.Dialog):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(message_sizer, 0, wx.EXPAND, 5)
-        vSizer.Add(modules_label, 0, wx.LEFT, 10)
+        vSizer.Add(self.modules_label, 0, wx.LEFT, 10)
         vSizer.Add(outside_modules_sizer, 1, wx.EXPAND, 0)
         vSizer.Add(management_label, 0, wx.LEFT, 10)
         vSizer.Add(h_buttons_sizer, 0, wx.EXPAND, 5)
@@ -185,6 +204,7 @@ class MagiskModules(wx.Dialog):
         self.update_module_button.Bind(wx.EVT_BUTTON, self.onUpdateModule)
         self.pif_button.Bind(wx.EVT_BUTTON, self.onInstallPif)
         self.edit_pif_button.Bind(wx.EVT_BUTTON, self.onEditPifProp)
+        self.kill_gms_button.Bind(wx.EVT_BUTTON, self.onKillGms)
         self.systemless_hosts_button.Bind(wx.EVT_BUTTON, self.onSystemlessHosts)
         self.enable_zygisk_button.Bind(wx.EVT_BUTTON, self.onEnableZygisk)
         self.disable_zygisk_button.Bind(wx.EVT_BUTTON, self.onDisableZygisk)
@@ -192,6 +212,7 @@ class MagiskModules(wx.Dialog):
         self.disable_denylist_button.Bind(wx.EVT_BUTTON, self.onDisableDenylist)
         self.cancel_button.Bind(wx.EVT_BUTTON, self.onCancel)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected, self.list)
+        json_prop_option_button.Bind(wx.EVT_RADIOBOX, self.onJsonProp_selected)
 
         # Autosize the dialog
         self.list.PostSizeEventToParent()
@@ -212,6 +233,7 @@ class MagiskModules(wx.Dialog):
 
         self.pif_button.Enable(True)
         self.edit_pif_button.Enable(False)
+        self.kill_gms_button.Enable(False)
 
         self.list.InsertColumn(0, 'ID', width = -1)
         self.list.InsertColumn(1, 'Name', width = -1)
@@ -236,7 +258,9 @@ class MagiskModules(wx.Dialog):
                 # disable pif button if it is already installed.
                 if module.id == "playintegrityfix" and module.name == "Play Integrity Fix":
                     self.pif_button.Enable(False)
+                    self.check_pif_json()
                     self.edit_pif_button.Enable(True)
+                    self.kill_gms_button.Enable(True)
 
                 # disable Systemless Hosts button if it is already installed.
                 if module.id == "hosts" and module.name == "Systemless Hosts":
@@ -266,6 +290,48 @@ class MagiskModules(wx.Dialog):
         grow_column(self.list, 2, 20)
         self.list.SetColumnWidth(3, -2)
         grow_column(self.list, 3, 20)
+
+    # -----------------------------------------------
+    #                  add_magisk_details
+    # -----------------------------------------------
+    def add_magisk_details(self):
+        device = get_phone()
+        if not device:
+            return
+
+        data = f"Magisk Manager Version:  {device.magisk_app_version}\n"
+        if device.rooted:
+            data += f"Magisk Version:          {device.magisk_version}\n"
+        data += "\nMagisk Modules"
+        self.modules_label.SetLabel(data)
+
+    # -----------------------------------------------
+    #                  check_pif_json
+    # -----------------------------------------------
+    def check_pif_json(self):
+        device = get_phone()
+        if not device.rooted:
+            return
+        # check for presence of pif.json
+        res, tmp = device.check_file("/data/adb/modules/playintegrityfix/pif.json", True)
+        if res == 1:
+            # pif.json exists, change button to Edit
+            self.edit_pif_button.SetLabel("Edit pif.json")
+            self.edit_pif_button.SetToolTip(u"Edit pif.json.")
+        elif res == 0:
+            # pif.json does not exits, change button to create
+            self.edit_pif_button.SetLabel("Create pif.json")
+            self.edit_pif_button.SetToolTip(u"Create and upload pif.json.")
+
+    # -----------------------------------------------
+    #                  onJsonProp_selected
+    # -----------------------------------------------
+    def onJsonProp_selected(self, event):
+        option = event.GetString()
+        if option == "json":
+            print("JSON option selected")
+        elif option == "prop":
+            print("Prop option selected")
 
     # -----------------------------------------------
     #                  __del__
@@ -388,6 +454,26 @@ class MagiskModules(wx.Dialog):
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
     # -----------------------------------------------
+    #                  onKillGms
+    # -----------------------------------------------
+    def onKillGms(self, e):
+        try:
+            device = get_phone()
+            if not device.rooted:
+                return
+            self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+            print("Killing Google GMS  ...")
+            res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
+            if res.returncode != 0:
+                print("Error killing GMS.")
+            else:
+                print("Killing Google GMS succeeded.")
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during killing GMS.")
+            traceback.print_exc()
+        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+
+    # -----------------------------------------------
     #                  onEditPifProp
     # -----------------------------------------------
     def onEditPifProp(self, e):
@@ -397,37 +483,44 @@ class MagiskModules(wx.Dialog):
                 return
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
             config_path = get_config_path()
-            pif_prop = os.path.join(config_path, 'tmp', 'pif.prop')
-            # pull the file
-            res = device.pull_file("/data/adb/modules/playintegrityfix/pif.prop", pif_prop, True)
-            if res != 0:
-                print("Aborting ...\n")
-                # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
-                self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
-                return
-            dlg = FileEditor(self, pif_prop)
+            pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
+            if self.edit_pif_button.GetLabel() == "Edit pif.json":
+                # pull the file
+                res = device.pull_file("/data/adb/modules/playintegrityfix/pif.json", pif_prop, True)
+                if res != 0:
+                    print("Aborting ...\n")
+                    # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
+                    self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+                    return
+            else:
+                # we need to create one.
+                with open(pif_prop, 'w') as file:
+                    pass
+            dlg = FileEditor(self, pif_prop, "json", width=1200, height=400)
             dlg.CenterOnParent()
             result = dlg.ShowModal()
             dlg.Destroy()
             if result == wx.ID_OK:
-                # get the contents of modified pif.prop
+                # get the contents of modified pif.json
                 with open(pif_prop, 'r', encoding='ISO-8859-1', errors="replace") as f:
                     contents = f.read()
                 print(f"\npif.prep file has been modified!")
                 # push the file
-                res = device.push_file(pif_prop, "/data/adb/modules/playintegrityfix/pif.prop", True)
+                res = device.push_file(pif_prop, "/data/adb/modules/playintegrityfix/pif.json", True)
                 if res != 0:
                     print("Aborting ...\n")
-                    # puml("#red:Failed to push pif.prop from the phone;\n}\n")
+                    # puml("#red:Failed to push pif.json from the phone;\n}\n")
                     self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
                     return -1
+                self.check_pif_json()
             else:
-                print("User cancelled editing flash_phone file.")
+                print("User cancelled editing pif.json file.")
                 puml(f"note right\nCancelled and Aborted\nend note\n")
                 self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
                 return -1
+            self.check_pif_json()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip edit process.")
             traceback.print_exc()
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
@@ -514,3 +607,15 @@ class MagiskModules(wx.Dialog):
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
         print('')
         self.EndModal(wx.ID_OK)
+
+    # -----------------------------------------------
+    #                  _on_spin
+    # -----------------------------------------------
+    def _on_spin(self, state):
+        wx.YieldIfNeeded()
+        if state == 'start':
+            self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
+            self.Parent._on_spin('start')
+        else:
+            self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+            self.Parent._on_spin('stop')

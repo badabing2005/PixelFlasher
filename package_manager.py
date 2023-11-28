@@ -260,6 +260,10 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.install_apk_button.SetToolTip(u"Install an APK on the device")
         buttons_sizer.Add(self.install_apk_button, 0, wx.ALL, 20)
 
+        self.bulk_install_apk_button = wx.Button(panel2, wx.ID_ANY, u"Bulk Install APK", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.bulk_install_apk_button.SetToolTip(u"Bulk Install APKs by selecting a folder.")
+        buttons_sizer.Add(self.bulk_install_apk_button, 0, wx.ALL, 20)
+
         self.download_apk_button = wx.Button(panel2, wx.ID_ANY, u"Download APK", wx.DefaultPosition, wx.DefaultSize, 0)
         self.download_apk_button.SetToolTip(u"Extract and download APK")
         self.download_apk_button.Enable(False)
@@ -298,6 +302,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.add_to_deny_button.Bind(wx.EVT_BUTTON, self.OnAddToDeny)
         self.rm_from_deny_button.Bind(wx.EVT_BUTTON, self.OnRmFromDeny)
         self.install_apk_button.Bind(wx.EVT_BUTTON, self.OnInstallApk)
+        self.bulk_install_apk_button.Bind(wx.EVT_BUTTON, self.OnBulkInstallApk)
         self.download_apk_button.Bind(wx.EVT_BUTTON, self.OnDownloadApk)
         self.export_list_button.Bind(wx.EVT_BUTTON, self.OnExportList)
         self.close_button.Bind(wx.EVT_BUTTON, self.OnClose)
@@ -658,6 +663,45 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 traceback.print_exc()
                 wx.LogError(f"Cannot install file '{pathname}'.")
                 self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  OnBulkInstallApk
+    # -----------------------------------------------
+    def OnBulkInstallApk(self, event):
+        try:
+            with wx.DirDialog(self, "Select folder to bulk install APKs", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+                if folderDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled folder selection.")
+                    return
+                selected_folder = folderDialog.GetPath()
+
+            self._on_spin('start')
+            device = get_phone()
+            if device:
+                apk_files = [file for file in os.listdir(selected_folder) if file.endswith(".apk")]
+                show_playstore_prompt = True
+                for apk_file in apk_files:
+                    if show_playstore_prompt:
+                        dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: This will apply to all the current bulk apks.\n(Android auto apps require that they be installed from the Play Market.)",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+                        result = dlg.ShowModal()
+                        if result != wx.ID_YES:
+                            owner_playstore = False
+                        else:
+                            owner_playstore = True
+                        show_playstore_prompt = False
+                    apk_path = os.path.join(selected_folder, apk_file)
+                    res = device.install_apk(apk_path, fastboot_included=True, owner_playstore=owner_playstore)
+                    if res.returncode != 0:
+                        print(f"Return Code: {res.returncode}.")
+                        print(f"Stdout: {res.stdout}")
+                        print(f"Stderr: {res.stderr}")
+                        print("Aborting ...\n")
+                        self._on_spin('stop')
+                        return res
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing APKs")
+            traceback.print_exc()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  OnGetAllNames

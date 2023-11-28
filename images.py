@@ -2613,3 +2613,33 @@ clipboard_24 = PyEmbeddedImage(
     b'gCqkM4BMiw3SKcCEyAfXOUCdADfA71B0jQyzBqVQHjc9MNfUVG3UNtYA5zYTC8cOuRoQOnuE'
     b'h85If+7hfR4PZkE72QT7IhVbq2DQq9zZrQChkUq9L4xK7xn5q/8GAAAAAElFTkSuQmCC')
 
+#----------------------------------------------------------------------
+push_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1B'
+    b'AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC7SURBVEhL7ZVBDoIwEEWLJ/IIHMW1'
+    b'KzyJrLyOR9AbgCfB/8nYxOk0DKVuDC95+QmUTjptSthZyxE+4FToHbYwCwdYH65xgJFG8gMH'
+    b'1CDOe5D8GSUFeskidD8Tp/OcV/1cGSlqEYp0CNdKFjcZk2VpbnMRFtPU2WTPSmqcopekyaYC'
+    b'aNEFwQ13o09DIk+RnCS2J3kvZrEGf+mYnGaxBmuXJqeR/7uLRsktPCVN+LPgfa576pX/kxPc'
+    b'8RLCG3WzjIvZeDJDAAAAAElFTkSuQmCC')
+
+#----------------------------------------------------------------------
+push_cart_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABhElEQVRIS71V0W3CMBC1RSP1'
+    b'k24AG8AGzghs0G4AEkj9LL9NpbJB2w06AXiDsgEZIf8BuXdpjGznzrFaqH+SyM/37u49X6S4'
+    b'8pJXji8agnyVGUtkjHnSL8f1pYg7BBC42hX13UUJbDCo5AveJ38MriHB3MbwNFDLGyWl3CUQ'
+    b'VIAZMrg9EExJglaPAzxHMRIzGIzl6YTVdkhAzAdd1O8sgVpl91DWm0uAwrvfaAL1eDsiSLz2'
+    b'4BnSpqCFVwWUTOLClkIiOZBrNxn6YFBFpALUq2mnFOZzWxxnYWvZixZW4bXsR4NzcNyjsmdb'
+    b'hBtqmc2lFK+M2KVrBMBtts/1gsLSLZqLocwyzLDvTqBd96auZ3oj8L2zGPHO2ZdweModjlmZ'
+    b'tSlu2P6Hnk4JmCRyTOAYCWXnmL/xsjUWTF3JBKkBU3DcRZu046ICf6/D22kDw1jpxXGjAi2q'
+    b'2kAllD6msgWtenEps8gbvy5RYAYS1ydyCVb9cMevS9AOOzQDi/ufn36KG36L+QZeTbIZLqzR'
+    b'/wAAAABJRU5ErkJggg==')
+
+#----------------------------------------------------------------------
+json_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1B'
+    b'AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADBSURBVEhL7ZTBDYMwDEWjTtIT547A'
+    b'KN2MUTpCuwGM0A2CP/KPaEIKcYED5UlfFsGxE2zjTkq5iZ4ir1oK/R+iGgs54EBnSwKoxUKO'
+    b'0sAxyf6L2s04VgJ00Fpc1QbQWo0IBUKbWkEHIQa6MSRh5fniLrKCgzLJoKkadGotvFUJyMwh'
+    b'+zooMzAGPnNSU3wzXs0K92d/F58JKu8HkbnneL+w+RzEJCcoZP8bxAleaktvMvZnjEnQWuNB'
+    b'WQr9fx3U/8O5HlPmTN1oXEehAAAAAElFTkSuQmCC')
+

@@ -11,40 +11,63 @@ from runtime import *
 #                               Class FileEditor
 # ============================================================================
 class FileEditor(wx.Dialog):
-    def __init__(self, parent, file_path):
-        # super().__init__(parent=None, title="File Editor", style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER)
-        super().__init__(parent=parent, title=_("File Editor"), style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER)
+    def __init__(self, parent, file_path, language='batch', width=1500, height=600):
+        super().__init__(parent=parent, title=_("File Editor"), style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(width, height))
 
         self.file_path = file_path
+        self.language = language
+        self.width = width
+        self.height = height
         self.create_widgets()
         self.load_file()
+        self.SetSize((self.width, self.height))
 
     def create_widgets(self):
         self.text_ctrl = stc.StyledTextCtrl(self, style=wx.HSCROLL)
         if sys.platform == "win32":
-            self.text_ctrl.SetLexer(stc.STC_LEX_BATCH)
-            self.text_ctrl.StyleSetSpec(stc.STC_BAT_DEFAULT, "fore:#000000")
-            self.text_ctrl.StyleSetSpec(stc.STC_BAT_COMMENT, "fore:#008000")
-            self.text_ctrl.StyleSetSpec(stc.STC_BAT_WORD, "fore:#000000,bold,back:#FFFFFF")
-            self.text_ctrl.SetKeyWords(0, " ".join(["if else goto echo set", "cd dir rd md del", "call start exit rem"]))
-            self.text_ctrl.StyleSetForeground(stc.STC_BAT_COMMAND, wx.Colour(0, 128, 192)) # command color
-            self.text_ctrl.StyleSetForeground(stc.STC_BAT_LABEL, wx.Colour(0, 128, 192)) # label color
-            self.text_ctrl.StyleSetForeground(stc.STC_BAT_COMMENT, wx.Colour(0, 128, 0)) # comment color
-            self.text_ctrl.StyleSetForeground(stc.STC_BAT_WORD, wx.Colour(0, 0, 255)) # keyword color
-            self.text_ctrl.StyleSetForeground(stc.STC_BAT_HIDE, wx.Colour(128, 128, 128)) # color for hidden text
-            self.text_ctrl.StyleSetForeground(stc.STC_BAT_IDENTIFIER, wx.Colour(255, 128, 0))  # variable text color
-            self.text_ctrl.StyleSetForeground(stc.STC_BAT_OPERATOR , wx.Colour(255, 0, 255))  # operator text color
+            if self.language == "batch":
+                self.text_ctrl.SetLexer(stc.STC_LEX_BATCH)
+                self.text_ctrl.StyleSetSpec(stc.STC_BAT_DEFAULT, "fore:#000000")
+                self.text_ctrl.StyleSetSpec(stc.STC_BAT_COMMENT, "fore:#008000")
+                self.text_ctrl.StyleSetSpec(stc.STC_BAT_WORD, "fore:#000000,bold,back:#FFFFFF")
+                self.text_ctrl.SetKeyWords(0, " ".join(["if else goto echo set", "cd dir rd md del", "call start exit rem"]))
+                self.text_ctrl.StyleSetForeground(stc.STC_BAT_COMMAND, wx.Colour(0, 128, 192)) # command color
+                self.text_ctrl.StyleSetForeground(stc.STC_BAT_LABEL, wx.Colour(0, 128, 192)) # label color
+                self.text_ctrl.StyleSetForeground(stc.STC_BAT_COMMENT, wx.Colour(0, 128, 0)) # comment color
+                self.text_ctrl.StyleSetForeground(stc.STC_BAT_WORD, wx.Colour(0, 0, 255)) # keyword color
+                self.text_ctrl.StyleSetForeground(stc.STC_BAT_HIDE, wx.Colour(128, 128, 128)) # color for hidden text
+                self.text_ctrl.StyleSetForeground(stc.STC_BAT_IDENTIFIER, wx.Colour(255, 128, 0))  # variable text color
+                self.text_ctrl.StyleSetForeground(stc.STC_BAT_OPERATOR , wx.Colour(255, 0, 255))  # operator text color
+            elif self.language == "json":
+                self.text_ctrl.SetLexer(stc.STC_LEX_JSON)
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_DEFAULT, "fore:#000000")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_NUMBER, "fore:#007F7F")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_STRING, "fore:#7F007F")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_PROPERTYNAME, "fore:#007F00")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_ESCAPESEQUENCE, "fore:#7F7F00")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_KEYWORD, "fore:#00007F,bold")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_OPERATOR, "fore:#7F0000")
         else:
-            self.text_ctrl.SetLexer(stc.STC_LEX_BASH)
-            self.text_ctrl.StyleSetSpec(stc.STC_SH_DEFAULT, "fore:#000000")
-            self.text_ctrl.StyleSetSpec(stc.STC_SH_COMMENTLINE , "fore:#008000")
-            self.text_ctrl.StyleSetSpec(stc.STC_SH_WORD, "fore:#000000,bold,back:#FFFFFF")
-            self.text_ctrl.SetKeyWords(0, " ".join(["if else elif fi echo set", "cd dir rd md rm", "exit"]))
-            self.text_ctrl.StyleSetForeground(stc.STC_SH_OPERATOR , wx.Colour(0, 128, 192)) # operator color
-            self.text_ctrl.StyleSetForeground(stc.STC_SH_STRING  , wx.Colour(205, 146, 93)) # label color
-            self.text_ctrl.StyleSetForeground(stc.STC_SH_COMMENTLINE, wx.Colour(0, 128, 0)) # comment color
-            self.text_ctrl.StyleSetForeground(stc.STC_SH_WORD, wx.Colour(0, 0, 255)) # keyword color
-            self.text_ctrl.StyleSetForeground(stc.STC_SH_IDENTIFIER, wx.Colour(255, 128, 0))  # variable text color
+            if self.language == "batch":
+                self.text_ctrl.SetLexer(stc.STC_LEX_BASH)
+                self.text_ctrl.StyleSetSpec(stc.STC_SH_DEFAULT, "fore:#000000")
+                self.text_ctrl.StyleSetSpec(stc.STC_SH_COMMENTLINE , "fore:#008000")
+                self.text_ctrl.StyleSetSpec(stc.STC_SH_WORD, "fore:#000000,bold,back:#FFFFFF")
+                self.text_ctrl.SetKeyWords(0, " ".join(["if else elif fi echo set", "cd dir rd md rm", "exit"]))
+                self.text_ctrl.StyleSetForeground(stc.STC_SH_OPERATOR , wx.Colour(0, 128, 192)) # operator color
+                self.text_ctrl.StyleSetForeground(stc.STC_SH_STRING  , wx.Colour(205, 146, 93)) # label color
+                self.text_ctrl.StyleSetForeground(stc.STC_SH_COMMENTLINE, wx.Colour(0, 128, 0)) # comment color
+                self.text_ctrl.StyleSetForeground(stc.STC_SH_WORD, wx.Colour(0, 0, 255)) # keyword color
+                self.text_ctrl.StyleSetForeground(stc.STC_SH_IDENTIFIER, wx.Colour(255, 128, 0))  # variable text color
+            elif self.language == "json":
+                self.text_ctrl.SetLexer(stc.STC_LEX_JSON)
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_DEFAULT, "fore:#000000")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_NUMBER, "fore:#007F7F")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_STRING, "fore:#7F007F")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_PROPERTYNAME, "fore:#007F00")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_ESCAPESEQUENCE, "fore:#7F7F00")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_KEYWORD, "fore:#00007F,bold")
+                self.text_ctrl.StyleSetSpec(stc.STC_JSON_OPERATOR, "fore:#7F0000")
 
         self.text_ctrl.SetCaretForeground(wx.BLACK)
         self.text_ctrl.SetMarginType(1, stc.STC_MARGIN_NUMBER)

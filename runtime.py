@@ -1112,7 +1112,7 @@ def open_folder(self, path, isFile = False):
         if sys.platform == "darwin":
             subprocess.Popen(["open", dir_path], env=get_env_variables())
         elif sys.platform == "win32":
-            os.system(f"start {dir_path}")
+            os.startfile(dir_path)
         # linux
         elif self.config.linux_file_explorer:
             subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())

@@ -2342,7 +2342,7 @@ add_hosts_module
             try:
                 if self.mode == 'adb' and self.rooted:
                     if sys.platform == "win32":
-                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/disable\"; then echo \"state=disabled\"; elif test -f \"$FILE/remove\"; then echo \"state=remove\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
                         res = run_shell(theCmd)
                         if res.returncode == 0:
                             modules = []
@@ -2397,13 +2397,19 @@ add_hosts_module
                                 if module:
                                     m = Magisk(module)
                                     if self.mode == 'adb' and get_adb():
-                                        # get the state by checking if there is a disable file in the module directory
-                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
+                                        # get the uninstall state by checking if there is a remove file in the module directory
+                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/remove\'\""
                                         res = run_shell(theCmd)
                                         if res.returncode == 0:
-                                            m.state = 'disabled'
+                                            m.state = 'remove'
                                         else:
-                                            m.state = 'enabled'
+                                            # get the state by checking if there is a disable file in the module directory
+                                            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
+                                            res = run_shell(theCmd)
+                                            if res.returncode == 0:
+                                                m.state = 'disabled'
+                                            else:
+                                                m.state = 'enabled'
                                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
                                         res = run_shell(theCmd)
                                         if res.returncode == 0:
@@ -3307,6 +3313,29 @@ This is a special Magisk build\n\n
             return -1
 
     # ----------------------------------------------------------------------------
+    #                               Method restore_magisk_module
+    # ----------------------------------------------------------------------------
+    def restore_magisk_module(self, dirname):
+        try:
+            if self.mode == 'adb' and get_adb():
+                print(f"Restoring magisk module {dirname} ...")
+                puml(":Restore magisk module;\n", True)
+                puml(f"note right:{dirname};\n")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/adb/modules/{dirname}/remove\'\""
+                debug(theCmd)
+                res = run_shell(theCmd)
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
+                return 1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in restore_magisk_module.")
+            puml("#red:Encountered an error in restore_magisk_module.;\n")
+            traceback.print_exc()
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method open_shell
     # ----------------------------------------------------------------------------
     def open_shell(self):
@@ -3379,6 +3408,29 @@ This is a special Magisk build\n\n
             return -1
 
     # ----------------------------------------------------------------------------
+    #                               Method uninstall_magisk_module
+    # ----------------------------------------------------------------------------
+    def uninstall_magisk_module(self, dirname):
+        try:
+            if self.mode == 'adb' and get_adb():
+                print(f"Uninstalling magisk module {dirname} ...")
+                puml(":Uninstall magisk module;\n", True)
+                puml(f"note right:{dirname};\n")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'touch /data/adb/modules/{dirname}/remove\'\""
+                debug(theCmd)
+                res = run_shell(theCmd)
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
+                return 1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in uninstall_magisk_module.")
+            puml("#red:Encountered an error in uninstall_magisk_module.;\n")
+            traceback.print_exc()
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method disable_magisk_module
     # ----------------------------------------------------------------------------
     def disable_magisk_module(self, dirname):
@@ -3387,7 +3439,6 @@ This is a special Magisk build\n\n
                 print(f"Disabling magisk module {dirname} ...")
                 puml(":Disable magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
-                theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'touch /data/adb/modules/{dirname}/disable\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
@@ -3446,6 +3497,57 @@ This is a special Magisk build\n\n
             puml("#red:Encountered an error in refresh_phone_mode.;\n")
             traceback.print_exc()
             return -1
+
+    # ============================================================================
+    #                               Function ui_action
+    # ============================================================================
+    def ui_action(self, dump_file, local_file, look_for=None, click=True):
+        try:
+            # Get uiautomator dump, save as dump_file
+            # the_view = "view1.xml"
+            res = self.uiautomator_dump(dump_file)
+            if res == -1:
+                puml("#red:Failed to uiautomator dump;\n}\n")
+                return -1
+
+            # Pull dump_file
+            print(f"Pulling {dump_file} from the phone to: {local_file} ...")
+            res = self.pull_file(dump_file, local_file)
+            if res != 0:
+                puml("#red:Failed to pull uiautomator dump from the phone;\n}\n")
+                return -1
+
+            coords = -1
+            if look_for is not None:
+                # get bounds
+                coords = get_ui_cooridnates(local_file, look_for)
+
+                # Check for Display being locked again
+                if not self.is_display_unlocked():
+                    print("ERROR: The device display is Locked!\n")
+                    return -1
+
+                if click:
+                    # Click on coordinates
+                    res = self.click(coords)
+                    if res == -1:
+                        puml("#red:Failed to click;\n}\n")
+                        return -1
+
+                    # Sleep 2 seconds
+                    print("Sleeping 2 seconds to make sure the view is loaded ...")
+                    time.sleep(2)
+
+                    # Check for Display being locked again
+                    if not self.is_display_unlocked():
+                        print("ERROR: The device display is Locked!\n")
+                        return -1
+                return coords
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing ui action")
+            puml("#red:Encountered an error while performing ui action;\n")
+            traceback.print_exc()
+
 
     # ----------------------------------------------------------------------------
     #                               method perform_package_action
@@ -3684,6 +3786,7 @@ def get_connected_devices():
             theCmd = f"\"{get_adb()}\" devices"
             response = run_shell(theCmd, timeout=60)
             if response.stdout:
+                debug(f"adb devices:\n{response.stdout}")
                 for device in response.stdout.split('\n'):
                     if 'device' in device or 'recovery' in device or 'sideload' in device:
                         with contextlib.suppress(Exception):
@@ -3707,6 +3810,7 @@ def get_connected_devices():
             theCmd = f"\"{get_fastboot()}\" devices"
             response = run_shell(theCmd)
             for device in response.stdout.split('\n'):
+                debug(f"fastboot devices:\n{response.stdout}")
                 if 'fastboot' in device:
                     d_id = device.split("\t")
                     d_id = d_id[0].strip()

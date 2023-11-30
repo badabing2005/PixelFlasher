@@ -299,10 +299,10 @@ class MagiskModules(wx.Dialog):
                 if module.id == "hosts" and module.name == "Systemless Hosts":
                     self.systemless_hosts_button.Enable(False)
 
-                if module.updateAvailable:
-                    self.list.SetItemColumnImage(i, 0, 0)
-                else:
-                    self.list.SetItemColumnImage(i, 0, -1)
+                self.list.SetItemColumnImage(i, 0, -1)
+                with contextlib.suppress(Exception):
+                    if module.updateAvailable:
+                        self.list.SetItemColumnImage(i, 0, 0)
 
                 self.list.SetItem(index, 1, module.name)
                 if module.version == '':
@@ -349,7 +349,7 @@ class MagiskModules(wx.Dialog):
         if not device.rooted:
             return
         # check for presence of pif.json
-        res, tmp = device.check_file("/data/adb/modules/playintegrityfix/pif.json", True)
+        res, tmp = device.check_file(PIF_JSON_PATH, True)
         if res == 1:
             # pif.json exists, change button to Edit
             self.edit_pif_button.SetLabel("Edit pif.json")
@@ -545,7 +545,7 @@ class MagiskModules(wx.Dialog):
             pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
             if self.edit_pif_button.GetLabel() == "Edit pif.json":
                 # pull the file
-                res = device.pull_file("/data/adb/modules/playintegrityfix/pif.json", pif_prop, True)
+                res = device.pull_file(PIF_JSON_PATH, pif_prop, True)
                 if res != 0:
                     print("Aborting ...\n")
                     # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
@@ -565,7 +565,7 @@ class MagiskModules(wx.Dialog):
                     contents = f.read()
                 print(f"\npif.prep file has been modified!")
                 # push the file
-                res = device.push_file(pif_prop, "/data/adb/modules/playintegrityfix/pif.json", True)
+                res = device.push_file(pif_prop, PIF_JSON_PATH, True)
                 if res != 0:
                     print("Aborting ...\n")
                     # puml("#red:Failed to push pif.json from the phone;\n}\n")

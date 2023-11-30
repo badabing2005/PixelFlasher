@@ -2934,7 +2934,8 @@ class PixelFlasher(wx.Frame):
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
-                device.scrcpy()
+                if device:
+                    device.scrcpy()
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while launching scrcpy")
             traceback.print_exc()

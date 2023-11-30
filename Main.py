@@ -108,7 +108,7 @@ class DropDownButton(wx.BitmapButton):
 
     def OnLinkSelected(self, event, url):
         # Handle the selected link here
-        print(_(f"Selected link: {url}"))
+        print(_("Selected link: %s")% url)
         open_device_image_download_link(url)
 
 
@@ -157,21 +157,21 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def initialize(self):
         t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
-        print(_(f"PixelFlasher {VERSION} started on {t}"))
+        print(_(f"PixelFlasher %s started on %s") % (VERSION, t))
         puml(f"{t};\n")
-        puml(_(f"#palegreen:PixelFlasher {VERSION} started;\n"))
+        puml(_(f"#palegreen:PixelFlasher %s started;\n") % VERSION)
         start = time.time()
 
-        print(_(f"Platform: {sys.platform}"))
-        puml(_(f"note left:Platform: {sys.platform}\n"))
+        print(_(f"Platform: %s") % sys.platform)
+        puml(_(f"note left:Platform: %s\n") % sys.platform)
         # check timezone
         timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
-        print(_(f"System Timezone: {time.tzname} Offset: {timezone_offset / 60 / 60 * -1}"))
-        print(_(f"Configuration Folder Path: {get_config_path()}"))
-        print(_(f"Configuration File Path: {get_config_file_path()}"))
+        print(_(f"System Timezone: %s Offset: %s") % (time.tzname, timezone_offset / 60 / 60 * -1 ))
+        print(_(f"Configuration Folder Path: %s") % get_config_path())
+        print(_(f"Configuration File Path: %s") % get_config_file_path())
 
         puml(_(":Loading Configuration;\n"))
-        puml(_(f"note left: {get_config_path()}\n"))
+        puml(_(f"note left: %s\n") % get_config_path())
         # load verbose settings
         if self.config.verbose:
             self.verbose_checkBox.SetValue(self.config.verbose)
@@ -191,23 +191,23 @@ class PixelFlasher(wx.Frame):
             self._advanced_options_hide(True)
 
         # check codepage
-        print(_(f"System Default Encoding: {sys.getdefaultencoding()}"))
-        print(_(f"File System Encoding:    {sys.getfilesystemencoding()}"))
+        print(_(f"System Default Encoding: %s") % sys.getdefaultencoding())
+        print(_(f"File System Encoding:    %s") % sys.getfilesystemencoding())
         get_code_page()
 
         # delete specified libraries from the bundle
-        print(_(f"Bundle Directory: {get_bundle_dir()}"))
+        print(_(f"Bundle Directory: %s") % get_bundle_dir())
         delete_bundled_library(self.config.delete_bundled_libs)
 
         # Get Available Memory
         free_memory, total_memory = get_free_memory()
         formatted_free_memory = format_memory_size(free_memory)
         formatted_total_memory = format_memory_size(total_memory)
-        print(_(f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}"))
+        print(_(f"Available Free Memory: %s / %s") % (formatted_free_memory, formatted_total_memory))
 
         # Get available free disk on system drive
-        print(_(f"Available Free Disk on system drive: {str(get_free_space())} GB"))
-        print(_(f"Available Free Disk on PixelFlasher data drive: {str(get_free_space(get_config_path()))} GB\n"))
+        print(_(f"Available Free Disk on system drive: %s GB") % str(get_free_space()))
+        print(_(f"Available Free Disk on PixelFlasher data drive: %s GB\n") % str(get_free_space(get_config_path())))
 
         # load android_versions into a dict.
         with contextlib.suppress(Exception):
@@ -288,7 +288,7 @@ class PixelFlasher(wx.Frame):
 
             # if adb is found, display the version
             if get_sdk_version():
-                self.platform_tools_label.SetLabel(_(f"Android Platform Tools\nVersion {get_sdk_version()}"))
+                self.platform_tools_label.SetLabel(_("Android Platform Tools\nVersion %s") % get_sdk_version())
 
         # load custom_rom settings
         self.custom_rom_checkbox.SetValue(self.config.custom_rom)
@@ -346,14 +346,14 @@ class PixelFlasher(wx.Frame):
         # check version if we are running the latest
         l_version = check_latest_version()
         if self.config.update_check and parse(VERSION) < parse(l_version):
-            print(_(f"\nA newer PixelFlasher v{l_version} can be downloaded from:"))
+            print(_("\nA newer PixelFlasher v%s can be downloaded from:") % l_version )
             print("https://github.com/badabing2005/PixelFlasher/releases/latest")
             from About import AboutDlg
             about = AboutDlg(self)
             about.ShowModal()
             about.Destroy()
         end = time.time()
-        print(_(f"Load time: {math.ceil(end - start)} seconds"))
+        print(_("Load time: %s seconds")% math.ceil(end - start))
 
         # set the ui fonts
         self.set_ui_fonts()
@@ -1907,12 +1907,12 @@ class PixelFlasher(wx.Frame):
                     self._print_device_details(device)
         else:
             set_phone_id(None)
-            self.device_label.Label = "ADB Connected Devices"
+            self.device_label.Label = _("ADB Connected Devices")
         if self.device_choice.StringSelection == '':
             set_phone_id(None)
-            self.device_label.Label = "ADB Connected Devices"
+            self.device_label.Label = _("ADB Connected Devices")
             self.config.device = None
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} No Device is selected!")
+            print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} No Device is selected!") % ())
             puml(f":Select Device;\nnote right:No Device is selected!\n")
         self._reflect_slots()
         self.update_widget_states()
@@ -1946,20 +1946,20 @@ class PixelFlasher(wx.Frame):
         device = get_phone()
         if device:
             if device.active_slot == 'a':
-                self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
+                self.device_label.Label = _("ADB Connected Devices\nCurrent Active Slot: [A]")
                 self.update_slot_image('a')
                 set_a_only(False)
             elif device.active_slot == 'b':
-                self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [B]"
+                self.device_label.Label = _("ADB Connected Devices\nCurrent Active Slot: [B]")
                 set_a_only(False)
                 self.update_slot_image('b')
             else:
-                self.device_label.Label = "ADB Connected Devices"
+                self.device_label.Label = _("ADB Connected Devices")
                 set_a_only(True)
                 self.update_slot_image('none')
             self.update_rooted_image(device.rooted)
         else:
-            self.device_label.Label = "ADB Connected Devices"
+            self.device_label.Label = _("ADB Connected Devices")
             self.update_slot_image('none')
             self.update_rooted_image(False)
 
@@ -3693,19 +3693,19 @@ class PixelFlasher(wx.Frame):
         self.staticline1.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT))
 
         # 5th row widgets, firmware file
-        firmware_label = wx.StaticText(parent=panel, label=u"Device Image")
+        firmware_label = wx.StaticText(parent=panel, label=_(u"Device Image"))
         firmware_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         firmware_button.SetBitmap(images.open_link_24.GetBitmap())
-        firmware_button.SetToolTip(u"Download image file for Pixel devices.")
-        firmware_button.AddLink("Full OTA Images for Pixel Phones / Tablets", FULL_OTA_IMAGES_FOR_PIXEL_DEVICES, images.phone_green_24.GetBitmap())
-        firmware_button.AddLink("Factory Images for Pixel Phones / Tablets", FACTORY_IMAGES_FOR_PIXEL_DEVICES, images.phone_blue_24.GetBitmap())
-        firmware_button.AddLink("Full OTA Images for Pixel Watches", FULL_OTA_IMAGES_FOR_WATCH_DEVICES, images.watch_green_24.GetBitmap())
-        firmware_button.AddLink("Factory Images for Pixel Watches", FACTORY_IMAGES_FOR_WATCH_DEVICES, images.watch_blue_24.GetBitmap())
-        self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
-        self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        firmware_button.SetToolTip(_(u"Download image file for Pixel devices."))
+        firmware_button.AddLink(_("Full OTA Images for Pixel Phones / Tablets"), FULL_OTA_IMAGES_FOR_PIXEL_DEVICES, images.phone_green_24.GetBitmap())
+        firmware_button.AddLink(_("Factory Images for Pixel Phones / Tablets"), FACTORY_IMAGES_FOR_PIXEL_DEVICES, images.phone_blue_24.GetBitmap())
+        firmware_button.AddLink(_("Full OTA Images for Pixel Watches"), FULL_OTA_IMAGES_FOR_WATCH_DEVICES, images.watch_green_24.GetBitmap())
+        firmware_button.AddLink(_("Factory Images for Pixel Watches"), FACTORY_IMAGES_FOR_WATCH_DEVICES, images.watch_blue_24.GetBitmap())
+        self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_(u"Select a file"), wildcard=_(u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker.SetToolTip(_(u"Select Pixel Firmware"))
+        self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_firmware.SetBitmap(images.process_file_24.GetBitmap())
-        self.process_firmware.SetToolTip(u"Process the firmware file and extract the boot.img")
+        self.process_firmware.SetToolTip(_(u"Process the firmware file and extract the boot.img"))
         firmware_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         firmware_label_sizer.Add(window=firmware_label, proportion=0, flag=wx.ALL, border=5)
         firmware_label_sizer.AddStretchSpacer(1)
@@ -3715,21 +3715,21 @@ class PixelFlasher(wx.Frame):
         self.firmware_sizer.Add(window=self.process_firmware, flag=wx.LEFT, border=5)
 
         # 6th row widgets, custom_rom
-        self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Apply Custom ROM", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
-        self.custom_rom = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.custom_rom.SetToolTip(u"Select Custom ROM")
-        self.process_rom = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Apply Custom ROM"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.custom_rom_checkbox.SetToolTip(_(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM"))
+        self.custom_rom = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_(u"Select a file"), wildcard=_(u"ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.custom_rom.SetToolTip(_(u"Select Custom ROM"))
+        self.process_rom = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_rom.SetBitmap(images.process_file_24.GetBitmap())
-        self.process_rom.SetToolTip(u"Process the ROM file and extract the boot.img")
+        self.process_rom.SetToolTip(_(u"Process the ROM file and extract the boot.img"))
         custom_rom_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_rom_sizer.Add(window=self.custom_rom, proportion=1, flag=wx.EXPAND)
         custom_rom_sizer.Add(window=self.process_rom, flag=wx.LEFT, border=5)
 
         # 7th row widgets, boot.img related widgets
-        self.select_boot_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Select a boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Show All boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_all_boot_checkBox.SetToolTip(u"Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM")
+        self.select_boot_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Select a boot/init_boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Show All boot/init_boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_all_boot_checkBox.SetToolTip(_(u"Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM"))
         # list control
         if self.CharHeight > 20:
             self.il = wx.ImageList(24, 24)
@@ -3739,14 +3739,14 @@ class PixelFlasher(wx.Frame):
             self.idx1 = self.il.Add(images.patched_16.GetBitmap())
         self.list = wx.ListCtrl(parent=panel, id=-1, size=(-1, self.CharHeight * 6), style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
-        self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(1, 'Source SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(2, 'Package Fingerprint  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(3, 'Patched with Magisk  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(4, 'Patch Method  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(5, 'Patched on Device  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(6, 'Date  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(7, 'Package Path  ', wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(0, _('SHA1  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(1, _('Source SHA1  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(2, _('Package Fingerprint  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(3, _('Patched with Magisk  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(4, _('Patch Method  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(5, _('Patched on Device  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(6, _('Date  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(7, _('Package Path  '), wx.LIST_FORMAT_LEFT, -1)
         self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'), wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         if sys.platform != "win32":
             self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
@@ -3772,27 +3772,27 @@ class PixelFlasher(wx.Frame):
             column_widths.append(self.list.GetColumnWidth(i))
         # Create a new list (will be by value and not by reference)
         self.boot_column_widths = list(column_widths)
-        self.flash_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Flash Boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Flash Boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.flash_boot_button.SetBitmap(images.flash_24.GetBitmap())
-        self.flash_boot_button.SetToolTip(u"Flash just the selected item")
-        self.patch_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Patch", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.flash_boot_button.SetToolTip(_(u"Flash just the selected item"))
+        self.patch_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Patch"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.patch_boot_button.SetBitmap(images.patch_24.GetBitmap())
-        self.patch_boot_button.SetToolTip(u"Patch the selected item")
+        self.patch_boot_button.SetToolTip(_(u"Patch the selected item"))
         self.patch_custom_boot_button = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.patch_custom_boot_button.SetBitmap(images.custom_patch_24.GetBitmap())
-        self.patch_custom_boot_button.SetToolTip(u"Custom Patch\n\nSelect a file from disk to patch, and then save the patched file to disk.\nUse this if you want to patch a manually extracted boot image.")
-        self.delete_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Delete", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.patch_custom_boot_button.SetToolTip(_(u"Custom Patch\n\nSelect a file from disk to patch, and then save the patched file to disk.\nUse this if you want to patch a manually extracted boot image."))
+        self.delete_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Delete"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.delete_boot_button.SetBitmap(images.delete_24.GetBitmap())
-        self.delete_boot_button.SetToolTip(u"Delete the selected item")
-        self.boot_folder_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Open Folder", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.delete_boot_button.SetToolTip(_(u"Delete the selected item"))
+        self.boot_folder_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Open Folder"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.boot_folder_button.SetBitmap(images.folder_24.GetBitmap())
-        self.boot_folder_button.SetToolTip(u"Open boot files folder.")
+        self.boot_folder_button.SetToolTip(_(u"Open boot files folder."))
         self.firmware_folder_button = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.firmware_folder_button.SetBitmap(images.folder_24.GetBitmap())
-        self.firmware_folder_button.SetToolTip(u"Open Working Directory\n\nOpens the firmware working directory.\nUse this if you want to manually run commands from the working directory")
-        self.live_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Live Boot", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.firmware_folder_button.SetToolTip(_(u"Open Working Directory\n\nOpens the firmware working directory.\nUse this if you want to manually run commands from the working directory"))
+        self.live_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Live Boot"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.live_boot_button.SetBitmap(images.boot_24.GetBitmap())
-        self.live_boot_button.SetToolTip(u"Live boot to the selected item")
+        self.live_boot_button.SetToolTip(_(u"Live boot to the selected item"))
         boot_label_v_sizer = wx.BoxSizer(wx.VERTICAL)
         boot_label_v_sizer.Add(window=self.select_boot_label, flag=wx.ALL, border=0)
         boot_label_v_sizer.AddSpacer(10)
@@ -3814,24 +3814,24 @@ class PixelFlasher(wx.Frame):
         list_sizer.Add(image_buttons_sizer, proportion=0, flag=wx.ALL|wx.EXPAND)
 
         # 8th row widgets (Flash Mode)
-        mode_label = wx.StaticText(panel, label=u"Flash Mode")
+        mode_label = wx.StaticText(panel, label= _(u"Flash Mode"))
         self.mode_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         # _add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
-        _add_mode_radio_button(sizer=self.mode_sizer, index=0, flash_mode='keepData', label="Keep Data", tooltip="Data will be kept intact.")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label="WIPE all data", tooltip="CAUTION: This will wipe your data")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label="Dry Run", tooltip="Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label="Full OTA", tooltip="Flash full OTA, and have the choice of flashing patched image(s).")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label="Custom Flash", tooltip="Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file.")
+        _add_mode_radio_button(sizer=self.mode_sizer, index=0, flash_mode='keepData', label=_("Keep Data"), tooltip=_("Data will be kept intact."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label=_("WIPE all data"), tooltip=_("CAUTION: This will wipe your data"))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label=_("Dry Run"), tooltip=_("Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label=_("Full OTA"), tooltip=_("Flash full OTA, and have the choice of flashing patched image(s)."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label=_("Custom Flash"), tooltip=_("Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file."))
 
 
         # 9th row widgets (custom flash)
-        self.live_boot_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=u"Live Boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.RB_GROUP)
+        self.live_boot_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=_(u"Live Boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.RB_GROUP)
         self.live_boot_radio_button.Enable(False)
-        self.live_boot_radio_button.SetToolTip(u"Live Boot to selected boot / init_boot")
-        self.flash_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=u"Flash", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.live_boot_radio_button.SetToolTip(_(u"Live Boot to selected boot / init_boot"))
+        self.flash_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=_(u"Flash"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.flash_radio_button.SetValue(True)
         self.flash_radio_button.Enable(False)
-        self.flash_radio_button.SetToolTip(u"Flashes the selected boot / init_boot")
+        self.flash_radio_button.SetToolTip(_(u"Flashes the selected boot / init_boot"))
         custom_advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_advanced_options_sizer.Add(window=self.live_boot_radio_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         custom_advanced_options_sizer.Add(window=self.flash_radio_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
@@ -3840,10 +3840,10 @@ class PixelFlasher(wx.Frame):
         image_choices = [ u"boot", u"init_boot", u"bootloader", u"cache", u"dtbo", u"dts", u"odm", u"odm_dlkm", u"product", u"pvmfw", u"radio", u"recovery", u"super", u"super_empty", u"system", u"system_dlkm", u"system_ext", u"system_other", u"userdata", u"vbmeta", u"vbmeta_system", u"vbmeta_vendor", u"vendor", u"vendor_boot", u"vendor_dlkm", u"vendor_kernel_boot", u"vendor_other", u"image", u"SIDELOAD" ]
         self.image_choice = wx.Choice(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=image_choices, style=0)
         self.image_choice.SetSelection(-1)
-        self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Flashable files (*.img;*.zip)|*.img;*.zip", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_(u"Select a file"), wildcard=_(u"Flashable files (*.img;*.zip)|*.img;*.zip"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
         self.paste_selection = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.paste_selection.SetBitmap(images.paste_24.GetBitmap())
-        self.paste_selection.SetToolTip(u"Depending on the flash selection, paste the appropriate path as custom image.")
+        self.paste_selection.SetToolTip(_(u"Depending on the flash selection, paste the appropriate path as custom image."))
         custom_flash_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_flash_sizer.Add(window=self.image_choice, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         custom_flash_sizer.Add(window=self.image_file_picker, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
@@ -3851,25 +3851,25 @@ class PixelFlasher(wx.Frame):
 
 
         # 10th row widgets, Flash options
-        self.advanced_options_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Flash Options")
-        self.flash_to_inactive_slot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to inactive slot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.flash_to_inactive_slot_checkBox.SetToolTip(u"This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact.")
-        self.flash_both_slots_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to both slots", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.flash_both_slots_checkBox.SetToolTip(u"This option when checked will flash to both slots.")
-        self.disable_verity_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.disable_verity_checkBox.SetToolTip(u"Disables Verity")
-        self.disable_verification_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verification", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.disable_verification_checkBox.SetToolTip(u"Disables Verification")
-        self.fastboot_force_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Force", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.fastboot_force_checkBox.SetToolTip(u"Force a flash operation that may be unsafe (will wipe your data)")
-        self.fastboot_verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Verbose", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.fastboot_verbose_checkBox.SetToolTip(u"Set fastboot option to verbose")
-        self.temporary_root_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Temporary Root", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if Magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image.")
-        self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"No reboot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
-        self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Wipe", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.wipe_checkBox.SetToolTip(u"This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.")
+        self.advanced_options_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Flash Options"))
+        self.flash_to_inactive_slot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Flash to inactive slot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_to_inactive_slot_checkBox.SetToolTip(_(u"This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact."))
+        self.flash_both_slots_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Flash to both slots"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_both_slots_checkBox.SetToolTip(_(u"This option when checked will flash to both slots."))
+        self.disable_verity_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Disable Verity"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verity_checkBox.SetToolTip(_(u"Disables Verity"))
+        self.disable_verification_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Disable Verification"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verification_checkBox.SetToolTip(_(u"Disables Verification"))
+        self.fastboot_force_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Force"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.fastboot_force_checkBox.SetToolTip(_(u"Force a flash operation that may be unsafe (will wipe your data)"))
+        self.fastboot_verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Verbose"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.fastboot_verbose_checkBox.SetToolTip(_(u"Set fastboot option to verbose"))
+        self.temporary_root_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Temporary Root"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.temporary_root_checkBox.SetToolTip(_(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if Magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image."))
+        self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"No reboot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.no_reboot_checkBox.SetToolTip(_(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot."))
+        self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Wipe"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.wipe_checkBox.SetToolTip(_(u"This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time."))
         self.advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -3882,21 +3882,21 @@ class PixelFlasher(wx.Frame):
         self.advanced_options_sizer.Add(window=self.wipe_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         # 11th row widgets, Flash button
-        self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Pixel Phone", pos=wx.DefaultPosition, size=wx.Size(-1, 50))
+        self.flash_button = wx.Button(parent=panel, id=-1, label=_("Flash Pixel Phone"), pos=wx.DefaultPosition, size=wx.Size(-1, 50))
         self.flash_button.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.flash_button.SetToolTip(u"Flashes the selected device with chosen flash options.")
+        self.flash_button.SetToolTip(_(u"Flashes the selected device with chosen flash options."))
         self.flash_button.SetBitmap(images.flash_32.GetBitmap())
 
         # 12th row widgets, console
-        console_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Console", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        console_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Console"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spinner = wx.ActivityIndicator(panel, -1, size=(100, 100), style=0)
-        self.spinner_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Please be patient ...", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spinner_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Please be patient ..."), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spinner_label.SetForegroundColour((255,0,0))
         self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Support", size=wx.Size(-1, 50), style=0)
+        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Support"), size=wx.Size(-1, 50), style=0)
         self.support_button.SetBitmap(images.support_24.GetBitmap())
         self.support_button.SetBitmapMargins(wx.Size(10, -1))
-        self.support_button.SetToolTip(u"Create sanitized support.zip file\nAll sensitive data is redacted.\n\nThis if absolutely required when asking for help.")
+        self.support_button.SetToolTip(_(u"Create sanitized support.zip file\nAll sensitive data is redacted.\n\nThis if absolutely required when asking for help."))
         console_v_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL, border=0)
         console_v_sizer.AddSpacer(40)
@@ -3917,9 +3917,9 @@ class PixelFlasher(wx.Frame):
                 self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
         # 13th row widgets, debug and clear button
-        self.verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Debug", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.verbose_checkBox.SetToolTip(u"Enable Debug Messages in the console.")
-        clear_button = wx.Button(parent=panel, id=-1, label="Clear Console", pos=wx.DefaultPosition)
+        self.verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Debug"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.verbose_checkBox.SetToolTip(_(u"Enable Debug Messages in the console."))
+        clear_button = wx.Button(parent=panel, id=-1, label=_("Clear Console"), pos=wx.DefaultPosition)
 
         # add the rows to flexgrid
         fgs1.AddMany([
@@ -4087,9 +4087,9 @@ class GlobalArgs():
 # ============================================================================
 def parse_arguments():
     # sourcery skip: inline-immediately-returned-variable
-    parser = argparse.ArgumentParser(description="Process command-line arguments")
-    parser.add_argument("-c", "--config", help="Path to the configuration file")
-    parser.add_argument("-l", "--console", action="store_true", help="Log to console as well")
+    parser = argparse.ArgumentParser(description=_("Process command-line arguments"))
+    parser.add_argument("-c", "--config", help=_("Path to the configuration file"))
+    parser.add_argument("-l", "--console", action="store_true", help=_("Log to console as well"))
     args  = parser.parse_args()
     return args
 
@@ -4105,7 +4105,7 @@ def open_device_image_download_link(url):
                 hardware = device.hardware
             else:
                 hardware = ''
-        print(f"Launching browser for Google image download URL: {url}#{hardware}")
+        print(_(f"Launching browser for Google image download URL: %s#%s") % (url, hardware))
         webbrowser.open_new(f"{url}#{hardware}")
         puml(f":Open Link;\nnote right\n=== {hardware} Firmware Link\n[[{url}#{hardware}]]\nend note\n", True)
     except Exception as e:
@@ -4133,7 +4133,7 @@ def main():
         global_args = parse_arguments()
     except SystemExit:
         # Handle the case where parsing arguments fails
-        print("Failed to parse command-line arguments.")
+        print(_("Failed to parse command-line arguments."))
         return
 
     app = App(global_args, False)

@@ -11,15 +11,11 @@ from runtime import get_bundle_dir
 from runtime import check_latest_version
 from packaging.version import parse
 import gettext
-
-gettext.bindtextdomain('PixelFlasher', 'locales')
-gettext.textdomain('PixelFlasher')
 _ = gettext.gettext
-t = gettext.translation('PixelFlasher', localedir='locales', languages=['ru'])
-t.install()
+
 
 class AboutDlg(wx.Dialog):
-    text = '''
+    text = _('''
 <html>
 <body bgcolor="#DCDCDC" style="font-family: Arial; background-color: #DCDCDC;">
 <center>
@@ -27,7 +23,7 @@ class AboutDlg(wx.Dialog):
 
     <h1>PixelFlasher</h1>
     <p>By Badabing</p>
-    <h3>"Version {1}</h3>
+    <h3>Version {1}</h3>
 
     {2}
 
@@ -47,7 +43,7 @@ class AboutDlg(wx.Dialog):
 </center>
 </body>
 </html>
-'''
+''')
 
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, _("About PixelFlasher"))

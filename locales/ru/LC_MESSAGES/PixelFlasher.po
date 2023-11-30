@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PixelFlasher\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-11-28 20:22+0400\n"
-"PO-Revision-Date: 2023-11-28 22:43+0400\n"
+"POT-Creation-Date: 2023-11-28 23:30+0400\n"
+"PO-Revision-Date: 2023-11-28 23:51+0400\n"
 "Last-Translator: Camellan <camellan@yandex.ru>\n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -17,10 +17,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.13.1\n"
 "X-Generator: Poedit 3.4.1\n"
-"X-Poedit-Basepath: ..\n"
+"X-Poedit-Basepath: ../../..\n"
+"X-Poedit-KeywordsList: '''\n"
 "X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: .github\n"
+"X-Poedit-SearchPathExcluded-1: .venv\n"
+"X-Poedit-SearchPathExcluded-2: .vscode\n"
+"X-Poedit-SearchPathExcluded-3: __pycache__\n"
+"X-Poedit-SearchPathExcluded-4: locales\n"
+"X-Poedit-SearchPathExcluded-5: images\n"
+"X-Poedit-SearchPathExcluded-6: bin\n"
 
-#: About.py:22
+#: About.py:20
+#, python-brace-format
 msgid ""
 "\n"
 "<html>\n"
@@ -82,7 +91,7 @@ msgstr ""
 "\n"
 "    <p>\n"
 "        <wxp module=\"wx\" class=\"Button\">\n"
-"            <param name=\"label\" value=\"Close\">\n"
+"            <param name=\"label\" value=\"Закрыть\">\n"
 "            <param name=\"id\" value=\"ID_OK\">\n"
 "        </wxp>\n"
 "    </p>\n"
@@ -90,17 +99,69 @@ msgstr ""
 "</body>\n"
 "</html>\n"
 
-#: About.py:53
+#: About.py:51
 msgid "About PixelFlasher"
 msgstr "О PixelFlasher"
 
-#: About.py:63
+#: About.py:59
+#, python-brace-format
+msgid ""
+"<p><b>Update </b> <a style=\"color: #004CE5;\" href=\"https://github.com/"
+"badabing2005/PixelFlasher/releases/latest\">Version v{l_version}</a> is "
+"available.</p>"
+msgstr ""
+"<p><b>Обновление </b> <a style=\"color: #004CE5;\" href=\"https://github.com/"
+"badabing2005/PixelFlasher/releases/latest\">Версия {l_version}</a> уже "
+"доступно.</p>"
+
+#: About.py:61
 msgid "<p> You're up to date! </p>"
 msgstr "<p> Это новейшая версия! </p>"
+
+#: Main.py:111
+#, python-brace-format
+msgid "Selected link: {url}"
+msgstr ""
+
+#: Main.py:160
+#, python-brace-format
+msgid "PixelFlasher {VERSION} started on {t}"
+msgstr ""
+
+#: Main.py:162
+#, python-brace-format
+msgid "#palegreen:PixelFlasher {VERSION} started;\n"
+msgstr "#palegreen:старт PixelFlasher {VERSION};\n"
+
+#: Main.py:165
+#, python-brace-format
+msgid "Platform: {sys.platform}"
+msgstr ""
+
+#: Main.py:166
+#, python-brace-format
+msgid "note left:Platform: {sys.platform}\n"
+msgstr ""
+
+#: Main.py:169
+msgid "System Timezone: {time.tzname} Offset: {timezone_offset / 60 / 60 * -1}"
+msgstr ""
+
+#: Main.py:170
+msgid "Configuration Folder Path: {get_config_path()}"
+msgstr ""
+
+#: Main.py:171
+msgid "Configuration File Path: {get_config_file_path()}"
+msgstr ""
 
 #: Main.py:173
 msgid ":Loading Configuration;\n"
 msgstr ":Загрузка конфигурации;\n"
+
+#: Main.py:174
+msgid "note left: {get_config_path()}\n"
+msgstr ""
 
 #: Main.py:180
 msgid "First Run: No previous configuration file is found."
@@ -114,6 +175,34 @@ msgstr "примечание справа\n"
 msgid "end note\n"
 msgstr "примечание в конце\n"
 
+#: Main.py:194
+msgid "System Default Encoding: {sys.getdefaultencoding()}"
+msgstr ""
+
+#: Main.py:195
+msgid "File System Encoding:    {sys.getfilesystemencoding()}"
+msgstr "Кодировка файловой системы:    {sys.getfilesystemencoding()}"
+
+#: Main.py:199
+msgid "Bundle Directory: {get_bundle_dir()}"
+msgstr ""
+
+#: Main.py:206
+#, python-brace-format
+msgid ""
+"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}"
+msgstr ""
+
+#: Main.py:209
+msgid "Available Free Disk on system drive: {str(get_free_space())} GB"
+msgstr ""
+
+#: Main.py:210
+msgid ""
+"Available Free Disk on PixelFlasher data drive: "
+"{str(get_free_space(get_config_path()))} GB\n"
+msgstr ""
+
 #: Main.py:262
 msgid "Using previously stored firmware SHA-256 ..."
 msgstr "Использование ранее сохраненной SHA-256 прошивки ..."
@@ -122,6 +211,31 @@ msgstr "Использование ранее сохраненной SHA-256 п�
 msgid "Computing firmware SHA-256 ..."
 msgstr "Вычисление SHA-256 прошивки ..."
 
+#: Main.py:268
+#, python-brace-format
+msgid "Firmware SHA-256: {firmware_hash}"
+msgstr "SHA256 прошивки: {firmware_hash}"
+
+#: Main.py:272
+msgid ""
+"Expected to match {firmware_hash[:8]} in the firmware filename and did. This "
+"is good!"
+msgstr ""
+"Ожидал найти {firmware_hash[:8]} в имени файла прошивки и нашел. Это хорошо!"
+
+#: Main.py:273
+#, python-brace-format
+msgid ""
+"#CDFFC8:Checksum matches portion of the firmware filename {self.config."
+"firmware_path};\n"
+msgstr ""
+
+#: Main.py:277
+msgid ""
+"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but "
+"didn't, please double check to make sure the checksum is good."
+msgstr ""
+
 #: Main.py:278
 msgid "#orange:Unable to match the checksum in the filename;\n"
 msgstr "#orange:Невозможно сопоставить контрольную сумму в имени файла;\n"
@@ -129,6 +243,14 @@ msgstr "#orange:Невозможно сопоставить контрольну
 #: Main.py:279
 msgid "Firmware SHA256"
 msgstr "SHA256 прошивки"
+
+#: Main.py:291
+msgid ""
+"Android Platform Tools\n"
+"Version {get_sdk_version()}"
+msgstr ""
+"Android Platform Tools\n"
+"версии {get_sdk_version()}"
 
 #: Main.py:331
 msgid ""
@@ -150,11 +272,37 @@ msgstr "Это может занять некоторое время, пожал
 msgid "Populate device list"
 msgstr "Заполнение списка устройств"
 
+#: Main.py:339
+#, python-brace-format
+msgid ""
+"note right\n"
+"{d_list_string}\n"
+"end note\n"
+msgstr ""
+
 #: Main.py:342
 msgid "select configured device"
 msgstr "выбор настроенного устройства"
 
-#: Main.py:453 Main.py:768 Main.py:899
+#: Main.py:349
+#, python-brace-format
+msgid ""
+"\n"
+"A newer PixelFlasher v{l_version} can be downloaded from:"
+msgstr ""
+"\n"
+"Более новую версию PixelFlasher v{l_version} можно загрузить с сайта:"
+
+#: Main.py:356
+msgid "Load time: {math.ceil(end - start)} seconds"
+msgstr "Время загрузки: {math.ceil(end - start)} секунд"
+
+#: Main.py:432
+#, python-brace-format
+msgid "Welcome to PixelFlasher {VERSION}"
+msgstr "Добро пожаловать в PixelFlasher {VERSION}"
+
+#: Main.py:453 Main.py:782 Main.py:931
 msgid "Install APK"
 msgstr "Установить APK"
 
@@ -166,7 +314,7 @@ msgstr "Установка APK на устройство"
 msgid "App Manager"
 msgstr "Менеджер приложений"
 
-#: Main.py:459 Main.py:772 Main.py:900
+#: Main.py:459 Main.py:790 Main.py:932
 msgid "Package Manager"
 msgstr "Менеджер пакетов"
 
@@ -174,7 +322,7 @@ msgstr "Менеджер пакетов"
 msgid "Manage Apps / Packages"
 msgstr "Управление приложениями / пакетами"
 
-#: Main.py:469 Main.py:778 Main.py:901
+#: Main.py:469 Main.py:796 Main.py:933
 msgid "ADB Shell"
 msgstr "ADB Shell"
 
@@ -182,23 +330,23 @@ msgstr "ADB Shell"
 msgid "Open ADB shell to the device."
 msgstr "Открыть ADB shell на устройстве."
 
-#: Main.py:469 Main.py:778
+#: Main.py:469 Main.py:796
 msgid "Open adb shell to the device"
 msgstr "Открывает adb shell на устройстве"
 
-#: Main.py:475 Main.py:782 Main.py:902
+#: Main.py:475 Main.py:800 Main.py:934
 msgid "Scrcpy"
 msgstr "Scrcpy"
 
-#: Main.py:475 Main.py:782
+#: Main.py:475 Main.py:800
 msgid "Launch Screen Copy"
 msgstr "Запуск Screen Copy"
 
-#: Main.py:481 Main.py:786 Main.py:903
+#: Main.py:481 Main.py:804 Main.py:935
 msgid "Device Info"
 msgstr "Информация об устройстве"
 
-#: Main.py:481 Main.py:786
+#: Main.py:481 Main.py:804
 msgid "Dump Full Device Info"
 msgstr "Получить полную информацию об устройстве"
 
@@ -210,7 +358,7 @@ msgstr "Разделы"
 msgid "Partition Manager"
 msgstr "Менеджер разделов"
 
-#: Main.py:503 Main.py:800 Main.py:906
+#: Main.py:503 Main.py:822 Main.py:938
 msgid "Switch Slot"
 msgstr "Переключить слот"
 
@@ -218,7 +366,7 @@ msgstr "Переключить слот"
 msgid "Switch to the other Slot"
 msgstr "Переключение на другой слот"
 
-#: Main.py:511 Main.py:807
+#: Main.py:511 Main.py:829
 msgid "System"
 msgstr "Система"
 
@@ -226,7 +374,7 @@ msgstr "Система"
 msgid "Reboot to System"
 msgstr "Перезагрузка в систему"
 
-#: Main.py:517 Main.py:808
+#: Main.py:517 Main.py:830
 msgid "Bootloader"
 msgstr "Bootloader"
 
@@ -242,7 +390,7 @@ msgstr "fastbootd"
 msgid "Reboot to userspace fastboot (fastbootd)"
 msgstr "Перезагрузка в fastboot (fastbootd)"
 
-#: Main.py:529 Main.py:810
+#: Main.py:529 Main.py:832
 msgid "Recovery"
 msgstr "Recovery"
 
@@ -250,7 +398,7 @@ msgstr "Recovery"
 msgid "Reboot to Recovery"
 msgstr "Перезагрузка в Recovery"
 
-#: Main.py:535 Main.py:811
+#: Main.py:535 Main.py:833
 msgid "Safe Mode"
 msgstr "Безопасный режим"
 
@@ -258,7 +406,7 @@ msgstr "Безопасный режим"
 msgid "Reboot to Safe Mode"
 msgstr "Перезагрузка в безопасный режим"
 
-#: Main.py:541 Main.py:812
+#: Main.py:541 Main.py:834
 msgid "Download"
 msgstr "Download"
 
@@ -266,7 +414,7 @@ msgstr "Download"
 msgid "Reboot to Download Mode"
 msgstr "Перезагрузка в Download Mode"
 
-#: Main.py:547 Main.py:813
+#: Main.py:547 Main.py:835
 msgid "Sideload"
 msgstr "Sideload"
 
@@ -274,15 +422,15 @@ msgstr "Sideload"
 msgid "Reboot to Sideload Mode"
 msgstr "Перезагрузка в Sideload"
 
-#: Main.py:557 Main.py:833 Main.py:914
+#: Main.py:557 Main.py:865 Main.py:946
 msgid "Magisk"
 msgstr "Magisk"
 
-#: Main.py:557 Main.py:833
+#: Main.py:557 Main.py:865
 msgid "Manage Magisk modules and settings"
 msgstr "Управление модулями и настройками Magisk"
 
-#: Main.py:563 Main.py:837 Main.py:915
+#: Main.py:563 Main.py:869 Main.py:947
 msgid "Install Magisk"
 msgstr "Установка Magisk"
 
@@ -294,11 +442,11 @@ msgstr "Скачать и установить Magisk Manager"
 msgid "Magisk Backup"
 msgstr "Magisk Backup"
 
-#: Main.py:569 Main.py:841 Main.py:916
+#: Main.py:569 Main.py:873 Main.py:948
 msgid "Magisk Backup Manager"
 msgstr "Magisk Backup Manager"
 
-#: Main.py:575 Main.py:845 Main.py:917
+#: Main.py:575 Main.py:877 Main.py:949
 msgid "SOS"
 msgstr "SOS"
 
@@ -320,7 +468,7 @@ msgstr ""
 msgid "Lock"
 msgstr "Заблокировать"
 
-#: Main.py:585 Main.py:851 Main.py:918
+#: Main.py:585 Main.py:883 Main.py:950
 msgid "Lock Bootloader"
 msgstr "Блокировка загрузчика"
 
@@ -340,7 +488,7 @@ msgstr ""
 msgid "UnLock Bootloader"
 msgstr "Разблокировать загрузчик"
 
-#: Main.py:603 Main.py:754
+#: Main.py:603 Main.py:768
 msgid "Settings"
 msgstr "Настройки"
 
@@ -360,223 +508,260 @@ msgstr "Создание файла для поддержки"
 msgid "Exception occurred while building the toolbar:"
 msgstr "При построении панели инструментов возникло исключение:"
 
-#: Main.py:761
+#: Main.py:689
+#, python-brace-format
+msgid "UNKNOWN tool id: {id}"
+msgstr "Неизвестный идентификатор инструмента: {id}"
+
+#: Main.py:706
+#, python-brace-format
+msgid ""
+"Device Info:\n"
+"------------\n"
+"{device.device_info}"
+msgstr ""
+"Информация об устройстве:\n"
+"------------\n"
+"{device.device_info}"
+
+#: Main.py:708
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting "
+"device info"
+msgstr ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ОШИБКА: Возникла ошибка при получении "
+"информации об устройстве"
+
+#: Main.py:775
 msgid "E&xit\tCtrl-Q"
 msgstr "Вы&ход\tCtrl-Q"
 
-#: Main.py:761
+#: Main.py:775
 msgid "Exit PixelFlasher"
 msgstr "Выход из программы PixelFlasher"
 
-#: Main.py:794 Main.py:905
+#: Main.py:816 Main.py:937
 msgid "Partitions Manager"
 msgstr "Менеджер разделов"
 
-#: Main.py:794
+#: Main.py:816
 msgid "Backup / Erase Partitions"
 msgstr "Резервное копирование / стирание разделов"
 
-#: Main.py:800
+#: Main.py:822
 msgid "Switch to the other slot"
 msgstr "Переключение на другой слот"
 
-#: Main.py:809
+#: Main.py:831
 msgid "Fastbootd"
 msgstr "Fastbootd"
 
-#: Main.py:837
+#: Main.py:869
 msgid "Download and Install Magisk"
 msgstr "Скачать и установить Magisk"
 
-#: Main.py:841
+#: Main.py:873
 msgid "Manage Magisk Backups"
 msgstr "Magisk Backup"
 
-#: Main.py:845
+#: Main.py:877
 msgid "Disable Magisk Modules"
 msgstr "Отключить модули Magisk"
 
-#: Main.py:855 Main.py:919
+#: Main.py:887 Main.py:951
 msgid "Unlock Bootloader"
 msgstr "Разблокировать загрузчик"
 
-#: Main.py:855
+#: Main.py:887
 msgid "Unlock Bootloader (Will wipe data)"
 msgstr "Разблокировать загрузчик (сотрет данные)"
 
-#: Main.py:862
+#: Main.py:894
 msgid "Top"
 msgstr "Вверху"
 
-#: Main.py:868
+#: Main.py:900
 msgid "Left"
 msgstr "Слева"
 
-#: Main.py:874
+#: Main.py:906
 msgid "Right"
 msgstr "Справа"
 
-#: Main.py:880
+#: Main.py:912
 msgid "Bottom"
 msgstr "Внизу"
 
-#: Main.py:888
+#: Main.py:920
 msgid "Show Button Text"
 msgstr "Показать текст кнопки"
 
-#: Main.py:892
+#: Main.py:924
 msgid "Show Button Icon"
 msgstr "Показать иконку кнопки"
 
-#: Main.py:907
+#: Main.py:939
 msgid "Reboot System"
 msgstr "Перезагрузка в систему"
 
-#: Main.py:908
+#: Main.py:940
 msgid "Reboot Bootloader"
 msgstr "Перезагрузка в Bootloader"
 
-#: Main.py:909
+#: Main.py:941
 msgid "Reboot Fastbootd"
 msgstr "Перезагрузка в Fastbootd"
 
-#: Main.py:910
+#: Main.py:942
 msgid "Reboot Recovery"
 msgstr "Перезагрузка в Recovery"
 
-#: Main.py:911
+#: Main.py:943
 msgid "Reboot Safe Mode"
 msgstr "Перезагрузка в безопасный режим"
 
-#: Main.py:912
+#: Main.py:944
 msgid "Reboot Download"
 msgstr "Перезагрузка в Download Mode"
 
-#: Main.py:913
+#: Main.py:945
 msgid "Reboot Sideload"
 msgstr "Перезагрузка в Sideload"
 
-#: Main.py:920
+#: Main.py:952
 msgid "Configuration"
 msgstr "Конфигурация"
 
-#: Main.py:922
+#: Main.py:954
 msgid "Show / Hide Buttons"
 msgstr "Показать/скрыть кнопки"
 
-#: Main.py:951
+#: Main.py:983
 msgid "Report an Issue"
 msgstr "Сообщить о проблеме"
 
-#: Main.py:955
+#: Main.py:987
 msgid "Feature Request"
 msgstr "Запрос функции"
 
-#: Main.py:959
+#: Main.py:991
 msgid "PixelFlasher Project Page"
 msgstr "Страница проекта PixelFlasher"
 
-#: Main.py:963
+#: Main.py:995
 msgid "PixelFlasher Community (Forum)"
 msgstr "Сообщество PixelFlasher (Форум)"
 
-#: Main.py:970
+#: Main.py:1002
 msgid "Homeboy76's Guide"
 msgstr "Руководство от Homeboy76"
 
-#: Main.py:971
+#: Main.py:1003
 msgid "V0latyle's Guide"
 msgstr "Руководство от V0latyle"
 
-#: Main.py:972
+#: Main.py:1004
 msgid "roirraW's Guide"
 msgstr "руководство от roirraW"
 
-#: Main.py:973
+#: Main.py:1005
 msgid "kdrag0n's safetynet-fix"
 msgstr "kdrag0n's safetynet-fix"
 
-#: Main.py:974
+#: Main.py:1006
 msgid "Displax's safetynet-fix"
 msgstr "Displax's safetynet-fix"
 
-#: Main.py:975
+#: Main.py:1007
 msgid "Get the Google USB Driver"
 msgstr "Получить драйвер Google USB"
 
-#: Main.py:976
+#: Main.py:1008
 msgid "Android Security Update Bulletins"
 msgstr "Бюллетени обновлений безопасности Android"
 
-#: Main.py:991
+#: Main.py:1023
 msgid "Links"
 msgstr "Ссылки"
 
-#: Main.py:996
+#: Main.py:1028
 msgid "Open Configuration Folder"
 msgstr "Открыть папку конфигурации"
 
-#: Main.py:1001
+#: Main.py:1033
 msgid "Open PixelFlasher Working Directory"
 msgstr "Откройте рабочий каталог PixelFlasher"
 
-#: Main.py:1005
+#: Main.py:1037
 msgid "Create a Sanitized support.zip"
 msgstr "Создание файла support.zip для поддержки"
 
-#: Main.py:1011
+#: Main.py:1043
 msgid "Check for New Version"
 msgstr "Проверка наличия новой версии"
 
-#: Main.py:1017
+#: Main.py:1049
 msgid "&About PixelFlasher"
 msgstr "&О PixelFlasher"
 
-#: Main.py:1017
+#: Main.py:1049
 msgid "About"
 msgstr "О программе"
 
-#: Main.py:1022
+#: Main.py:1054
 msgid "&File"
 msgstr "&Файл"
 
-#: Main.py:1024
+#: Main.py:1056
 msgid "&Device"
 msgstr "&Устройство"
 
-#: Main.py:1026
+#: Main.py:1058
 msgid "&Toolbar"
 msgstr "&Панель инструментов"
 
-#: Main.py:1028
+#: Main.py:1060
 msgid "&Help"
 msgstr "&Помощь"
 
-#: Main.py:1032
+#: Main.py:1064
 msgid "Test1"
 msgstr "Тест1"
 
-#: Main.py:1034
+#: Main.py:1066
 msgid "&Test"
 msgstr "&Тест"
 
-#: Main.py:1178
+#: Main.py:1210
 msgid "Entering Advanced Configuration ..."
 msgstr "Вход в расширенную конфигурацию ..."
 
-#: Main.py:1223
+#: Main.py:1244
+msgid "{datetime.now():%Y-%m-%d %H:%M:%S} Closing Package Manager ...\n"
+msgstr ""
+
+#: Main.py:1255
 msgid "ERROR: Please select a device before attempting APK Installation"
 msgstr "ОШИБКА: Пожалуйста, выберите устройство перед попыткой установки APK"
 
-#: Main.py:1224
+#: Main.py:1256
 msgid "APK Install"
 msgstr "Установка APK"
 
-#: Main.py:1227
+#: Main.py:1259
 msgid "Select APK file to install"
 msgstr "Выберите APK-файл для установки"
 
-#: Main.py:1235
+#: Main.py:1265
+#, python-brace-format
+msgid ""
+"\n"
+"Selected {pathname} for installation."
+msgstr ""
+
+#: Main.py:1267
 msgid ""
 "Do you want to set the ownership to Play Store Market?\n"
 "Note: Android auto apps require that they be installed from the Play Market."
@@ -585,23 +770,28 @@ msgstr ""
 "Примечание: Приложения для Android auto должны быть установлены из Play "
 "Market."
 
-#: Main.py:1235
+#: Main.py:1267
 msgid "APK Installation"
 msgstr "Установка APK"
 
-#: Main.py:1243
+#: Main.py:1275
 msgid "note right:Set ownership to Play Store;\n"
 msgstr "note right:Установите принадлежность к Play Store;\\n\n"
 
-#: Main.py:1248
+#: Main.py:1280
 msgid "note right:Cancelled APK installation;\n"
 msgstr "note right:Отмена установки APK;\\n\n"
 
-#: Main.py:1249
+#: Main.py:1281
 msgid "User cancelled apk installation."
 msgstr "Пользователь отменил установку apk."
 
-#: Main.py:1271
+#: Main.py:1284
+#, python-brace-format
+msgid "Cannot install file '{pathname}'."
+msgstr ""
+
+#: Main.py:1342
 msgid ""
 "#palegreen:Exit PixelFlasher;\n"
 "end\n"
@@ -611,7 +801,15 @@ msgstr ""
 "end\n"
 "@enduml\n"
 
-#: Main.py:1306
+#: Main.py:1366 Main.py:1379 Main.py:1392 Main.py:1405 Main.py:1431
+#: Main.py:1444 Main.py:1457 Main.py:1470 Main.py:1483 Main.py:1496
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening "
+"a link"
+msgstr ""
+
+#: Main.py:1377
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -620,7 +818,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1319
+#: Main.py:1390
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -629,7 +827,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1332
+#: Main.py:1403
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -639,7 +837,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1345
+#: Main.py:1416
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -650,7 +848,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1358
+#: Main.py:1429
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -660,7 +858,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1371
+#: Main.py:1442
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -671,7 +869,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1384
+#: Main.py:1455
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -680,7 +878,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1397
+#: Main.py:1468
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -689,8 +887,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1410
-#, python-format
+#: Main.py:1481
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -699,7 +896,7 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1423
+#: Main.py:1494
 msgid ""
 ":Open Link;\n"
 "note right\n"
@@ -708,32 +905,345 @@ msgid ""
 "end note\n"
 msgstr ""
 
-#: Main.py:1458
+#: Main.py:1508
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening "
+"configuration folder"
+msgstr ""
+
+#: Main.py:1520
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening "
+"PixelFlasher working directory"
+msgstr ""
+
+#: Main.py:1529
 msgid "Save support file"
 msgstr "Сохранить файл для поддержки"
 
-#: Main.py:1458
+#: Main.py:1529
 msgid "Support files (*.zip)|*.zip"
 msgstr "Файлы поддержки (*.zip)|*.zip"
 
-#: Main.py:1522
+#: Main.py:1542
+#, python-brace-format
+msgid "Saving support file to: {pathname}"
+msgstr "Сохранение файла поддержки в : {pathname}"
+
+#: Main.py:1547
+#, python-brace-format
+msgid "Saved support file to: {pathname}"
+msgstr "Файла поддержки сохранён в : {pathname}"
+
+#: Main.py:1549
+#, python-brace-format
+msgid "Cannot save current data in file '{pathname}'."
+msgstr ""
+
+#: Main.py:1593
 msgid "Entrering Test function (used during development only) ..."
 msgstr ""
 "Ввод функции тестирования (используется только во время разработки) ..."
 
-#: Main.py:1699
+#: Main.py:1707
+msgid "Selected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:\n"
+msgstr ""
+
+#: Main.py:1708
+#, python-brace-format
+msgid "    Device ID:                       {device.id}\n"
+msgstr "    ИД устройства:                       {device.id}\n"
+
+#: Main.py:1709
+#, python-brace-format
+msgid "    Device Model:                    {device.hardware}\n"
+msgstr "    Модель:                    {device.hardware}\n"
+
+#: Main.py:1710
+#, python-brace-format
+msgid "    Device Active Slot:              {device.active_slot}\n"
+msgstr "    Активный слот:              {device.active_slot}\n"
+
+#: Main.py:1711
+#, python-brace-format
+msgid "    Device Mode:                     {device.true_mode}\n"
+msgstr "    Режим устройства:                     {device.true_mode}\n"
+
+#: Main.py:1716
+msgid "    Device:                          {android_device['device']}\n"
+msgstr "    Устройство:                          {android_device['device']}\n"
+
+#: Main.py:1717
+msgid ""
+"    Device Version End Date:         "
+"{android_device['android_version_end_date']}\n"
+msgstr ""
+"    Дата окончания версии устройства:         "
+"{android_device['android_version_end_date']}\n"
+
+#: Main.py:1718
+msgid ""
+"    Device Secuity Update End Date:  "
+"{android_device['security_update_end_date']}\n"
+msgstr ""
+"    Дата окончания обновления безопасности устройства:  "
+"{android_device['security_update_end_date']}\n"
+
+#: Main.py:1719
+#, python-brace-format
+msgid "    Has init_boot partition:         {device.has_init_boot}\n"
+msgstr "    Имеется раздел init_boot:         {device.has_init_boot}\n"
+
+#: Main.py:1720
+#, python-brace-format
+msgid "    Device Bootloader Version:       {device.bootloader_version}\n"
+msgstr "    Версия загрузчика устройства:       {device.bootloader_version}\n"
+
+#: Main.py:1722
+#, python-brace-format
+msgid "    Device is Rooted:                {device.rooted}\n"
+msgstr "    Устройство рутировано:                {device.rooted}\n"
+
+#: Main.py:1723
+#, python-brace-format
+msgid "    Device Build:                    {device.build}\n"
+msgstr "    Сборка устройства:                    {device.build}\n"
+
+#: Main.py:1724
+#, python-brace-format
+msgid "    Device API Level:                {device.api_level}\n"
+msgstr "    Уровень API устройства:                {device.api_level}\n"
+
+#: Main.py:1728
+msgid "    Android Version:                 {android_version['Version']}\n"
+msgstr "    Версия Android:                 {android_version['Version']}\n"
+
+#: Main.py:1729
+msgid "    Android Name:                    {android_version['Name']}\n"
+msgstr "    Имя Android:                    {android_version['Name']}\n"
+
+#: Main.py:1730
+msgid "    Android Codename:                {android_version['Codename']}\n"
+msgstr ""
+"    Кодовое имя Android:                {android_version['Codename']}\n"
+
+#: Main.py:1731
+msgid ""
+"    Android Release Date:            {android_version['Release date']}\n"
+msgstr ""
+"    Дата выхода Android:            {android_version['Release date']}\n"
+
+#: Main.py:1732
+msgid ""
+"    Android Latest Update:           {android_version['Latest update']}\n"
+msgstr ""
+"    Последнее обновление Android:           {android_version['Latest "
+"update']}\n"
+
+#: Main.py:1733
+#, python-brace-format
+msgid "    Device Architecture:             {device.architecture}\n"
+msgstr "    Архитектура:             {device.architecture}\n"
+
+#: Main.py:1734
+#, python-brace-format
+msgid "    Device Kernel Version:           {device.ro_kernel_version}\n"
+msgstr "    Ядро:           {device.ro_kernel_version}\n"
+
+#: Main.py:1735
+#, python-brace-format
+msgid "    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
+msgstr "    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
+
+#: Main.py:1736
+#, python-brace-format
+msgid "    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
+msgstr "    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
+
+#: Main.py:1737
+#, python-brace-format
+msgid ""
+"    ro.boot.vbmeta.device_state:     {device.ro_boot_vbmeta_device_state}\n"
+msgstr ""
+"    ro.boot.vbmeta.device_state:     {device.ro_boot_vbmeta_device_state}\n"
+
+#: Main.py:1738
+#, python-brace-format
+msgid ""
+"    vendor.boot.vbmeta.device_state: {device."
+"vendor_boot_vbmeta_device_state}\n"
+msgstr ""
+"    vendor.boot.vbmeta.device_state: {device."
+"vendor_boot_vbmeta_device_state}\n"
+
+#: Main.py:1739
+#, python-brace-format
+msgid ""
+"    ro.product.first_api_level:      {device.ro_product_first_api_level}\n"
+msgstr ""
+"    ro.product.first_api_level:      {device.ro_product_first_api_level}\n"
+
+#: Main.py:1740
+#, python-brace-format
+msgid "    ro.boot.warranty_bit:            {device.ro_boot_warranty_bit}\n"
+msgstr "    ro.boot.warranty_bit:            {device.ro_boot_warranty_bit}\n"
+
+#: Main.py:1741
+#, python-brace-format
+msgid "    ro.boot.veritymode:              {device.ro_boot_veritymode}\n"
+msgstr "    ro.boot.veritymode:              {device.ro_boot_veritymode}\n"
+
+#: Main.py:1742
+#, python-brace-format
+msgid ""
+"    ro.boot.verifiedbootstate:       {device.ro_boot_verifiedbootstate}\n"
+msgstr ""
+"    ro.boot.verifiedbootstate:       {device.ro_boot_verifiedbootstate}\n"
+
+#: Main.py:1743
+#, python-brace-format
+msgid ""
+"    vendor.boot.verifiedbootstate:   {device.vendor_boot_verifiedbootstate}\n"
+msgstr ""
+"    vendor.boot.verifiedbootstate:   {device.vendor_boot_verifiedbootstate}\n"
+
+#: Main.py:1744
+#, python-brace-format
+msgid "    ro.warranty_bit:                 {device.ro_warranty_bit}\n"
+msgstr "    ro.warranty_bit:                 {device.ro_warranty_bit}\n"
+
+#: Main.py:1745
+#, python-brace-format
+msgid "    ro.secure:                       {device.ro_secure}\n"
+msgstr "    ro.secure:                       {device.ro_secure}\n"
+
+#: Main.py:1746
+#, python-brace-format
+msgid "    ro.zygote:                       {device.ro_zygote}\n"
+msgstr "    ro.zygote:                       {device.ro_zygote}\n"
+
+#: Main.py:1747
+#, python-brace-format
+msgid ""
+"    ro.vendor.product.cpu.abilist:   {device.ro_vendor_product_cpu_abilist}\n"
+msgstr ""
+
+#: Main.py:1748
+#, python-brace-format
+msgid ""
+"    ro.vendor.product.cpu.abilist32: {device."
+"ro_vendor_product_cpu_abilist32}\n"
+msgstr ""
+
+#: Main.py:1752
+#, python-brace-format
+msgid "    Magisk Manager Version:          {m_app_version}\n"
+msgstr ""
+
+#: Main.py:1754
+#, python-brace-format
+msgid "    Magisk Path:                     {device.magisk_path}\n"
+msgstr ""
+
+#: Main.py:1755
+#, python-brace-format
+msgid "        Checked for Package:         {self.config.magisk}\n"
+msgstr ""
+
+#: Main.py:1757
+#, python-brace-format
+msgid "    Device Unlocked:                 {device.unlocked}\n"
+msgstr ""
+
+#: Main.py:1759
+#, python-brace-format
+msgid "    Device Unlockable:               {device.unlock_ability}\n"
+msgstr ""
+
+#: Main.py:1760
+#, python-brace-format
+msgid "    slot-retry-count:a:              {device.slot_retry_count_a}\n"
+msgstr ""
+
+#: Main.py:1761
+#, python-brace-format
+msgid "    slot-unbootable:a:               {device.slot_unbootable_a}\n"
+msgstr ""
+
+#: Main.py:1762
+#, python-brace-format
+msgid "    slot-successful:a:               {device.slot_successful_a}\n"
+msgstr ""
+
+#: Main.py:1763
+#, python-brace-format
+msgid "    slot-retry-count:b:              {device.slot_retry_count_b}\n"
+msgstr ""
+
+#: Main.py:1764
+#, python-brace-format
+msgid "    slot-unbootable:b:               {device.slot_unbootable_b}\n"
+msgstr ""
+
+#: Main.py:1765
+#, python-brace-format
+msgid "    slot-successful:b:               {device.slot_successful_b}\n"
+msgstr ""
+
+#: Main.py:1768
+#, python-brace-format
+msgid "    Magisk Version:                  {m_version}\n"
+msgstr ""
+
+#: Main.py:1769
+#, python-brace-format
+msgid "    Magisk Config SHA1:              {device.magisk_sha1}\n"
+msgstr ""
+
+#: Main.py:1770
 msgid "    Magisk Modules:\n"
 msgstr "    Модули Magisk:\n"
 
-#: Main.py:1714
+#: Main.py:1785
 msgid "    vbmeta:                          UNKNOWN\n"
 msgstr "    vbmeta:                          НЕИЗВЕСТНО\n"
 
-#: Main.py:1716
+#: Main.py:1787
 msgid "    vbmeta:                          Not Present\n"
 msgstr "    vbmeta:                          Отсутствует\n"
 
-#: Main.py:1726
+#: Main.py:1790
+#, python-brace-format
+msgid "    vbmeta type:                     {device.vbmeta.type}\n"
+msgstr "    тип vbmeta:                     {device.vbmeta.type}\n"
+
+#: Main.py:1792
+msgid ""
+"    Slot A Verity:                   {enabled_disabled(device.vbmeta."
+"verity_a)}\n"
+msgstr ""
+
+#: Main.py:1793
+msgid ""
+"    Slot A Verification:             {enabled_disabled(device.vbmeta."
+"verification_a)}\n"
+msgstr ""
+
+#: Main.py:1794
+msgid ""
+"    Slot B Verity:                   {enabled_disabled(device.vbmeta."
+"verity_b)}\n"
+msgstr ""
+
+#: Main.py:1795
+msgid ""
+"    Slot B Verification:             {enabled_disabled(device.vbmeta."
+"verification_b)}\n"
+msgstr ""
+
+#: Main.py:1797
 msgid ""
 "    WARNING! WARNING! WARNING!       Slot a verity / verification does not "
 "match slot b verity / verification"
@@ -741,7 +1251,19 @@ msgstr ""
 "    ВНИМАНИЕ! ВНИМАНИЕ! ВНИМАНИЕ!       Верификация/проверка слота a не "
 "соответствует верификации/проверке слота b"
 
-#: Main.py:1732
+#: Main.py:1799
+msgid ""
+"    Verity:                          {enabled_disabled(device.vbmeta."
+"verity_a)}\n"
+msgstr ""
+
+#: Main.py:1800
+msgid ""
+"    Verification:                    {enabled_disabled(device.vbmeta."
+"verification_a)}\n"
+msgstr ""
+
+#: Main.py:1803
 msgid ""
 "    WARNING! WARNING! WARNING!       There is a mismatch of currently "
 "selected vbmeta verity state and device's verity state\n"
@@ -749,7 +1271,7 @@ msgstr ""
 "    ВНИМАНИЕ! ВНИМАНИЕ! ВНИМАНИЕ!       Имеется несоответствие между текущим "
 "состоянием верификации vbmeta и состоянием верификации устройства\n"
 
-#: Main.py:1734
+#: Main.py:1805
 msgid ""
 "    WARNING! WARNING! WARNING!       There is a mismatch of currently "
 "selected vbmeta verification state and device's verification state\n"
@@ -757,7 +1279,7 @@ msgstr ""
 "    ВНИМАНИЕ! ВНИМАНИЕ! ВНИМАНИЕ!       Имеется несоответствие текущего "
 "выбранного состояния проверки vbmeta и состояния проверки устройства\n"
 
-#: Main.py:1735
+#: Main.py:1806
 msgid ""
 "                                     This has a device wipe implications, "
 "please double check."
@@ -765,27 +1287,91 @@ msgstr ""
 "                                     Это связано со сбросом устройства, "
 "пожалуйста, проверьте еще раз."
 
-#: Main.py:1756
+#: Main.py:1810
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while getting vbmeta "
+"data."
+msgstr ""
+
+#: Main.py:1821
+#, python-brace-format
+msgid ""
+"WARNING! Problematic Magisk Version:         {m_version} is installed. "
+"Advised not to use this version."
+msgstr ""
+
+#: Main.py:1824
+#, python-brace-format
+msgid ""
+"WARNING! Problematic Magisk Manager Version: {m_app_version} is installed. "
+"Advised not to use this version."
+msgstr ""
+
+#: Main.py:1827
+#, python-brace-format
+msgid ""
+"Magisk Version: {m_version} is detected.\n"
+"Magisk Manager Version: {m_app_version} is detected.\n"
+"\n"
+"These versions of Magisk are known to have issues.\n"
+"Recommendation: Install stable version or one that is known to be good."
+msgstr ""
+
+#: Main.py:1827
 msgid "Problematic Magisk Versions."
 msgstr "Проблемные версии Magisk."
 
-#: Main.py:1758
+#: Main.py:1828
+#, python-brace-format
+msgid ""
+"#red:Magisk Version: {m_version} is detected\n"
+"Magisk Manager Version: {m_app_version} is detected;\n"
+msgstr ""
+
+#: Main.py:1829
 msgid "note right:These versions of Magisk are known to have problems."
 msgstr "note right:Известно, что эти версии Magisk имеют проблемы."
 
-#: Main.py:1761
+#: Main.py:1832
+#, python-brace-format
+msgid ""
+"Magisk Version: {m_version} is detected.\n"
+"This version of Magisk is known to have issues.\n"
+"Recommendation: Install stable version or one that is known to be good."
+msgstr ""
+
+#: Main.py:1832
 msgid "Problematic Magisk Version."
 msgstr "Проблемная версия Magisk."
 
-#: Main.py:1763
+#: Main.py:1833
+#, python-brace-format
+msgid "#red:Magisk Version: {m_version} is detected;\n"
+msgstr ""
+
+#: Main.py:1834
 msgid "note right:This version of Magisk is known to have problems."
 msgstr "note right:Известно, что в этой версии Magisk есть проблемы."
 
-#: Main.py:1766
+#: Main.py:1837
+#, python-brace-format
+msgid ""
+"Magisk Manager Version: {m_app_version} is detected.\n"
+"This version of Magisk Manager is known to have issues.\n"
+"Recommendation: Install stable version or one that is known to be good."
+msgstr ""
+
+#: Main.py:1837
 msgid "Problematic Magisk Manager Version."
 msgstr "Проблемная версия Magisk Manager."
 
-#: Main.py:1768
+#: Main.py:1838
+#, python-brace-format
+msgid "#red:Magisk Manager Version: {m_app_version} is detected;\n"
+msgstr ""
+
+#: Main.py:1839
 msgid "note right:This version of Magisk Manager is known to have problems;\n"
 msgstr ""
 "note right:Известно, что в этой версии Magisk Manager есть проблемы;\n"
@@ -1048,45 +1634,138 @@ msgstr "Параметры Scrcpy"
 
 #: advanced_settings.py:273
 msgid "OK"
-msgstr "Да"
+msgstr "OK"
 
 #: advanced_settings.py:275
 msgid "Cancel"
 msgstr "Отмена"
 
+#: advanced_settings.py:334
+msgid ""
+"Setting Enable Advanced Options to: {self.advanced_options_checkbox."
+"GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:338
+msgid ""
+"Setting Offer Patch Methods to: {self.patch_methods_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:342
+msgid ""
+"Setting Offer Patch Methods to: {self.recovery_patch_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:346
+msgid ""
+"Setting Use Busybox Shell to: {self.use_busybox_shell_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:350
+msgid "Setting Low Memory to: {self.low_mem_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:355
+msgid ""
+"Setting Extra img extraction to: {self.extra_img_extracts_checkbox."
+"GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:359
+msgid ""
+"Setting Show notifications to: {self.show_notifications_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:363
+msgid ""
+"Setting Always create boot.tar: {self.create_boot_tar_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:367
+msgid ""
+"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:371
+msgid ""
+"Setting Check for Miminum Disk Space to: {self.check_for_disk_space_checkbox."
+"GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:375
+msgid ""
+"Setting Check for Miminum Disk Space to: {self."
+"check_for_bootloader_unlocked_checkbox.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:381
+msgid "Setting Magisk Package Name to: {self.package_name.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:388
+msgid "Setting Linux File Explorer to: {self.file_explorer.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:393
+msgid "Setting Linux Shell to: {self.shell.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:405
+#, python-brace-format
+msgid "Setting Delete bundled libs to: {value}"
+msgstr "Установка параметра Удаление поставляемых библиотек на: {value}"
+
 #: advanced_settings.py:410
 msgid "Enabling Custom Font"
 msgstr "Включить пользовательский шрифт"
 
-#: file_editor.py:16
+#: advanced_settings.py:413
+msgid "Setting Application Font to: {self.font.GetStringSelection()}"
+msgstr ""
+
+#: advanced_settings.py:417
+msgid "Setting Application Font Size to: {self.font_size.GetValue()}"
+msgstr ""
+
+#: advanced_settings.py:428
+#, python-brace-format
+msgid "Setting scrcpy path path to: {value}"
+msgstr ""
+
+#: advanced_settings.py:435
+#, python-brace-format
+msgid "Setting scrcpy flags to: {value}"
+msgstr ""
+
+#: file_editor.py:15
 msgid "File Editor"
 msgstr "Редактор файлов"
 
-#: file_editor.py:56
+#: file_editor.py:79
 msgid "Open Folder"
 msgstr "Открыть папку"
 
-#: file_editor.py:57
+#: file_editor.py:80
 msgid "Open Shell"
 msgstr "Открыть командную строку"
 
-#: file_editor.py:58
+#: file_editor.py:81
 msgid "Save and Continue"
 msgstr "Сохранить и продолжить"
 
-#: file_editor.py:59
+#: file_editor.py:82
 msgid "Cancel and Abort"
 msgstr "Отменить и прервать"
 
-#: file_editor.py:61
+#: file_editor.py:84
 msgid "Open Folder in working directory"
 msgstr "Открыть папку в рабочем каталоге"
 
-#: file_editor.py:62
+#: file_editor.py:85
 msgid "Open command shell in working directory"
 msgstr "Откройте командную строку в рабочем каталоге"
 
-#: file_editor.py:64
+#: file_editor.py:87
 msgid ""
 "Open Folder in working directory\n"
 "Note: PF_FILEMANAGER needs to be set."
@@ -1094,17 +1773,32 @@ msgstr ""
 "Открыть папку в рабочем каталоге\n"
 "Примечание: необходимо установить PF_FILEMANAGER."
 
-#: file_editor.py:65
+#: file_editor.py:88
 msgid "Open Terminal shell in working directory"
 msgstr "Откройте оболочку терминала в рабочем каталоге"
 
-#: file_editor.py:66
+#: file_editor.py:89
 msgid "Save the file and continue."
 msgstr "Сохранить файл и продолжить работу."
 
-#: file_editor.py:67
+#: file_editor.py:90
 msgid "Cancel and Abort."
 msgstr "Отменить и прервать."
+
+#: file_editor.py:155
+#, python-brace-format
+msgid ""
+"width: {width}\n"
+"height: {height}"
+msgstr ""
+
+#: partition_manager.py:38 partition_manager.py:292 partition_manager.py:313
+#: partition_manager.py:493
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid "
+"device."
+msgstr ""
 
 #: partition_manager.py:42
 msgid ""
@@ -1160,6 +1854,15 @@ msgstr "Закрывает это диалоговое окно"
 msgid "Partition"
 msgstr "Разделы"
 
+#: partition_manager.py:156
+#, python-brace-format
+msgid "{self.partitionCount} Partitions"
+msgstr ""
+
+#: partition_manager.py:167
+msgid "{str(i)} Partitions"
+msgstr "{str(i)} Разделы"
+
 #: partition_manager.py:186
 msgid "checking all Partitions\n"
 msgstr "выбор всех разделов\n"
@@ -1167,6 +1870,47 @@ msgstr "выбор всех разделов\n"
 #: partition_manager.py:189
 msgid "Unchecking all Partitions\n"
 msgstr "Снятие флажков со всех разделов\n"
+
+#: partition_manager.py:220
+#, python-brace-format
+msgid "{event.Item.Text} is checked"
+msgstr ""
+
+#: partition_manager.py:229
+#, python-brace-format
+msgid "{event.Item.Text} is unchecked"
+msgstr ""
+
+#: partition_manager.py:277 wifi.py:283
+msgid "{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close."
+msgstr ""
+
+#: partition_manager.py:284
+msgid "{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Erase."
+msgstr ""
+
+#: partition_manager.py:294
+#, python-brace-format
+msgid ""
+"You have selected to ERASE partition: {partition}\n"
+"Are you sure want to continue?"
+msgstr ""
+
+#: partition_manager.py:294
+#, python-brace-format
+msgid "Erase Partition: {partition}"
+msgstr "Стирание раздела: {partition}"
+
+#: partition_manager.py:297
+msgid ""
+"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled erasing  partition: "
+"{partition}."
+msgstr ""
+
+#: partition_manager.py:305
+msgid ""
+"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed on Dump / Backup Partition"
+msgstr ""
 
 #: partition_manager.py:320 partition_manager.py:327
 msgid "Aborting ...\n"
@@ -1196,6 +1940,11 @@ msgstr "Выберите каталог, в котором будут сохра
 msgid "User Cancelled dumping partitions (option: folder)."
 msgstr "Пользователь отменил сброс разделов (option: folder)."
 
+#: partition_manager.py:339
+#, python-brace-format
+msgid "Selected Download Directory: {self.downloadFolder}"
+msgstr ""
+
 #: partition_manager.py:342
 msgid "Dump partition"
 msgstr "Дамп раздела"
@@ -1203,6 +1952,26 @@ msgstr "Дамп раздела"
 #: partition_manager.py:342
 msgid "IMG files (*.img)|*.img"
 msgstr "Файлы IMG (*.img)|*.img"
+
+#: partition_manager.py:344
+#, python-brace-format
+msgid "User Cancelled dumping partition: {partition}"
+msgstr "Пользователь отменил дамп разделов: {partition}"
+
+#: partition_manager.py:350
+#, python-brace-format
+msgid "Dump partition to: {pathname}"
+msgstr "Дамп раздела в: {pathname}"
+
+#: partition_manager.py:355
+#, python-brace-format
+msgid "Cannot save img file '{pathname}'."
+msgstr ""
+
+#: partition_manager.py:420
+#, python-brace-format
+msgid "Package: {itemschecked} is checked."
+msgstr ""
 
 #: partition_manager.py:444
 msgid "Erase Partition"
@@ -1223,6 +1992,26 @@ msgstr "Снять все"
 #: partition_manager.py:448
 msgid "Copy to Clipboard"
 msgstr "Скопировать в буфер обмена"
+
+#: partition_manager.py:496
+#, python-brace-format
+msgid "Erasing {partition} ..."
+msgstr "Стирание {partition} ..."
+
+#: partition_manager.py:499
+#, python-brace-format
+msgid "Dumping {partition} ..."
+msgstr "Дамп {partition} ..."
+
+#: partition_manager.py:511
+#, python-brace-format
+msgid "Processing {count} items ..."
+msgstr ""
+
+#: partition_manager.py:522
+#, python-brace-format
+msgid "Total count of partition actions attempted: {i}"
+msgstr ""
 
 #: wifi.py:33
 msgid "ADB Wireless"
@@ -1281,25 +2070,88 @@ msgstr "Порт"
 msgid "Note"
 msgstr "Заметка"
 
+#: wifi.py:222
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while "
+"populating wifi history"
+msgstr ""
+
 #: wifi.py:223
 msgid "#red:Encountered an error while populating wifi history;\n"
 msgstr "#red:Возникла ошибка при заполнении истории wifi;\n"
+
+#: wifi.py:253
+#, python-brace-format
+msgid "Searching for: {query}"
+msgstr ""
+
+#: wifi.py:296
+#, python-brace-format
+msgid "Remote ADB {command}ing: {ip}:{port} {pairing_code}"
+msgstr ""
 
 #: wifi.py:298
 msgid ":Wifi ADB;\n"
 msgstr ":Отладка по WIFI;\n"
 
+#: wifi.py:307
+#, python-brace-format
+msgid "ADB {command}ed: {ip}:{port}"
+msgstr ""
+
 #: wifi.py:308
 msgid "#palegreen:Succeeded;\n"
 msgstr "#palegreen:Успешно;\n"
+
+#: wifi.py:312
+#, python-brace-format
+msgid "Please select the device: {ip}:{port}"
+msgstr ""
+
+#: wifi.py:315
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port} "
+"{pairing_code}\n"
+msgstr ""
+
+#: wifi.py:318
+#, python-brace-format
+msgid ""
+"#red:**Failed**\n"
+"{res.stderr}\n"
+"{res.stdout};\n"
+msgstr ""
+
+#: wifi.py:339
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while wifi "
+"connecting"
+msgstr ""
 
 #: wifi.py:340
 msgid "#red:Encountered an error while wifi connecting;\n"
 msgstr "#red:Возникла ошибка при подключении к wifi;\n"
 
+#: wifi.py:359
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while "
+"disconnecting a wireless devcice"
+msgstr ""
+
 #: wifi.py:360
 msgid "#red:Encountered an error while disconnecting a wireless device;\n"
 msgstr "#red:Возникла ошибка при отключении беспроводного устройства;\n"
+
+#: wifi.py:378
+msgid ""
+"\n"
+"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pairing "
+"a device"
+msgstr ""
 
 #: wifi.py:379
 msgid "#red:Encountered an error while pairing a device;\n"

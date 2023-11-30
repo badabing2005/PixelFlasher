@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import contextlib
+import gettext
 import json
 from datetime import datetime
 
@@ -13,6 +14,7 @@ import images as images
 from phone import get_connected_devices
 from runtime import *
 
+_ = gettext.gettext
 dark_green = wx.Colour(0, 100, 0)
 
 # ============================================================================
@@ -309,7 +311,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                 self.Parent.device_choice.SetItems(get_connected_devices())
                 self.Parent._select_configured_device()
                 if command == 'connect':
-                    print(_(f"Please select the device: {ip}:{port}"))
+                    print(_(f"Please select the device: %s:%s")% {ip, port})
                 return
             else:
                 print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port} {pairing_code}\n"))

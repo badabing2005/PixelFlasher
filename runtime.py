@@ -20,7 +20,9 @@ import time
 import traceback
 import zipfile
 import psutil
+import xml.etree.ElementTree as ET
 from datetime import datetime
+from os import path
 from urllib.parse import urlparse
 
 import lz4.frame
@@ -107,6 +109,36 @@ class Boot():
         self.is_stock_boot = None
         self.is_init_boot = None
         self.patch_source_sha1 = None
+
+
+# ============================================================================
+#                               Class Coords
+# ============================================================================
+class Coords:
+    def __init__(self):
+        self.file_path = get_coords_file_path()
+        self.data = self.load_data()
+
+    def load_data(self):
+        if path.exists(self.file_path):
+            with open(self.file_path, "r", encoding='ISO-8859-1', errors="replace") as file:
+                return json.load(file)
+        return {}
+
+    def save_data(self):
+        with open(self.file_path, 'w', encoding='ISO-8859-1', errors="replace", newline='\n') as file:
+            json.dump(self.data, file, indent=4)
+
+    def query_entry(self, device, package):
+        if device in self.data and package in self.data[device]:
+            return self.data[device][package]
+        return None
+
+    def update_entry(self, device, package, coordinates):
+        if device not in self.data:
+            self.data[device] = {}
+        self.data[device][package] = coordinates
+        self.save_data()
 
 
 # ============================================================================
@@ -999,6 +1031,13 @@ def get_labels_file_path():
 
 
 # ============================================================================
+#                               Function get_coords_file_path
+# ============================================================================
+def get_coords_file_path():
+    return os.path.join(get_config_path(), "coords.json").strip()
+
+
+# ============================================================================
 #                               Function get_wifi_history_file_path
 # ============================================================================
 def get_wifi_history_file_path():
@@ -1353,9 +1392,9 @@ def get_ui_cooridnates(xmlfile, search):
     m = re.findall(regex, data)
     if m:
         debug(f"Found Bounds: {m[0][0]} {m[0][1]} {m[0][2]} {m[0][3]}")
-        x = (int(m[0][0]) + int(m[0][2])) / 2
-        y = (int(m[0][1]) + int(m[0][3])) / 2
-        debug(f"Click Coordinates: {int(x)} {int(y)}")
+        x = int((int(m[0][0]) + int(m[0][2])) / 2)
+        y = int((int(m[0][1]) + int(m[0][3])) / 2)
+        debug(f"Click Coordinates: {x} {y}")
         return f"{x} {y}"
 
 
@@ -1897,6 +1936,144 @@ def download_file(url, filename = None):
             return 'ERROR'
     return downloaded_file_path
 
+
+# ============================================================================
+#                               Function process_pi_xml
+# ============================================================================
+def process_pi_xml(filename):
+    with open(filename, 'r') as file:
+        xml_string = file.read()
+
+    # Parse the XML string
+    root = ET.fromstring(xml_string)
+
+    # Specify the resource-ids to identify the nodes of interest
+    resource_ids_list = [
+        'gr.nikolasspyr.integritycheck:id/device_integrity_icon',
+        'gr.nikolasspyr.integritycheck:id/basic_integrity_icon',
+        'gr.nikolasspyr.integritycheck:id/strong_integrity_icon'
+    ]
+
+    # Print the 'content-desc' values along with a modified version of the resource-id
+    result = ''
+    for resource_id in resource_ids_list:
+        nodes = root.findall(f'.//node[@resource-id="{resource_id}"]')
+        for node in nodes:
+            value = node.get('content-desc', '')
+            modified_resource_id = resource_id.replace('gr.nikolasspyr.integritycheck:id/', '').replace('_icon', '')
+            result += f"{modified_resource_id}:\t{value}\n"
+    if result == '':
+        return -1
+    debug(result)
+    return result
+
+
+# ============================================================================
+#                               Function process_pi_xml2
+# ============================================================================
+def process_pi_xml2(filename):
+    with open(filename, 'r') as file:
+        xml_content = file.read()
+
+    # Find the position of "Play Integrity Result:"
+    play_integrity_result_pos = xml_content.find("Play Integrity Result:")
+
+    # If "Play Integrity Result:" is found, continue searching for index="3"
+    if play_integrity_result_pos != -1:
+        index_3_pos = xml_content.find('index="3"', play_integrity_result_pos)
+
+        # If index="3" is found, extract the value after it
+        if index_3_pos != -1:
+            # Adjust the position to point at the end of 'index="3"' and then get the next value between double quotes.
+            index_3_pos += len('index="3"')
+            value_start_pos = xml_content.find('"', index_3_pos) + 1
+            value_end_pos = xml_content.find('"', value_start_pos)
+            value_after_index_3 = xml_content[value_start_pos:value_end_pos]
+            debug(value_after_index_3)
+            if value_after_index_3 == "NO_INTEGRITY":
+                result = "[✗] [✗] [✗]"
+            elif value_after_index_3 == "MEETS_BASIC_INTEGRITY":
+                result = "[✓] [✗] [✗]"
+            elif value_after_index_3 == "MEETS_DEVICE_INTEGRITY":
+                result = "[✓] [✓] [✗]"
+            elif value_after_index_3 == "MEETS_STRONG_INTEGRITY":
+                result = "[✓] [✓] [✓]"
+            elif value_after_index_3 == "MEETS_VIRTUAL_INTEGRITY":
+                result = "[o] [o] [o]"
+            return f"{result} {value_after_index_3}"
+        else:
+            print("Error")
+            return -1
+    else:
+        print("'Play Integrity Result:' not found")
+        return -1
+
+
+# ============================================================================
+#                               Function process_pi_xml3
+# ============================================================================
+def process_pi_xml3(filename):
+    with open(filename, 'r') as file:
+        xml_content = file.read()
+
+    # Find the position of "Play Integrity Result:"
+    play_integrity_result_pos = xml_content.find("Result Play integrity")
+
+    # If "Result Play integrity" is found, continue searching for index="3"
+    if play_integrity_result_pos != -1:
+        basic_integrity_pos = xml_content.find('"Basic integrity"', play_integrity_result_pos)
+
+        # If "Basic integrity" is found, continue looking for text=
+        if basic_integrity_pos != -1:
+            # find next text= position
+            basic_integrity_result_pos = xml_content.find('text=', basic_integrity_pos)
+
+            # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+            basic_integrity_result_pos += len('text=')
+
+            value_start_pos = xml_content.find('"', basic_integrity_result_pos) + 1
+            value_end_pos = xml_content.find('"', value_start_pos)
+            basic_integrity = xml_content[value_start_pos:value_end_pos]
+
+            device_integrity_pos = xml_content.find('"Device integrity"', value_end_pos)
+            # If "Device integrity" is found, continue looking for text=
+            if device_integrity_pos != -1:
+                # find next text= position
+                device_integrity_result_pos = xml_content.find('text=', device_integrity_pos)
+
+                # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+                device_integrity_result_pos += len('text=')
+
+                value_start_pos = xml_content.find('"', device_integrity_result_pos) + 1
+                value_end_pos = xml_content.find('"', value_start_pos)
+                device_integrity = xml_content[value_start_pos:value_end_pos]
+
+
+                strong_integrity_pos = xml_content.find('"Strong integrity"', value_end_pos)
+                # If "Device integrity" is found, continue looking for text=
+                if strong_integrity_pos != -1:
+                    # find next text= position
+                    strong_integrity_result_pos = xml_content.find('text=', strong_integrity_pos)
+
+                    # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+                    strong_integrity_result_pos += len('text=')
+
+                    value_start_pos = xml_content.find('"', strong_integrity_result_pos) + 1
+                    value_end_pos = xml_content.find('"', value_start_pos)
+                    strong_integrity = xml_content[value_start_pos:value_end_pos]
+
+                result = f"Basic integrity:  {basic_integrity}\n"
+                result += f"Device integrity: {device_integrity}\n"
+                result += f"Strong integrity: {strong_integrity}\n"
+
+                debug(result)
+                return result
+        else:
+            print("Error")
+            return -1
+    else:
+        print("'Result Play integrity' not found")
+        return -1
 
 # ============================================================================
 #                               Function run_shell

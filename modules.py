@@ -1066,53 +1066,6 @@ def process_flash_all_file(filepath):
 
 
 # ============================================================================
-#                               Function ui_action
-# ============================================================================
-def ui_action(device, dump_file, local_file, look_for):
-    try:
-        # Get uiautomator dump of view1
-        # the_view = "view1.xml"
-        res = device.uiautomator_dump(dump_file)
-        if res == -1:
-            puml("#red:Failed to uiautomator dump;\n}\n")
-            return -1
-
-        # Pull dump_file
-        print(f"Pulling {dump_file} from the phone to: {local_file} ...")
-        res = device.pull_file(dump_file, local_file)
-        if res != 0:
-            puml("#red:Failed to pull uiautomator dump from the phone;\n}\n")
-            return -1
-
-        # get bounds
-        coords = get_ui_cooridnates(local_file, look_for)
-
-        # Check for Display being locked again
-        if not device.is_display_unlocked():
-            print("ERROR: The device display is Locked!\n")
-            return -1
-
-        # Click on coordinates
-        res = device.click(coords)
-        if res == -1:
-            puml("#red:Failed to click;\n}\n")
-            return -1
-
-        # Sleep 2 seconds
-        print("Sleeping 2 seconds to make sure the view is loaded ...")
-        time.sleep(2)
-
-        # Check for Display being locked again
-        if not device.is_display_unlocked():
-            print("ERROR: The device display is Locked!\n")
-            return -1
-    except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing ui action")
-        puml("#red:Encountered an error while performing ui action;\n")
-        traceback.print_exc()
-
-
-# ============================================================================
 #                               Function drive_magisk (TODO)
 # ============================================================================
 def drive_magisk(self, boot_file_name):
@@ -1153,23 +1106,23 @@ def drive_magisk(self, boot_file_name):
     # # Launch Magisk
     # device.perform_package_action(get_magisk_package(), 'launch', False)
 
-    # res = ui_action(device, f"{self.config.phone_path}/view1.xml", os.path.join(config_path, 'tmp', 'view1.xml'), "Install")
+    # res = device.ui_action(f"{self.config.phone_path}/view1.xml", os.path.join(config_path, 'tmp', 'view1.xml'), "Install")
     # if res == -1:
     #     return -1
 
-    # res = ui_action(device, f"{self.config.phone_path}/view2.xml", os.path.join(config_path, 'tmp', 'view2.xml'), "Select and Patch a File")
+    # res = device.ui_action(f"{self.config.phone_path}/view2.xml", os.path.join(config_path, 'tmp', 'view2.xml'), "Select and Patch a File")
     # if res == -1:
     #     return -1
 
-    # res = ui_action(device, f"{self.config.phone_path}/view3.xml", os.path.join(config_path, 'tmp', 'view3.xml'), "Search this phone")
+    # res = device.ui_action(f"{self.config.phone_path}/view3.xml", os.path.join(config_path, 'tmp', 'view3.xml'), "Search this phone")
     # if res == -1:
     #     return -1
 
-    # res = ui_action(device, f"{self.config.phone_path}/view4.xml", os.path.join(config_path, 'tmp', 'view4.xml'), "LET'S GO")
+    # res = device.ui_action(f"{self.config.phone_path}/view4.xml", os.path.join(config_path, 'tmp', 'view4.xml'), "LET'S GO")
     # if res == -1:
     #     return -1
 
-    # res = ui_action(device, f"{self.config.phone_path}/view5.xml", os.path.join(config_path, 'tmp', 'view5.xml'), "com.topjohnwu.magisk:id/action_save")
+    # res = device.ui_action(f"{self.config.phone_path}/view5.xml", os.path.join(config_path, 'tmp', 'view5.xml'), "com.topjohnwu.magisk:id/action_save")
     # if res == -1:
     #     return -1
 
@@ -2472,6 +2425,7 @@ def live_flash_boot_phone(self, option):
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
 
+    done_flashing = False
     if mode == 'fastboot' and get_fastboot():
         # Check for bootloader unlocked
         if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device.id):

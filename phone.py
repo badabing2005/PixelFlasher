@@ -2391,6 +2391,7 @@ add_hosts_module
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
                         res = run_shell(theCmd)
                         if res.returncode == 0:
+                            debug(res.stdout)
                             modules = []
                             self._get_magisk_detailed_modules = res.stdout.split('\n')
                             for module in self._get_magisk_detailed_modules:
@@ -2420,6 +2421,7 @@ add_hosts_module
                                             setattr(m, 'author', '')
                                             setattr(m, 'description', '')
                                             setattr(m, 'name', '')
+                                            setattr(m, 'updateJson', '')
                                             setattr(m, 'updateDetails', {})
                                             setattr(m, 'updateAvailable', False)
                                             for line in module_prop:

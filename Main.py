@@ -48,6 +48,7 @@ from runtime import *
 
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
+
 gettext.bindtextdomain('PixelFlasher', 'locales')
 gettext.textdomain('PixelFlasher')
 _ = gettext.gettext

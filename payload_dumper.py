@@ -1,3 +1,4 @@
+import gettext
 import struct
 import hashlib
 import bz2
@@ -8,11 +9,12 @@ import os
 try:
     import lzma
 except ImportError as e:
-    print(f"Error importing lzma: {e}")
+    print(_(f"Error importing lzma: %s") % e)
     from backports import lzma
 
 import update_metadata_pb2 as um
 
+_ = gettext.gettext
 
 def extract_payload(payload_file_path, out='output', diff=False, old='old', images=''):
     def u32(x):
@@ -53,7 +55,7 @@ def extract_payload(payload_file_path, out='output', diff=False, old='old', imag
             out_file.write(data)
         elif op.type == op.SOURCE_COPY:
             if not diff:
-                print("SOURCE_COPY supported only for differential OTA")
+                print(_("SOURCE_COPY supported only for differential OTA"))
                 sys.exit(-2)
             out_file.seek(op.dst_extents[0].start_block * block_size)
             for ext in op.src_extents:
@@ -62,7 +64,7 @@ def extract_payload(payload_file_path, out='output', diff=False, old='old', imag
                 out_file.write(data)
         elif op.type == op.SOURCE_BSDIFF:
             if not diff:
-                print("SOURCE_BSDIFF supported only for differential OTA")
+                print(_("SOURCE_BSDIFF supported only for differential OTA"))
                 sys.exit(-3)
             out_file.seek(op.dst_extents[0].start_block * block_size)
             tmp_buff = io.BytesIO()
@@ -87,13 +89,13 @@ def extract_payload(payload_file_path, out='output', diff=False, old='old', imag
                 out_file.seek(ext.start_block * block_size)
                 out_file.write(b'\x00' * ext.num_blocks * block_size)
         else:
-            print("Unsupported type = %d" % op.type)
+            print(_("Unsupported type = %d") % op.type)
             sys.exit(-1)
 
         return data
 
     def dump_part(part):
-        sys.stdout.write(f"Processing {part.partition_name} partition")
+        sys.stdout.write(_(f"Processing %s partition") % part.partition_name)
         sys.stdout.flush()
 
         with open(f'{out}/{part.partition_name}.img', 'wb') as out_file:
@@ -111,7 +113,7 @@ def extract_payload(payload_file_path, out='output', diff=False, old='old', imag
                     sys.stdout.write(".")
                     sys.stdout.flush()
 
-        print("Done")
+        print(_("Done"))
 
     with open(payload_file_path, 'rb') as payload_file:
         magic = payload_file.read(4)
@@ -146,4 +148,4 @@ def extract_payload(payload_file_path, out='output', diff=False, old='old', imag
                 if partition:
                     dump_part(partition[0])
                 else:
-                    sys.stderr.write("Partition %s not found in payload!\n" % image)
+                    sys.stderr.write(_("Partition %s not found in payload!\n") % image)

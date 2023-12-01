@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import contextlib
+import gettext
 import re
 import subprocess
 import time
@@ -10,6 +11,8 @@ from urllib.parse import urlparse
 
 from constants import *
 from runtime import *
+
+_ = gettext.gettext
 
 
 # ============================================================================
@@ -3810,9 +3813,9 @@ def get_connected_devices():
                             devices.append(device_details)
                             phones.append(device)
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
+                print(_(f"\n%s ERROR: Unable to determine Android Platform Tools version.\n") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+            print(_(f"\n%s ERROR: adb command is not found!") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
         if get_fastboot():
             theCmd = f"\"{get_fastboot()}\" devices"
@@ -3828,13 +3831,13 @@ def get_connected_devices():
                     devices.append(device_details)
                     phones.append(device)
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+            print(_(f"\n%s ERROR: fastboot command is not found!") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
         set_phones(phones)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
+        print(_(f"\n%s ERROR: Encountered an error while getting connected devices.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         traceback.print_exc()
-        puml("#red:Encountered an error;\n", True)
+        puml(_("#red:Encountered an error;\n"), True)
         puml(f"note right\n{e}\nend note\n")
 
     set_device_list(devices)

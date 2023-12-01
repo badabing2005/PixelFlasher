@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
+import gettext
 import json
-
 import pyperclip
 import traceback
 import wx
@@ -12,6 +11,7 @@ import wx.lib.wxpTag
 import images as images
 from runtime import *
 
+_ = gettext.gettext
 
 # ============================================================================
 #                               Class ListCtrl
@@ -35,7 +35,7 @@ class PartitionManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.abort = False
         self.device = get_phone()
         if not self.device:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device."))
+            print(_(f"\n%s ERROR: You must first select a valid device.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             return -1
 
         warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -153,7 +153,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         itemDataMap = {}
         if res != -1:
             self.partitionCount = len(res)
-            self.message_label.Label = _(f"{self.partitionCount} Partitions")
+            self.message_label.Label = _(f"%s Partitions") % self.partitionCount
             for i, key in enumerate(res):
                 if key:
                     index = self.list.InsertItem(self.list.GetItemCount(), key)
@@ -164,7 +164,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
                     # hide image
                     self.list.SetItemColumnImage(i, 0, -1)
             self.partitionCount = i
-            self.message_label.Label = _(f"{str(i)} Partitions")
+            self.message_label.Label = _(f"%s Partitions") % str(i)
         self.list.SetColumnWidth(0, -2)
         grow_column(self.list, 0, 20)
 
@@ -217,7 +217,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     def OnItemCheck(self, event):
         if self.Get_all_cb_clicked():
             return
-        print(_(f"{event.Item.Text} is checked"))
+        print(_(f"%s is checked") % event.Item.Text)
         self.Update_all_checkbox()
 
     # -----------------------------------------------
@@ -226,7 +226,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     def OnItemUncheck(self, event):
         if self.Get_all_cb_clicked():
             return
-        print(_(f"{event.Item.Text} is unchecked"))
+        print(_(f"%s is unchecked") % event.Item.Text)
         self.Update_all_checkbox()
 
     # -----------------------------------------------
@@ -274,14 +274,14 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     #                  OnClose
     # -----------------------------------------------
     def OnClose(self, e):
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close."))
+        print(_(f"%s User Pressed Close.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.EndModal(wx.ID_CANCEL)
 
     # -----------------------------------------------
     #                  OnErase
     # -----------------------------------------------
     def OnErase(self, e):
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Erase."))
+        print(_(f"%s User Pressed Erase.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.ApplyMultiAction('erase')
 
     # -----------------------------------------------
@@ -289,12 +289,12 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     # -----------------------------------------------
     def Erase(self, partition):
         if not self.device:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device."))
+            print(_(f"\n%s ERROR: You must first select a valid device.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             return
-        dlg = wx.MessageDialog(None, _(f"You have selected to ERASE partition: {partition}\nAre you sure want to continue?"), _(f"Erase Partition: {partition}"),wx.YES_NO | wx.ICON_EXCLAMATION)
+        dlg = wx.MessageDialog(None, _(f"You have selected to ERASE partition: %s\nAre you sure want to continue?") % partition, _(f"Erase Partition: %s") % partition,wx.YES_NO | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
         if result != wx.ID_YES:
-            print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled erasing  partition: {partition}."))
+            print(_(f"%s User canceled erasing  partition: %s.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), partition))
             return
         self.device.erase_partition(partition)
 
@@ -302,7 +302,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     #                  OnDump
     # -----------------------------------------------
     def OnDump(self, e):
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed on Dump / Backup Partition"))
+        print(_(f"%s User Pressed on Dump / Backup Partition") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.ApplyMultiAction('dump')
 
     # -----------------------------------------------
@@ -310,7 +310,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     # -----------------------------------------------
     def Dump(self, partition, multiple = False):
         if not self.device:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device."))
+            print(_(f"\n%s ERROR: You must first select a valid device.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             return
 
         # delete existing partition dump if it exists on the phone
@@ -336,23 +336,23 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
                         self.abort = True
                         return     # the user changed their mind
                     self.downloadFolder = folderDialog.GetPath()
-                    print(_(f"Selected Download Directory: {self.downloadFolder}"))
+                    print(_(f"Selected Download Directory: %s") % self.downloadFolder)
             pathname =  os.path.join(self.downloadFolder, f"{partition}.img")
         else:
             with wx.FileDialog(self, _("Dump partition"), '', f"{partition}.img", wildcard=_("IMG files (*.img)|*.img"), style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
-                    print(_(f"User Cancelled dumping partition: {partition}"))
+                    print(_(f"User Cancelled dumping partition: %s") % partition)
                     return     # the user changed their mind
                 pathname = fileDialog.GetPath()
         try:
             if self.device:
                 self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
-                print(_(f"Dump partition to: {pathname}"))
+                print(_(f"Dump partition to: %s") % pathname)
                 self.device.pull_file(path, pathname)
                 res = self.device.delete(path)
         except IOError:
             traceback.print_exc()
-            wx.LogError(_(f"Cannot save img file '{pathname}'."))
+            wx.LogError(_(f"Cannot save img file '%s'.") % pathname)
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
 
@@ -417,7 +417,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     def OnGetItemsChecked(self, event):
         itemcount = self.list.GetItemCount()
         itemschecked = [i for i in range(itemcount) if self.list.IsItemChecked(item=i)]
-        print(_(f"Package: {itemschecked} is checked."))
+        print(_(f"Package: %s is checked.") % itemschecked)
 
     # -----------------------------------------------
     #                  OnRightClick
@@ -490,13 +490,13 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         partition = self.list.GetItem(index).Text
 
         if not self.device:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device."))
+            print(_(f"\n%s ERROR: You must first select a valid device.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             return
         if action == "erase":
-            print(_(f"Erasing {partition} ..."))
+            print(_(f"Erasing %s ...") % partition)
             self.Erase(partition)
         elif action == "dump":
-            print(_(f"Dumping {partition} ..."))
+            print(_(f"Dumping %s ...") % partition)
             self.Dump(partition, fromMulti)
         return
 
@@ -508,7 +508,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         count = self.GetItemsCheckedCount()
         multi = False
         if count > 1:
-            print(_(f"Processing {count} items ..."))
+            print(_(f"Processing %s items ...") % count)
             multi = True
         if action == 'dump':
             self.downloadFolder = None
@@ -519,5 +519,5 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             if self.list.IsItemChecked(index):
                 self.ApplySingleAction(index, action, multi)
                 i += 1
-        print(_(f"Total count of partition actions attempted: {i}"))
+        print(_(f"Total count of partition actions attempted: %s") % i)
 

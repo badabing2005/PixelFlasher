@@ -221,7 +221,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
             else:
                 return -1
         except Exception as e:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating wifi history"))
+            print(_(f"\n%s ERROR: Encountered an error while populating wifi history") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             puml(_("#red:Encountered an error while populating wifi history;\n"))
             traceback.print_exc()
 
@@ -252,7 +252,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnSearch(self, event):
         query = self.searchCtrl.GetValue()
-        print(_(f"Searching for: {query}"))
+        print(_(f"Searching for: %s") % query)
         self.Refresh()
 
     # -----------------------------------------------
@@ -282,7 +282,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnClose
     # -----------------------------------------------
     def OnClose(self, e):
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close."))
+        print(_(f"%s User Pressed Close.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.EndModal(wx.ID_CANCEL)
 
     # ============================================================================
@@ -314,7 +314,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     print(_(f"Please select the device: %s:%s")% {ip, port})
                 return
             else:
-                print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {command} {ip}:{port} {pairing_code}\n"))
+                print(_(f"\n%s ERROR: Could not %s %s:%s %s\n") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), command, ip, port, pairing_code))
                 print(f"{res.stderr}")
                 print(f"{res.stdout}")
                 puml(_(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n"))
@@ -338,7 +338,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.Parent.refresh_device()
                 self._on_spin('stop')
         except Exception as e:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while wifi connecting"))
+            print(_(f"\n%s ERROR: Encountered an error while wifi connecting") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             puml(_("#red:Encountered an error while wifi connecting;\n"))
             self._on_spin('stop')
             traceback.print_exc()
@@ -358,7 +358,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.Parent.device_choice.Popup()
                 self._on_spin('stop')
         except Exception as e:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while disconnecting a wireless devcice"))
+            print(_(f"\n%s ERROR: Encountered an error while disconnecting a wireless devcice") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             puml(_("#red:Encountered an error while disconnecting a wireless device;\n"))
             self._on_spin('stop')
             traceback.print_exc()
@@ -377,7 +377,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.add_to_history(action='pair', status="Failed", note=res)
                 self._on_spin('stop')
         except Exception as e:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pairing a device"))
+            print(_(f"\n%s ERROR: Encountered an error while pairing a device") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             puml(_("#red:Encountered an error while pairing a device;\n"))
             self._on_spin('stop')
             traceback.print_exc()

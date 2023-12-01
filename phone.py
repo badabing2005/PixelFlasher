@@ -2391,6 +2391,7 @@ add_hosts_module
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
                         res = run_shell(theCmd)
                         if res.returncode == 0:
+                            debug(res.stdout)
                             modules = []
                             self._get_magisk_detailed_modules = res.stdout.split('\n')
                             for module in self._get_magisk_detailed_modules:
@@ -2420,7 +2421,9 @@ add_hosts_module
                                             setattr(m, 'author', '')
                                             setattr(m, 'description', '')
                                             setattr(m, 'name', '')
+                                            setattr(m, 'updateJson', '')
                                             setattr(m, 'updateDetails', {})
+                                            setattr(m, 'updateAvailable', False)
                                             for line in module_prop:
                                                 # ignore comment lines
                                                 if line[:1] == "#":
@@ -2428,6 +2431,11 @@ add_hosts_module
                                                 if line.strip() and '=' in line:
                                                     key, value = line.split('=', 1)
                                                     setattr(m, key, value)
+                                            if m.updateJson:
+                                                setattr(m, 'updateDetails', check_module_update(m.updateJson))
+                                            with contextlib.suppress(Exception):
+                                                if m.versionCode and m.updateDetails and m.updateDetails.versionCode and int(m.updateDetails.versionCode) > int(m.versionCode):
+                                                    m.updateAvailable = True
                                             modules.append(m)
                             self._get_magisk_detailed_modules = modules
                         else:
@@ -3141,7 +3149,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-                self.refresh_phone_mode
+                self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Setting active slot to slot [{slot}] for device: {self.id} ...")
                 puml(f":Setting Active slot to [{slot}];\n", True)
@@ -3164,7 +3172,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-                # self.refresh_phone_mode
+                # self.refresh_phone_mode()
                 update_phones(self.id)
             if mode == 'fastboot' and get_fastboot():
                 print(f"Switching to other slot. Current slot [{self.active_slot}] for device: {self.id} ...")
@@ -3199,7 +3207,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-                self.refresh_phone_mode
+                self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Erasing Partition [{partition}] for device: {self.id} ...")
                 puml(f":Erasing Partition [{partition}];\n", True)
@@ -3222,7 +3230,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-                self.refresh_phone_mode
+                self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 # add a popup warning before continuing.
                 print(f"Unlocking bootloader for device: {self.id} ...")
@@ -3244,7 +3252,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-                self.refresh_phone_mode
+                self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Unlocking bootloader for device: {self.id} ...")
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing unlock"

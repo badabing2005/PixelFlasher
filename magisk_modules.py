@@ -43,7 +43,7 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 # ============================================================================
 class MagiskModules(wx.Dialog):
     def __init__(self, *args, **kwargs):
-        wx.Dialog.__init__(self, *args, **kwargs)
+        wx.Dialog.__init__(self, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(1400, 1050))
         self.SetTitle("Manage Magisk")
 
         # Instance variable to store current selected module
@@ -221,6 +221,7 @@ class MagiskModules(wx.Dialog):
         vSizer.Add(h_buttons_sizer, 0, wx.EXPAND, 5)
 
         self.SetSizer(vSizer)
+        self.SetMinSize((400, 300))
         self.Layout()
         self.Centre(wx.BOTH)
 
@@ -246,10 +247,10 @@ class MagiskModules(wx.Dialog):
         self.list.Bind(wx.EVT_LEFT_DOWN, self.onModuleSelection)
 
         # Autosize the dialog
-        self.list.PostSizeEventToParent()
-        self.SetSizerAndFit(vSizer)
-        a = self.list.GetViewRect()
-        self.SetSize(vSizer.MinSize.Width + 120, vSizer.MinSize.Height + 140)
+        # self.list.PostSizeEventToParent()
+        # self.SetSizerAndFit(vSizer)
+        # a = self.list.GetViewRect()
+        # self.SetSize(vSizer.MinSize.Width + 120, vSizer.MinSize.Height + 140)
 
         print("\nOpening Magisk Modules Manager ...")
 
@@ -288,7 +289,7 @@ class MagiskModules(wx.Dialog):
                     index = self.list.InsertItem(i, module.id)
 
                 # disable pif button if it is already installed.
-                if module.id == "playintegrityfix" and module.name == "Play Integrity Fix":
+                if module.id == "playintegrityfix" and "Play Integrity Fix" in module.name:
                     self.pif_button.Enable(False)
                     self.check_pif_json()
                     self.edit_pif_button.Enable(True)

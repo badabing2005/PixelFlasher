@@ -1,0 +1,4723 @@
+# Translations template for PixelFlasher.
+# Copyright (C) 2023 ORGANIZATION
+# This file is distributed under the same license as the PixelFlasher
+# project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PixelFlasher 6.2.1.2\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2023-12-02 21:36+0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.13.1\n"
+
+#: About.py:18
+msgid ""
+"\n"
+"<html>\n"
+"<body bgcolor=\"#DCDCDC\" style=\"font-family: Arial; background-color: "
+"#DCDCDC;\">\n"
+"<center>\n"
+"    <img src=\"{0}/images/icon-64.png\" width=\"64\" height=\"64\" "
+"alt=\"PixelFlasher\">\n"
+"\n"
+"    <h1>PixelFlasher</h1>\n"
+"    <p>By Badabing</p>\n"
+"    <h3>Version {1}</h3>\n"
+"\n"
+"    {2}\n"
+"\n"
+"    <p>Fork the <a style=\"color: #004CE5;\" "
+"href=\"https://github.com/badabing2005/PixelFlasher/fork\">project on\n"
+"    GitHub</a> and help improve it for all!</p>\n"
+"\n"
+"    <p> Beware! </p>\n"
+"    <p> If you are asked to donate or pay money for this program, check "
+"your source. </p>\n"
+"    <p> This program is free, will always remain totally free, ad free, "
+"even donation free.</p>\n"
+"\n"
+"    <p>\n"
+"        <wxp module=\"wx\" class=\"Button\">\n"
+"            <param name=\"label\" value=\"Close\">\n"
+"            <param name=\"id\" value=\"ID_OK\">\n"
+"        </wxp>\n"
+"    </p>\n"
+"</center>\n"
+"</body>\n"
+"</html>\n"
+msgstr ""
+
+#: About.py:49
+msgid "About PixelFlasher"
+msgstr ""
+
+#: About.py:59
+msgid "<p> You're up to date! </p>"
+msgstr ""
+
+#: Main.py:112
+#, python-format
+msgid "Selected link: %s"
+msgstr ""
+
+#: Main.py:161
+#, python-format
+msgid "PixelFlasher %s started on %s"
+msgstr ""
+
+#: Main.py:163
+#, python-format
+msgid "#palegreen:PixelFlasher %s started;\n"
+msgstr ""
+
+#: Main.py:166
+#, python-format
+msgid "Platform: %s"
+msgstr ""
+
+#: Main.py:167
+#, python-format
+msgid "note left:Platform: %s\n"
+msgstr ""
+
+#: Main.py:170
+#, python-format
+msgid "System Timezone: %s Offset: %s"
+msgstr ""
+
+#: Main.py:171
+#, python-format
+msgid "Configuration Folder Path: %s"
+msgstr ""
+
+#: Main.py:172
+#, python-format
+msgid "Configuration File Path: %s"
+msgstr ""
+
+#: Main.py:174
+msgid ":Loading Configuration;\n"
+msgstr ""
+
+#: Main.py:175
+#, python-format
+msgid "note left: %s\n"
+msgstr ""
+
+#: Main.py:181
+msgid "First Run: No previous configuration file is found."
+msgstr ""
+
+#: Main.py:195
+#, python-format
+msgid "System Default Encoding: %s"
+msgstr ""
+
+#: Main.py:196
+#, python-format
+msgid "File System Encoding:    %s"
+msgstr ""
+
+#: Main.py:200
+#, python-format
+msgid "Bundle Directory: %s"
+msgstr ""
+
+#: Main.py:207
+#, python-format
+msgid "Available Free Memory: %s / %s"
+msgstr ""
+
+#: Main.py:210
+#, python-format
+msgid "Available Free Disk on system drive: %s GB"
+msgstr ""
+
+#: Main.py:211
+#, python-format
+msgid "Available Free Disk on PixelFlasher data drive: %s GB\n"
+msgstr ""
+
+#: Main.py:263
+msgid "Using previously stored firmware SHA-256 ..."
+msgstr ""
+
+#: Main.py:266
+msgid "Computing firmware SHA-256 ..."
+msgstr ""
+
+#: Main.py:269
+#, python-format
+msgid "Firmware SHA-256: %s"
+msgstr ""
+
+#: Main.py:270 Main.py:304 Main.py:2305 Main.py:2398
+#, python-format
+msgid "SHA-256: %s"
+msgstr ""
+
+#: Main.py:273
+#, python-format
+msgid "Expected to match %s in the firmware filename and did. This is good!"
+msgstr ""
+
+#: Main.py:274
+#, python-format
+msgid "#CDFFC8:Checksum matches portion of the firmware filename %s;\n"
+msgstr ""
+
+#: Main.py:278
+#, python-format
+msgid ""
+"WARNING: Expected to match %s in the firmware filename but didn't, please"
+" double check to make sure the checksum is good."
+msgstr ""
+
+#: Main.py:279
+msgid "#orange:Unable to match the checksum in the filename;\n"
+msgstr ""
+
+#: Main.py:280
+msgid "Firmware SHA256"
+msgstr ""
+
+#: Main.py:292 Main.py:2284
+#, python-format
+msgid ""
+"Android Platform Tools\n"
+"Version %s"
+msgstr ""
+
+#: Main.py:332
+msgid ""
+"\n"
+"Loading Device list ..."
+msgstr ""
+
+#: Main.py:333
+msgid ":Loading device list;\n"
+msgstr ""
+
+#: Main.py:334
+msgid "This could take a while, please be patient.\n"
+msgstr ""
+
+#: Main.py:336
+msgid "Populate device list"
+msgstr ""
+
+#: Main.py:343
+msgid "select configured device"
+msgstr ""
+
+#: Main.py:350
+#, python-format
+msgid ""
+"\n"
+"A newer PixelFlasher v%s can be downloaded from:"
+msgstr ""
+
+#: Main.py:357
+#, python-format
+msgid "Load time: %s seconds"
+msgstr ""
+
+#: Main.py:433
+#, python-format
+msgid "Welcome to PixelFlasher %s"
+msgstr ""
+
+#: Main.py:454 Main.py:783 Main.py:932 package_manager.py:262
+msgid "Install APK"
+msgstr ""
+
+#: Main.py:454
+msgid "Install APK on the device"
+msgstr ""
+
+#: Main.py:460
+msgid "App Manager"
+msgstr ""
+
+#: Main.py:460 Main.py:791 Main.py:933
+msgid "Package Manager"
+msgstr ""
+
+#: Main.py:460
+msgid "Manage Apps / Packages"
+msgstr ""
+
+#: Main.py:470 Main.py:797 Main.py:934
+msgid "ADB Shell"
+msgstr ""
+
+#: Main.py:470
+msgid "Open ADB shell to the device."
+msgstr ""
+
+#: Main.py:470 Main.py:797
+msgid "Open adb shell to the device"
+msgstr ""
+
+#: Main.py:476 Main.py:801 Main.py:935
+msgid "Scrcpy"
+msgstr ""
+
+#: Main.py:476 Main.py:801
+msgid "Launch Screen Copy"
+msgstr ""
+
+#: Main.py:482 Main.py:805 Main.py:936
+msgid "Device Info"
+msgstr ""
+
+#: Main.py:482 Main.py:805
+msgid "Dump Full Device Info"
+msgstr ""
+
+#: Main.py:494
+msgid "Partitions"
+msgstr ""
+
+#: Main.py:494 partition_manager.py:31
+msgid "Partition Manager"
+msgstr ""
+
+#: Main.py:504 Main.py:823 Main.py:939
+msgid "Switch Slot"
+msgstr ""
+
+#: Main.py:504
+msgid "Switch to the other Slot"
+msgstr ""
+
+#: Main.py:512 Main.py:830
+msgid "System"
+msgstr ""
+
+#: Main.py:512
+msgid "Reboot to System"
+msgstr ""
+
+#: Main.py:518 Main.py:831
+msgid "Bootloader"
+msgstr ""
+
+#: Main.py:518
+msgid "Reboot to Bootloader"
+msgstr ""
+
+#: Main.py:524
+msgid "fastbootd"
+msgstr ""
+
+#: Main.py:524
+msgid "Reboot to userspace fastboot (fastbootd)"
+msgstr ""
+
+#: Main.py:530 Main.py:833
+msgid "Recovery"
+msgstr ""
+
+#: Main.py:530
+msgid "Reboot to Recovery"
+msgstr ""
+
+#: Main.py:536 Main.py:834
+msgid "Safe Mode"
+msgstr ""
+
+#: Main.py:536
+msgid "Reboot to Safe Mode"
+msgstr ""
+
+#: Main.py:542 Main.py:835
+msgid "Download"
+msgstr ""
+
+#: Main.py:542
+msgid "Reboot to Download Mode"
+msgstr ""
+
+#: Main.py:548 Main.py:836
+msgid "Sideload"
+msgstr ""
+
+#: Main.py:548
+msgid "Reboot to Sideload Mode"
+msgstr ""
+
+#: Main.py:558 Main.py:866 Main.py:947
+msgid "Magisk"
+msgstr ""
+
+#: Main.py:558 Main.py:866
+msgid "Manage Magisk modules and settings"
+msgstr ""
+
+#: Main.py:564 Main.py:870 Main.py:948
+msgid "Install Magisk"
+msgstr ""
+
+#: Main.py:564
+msgid "Download and Install Magisk Manager"
+msgstr ""
+
+#: Main.py:570
+msgid "Magisk Backup"
+msgstr ""
+
+#: Main.py:570 Main.py:874 Main.py:949
+msgid "Magisk Backup Manager"
+msgstr ""
+
+#: Main.py:576 Main.py:878 Main.py:950
+msgid "SOS"
+msgstr ""
+
+#: Main.py:576
+msgid ""
+"Disable Magisk Modules\n"
+"This button issues the following command:\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"This helps for cases where device bootloops due to incompatible magisk "
+"modules(YMMV)."
+msgstr ""
+
+#: Main.py:586
+msgid "Lock"
+msgstr ""
+
+#: Main.py:586 Main.py:884 Main.py:951 Main.py:2752 Main.py:2780
+msgid "Lock Bootloader"
+msgstr ""
+
+#: Main.py:592
+msgid "UnLock"
+msgstr ""
+
+#: Main.py:592
+msgid ""
+"UnLock Bootloader\n"
+"Caution will wipe data"
+msgstr ""
+
+#: Main.py:592
+msgid "UnLock Bootloader"
+msgstr ""
+
+#: Main.py:604 Main.py:769
+msgid "Settings"
+msgstr ""
+
+#: Main.py:604
+msgid "Configuration Settings"
+msgstr ""
+
+#: Main.py:610 Main.py:3898
+msgid "Support"
+msgstr ""
+
+#: Main.py:610
+msgid "Create Support file"
+msgstr ""
+
+#: Main.py:624
+msgid "Exception occurred while building the toolbar:"
+msgstr ""
+
+#: Main.py:690
+#, python-format
+msgid "UNKNOWN tool id: %s"
+msgstr ""
+
+#: Main.py:707
+#, python-format
+msgid ""
+"Device Info:\n"
+"------------\n"
+"%s"
+msgstr ""
+
+#: Main.py:709
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while getting device info"
+msgstr ""
+
+#: Main.py:721
+#, python-format
+msgid ""
+"Current device's Print:\n"
+"------------\n"
+"%s\n"
+"------------\n"
+msgstr ""
+
+#: Main.py:723
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while getting current device print"
+msgstr ""
+
+#: Main.py:776
+msgid "E&xit\tCtrl-Q"
+msgstr ""
+
+#: Main.py:776
+msgid "Exit PixelFlasher"
+msgstr ""
+
+#: Main.py:787 package_manager.py:266
+msgid "Bulk Install APK"
+msgstr ""
+
+#: Main.py:809
+msgid "Pif Print"
+msgstr ""
+
+#: Main.py:809
+msgid "Get current device's Pif pirnt"
+msgstr ""
+
+#: Main.py:817 Main.py:938
+msgid "Partitions Manager"
+msgstr ""
+
+#: Main.py:817
+msgid "Backup / Erase Partitions"
+msgstr ""
+
+#: Main.py:823
+msgid "Switch to the other slot"
+msgstr ""
+
+#: Main.py:832
+msgid "Fastbootd"
+msgstr ""
+
+#: Main.py:861
+msgid "Push file to"
+msgstr ""
+
+#: Main.py:870 magisk_downloads.py:41
+msgid "Download and Install Magisk"
+msgstr ""
+
+#: Main.py:874
+msgid "Manage Magisk Backups"
+msgstr ""
+
+#: Main.py:878 Main.py:2887
+msgid "Disable Magisk Modules"
+msgstr ""
+
+#: Main.py:888 Main.py:952 Main.py:2834
+msgid "Unlock Bootloader"
+msgstr ""
+
+#: Main.py:888
+msgid "Unlock Bootloader (Will wipe data)"
+msgstr ""
+
+#: Main.py:895
+msgid "Top"
+msgstr ""
+
+#: Main.py:901
+msgid "Left"
+msgstr ""
+
+#: Main.py:907
+msgid "Right"
+msgstr ""
+
+#: Main.py:913
+msgid "Bottom"
+msgstr ""
+
+#: Main.py:921
+msgid "Show Button Text"
+msgstr ""
+
+#: Main.py:925
+msgid "Show Button Icon"
+msgstr ""
+
+#: Main.py:940
+msgid "Reboot System"
+msgstr ""
+
+#: Main.py:941
+msgid "Reboot Bootloader"
+msgstr ""
+
+#: Main.py:942
+msgid "Reboot Fastbootd"
+msgstr ""
+
+#: Main.py:943
+msgid "Reboot Recovery"
+msgstr ""
+
+#: Main.py:944
+msgid "Reboot Safe Mode"
+msgstr ""
+
+#: Main.py:945
+msgid "Reboot Download"
+msgstr ""
+
+#: Main.py:946
+msgid "Reboot Sideload"
+msgstr ""
+
+#: Main.py:953
+msgid "Configuration"
+msgstr ""
+
+#: Main.py:955
+msgid "Show / Hide Buttons"
+msgstr ""
+
+#: Main.py:984
+msgid "Report an Issue"
+msgstr ""
+
+#: Main.py:988
+msgid "Feature Request"
+msgstr ""
+
+#: Main.py:992
+msgid "PixelFlasher Project Page"
+msgstr ""
+
+#: Main.py:996
+msgid "PixelFlasher Community (Forum)"
+msgstr ""
+
+#: Main.py:1003
+msgid "Homeboy76's Guide"
+msgstr ""
+
+#: Main.py:1004
+msgid "V0latyle's Guide"
+msgstr ""
+
+#: Main.py:1005
+msgid "roirraW's Guide"
+msgstr ""
+
+#: Main.py:1006
+msgid "kdrag0n's safetynet-fix"
+msgstr ""
+
+#: Main.py:1007
+msgid "Displax's safetynet-fix"
+msgstr ""
+
+#: Main.py:1008
+msgid "Get the Google USB Driver"
+msgstr ""
+
+#: Main.py:1009
+msgid "Android Security Update Bulletins"
+msgstr ""
+
+#: Main.py:1024
+msgid "Links"
+msgstr ""
+
+#: Main.py:1029
+msgid "Open Configuration Folder"
+msgstr ""
+
+#: Main.py:1034
+msgid "Open PixelFlasher Working Directory"
+msgstr ""
+
+#: Main.py:1038
+msgid "Create a Sanitized support.zip"
+msgstr ""
+
+#: Main.py:1044
+msgid "Check for New Version"
+msgstr ""
+
+#: Main.py:1050
+msgid "&About PixelFlasher"
+msgstr ""
+
+#: Main.py:1050
+msgid "About"
+msgstr ""
+
+#: Main.py:1055
+msgid "&File"
+msgstr ""
+
+#: Main.py:1057
+msgid "&Device"
+msgstr ""
+
+#: Main.py:1059
+msgid "&Toolbar"
+msgstr ""
+
+#: Main.py:1061
+msgid "&Help"
+msgstr ""
+
+#: Main.py:1065
+msgid "Test1"
+msgstr ""
+
+#: Main.py:1067
+msgid "&Test"
+msgstr ""
+
+#: Main.py:1211
+msgid "Entering Advanced Configuration ..."
+msgstr ""
+
+#: Main.py:1235
+msgid "Launching Package Manager ...\n"
+msgstr ""
+
+#: Main.py:1245
+#, python-format
+msgid "%s Closing Package Manager ...\n"
+msgstr ""
+
+#: Main.py:1256
+msgid "ERROR: Please select a device before attempting APK Installation"
+msgstr ""
+
+#: Main.py:1257
+msgid "APK Install"
+msgstr ""
+
+#: Main.py:1260
+msgid "Select APK file to install"
+msgstr ""
+
+#: Main.py:1260 package_manager.py:647
+msgid "Android Applications (*.*.apk)|*.apk"
+msgstr ""
+
+#: Main.py:1266 magisk_modules.py:667 package_manager.py:653
+#, python-format
+msgid ""
+"\n"
+"Selected %s for installation."
+msgstr ""
+
+#: Main.py:1268 package_manager.py:654
+msgid ""
+"Do you want to set the ownership to Play Store Market?\n"
+"Note: Android auto apps require that they be installed from the Play "
+"Market."
+msgstr ""
+
+#: Main.py:1268
+msgid "APK Installation"
+msgstr ""
+
+#: Main.py:1276
+msgid "note right:Set ownership to Play Store;\n"
+msgstr ""
+
+#: Main.py:1281
+msgid "note right:Cancelled APK installation;\n"
+msgstr ""
+
+#: Main.py:1282
+msgid "User cancelled apk installation."
+msgstr ""
+
+#: Main.py:1285 package_manager.py:667
+#, python-format
+msgid "Cannot install file '%s'."
+msgstr ""
+
+#: Main.py:1293 package_manager.py:675
+msgid "Select folder to bulk install APKs"
+msgstr ""
+
+#: Main.py:1295 package_manager.py:677
+msgid "User cancelled folder selection."
+msgstr ""
+
+#: Main.py:1306 package_manager.py:688
+msgid ""
+"Do you want to set the ownership to Play Store Market?\n"
+"Note: This will apply to all the current bulk apks.\n"
+"(Android auto apps require that they be installed from the Play Market.)"
+msgstr ""
+
+#: Main.py:1306 package_manager.py:654 package_manager.py:688
+msgid "Set Play Market"
+msgstr ""
+
+#: Main.py:1316 Main.py:2665 package_manager.py:698
+#, python-format
+msgid "Return Code: %s."
+msgstr ""
+
+#: Main.py:1317 package_manager.py:699
+#, python-format
+msgid "Stdout: %s"
+msgstr ""
+
+#: Main.py:1318 Main.py:2667 package_manager.py:700
+#, python-format
+msgid "Stderr: %s"
+msgstr ""
+
+#: Main.py:1319 Main.py:2668 Main.py:2775 Main.py:2802 Main.py:2856
+#: Main.py:2907 magisk_downloads.py:309 magisk_modules.py:555
+#: magisk_modules.py:575 package_manager.py:701 partition_manager.py:320
+#: partition_manager.py:327
+msgid "Aborting ...\n"
+msgstr ""
+
+#: Main.py:1323 package_manager.py:705
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while installing APKs"
+msgstr ""
+
+#: Main.py:1343
+msgid ""
+"#palegreen:Exit PixelFlasher;\n"
+"end\n"
+"@enduml\n"
+msgstr ""
+
+#: Main.py:1365
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Report an Issue\n"
+"[[https://github.com/badabing2005/PixelFlasher/issues/new]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1367 Main.py:1380 Main.py:1393 Main.py:1406 Main.py:1419
+#: Main.py:1432 Main.py:1445 Main.py:1458 Main.py:1471 Main.py:1484
+#: Main.py:1497
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while opening a link"
+msgstr ""
+
+#: Main.py:1378
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Feature Request\n"
+"[[https://github.com/badabing2005/PixelFlasher/issues/new]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1391
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Github Project Page\n"
+"[[https://github.com/badabing2005/PixelFlasher]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1404
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== PixelFlasher @XDA\n"
+"[[https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-"
+"facilitates-flashing-updating-pixel-phones.4415453/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1417
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Homeboy76's Guide\n"
+"[[https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-"
+"bootloader-pass-safetynet-both-slots-bootable-"
+"more.4638510/#post-89128833/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1430
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== V0latyle's Guide\n"
+"[[https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-"
+"magisk.4356233/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1443
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== roirraW's Guide\n"
+"[[https://forum.xda-"
+"developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-"
+"bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1456
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== kdrag0n's Universal Safetynet Fix\n"
+"[[https://github.com/kdrag0n/safetynet-fix/releases]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1469
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Displax's Universal Safetynet Fix\n"
+"[[https://github.com/Displax/safetynet-fix/releases]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1482
+#, python-format
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Google USB Driver\n"
+"[[https://developer.android.com/studio/run/win-usb?authuser=1%2F]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1495
+msgid ""
+":Open Link;\n"
+"note right\n"
+"=== Android security bulletins\n"
+"[[https://source.android.com/docs/security/bulletin/]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:1509
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while opening configuration folder"
+msgstr ""
+
+#: Main.py:1521
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while opening PixelFlasher working "
+"directory"
+msgstr ""
+
+#: Main.py:1530
+msgid "Save support file"
+msgstr ""
+
+#: Main.py:1530
+msgid "Support files (*.zip)|*.zip"
+msgstr ""
+
+#: Main.py:1543
+#, python-format
+msgid "Saving support file to: %s"
+msgstr ""
+
+#: Main.py:1548
+#, python-format
+msgid "Saved support file to: %s"
+msgstr ""
+
+#: Main.py:1550
+#, python-format
+msgid "Cannot save current data in file '%s'."
+msgstr ""
+
+#: Main.py:1594
+msgid "Entrering Test function (used during development only) ..."
+msgstr ""
+
+#: Main.py:1708
+#, python-format
+msgid "Selected Device on %s:\n"
+msgstr ""
+
+#: Main.py:1709
+#, python-format
+msgid "    Device ID:                       %s\n"
+msgstr ""
+
+#: Main.py:1710
+#, python-format
+msgid "    Device Model:                    %s\n"
+msgstr ""
+
+#: Main.py:1711
+#, python-format
+msgid "    Device Active Slot:              %s\n"
+msgstr ""
+
+#: Main.py:1712
+#, python-format
+msgid "    Device Mode:                     %s\n"
+msgstr ""
+
+#: Main.py:1717
+#, python-format
+msgid "    Device:                          %s\n"
+msgstr ""
+
+#: Main.py:1718
+#, python-format
+msgid "    Device Version End Date:         %s\n"
+msgstr ""
+
+#: Main.py:1719
+#, python-format
+msgid "    Device Secuity Update End Date:  %s\n"
+msgstr ""
+
+#: Main.py:1720
+#, python-format
+msgid "    Has init_boot partition:         %s\n"
+msgstr ""
+
+#: Main.py:1721
+#, python-format
+msgid "    Device Bootloader Version:       %s\n"
+msgstr ""
+
+#: Main.py:1723
+#, python-format
+msgid "    Device is Rooted:                %s\n"
+msgstr ""
+
+#: Main.py:1724
+#, python-format
+msgid "    Device Build:                    %s\n"
+msgstr ""
+
+#: Main.py:1725
+#, python-format
+msgid "    Device API Level:                %s\n"
+msgstr ""
+
+#: Main.py:1729
+#, python-format
+msgid "    Android Version:                 %s\n"
+msgstr ""
+
+#: Main.py:1730
+#, python-format
+msgid "    Android Name:                    %s\n"
+msgstr ""
+
+#: Main.py:1731
+#, python-format
+msgid "    Android Codename:                %s\n"
+msgstr ""
+
+#: Main.py:1732
+#, python-format
+msgid "    Android Release Date:            %s\n"
+msgstr ""
+
+#: Main.py:1733
+#, python-format
+msgid "    Android Latest Update:           %s\n"
+msgstr ""
+
+#: Main.py:1734
+#, python-format
+msgid "    Device Architecture:             %s\n"
+msgstr ""
+
+#: Main.py:1735
+#, python-format
+msgid "    Device Kernel Version:           %s\n"
+msgstr ""
+
+#: Main.py:1736
+#, python-format
+msgid "    sys_oem_unlock_allowed:          %s\n"
+msgstr ""
+
+#: Main.py:1737
+#, python-format
+msgid "    ro.boot.flash.locked:            %s\n"
+msgstr ""
+
+#: Main.py:1738
+#, python-format
+msgid "    ro.boot.vbmeta.device_state:     %s\n"
+msgstr ""
+
+#: Main.py:1739
+#, python-format
+msgid "    vendor.boot.vbmeta.device_state: %s\n"
+msgstr ""
+
+#: Main.py:1740
+#, python-format
+msgid "    ro.product.first_api_level:      %s\n"
+msgstr ""
+
+#: Main.py:1741
+#, python-format
+msgid "    ro.boot.warranty_bit:            %s\n"
+msgstr ""
+
+#: Main.py:1742
+#, python-format
+msgid "    ro.boot.veritymode:              %s\n"
+msgstr ""
+
+#: Main.py:1743
+#, python-format
+msgid "    ro.boot.verifiedbootstate:       %s\n"
+msgstr ""
+
+#: Main.py:1744
+#, python-format
+msgid "    vendor.boot.verifiedbootstate:   %s\n"
+msgstr ""
+
+#: Main.py:1745
+#, python-format
+msgid "    ro.warranty_bit:                 %s\n"
+msgstr ""
+
+#: Main.py:1746
+#, python-format
+msgid "    ro.secure:                       %s\n"
+msgstr ""
+
+#: Main.py:1747
+#, python-format
+msgid "    ro.zygote:                       %s\n"
+msgstr ""
+
+#: Main.py:1748
+#, python-format
+msgid "    ro.vendor.product.cpu.abilist:   %s\n"
+msgstr ""
+
+#: Main.py:1749
+#, python-format
+msgid "    ro.vendor.product.cpu.abilist32: %s\n"
+msgstr ""
+
+#: Main.py:1753
+#, python-format
+msgid "    Magisk Manager Version:          %s\n"
+msgstr ""
+
+#: Main.py:1755
+#, python-format
+msgid "    Magisk Path:                     %s\n"
+msgstr ""
+
+#: Main.py:1756
+#, python-format
+msgid "        Checked for Package:         %s\n"
+msgstr ""
+
+#: Main.py:1758
+#, python-format
+msgid "    Device Unlocked:                 %s\n"
+msgstr ""
+
+#: Main.py:1760
+#, python-format
+msgid "    Device Unlockable:               %s\n"
+msgstr ""
+
+#: Main.py:1761
+#, python-format
+msgid "    slot-retry-count:a:              %s\n"
+msgstr ""
+
+#: Main.py:1762
+#, python-format
+msgid "    slot-unbootable:a:               %s\n"
+msgstr ""
+
+#: Main.py:1763
+#, python-format
+msgid "    slot-successful:a:               %s\n"
+msgstr ""
+
+#: Main.py:1764
+#, python-format
+msgid "    slot-retry-count:b:              %s\n"
+msgstr ""
+
+#: Main.py:1765
+#, python-format
+msgid "    slot-unbootable:b:               %s\n"
+msgstr ""
+
+#: Main.py:1766
+#, python-format
+msgid "    slot-successful:b:               %s\n"
+msgstr ""
+
+#: Main.py:1769
+#, python-format
+msgid "    Magisk Version:                  %s\n"
+msgstr ""
+
+#: Main.py:1770
+#, python-format
+msgid "    Magisk Config SHA1:              %s\n"
+msgstr ""
+
+#: Main.py:1771
+msgid "    Magisk Modules:\n"
+msgstr ""
+
+#: Main.py:1786
+msgid "    vbmeta:                          UNKNOWN\n"
+msgstr ""
+
+#: Main.py:1788
+msgid "    vbmeta:                          Not Present\n"
+msgstr ""
+
+#: Main.py:1791
+#, python-format
+msgid "    vbmeta type:                     %s\n"
+msgstr ""
+
+#: Main.py:1793
+#, python-format
+msgid "    Slot A Verity:                   %s\n"
+msgstr ""
+
+#: Main.py:1794
+#, python-format
+msgid "    Slot A Verification:             %s\n"
+msgstr ""
+
+#: Main.py:1795
+#, python-format
+msgid "    Slot B Verity:                   %s\n"
+msgstr ""
+
+#: Main.py:1796
+#, python-format
+msgid "    Slot B Verification:             %s\n"
+msgstr ""
+
+#: Main.py:1798
+msgid ""
+"    WARNING! WARNING! WARNING!       Slot a verity / verification does "
+"not match slot b verity / verification"
+msgstr ""
+
+#: Main.py:1800
+#, python-format
+msgid "    Verity:                          %s\n"
+msgstr ""
+
+#: Main.py:1801
+#, python-format
+msgid "    Verification:                    %s\n"
+msgstr ""
+
+#: Main.py:1804
+msgid ""
+"    WARNING! WARNING! WARNING!       There is a mismatch of currently "
+"selected vbmeta verity state and device's verity state\n"
+msgstr ""
+
+#: Main.py:1806
+msgid ""
+"    WARNING! WARNING! WARNING!       There is a mismatch of currently "
+"selected vbmeta verification state and device's verification state\n"
+msgstr ""
+
+#: Main.py:1807
+msgid ""
+"                                     This has a device wipe implications,"
+" please double check."
+msgstr ""
+
+#: Main.py:1811
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered while getting vbmeta data."
+msgstr ""
+
+#: Main.py:1822
+#, python-format
+msgid ""
+"WARNING! Problematic Magisk Version:         %s is installed. Advised not"
+" to use this version."
+msgstr ""
+
+#: Main.py:1825
+#, python-format
+msgid ""
+"WARNING! Problematic Magisk Manager Version: %s is installed. Advised not"
+" to use this version."
+msgstr ""
+
+#: Main.py:1828
+#, python-format
+msgid ""
+"Magisk Version: %s is detected.\n"
+"Magisk Manager Version: %s is detected.\n"
+"\n"
+"These versions of Magisk are known to have issues.\n"
+"Recommendation: Install stable version or one that is known to be good."
+msgstr ""
+
+#: Main.py:1828
+msgid "Problematic Magisk Versions."
+msgstr ""
+
+#: Main.py:1829
+#, python-format
+msgid ""
+"#red:Magisk Version: %s is detected\n"
+"Magisk Manager Version: %s is detected;\n"
+msgstr ""
+
+#: Main.py:1830
+msgid "note right:These versions of Magisk are known to have problems."
+msgstr ""
+
+#: Main.py:1833
+#, python-format
+msgid ""
+"Magisk Version: %s is detected.\n"
+"This version of Magisk is known to have issues.\n"
+"Recommendation: Install stable version or one that is known to be good."
+msgstr ""
+
+#: Main.py:1833
+msgid "Problematic Magisk Version."
+msgstr ""
+
+#: Main.py:1834
+#, python-format
+msgid "#red:Magisk Version: %s is detected;\n"
+msgstr ""
+
+#: Main.py:1835
+msgid "note right:This version of Magisk is known to have problems."
+msgstr ""
+
+#: Main.py:1838
+#, python-format
+msgid ""
+"Magisk Manager Version: %s is detected.\n"
+"This version of Magisk Manager is known to have issues.\n"
+"Recommendation: Install stable version or one that is known to be good."
+msgstr ""
+
+#: Main.py:1838
+msgid "Problematic Magisk Manager Version."
+msgstr ""
+
+#: Main.py:1839
+#, python-format
+msgid "#red:Magisk Manager Version: %s is detected;\n"
+msgstr ""
+
+#: Main.py:1840
+msgid "note right:This version of Magisk Manager is known to have problems;\n"
+msgstr ""
+
+#: Main.py:1867 Main.py:1882
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Selected file is not of type .img"
+msgstr ""
+
+#: Main.py:1875
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Selected file is not of type .zip"
+msgstr ""
+
+#: Main.py:1894 Main.py:1907
+msgid ":Select Device;\n"
+msgstr ""
+
+#: Main.py:1911 Main.py:1914 Main.py:1958 Main.py:1963 Main.py:3655
+msgid "ADB Connected Devices"
+msgstr ""
+
+#: Main.py:1916
+#, python-format
+msgid "%s No Device is selected!"
+msgstr ""
+
+#: Main.py:1917
+msgid ""
+":Select Device;\n"
+"note right:No Device is selected!\n"
+msgstr ""
+
+#: Main.py:1925
+msgid "Updating connected devices ..."
+msgstr ""
+
+#: Main.py:1950
+msgid ""
+"ADB Connected Devices\n"
+"Current Active Slot: [A]"
+msgstr ""
+
+#: Main.py:1954
+msgid ""
+"ADB Connected Devices\n"
+"Current Active Slot: [B]"
+msgstr ""
+
+#: Main.py:2103
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while evaluating a rule"
+msgstr ""
+
+#: Main.py:2212
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while updating widgets."
+msgstr ""
+
+#: Main.py:2236
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while selecting a device"
+msgstr ""
+
+#: Main.py:2245
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Scan"
+msgstr ""
+
+#: Main.py:2247
+#, python-format
+msgid ""
+"\n"
+"%s Scanning for Devices ..."
+msgstr ""
+
+#: Main.py:2248
+msgid ":Scan for Devices;\n"
+msgstr ""
+
+#: Main.py:2256
+msgid "No Devices found."
+msgstr ""
+
+#: Main.py:2257
+msgid "note right:No Devices are found\n"
+msgstr ""
+
+#: Main.py:2258 Main.py:2267 Main.py:3676
+msgid "Scan"
+msgstr ""
+
+#: Main.py:2258
+msgid "No devices are found.."
+msgstr ""
+
+#: Main.py:2261
+#, python-format
+msgid "%s Device(s) are found."
+msgstr ""
+
+#: Main.py:2267
+#, python-format
+msgid "Select your device from the list of %s found devices."
+msgstr ""
+
+#: Main.py:2269
+msgid "Please set Android Platform Tools Path first."
+msgstr ""
+
+#: Main.py:2271
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while scanning"
+msgstr ""
+
+#: Main.py:2286 Main.py:3641
+msgid "Android Platform Tools"
+msgstr ""
+
+#: Main.py:2289
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while selecting platform tools"
+msgstr ""
+
+#: Main.py:2308
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while selecting firmware"
+msgstr ""
+
+#: Main.py:2317
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Process firmware"
+msgstr ""
+
+#: Main.py:2323
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while processing firmware"
+msgstr ""
+
+#: Main.py:2332
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Process ROM"
+msgstr ""
+
+#: Main.py:2338
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while processing rom"
+msgstr ""
+
+#: Main.py:2353
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while choosing an image"
+msgstr ""
+
+#: Main.py:2369
+#, python-format
+msgid ""
+"\n"
+"%s Custom image file %s is selected."
+msgstr ""
+
+#: Main.py:2371
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: The selected file %s is not img or zip file."
+msgstr ""
+
+#: Main.py:2374
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while selecting an image"
+msgstr ""
+
+#: Main.py:2387
+msgid ":Select ROM File;\n"
+msgstr ""
+
+#: Main.py:2399
+#, python-format
+msgid "Selected ROM %s SHA-256: %s"
+msgstr ""
+
+#: Main.py:2404
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: The selected file %s is not a valid archive."
+msgstr ""
+
+#: Main.py:2405
+msgid "#red:The selected ROM file is not valid;\n"
+msgstr ""
+
+#: Main.py:2408
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while selecting rom"
+msgstr ""
+
+#: Main.py:2421
+#, python-format
+msgid "Flash mode changed to: %s"
+msgstr ""
+
+#: Main.py:2422
+msgid ":Flash mode change;\n"
+msgstr ""
+
+#: Main.py:2435
+#, python-format
+msgid "Flash Option: Flash Both Slots %s"
+msgstr ""
+
+#: Main.py:2436 Main.py:2450 Main.py:2465 Main.py:2479 Main.py:2512
+#: Main.py:2523 Main.py:2534 Main.py:2545 Main.py:2556
+msgid ":Flash Option change;\n"
+msgstr ""
+
+#: Main.py:2437
+#, python-format
+msgid "note right:Flash Both Slots %s\n"
+msgstr ""
+
+#: Main.py:2449
+#, python-format
+msgid "Flash Option: Flash to Inactive Slot %s"
+msgstr ""
+
+#: Main.py:2451
+#, python-format
+msgid "note right:Flash to Inactive Slot %s\n"
+msgstr ""
+
+#: Main.py:2464
+#, python-format
+msgid "Flash Option: Disable Verity %s"
+msgstr ""
+
+#: Main.py:2466
+#, python-format
+msgid "note right:Disable Verity %s\n"
+msgstr ""
+
+#: Main.py:2478
+#, python-format
+msgid "Flash Option: Disable Verification %s"
+msgstr ""
+
+#: Main.py:2480
+#, python-format
+msgid "note right:Disable Verification %s\n"
+msgstr ""
+
+#: Main.py:2495
+msgid "vbmeta issue."
+msgstr ""
+
+#: Main.py:2495
+#, python-format
+msgid ""
+"Warning!\n"
+"%s"
+msgstr ""
+
+#: Main.py:2495 Main.py:2764 Main.py:2794 Main.py:2848 Main.py:2899
+#: advanced_settings.py:275
+msgid "OK"
+msgstr ""
+
+#: Main.py:2496
+#, python-format
+msgid ""
+"note right\n"
+"Dialog\n"
+"====\n"
+"Warning!\n"
+"%s\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:2501 Main.py:3306 Main.py:3344 Main.py:3353 Main.py:3394
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error."
+msgstr ""
+
+#: Main.py:2511
+#, python-format
+msgid "Flash Option: Force %s"
+msgstr ""
+
+#: Main.py:2513
+#, python-format
+msgid "note right:Force %s\n"
+msgstr ""
+
+#: Main.py:2522
+#, python-format
+msgid "Flash Option: Verbose %s"
+msgstr ""
+
+#: Main.py:2524
+#, python-format
+msgid "note right:Verbose %s\n"
+msgstr ""
+
+#: Main.py:2533
+#, python-format
+msgid "Flash Option: Temporary Root %s"
+msgstr ""
+
+#: Main.py:2535
+#, python-format
+msgid "note right:Temporary Root %s\n"
+msgstr ""
+
+#: Main.py:2544
+#, python-format
+msgid "Flash Option: No Reboot %s"
+msgstr ""
+
+#: Main.py:2546
+#, python-format
+msgid "note right:No Reboot %s\n"
+msgstr ""
+
+#: Main.py:2555
+#, python-format
+msgid "Flash Option: Wipe %s"
+msgstr ""
+
+#: Main.py:2557
+#, python-format
+msgid "note right:Wipe %s\n"
+msgstr ""
+
+#: Main.py:2566
+#, python-format
+msgid "Console Verbose: %s"
+msgstr ""
+
+#: Main.py:2567
+msgid ":Console Verbose;\n"
+msgstr ""
+
+#: Main.py:2577
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Reboot Recovery"
+msgstr ""
+
+#: Main.py:2584 Main.py:2586
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to recovery"
+msgstr ""
+
+#: Main.py:2596
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Reboot Download"
+msgstr ""
+
+#: Main.py:2603 Main.py:2605
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to download"
+msgstr ""
+
+#: Main.py:2615
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Reboot Sideload"
+msgstr ""
+
+#: Main.py:2622 Main.py:2624
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to sideload"
+msgstr ""
+
+#: Main.py:2634
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Reboot Safe Mode"
+msgstr ""
+
+#: Main.py:2641 Main.py:2643
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to safe mode"
+msgstr ""
+
+#: Main.py:2653
+msgid "Select file to push"
+msgstr ""
+
+#: Main.py:2653
+msgid "All files (*.*)|*.*"
+msgstr ""
+
+#: Main.py:2655
+msgid "User cancelled file push."
+msgstr ""
+
+#: Main.py:2666
+msgid "Stdout: "
+msgstr ""
+
+#: Main.py:2672 Main.py:2700 Main.py:2702 Main.py:2820 Main.py:2873
+#: Main.py:3060
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to system"
+msgstr ""
+
+#: Main.py:2693
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Reboot System"
+msgstr ""
+
+#: Main.py:2712
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Reboot Bootloader"
+msgstr ""
+
+#: Main.py:2719 Main.py:2721
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to bootloader"
+msgstr ""
+
+#: Main.py:2731
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Reboot Fastbootd"
+msgstr ""
+
+#: Main.py:2738
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to fastbootd"
+msgstr ""
+
+#: Main.py:2740
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while rebooting to fatsbootd"
+msgstr ""
+
+#: Main.py:2749
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Lock Bootloader"
+msgstr ""
+
+#: Main.py:2753
+msgid ""
+"         WARNING!!! WARNING!!! WARNING!!!\n"
+"\n"
+msgstr ""
+
+#: Main.py:2754
+msgid "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n"
+msgstr ""
+
+#: Main.py:2755
+msgid ""
+"TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n"
+"\n"
+msgstr ""
+
+#: Main.py:2756
+msgid ""
+"       THIS WILL WIPE YOUR DEVICE DATA!!!\n"
+"\n"
+msgstr ""
+
+#: Main.py:2757
+msgid "Do you want to continue to Lock the device bootloader?\n"
+msgstr ""
+
+#: Main.py:2758
+msgid "       Press OK to continue or CANCEL to abort.\n"
+msgstr ""
+
+#: Main.py:2764 Main.py:2794 Main.py:2848 Main.py:2899
+msgid "CANCEL"
+msgstr ""
+
+#: Main.py:2772 Main.py:2799 Main.py:2853 Main.py:2904 magisk_downloads.py:282
+#: magisk_modules.py:909
+#, python-format
+msgid "%s User Pressed Ok."
+msgstr ""
+
+#: Main.py:2774 Main.py:2801 Main.py:2855 Main.py:2906 Main.py:2966
+#: Main.py:2987 Main.py:3010 Main.py:3098
+#, python-format
+msgid "%s User Pressed Cancel."
+msgstr ""
+
+#: Main.py:2781 Main.py:2835
+msgid ""
+"WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n"
+"\n"
+msgstr ""
+
+#: Main.py:2782 Main.py:2836
+msgid "Make sure you first read either of the guides linked in the help menu.\n"
+msgstr ""
+
+#: Main.py:2783 Main.py:2837
+msgid "Failing to follow the proper steps could potentially brick your phone.\n"
+msgstr ""
+
+#: Main.py:2784 Main.py:2838
+msgid ""
+"\n"
+"Note: Pressing OK button will invoke a script that will utilize\n"
+msgstr ""
+
+#: Main.py:2785 Main.py:2839
+msgid "fastboot commands, if your PC fastboot drivers are not propely setup,\n"
+msgstr ""
+
+#: Main.py:2786 Main.py:2840
+msgid "fastboot will wait forever, and PixelFlasher will appear hung.\n"
+msgstr ""
+
+#: Main.py:2787 Main.py:2841
+msgid ""
+"In such cases, killing the fastboot process will resume to normalcy.\n"
+"\n"
+msgstr ""
+
+#: Main.py:2788
+msgid "      Do you want to continue to Lock the device bootloader?\n"
+msgstr ""
+
+#: Main.py:2789 Main.py:2843
+msgid "              Press OK to continue or CANCEL to abort.\n"
+msgstr ""
+
+#: Main.py:2813 Main.py:2822
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while locking bootloader"
+msgstr ""
+
+#: Main.py:2816 Main.py:2869
+msgid "echo rebooting to system ...\n"
+msgstr ""
+
+#: Main.py:2831
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Unlock Bootloader"
+msgstr ""
+
+#: Main.py:2842
+msgid "      Do you want to continue to Unlock the device bootloader?\n"
+msgstr ""
+
+#: Main.py:2867 Main.py:2875
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while unlocking bootloader"
+msgstr ""
+
+#: Main.py:2884
+#, python-format
+msgid ""
+"\n"
+"%s User initiated SOS"
+msgstr ""
+
+#: Main.py:2888
+msgid ""
+"WARNING!!! This is an experimental feature to attempt disabling magisk "
+"modules.\n"
+"\n"
+msgstr ""
+
+#: Main.py:2889
+msgid "You would only need to do this if your device is bootlooping due to\n"
+msgstr ""
+
+#: Main.py:2890
+msgid ""
+"incompatible magisk modules, this is not guaranteed to work in all cases "
+"(YMMV).\n"
+msgstr ""
+
+#: Main.py:2891
+msgid ""
+"\n"
+"Note: Pressing OK button will invoke a script that will wait forever to "
+"detect the device.\n"
+msgstr ""
+
+#: Main.py:2892
+msgid "If your device is not detected PixelFlasher will appear hung.\n"
+msgstr ""
+
+#: Main.py:2893
+msgid ""
+"In such cases, killing the adb process will resume to normalcy.\n"
+"\n"
+msgstr ""
+
+#: Main.py:2894
+msgid "                        Press OK to continue or CANCEL to abort.\n"
+msgstr ""
+
+#: Main.py:2925
+#, python-format
+msgid ""
+"\n"
+"%s User initiated ADB Shell"
+msgstr ""
+
+#: Main.py:2931
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while getting adb shell"
+msgstr ""
+
+#: Main.py:2940
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Scrcpy"
+msgstr ""
+
+#: Main.py:2947
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while launching scrcpy"
+msgstr ""
+
+#: Main.py:2967
+msgid "Aborting Magisk Modules Management ...\n"
+msgstr ""
+
+#: Main.py:2988
+msgid "Aborting Magisk Installation ...\n"
+msgstr ""
+
+#: Main.py:3011
+msgid "Closing Backup Manager ...\n"
+msgstr ""
+
+#: Main.py:3031
+msgid "Closing Partition Manager ...\n"
+msgstr ""
+
+#: Main.py:3041
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Switch Slot"
+msgstr ""
+
+#: Main.py:3047
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Unknown slot, is your device dual slot?"
+msgstr ""
+
+#: Main.py:3050
+#, python-format
+msgid "User clicked on Switch Slot: Current Slot: [%s]"
+msgstr ""
+
+#: Main.py:3056 Main.py:3062
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while switching slot"
+msgstr ""
+
+#: Main.py:3073
+msgid ""
+"Launching browser for SDK download URL: "
+"https://developer.android.com/studio/releases/platform-tools.html"
+msgstr ""
+
+#: Main.py:3075
+msgid ""
+":Open SDK Link;\n"
+"note right\n"
+"=== Android Platform Tools\n"
+"[[https://developer.android.com/studio/releases/platform-tools.html]]\n"
+"end note\n"
+msgstr ""
+
+#: Main.py:3077
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while opening skd link"
+msgstr ""
+
+#: Main.py:3087
+msgid "Opening Wireless Manager ...\n"
+msgstr ""
+
+#: Main.py:3090
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while loading wifi screen."
+msgstr ""
+
+#: Main.py:3099
+msgid "Closing Wireless Manager ...\n"
+msgstr ""
+
+#: Main.py:3109
+#, python-format
+msgid ""
+"\n"
+"%s User initiated ADB Kill"
+msgstr ""
+
+#: Main.py:3110
+msgid ""
+"This will invoke the command adb kill-server.\n"
+"Are you sure want to continue?"
+msgstr ""
+
+#: Main.py:3110
+msgid "ADB Kill Server"
+msgstr ""
+
+#: Main.py:3113
+#, python-format
+msgid "%s User canceled Killing ADB server."
+msgstr ""
+
+#: Main.py:3115
+msgid "User pressed ok kill ADB server"
+msgstr ""
+
+#: Main.py:3116
+msgid ":Kill ADB Server;\n"
+msgstr ""
+
+#: Main.py:3120
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while killing adb server"
+msgstr ""
+
+#: Main.py:3132
+#, python-format
+msgid "%s Enabled Custom ROM"
+msgstr ""
+
+#: Main.py:3133
+msgid ":Custom ROM: ON;\n"
+msgstr ""
+
+#: Main.py:3135
+#, python-format
+msgid "%s Disabled Custom ROM"
+msgstr ""
+
+#: Main.py:3136
+msgid ":Custom ROM: OFF;\n"
+msgstr ""
+
+#: Main.py:3147
+msgid "Show All Boot Images"
+msgstr ""
+
+#: Main.py:3148
+msgid ":Show all boot images;\n"
+msgstr ""
+
+#: Main.py:3232
+msgid "Selected Boot:"
+msgstr ""
+
+#: Main.py:3233
+msgid ":Select Boot;\n"
+msgstr ""
+
+#: Main.py:3234
+#, python-format
+msgid "    File:                  %s\n"
+msgstr ""
+
+#: Main.py:3235
+msgid "    Path:                  \n"
+msgstr ""
+
+#: Main.py:3236
+#, python-format
+msgid "    SHA1:                  %s\n"
+msgstr ""
+
+#: Main.py:3239
+msgid "    Patched:               \n"
+msgstr ""
+
+#: Main.py:3241
+msgid "    Patched Method:        \n"
+msgstr ""
+
+#: Main.py:3243
+#, python-format
+msgid "    Patch Source SHA1:     %s\n"
+msgstr ""
+
+#: Main.py:3244
+#, python-format
+msgid "    Patched With Magisk:   %s\n"
+msgstr ""
+
+#: Main.py:3245
+#, python-format
+msgid "    Patched on Device:     %s\n"
+msgstr ""
+
+#: Main.py:3248
+#, python-format
+msgid "    Patched:               %s\n"
+msgstr ""
+
+#: Main.py:3251
+msgid "    Samsung Boot:          True\n"
+msgstr ""
+
+#: Main.py:3253
+msgid "    Stock Boot:            False\n"
+msgstr ""
+
+#: Main.py:3255
+msgid "    Stock Boot:            True\n"
+msgstr ""
+
+#: Main.py:3257
+msgid "    Init Boot:             False\n"
+msgstr ""
+
+#: Main.py:3259
+msgid "    Init Boot:             True\n"
+msgstr ""
+
+#: Main.py:3260
+#, python-format
+msgid "    Date:                  %s\n"
+msgstr ""
+
+#: Main.py:3261
+#, python-format
+msgid "    Firmware Fingerprint:  %s\n"
+msgstr ""
+
+#: Main.py:3262
+#, python-format
+msgid "    Firmware:              %s\n"
+msgstr ""
+
+#: Main.py:3263
+#, python-format
+msgid "    Type:                  %s\n"
+msgstr ""
+
+#: Main.py:3265
+#, python-format
+msgid ""
+"\n"
+"INFO: Multiple PACKAGE_BOOT records found for %s."
+msgstr ""
+
+#: Main.py:3273
+msgid ""
+"\n"
+"Please Process the firmware!"
+msgstr ""
+
+#: Main.py:3275
+msgid ""
+"\n"
+"Please select a boot/init_boot!"
+msgstr ""
+
+#: Main.py:3288
+msgid "Delete boot image button is pressed."
+msgstr ""
+
+#: Main.py:3289
+msgid ":Delete boot image;\n"
+msgstr ""
+
+#: Main.py:3290
+#, python-format
+msgid "Deleting boot record,  ID:%s  Boot_ID:%s ..."
+msgstr ""
+
+#: Main.py:3307 Main.py:3345 Main.py:3354 Main.py:3395 phone.py:3840
+msgid "#red:Encountered an error;\n"
+msgstr ""
+
+#: Main.py:3309 Main.py:3347 Main.py:3356 Main.py:3397
+msgid "Aborting ..."
+msgstr ""
+
+#: Main.py:3330
+#, python-format
+msgid "Cleared db entry for BOOT: %s"
+msgstr ""
+
+#: Main.py:3332
+#, python-format
+msgid "Deleting Boot file: %s ..."
+msgstr ""
+
+#: Main.py:3339
+#, python-format
+msgid "Deleting %s ..."
+msgstr ""
+
+#: Main.py:3342
+#, python-format
+msgid "Warning: Boot file: %s does not exist"
+msgstr ""
+
+#: Main.py:3387
+#, python-format
+msgid "Cleared db entry for PACKAGE: %s"
+msgstr ""
+
+#: Main.py:3391
+#, python-format
+msgid "Deleting Firmware cache for: %s ..."
+msgstr ""
+
+#: Main.py:3417
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while opening boot folder"
+msgstr ""
+
+#: Main.py:3433
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while opening firmware folder"
+msgstr ""
+
+#: Main.py:3442
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Live boot"
+msgstr ""
+
+#: Main.py:3446
+msgid ""
+"\n"
+"$s ERROR: Encountered an error while live booting"
+msgstr ""
+
+#: Main.py:3455
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Flash Boot"
+msgstr ""
+
+#: Main.py:3459
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while flashing boot"
+msgstr ""
+
+#: Main.py:3486
+msgid "Nothing to paste!"
+msgstr ""
+
+#: Main.py:3490
+#, python-format
+msgid "Pasted %s to custom flash"
+msgstr ""
+
+#: Main.py:3491
+#, python-format
+msgid ""
+":Paste boot path;\n"
+"note right:%s;\n"
+msgstr ""
+
+#: Main.py:3497
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: file: %s Not Found."
+msgstr ""
+
+#: Main.py:3504
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Patch boot"
+msgstr ""
+
+#: Main.py:3508
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while patching boot"
+msgstr ""
+
+#: Main.py:3517
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Custom Patch boot"
+msgstr ""
+
+#: Main.py:3521
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while patching custom boot"
+msgstr ""
+
+#: Main.py:3530
+#, python-format
+msgid ""
+"\n"
+"%s User initiated Flash Pixel Phone."
+msgstr ""
+
+#: Main.py:3531
+msgid ""
+"Please be patient ...\n"
+"\n"
+"During this process:\n"
+" ! Do not touch the device\n"
+" ! Do not unplug your device"
+msgstr ""
+
+#: Main.py:3536
+#, python-format
+msgid ""
+"\n"
+"%s INFO: Flashing was aborted."
+msgstr ""
+
+#: Main.py:3537
+msgid "This could be user initiated or a problem encountered during flashing."
+msgstr ""
+
+#: Main.py:3540
+#, python-format
+msgid "Current device mode: %s"
+msgstr ""
+
+#: Main.py:3541
+msgid "You might need to manually reboot your device.\n"
+msgstr ""
+
+#: Main.py:3546 Main.py:3895
+msgid "Please be patient ..."
+msgstr ""
+
+#: Main.py:3548
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while flashing"
+msgstr ""
+
+#: Main.py:3557
+msgid ":Clear Console Logs;\n"
+msgstr ""
+
+#: Main.py:3582
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while updating slot image"
+msgstr ""
+
+#: Main.py:3606
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while updating root image"
+msgstr ""
+
+#: Main.py:3644
+msgid "Download Latest Android Platform-Tools"
+msgstr ""
+
+#: Main.py:3646
+msgid ""
+"Select Android Platform-Tools Folder\n"
+"Where adb and fastboot are located."
+msgstr ""
+
+#: Main.py:3656
+msgid ""
+"Double click this label to issue the command:\n"
+"adb kill-server"
+msgstr ""
+
+#: Main.py:3659
+msgid "Open wireless manager dialog."
+msgstr ""
+
+#: Main.py:3668
+msgid "✓ Rooted with Magisk.\n"
+msgstr ""
+
+#: Main.py:3669
+msgid "✗ Probably Not Root (Magisk Tools not found).\n"
+msgstr ""
+
+#: Main.py:3670
+msgid ""
+"?  Unable to determine the root status.\n"
+"\n"
+msgstr ""
+
+#: Main.py:3671
+msgid "(adb) device is in adb mode\n"
+msgstr ""
+
+#: Main.py:3672
+msgid "(f.b) device is in fastboot mode\n"
+msgstr ""
+
+#: Main.py:3673
+msgid "(sid) device is in sideload mode\n"
+msgstr ""
+
+#: Main.py:3674
+msgid "(rec) device is in recovery mode\n"
+msgstr ""
+
+#: Main.py:3677
+msgid ""
+"Scan for Devices\n"
+"Please manually select the device after the scan is completed."
+msgstr ""
+
+#: Main.py:3698
+msgid "Device Image"
+msgstr ""
+
+#: Main.py:3701
+msgid "Download image file for Pixel devices."
+msgstr ""
+
+#: Main.py:3702
+msgid "Full OTA Images for Pixel Phones / Tablets"
+msgstr ""
+
+#: Main.py:3703
+msgid "Factory Images for Pixel Phones / Tablets"
+msgstr ""
+
+#: Main.py:3704
+msgid "Full OTA Images for Pixel Watches"
+msgstr ""
+
+#: Main.py:3705
+msgid "Factory Images for Pixel Watches"
+msgstr ""
+
+#: Main.py:3706 Main.py:3722 Main.py:3845
+msgid "Select a file"
+msgstr ""
+
+#: Main.py:3706
+msgid "Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar"
+msgstr ""
+
+#: Main.py:3707
+msgid "Select Pixel Firmware"
+msgstr ""
+
+#: Main.py:3708 Main.py:3724
+msgid "Process"
+msgstr ""
+
+#: Main.py:3710
+msgid "Process the firmware file and extract the boot.img"
+msgstr ""
+
+#: Main.py:3720
+msgid "Apply Custom ROM"
+msgstr ""
+
+#: Main.py:3721
+msgid ""
+"Caution: Make sure you read the selected ROM documentation.\n"
+"This might not work for your ROM"
+msgstr ""
+
+#: Main.py:3722
+msgid "ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar"
+msgstr ""
+
+#: Main.py:3723
+msgid "Select Custom ROM"
+msgstr ""
+
+#: Main.py:3726
+msgid "Process the ROM file and extract the boot.img"
+msgstr ""
+
+#: Main.py:3732
+msgid "Select a boot/init_boot"
+msgstr ""
+
+#: Main.py:3733
+msgid "Show All boot/init_boot"
+msgstr ""
+
+#: Main.py:3734
+msgid ""
+"Show all boot/init_boot even if it is\n"
+"not part of the selected firmware or ROM"
+msgstr ""
+
+#: Main.py:3744
+msgid "SHA1  "
+msgstr ""
+
+#: Main.py:3745
+msgid "Source SHA1  "
+msgstr ""
+
+#: Main.py:3746
+msgid "Package Fingerprint  "
+msgstr ""
+
+#: Main.py:3747
+msgid "Patched with Magisk  "
+msgstr ""
+
+#: Main.py:3748
+msgid "Patch Method  "
+msgstr ""
+
+#: Main.py:3749
+msgid "Patched on Device  "
+msgstr ""
+
+#: Main.py:3750
+msgid "Date  "
+msgstr ""
+
+#: Main.py:3751
+msgid "Package Path  "
+msgstr ""
+
+#: Main.py:3777
+msgid "Flash Boot"
+msgstr ""
+
+#: Main.py:3779
+msgid "Flash just the selected item"
+msgstr ""
+
+#: Main.py:3780
+msgid "Patch"
+msgstr ""
+
+#: Main.py:3782
+msgid "Patch the selected item"
+msgstr ""
+
+#: Main.py:3785
+msgid ""
+"Custom Patch\n"
+"\n"
+"Select a file from disk to patch, and then save the patched file to disk."
+"\n"
+"Use this if you want to patch a manually extracted boot image."
+msgstr ""
+
+#: Main.py:3786
+msgid "Delete"
+msgstr ""
+
+#: Main.py:3788
+msgid "Delete the selected item"
+msgstr ""
+
+#: Main.py:3789 file_editor.py:82
+msgid "Open Folder"
+msgstr ""
+
+#: Main.py:3791
+msgid "Open boot files folder."
+msgstr ""
+
+#: Main.py:3794
+msgid ""
+"Open Working Directory\n"
+"\n"
+"Opens the firmware working directory.\n"
+"Use this if you want to manually run commands from the working directory"
+msgstr ""
+
+#: Main.py:3795 Main.py:3830
+msgid "Live Boot"
+msgstr ""
+
+#: Main.py:3797
+msgid "Live boot to the selected item"
+msgstr ""
+
+#: Main.py:3819
+msgid "Flash Mode"
+msgstr ""
+
+#: Main.py:3822
+msgid "Keep Data"
+msgstr ""
+
+#: Main.py:3822
+msgid "Data will be kept intact."
+msgstr ""
+
+#: Main.py:3823
+msgid "WIPE all data"
+msgstr ""
+
+#: Main.py:3823
+msgid "CAUTION: This will wipe your data"
+msgstr ""
+
+#: Main.py:3824
+msgid "Dry Run"
+msgstr ""
+
+#: Main.py:3824
+msgid ""
+"Dry Run, no flashing will be done.\n"
+"The phone will reboot to fastboot and then\n"
+"back to normal.\n"
+"This is for testing."
+msgstr ""
+
+#: Main.py:3825
+msgid "Full OTA"
+msgstr ""
+
+#: Main.py:3825
+msgid "Flash full OTA, and have the choice of flashing patched image(s)."
+msgstr ""
+
+#: Main.py:3826
+msgid "Custom Flash"
+msgstr ""
+
+#: Main.py:3826
+msgid ""
+"Custom Flash, Advanced option to flash a single file.\n"
+"This will not flash the factory image.\\It will flash the single selected"
+" file."
+msgstr ""
+
+#: Main.py:3832
+msgid "Live Boot to selected boot / init_boot"
+msgstr ""
+
+#: Main.py:3833
+msgid "Flash"
+msgstr ""
+
+#: Main.py:3836
+msgid "Flashes the selected boot / init_boot"
+msgstr ""
+
+#: Main.py:3845
+msgid "Flashable files (*.img;*.zip)|*.img;*.zip"
+msgstr ""
+
+#: Main.py:3848
+msgid ""
+"Depending on the flash selection, paste the appropriate path as custom "
+"image."
+msgstr ""
+
+#: Main.py:3856
+msgid "Flash Options"
+msgstr ""
+
+#: Main.py:3857
+msgid "Flash to inactive slot"
+msgstr ""
+
+#: Main.py:3858
+msgid ""
+"This option when checked will flash to the alternate slot (inactive).\n"
+"Keeping the current slot intact."
+msgstr ""
+
+#: Main.py:3859
+msgid "Flash to both slots"
+msgstr ""
+
+#: Main.py:3860
+msgid "This option when checked will flash to both slots."
+msgstr ""
+
+#: Main.py:3861
+msgid "Disable Verity"
+msgstr ""
+
+#: Main.py:3862
+msgid "Disables Verity"
+msgstr ""
+
+#: Main.py:3863
+msgid "Disable Verification"
+msgstr ""
+
+#: Main.py:3864
+msgid "Disables Verification"
+msgstr ""
+
+#: Main.py:3865
+msgid "Force"
+msgstr ""
+
+#: Main.py:3866
+msgid "Force a flash operation that may be unsafe (will wipe your data)"
+msgstr ""
+
+#: Main.py:3867
+msgid "Verbose"
+msgstr ""
+
+#: Main.py:3868
+msgid "Set fastboot option to verbose"
+msgstr ""
+
+#: Main.py:3869
+msgid "Temporary Root"
+msgstr ""
+
+#: Main.py:3870
+msgid ""
+"This option when enabled will not flash patched boot\n"
+"Instead it will flash unpatched boot.img, but boot to Live Patched boot\n"
+"Handy to test if Magisk will cause a bootloop.\n"
+"\n"
+"Please be aware that this temporary root will not survive a subsequent "
+"reboot.\n"
+"If you want to make this permanent, just Flash Boot the patched boot "
+"image."
+msgstr ""
+
+#: Main.py:3871
+msgid "No reboot"
+msgstr ""
+
+#: Main.py:3872
+msgid ""
+"Do not reboot after flashing\n"
+"This is useful if you want to perform other actions before reboot."
+msgstr ""
+
+#: Main.py:3873
+msgid "Wipe"
+msgstr ""
+
+#: Main.py:3874
+msgid ""
+"This will invoke data wipe operation at the end of custom flashing.\n"
+"One use case would be when disabling verification for the first time."
+msgstr ""
+
+#: Main.py:3887
+msgid "Flash Pixel Phone"
+msgstr ""
+
+#: Main.py:3889
+msgid "Flashes the selected device with chosen flash options."
+msgstr ""
+
+#: Main.py:3893
+msgid "Console"
+msgstr ""
+
+#: Main.py:3901
+msgid ""
+"Create sanitized support.zip file\n"
+"All sensitive data is redacted.\n"
+"\n"
+"This if absolutely required when asking for help."
+msgstr ""
+
+#: Main.py:3922
+msgid "Debug"
+msgstr ""
+
+#: Main.py:3923
+msgid "Enable Debug Messages in the console."
+msgstr ""
+
+#: Main.py:3924
+msgid "Clear Console"
+msgstr ""
+
+#: Main.py:4092
+msgid "Process command-line arguments"
+msgstr ""
+
+#: Main.py:4093
+msgid "Path to the configuration file"
+msgstr ""
+
+#: Main.py:4094
+msgid "Log to console as well"
+msgstr ""
+
+#: Main.py:4110
+#, python-format
+msgid "Launching browser for Google image download URL: %s#%s"
+msgstr ""
+
+#: Main.py:4114
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while opening firmware link"
+msgstr ""
+
+#: Main.py:4138
+msgid "Failed to parse command-line arguments."
+msgstr ""
+
+#: advanced_settings.py:16
+msgid "Advanced Configuration Settings"
+msgstr ""
+
+#: advanced_settings.py:20
+msgid ""
+"WARNING!\n"
+"This is advanced configuration.\n"
+"Unless you know what you are doing,\n"
+"you should not be enabling it.\n"
+"\n"
+"YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR "
+"DEVICE.\n"
+"THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH"
+"\n"
+"ADB, MAGISK, ANDROID, AND ROOT.\n"
+"IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n"
+msgstr ""
+
+#: advanced_settings.py:39
+msgid "Enable Advanced Options"
+msgstr ""
+
+#: advanced_settings.py:40
+msgid "Expert mode"
+msgstr ""
+
+#: advanced_settings.py:56
+msgid "Magisk Package Name"
+msgstr ""
+
+#: advanced_settings.py:58
+msgid ""
+"If you have hidden Magisk,\n"
+"set this to the hidden package name."
+msgstr ""
+
+#: advanced_settings.py:61
+msgid "Resets package name to default: com.topjohnwu.magisk"
+msgstr ""
+
+#: advanced_settings.py:69
+msgid "Linux File Explorer:"
+msgstr ""
+
+#: advanced_settings.py:72
+msgid ""
+"Set full path to File Explorer.\n"
+"Default: Nautilus"
+msgstr ""
+
+#: advanced_settings.py:78
+msgid "Linux Shell:"
+msgstr ""
+
+#: advanced_settings.py:81
+msgid ""
+"Set full path to Linux Shell.\n"
+"Default: gnome-terminal"
+msgstr ""
+
+#: advanced_settings.py:87
+msgid "Offer Patch Methods"
+msgstr ""
+
+#: advanced_settings.py:88
+msgid "When patching the choice of method is presented."
+msgstr ""
+
+#: advanced_settings.py:89
+msgid "Patching Recovery Partition"
+msgstr ""
+
+#: advanced_settings.py:90
+msgid ""
+"Enabling this will show an option to patch a recovery partition.\n"
+"This should be kept disabled unless you have an old device.\n"
+"(most A-only devices launched with Android 9, legacy SAR)"
+msgstr ""
+
+#: advanced_settings.py:93
+msgid "Use Busybox Shell"
+msgstr ""
+
+#: advanced_settings.py:94
+msgid ""
+"When creating a patch, if this is checked, busybox ash will be used as "
+"shell."
+msgstr ""
+
+#: advanced_settings.py:97
+msgid "System has low memory"
+msgstr ""
+
+#: advanced_settings.py:98
+msgid "Use this option to sacrifice speed in favor of memory."
+msgstr ""
+
+#: advanced_settings.py:101
+msgid "Extra img extraction"
+msgstr ""
+
+#: advanced_settings.py:102
+msgid ""
+"When checked and available in payload.bin\n"
+"Also extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, "
+"super_empty.img"
+msgstr ""
+
+#: advanced_settings.py:105
+msgid "Show notifications"
+msgstr ""
+
+#: advanced_settings.py:106
+msgid "When checked PixelFlasher will display system toast notifications."
+msgstr ""
+
+#: advanced_settings.py:109
+msgid "Always create boot.tar"
+msgstr ""
+
+#: advanced_settings.py:110
+msgid ""
+"When checked, PixelFlasher always creates boot.tar of the patched boot "
+"file.\n"
+"If unchecked, only for Samsung firmware boot.tar will be created."
+msgstr ""
+
+#: advanced_settings.py:114
+msgid "Check for updates"
+msgstr ""
+
+#: advanced_settings.py:115
+msgid "Checks for available updates on startup"
+msgstr ""
+
+#: advanced_settings.py:118
+msgid "Check for Minumum Disk (5Gb)"
+msgstr ""
+
+#: advanced_settings.py:119
+msgid ""
+"Enforces minimum disk space of 5 Gb to allow flashing.\n"
+"This avoids storage related issues."
+msgstr ""
+
+#: advanced_settings.py:122
+msgid "Check for bootloader unlocked"
+msgstr ""
+
+#: advanced_settings.py:123
+msgid "Checks to make sure bootloader is unlocked before flashing."
+msgstr ""
+
+#: advanced_settings.py:126
+msgid "Force codepage to"
+msgstr ""
+
+#: advanced_settings.py:127
+msgid "Uses specified code page instead of system code page"
+msgstr ""
+
+#: advanced_settings.py:131
+msgid "Delete bundled libs"
+msgstr ""
+
+#: advanced_settings.py:132
+msgid ""
+"The listed libraries would be deleted from the PF bundle to allow system "
+"defined ones to be used."
+msgstr ""
+
+#: advanced_settings.py:135
+msgid "Example: libreadline.so.8, libgdk*"
+msgstr ""
+
+#: advanced_settings.py:139
+msgid "Use Custom Fontface"
+msgstr ""
+
+#: advanced_settings.py:140
+msgid ""
+"Use custom font for monospace fonts\n"
+"Might require PixelFlasher restart to properly apply to the Console "
+"window."
+msgstr ""
+
+#: advanced_settings.py:148
+msgid "Sample "
+msgstr ""
+
+#: advanced_settings.py:154
+msgid "Select font size"
+msgstr ""
+
+#: advanced_settings.py:158
+msgid "Srccpy Path"
+msgstr ""
+
+#: advanced_settings.py:161
+msgid "Download Srccpy"
+msgstr ""
+
+#: advanced_settings.py:162 advanced_settings.py:164
+msgid "Select scrcpy executable"
+msgstr ""
+
+#: advanced_settings.py:162
+msgid "Scrcpy executable (*.exe;*)|*.exe;*"
+msgstr ""
+
+#: advanced_settings.py:175
+msgid ""
+"Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size "
+"1024)"
+msgstr ""
+
+#: advanced_settings.py:179
+msgid "Scrcpy settings"
+msgstr ""
+
+#: advanced_settings.py:277 magisk_downloads.py:135 magisk_modules.py:152
+#: package_manager.py:66
+msgid "Cancel"
+msgstr ""
+
+#: advanced_settings.py:336
+msgid "Setting Enable Advanced Options to: %S"
+msgstr ""
+
+#: advanced_settings.py:340 advanced_settings.py:344
+#, python-format
+msgid "Setting Offer Patch Methods to: %s"
+msgstr ""
+
+#: advanced_settings.py:348
+#, python-format
+msgid "Setting Use Busybox Shell to: %s"
+msgstr ""
+
+#: advanced_settings.py:352
+#, python-format
+msgid "Setting Low Memory to: %s"
+msgstr ""
+
+#: advanced_settings.py:357
+#, python-format
+msgid "Setting Extra img extraction to: %s"
+msgstr ""
+
+#: advanced_settings.py:361
+#, python-format
+msgid "Setting Show notifications to: %s"
+msgstr ""
+
+#: advanced_settings.py:365
+#, python-format
+msgid "Setting Always create boot.tar: %s"
+msgstr ""
+
+#: advanced_settings.py:369
+#, python-format
+msgid "Setting Check for updates to: %s"
+msgstr ""
+
+#: advanced_settings.py:373 advanced_settings.py:377
+#, python-format
+msgid "Setting Check for Miminum Disk Space to: %s"
+msgstr ""
+
+#: advanced_settings.py:383
+#, python-format
+msgid "Setting Magisk Package Name to: %s"
+msgstr ""
+
+#: advanced_settings.py:390
+#, python-format
+msgid "Setting Linux File Explorer to: %s"
+msgstr ""
+
+#: advanced_settings.py:395
+#, python-format
+msgid "Setting Linux Shell to: %s"
+msgstr ""
+
+#: advanced_settings.py:407
+#, python-format
+msgid "Setting Delete bundled libs to: %s"
+msgstr ""
+
+#: advanced_settings.py:412
+msgid "Enabling Custom Font"
+msgstr ""
+
+#: advanced_settings.py:415
+#, python-format
+msgid "Setting Application Font to: %s"
+msgstr ""
+
+#: advanced_settings.py:419
+#, python-format
+msgid "Setting Application Font Size to: %s"
+msgstr ""
+
+#: advanced_settings.py:430
+#, python-format
+msgid "Setting scrcpy path path to: %s"
+msgstr ""
+
+#: advanced_settings.py:437
+#, python-format
+msgid "Setting scrcpy flags to: %s"
+msgstr ""
+
+#: config.py:114
+msgid "Loading configuration File ..."
+msgstr ""
+
+#: config.py:301
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: encountered an exception during configuartion file loading."
+msgstr ""
+
+#: config.py:302
+#, python-format
+msgid "Exception: %s"
+msgstr ""
+
+#: config.py:303
+msgid "Deleting the configuration file to recover ..."
+msgstr ""
+
+#: file_editor.py:18
+msgid "File Editor"
+msgstr ""
+
+#: file_editor.py:83
+msgid "Open Shell"
+msgstr ""
+
+#: file_editor.py:84
+msgid "Save and Continue"
+msgstr ""
+
+#: file_editor.py:85
+msgid "Cancel and Abort"
+msgstr ""
+
+#: file_editor.py:87
+msgid "Open Folder in working directory"
+msgstr ""
+
+#: file_editor.py:88
+msgid "Open command shell in working directory"
+msgstr ""
+
+#: file_editor.py:90
+msgid ""
+"Open Folder in working directory\n"
+"Note: PF_FILEMANAGER needs to be set."
+msgstr ""
+
+#: file_editor.py:91
+msgid "Open Terminal shell in working directory"
+msgstr ""
+
+#: file_editor.py:92
+msgid "Save the file and continue."
+msgstr ""
+
+#: file_editor.py:93
+msgid "Cancel and Abort."
+msgstr ""
+
+#: magisk_downloads.py:56
+msgid "Select Magisk version to install."
+msgstr ""
+
+#: magisk_downloads.py:79
+msgid "Channel"
+msgstr ""
+
+#: magisk_downloads.py:80 magisk_modules.py:275
+msgid "Version"
+msgstr ""
+
+#: magisk_downloads.py:81
+msgid "VersionCode"
+msgstr ""
+
+#: magisk_downloads.py:82
+msgid "URL"
+msgstr ""
+
+#: magisk_downloads.py:83 package_manager.py:335
+msgid "Package"
+msgstr ""
+
+#: magisk_downloads.py:131
+msgid "Install"
+msgstr ""
+
+#: magisk_downloads.py:132
+msgid ""
+"WARNING! Do not install magisk if you already have a hidden (stub) Magisk"
+" installed.\n"
+"First unhide Magisk before attempting an install."
+msgstr ""
+
+#: magisk_downloads.py:163
+msgid ""
+"\n"
+"Opening Magisk Downloader/Installer ..."
+msgstr ""
+
+#: magisk_downloads.py:164
+msgid ":Open Magisk Downloader/Installer;\n"
+msgstr ""
+
+#: magisk_downloads.py:172
+#, python-format
+msgid "Magisk %s is selected."
+msgstr ""
+
+#: magisk_downloads.py:204
+msgid "Copy URL to Clipboard"
+msgstr ""
+
+#: magisk_downloads.py:205
+msgid "Copy Package ID to Clipboard"
+msgstr ""
+
+#: magisk_downloads.py:236
+msgid ":Cancelled Magisk Downloader/Installer;\n"
+msgstr ""
+
+#: magisk_downloads.py:286
+msgid "WARNING: The selected Magisk is not supported for your device: "
+msgstr ""
+
+#: magisk_downloads.py:287
+msgid ""
+"         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a "
+"(lynx) and Pixel Tablet (tangorpro) are currently supported."
+msgstr ""
+
+#: magisk_downloads.py:288
+msgid ""
+"         See details at: https://forum.xda-developers.com/t/magisk-"
+"magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/"
+msgstr ""
+
+#: magisk_downloads.py:290
+msgid "Device Not Supported"
+msgstr ""
+
+#: magisk_downloads.py:291
+#, python-format
+msgid ""
+"ERROR: Your phone model is: %s\n"
+"\n"
+msgstr ""
+
+#: magisk_downloads.py:292
+msgid "The selected Magisk is not supported for your device\n"
+msgstr ""
+
+#: magisk_downloads.py:293
+msgid ""
+"Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and "
+"Pixel Tablet (tangorpro) are currently supported.\n"
+"\n"
+msgstr ""
+
+#: magisk_downloads.py:294
+msgid "Unless you know what you are doing, if you choose to continue\n"
+msgstr ""
+
+#: magisk_downloads.py:295
+msgid "you risk running into serious issues, proceed only if you are absolutely\n"
+msgstr ""
+
+#: magisk_downloads.py:296
+msgid ""
+"certian that this is what you want, you have been warned.\n"
+"\n"
+msgstr ""
+
+#: magisk_downloads.py:297
+msgid "Click OK to accept and continue.\n"
+msgstr ""
+
+#: magisk_downloads.py:298
+msgid "or Hit CANCEL to abort."
+msgstr ""
+
+#: magisk_downloads.py:305
+msgid "User pressed ok."
+msgstr ""
+
+#: magisk_downloads.py:308
+msgid "User pressed cancel."
+msgstr ""
+
+#: magisk_downloads.py:314
+#, python-format
+msgid "Downloading Magisk: %s version: %s versionCode: %s ..."
+msgstr ""
+
+#: magisk_modules.py:48
+msgid "Manage Magisk"
+msgstr ""
+
+#: magisk_modules.py:59
+msgid ""
+"When you press the OK button, the Modules with checkbox selected will be "
+"enabled and the rest will be disabled."
+msgstr ""
+
+#: magisk_modules.py:65
+msgid "Magisk Modules"
+msgstr ""
+
+#: magisk_modules.py:66
+msgid "Enable / Disable Magisk modules"
+msgstr ""
+
+#: magisk_modules.py:92
+msgid "Install Module"
+msgstr ""
+
+#: magisk_modules.py:93
+msgid "Install magisk module."
+msgstr ""
+
+#: magisk_modules.py:96
+msgid "Update Module"
+msgstr ""
+
+#: magisk_modules.py:97
+msgid "Update magisk module."
+msgstr ""
+
+#: magisk_modules.py:101 magisk_modules.py:399 magisk_modules.py:405
+msgid "Uninstall Module"
+msgstr ""
+
+#: magisk_modules.py:102
+msgid "Uninstall magisk module."
+msgstr ""
+
+#: magisk_modules.py:106
+msgid "Install Pif Module"
+msgstr ""
+
+#: magisk_modules.py:107
+msgid "Install Play Integrity Fix module."
+msgstr ""
+
+#: magisk_modules.py:110 magisk_modules.py:360
+msgid "Edit pif.json"
+msgstr ""
+
+#: magisk_modules.py:111 magisk_modules.py:361
+msgid "Edit pif.json."
+msgstr ""
+
+#: magisk_modules.py:115
+msgid "Kill Google GMS"
+msgstr ""
+
+#: magisk_modules.py:116
+msgid "Kill Google GMS process, required after pif edit to avoid a reboot."
+msgstr ""
+
+#: magisk_modules.py:121
+msgid "Process build.prop"
+msgstr ""
+
+#: magisk_modules.py:122
+msgid "Process build.prop to extract pif.json."
+msgstr ""
+
+#: magisk_modules.py:125
+msgid "Play Integrity API Checker"
+msgstr ""
+
+#: magisk_modules.py:125
+msgid "Simple Play Integrity Checker"
+msgstr ""
+
+#: magisk_modules.py:125
+msgid "TB Checker"
+msgstr ""
+
+#: magisk_modules.py:128
+msgid "Play Integrity Check"
+msgstr ""
+
+#: magisk_modules.py:129
+msgid ""
+"Play Integrity API Checker\n"
+"Note: Need to install app from Play store."
+msgstr ""
+
+#: magisk_modules.py:132
+msgid "Systemless Hosts"
+msgstr ""
+
+#: magisk_modules.py:133
+msgid "Add Systemless Hosts Module."
+msgstr ""
+
+#: magisk_modules.py:136 magisk_modules.py:447
+msgid "Enable Zygisk"
+msgstr ""
+
+#: magisk_modules.py:137
+msgid "Enable Magisk zygisk (requires reboot)"
+msgstr ""
+
+#: magisk_modules.py:140 magisk_modules.py:459
+msgid "Disable Zygisk"
+msgstr ""
+
+#: magisk_modules.py:141
+msgid "Disable Magisk zygisk (requires reboot)"
+msgstr ""
+
+#: magisk_modules.py:144 magisk_modules.py:471
+msgid "Enable Denylist"
+msgstr ""
+
+#: magisk_modules.py:145
+msgid "Enable Magisk denylist"
+msgstr ""
+
+#: magisk_modules.py:148 magisk_modules.py:483
+msgid "Disable Denylist"
+msgstr ""
+
+#: magisk_modules.py:149
+msgid "Disable Magisk denylist"
+msgstr ""
+
+#: magisk_modules.py:171
+msgid ""
+"To manage denylist or to manage SU permissions, use PixelFlasher's App "
+"Manager feature."
+msgstr ""
+
+#: magisk_modules.py:172
+msgid ""
+"Use Pixelflasher's App Manager functionality to add/remove items to "
+"denylist or su permissions."
+msgstr ""
+
+#: magisk_modules.py:257
+msgid ""
+"\n"
+"Opening Magisk Modules Manager ..."
+msgstr ""
+
+#: magisk_modules.py:273
+msgid "ID"
+msgstr ""
+
+#: magisk_modules.py:274 package_manager.py:363
+msgid "Name"
+msgstr ""
+
+#: magisk_modules.py:276
+msgid "Description"
+msgstr ""
+
+#: magisk_modules.py:343
+#, python-format
+msgid "Magisk Manager Version:  %s\n"
+msgstr ""
+
+#: magisk_modules.py:345
+msgid "Magisk Version:          \n"
+msgstr ""
+
+#: magisk_modules.py:346
+msgid ""
+"\n"
+"Magisk Modules"
+msgstr ""
+
+#: magisk_modules.py:364
+msgid "Create pif.json"
+msgstr ""
+
+#: magisk_modules.py:365
+msgid "Create and upload pif.json."
+msgstr ""
+
+#: magisk_modules.py:374
+msgid "Play Integrity API Checker option selected"
+msgstr ""
+
+#: magisk_modules.py:378
+msgid "Simple Play Integrity Checker option selected"
+msgstr ""
+
+#: magisk_modules.py:382
+msgid "TB Checker option selected"
+msgstr ""
+
+#: magisk_modules.py:403
+msgid "Restore Module"
+msgstr ""
+
+#: magisk_modules.py:416
+#, python-format
+msgid "Magisk Module %s is selected."
+msgstr ""
+
+#: magisk_modules.py:426
+msgid "# Change Log:\n"
+msgstr ""
+
+#: magisk_modules.py:495
+msgid "Add Systemless Hosts"
+msgstr ""
+
+#: magisk_modules.py:511
+#, python-format
+msgid "Installing Play Integrity Fix module URL: %s ..."
+msgstr ""
+
+#: magisk_modules.py:516
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Exception during Play Integrity Fix module installation."
+msgstr ""
+
+#: magisk_modules.py:529 magisk_modules.py:580
+msgid "Killing Google GMS  ..."
+msgstr ""
+
+#: magisk_modules.py:532 magisk_modules.py:583
+msgid "Error killing GMS."
+msgstr ""
+
+#: magisk_modules.py:534 magisk_modules.py:585
+msgid "Killing Google GMS succeeded."
+msgstr ""
+
+#: magisk_modules.py:536
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Exception during killing GMS."
+msgstr ""
+
+#: magisk_modules.py:571
+msgid ""
+"\n"
+"pif.prep file has been modified!"
+msgstr ""
+
+#: magisk_modules.py:589
+msgid "User cancelled editing pif.json file."
+msgstr ""
+
+#: magisk_modules.py:590
+msgid ""
+"note right\n"
+"Cancelled and Aborted\n"
+"end note\n"
+msgstr ""
+
+#: magisk_modules.py:595
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Exception during pip edit process."
+msgstr ""
+
+#: magisk_modules.py:614
+#, python-format
+msgid "Restoring Module %s ..."
+msgstr ""
+
+#: magisk_modules.py:617
+#, python-format
+msgid "Uninstalling Module %s ..."
+msgstr ""
+
+#: magisk_modules.py:623
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Failed to remove module: %s"
+msgstr ""
+
+#: magisk_modules.py:626
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Exception during Magisk modules uninstall"
+msgstr ""
+
+#: magisk_modules.py:640
+#, python-format
+msgid "Updating Module %s ..."
+msgstr ""
+
+#: magisk_modules.py:644
+#, python-format
+msgid "Downloading Magisk Module: %s URL: %s ..."
+msgstr ""
+
+#: magisk_modules.py:649
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Exception during Magisk modules update"
+msgstr ""
+
+#: magisk_modules.py:660
+#, python-format
+msgid "%s User Pressed Install Module."
+msgstr ""
+
+#: magisk_modules.py:661
+msgid "select Module file to install"
+msgstr ""
+
+#: magisk_modules.py:661
+msgid "Magisk Modules (*.*.zip)|*.zip"
+msgstr ""
+
+#: magisk_modules.py:663
+msgid "User cancelled module install."
+msgstr ""
+
+#: magisk_modules.py:673
+#, python-format
+msgid "Cannot install module file '%s'."
+msgstr ""
+
+#: magisk_modules.py:685
+#, python-format
+msgid "%s Getting coordinates for %s"
+msgstr ""
+
+#: magisk_modules.py:714
+#, python-format
+msgid "%s User Pressed Play Integrity API Checker."
+msgstr ""
+
+#: magisk_modules.py:724
+#, python-format
+msgid "Error: during launching app %s."
+msgstr ""
+
+#: magisk_modules.py:737
+msgid "Error: Could not get coordinates."
+msgstr ""
+
+#: magisk_modules.py:744
+#, python-format
+msgid "Error: during tapping %s."
+msgstr ""
+
+#: magisk_modules.py:753
+#, python-format
+msgid "Error: during uiautomator %s."
+msgstr ""
+
+#: magisk_modules.py:768
+#, python-format
+msgid "Error: during processing the response from %s."
+msgstr ""
+
+#: magisk_modules.py:783
+#, python-format
+msgid "%s User Process build.prop"
+msgstr ""
+
+#: magisk_modules.py:784
+msgid "select build.prop file to process"
+msgstr ""
+
+#: magisk_modules.py:784
+msgid "build.prop files (*.*.prop)|*.prop"
+msgstr ""
+
+#: magisk_modules.py:786
+msgid "User cancelled processing build.prop"
+msgstr ""
+
+#: magisk_modules.py:790
+#, python-format
+msgid ""
+"\n"
+"Selected %s for processing."
+msgstr ""
+
+#: magisk_modules.py:872
+#, python-format
+msgid "Cannot process file: '%s'."
+msgstr ""
+
+#: magisk_modules.py:882
+msgid "Copy"
+msgstr ""
+
+#: magisk_modules.py:883
+msgid "Select All"
+msgstr ""
+
+#: magisk_modules.py:933
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Failed to disable module: %s"
+msgstr ""
+
+#: magisk_modules.py:958
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Could not extract_prop for %s"
+msgstr ""
+
+#: package_manager.py:37
+msgid "Set SU Permission"
+msgstr ""
+
+#: package_manager.py:45
+msgid "Enter SU Permission details:"
+msgstr ""
+
+#: package_manager.py:51
+msgid "Enable Notification"
+msgstr ""
+
+#: package_manager.py:54
+msgid "Enable Logging"
+msgstr ""
+
+#: package_manager.py:57 package_manager.py:126
+msgid "Forever"
+msgstr ""
+
+#: package_manager.py:57 package_manager.py:128
+msgid "10 mins"
+msgstr ""
+
+#: package_manager.py:57 package_manager.py:130
+msgid "20 mins"
+msgstr ""
+
+#: package_manager.py:57 package_manager.py:132
+msgid "30 mins"
+msgstr ""
+
+#: package_manager.py:57 package_manager.py:134
+msgid "60 mins"
+msgstr ""
+
+#: package_manager.py:63
+msgid "Allow"
+msgstr ""
+
+#: package_manager.py:64
+msgid "Deny"
+msgstr ""
+
+#: package_manager.py:65 package_manager.py:112 package_manager.py:136
+msgid "Revoke"
+msgstr ""
+
+#: package_manager.py:96
+#, python-format
+msgid "Allow button clicked. Until: %s, Notification: %s, Logging: %s, Epoch: %s"
+msgstr ""
+
+#: package_manager.py:106
+#, python-format
+msgid "Deny button clicked. Until:  %s, Notification: %s, Logging: %s, Epoch: %s"
+msgstr ""
+
+#: package_manager.py:114
+#, python-format
+msgid "Revoke button clicked. Until: %s, Notification: 1, Logging: 1, Epoch: %s"
+msgstr ""
+
+#: package_manager.py:120
+msgid "Cancel button clicked"
+msgstr ""
+
+#: package_manager.py:150
+msgid "Manage Packages on the Device"
+msgstr ""
+
+#: package_manager.py:166 package_manager.py:784 package_manager.py:1132
+#: partition_manager.py:38 partition_manager.py:292 partition_manager.py:313
+#: partition_manager.py:493
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: You must first select a valid device."
+msgstr ""
+
+#: package_manager.py:185
+#, python-format
+msgid "%s Packages"
+msgstr ""
+
+#: package_manager.py:196 partition_manager.py:65
+msgid "Check / Uncheck All"
+msgstr ""
+
+#: package_manager.py:198
+msgid "Get All Application Names"
+msgstr ""
+
+#: package_manager.py:199
+msgid ""
+"Extracts App names, and caches them for faster loading in the future.\n"
+"NOTE: This could take a while."
+msgstr ""
+
+#: package_manager.py:237
+msgid "Disable"
+msgstr ""
+
+#: package_manager.py:238
+msgid "Disable checked packages"
+msgstr ""
+
+#: package_manager.py:242
+msgid "Enable"
+msgstr ""
+
+#: package_manager.py:243
+msgid "Enable checked packages"
+msgstr ""
+
+#: package_manager.py:247
+msgid "Uninstall"
+msgstr ""
+
+#: package_manager.py:248
+msgid "Uninstall checked packages"
+msgstr ""
+
+#: package_manager.py:252
+msgid "Add to Denylist"
+msgstr ""
+
+#: package_manager.py:253
+msgid "Add package to Magisk Denylist"
+msgstr ""
+
+#: package_manager.py:257
+msgid "Remove from Denylist"
+msgstr ""
+
+#: package_manager.py:258
+msgid "Remove package from Magisk Denylist"
+msgstr ""
+
+#: package_manager.py:263
+msgid "Install an APK on the device"
+msgstr ""
+
+#: package_manager.py:267
+msgid "Bulk Install APKs by selecting a folder."
+msgstr ""
+
+#: package_manager.py:270
+msgid "Download APK"
+msgstr ""
+
+#: package_manager.py:271
+msgid "Extract and download APK"
+msgstr ""
+
+#: package_manager.py:275
+msgid "Export List"
+msgstr ""
+
+#: package_manager.py:276
+msgid "Export the package list in CSV format"
+msgstr ""
+
+#: package_manager.py:279 partition_manager.py:90 wifi.py:85
+msgid "Close"
+msgstr ""
+
+#: package_manager.py:280 partition_manager.py:91 wifi.py:86
+msgid "Closes this dialog"
+msgstr ""
+
+#: package_manager.py:339
+msgid "Type"
+msgstr ""
+
+#: package_manager.py:343
+msgid "Installed"
+msgstr ""
+
+#: package_manager.py:347
+msgid "Enabled"
+msgstr ""
+
+#: package_manager.py:351
+msgid "User 0"
+msgstr ""
+
+#: package_manager.py:355
+msgid "Denylist"
+msgstr ""
+
+#: package_manager.py:359
+msgid "UID"
+msgstr ""
+
+#: package_manager.py:399
+#, python-format
+msgid "%s / %s Packages"
+msgstr ""
+
+#: package_manager.py:431 package_manager.py:879
+#, python-format
+msgid "Sorting on Column %s"
+msgstr ""
+
+#: package_manager.py:462
+#, python-format
+msgid ""
+"Application Name: %s\n"
+"Application Path: %s\n"
+"Application Icon: %s\n"
+"\n"
+"%s"
+msgstr ""
+
+#: package_manager.py:473
+msgid "checking all Packages\n"
+msgstr ""
+
+#: package_manager.py:476
+msgid "Unchecking all Packages\n"
+msgstr ""
+
+#: package_manager.py:485 wifi.py:255
+#, python-format
+msgid "Searching for: %s"
+msgstr ""
+
+#: package_manager.py:515 partition_manager.py:220
+#, python-format
+msgid "%s is checked"
+msgstr ""
+
+#: package_manager.py:524 partition_manager.py:229
+#, python-format
+msgid "%s is unchecked"
+msgstr ""
+
+#: package_manager.py:584 partition_manager.py:277 wifi.py:285
+#, python-format
+msgid "%s User Pressed Close."
+msgstr ""
+
+#: package_manager.py:597
+#, python-format
+msgid "%s User Pressed Disable."
+msgstr ""
+
+#: package_manager.py:607
+#, python-format
+msgid "%s User Pressed Enable."
+msgstr ""
+
+#: package_manager.py:617
+#, python-format
+msgid "%s User Pressed Uninstall."
+msgstr ""
+
+#: package_manager.py:627
+#, python-format
+msgid "%s User Pressed Add To Denylist."
+msgstr ""
+
+#: package_manager.py:637
+#, python-format
+msgid "%s User Pressed Remove Denylist."
+msgstr ""
+
+#: package_manager.py:646
+#, python-format
+msgid "%s User Pressed Install APK."
+msgstr ""
+
+#: package_manager.py:647
+msgid "select APK file to install"
+msgstr ""
+
+#: package_manager.py:649
+msgid "User cancelled apk install."
+msgstr ""
+
+#: package_manager.py:715
+#, python-format
+msgid "%s User Pressed Get All Application Names"
+msgstr ""
+
+#: package_manager.py:737
+#, python-format
+msgid "App names extraction time: %s seconds"
+msgstr ""
+
+#: package_manager.py:746
+#, python-format
+msgid "%s User Pressed Export List"
+msgstr ""
+
+#: package_manager.py:747
+msgid "Export Package list"
+msgstr ""
+
+#: package_manager.py:747
+msgid "Package list (*.csv)|*.csv"
+msgstr ""
+
+#: package_manager.py:767
+#, python-format
+msgid "Export Package List time: %s seconds"
+msgstr ""
+
+#: package_manager.py:775
+#, python-format
+msgid "%s User Pressed Download APK."
+msgstr ""
+
+#: package_manager.py:793
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Unable to get apk path for %s"
+msgstr ""
+
+#: package_manager.py:794
+msgid "Aborting download ..."
+msgstr ""
+
+#: package_manager.py:800
+msgid "Choose a directory where all apks should be saved."
+msgstr ""
+
+#: package_manager.py:802
+msgid "User Cancelled saving packages (option: folder)."
+msgstr ""
+
+#: package_manager.py:806 partition_manager.py:339
+#, python-format
+msgid "Selected Download Directory: %s"
+msgstr ""
+
+#: package_manager.py:809
+msgid "Download APK file"
+msgstr ""
+
+#: package_manager.py:809
+msgid "APK files (*.apk)|*.apk"
+msgstr ""
+
+#: package_manager.py:811
+#, python-format
+msgid "User Cancelled saving package: %s"
+msgstr ""
+
+#: package_manager.py:816
+#, python-format
+msgid "Downloading apk file to: %s"
+msgstr ""
+
+#: package_manager.py:820
+#, python-format
+msgid "Cannot save apk file %s'."
+msgstr ""
+
+#: package_manager.py:934
+msgid "Disable Package"
+msgstr ""
+
+#: package_manager.py:935
+msgid "Enable Package"
+msgstr ""
+
+#: package_manager.py:936
+msgid "Uninstall Package"
+msgstr ""
+
+#: package_manager.py:937
+msgid "Download Package"
+msgstr ""
+
+#: package_manager.py:938
+msgid "Launch Package"
+msgstr ""
+
+#: package_manager.py:939
+msgid "Kill Application"
+msgstr ""
+
+#: package_manager.py:940
+msgid "Clear Application Data"
+msgstr ""
+
+#: package_manager.py:943
+msgid "Refresh"
+msgstr ""
+
+#: package_manager.py:944 partition_manager.py:446
+msgid "Check All"
+msgstr ""
+
+#: package_manager.py:945 partition_manager.py:447
+msgid "UnCheck All"
+msgstr ""
+
+#: package_manager.py:946 partition_manager.py:448
+msgid "Copy to Clipboard"
+msgstr ""
+
+#: package_manager.py:949
+msgid "Add Package to Magisk Denylist"
+msgstr ""
+
+#: package_manager.py:950
+msgid "Remove Package from Magisk Denylist"
+msgstr ""
+
+#: package_manager.py:951
+msgid "SU Permission ..."
+msgstr ""
+
+#: package_manager.py:1019
+#, python-format
+msgid "Set SU Permission for: %s %s %s"
+msgstr ""
+
+#: package_manager.py:1025
+msgid "User pressed Cancel"
+msgstr ""
+
+#: package_manager.py:1104
+msgid "Refreshing the packages ...\n"
+msgstr ""
+
+#: package_manager.py:1136
+#, python-format
+msgid "Disabling %s%s type: %s..."
+msgstr ""
+
+#: package_manager.py:1138
+#, python-format
+msgid "Enabling %s%s type: %s..."
+msgstr ""
+
+#: package_manager.py:1140
+#, python-format
+msgid "Uninstalling %s%s type: %s..."
+msgstr ""
+
+#: package_manager.py:1142
+#, python-format
+msgid "Adding %s%s type: %s to Magisk Denylist..."
+msgstr ""
+
+#: package_manager.py:1144
+#, python-format
+msgid "Removing %s%s type: %s from Magisk Denylist..."
+msgstr ""
+
+#: package_manager.py:1146
+#, python-format
+msgid "Launching %s%s type: %s..."
+msgstr ""
+
+#: package_manager.py:1148
+#, python-format
+msgid "Killing %s%s type: %s..."
+msgstr ""
+
+#: package_manager.py:1150
+#, python-format
+msgid "Clearing %sdata for %s type: %s..."
+msgstr ""
+
+#: package_manager.py:1152
+#, python-format
+msgid "Downloading %s%s Label: %s..."
+msgstr ""
+
+#: package_manager.py:1177
+#, python-format
+msgid "Total count of package actions attempted: %s"
+msgstr ""
+
+#: partition_manager.py:42
+msgid ""
+"WARNING!\n"
+"This is advanced feature.\n"
+"Unless you know what you are doing,\n"
+"you should not be touching this.\n"
+"\n"
+"YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR "
+"DEVICE.\n"
+"THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH"
+"\n"
+"ADB, MAGISK, ANDROID, ROOT AND PARTITION MANIPULATION.\n"
+"IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n"
+msgstr ""
+
+#: partition_manager.py:81
+msgid "Erase"
+msgstr ""
+
+#: partition_manager.py:82
+msgid "Erase checked partitions"
+msgstr ""
+
+#: partition_manager.py:85
+msgid "Dump / Backup"
+msgstr ""
+
+#: partition_manager.py:86
+msgid "Dumps / Backups the checked partitions"
+msgstr ""
+
+#: partition_manager.py:149
+msgid "Partition"
+msgstr ""
+
+#: partition_manager.py:156 partition_manager.py:167
+#, python-format
+msgid "%s Partitions"
+msgstr ""
+
+#: partition_manager.py:186
+msgid "checking all Partitions\n"
+msgstr ""
+
+#: partition_manager.py:189
+msgid "Unchecking all Partitions\n"
+msgstr ""
+
+#: partition_manager.py:284
+#, python-format
+msgid "%s User Pressed Erase."
+msgstr ""
+
+#: partition_manager.py:294
+#, python-format
+msgid ""
+"You have selected to ERASE partition: %s\n"
+"Are you sure want to continue?"
+msgstr ""
+
+#: partition_manager.py:294
+#, python-format
+msgid "Erase Partition: %s"
+msgstr ""
+
+#: partition_manager.py:297
+#, python-format
+msgid "%s User canceled erasing  partition: %s."
+msgstr ""
+
+#: partition_manager.py:305
+#, python-format
+msgid "%s User Pressed on Dump / Backup Partition"
+msgstr ""
+
+#: partition_manager.py:321
+msgid ""
+"#red:Failed to delete old partition image from the phone;\n"
+"}\n"
+msgstr ""
+
+#: partition_manager.py:328
+msgid ""
+"#red:Failed to dump partition on the phone;\n"
+"}\n"
+msgstr ""
+
+#: partition_manager.py:333
+msgid "Choose a directory where all the partition dumps should be saved."
+msgstr ""
+
+#: partition_manager.py:335
+msgid "User Cancelled dumping partitions (option: folder)."
+msgstr ""
+
+#: partition_manager.py:342
+msgid "Dump partition"
+msgstr ""
+
+#: partition_manager.py:342
+msgid "IMG files (*.img)|*.img"
+msgstr ""
+
+#: partition_manager.py:344
+#, python-format
+msgid "User Cancelled dumping partition: %s"
+msgstr ""
+
+#: partition_manager.py:350
+#, python-format
+msgid "Dump partition to: %s"
+msgstr ""
+
+#: partition_manager.py:355
+#, python-format
+msgid "Cannot save img file '%s'."
+msgstr ""
+
+#: partition_manager.py:420
+#, python-format
+msgid "Package: %s is checked."
+msgstr ""
+
+#: partition_manager.py:444
+msgid "Erase Partition"
+msgstr ""
+
+#: partition_manager.py:445
+msgid "Dump Partition"
+msgstr ""
+
+#: partition_manager.py:496
+#, python-format
+msgid "Erasing %s ..."
+msgstr ""
+
+#: partition_manager.py:499
+#, python-format
+msgid "Dumping %s ..."
+msgstr ""
+
+#: partition_manager.py:511
+#, python-format
+msgid "Processing %s items ..."
+msgstr ""
+
+#: partition_manager.py:522
+#, python-format
+msgid "Total count of partition actions attempted: %s"
+msgstr ""
+
+#: payload_dumper.py:12
+#, python-format
+msgid "Error importing lzma: %s"
+msgstr ""
+
+#: payload_dumper.py:58
+msgid "SOURCE_COPY supported only for differential OTA"
+msgstr ""
+
+#: payload_dumper.py:67
+msgid "SOURCE_BSDIFF supported only for differential OTA"
+msgstr ""
+
+#: payload_dumper.py:92
+#, python-format
+msgid "Unsupported type = %d"
+msgstr ""
+
+#: payload_dumper.py:98
+#, python-format
+msgid "Processing %s partition"
+msgstr ""
+
+#: payload_dumper.py:116
+msgid "Done"
+msgstr ""
+
+#: payload_dumper.py:151
+#, python-format
+msgid "Partition %s not found in payload!\n"
+msgstr ""
+
+#: phone.py:3816
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Unable to determine Android Platform Tools version.\n"
+msgstr ""
+
+#: phone.py:3818
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: adb command is not found!"
+msgstr ""
+
+#: phone.py:3834
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: fastboot command is not found!"
+msgstr ""
+
+#: phone.py:3838
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while getting connected devices."
+msgstr ""
+
+#: set_version.py:49
+msgid "\tNO MATCH IS FOUND."
+msgstr ""
+
+#: set_version.py:73
+#, python-format
+msgid "\t\tReplacing %s with %s ..."
+msgstr ""
+
+#: set_version.py:82
+msgid "Getting current values ..."
+msgstr ""
+
+#: set_version.py:84
+msgid ""
+"\n"
+"Enter the new Version: "
+msgstr ""
+
+#: set_version.py:88
+msgid "Getting updated values ..."
+msgstr ""
+
+#: wifi.py:35
+msgid "ADB Wireless"
+msgstr ""
+
+#: wifi.py:60 wifi.py:152
+msgid "IP/Hostname"
+msgstr ""
+
+#: wifi.py:65
+msgid "Port (Default:5555)"
+msgstr ""
+
+#: wifi.py:70 wifi.py:160
+msgid "Pairing Code"
+msgstr ""
+
+#: wifi.py:73
+msgid "Connect"
+msgstr ""
+
+#: wifi.py:74
+msgid "Connect to device"
+msgstr ""
+
+#: wifi.py:77
+msgid "Disconnect"
+msgstr ""
+
+#: wifi.py:78
+msgid "Disconnect device"
+msgstr ""
+
+#: wifi.py:81
+msgid "Pair"
+msgstr ""
+
+#: wifi.py:82
+msgid "Pairs with device (only needed once per device)"
+msgstr ""
+
+#: wifi.py:144
+msgid "Date"
+msgstr ""
+
+#: wifi.py:148
+msgid "Action"
+msgstr ""
+
+#: wifi.py:156
+msgid "Port"
+msgstr ""
+
+#: wifi.py:164
+msgid "Note"
+msgstr ""
+
+#: wifi.py:224
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while populating wifi history"
+msgstr ""
+
+#: wifi.py:225
+msgid "#red:Encountered an error while populating wifi history;\n"
+msgstr ""
+
+#: wifi.py:300
+msgid ":Wifi ADB;\n"
+msgstr ""
+
+#: wifi.py:310
+msgid "#palegreen:Succeeded;\n"
+msgstr ""
+
+#: wifi.py:314
+#, python-format
+msgid "Please select the device: %s:%s"
+msgstr ""
+
+#: wifi.py:317
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Could not %s %s:%s %s\n"
+msgstr ""
+
+#: wifi.py:341
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while wifi connecting"
+msgstr ""
+
+#: wifi.py:342
+msgid "#red:Encountered an error while wifi connecting;\n"
+msgstr ""
+
+#: wifi.py:361
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while disconnecting a wireless devcice"
+msgstr ""
+
+#: wifi.py:362
+msgid "#red:Encountered an error while disconnecting a wireless device;\n"
+msgstr ""
+
+#: wifi.py:380
+#, python-format
+msgid ""
+"\n"
+"%s ERROR: Encountered an error while pairing a device"
+msgstr ""
+
+#: wifi.py:381
+msgid "#red:Encountered an error while pairing a device;\n"
+msgstr ""
+

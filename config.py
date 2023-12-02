@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 import contextlib
+import gettext
 import json
 import os
 import sys
 
 from datetime import datetime
 from constants import *
+
+_ = gettext.gettext
 
 # ============================================================================
 #                               Class Config
@@ -108,7 +111,7 @@ class Config():
     @classmethod
     def load(cls, file_path):
         conf = cls()
-        print("Loading configuration File ...")
+        print(_("Loading configuration File ..."))
         try:
             if os.path.exists(file_path):
                 with open(file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
@@ -295,9 +298,9 @@ class Config():
                 conf.first_run = True
                 conf.first_run_date = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during configuartion file loading.")
-            print(f"Exception: {e}")
-            print("Deleting the configuration file to recover ...")
+            print(_(f"\n%s ERROR: encountered an exception during configuartion file loading.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_(f"Exception: %s") % e)
+            print(_("Deleting the configuration file to recover ..."))
             os.remove(file_path)
         return conf
 

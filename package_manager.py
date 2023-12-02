@@ -614,7 +614,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnUninstall(self, e):
         self._on_spin('start')
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Uninstall."))
+        print(_(f"%s User Pressed Uninstall.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.ApplyMultiAction('uninstall')
         self.RefreshPackages()
         self._on_spin('stop')
@@ -624,7 +624,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnAddToDeny(self, e):
         self._on_spin('start')
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Add To Denylist."))
+        print(_(f"%s User Pressed Add To Denylist.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.ApplyMultiAction('add-to-denylist')
         self.RefreshPackages()
         self._on_spin('stop')
@@ -634,7 +634,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnRmFromDeny(self, e):
         self._on_spin('start')
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Remove Denylist."))
+        print(_(f"%s User Pressed Remove Denylist.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.ApplyMultiAction('rm-from-denylist')
         self.RefreshPackages()
         self._on_spin('stop')
@@ -643,15 +643,15 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnInstallApk
     # -----------------------------------------------
     def OnInstallApk(self, e):
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Install APK."))
-        with wx.FileDialog(self, "select APK file to install", '', '', wildcard="Android Applications (*.*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
+        print(_(f"%s User Pressed Install APK.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        with wx.FileDialog(self, _("select APK file to install"), '', '', wildcard=_("Android Applications (*.*.apk)|*.apk"), style=wx.FD_OPEN) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
-                print("User cancelled apk install.")
+                print(_("User cancelled apk install."))
                 return
             # save the current contents in the file
             pathname = fileDialog.GetPath()
-            print(_(f"\nSelected {pathname} for installation."))
-            dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+            print(_(f"\nSelected %s for installation.") % pathname)
+            dlg = wx.MessageDialog(None, _("Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market."),_('Set Play Market'),wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             try:
                 self._on_spin('start')
@@ -659,12 +659,12 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                     if result != wx.ID_YES:
                         self.device.install_apk(pathname, fastboot_included=True)
                     else:
-                        puml("note right:Set ownership to Play Store;\n")
+                        puml(("note right:Set ownership to Play Store;\n"))
                         self.device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
                 self._on_spin('stop')
             except IOError:
                 traceback.print_exc()
-                wx.LogError(f"Cannot install file '{pathname}'.")
+                wx.LogError(_(f"Cannot install file '%s'.") % pathname)
                 self._on_spin('stop')
 
     # -----------------------------------------------
@@ -672,9 +672,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnBulkInstallApk(self, event):
         try:
-            with wx.DirDialog(self, "Select folder to bulk install APKs", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+            with wx.DirDialog(self, _("Select folder to bulk install APKs"), style=wx.DD_DEFAULT_STYLE) as folderDialog:
                 if folderDialog.ShowModal() == wx.ID_CANCEL:
-                    print("User cancelled folder selection.")
+                    print(_("User cancelled folder selection."))
                     return
                 selected_folder = folderDialog.GetPath()
 
@@ -685,7 +685,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 show_playstore_prompt = True
                 for apk_file in apk_files:
                     if show_playstore_prompt:
-                        dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: This will apply to all the current bulk apks.\n(Android auto apps require that they be installed from the Play Market.)",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+                        dlg = wx.MessageDialog(None, _("Do you want to set the ownership to Play Store Market?\nNote: This will apply to all the current bulk apks.\n(Android auto apps require that they be installed from the Play Market.)"),_('Set Play Market'),wx.YES_NO | wx.ICON_EXCLAMATION)
                         result = dlg.ShowModal()
                         if result != wx.ID_YES:
                             owner_playstore = False
@@ -695,14 +695,14 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                     apk_path = os.path.join(selected_folder, apk_file)
                     res = device.install_apk(apk_path, fastboot_included=True, owner_playstore=owner_playstore)
                     if res.returncode != 0:
-                        print(_(f"Return Code: {res.returncode}."))
-                        print(_(f"Stdout: {res.stdout}"))
-                        print(_(f"Stderr: {res.stderr}"))
-                        print("Aborting ...\n")
+                        print(_(f"Return Code: %s.") % res.returncode)
+                        print(_(f"Stdout: %s") % res.stdout)
+                        print(_(f"Stderr: %s") % res.stderr)
+                        print(_("Aborting ...\n"))
                         self._on_spin('stop')
                         return res
         except Exception as e:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing APKs"))
+            print(_(f"\n%s ERROR: Encountered an error while installing APKs") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -712,7 +712,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def OnGetAllNames(self, e):
         self._on_spin('start')
         start = time.time()
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Get All Application Names"))
+        print(_(f"%s User Pressed Get All Application Names") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         labels = get_labels()
         for i in range(self.list.GetItemCount()):
             pkg = self.list.GetItemText(i)
@@ -734,7 +734,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                     labels[pkg] = label
         set_labels(labels)
         end = time.time()
-        print(_(f"App names extraction time: {math.ceil(end - start)} seconds"))
+        print(_(f"App names extraction time: %s seconds") % math.ceil(end - start))
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -743,8 +743,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def OnExportList(self, e):
         self._on_spin('start')
         start = time.time()
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Export List"))
-        with wx.FileDialog(self, "Export Package list", '', f"packages_{self.device.hardware}.csv", wildcard="Package list (*.csv)|*.csv",
+        print(_(f"%s User Pressed Export List") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        with wx.FileDialog(self, _("Export Package list"), '', f"packages_{self.device.hardware}.csv", wildcard=_("Package list (*.csv)|*.csv"),
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return     # the user changed their mind
@@ -764,7 +764,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             with open(pathname, "w", newline="\n") as f:
                 f.write(content)
         end = time.time()
-        print(_(f"Export Package List time: {math.ceil(end - start)} seconds"))
+        print(_(f"Export Package List time: %s seconds") % math.ceil(end - start))
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -772,7 +772,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnDownloadApk(self, e):
         self._on_spin('start')
-        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Download APK."))
+        print(_(f"%s User Pressed Download APK.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.ApplyMultiAction('download')
         self._on_spin('stop')
 
@@ -781,7 +781,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def DownloadApk(self, pkg, multiple = False):
         if not self.device:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device."))
+            print(_(f"\n%s ERROR: You must first select a valid device.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             return
         package = self.device.packages[pkg]
         path = package.path or package.path2
@@ -790,34 +790,34 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             if path != -1:
                 package.path = path
         if path == '':
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get apk path for {pkg}"))
-            print("Aborting download ...")
+            print(_(f"\n%s ERROR: Unable to get apk path for %s") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), pkg))
+            print(_("Aborting download ..."))
             return
         label = package.label
         label = self.getColumnText(self.currentItem, 7)
         if multiple:
             if not self.download_folder:
-                with wx.DirDialog(None, "Choose a directory where all apks should be saved.", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+                with wx.DirDialog(None, _("Choose a directory where all apks should be saved."), style=wx.DD_DEFAULT_STYLE) as folderDialog:
                     if folderDialog.ShowModal() == wx.ID_CANCEL:
-                        print("User Cancelled saving packages (option: folder).")
+                        print(_("User Cancelled saving packages (option: folder)."))
                         self.abort = True
                         return     # the user changed their mind
                     self.download_folder = folderDialog.GetPath()
-                    print(_(f"Selected Download Directory: {self.download_folder}"))
+                    print(_(f"Selected Download Directory: %s") % self.download_folder)
             pathname =  os.path.join(self.download_folder, f"{pkg}.apk")
         else:
-            with wx.FileDialog(self, "Download APK file", '', f"{pkg}.apk", wildcard="APK files (*.apk)|*.apk", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            with wx.FileDialog(self, _("Download APK file"), '', f"{pkg}.apk", wildcard=_("APK files (*.apk)|*.apk"), style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
-                    print(_(f"User Cancelled saving package: {pkg}"))
+                    print(_(f"User Cancelled saving package: %s") % pkg)
                     return     # the user changed their mind
                 pathname = fileDialog.GetPath()
         try:
             if self.device:
-                print(_(f"Downloading apk file to: {pathname}"))
+                print(_(f"Downloading apk file to: %s") % pathname)
                 self.device.pull_file(path, pathname)
         except IOError:
             traceback.print_exc()
-            wx.LogError(f"Cannot save apk file '{pathname}'.")
+            wx.LogError(_(f"Cannot save apk file %s'.") % pathname)
 
     # -----------------------------------------------
     #                  GetListCtrl
@@ -876,7 +876,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         if col == -1:
             return # clicked outside any column.
         rowid = self.list.GetColumn(col)
-        print(_(f"Sorting on Column {rowid.GetText()}"))
+        print(_(f"Sorting on Column %s") % rowid.GetText())
         event.Skip()
 
     # -----------------------------------------------
@@ -931,24 +931,24 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         # build the menu
         menu = wx.Menu()
-        disableItem = menu.Append(self.popupDisable, "Disable Package")
-        enableItem = menu.Append(self.popupEnable, "Enable Package")
-        uninstallItem = menu.Append(self.popupUninstall, "Uninstall Package")
-        downloadItem = menu.Append(self.popupDownload, "Download Package")
-        launchItem = menu.Append(self.popupLaunch, "Launch Package")
-        killItem = menu.Append(self.popupKill, "Kill Application")
-        clearItem = menu.Append(self.popupClearData, "Clear Application Data")
+        disableItem = menu.Append(self.popupDisable, _("Disable Package"))
+        enableItem = menu.Append(self.popupEnable, _("Enable Package"))
+        uninstallItem = menu.Append(self.popupUninstall, _("Uninstall Package"))
+        downloadItem = menu.Append(self.popupDownload, _("Download Package"))
+        launchItem = menu.Append(self.popupLaunch, _("Launch Package"))
+        killItem = menu.Append(self.popupKill, _("Kill Application"))
+        clearItem = menu.Append(self.popupClearData, _("Clear Application Data"))
         # Add a separator
         menu.AppendSeparator()
-        refreshItem = menu.Append(self.popupRefresh, "Refresh")
-        checkItem = menu.Append(self.popupCheckAllBoxes, "Check All")
-        unCheckItem = menu.Append(self.popupUnCheckAllBoxes, "UnCheck All")
-        clipboardItem=menu.Append(self.popupCopyClipboard, "Copy to Clipboard")
+        refreshItem = menu.Append(self.popupRefresh, _("Refresh"))
+        checkItem = menu.Append(self.popupCheckAllBoxes, _("Check All"))
+        unCheckItem = menu.Append(self.popupUnCheckAllBoxes, _("UnCheck All"))
+        clipboardItem=menu.Append(self.popupCopyClipboard, _("Copy to Clipboard"))
         # Add a separator
         menu.AppendSeparator()
-        addDenyItem = menu.Append(self.popupAddToDeny, "Add Package to Magisk Denylist")
-        removeDenyItem = menu.Append(self.popupRmFromDeny, "Remove Package from Magisk Denylist")
-        suPermissionItem = menu.Append(self.popupSuPermission, "SU Permission ...")
+        addDenyItem = menu.Append(self.popupAddToDeny, _("Add Package to Magisk Denylist"))
+        removeDenyItem = menu.Append(self.popupRmFromDeny, _("Remove Package from Magisk Denylist"))
+        suPermissionItem = menu.Append(self.popupSuPermission, _("SU Permission ..."))
 
         # set icons
         disableItem.SetBitmap(images.disable_24.GetBitmap())
@@ -1016,13 +1016,13 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         pkg = self.list.GetItem(index).Text
         uid = self.list.GetItem(index, 6).Text
         label = self.list.GetItem(index, 7).Text
-        text = f"Set SU Permission for: {pkg} {uid} {label}"
+        text = _(f"Set SU Permission for: %s %s %s") % (pkg, uid, label)
         print(f"{text} ...")
 
         # Popup a small dialog to display SU Permission selection
         dialog = SuPermissionDialog(self, pkg=pkg, uid=uid, label=text)
         if dialog.ShowModal() != wx.ID_OK:
-            print("User pressed Cancel")
+            print(_("User pressed Cancel"))
         dialog.Destroy()
 
         # self.RefreshPackages()
@@ -1101,7 +1101,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def Refresh(self):
         self.list.Freeze()
-        print("Refreshing the packages ...\n")
+        print(_("Refreshing the packages ...\n"))
         self._on_spin('start')
         self.list.ClearAll()
         itemDataMap = self.PopulateList()
@@ -1129,27 +1129,27 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             isSystem = False
 
         if not self.device:
-            print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device."))
+            print(_(f"\n%s ERROR: You must first select a valid device.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             return
         # res = self.device.get_detailed_packages()
         if action == "disable":
-            print(_(f"Disabling {counter}{pkg} type: {type}..."))
+            print(_(f"Disabling %s%s type: %s...") % (counter, pkg, type))
         elif action == "enable":
-            print(_(f"Enabling {counter}{pkg} type: {type}..."))
+            print(_(f"Enabling %s%s type: %s...") % (counter, pkg, type))
         elif action == "uninstall":
-            print(_(f"Uninstalling {counter}{pkg} type: {type}..."))
+            print(_(f"Uninstalling %s%s type: %s...") % (counter, pkg, type))
         elif action == "add-to-denylist":
-            print(_(f"Adding {counter}{pkg} type: {type} to Magisk Denylist..."))
+            print(_(f"Adding %s%s type: %s to Magisk Denylist...") % (counter, pkg, type))
         elif action == "rm-from-denylist":
-            print(_(f"Removing {counter}{pkg} type: {type} from Magisk Denylist..."))
+            print(_(f"Removing %s%s type: %s from Magisk Denylist...") % (counter, pkg, type))
         elif action == "launch":
-            print(_(f"Launching {counter}{pkg} type: {type}..."))
+            print(_(f"Launching %s%s type: %s...") % (counter, pkg, type))
         elif action == "kill":
-            print(_(f"Killing {counter}{pkg} type: {type}..."))
+            print(_(f"Killing %s%s type: %s...") % (counter, pkg, type))
         elif action == "clear-data":
-            print(_(f"Clearing {counter}data for {pkg} type: {type}..."))
+            print(_(f"Clearing %sdata for %s type: %s...") % (counter, pkg, type))
         elif action == "download":
-            print(_(f"Downloading {counter}{pkg} Label: {label}..."))
+            print(_(f"Downloading %s%s Label: %s...") % (counter, pkg, label))
             self.DownloadApk(pkg, fromMulti)
             return
         self.device.perform_package_action(pkg, action, isSystem)
@@ -1174,7 +1174,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             if self.list.IsItemChecked(index):
                 self.ApplySingleAction(index, action, multi, f"{i}/{count} ")
                 i += 1
-        print(_(f"Total count of package actions attempted: {i}"))
+        print(_(f"Total count of package actions attempted: %s") % i)
 
     # -----------------------------------------------
     #                  _on_spin

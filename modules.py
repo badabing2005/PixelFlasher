@@ -3,6 +3,7 @@
 import contextlib
 import copy
 import fnmatch
+import gettext
 import math
 import ntpath
 import os
@@ -28,6 +29,8 @@ from phone import get_connected_devices, update_phones
 from runtime import *
 
 console_widget = None
+
+_ = gettext.gettext
 
 # ============================================================================
 #                               Class FlashFile

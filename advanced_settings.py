@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import gettext
 import wx
 import images as images
 from runtime import *
 
+_ = gettext.gettext
 
 # ============================================================================
 #                               Class AdvancedSettings
@@ -331,66 +333,66 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
     def _onOk(self, e):
         if self.advanced_options_checkbox.GetValue() != self.Parent.config.advanced_options:
-            print(_(f"Setting Enable Advanced Options to: {self.advanced_options_checkbox.GetValue()}"))
+            print(_(f"Setting Enable Advanced Options to: %S") % self.advanced_options_checkbox.GetValue())
         self.Parent.config.advanced_options = self.advanced_options_checkbox.GetValue()
 
         if self.patch_methods_checkbox.GetValue() != self.Parent.config.offer_patch_methods:
-            print(_(f"Setting Offer Patch Methods to: {self.patch_methods_checkbox.GetValue()}"))
+            print(_(f"Setting Offer Patch Methods to: %s") % self.patch_methods_checkbox.GetValue())
         self.Parent.config.offer_patch_methods = self.patch_methods_checkbox.GetValue()
 
         if self.recovery_patch_checkbox.GetValue() != self.Parent.config.show_recovery_patching_option:
-            print(_(f"Setting Offer Patch Methods to: {self.recovery_patch_checkbox.GetValue()}"))
+            print(_(f"Setting Offer Patch Methods to: %s") % self.recovery_patch_checkbox.GetValue())
         self.Parent.config.show_recovery_patching_option = self.recovery_patch_checkbox.GetValue()
 
         if self.use_busybox_shell_checkbox.GetValue() != self.Parent.config.use_busybox_shell:
-            print(_(f"Setting Use Busybox Shell to: {self.use_busybox_shell_checkbox.GetValue()}"))
+            print(_(f"Setting Use Busybox Shell to: %s") % self.use_busybox_shell_checkbox.GetValue())
         self.Parent.config.use_busybox_shell = self.use_busybox_shell_checkbox.GetValue()
 
         if self.low_mem_checkbox.GetValue() != self.Parent.config.low_mem:
-            print(_(f"Setting Low Memory to: {self.low_mem_checkbox.GetValue()}"))
+            print(_(f"Setting Low Memory to: %s") % self.low_mem_checkbox.GetValue())
         self.Parent.config.low_mem = self.low_mem_checkbox.GetValue()
         set_low_memory(self.low_mem_checkbox.GetValue())
 
         if self.extra_img_extracts_checkbox.GetValue() != self.Parent.config.extra_img_extracts:
-            print(_(f"Setting Extra img extraction to: {self.extra_img_extracts_checkbox.GetValue()}"))
+            print(_(f"Setting Extra img extraction to: %s") % self.extra_img_extracts_checkbox.GetValue())
         self.Parent.config.extra_img_extracts = self.extra_img_extracts_checkbox.GetValue()
 
         if self.show_notifications_checkbox.GetValue() != self.Parent.config.show_notifications:
-            print(_(f"Setting Show notifications to: {self.show_notifications_checkbox.GetValue()}"))
+            print(_(f"Setting Show notifications to: %s") % self.show_notifications_checkbox.GetValue())
         self.Parent.config.show_notifications = self.show_notifications_checkbox.GetValue()
 
         if self.create_boot_tar_checkbox.GetValue() != self.Parent.config.create_boot_tar:
-            print(_(f"Setting Always create boot.tar: {self.create_boot_tar_checkbox.GetValue()}"))
+            print(_(f"Setting Always create boot.tar: %s") % self.create_boot_tar_checkbox.GetValue())
         self.Parent.config.create_boot_tar = self.create_boot_tar_checkbox.GetValue()
 
         if self.check_for_update_checkbox.GetValue() != self.Parent.config.update_check:
-            print(_(f"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}"))
+            print(_(f"Setting Check for updates to: %s") % self.check_for_update_checkbox.GetValue())
         self.Parent.config.update_check = self.check_for_update_checkbox.GetValue()
 
         if self.check_for_disk_space_checkbox.GetValue() != self.Parent.config.check_for_disk_space:
-            print(_(f"Setting Check for Miminum Disk Space to: {self.check_for_disk_space_checkbox.GetValue()}"))
+            print(_(f"Setting Check for Miminum Disk Space to: %s") % self.check_for_disk_space_checkbox.GetValue())
         self.Parent.config.check_for_disk_space = self.check_for_disk_space_checkbox.GetValue()
 
         if self.check_for_bootloader_unlocked_checkbox.GetValue() != self.Parent.config.check_for_bootloader_unlocked:
-            print(_(f"Setting Check for Miminum Disk Space to: {self.check_for_bootloader_unlocked_checkbox.GetValue()}"))
+            print(_(f"Setting Check for Miminum Disk Space to: %s") % self.check_for_bootloader_unlocked_checkbox.GetValue())
         self.Parent.config.check_for_bootloader_unlocked = self.check_for_bootloader_unlocked_checkbox.GetValue()
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):
                 if self.package_name.GetValue() != self.Parent.config.magisk:
-                    print(_(f"Setting Magisk Package Name to: {self.package_name.GetValue()}"))
+                    print(_(f"Setting Magisk Package Name to: %s") % self.package_name.GetValue())
                 set_magisk_package(self.package_name.GetValue())
                 self.Parent.config.magisk = self.package_name.GetValue()
 
         if sys.platform.startswith("linux"):
             with contextlib.suppress(Exception):
                 if self.file_explorer.GetValue() != self.Parent.config.linux_file_explorer:
-                    print(_(f"Setting Linux File Explorer to: {self.file_explorer.GetValue()}"))
+                    print(_(f"Setting Linux File Explorer to: %s") % self.file_explorer.GetValue())
                 self.Parent.config.linux_file_explorer = self.file_explorer.GetValue()
 
             with contextlib.suppress(Exception):
                 if self.shell.GetValue() != self.Parent.config.linux_shell:
-                    print(_(f"Setting Linux Shell to: {self.shell.GetValue()}"))
+                    print(_(f"Setting Linux Shell to: %s") % self.shell.GetValue())
                 set_linux_shell(self.shell.GetValue())
                 self.Parent.config.linux_shell = self.shell.GetValue()
 
@@ -402,7 +404,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if value is None:
             value = ''
         if value != self.Parent.config.delete_bundled_libs:
-            print(_(f"Setting Delete bundled libs to: {value}"))
+            print(_(f"Setting Delete bundled libs to: %s") % value)
             self.Parent.config.delete_bundled_libs = value
 
         font_settings_changed = False
@@ -410,11 +412,11 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             print(_("Enabling Custom Font"))
             font_settings_changed = True
         if self.font.GetStringSelection() != self.Parent.config.pf_font_face:
-            print(_(f"Setting Application Font to: {self.font.GetStringSelection()}"))
+            print(_(f"Setting Application Font to: %s") % self.font.GetStringSelection())
             if self.use_custom_font_checkbox.GetValue():
                 font_settings_changed = True
         if self.font_size.GetValue() != self.Parent.config.pf_font_size:
-            print(_(f"Setting Application Font Size to: {self.font_size.GetValue()}"))
+            print(_(f"Setting Application Font Size to: %s") % self.font_size.GetValue())
             if self.use_custom_font_checkbox.GetValue():
                 font_settings_changed = True
         self.Parent.config.customize_font = self.use_custom_font_checkbox.GetValue()
@@ -425,14 +427,14 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if value is None:
             value = ''
         if value != self.Parent.config.scrcpy['path'] and os.path.exists(value):
-            print(_(f"Setting scrcpy path path to: {value}"))
+            print(_(f"Setting scrcpy path path to: %s") % value)
             self.Parent.config.scrcpy['path'] = value
 
         value = self.scrcpy_flags.GetValue()
         if value is None:
             value = ''
         if value != self.Parent.config.scrcpy['flags']:
-            print(_(f"Setting scrcpy flags to: {value}"))
+            print(_(f"Setting scrcpy flags to: %s") % value)
             self.Parent.config.scrcpy['flags'] = value
 
         # update the runtime config

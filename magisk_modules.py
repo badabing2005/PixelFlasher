@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import gettext
 import wx
 import wx.lib.mixins.listctrl as listmix
 import traceback
@@ -12,6 +12,7 @@ import webbrowser
 from file_editor import FileEditor
 from runtime import *
 
+_ = gettext.gettext
 
 # ============================================================================
 #                               Class HtmlWindow
@@ -44,7 +45,7 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 class MagiskModules(wx.Dialog):
     def __init__(self, *args, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(1400, 1050))
-        self.SetTitle("Manage Magisk")
+        self.SetTitle(_("Manage Magisk"))
         self.pif_json_path = PIF_JSON_PATH
 
         # Instance variable to store current selected module
@@ -55,14 +56,14 @@ class MagiskModules(wx.Dialog):
         # Message label
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
-        self.message_label.Label = "When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled."
+        self.message_label.Label = _("When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled.")
         if sys.platform == "win32":
             self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
         self.message_label.SetForegroundColour(wx.Colour(255, 0, 0))
 
         # Module label
-        self.modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Magisk Modules")
-        self.modules_label.SetToolTip(u"Enable / Disable Magisk modules")
+        self.modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_(u"Magisk Modules"))
+        self.modules_label.SetToolTip(_(u"Enable / Disable Magisk modules"))
         font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.modules_label.SetFont(font)
 
@@ -88,67 +89,67 @@ class MagiskModules(wx.Dialog):
         self.ok_button = wx.Button(self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Install module button
-        self.install_module_button = wx.Button(self, wx.ID_ANY, u"Install Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.install_module_button.SetToolTip(u"Install magisk module.")
+        self.install_module_button = wx.Button(self, wx.ID_ANY, _(u"Install Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.install_module_button.SetToolTip(_(u"Install magisk module."))
 
         # update module button
-        self.update_module_button = wx.Button(self, wx.ID_ANY, u"Update Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.update_module_button.SetToolTip(u"Update magisk module.")
+        self.update_module_button = wx.Button(self, wx.ID_ANY, _(u"Update Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.update_module_button.SetToolTip(_(u"Update magisk module."))
         self.update_module_button.Enable(False)
 
         # UnInstall module button
-        self.uninstall_module_button = wx.Button(self, wx.ID_ANY, u"Uninstall Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.uninstall_module_button.SetToolTip(u"Uninstall magisk module.")
+        self.uninstall_module_button = wx.Button(self, wx.ID_ANY, _(u"Uninstall Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.uninstall_module_button.SetToolTip(_(u"Uninstall magisk module."))
         self.uninstall_module_button.Enable(False)
 
         # Play Integrity Fix button
-        self.pif_button = wx.Button(self, wx.ID_ANY, u"Install Pif Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pif_button.SetToolTip(u"Install Play Integrity Fix module.")
+        self.pif_button = wx.Button(self, wx.ID_ANY, _(u"Install Pif Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pif_button.SetToolTip(_(u"Install Play Integrity Fix module."))
 
         # Edit pif.json button
-        self.edit_pif_button = wx.Button(self, wx.ID_ANY, u"Edit pif.json", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.edit_pif_button.SetToolTip(u"Edit pif.json.")
+        self.edit_pif_button = wx.Button(self, wx.ID_ANY, _(u"Edit pif.json"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.edit_pif_button.SetToolTip(_(u"Edit pif.json."))
         self.edit_pif_button.Enable(False)
 
         # Kill  gms button
-        self.kill_gms_button = wx.Button(self, wx.ID_ANY, u"Kill Google GMS", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.kill_gms_button.SetToolTip(u"Kill Google GMS process, required after pif edit to avoid a reboot.")
+        self.kill_gms_button = wx.Button(self, wx.ID_ANY, _(u"Kill Google GMS"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.kill_gms_button.SetToolTip(_(u"Kill Google GMS process, required after pif edit to avoid a reboot."))
         self.kill_gms_button.Enable(False)
         self.kill_gms_button.Show(False)
 
         # Process build.prop button
-        self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.process_build_prop_button.SetToolTip(u"Process build.prop to extract pif.json.")
+        self.process_build_prop_button = wx.Button(self, wx.ID_ANY, _(u"Process build.prop"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.process_build_prop_button.SetToolTip(_(u"Process build.prop to extract pif.json."))
 
         # option button PI Selectedion
-        self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker"], style=wx.RA_VERTICAL)
+        self.pi_option = wx.RadioBox(self, choices=[_("Play Integrity API Checker"), _("Simple Play Integrity Checker"), _("TB Checker")], style=wx.RA_VERTICAL)
 
         # Play Integrity API Checkerbutton
-        self.pi_checker_button = wx.Button(self, wx.ID_ANY, u"Play Integrity Check", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pi_checker_button.SetToolTip(u"Play Integrity API Checker\nNote: Need to install app from Play store.")
+        self.pi_checker_button = wx.Button(self, wx.ID_ANY, _(u"Play Integrity Check"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pi_checker_button.SetToolTip(_(u"Play Integrity API Checker\nNote: Need to install app from Play store."))
 
         # Systemless hosts button
-        self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, u"Systemless Hosts", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.systemless_hosts_button.SetToolTip(u"Add Systemless Hosts Module.")
+        self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, _(u"Systemless Hosts"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.systemless_hosts_button.SetToolTip(_(u"Add Systemless Hosts Module."))
 
         # Enable zygisk button
-        self.enable_zygisk_button = wx.Button(self, wx.ID_ANY, u"Enable Zygisk", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.enable_zygisk_button.SetToolTip(u"Enable Magisk zygisk (requires reboot)")
+        self.enable_zygisk_button = wx.Button(self, wx.ID_ANY, _(u"Enable Zygisk"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.enable_zygisk_button.SetToolTip(_(u"Enable Magisk zygisk (requires reboot)"))
 
         # Disable zygisk button
-        self.disable_zygisk_button = wx.Button(self, wx.ID_ANY, u"Disable Zygisk", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.disable_zygisk_button.SetToolTip(u"Disable Magisk zygisk (requires reboot)")
+        self.disable_zygisk_button = wx.Button(self, wx.ID_ANY, _(u"Disable Zygisk"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.disable_zygisk_button.SetToolTip(_(u"Disable Magisk zygisk (requires reboot)"))
 
         # Enable denlylist button
-        self.enable_denylist_button = wx.Button(self, wx.ID_ANY, u"Enable Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.enable_denylist_button.SetToolTip(u"Enable Magisk denylist")
+        self.enable_denylist_button = wx.Button(self, wx.ID_ANY,_( u"Enable Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.enable_denylist_button.SetToolTip(_(u"Enable Magisk denylist"))
 
         # Disable denylist button
-        self.disable_denylist_button = wx.Button(self, wx.ID_ANY, u"Disable Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.disable_denylist_button.SetToolTip(u"Disable Magisk denylist")
+        self.disable_denylist_button = wx.Button(self, wx.ID_ANY, _(u"Disable Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.disable_denylist_button.SetToolTip(_(u"Disable Magisk denylist"))
 
         # Cancel button
-        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.cancel_button = wx.Button(self, wx.ID_ANY, _(u"Cancel"), wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Make the buttons the same size
         button_width = self.pi_option.GetSize()[0] + 10
@@ -167,8 +168,8 @@ class MagiskModules(wx.Dialog):
         self.disable_denylist_button.SetMinSize((button_width, -1))
 
         # Label for managing denylist and SU Permissions
-        management_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature.")
-        management_label.SetToolTip(u"Use Pixelflasher's App Manager functionality to add/remove items to denylist or su permissions.")
+        management_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_(u"To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature."))
+        management_label.SetToolTip(_(u"Use Pixelflasher's App Manager functionality to add/remove items to denylist or su permissions."))
         font = management_label.GetFont()
         font.SetStyle(wx.FONTSTYLE_ITALIC)
         management_label.SetFont(font)
@@ -253,7 +254,7 @@ class MagiskModules(wx.Dialog):
         # a = self.list.GetViewRect()
         # self.SetSize(vSizer.MinSize.Width + 120, vSizer.MinSize.Height + 140)
 
-        print("\nOpening Magisk Modules Manager ...")
+        print(_("\nOpening Magisk Modules Manager ..."))
 
     # -----------------------------------------------
     #              Function PopulateList
@@ -269,10 +270,10 @@ class MagiskModules(wx.Dialog):
         self.kill_gms_button.Enable(False)
         self.pi_checker_button.Enable(False)
 
-        self.list.InsertColumn(0, 'ID', width = -1)
-        self.list.InsertColumn(1, 'Name', width = -1)
-        self.list.InsertColumn(2, 'Version', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(3, 'Description', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(0, _('ID'), width = -1)
+        self.list.InsertColumn(1, _('Name'), width = -1)
+        self.list.InsertColumn(2, _('Version'), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(3, _('Description'), wx.LIST_FORMAT_LEFT,  -1)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
@@ -339,10 +340,10 @@ class MagiskModules(wx.Dialog):
         if not device:
             return
 
-        data = f"Magisk Manager Version:  {device.magisk_app_version}\n"
+        data = _(f"Magisk Manager Version:  %s\n") % device.magisk_app_version
         if device.rooted:
-            data += f"Magisk Version:          {device.magisk_version}\n"
-        data += "\nMagisk Modules"
+            data += _(f"Magisk Version:          \n") % device.magisk_version
+        data += _("\nMagisk Modules")
         self.modules_label.SetLabel(data)
 
     # -----------------------------------------------
@@ -356,12 +357,12 @@ class MagiskModules(wx.Dialog):
         res, tmp = device.check_file(self.pif_json_path, True)
         if res == 1:
             # pif.json exists, change button to Edit
-            self.edit_pif_button.SetLabel("Edit pif.json")
-            self.edit_pif_button.SetToolTip(u"Edit pif.json.")
+            self.edit_pif_button.SetLabel(_("Edit pif.json"))
+            self.edit_pif_button.SetToolTip(_(u"Edit pif.json."))
         elif res == 0:
             # pif.json does not exits, change button to create
-            self.edit_pif_button.SetLabel("Create pif.json")
-            self.edit_pif_button.SetToolTip(u"Create and upload pif.json.")
+            self.edit_pif_button.SetLabel(_("Create pif.json"))
+            self.edit_pif_button.SetToolTip(_(u"Create and upload pif.json."))
 
     # -----------------------------------------------
     #                  onPiSelection
@@ -370,15 +371,15 @@ class MagiskModules(wx.Dialog):
         option = event.GetString()
 
         if option == "Play Integrity API Checker":
-            print("Play Integrity API Checker option selected")
+            print(_("Play Integrity API Checker option selected"))
             self.pi_app = 'gr.nikolasspyr.integritycheck'
 
         elif option == "Simple Play Integrity Checker":
-            print("Simple Play Integrity Checker option selected")
+            print(_("Simple Play Integrity Checker option selected"))
             self.pi_app = 'com.henrikherzig.playintegritychecker'
 
         elif option == "TB Checker":
-            print("TB Checker option selected")
+            print(_("TB Checker option selected"))
             self.pi_app = 'krypton.tbsafetychecker'
 
     # -----------------------------------------------
@@ -395,13 +396,13 @@ class MagiskModules(wx.Dialog):
         row,flags = self.list.HitTest((x,y))
         if row == -1:
             self.uninstall_module_button.Enable(False)
-            self.uninstall_module_button.SetLabel('Uninstall Module')
+            self.uninstall_module_button.SetLabel(_('Uninstall Module'))
         else:
             self.uninstall_module_button.Enable(True)
             if self.list.GetItemTextColour(row) == wx.LIGHT_GREY:
-                self.uninstall_module_button.SetLabel('Restore Module')
+                self.uninstall_module_button.SetLabel(_('Restore Module'))
             else:
-                self.uninstall_module_button.SetLabel('Uninstall Module')
+                self.uninstall_module_button.SetLabel(_('Uninstall Module'))
         event.Skip()
 
     # -----------------------------------------------
@@ -412,7 +413,7 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             return
-        print(f"Magisk Module {self.list.GetItemText(self.currentItem)} is selected.")
+        print(_(f"Magisk Module %s is selected.") % self.list.GetItemText(self.currentItem))
         # puml(f":Select Magisk Module {self.list.GetItemText(self.currentItem)};\n")
 
         # Get the module object for the selected item
@@ -422,7 +423,7 @@ class MagiskModules(wx.Dialog):
         if self.module.updateAvailable:
             self.update_module_button.Enable(True)
             if self.module.updateDetails.changelog:
-                changelog_md = f"# Change Log:\n{self.module.updateDetails.changelog}"
+                changelog_md = _(f"# Change Log:\n") % self.module.updateDetails.changelog
                 # convert markdown to html
                 changelog_html = markdown.markdown(changelog_md)
                 self.html.SetPage(changelog_html)
@@ -443,7 +444,7 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             return
-        print("Enable Zygisk")
+        print(_("Enable Zygisk"))
         self._on_spin('start')
         device.magisk_enable_zygisk(True)
         self._on_spin('stop')
@@ -455,7 +456,7 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             return
-        print("Disable Zygisk")
+        print(_("Disable Zygisk"))
         self._on_spin('start')
         device.magisk_enable_zygisk(False)
         self._on_spin('stop')
@@ -467,7 +468,7 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             return
-        print("Enable Denylist")
+        print(_("Enable Denylist"))
         self._on_spin('start')
         device.magisk_enable_denylist(True)
         self._on_spin('stop')
@@ -479,7 +480,7 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             return
-        print("Disable Denylist")
+        print(_("Disable Denylist"))
         self._on_spin('start')
         device.magisk_enable_denylist(False)
         self._on_spin('stop')
@@ -491,7 +492,7 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             return
-        print("Add Systemless Hosts")
+        print(_("Add Systemless Hosts"))
         self._on_spin('start')
         device.magisk_add_systemless_hosts()
         self.refresh_modules()
@@ -507,12 +508,12 @@ class MagiskModules(wx.Dialog):
                 return
             url = check_module_update(PIF_UPDATE_URL)
             self._on_spin('start')
-            print(f"Installing Play Integrity Fix module URL: {url} ...")
+            print(_(f"Installing Play Integrity Fix module URL: %s ...") % url)
             downloaded_file_path = download_file(url)
             device.install_magisk_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
+            print(_(f"\n%s ERROR: Exception during Play Integrity Fix module installation.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -525,14 +526,14 @@ class MagiskModules(wx.Dialog):
             if not device.rooted:
                 return
             self._on_spin('start')
-            print("Killing Google GMS  ...")
+            print(_("Killing Google GMS  ..."))
             res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
             if res.returncode != 0:
-                print("Error killing GMS.")
+                print(_("Error killing GMS."))
             else:
-                print("Killing Google GMS succeeded.")
+                print(_("Killing Google GMS succeeded."))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during killing GMS.")
+            print(_(f"\n%s ERROR: Exception during killing GMS.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -551,7 +552,7 @@ class MagiskModules(wx.Dialog):
                 # pull the file
                 res = device.pull_file(self.pif_json_path, pif_prop, True)
                 if res != 0:
-                    print("Aborting ...\n")
+                    print(_("Aborting ...\n"))
                     # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
                     self._on_spin('stop')
                     return
@@ -567,31 +568,31 @@ class MagiskModules(wx.Dialog):
                 # get the contents of modified pif.json
                 with open(pif_prop, 'r', encoding='ISO-8859-1', errors="replace") as f:
                     contents = f.read()
-                print(f"\npif.prep file has been modified!")
+                print(_(f"\npif.prep file has been modified!"))
                 # push the file
                 res = device.push_file(pif_prop, self.pif_json_path, True)
                 if res != 0:
-                    print("Aborting ...\n")
+                    print(_("Aborting ...\n"))
                     # puml("#red:Failed to push pif.json from the phone;\n}\n")
                     self._on_spin('stop')
                     return -1
 
-                print("Killing Google GMS  ...")
+                print(_("Killing Google GMS  ..."))
                 res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
                 if res.returncode != 0:
-                    print("Error killing GMS.")
+                    print(_("Error killing GMS."))
                 else:
-                    print("Killing Google GMS succeeded.")
+                    print(_("Killing Google GMS succeeded."))
 
                 self.check_pif_json()
             else:
-                print("User cancelled editing pif.json file.")
-                puml(f"note right\nCancelled and Aborted\nend note\n")
+                print(_("User cancelled editing pif.json file."))
+                puml(_(f"note right\nCancelled and Aborted\nend note\n"))
                 self._on_spin('stop')
                 return -1
             self.check_pif_json()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip edit process.")
+            print(_(f"\n%s ERROR: Exception during pip edit process.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -610,19 +611,19 @@ class MagiskModules(wx.Dialog):
             for i in range(0, self.list.ItemCount, 1):
                 if modules[i].dirname == id:
                     if modules[i].state == 'remove':
-                        print(f"Restoring Module {name} ...")
+                        print(_(f"Restoring Module %s ...") % name)
                         res = device.restore_magisk_module(modules[i].dirname)
                     else:
-                        print(f"Uninstalling Module {name} ...")
+                        print(_(f"Uninstalling Module %s ...") % name)
                         res = device.uninstall_magisk_module(modules[i].dirname)
                     if res == 0:
                         modules[i].state = 'remove'
                         self.refresh_modules()
                     else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to remove module: {modules[i].name}")
+                        print(_(f"\n%s ERROR: Failed to remove module: %s") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), modules[i].name))
                     break
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules uninstall")
+            print(_(f"\n%s ERROR: Exception during Magisk modules uninstall") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -636,16 +637,16 @@ class MagiskModules(wx.Dialog):
                 return
             id = self.list.GetItem(self.currentItem, 0).Text
             name = self.list.GetItem(self.currentItem, 1).Text
-            print(f"Updating Module {name} ...")
+            print(_(f"Updating Module %s ...") % name)
             if self.module and self.module.updateAvailable and self.module.updateDetails and (self.module.id and self.module.id == id) and (self.module.name and self.module.name == name):
                 url = self.module.updateDetails.zipUrl
                 self._on_spin('start')
-                print(f"Downloading Magisk Module: {name} URL: {url} ...")
+                print(_(f"Downloading Magisk Module: %s URL: %s ...") % (name, url))
                 downloaded_file_path = download_file(url)
                 device.install_magisk_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
+            print(_(f"\n%s ERROR: Exception during Magisk modules update") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -656,20 +657,20 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             return
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Install Module.")
-        with wx.FileDialog(self, "select Module file to install", '', '', wildcard="Magisk Modules (*.*.zip)|*.zip", style=wx.FD_OPEN) as fileDialog:
+        print(_(f"%s User Pressed Install Module.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        with wx.FileDialog(self, _("select Module file to install"), '', '', wildcard=_("Magisk Modules (*.*.zip)|*.zip"), style=wx.FD_OPEN) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
-                print("User cancelled module install.")
+                print(_("User cancelled module install."))
                 return
             # save the current contents in the file
             pathname = fileDialog.GetPath()
-            print(f"\nSelected {pathname} for installation.")
+            print(_(f"\nSelected %s for installation.") % pathname)
             try:
                 self._on_spin('start')
                 device.install_magisk_module(pathname)
                 self.refresh_modules()
             except IOError:
-                wx.LogError(f"Cannot install module file '{pathname}'.")
+                wx.LogError(_(f"Cannot install module file '%s'.") % pathname)
                 traceback.print_exc()
         self._on_spin('stop')
 
@@ -681,7 +682,7 @@ class MagiskModules(wx.Dialog):
             device = get_phone()
             if not device.rooted:
                 return
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Getting coordinates for {self.pi_app}")
+            print(_(f"%s Getting coordinates for %s") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), self.pi_app))
 
             # pull view
             config_path = get_config_path()
@@ -710,7 +711,7 @@ class MagiskModules(wx.Dialog):
             device = get_phone()
             if not device.rooted:
                 return
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Play Integrity API Checker.")
+            print(_(f"%s User Pressed Play Integrity API Checker.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self._on_spin('start')
 
             # We need to kill TB Checker to make sure we read fresh values
@@ -720,7 +721,7 @@ class MagiskModules(wx.Dialog):
             # launch the app
             res = device.perform_package_action(self.pi_app, 'launch', False)
             if res == -1:
-                print(f"Error: during launching app {self.pi_app}.")
+                print(_(f"Error: during launching app %s.") % self.pi_app)
                 self._on_spin('stop')
                 return -1
 
@@ -733,14 +734,14 @@ class MagiskModules(wx.Dialog):
                     # update coords.json
                     self.coords.update_entry(device.id, self.pi_app, coords)
                 else:
-                    print("Error: Could not get coordinates.")
+                    print(_("Error: Could not get coordinates."))
                     self._on_spin('stop')
                     return -1
 
             # Click on coordinates
             res = device.click(coords)
             if res == -1:
-                print(f"Error: during tapping {self.pi_app}.")
+                print(_(f"Error: during tapping %s.") % self.pi_app)
                 self._on_spin('stop')
                 return -1
 
@@ -749,7 +750,7 @@ class MagiskModules(wx.Dialog):
             pi_xml = os.path.join(config_path, 'tmp', 'pi.xml')
             res = device.ui_action('/data/local/tmp/pi.xml', pi_xml)
             if res == -1:
-                print(f"Error: during uiautomator {self.pi_app}.")
+                print(_(f"Error: during uiautomator %s.") % self.pi_app)
                 self._on_spin('stop')
                 return -1
 
@@ -764,7 +765,7 @@ class MagiskModules(wx.Dialog):
                 time.sleep(5)
                 res = process_pi_xml3(pi_xml)
             if res == -1:
-                print(f"Error: during processing the response from {self.pi_app}.")
+                print(_(f"Error: during processing the response from %s.") % self.pi_app)
                 self._on_spin('stop')
                 return -1
 
@@ -779,14 +780,14 @@ class MagiskModules(wx.Dialog):
     #                  onProcessBuildProp
     # -----------------------------------------------
     def onProcessBuildProp(self, e):
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Process build.prop")
-        with wx.FileDialog(self, "select build.prop file to process", '', '', wildcard="build.prop files (*.*.prop)|*.prop", style=wx.FD_OPEN) as fileDialog:
+        print(_(f"%s User Process build.prop") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        with wx.FileDialog(self, _("select build.prop file to process"), '', '', wildcard=_("build.prop files (*.*.prop)|*.prop"), style=wx.FD_OPEN) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
-                print("User cancelled processing build.prop")
+                print(_("User cancelled processing build.prop"))
                 return
             # save the current contents in the file
             pathname = fileDialog.GetPath()
-            print(f"\nSelected {pathname} for processing.")
+            print(_(f"\nSelected %s for processing.") % pathname)
             try:
                 self._on_spin('start')
                 ro_product_name = ''
@@ -868,7 +869,7 @@ class MagiskModules(wx.Dialog):
                 # print(donor_print)
 
             except IOError:
-                wx.LogError(f"Cannot process file: '{pathname}'.")
+                wx.LogError(_(f"Cannot process file: '%s'.") % pathname)
                 traceback.print_exc()
         self._on_spin('stop')
 
@@ -878,8 +879,8 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onContextMenu(self, event):
         menu = wx.Menu()
-        copy_item = menu.Append(wx.ID_COPY, "Copy")
-        select_all_item = menu.Append(wx.ID_SELECTALL, "Select All")
+        copy_item = menu.Append(wx.ID_COPY, _("Copy"))
+        select_all_item = menu.Append(wx.ID_SELECTALL, _("Select All"))
         self.Bind(wx.EVT_MENU, self.onCopy, copy_item)
         self.Bind(wx.EVT_MENU, self.onSelectAll, select_all_item)
 
@@ -905,7 +906,7 @@ class MagiskModules(wx.Dialog):
         device = get_phone()
         if not device.rooted:
             self.EndModal(wx.ID_OK)
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+        print(_(f"%s User Pressed Ok.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         modules = device.get_magisk_detailed_modules()
         for i in range(0, self.list.ItemCount, 1):
             if modules[i].state == 'enabled':
@@ -915,21 +916,21 @@ class MagiskModules(wx.Dialog):
             list_state = self.list.IsItemChecked(i)
 
             if list_state == module_state:
-                print(f"Module: {modules[i].name:<36} state has not changed,   Nothing to do. [Kept {modules[i].state.upper()}]")
+                print(_(f"Module: {modules[i].name:<36} state has not changed,   Nothing to do. [Kept %s]") % modules[i].state.upper())
             elif list_state:
-                print(f"Module: {modules[i].name:<36} state has changed,       ENABLING  the module ...")
+                print(_(f"Module: {modules[i].name:<36} state has changed,       ENABLING  the module ..."))
                 res = device.enable_magisk_module(modules[i].dirname)
                 if res == 0:
                     modules[i].state = 'enabled'
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
+                    print(_(f"\n%s ERROR: Failed to disable module: {modules[i].name}") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             else:
-                print(f"Module: {modules[i].name:<36} state has changed,       DISABLING the module ...")
+                print(_(f"Module: {modules[i].name:<36} state has changed,       DISABLING the module ..."))
                 res = device.disable_magisk_module(modules[i].dirname)
                 if res == 0:
                     modules[i].state = 'disbled'
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
+                    print(_(f"\n%s ERROR: Failed to disable module: %s") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), modules[i].name ))
         print('')
         self.EndModal(wx.ID_OK)
 
@@ -954,7 +955,7 @@ class MagiskModules(wx.Dialog):
             return r.strip()
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract_prop for {search}")
+            print(_(f"\n%s ERROR: Could not extract_prop for %s") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), search))
             return ''
 
     # ----------------------------------------------------------------------------

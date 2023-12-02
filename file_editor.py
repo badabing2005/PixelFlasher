@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+import gettext
 import sys
 
 import wx
 import wx.stc as stc
 
 from runtime import *
+
+_ = gettext.gettext
 
 # ============================================================================
 #                               Class FileEditor

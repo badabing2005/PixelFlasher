@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PixelFlasher 6.2.1.2\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2023-12-02 21:36+0400\n"
+"POT-Creation-Date: 2023-12-02 23:18+0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2204,7 +2204,8 @@ msgid "    File:                  %s\n"
 msgstr ""
 
 #: Main.py:3235
-msgid "    Path:                  \n"
+#, python-format
+msgid "    Path:                  %s\n"
 msgstr ""
 
 #: Main.py:3236
@@ -2212,12 +2213,14 @@ msgstr ""
 msgid "    SHA1:                  %s\n"
 msgstr ""
 
-#: Main.py:3239
-msgid "    Patched:               \n"
+#: Main.py:3239 Main.py:3248
+#, python-format
+msgid "    Patched:               %s\n"
 msgstr ""
 
 #: Main.py:3241
-msgid "    Patched Method:        \n"
+#, python-format
+msgid "    Patched Method:        %s\n"
 msgstr ""
 
 #: Main.py:3243
@@ -2233,11 +2236,6 @@ msgstr ""
 #: Main.py:3245
 #, python-format
 msgid "    Patched on Device:     %s\n"
-msgstr ""
-
-#: Main.py:3248
-#, python-format
-msgid "    Patched:               %s\n"
 msgstr ""
 
 #: Main.py:3251
@@ -3182,7 +3180,8 @@ msgid "Cancel"
 msgstr ""
 
 #: advanced_settings.py:336
-msgid "Setting Enable Advanced Options to: %S"
+#, python-format
+msgid "Setting Enable Advanced Options to: %s"
 msgstr ""
 
 #: advanced_settings.py:340 advanced_settings.py:344

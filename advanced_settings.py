@@ -333,7 +333,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
     def _onOk(self, e):
         if self.advanced_options_checkbox.GetValue() != self.Parent.config.advanced_options:
-            print(_(f"Setting Enable Advanced Options to: %S") % self.advanced_options_checkbox.GetValue())
+            print(_(f"Setting Enable Advanced Options to: %s") % self.advanced_options_checkbox.GetValue())
         self.Parent.config.advanced_options = self.advanced_options_checkbox.GetValue()
 
         if self.patch_methods_checkbox.GetValue() != self.Parent.config.offer_patch_methods:

@@ -3130,7 +3130,7 @@ class PixelFlasher(wx.Frame):
         self.config.custom_rom = status
         if status:
             print(_(f"%s Enabled Custom ROM") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-            puml(_(":Custom ROM: ON;\n", True))
+            puml(_(":Custom ROM: ON;\n"), True)
         else:
             print(_(f"%s Disabled Custom ROM") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             puml(_(":Custom ROM: OFF;\n"), True)
@@ -3232,13 +3232,13 @@ class PixelFlasher(wx.Frame):
             print(_("Selected Boot:"))
             puml(_(":Select Boot;\n"), True)
             message = _(f"    File:                  %s\n") % os.path.basename(urlparse(boot.boot_path).path)
-            message += _(f"    Path:                  \n") % boot.boot_path
+            message += _(f"    Path:                  %s\n") % boot.boot_path
             message += _(f"    SHA1:                  %s\n") % boot.boot_hash
             if boot.is_patched == 1:
                 patched = True
-                message += _(f"    Patched:               \n") % patched
+                message += _(f"    Patched:               %s\n") % patched
                 if boot.patch_method:
-                    message += _(f"    Patched Method:        \n") % boot.patch_method
+                    message += _(f"    Patched Method:        %s\n") % boot.patch_method
                 if boot.patch_source_sha1:
                     message += _(f"    Patch Source SHA1:     %s\n") % boot.patch_source_sha1
                 message += _(f"    Patched With Magisk:   %s\n") % boot.magisk_version

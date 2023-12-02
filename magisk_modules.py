@@ -45,6 +45,7 @@ class MagiskModules(wx.Dialog):
     def __init__(self, *args, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(1400, 1050))
         self.SetTitle("Manage Magisk")
+        self.pif_json_path = PIF_JSON_PATH
 
         # Instance variable to store current selected module
         self.module = None
@@ -289,7 +290,9 @@ class MagiskModules(wx.Dialog):
                     index = self.list.InsertItem(i, module.id)
 
                 # disable pif button if it is already installed.
-                if module.id == "playintegrityfix" and "Play Integrity Fix" in module.name:
+                if module.id == "playintegrityfix" and "Play Integrity" in module.name:
+                    if module.name == "Play Integrity Fork":
+                        self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
                     self.pif_button.Enable(False)
                     self.check_pif_json()
                     self.edit_pif_button.Enable(True)
@@ -350,7 +353,7 @@ class MagiskModules(wx.Dialog):
         if not device.rooted:
             return
         # check for presence of pif.json
-        res, tmp = device.check_file(PIF_JSON_PATH, True)
+        res, tmp = device.check_file(self.pif_json_path, True)
         if res == 1:
             # pif.json exists, change button to Edit
             self.edit_pif_button.SetLabel("Edit pif.json")
@@ -546,7 +549,7 @@ class MagiskModules(wx.Dialog):
             pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
             if self.edit_pif_button.GetLabel() == "Edit pif.json":
                 # pull the file
-                res = device.pull_file(PIF_JSON_PATH, pif_prop, True)
+                res = device.pull_file(self.pif_json_path, pif_prop, True)
                 if res != 0:
                     print("Aborting ...\n")
                     # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
@@ -566,7 +569,7 @@ class MagiskModules(wx.Dialog):
                     contents = f.read()
                 print(f"\npif.prep file has been modified!")
                 # push the file
-                res = device.push_file(pif_prop, PIF_JSON_PATH, True)
+                res = device.push_file(pif_prop, self.pif_json_path, True)
                 if res != 0:
                     print("Aborting ...\n")
                     # puml("#red:Failed to push pif.json from the phone;\n}\n")

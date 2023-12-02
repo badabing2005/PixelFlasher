@@ -52,8 +52,8 @@ locale.setlocale(locale.LC_ALL, 'C')
 gettext.bindtextdomain('PixelFlasher', 'locales')
 gettext.textdomain('PixelFlasher')
 _ = gettext.gettext
-t = gettext.translation('PixelFlasher', localedir='locales', languages=['ru'])
-t.install()
+#t = gettext.translation('PixelFlasher', localedir='locales', languages=['ru'])
+#t.install()
 
 # For troubleshooting, set inspector = True
 inspector = False

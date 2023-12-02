@@ -1938,6 +1938,19 @@ def download_file(url, filename = None):
 
 
 # ============================================================================
+#                               Function get_first_match
+# ============================================================================
+def get_first_match(dictionary, keys):
+    for key in keys:
+        if key in dictionary:
+            value = dictionary[key]
+            break
+    else:
+        value = ''
+    return value
+
+
+# ============================================================================
 #                               Function process_pi_xml
 # ============================================================================
 def process_pi_xml(filename):

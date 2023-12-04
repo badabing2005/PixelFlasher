@@ -3,8 +3,11 @@
 A Script To easily change the version number in all involved files.
 """
 import fileinput
+import gettext
 import os
 import re
+
+_ = gettext.gettext
 
 cwd = os.getcwd()
 file1 = os.path.join(cwd, 'build-on-mac.spec')
@@ -43,7 +46,7 @@ def get_values(thelist, update):
             if update:
                 set_values(file, r[0][1], target_version)
         else:
-            print("\tNO MATCH IS FOUND.")
+            print(_("\tNO MATCH IS FOUND."))
 
 
     print(file5)
@@ -67,7 +70,7 @@ def set_values(file, search, replace):
         content = f.read()
         # content_new = re.sub(search, replace, content, flags = re.M)
         content_new = content.replace(search, replace)
-    print(f"\t\tReplacing {search} with {replace} ...")
+    print(_(f"\t\tReplacing %s with %s ...") % {{search}, {replace}})
     with open(file, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
         f.write(content_new)
 
@@ -76,12 +79,12 @@ def set_values(file, search, replace):
 #                               MAIN
 # ============================================================================
 target_version = ''
-print("Getting current values ...")
+print(_("Getting current values ..."))
 get_values(alist, False)
-target_version = input("\nEnter the new Version: ")
+target_version = input(_("\nEnter the new Version: "))
 target_comma_version = target_version.replace('.', ',')
-print(f"\nSetting Versions to: {target_version} ...")
+print(f"\nSetting Versions to: %s ...") % {{target_version}}
 get_values(alist, True)
-print("Getting updated values ...")
+print(_("Getting updated values ..."))
 get_values(alist, False)
 

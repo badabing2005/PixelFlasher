@@ -49,7 +49,7 @@ coverage.xml
 
 # Translations
 *.mo
-*.pot
+
 
 # Django stuff:
 *.log
@@ -83,6 +83,7 @@ celerybeat-schedule
 # virtualenv
 venv/
 ENV/
+.venv/
 
 # Spyder project settings
 .spyderproject

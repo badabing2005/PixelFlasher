@@ -3,6 +3,7 @@
 import argparse
 import contextlib
 import ctypes
+import gettext
 import json
 import locale
 import math
@@ -47,6 +48,12 @@ from runtime import *
 
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
+
+gettext.bindtextdomain('PixelFlasher', 'locales')
+gettext.textdomain('PixelFlasher')
+_ = gettext.gettext
+#t = gettext.translation('PixelFlasher', localedir='locales', languages=['ru'])
+#t.install()
 
 # For troubleshooting, set inspector = True
 inspector = False
@@ -102,7 +109,7 @@ class DropDownButton(wx.BitmapButton):
 
     def OnLinkSelected(self, event, url):
         # Handle the selected link here
-        print(f"Selected link: {url}")
+        print(_("Selected link: %s")% url)
         open_device_image_download_link(url)
 
 
@@ -151,27 +158,27 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def initialize(self):
         t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
-        print(f"PixelFlasher {VERSION} started on {t}")
+        print(_(f"PixelFlasher %s started on %s") % (VERSION, t))
         puml(f"{t};\n")
-        puml(f"#palegreen:PixelFlasher {VERSION} started;\n")
+        puml(_(f"#palegreen:PixelFlasher %s started;\n") % (VERSION))
         start = time.time()
 
-        print(f"Platform: {sys.platform}")
-        puml(f"note left:Platform: {sys.platform}\n")
+        print(_(f"Platform: %s") % sys.platform)
+        puml(_(f"note left:Platform: %s\n") % sys.platform)
         # check timezone
         timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
-        print(f"System Timezone: {time.tzname} Offset: {timezone_offset / 60 / 60 * -1}")
-        print(f"Configuration Folder Path: {get_config_path()}")
-        print(f"Configuration File Path: {get_config_file_path()}")
+        print(_(f"System Timezone: %s Offset: %s") % (time.tzname, timezone_offset / 60 / 60 * -1 ))
+        print(_(f"Configuration Folder Path: %s") % get_config_path())
+        print(_(f"Configuration File Path: %s") % get_config_file_path())
 
-        puml(":Loading Configuration;\n")
-        puml(f"note left: {get_config_path()}\n")
+        puml(_(":Loading Configuration;\n"))
+        puml(_(f"note left: %s\n") % get_config_path())
         # load verbose settings
         if self.config.verbose:
             self.verbose_checkBox.SetValue(self.config.verbose)
             set_verbose(self.config.verbose)
         if self.config.first_run:
-            print("First Run: No previous configuration file is found.")
+            print(_("First Run: No previous configuration file is found."))
         else:
             print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
             puml("note right\n")
@@ -185,23 +192,23 @@ class PixelFlasher(wx.Frame):
             self._advanced_options_hide(True)
 
         # check codepage
-        print(f"System Default Encoding: {sys.getdefaultencoding()}")
-        print(f"File System Encoding:    {sys.getfilesystemencoding()}")
+        print(_(f"System Default Encoding: %s") % sys.getdefaultencoding())
+        print(_(f"File System Encoding:    %s") % sys.getfilesystemencoding())
         get_code_page()
 
         # delete specified libraries from the bundle
-        print(f"Bundle Directory: {get_bundle_dir()}")
+        print(_(f"Bundle Directory: %s") % get_bundle_dir())
         delete_bundled_library(self.config.delete_bundled_libs)
 
         # Get Available Memory
         free_memory, total_memory = get_free_memory()
         formatted_free_memory = format_memory_size(free_memory)
         formatted_total_memory = format_memory_size(total_memory)
-        print(f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}")
+        print(_(f"Available Free Memory: %s / %s") % (formatted_free_memory, formatted_total_memory))
 
         # Get available free disk on system drive
-        print(f"Available Free Disk on system drive: {str(get_free_space())} GB")
-        print(f"Available Free Disk on PixelFlasher data drive: {str(get_free_space(get_config_path()))} GB\n")
+        print(_(f"Available Free Disk on system drive: %s GB") % str(get_free_space()))
+        print(_(f"Available Free Disk on PixelFlasher data drive: %s GB\n") % str(get_free_space(get_config_path())))
 
         # load android_versions into a dict.
         with contextlib.suppress(Exception):
@@ -253,24 +260,24 @@ class PixelFlasher(wx.Frame):
                     set_firmware_id(filename)
             set_ota(self, self.config.firmware_is_ota)
             if self.config.firmware_sha256:
-                print("Using previously stored firmware SHA-256 ...")
+                print(_("Using previously stored firmware SHA-256 ..."))
                 firmware_hash = self.config.firmware_sha256
             else:
-                print("Computing firmware SHA-256 ...")
+                print(_("Computing firmware SHA-256 ..."))
                 firmware_hash = sha256(self.config.firmware_path)
                 self.config.firmware_sha256 = firmware_hash
-            print(f"Firmware SHA-256: {firmware_hash}")
-            self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
+            print(_(f"Firmware SHA-256: %s") % firmware_hash)
+            self.firmware_picker.SetToolTip(_(f"SHA-256: %s") % firmware_hash)
             # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
             if firmware_hash[:8] in self.config.firmware_path:
-                print(f"Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
-                puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
+                print(_(f"Expected to match %s in the firmware filename and did. This is good!") % (firmware_hash[:8]))
+                puml(_(f"#CDFFC8:Checksum matches portion of the firmware filename %s;\n") % self.config.firmware_path)
                 # self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
                 set_firmware_hash_validity(True)
             else:
-                print(f"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
-                puml("#orange:Unable to match the checksum in the filename;\n")
-                self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                print(_(f"WARNING: Expected to match %s in the firmware filename but didn't, please double check to make sure the checksum is good.") % (firmware_hash[:8]))
+                puml(_("#orange:Unable to match the checksum in the filename;\n"))
+                self.toast(_("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good."))
                 set_firmware_hash_validity(False)
 
         # check platform tools
@@ -282,7 +289,7 @@ class PixelFlasher(wx.Frame):
 
             # if adb is found, display the version
             if get_sdk_version():
-                self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+                self.platform_tools_label.SetLabel(_("Android Platform Tools\nVersion %s") % get_sdk_version())
 
         # load custom_rom settings
         self.custom_rom_checkbox.SetValue(self.config.custom_rom)
@@ -294,7 +301,7 @@ class PixelFlasher(wx.Frame):
             else:
                 rom_hash = sha256(self.config.custom_rom_path)
                 self.config.rom_sha256 = rom_hash
-            self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
+            self.custom_rom.SetToolTip(_(f"SHA-256: %s") % rom_hash)
 
         # refresh boot.img list
         populate_boot_list(self)
@@ -322,32 +329,32 @@ class PixelFlasher(wx.Frame):
         self._update_custom_flash_options()
 
         if res_sdk != -1:
-            print("\nLoading Device list ...")
-            puml(":Loading device list;\n", True)
-            print("This could take a while, please be patient.\n")
+            print(_("\nLoading Device list ..."))
+            puml(_(":Loading device list;\n"), True)
+            print(_("This could take a while, please be patient.\n"))
 
-            debug("Populate device list")
+            debug(_("Populate device list"))
             connected_devices = get_connected_devices()
             self.device_choice.AppendItems(connected_devices)
             d_list_string = '\n'.join(connected_devices)
             puml(f"note right\n{d_list_string}\nend note\n")
 
             # select configured device
-            debug("select configured device")
+            debug(_("select configured device"))
             self._select_configured_device()
             self._refresh_ui()
 
         # check version if we are running the latest
         l_version = check_latest_version()
         if self.config.update_check and parse(VERSION) < parse(l_version):
-            print(f"\nA newer PixelFlasher v{l_version} can be downloaded from:")
+            print(_("\nA newer PixelFlasher v%s can be downloaded from:") % l_version )
             print("https://github.com/badabing2005/PixelFlasher/releases/latest")
             from About import AboutDlg
             about = AboutDlg(self)
             about.ShowModal()
             about.Destroy()
         end = time.time()
-        print(f"Load time: {math.ceil(end - start)} seconds")
+        print(_("Load time: %s seconds")% math.ceil(end - start))
 
         # set the ui fonts
         self.set_ui_fonts()
@@ -423,7 +430,7 @@ class PixelFlasher(wx.Frame):
     def _build_status_bar(self):
         self.statusBar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusBar.SetStatusWidths([-2, -1])
-        status_text = f"Welcome to PixelFlasher {VERSION}"
+        status_text = (_(f"Welcome to PixelFlasher %s") % VERSION)
         self.statusBar.SetStatusText(status_text, 0)
 
     # -----------------------------------------------
@@ -444,13 +451,13 @@ class PixelFlasher(wx.Frame):
 
             # Install APK
             if self.config.toolbar['visible']['install_apk']:
-                tb.AddTool(toolId=5, label="Install APK", bitmap=images.install_apk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Install APK on the device", longHelp="Install APK on the device", clientData=None)
+                tb.AddTool(toolId=5, label=(_("Install APK")), bitmap=images.install_apk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Install APK on the device")), longHelp=(_("Install APK on the device")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=5)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=5)
 
             # Package Manager
             if self.config.toolbar['visible']['package_manager']:
-                tb.AddTool(toolId=8, label="App Manager", bitmap=images.packages_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Package Manager", longHelp="Manage Apps / Packages", clientData=None)
+                tb.AddTool(toolId=8, label=(_("App Manager")), bitmap=images.packages_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Package Manager")), longHelp=(_("Manage Apps / Packages")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=8)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=8)
 
@@ -460,19 +467,19 @@ class PixelFlasher(wx.Frame):
 
             # Shell
             if self.config.toolbar['visible']['adb_shell']:
-                tb.AddTool(toolId=10, label="ADB Shell", bitmap=images.shell_64.GetBitmap(), bmpDisabled=images.shell_64_disabled.GetBitmap(), kind=wx.ITEM_NORMAL, shortHelp="Open ADB shell to the device.", longHelp="Open adb shell to the device", clientData=None)
+                tb.AddTool(toolId=10, label=(_("ADB Shell")), bitmap=images.shell_64.GetBitmap(), bmpDisabled=images.shell_64_disabled.GetBitmap(), kind=wx.ITEM_NORMAL, shortHelp=(_("Open ADB shell to the device.")), longHelp=(_("Open adb shell to the device")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=10)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=10)
 
             # Scrcpy
             if self.config.toolbar['visible']['scrcpy']:
-                tb.AddTool(toolId=15, label="Scrcpy", bitmap=images.scrcpy_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Launch Screen Copy", longHelp="Launch Screen Copy", clientData=None)
+                tb.AddTool(toolId=15, label=(_("Scrcpy")), bitmap=images.scrcpy_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Launch Screen Copy")), longHelp=(_("Launch Screen Copy")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=15)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=15)
 
             # Device Info
             if self.config.toolbar['visible']['device_info']:
-                tb.AddTool(toolId=20, label="Device Info", bitmap=images.about_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Dump Full Device Info", longHelp="Dump Full Device Info", clientData=None)
+                tb.AddTool(toolId=20, label=(_("Device Info")), bitmap=images.about_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Dump Full Device Info")), longHelp=(_("Dump Full Device Info")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=20)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=20)
 
@@ -484,7 +491,7 @@ class PixelFlasher(wx.Frame):
 
             # Partition Manager
             if self.config.toolbar['visible']['partition_manager'] and self.config.advanced_options:
-                tb.AddTool(toolId=40, label="Partitions", bitmap=images.partition_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Partition Manager", longHelp="Partition Manager", clientData=None)
+                tb.AddTool(toolId=40, label=(_("Partitions")), bitmap=images.partition_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Partition Manager")), longHelp=(_("Partition Manager")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=40)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=40)
 
@@ -494,7 +501,7 @@ class PixelFlasher(wx.Frame):
 
             # Switch Slot
             if self.config.toolbar['visible']['switch_slot'] and self.config.advanced_options:
-                tb.AddTool(toolId=100, label="Switch Slot", bitmap=images.switch_slot_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Switch to the other Slot", longHelp="Switch to the other Slot", clientData=None)
+                tb.AddTool(toolId=100, label=(_("Switch Slot")), bitmap=images.switch_slot_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Switch to the other Slot")), longHelp=(_("Switch to the other Slot")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=100)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=100)
                 # separator
@@ -502,43 +509,43 @@ class PixelFlasher(wx.Frame):
 
             # Reboot to System
             if self.config.toolbar['visible']['reboot_system']:
-                tb.AddTool(toolId=110, label="System", bitmap=images.reboot_system_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to System", longHelp="Reboot to System", clientData=None)
+                tb.AddTool(toolId=110, label=(_("System")), bitmap=images.reboot_system_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Reboot to System")), longHelp=(_("Reboot to System")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=110)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=110)
 
             # Reboot to Bootloader
             if self.config.toolbar['visible']['reboot_bootloader']:
-                tb.AddTool(toolId=120, label="Bootloader", bitmap=images.reboot_bootloader_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Bootloader", longHelp="Reboot to Bootloader", clientData=None)
+                tb.AddTool(toolId=120, label=(_("Bootloader")), bitmap=images.reboot_bootloader_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Reboot to Bootloader")), longHelp=(_("Reboot to Bootloader")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=120)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=120)
 
             # Reboot to fastbootd
             if self.config.toolbar['visible']['reboot_fastbootd']:
-                tb.AddTool(toolId=125, label="fastbootd", bitmap=images.reboot_fastbootd_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to userspace fastboot (fastbootd)", longHelp="Reboot to userspace fastboot (fastbootd)", clientData=None)
+                tb.AddTool(toolId=125, label=(_("fastbootd")), bitmap=images.reboot_fastbootd_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Reboot to userspace fastboot (fastbootd)")), longHelp=(_("Reboot to userspace fastboot (fastbootd)")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=125)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=125)
 
             # Reboot to Recovery
             if self.config.toolbar['visible']['reboot_recovery'] and self.config.advanced_options:
-                tb.AddTool(toolId=130, label="Recovery", bitmap=images.reboot_recovery_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Recovery", longHelp="Reboot to Recovery", clientData=None)
+                tb.AddTool(toolId=130, label=(_("Recovery")), bitmap=images.reboot_recovery_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Reboot to Recovery")), longHelp=(_("Reboot to Recovery")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=130)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=130)
 
             # Reboot to Safe Mode
             if self.config.toolbar['visible']['reboot_safe_mode'] and self.config.advanced_options:
-                tb.AddTool(toolId=140, label="Safe Mode", bitmap=images.reboot_safe_mode_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Safe Mode", longHelp="Reboot to Safe Mode", clientData=None)
+                tb.AddTool(toolId=140, label=(_("Safe Mode")), bitmap=images.reboot_safe_mode_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Reboot to Safe Mode")), longHelp=(_("Reboot to Safe Mode")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=140)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=140)
 
             # Reboot to Download
             if self.config.toolbar['visible']['reboot_download'] and self.config.advanced_options:
-                tb.AddTool(toolId=150, label="Download", bitmap=images.reboot_download_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Download Mode", longHelp="Reboot to Download Mode", clientData=None)
+                tb.AddTool(toolId=150, label=(_("Download")), bitmap=images.reboot_download_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Reboot to Download Mode")), longHelp=(_("Reboot to Download Mode")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=150)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=150)
 
             # Reboot to Sideload
             if self.config.toolbar['visible']['reboot_sideload'] and self.config.advanced_options:
-                tb.AddTool(toolId=160, label="Sideload", bitmap=images.reboot_sideload_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Sideload Mode", longHelp="Reboot to Sideload Mode", clientData=None)
+                tb.AddTool(toolId=160, label=(_("Sideload")), bitmap=images.reboot_sideload_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Reboot to Sideload Mode")), longHelp=(_("Reboot to Sideload Mode")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=160)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=160)
 
@@ -548,25 +555,25 @@ class PixelFlasher(wx.Frame):
 
             # Manage Magisk Settings (json file knows this and magisk_modules)
             if self.config.toolbar['visible']['magisk_modules']:
-                tb.AddTool(toolId=200, label="Magisk", bitmap=images.magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Manage Magisk modules and settings", longHelp="Manage Magisk modules and settings", clientData=None)
+                tb.AddTool(toolId=200, label=(_("Magisk")), bitmap=images.magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Manage Magisk modules and settings")), longHelp=(_("Manage Magisk modules and settings")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=200)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=200)
 
             # Download and Install Magisk Manager
             if self.config.toolbar['visible']['install_magisk']:
-                tb.AddTool(toolId=210, label="Install Magisk", bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Download and Install Magisk Manager", longHelp="Download and Install Magisk Manager", clientData=None)
+                tb.AddTool(toolId=210, label=(_("Install Magisk")), bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Download and Install Magisk Manager")), longHelp=(_("Download and Install Magisk Manager")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=210)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=210)
 
             # Magisk Backup Manager
             if self.config.toolbar['visible']['magisk_backup_manager']:
-                tb.AddTool(toolId=220, label="Magisk Backup", bitmap=images.backup_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Magisk Backup Manager", longHelp="Magisk Backup Manager", clientData=None)
+                tb.AddTool(toolId=220, label=(_("Magisk Backup")), bitmap=images.backup_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Magisk Backup Manager")), longHelp=(_("Magisk Backup Manager")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=220)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=220)
 
             # SOS, Disable Magisk Modules
             if self.config.toolbar['visible']['sos'] and self.config.advanced_options:
-                tb.AddTool(toolId=230, label="SOS", bitmap=images.sos_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=u"Disable Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).", longHelp="SOS", clientData=None)
+                tb.AddTool(toolId=230, label=(_("SOS")), bitmap=images.sos_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_(u"Disable Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).")), longHelp=(_("SOS")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=230)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=230)
 
@@ -576,13 +583,13 @@ class PixelFlasher(wx.Frame):
 
             # Lock Bootloader
             if self.config.toolbar['visible']['lock_bootloader'] and self.config.advanced_options:
-                tb.AddTool(toolId=300, label="Lock", bitmap=images.lock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Lock Bootloader", longHelp="Lock Bootloader", clientData=None)
+                tb.AddTool(toolId=300, label=(_("Lock")), bitmap=images.lock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Lock Bootloader")), longHelp=(_("Lock Bootloader")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=300)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=300)
 
             # UnLock Bootloader
             if self.config.toolbar['visible']['unlock_bootloader'] and self.config.advanced_options:
-                tb.AddTool(toolId=310, label="UnLock", bitmap=images.unlock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="UnLock Bootloader\nCaution will wipe data", longHelp="UnLock Bootloader", clientData=None)
+                tb.AddTool(toolId=310, label=(_("UnLock")), bitmap=images.unlock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("UnLock Bootloader\nCaution will wipe data")), longHelp=(_("UnLock Bootloader")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=310)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=310)
 
@@ -594,13 +601,13 @@ class PixelFlasher(wx.Frame):
 
             if self.config.toolbar['visible']['configuration']:
             # Configuration
-                tb.AddTool(toolId=900, label="Settings", bitmap=images.settings_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Settings", longHelp="Configuration Settings", clientData=None)
+                tb.AddTool(toolId=900, label=(_("Settings")), bitmap=images.settings_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Settings")), longHelp=(_("Configuration Settings")), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=900)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=900)
 
             # Create Support
             support_bmp = wx.ArtProvider.GetBitmapBundle(wx.ART_HELP, wx.ART_TOOLBAR, tsize)
-            tb.AddTool(toolId=910, label="Support", bitmap=support_bmp, bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Create Support file", longHelp="Create Support file", clientData=None)
+            tb.AddTool(toolId=910, label=(_("Support")), bitmap=support_bmp, bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=(_("Create Support file")), longHelp=(_("Create Support file")), clientData=None)
             self.Bind(wx.EVT_TOOL, self.OnToolClick, id=910)
             self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=910)
 
@@ -614,7 +621,7 @@ class PixelFlasher(wx.Frame):
             tb.Realize()
 
         except Exception as e:
-            print("Exception occurred while building the toolbar:", e)
+            print(_("Exception occurred while building the toolbar:", e))
             traceback.print_exc()
 
 
@@ -680,7 +687,7 @@ class PixelFlasher(wx.Frame):
         elif id == 910:
             self._on_support_zip(event)
         else:
-            print(f"UNKNOWN tool id: {id}")
+            print(_(f"UNKNOWN tool id: %s") % id)
 
     # -----------------------------------------------
     #                  OnToolRClick
@@ -697,9 +704,9 @@ class PixelFlasher(wx.Frame):
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
-                print(f"Device Info:\n------------\n{device.device_info}")
+                print(_(f"Device Info:\n------------\n%s") % device.device_info)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device info")
+            print(_(f"\n%s ERROR: Encountered an error while getting device info") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -711,9 +718,9 @@ class PixelFlasher(wx.Frame):
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
-                print(f"Current device's Print:\n------------\n{device.current_device_print}\n------------\n")
+                print(_(f"Current device's Print:\n------------\n%s\n------------\n") % device.current_device_print)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device print")
+            print(_(f"\n%s ERROR: Encountered an error while getting current device print") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -728,12 +735,12 @@ class PixelFlasher(wx.Frame):
     #                 device = get_phone()
     #                 verity = device.get_verity_verification('verity')
     #                 if verity != -1:
-    #                     print(f"\n{verity}")
+    #                     print(_(f"\n{verity}")
     #                 verification = device.get_verity_verification('verification')
     #                 if verification != -1:
-    #                     print(f"\n{verification}")
+    #                     print(_(f"\n{verification}")
     #     except Exception as e:
-    #         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking verity")
+    #         print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking verity")
     #         traceback.print_exc()
     #     self._on_spin('stop')
 
@@ -759,47 +766,47 @@ class PixelFlasher(wx.Frame):
         # File Menu Items
         # ---------------
         # Settings Menu
-        config_item = file_menu.Append(wx.ID_ANY, "Settings", "Settings")
+        config_item = file_menu.Append(wx.ID_ANY, _("Settings"), _("Settings"))
         config_item.SetBitmap(images.settings_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_advanced_config, config_item)
         # seperator
         file_menu.AppendSeparator()
         # Exit Menu
         wx.App.SetMacExitMenuItemId(wx.ID_EXIT)
-        exit_item = file_menu.Append(wx.ID_EXIT, "E&xit\tCtrl-Q", "Exit PixelFlasher")
+        exit_item = file_menu.Append(wx.ID_EXIT, _("E&xit\tCtrl-Q"), _("Exit PixelFlasher"))
         exit_item.SetBitmap(images.exit_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_exit_app, exit_item)
 
         # Device Menu Items
         # ----------------
         # Install APK
-        self.install_apk = device_menu.Append(wx.ID_ANY, "Install APK", "Install APK")
+        self.install_apk = device_menu.Append(wx.ID_ANY, _("Install APK"), _("Install APK"))
         self.install_apk.SetBitmap(images.install_apk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_install_apk, self.install_apk)
         # Bulk Install APK
-        self.bulk_install_apk = device_menu.Append(wx.ID_ANY, "Bulk Install APK", "Bulk Install APK")
+        self.bulk_install_apk = device_menu.Append(wx.ID_ANY, _("Bulk Install APK"), _("Bulk Install APK"))
         self.bulk_install_apk.SetBitmap(images.install_apk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_bulk_install_apk, self.bulk_install_apk)
         # Package Manager
-        self.package_manager = device_menu.Append(wx.ID_ANY, "Package Manager", "Package Manager")
+        self.package_manager = device_menu.Append(wx.ID_ANY, _("Package Manager"), _("Package Manager"))
         self.package_manager.SetBitmap(images.packages_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_package_manager, self.package_manager)
         # seperator
         device_menu.AppendSeparator()
         # ADB Shell Menu
-        self.shell_menu_item = device_menu.Append(wx.ID_ANY, "ADB Shell", "Open adb shell to the device")
+        self.shell_menu_item = device_menu.Append(wx.ID_ANY, _("ADB Shell"), _("Open adb shell to the device"))
         self.shell_menu_item.SetBitmap(images.shell_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_adb_shell, self.shell_menu_item)
         # Scrcpy Menu
-        self.scrcpy_menu_item = device_menu.Append(wx.ID_ANY, "Scrcpy", "Launch Screen Copy")
+        self.scrcpy_menu_item = device_menu.Append(wx.ID_ANY, _("Scrcpy"), _("Launch Screen Copy"))
         self.scrcpy_menu_item.SetBitmap(images.scrcpy_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_scrcpy, self.scrcpy_menu_item)
         # Device Info Menu
-        self.device_info_menu_item = device_menu.Append(wx.ID_ANY, "Device Info", "Dump Full Device Info")
+        self.device_info_menu_item = device_menu.Append(wx.ID_ANY, _("Device Info"), _("Dump Full Device Info"))
         self.device_info_menu_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_device_info, self.device_info_menu_item)
         # Get PIF Print Menu
-        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif pirnt")
+        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, _("Pif Print"), _("Get current device's Pif pirnt"))
         self.pif_info_menu_item.SetBitmap(images.json_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pif_info, self.pif_info_menu_item)
         # # Verity / Verification Menu
@@ -807,26 +814,26 @@ class PixelFlasher(wx.Frame):
         # self.verity_menu_item.SetBitmap(images.shield_24.GetBitmap())
         # self.Bind(wx.EVT_MENU, self._on_verity_check, self.verity_menu_item)
         # Partitions Manager
-        self.partitions_menu = device_menu.Append(wx.ID_ANY, "Partitions Manager", "Backup / Erase Partitions")
+        self.partitions_menu = device_menu.Append(wx.ID_ANY, _("Partitions Manager"), _("Backup / Erase Partitions"))
         self.partitions_menu.SetBitmap(images.partition_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_partition_manager, self.partitions_menu)
         # seperator
         device_menu.AppendSeparator()
         # Switch Slot
-        self.switch_slot_menu = device_menu.Append(wx.ID_ANY, "Switch Slot", "Switch to the other slow")
+        self.switch_slot_menu = device_menu.Append(wx.ID_ANY, _("Switch Slot"), _("Switch to the other slot"))
         self.switch_slot_menu.SetBitmap(images.switch_slot_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_switch_slot, self.switch_slot_menu)
         # seperator
         device_menu.AppendSeparator()
         # Reboot Submenu
         reboot = wx.Menu()
-        self.reboot_system_menu = reboot.Append(wx.ID_ANY, "System")
-        self.reboot_bootloader_menu = reboot.Append(wx.ID_ANY, "Bootloader")
-        self.reboot_fastbootd_menu = reboot.Append(wx.ID_ANY, "Fastbootd")
-        self.reboot_recovery_menu = reboot.Append(wx.ID_ANY, "Recovery")
-        self.reboot_safe_mode_menu = reboot.Append(wx.ID_ANY, "Safe Mode")
-        self.reboot_download_menu = reboot.Append(wx.ID_ANY, "Download")
-        self.reboot_sideload_menu = reboot.Append(wx.ID_ANY, "Sideload")
+        self.reboot_system_menu = reboot.Append(wx.ID_ANY, _("System"))
+        self.reboot_bootloader_menu = reboot.Append(wx.ID_ANY, _("Bootloader"))
+        self.reboot_fastbootd_menu = reboot.Append(wx.ID_ANY, _("Fastbootd"))
+        self.reboot_recovery_menu = reboot.Append(wx.ID_ANY, _("Recovery"))
+        self.reboot_safe_mode_menu = reboot.Append(wx.ID_ANY, _("Safe Mode"))
+        self.reboot_download_menu = reboot.Append(wx.ID_ANY, _("Download"))
+        self.reboot_sideload_menu = reboot.Append(wx.ID_ANY, _("Sideload"))
         self.reboot_system_menu.SetBitmap(images.reboot_System_24.GetBitmap())
         self.reboot_bootloader_menu.SetBitmap(images.reboot_bootloader_24.GetBitmap())
         self.reboot_fastbootd_menu.SetBitmap(images.reboot_fastbootd_24.GetBitmap())
@@ -851,59 +858,59 @@ class PixelFlasher(wx.Frame):
         self.push_file_to_download_menu.SetBitmap(images.push_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_push_to_tmp, self.push_file_to_tmp_menu)
         self.Bind(wx.EVT_MENU, self._on_push_to_download, self.push_file_to_download_menu)
-        self.push_menu = device_menu.Append(wx.ID_ANY, 'Push file to', push_file)
+        self.push_menu = device_menu.Append(wx.ID_ANY, _('Push file to'), push_file)
         self.push_menu.SetBitmap(images.push_cart_24.GetBitmap())
         # seperator
         device_menu.AppendSeparator()
         # Magisk Settings
-        self.magisk_menu = device_menu.Append(wx.ID_ANY, "Magisk", "Manage Magisk modules and settings")
+        self.magisk_menu = device_menu.Append(wx.ID_ANY, _("Magisk"), _("Manage Magisk modules and settings"))
         self.magisk_menu.SetBitmap(images.magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk, self.magisk_menu)
         # Install Magisk
-        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, "Install Magisk", "Download and Install Magisk")
+        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, _("Install Magisk"), _("Download and Install Magisk"))
         self.install_magisk_menu.SetBitmap(images.install_magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk_install, self.install_magisk_menu)
         # Magisk Backup Manager
-        self.magisk_backup_manager_menu = device_menu.Append(wx.ID_ANY, "Magisk Backup Manager", "Manage Magisk Backups")
+        self.magisk_backup_manager_menu = device_menu.Append(wx.ID_ANY, _("Magisk Backup Manager"), _("Manage Magisk Backups"))
         self.magisk_backup_manager_menu.SetBitmap(images.backup_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_backup_manager, self.magisk_backup_manager_menu)
         # SOS
-        self.sos_menu = device_menu.Append(wx.ID_ANY, "SOS", "Disable Magisk Modules")
+        self.sos_menu = device_menu.Append(wx.ID_ANY, _("SOS"), _("Disable Magisk Modules"))
         self.sos_menu.SetBitmap(images.sos_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_sos, self.sos_menu)
         # seperator
         device_menu.AppendSeparator()
         # Lock Bootloader
-        self.bootloader_lock_menu = device_menu.Append(wx.ID_ANY, "Lock Bootloader", "Lock Bootloader")
+        self.bootloader_lock_menu = device_menu.Append(wx.ID_ANY, _("Lock Bootloader"), _("Lock Bootloader"))
         self.bootloader_lock_menu.SetBitmap(images.lock_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_lock_bootloader, self.bootloader_lock_menu)
         # Unlock Bootloader
-        self.bootloader_unlock_menu = device_menu.Append(wx.ID_ANY, "Unlock Bootloader", "Unlock Bootloader (Will wipe data)")
+        self.bootloader_unlock_menu = device_menu.Append(wx.ID_ANY, _("Unlock Bootloader"), _("Unlock Bootloader (Will wipe data)"))
         self.bootloader_unlock_menu.SetBitmap(images.unlock_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_unlock_bootloader, self.bootloader_unlock_menu)
 
         # Toolbar Menu Items
         # ------------------
         # Top
-        tb_top_item = tb_menu.Append(1010, 'Top', 'Top', wx.ITEM_RADIO)
+        tb_top_item = tb_menu.Append(1010, _('Top'), _('Top'), wx.ITEM_RADIO)
         tb_top_item.SetBitmap(images.top_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'top':
             tb_top_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_top_item)
         # Left
-        tb_left_item = tb_menu.Append(1020, 'Left', 'Left', wx.ITEM_RADIO)
+        tb_left_item = tb_menu.Append(1020, _('Left'), _('Left'), wx.ITEM_RADIO)
         tb_left_item.SetBitmap(images.left_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'left':
             tb_left_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_left_item)
         # Right
-        tb_right_item = tb_menu.Append(1030, 'Right', 'Right', wx.ITEM_RADIO)
+        tb_right_item = tb_menu.Append(1030, _('Right'), _('Right'), wx.ITEM_RADIO)
         tb_right_item.SetBitmap(images.right_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'right':
             tb_right_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_right_item)
         # Bottom
-        tb_bottom_item = tb_menu.Append(1040, 'Bottom', 'Bottom', wx.ITEM_RADIO)
+        tb_bottom_item = tb_menu.Append(1040, _('Bottom'), _('Bottom'), wx.ITEM_RADIO)
         tb_bottom_item.SetBitmap(images.bottom_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'bottom':
             tb_bottom_item.Check()
@@ -911,41 +918,41 @@ class PixelFlasher(wx.Frame):
         # separator
         tb_menu.AppendSeparator()
         # Checkboxes
-        self.tb_show_text_item = tb_menu.Append(1100, "Show Button Text", "Show Button Text", wx.ITEM_CHECK)
+        self.tb_show_text_item = tb_menu.Append(1100, _("Show Button Text"), _("Show Button Text"), wx.ITEM_CHECK)
         if self.config.toolbar and self.config.toolbar['tb_show_text']:
             self.tb_show_text_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, self.tb_show_text_item)
-        self.tb_show_button_item = tb_menu.Append(1200, "Show Button Icon", "Show Button Icon", wx.ITEM_CHECK)
+        self.tb_show_button_item = tb_menu.Append(1200, _("Show Button Icon"), _("Show Button Icon"), wx.ITEM_CHECK)
         if self.config.toolbar and self.config.toolbar['tb_show_icons']:
             self.tb_show_button_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, self.tb_show_button_item)
         # separator
         # Show / Hide Buttons Menu
         tb_buttons_menu = wx.Menu()
-        tb_buttons_menu.Append(5, "Install APK", "", wx.ITEM_CHECK).SetBitmap(images.install_apk_24.GetBitmap())
-        tb_buttons_menu.Append(8, "Package Manager", "", wx.ITEM_CHECK).SetBitmap(images.packages_24.GetBitmap())
-        tb_buttons_menu.Append(10, "ADB Shell", "", wx.ITEM_CHECK).SetBitmap(images.shell_24.GetBitmap())
-        tb_buttons_menu.Append(15, "Scrcpy", "", wx.ITEM_CHECK).SetBitmap(images.scrcpy_24.GetBitmap())
-        tb_buttons_menu.Append(20, "Device Info", "", wx.ITEM_CHECK).SetBitmap(images.about_24.GetBitmap())
-        # tb_buttons_menu.Append(30, "Verity Verification Status", "", wx.ITEM_CHECK).SetBitmap(images.shield_24.GetBitmap())
-        tb_buttons_menu.Append(40, "Partitions Manager", "", wx.ITEM_CHECK).SetBitmap(images.partition_24.GetBitmap())
-        tb_buttons_menu.Append(100, "Switch Slot", "", wx.ITEM_CHECK).SetBitmap(images.switch_slot_24.GetBitmap())
-        tb_buttons_menu.Append(110, "Reboot System", "", wx.ITEM_CHECK).SetBitmap(images.reboot_System_24.GetBitmap())
-        tb_buttons_menu.Append(120, "Reboot Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.reboot_bootloader_24.GetBitmap())
-        tb_buttons_menu.Append(125, "Reboot Fastbootd", "", wx.ITEM_CHECK).SetBitmap(images.reboot_fastbootd_24.GetBitmap())
-        tb_buttons_menu.Append(130, "Reboot Recovery", "", wx.ITEM_CHECK).SetBitmap(images.reboot_recovery_24.GetBitmap())
-        tb_buttons_menu.Append(140, "Reboot Safe Mode", "", wx.ITEM_CHECK).SetBitmap(images.reboot_safe_mode_24.GetBitmap())
-        tb_buttons_menu.Append(150, "Reboot Download", "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
-        tb_buttons_menu.Append(160, "Reboot Sideload", "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
-        tb_buttons_menu.Append(200, "Magisk", "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
-        tb_buttons_menu.Append(210, "Install Magisk", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
-        tb_buttons_menu.Append(220, "Magisk Backup Manager", "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
-        tb_buttons_menu.Append(230, "SOS", "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
-        tb_buttons_menu.Append(300, "Lock Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.lock_24.GetBitmap())
-        tb_buttons_menu.Append(310, "Unlock Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.unlock_24.GetBitmap())
-        tb_buttons_menu.Append(900, "Configuration", "", wx.ITEM_CHECK).SetBitmap(images.settings_24.GetBitmap())
+        tb_buttons_menu.Append(5, _("Install APK"), "", wx.ITEM_CHECK).SetBitmap(images.install_apk_24.GetBitmap())
+        tb_buttons_menu.Append(8, _("Package Manager"), "", wx.ITEM_CHECK).SetBitmap(images.packages_24.GetBitmap())
+        tb_buttons_menu.Append(10, _("ADB Shell"), "", wx.ITEM_CHECK).SetBitmap(images.shell_24.GetBitmap())
+        tb_buttons_menu.Append(15, _("Scrcpy"), "", wx.ITEM_CHECK).SetBitmap(images.scrcpy_24.GetBitmap())
+        tb_buttons_menu.Append(20, _("Device Info"), "", wx.ITEM_CHECK).SetBitmap(images.about_24.GetBitmap())
+        # tb_buttons_menu.Append(30, _("Verity Verification Status"), "", wx.ITEM_CHECK).SetBitmap(images.shield_24.GetBitmap())
+        tb_buttons_menu.Append(40, _("Partitions Manager"), "", wx.ITEM_CHECK).SetBitmap(images.partition_24.GetBitmap())
+        tb_buttons_menu.Append(100, _("Switch Slot"), "", wx.ITEM_CHECK).SetBitmap(images.switch_slot_24.GetBitmap())
+        tb_buttons_menu.Append(110, _("Reboot System"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_System_24.GetBitmap())
+        tb_buttons_menu.Append(120, _("Reboot Bootloader"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_bootloader_24.GetBitmap())
+        tb_buttons_menu.Append(125, _("Reboot Fastbootd"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_fastbootd_24.GetBitmap())
+        tb_buttons_menu.Append(130, _("Reboot Recovery"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_recovery_24.GetBitmap())
+        tb_buttons_menu.Append(140, _("Reboot Safe Mode"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_safe_mode_24.GetBitmap())
+        tb_buttons_menu.Append(150, _("Reboot Download"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
+        tb_buttons_menu.Append(160, _("Reboot Sideload"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
+        tb_buttons_menu.Append(200, _("Magisk"), "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
+        tb_buttons_menu.Append(210, _("Install Magisk"), "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
+        tb_buttons_menu.Append(220, _("Magisk Backup Manager"), "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
+        tb_buttons_menu.Append(230, _("SOS"), "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
+        tb_buttons_menu.Append(300, _("Lock Bootloader"), "", wx.ITEM_CHECK).SetBitmap(images.lock_24.GetBitmap())
+        tb_buttons_menu.Append(310, _("Unlock Bootloader"), "", wx.ITEM_CHECK).SetBitmap(images.unlock_24.GetBitmap())
+        tb_buttons_menu.Append(900, _("Configuration"), "", wx.ITEM_CHECK).SetBitmap(images.settings_24.GetBitmap())
         tb_buttons_menu.Bind(wx.EVT_MENU, self._on_button_menu)
-        tb_menu.AppendSubMenu(tb_buttons_menu, "Show / Hide Buttons")
+        tb_menu.AppendSubMenu(tb_buttons_menu, _("Show / Hide Buttons"))
 
         # update tb_buttons_menu items based on config.
         tb_buttons_menu.Check(5, self.config.toolbar['visible']['install_apk'])
@@ -974,32 +981,32 @@ class PixelFlasher(wx.Frame):
         # Help Menu Items
         # ---------------
         # Report an issue
-        issue_item = help_menu.Append(wx.ID_ANY, 'Report an Issue', 'Report an Issue')
+        issue_item = help_menu.Append(wx.ID_ANY, _('Report an Issue'), _('Report an Issue'))
         issue_item.SetBitmap(images.bug_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_report_an_issue, issue_item)
         # # Feature Request
-        feature_item = help_menu.Append(wx.ID_ANY, 'Feature Request', 'Feature Request')
+        feature_item = help_menu.Append(wx.ID_ANY, _('Feature Request'), _('Feature Request'))
         feature_item.SetBitmap(images.feature_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_feature_request, feature_item)
         # # Project Home
-        project_page_item = help_menu.Append(wx.ID_ANY, 'PixelFlasher Project Page', 'PixelFlasher Project Page')
+        project_page_item = help_menu.Append(wx.ID_ANY, _('PixelFlasher Project Page'), _('PixelFlasher Project Page'))
         project_page_item.SetBitmap(images.github_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_project_page, project_page_item)
         # Community Forum
-        forum_item = help_menu.Append(wx.ID_ANY, 'PixelFlasher Community (Forum)', 'PixelFlasher Community (Forum)')
+        forum_item = help_menu.Append(wx.ID_ANY, _('PixelFlasher Community (Forum)'), _('PixelFlasher Community (Forum)'))
         forum_item.SetBitmap(images.forum_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_forum, forum_item)
         # seperator
         help_menu.AppendSeparator()
         # Links Submenu
         links = wx.Menu()
-        linksMenuItem1 = links.Append(wx.ID_ANY, "Homeboy76\'s Guide")
-        linksMenuItem2 = links.Append(wx.ID_ANY, "V0latyle\'s Guide")
-        linksMenuItem3 = links.Append(wx.ID_ANY, "roirraW\'s Guide")
-        linksMenuItem4 = links.Append(wx.ID_ANY, "kdrag0n\'s safetynet-fix")
-        linksMenuItem5 = links.Append(wx.ID_ANY, "Displax\'s safetynet-fix")
-        linksMenuItem6 = links.Append(wx.ID_ANY, "Get the Google USB Driver")
-        linksMenuItem7 = links.Append(wx.ID_ANY, "Android Security Update Bulletins")
+        linksMenuItem1 = links.Append(wx.ID_ANY, _("Homeboy76\'s Guide"))
+        linksMenuItem2 = links.Append(wx.ID_ANY, _("V0latyle\'s Guide"))
+        linksMenuItem3 = links.Append(wx.ID_ANY, _("roirraW\'s Guide"))
+        linksMenuItem4 = links.Append(wx.ID_ANY, _("kdrag0n\'s safetynet-fix"))
+        linksMenuItem5 = links.Append(wx.ID_ANY, _("Displax\'s safetynet-fix"))
+        linksMenuItem6 = links.Append(wx.ID_ANY, _("Get the Google USB Driver"))
+        linksMenuItem7 = links.Append(wx.ID_ANY, _("Android Security Update Bulletins"))
         linksMenuItem1.SetBitmap(images.guide_24.GetBitmap())
         linksMenuItem2.SetBitmap(images.guide_24.GetBitmap())
         linksMenuItem3.SetBitmap(images.guide_24.GetBitmap())
@@ -1014,50 +1021,50 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_link2, linksMenuItem5)
         self.Bind(wx.EVT_MENU, self._on_link3, linksMenuItem6)
         self.Bind(wx.EVT_MENU, self._on_link4, linksMenuItem7)
-        links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
+        links_item = help_menu.Append(wx.ID_ANY, _('Links'), links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
         # seperator
         help_menu.AppendSeparator()
         # Open configuration Folder
-        config_folder_item = help_menu.Append(wx.ID_ANY, 'Open Configuration Folder', 'Open Configuration Folder')
+        config_folder_item = help_menu.Append(wx.ID_ANY, _('Open Configuration Folder'), _('Open Configuration Folder'))
         config_folder_item.SetBitmap(images.folder_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_open_config_folder, config_folder_item)
         if get_config_path() != get_sys_config_path():
             # Open pf_home
-            pf_home_item = help_menu.Append(wx.ID_ANY, 'Open PixelFlasher Working Directory', 'Open PixelFlasher Working Directory')
+            pf_home_item = help_menu.Append(wx.ID_ANY, _('Open PixelFlasher Working Directory'), _('Open PixelFlasher Working Directory'))
             pf_home_item.SetBitmap(images.folder_24.GetBitmap())
             self.Bind(wx.EVT_MENU, self._on_open_pf_home, pf_home_item)
         # Create sanitized support.zip
-        support_zip_item = help_menu.Append(wx.ID_ANY, 'Create a Sanitized support.zip', 'Create a Sanitized support.zip')
+        support_zip_item = help_menu.Append(wx.ID_ANY, _('Create a Sanitized support.zip'), _('Create a Sanitized support.zip'))
         support_zip_item.SetBitmap(images.support_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_support_zip, support_zip_item)
         # seperator
         help_menu.AppendSeparator()
         # update check
-        update_item = help_menu.Append(wx.ID_ANY, 'Check for New Version', 'Check for New Version')
+        update_item = help_menu.Append(wx.ID_ANY, _('Check for New Version'), _('Check for New Version'))
         update_item.SetBitmap(images.update_check_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, update_item)
         # seperator
         help_menu.AppendSeparator()
         # About
-        about_item = help_menu.Append(wx.ID_ABOUT, '&About PixelFlasher', 'About')
+        about_item = help_menu.Append(wx.ID_ABOUT, _('&About PixelFlasher'), _('About'))
         about_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, about_item)
 
         # Add the File menu to the menu bar
-        self.menuBar.Append(file_menu, "&File")
+        self.menuBar.Append(file_menu, _("&File"))
         # Add the Device menu to the menu bar
-        self.menuBar.Append(device_menu, "&Device")
+        self.menuBar.Append(device_menu, _("&Device"))
         # Add the Toolbar menu to the menu bar
-        self.menuBar.Append(tb_menu, "&Toolbar")
+        self.menuBar.Append(tb_menu, _("&Toolbar"))
         # Add the Help menu to the menu bar
-        self.menuBar.Append(help_menu, '&Help')
+        self.menuBar.Append(help_menu, _('&Help'))
         # Add the Test menu to the menu bar
         if self.config.dev_mode:
             test_menu = wx.Menu()
-            test1_item = test_menu.Append(wx.ID_ANY, "Test1", "Test1")
+            test1_item = test_menu.Append(wx.ID_ANY, _("Test1"), _("Test1"))
             self.Bind(wx.EVT_MENU, self.Test, test1_item)
-            self.menuBar.Append(test_menu, '&Test')
+            self.menuBar.Append(test_menu, _('&Test'))
 
         self.SetMenuBar(self.menuBar)
 
@@ -1104,7 +1111,7 @@ class PixelFlasher(wx.Frame):
     def _on_button_menu(self, event):
         button_id = event.GetId()
         button_visible = event.IsChecked()
-        # print(f"button_id: {button_id} checked: {button_visible}")
+        # print(_(f"button_id: {button_id} checked: {button_visible}")
         # Handle the logic to show/hide the button in the toolbar based on the button_id and button_visible
         if button_id == 5:
             self.config.toolbar['visible']['install_apk'] = button_visible
@@ -1201,7 +1208,7 @@ class PixelFlasher(wx.Frame):
     def _on_advanced_config(self, event):
         advanced_setting_dialog = AdvancedSettings(self)
         advanced_setting_dialog.CentreOnParent(wx.BOTH)
-        print("Entering Advanced Configuration ...")
+        print(_("Entering Advanced Configuration ..."))
         res = advanced_setting_dialog.ShowModal()
         advanced_setting_dialog.Destroy()
         if res == wx.ID_OK:
@@ -1225,7 +1232,7 @@ class PixelFlasher(wx.Frame):
             with open(get_labels_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
                 set_labels(json.load(f))
         self._on_spin('start')
-        print("Launching Package Manager ...\n")
+        print(_("Launching Package Manager ...\n"))
         try:
             dlg = PackageManager(self)
         except Exception:
@@ -1235,7 +1242,7 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
         result = dlg.ShowModal()
         if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Closing Package Manager ...\n")
+            print(_(f"%s Closing Package Manager ...\n") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -1246,19 +1253,19 @@ class PixelFlasher(wx.Frame):
     def _on_install_apk(self, event):
         device = get_phone()
         if not device:
-            print("ERROR: Please select a device before attempting APK Installation")
-            self.toast("APK Install", "ERROR: Please select a device before attempting APK Installation.")
+            print(_("ERROR: Please select a device before attempting APK Installation"))
+            self.toast(_("APK Install", "ERROR: Please select a device before attempting APK Installation."))
             return
 
-        with wx.FileDialog(self, "Select APK file to install", '', '', wildcard="Android Applications (*.*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
+        with wx.FileDialog(self, _("Select APK file to install"), '', '', wildcard=_("Android Applications (*.*.apk)|*.apk"), style=wx.FD_OPEN) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return     # the user changed their mind
 
             # save the current contents in the file
             pathname = fileDialog.GetPath()
-            print(f"\nSelected {pathname} for installation.")
+            print(_(f"\nSelected %s for installation.") % pathname)
             try:
-                dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'APK Installation',wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_EXCLAMATION)
+                dlg = wx.MessageDialog(None, _("Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market."),_('APK Installation'),wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_EXCLAMATION)
             except Exception:
                 traceback.print_exc()
                 return
@@ -1266,16 +1273,16 @@ class PixelFlasher(wx.Frame):
             try:
                 self._on_spin('start')
                 if result == wx.ID_YES:
-                    puml("note right:Set ownership to Play Store;\n")
+                    puml(_("note right:Set ownership to Play Store;\n"))
                     device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
                 elif result == wx.ID_NO:
                     device.install_apk(pathname, fastboot_included=True)
                 else:
-                    puml("note right:Cancelled APK installation;\n")
-                    print("User cancelled apk installation.")
+                    puml(_("note right:Cancelled APK installation;\n"))
+                    print(_("User cancelled apk installation."))
             except IOError:
                 traceback.print_exc()
-                wx.LogError(f"Cannot install file '{pathname}'.")
+                wx.LogError(_(f"Cannot install file '%s'.") % pathname)
             self._on_spin('stop')
 
     # -----------------------------------------------
@@ -1283,9 +1290,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_bulk_install_apk(self, event):
         try:
-            with wx.DirDialog(self, "Select folder to bulk install APKs", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+            with wx.DirDialog(self, _("Select folder to bulk install APKs"), style=wx.DD_DEFAULT_STYLE) as folderDialog:
                 if folderDialog.ShowModal() == wx.ID_CANCEL:
-                    print("User cancelled folder selection.")
+                    print(_("User cancelled folder selection."))
                     return
                 selected_folder = folderDialog.GetPath()
 
@@ -1296,7 +1303,7 @@ class PixelFlasher(wx.Frame):
                 show_playstore_prompt = True
                 for apk_file in apk_files:
                     if show_playstore_prompt:
-                        dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: This will apply to all the current bulk apks.\n(Android auto apps require that they be installed from the Play Market.)",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
+                        dlg = wx.MessageDialog(None, _("Do you want to set the ownership to Play Store Market?\nNote: This will apply to all the current bulk apks.\n(Android auto apps require that they be installed from the Play Market.)"),_('Set Play Market'),wx.YES_NO | wx.ICON_EXCLAMATION)
                         result = dlg.ShowModal()
                         if result != wx.ID_YES:
                             owner_playstore = False
@@ -1306,14 +1313,14 @@ class PixelFlasher(wx.Frame):
                     apk_path = os.path.join(selected_folder, apk_file)
                     res = device.install_apk(apk_path, fastboot_included=True, owner_playstore=owner_playstore)
                     if res.returncode != 0:
-                        print(f"Return Code: {res.returncode}.")
-                        print(f"Stdout: {res.stdout}")
-                        print(f"Stderr: {res.stderr}")
-                        print("Aborting ...\n")
+                        print(_(f"Return Code: %s.") % res.returncode)
+                        print(_(f"Stdout: %s") % res.stdout)
+                        print(_(f"Stderr: %s") % res.stderr)
+                        print(_("Aborting ...\n"))
                         self._on_spin('stop')
                         return res
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing APKs")
+            print(_(f"\n%s ERROR: Encountered an error while installing APKs") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1333,7 +1340,7 @@ class PixelFlasher(wx.Frame):
     def _on_close(self, event):
         self.config.pos_x, self.config.pos_y = self.GetPosition()
         self.config.save(get_config_file_path())
-        puml("#palegreen:Exit PixelFlasher;\nend\n@enduml\n")
+        puml(_("#palegreen:Exit PixelFlasher;\nend\n@enduml\n"))
         wx.Exit()
 
     # -----------------------------------------------
@@ -1355,9 +1362,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://github.com/badabing2005/PixelFlasher/issues/new')
-            puml(f":Open Link;\nnote right\n=== Report an Issue\n[[https://github.com/badabing2005/PixelFlasher/issues/new]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== Report an Issue\n[[https://github.com/badabing2005/PixelFlasher/issues/new]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1368,9 +1375,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://github.com/badabing2005/PixelFlasher/issues/new')
-            puml(f":Open Link;\nnote right\n=== Feature Request\n[[https://github.com/badabing2005/PixelFlasher/issues/new]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== Feature Request\n[[https://github.com/badabing2005/PixelFlasher/issues/new]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1381,9 +1388,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://github.com/badabing2005/PixelFlasher')
-            puml(f":Open Link;\nnote right\n=== Github Project Page\n[[https://github.com/badabing2005/PixelFlasher]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== Github Project Page\n[[https://github.com/badabing2005/PixelFlasher]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1394,9 +1401,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/')
-            puml(f":Open Link;\nnote right\n=== PixelFlasher @XDA\n[[https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== PixelFlasher @XDA\n[[https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1407,9 +1414,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/')
-            puml(f":Open Link;\nnote right\n=== Homeboy76's Guide\n[[https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== Homeboy76's Guide\n[[https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1420,9 +1427,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/')
-            puml(f":Open Link;\nnote right\n=== V0latyle's Guide\n[[https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== V0latyle's Guide\n[[https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1433,9 +1440,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/')
-            puml(f":Open Link;\nnote right\n=== roirraW's Guide\n[[https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== roirraW's Guide\n[[https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1446,9 +1453,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://github.com/kdrag0n/safetynet-fix/releases')
-            puml(f":Open Link;\nnote right\n=== kdrag0n's Universal Safetynet Fix\n[[https://github.com/kdrag0n/safetynet-fix/releases]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== kdrag0n's Universal Safetynet Fix\n[[https://github.com/kdrag0n/safetynet-fix/releases]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1459,9 +1466,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://github.com/Displax/safetynet-fix/releases')
-            puml(f":Open Link;\nnote right\n=== Displax's Universal Safetynet Fix\n[[https://github.com/Displax/safetynet-fix/releases]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== Displax's Universal Safetynet Fix\n[[https://github.com/Displax/safetynet-fix/releases]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1472,9 +1479,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://developer.android.com/studio/run/win-usb?authuser=1%2F')
-            puml(f":Open Link;\nnote right\n=== Google USB Driver\n[[https://developer.android.com/studio/run/win-usb?authuser=1%2F]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== Google USB Driver\n[[https://developer.android.com/studio/run/win-usb?authuser=1%2F]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1485,9 +1492,9 @@ class PixelFlasher(wx.Frame):
         try:
             self._on_spin('start')
             webbrowser.open_new('https://source.android.com/docs/security/bulletin/')
-            puml(f":Open Link;\nnote right\n=== Android security bulletins\n[[https://source.android.com/docs/security/bulletin/]]\nend note\n", True)
+            puml(_(f":Open Link;\nnote right\n=== Android security bulletins\n[[https://source.android.com/docs/security/bulletin/]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(_(f"\n%s ERROR: Encountered an error while opening a link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1499,7 +1506,7 @@ class PixelFlasher(wx.Frame):
             self._on_spin('start')
             open_folder(self, get_sys_config_path())
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening configuration folder")
+            print(_(f"\n%s ERROR: Encountered an error while opening configuration folder") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1511,7 +1518,7 @@ class PixelFlasher(wx.Frame):
             self._on_spin('start')
             open_folder(self, get_config_path())
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening PixelFlasher working directory")
+            print(_(f"\n%s ERROR: Encountered an error while opening PixelFlasher working directory") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1520,7 +1527,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_support_zip(self, event):
         timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-        with wx.FileDialog(self, "Save support file", '', f"support_{timestr}.zip", wildcard="Support files (*.zip)|*.zip",
+        with wx.FileDialog(self, _("Save support file"), '', f"support_{timestr}.zip", wildcard=_("Support files (*.zip)|*.zip"),
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -1533,14 +1540,14 @@ class PixelFlasher(wx.Frame):
                 support_zip = os.path.join(config_path, 'support.zip')
                 self._on_spin('start')
                 create_support_zip()
-                debug(f"Saving support file to: {pathname}")
+                debug(_(f"Saving support file to: %s") % pathname)
                 with open(support_zip, "rb") as binaryfile :
                     with open(pathname, 'wb') as file:
                         byte_array = binaryfile.read()
                         file.write(byte_array)
-                print(f"Saved support file to: {pathname}")
+                print(_(f"Saved support file to: %s") % pathname)
             except IOError:
-                wx.LogError(f"Cannot save current data in file '{pathname}'.")
+                wx.LogError(_(f"Cannot save current data in file '%s'.") % pathname)
                 traceback.print_exc()
             self._on_spin('stop')
 
@@ -1584,14 +1591,14 @@ class PixelFlasher(wx.Frame):
     #                  Test
     # -----------------------------------------------
     def Test(self, event):
-        print("Entrering Test function (used during development only) ...")
+        print(_("Entrering Test function (used during development only) ..."))
         # device = get_phone()
         # res = device.scrcpy()
         # start_time = time.time()
         # self.update_widget_states()
         # end_time = time.time()
         # elapsed_time = end_time - start_time
-        # print(f"The function update_widget_states took {elapsed_time} seconds to execute.")
+        # print(_(f"The function update_widget_states took {elapsed_time} seconds to execute.")
 
     # -----------------------------------------------
     #                  _advanced_options_hide
@@ -1698,70 +1705,70 @@ class PixelFlasher(wx.Frame):
         m_app_version = 0
         message = ''
         print('')
-        message += f"Selected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:\n"
-        message += f"    Device ID:                       {device.id}\n"
-        message += f"    Device Model:                    {device.hardware}\n"
-        message += f"    Device Active Slot:              {device.active_slot}\n"
-        message += f"    Device Mode:                     {device.true_mode}\n"
+        message += _(f"Selected Device on %s:\n") % datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message += _(f"    Device ID:                       %s\n") % device.id
+        message += _(f"    Device Model:                    %s\n") % device.hardware
+        message += _(f"    Device Active Slot:              %s\n") % device.active_slot
+        message += _(f"    Device Mode:                     %s\n") % device.true_mode
         with contextlib.suppress(Exception):
             android_devices = get_android_devices()
             android_device = android_devices[device.hardware]
             if android_device:
-                message += f"    Device:                          {android_device['device']}\n"
-                message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
-                message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"
-        message += f"    Has init_boot partition:         {device.has_init_boot}\n"
-        message += f"    Device Bootloader Version:       {device.bootloader_version}\n"
+                message += _(f"    Device:                          %s\n") % android_device['device']
+                message += _(f"    Device Version End Date:         %s\n") % android_device['android_version_end_date']
+                message += _(f"    Device Secuity Update End Date:  %s\n") % android_device['security_update_end_date']
+        message += _(f"    Has init_boot partition:         %s\n") % device.has_init_boot
+        message += _(f"    Device Bootloader Version:       %s\n") % device.bootloader_version
         if device.mode == 'adb':
-            message += f"    Device is Rooted:                {device.rooted}\n"
-            message += f"    Device Build:                    {device.build}\n"
-            message += f"    Device API Level:                {device.api_level}\n"
+            message += _(f"    Device is Rooted:                %s\n") % device.rooted
+            message += _(f"    Device Build:                    %s\n") % device.build
+            message += _(f"    Device API Level:                %s\n") % device.api_level
             with contextlib.suppress(Exception):
                 android_versions = get_android_versions()
                 android_version = android_versions[device.api_level]
-                message += f"    Android Version:                 {android_version['Version']}\n"
-                message += f"    Android Name:                    {android_version['Name']}\n"
-                message += f"    Android Codename:                {android_version['Codename']}\n"
-                message += f"    Android Release Date:            {android_version['Release date']}\n"
-                message += f"    Android Latest Update:           {android_version['Latest update']}\n"
-            message += f"    Device Architecture:             {device.architecture}\n"
-            message += f"    Device Kernel Version:           {device.ro_kernel_version}\n"
-            message += f"    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
-            message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
-            message += f"    ro.boot.vbmeta.device_state:     {device.ro_boot_vbmeta_device_state}\n"
-            message += f"    vendor.boot.vbmeta.device_state: {device.vendor_boot_vbmeta_device_state}\n"
-            message += f"    ro.product.first_api_level:      {device.ro_product_first_api_level}\n"
-            message += f"    ro.boot.warranty_bit:            {device.ro_boot_warranty_bit}\n"
-            message += f"    ro.boot.veritymode:              {device.ro_boot_veritymode}\n"
-            message += f"    ro.boot.verifiedbootstate:       {device.ro_boot_verifiedbootstate}\n"
-            message += f"    vendor.boot.verifiedbootstate:   {device.vendor_boot_verifiedbootstate}\n"
-            message += f"    ro.warranty_bit:                 {device.ro_warranty_bit}\n"
-            message += f"    ro.secure:                       {device.ro_secure}\n"
-            message += f"    ro.zygote:                       {device.ro_zygote}\n"
-            message += f"    ro.vendor.product.cpu.abilist:   {device.ro_vendor_product_cpu_abilist}\n"
-            message += f"    ro.vendor.product.cpu.abilist32: {device.ro_vendor_product_cpu_abilist32}\n"
+                message += _(f"    Android Version:                 %s\n") % android_version['Version']
+                message += _(f"    Android Name:                    %s\n") % android_version['Name']
+                message += _(f"    Android Codename:                %s\n") % android_version['Codename']
+                message += _(f"    Android Release Date:            %s\n") % android_version['Release date']
+                message += _(f"    Android Latest Update:           %s\n") % android_version['Latest update']
+            message += _(f"    Device Architecture:             %s\n") % device.architecture
+            message += _(f"    Device Kernel Version:           %s\n") % device.ro_kernel_version
+            message += _(f"    sys_oem_unlock_allowed:          %s\n") % device.sys_oem_unlock_allowed
+            message += _(f"    ro.boot.flash.locked:            %s\n") % device.ro_boot_flash_locked
+            message += _(f"    ro.boot.vbmeta.device_state:     %s\n") % device.ro_boot_vbmeta_device_state
+            message += _(f"    vendor.boot.vbmeta.device_state: %s\n") % device.vendor_boot_vbmeta_device_state
+            message += _(f"    ro.product.first_api_level:      %s\n") % device.ro_product_first_api_level
+            message += _(f"    ro.boot.warranty_bit:            %s\n") % device.ro_boot_warranty_bit
+            message += _(f"    ro.boot.veritymode:              %s\n") % device.ro_boot_veritymode
+            message += _(f"    ro.boot.verifiedbootstate:       %s\n") % device.ro_boot_verifiedbootstate
+            message += _(f"    vendor.boot.verifiedbootstate:   %s\n") % device.vendor_boot_verifiedbootstate
+            message += _(f"    ro.warranty_bit:                 %s\n") % device.ro_warranty_bit
+            message += _(f"    ro.secure:                       %s\n") % device.ro_secure
+            message += _(f"    ro.zygote:                       %s\n") % device.ro_zygote
+            message += _(f"    ro.vendor.product.cpu.abilist:   %s\n") % device.ro_vendor_product_cpu_abilist
+            message += _(f"    ro.vendor.product.cpu.abilist32: %s\n") % device.ro_vendor_product_cpu_abilist32
             if device.rooted:
                 message += self.get_vbmeta(device)
             m_app_version = device.magisk_app_version
-            message += f"    Magisk Manager Version:          {m_app_version}\n"
+            message += _(f"    Magisk Manager Version:          %s\n") % m_app_version
             if m_app_version:
-                message += f"    Magisk Path:                     {device.magisk_path}\n"
-                message += f"        Checked for Package:         {self.config.magisk}\n"
+                message += _(f"    Magisk Path:                     %s\n") % device.magisk_path
+                message += _(f"        Checked for Package:         %s\n") % self.config.magisk
         elif device.mode == 'f.b':
-            message += f"    Device Unlocked:                 {device.unlocked}\n"
+            message += _(f"    Device Unlocked:                 %s\n") % device.unlocked
             if not device.unlocked:
-                message += f"    Device Unlockable:               {device.unlock_ability}\n"
-            message += f"    slot-retry-count:a:              {device.slot_retry_count_a}\n"
-            message += f"    slot-unbootable:a:               {device.slot_unbootable_a}\n"
-            message += f"    slot-successful:a:               {device.slot_successful_a}\n"
-            message += f"    slot-retry-count:b:              {device.slot_retry_count_b}\n"
-            message += f"    slot-unbootable:b:               {device.slot_unbootable_b}\n"
-            message += f"    slot-successful:b:               {device.slot_successful_b}\n"
+                message += _(f"    Device Unlockable:               %s\n") % device.unlock_ability
+            message += _(f"    slot-retry-count:a:              %s\n") % device.slot_retry_count_a
+            message += _(f"    slot-unbootable:a:               %s\n") % device.slot_unbootable_a
+            message += _(f"    slot-successful:a:               %s\n") % device.slot_successful_a
+            message += _(f"    slot-retry-count:b:              %s\n") % device.slot_retry_count_b
+            message += _(f"    slot-unbootable:b:               %s\n") % device.slot_unbootable_b
+            message += _(f"    slot-successful:b:               %s\n") % device.slot_successful_b
         if device.rooted:
             m_version = device.magisk_version
-            message += f"    Magisk Version:                  {m_version}\n"
-            message += f"    Magisk Config SHA1:              {device.magisk_sha1}\n"
-            message += "    Magisk Modules:\n"
+            message += _(f"    Magisk Version:                  %s\n") % m_version
+            message += _(f"    Magisk Config SHA1:              %s\n") % device.magisk_sha1
+            message += _("    Magisk Modules:\n")
             message += f"{device.magisk_modules_summary}\n"
             message += f"{device.get_battery_details()}\n"
         else:
@@ -1776,32 +1783,32 @@ class PixelFlasher(wx.Frame):
     def get_vbmeta(self, device, message=''):
         try:
             if device.vbmeta is None:
-                message += f"    vbmeta:                          UNKNOWN\n"
+                message += _(f"    vbmeta:                          UNKNOWN\n")
             elif device.vbmeta.type == 'none':
-                message += f"    vbmeta:                          Not Present\n"
+                message += _(f"    vbmeta:                          Not Present\n")
             else:
                 alert = ''
-                message += f"    vbmeta type:                     {device.vbmeta.type}\n"
+                message += _(f"    vbmeta type:                     %s\n") % device.vbmeta.type
                 if device.vbmeta.type == 'ab':
-                    message += f"    Slot A Verity:                   {enabled_disabled(device.vbmeta.verity_a)}\n"
-                    message += f"    Slot A Verification:             {enabled_disabled(device.vbmeta.verification_a)}\n"
-                    message += f"    Slot B Verity:                   {enabled_disabled(device.vbmeta.verity_b)}\n"
-                    message += f"    Slot B Verification:             {enabled_disabled(device.vbmeta.verification_b)}\n"
+                    message += _(f"    Slot A Verity:                   %s\n") % enabled_disabled(device.vbmeta.verity_a)
+                    message += _(f"    Slot A Verification:             %s\n") % enabled_disabled(device.vbmeta.verification_a)
+                    message += _(f"    Slot B Verity:                   %s\n") % enabled_disabled(device.vbmeta.verity_b)
+                    message += _(f"    Slot B Verification:             %s\n") % enabled_disabled(device.vbmeta.verification_b)
                     if ( device.vbmeta.verity_a != device.vbmeta.verity_b ) or ( device.vbmeta.verification_a != device.vbmeta.verification_b ):
-                        alert += "    WARNING! WARNING! WARNING!       Slot a verity / verification does not match slot b verity / verification"
+                        alert += _("    WARNING! WARNING! WARNING!       Slot a verity / verification does not match slot b verity / verification")
                 else:
-                    message += f"    Verity:                          {enabled_disabled(device.vbmeta.verity_a)}\n"
-                    message += f"    Verification:                    {enabled_disabled(device.vbmeta.verification_a)}\n"
+                    message += _(f"    Verity:                          %s\n") % enabled_disabled(device.vbmeta.verity_a)
+                    message += _(f"    Verification:                    %s\n") % enabled_disabled(device.vbmeta.verification_a)
                 # self.config.disable_verification is a disable flag, which is the inverse of device.vbmeta.verification
                 if ( device.vbmeta.verity_a == self.config.disable_verity ) or ( device.vbmeta.verity_b == self.config.disable_verity ):
-                    alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+                    alert += _("    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verity state and device's verity state\n")
                 if ( device.vbmeta.verification_a == self.config.disable_verification ) or ( device.vbmeta.verification_b == self.config.disable_verification ):
-                    alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
-                    alert += "                                     This has a device wipe implications, please double check."
+                    alert += _("    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verification state and device's verification state\n")
+                    alert += _("                                     This has a device wipe implications, please double check.")
                 message += alert
             return message
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while getting vbmeta data.")
+            print(_(f"\n%s ERROR: Encountered while getting vbmeta data.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -1812,25 +1819,25 @@ class PixelFlasher(wx.Frame):
             bad_m_app_version = False
             if m_version in KNOWN_BAD_MAGISKS:
                 bad_m_version = True
-                print(f"WARNING! Problematic Magisk Version:         {m_version} is installed. Advised not to use this version.")
+                print(_(f"WARNING! Problematic Magisk Version:         %s is installed. Advised not to use this version.") % m_version)
             if m_app_version in KNOWN_BAD_MAGISKS:
                 bad_m_app_version = True
-                print(f"WARNING! Problematic Magisk Manager Version: {m_app_version} is installed. Advised not to use this version.")
+                print(_(f"WARNING! Problematic Magisk Manager Version: %s is installed. Advised not to use this version.") % m_app_version)
 
             if bad_m_version and bad_m_app_version:
-                dlg = wx.MessageDialog(None, f"Magisk Version: {m_version} is detected.\nMagisk Manager Version: {m_app_version} is detected.\n\nThese versions of Magisk are known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Versions.',wx.OK | wx.ICON_EXCLAMATION)
-                puml(f"#red:Magisk Version: {m_version} is detected\nMagisk Manager Version: {m_app_version} is detected;\n")
-                puml("note right:These versions of Magisk are known to have problems.")
+                dlg = wx.MessageDialog(None, _(f"Magisk Version: %s is detected.\nMagisk Manager Version: %s is detected.\n\nThese versions of Magisk are known to have issues.\nRecommendation: Install stable version or one that is known to be good.") % (m_version, m_app_version),_('Problematic Magisk Versions.'),wx.OK | wx.ICON_EXCLAMATION)
+                puml(_(f"#red:Magisk Version: %s is detected\nMagisk Manager Version: %s is detected;\n") % (m_version, m_app_version))
+                puml(_("note right:These versions of Magisk are known to have problems."))
                 result = dlg.ShowModal()
             elif bad_m_version:
-                dlg = wx.MessageDialog(None, f"Magisk Version: {m_version} is detected.\nThis version of Magisk is known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Version.',wx.OK | wx.ICON_EXCLAMATION)
-                puml(f"#red:Magisk Version: {m_version} is detected;\n")
-                puml("note right:This version of Magisk is known to have problems.")
+                dlg = wx.MessageDialog(None, _(f"Magisk Version: %s is detected.\nThis version of Magisk is known to have issues.\nRecommendation: Install stable version or one that is known to be good.") % m_version,_('Problematic Magisk Version.'),wx.OK | wx.ICON_EXCLAMATION)
+                puml(_(f"#red:Magisk Version: %s is detected;\n") % m_version)
+                puml(_("note right:This version of Magisk is known to have problems."))
                 result = dlg.ShowModal()
             elif bad_m_app_version:
-                dlg = wx.MessageDialog(None, f"Magisk Manager Version: {m_app_version} is detected.\nThis version of Magisk Manager is known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Manager Version.',wx.OK | wx.ICON_EXCLAMATION)
-                puml(f"#red:Magisk Manager Version: {m_app_version} is detected;\n")
-                puml("note right:This version of Magisk Manager is known to have problems;\n")
+                dlg = wx.MessageDialog(None, _(f"Magisk Manager Version: %s is detected.\nThis version of Magisk Manager is known to have issues.\nRecommendation: Install stable version or one that is known to be good.") % m_app_version,_('Problematic Magisk Manager Version.'),wx.OK | wx.ICON_EXCLAMATION)
+                puml(_(f"#red:Magisk Manager Version: %s is detected;\n") % m_app_version)
+                puml(_("note right:This version of Magisk Manager is known to have problems;\n"))
                 result = dlg.ShowModal()
 
     # -----------------------------------------------
@@ -1857,7 +1864,7 @@ class PixelFlasher(wx.Frame):
                         self.flash_radio_button.Enable(True)
                         self.flash_button.Enable(True)
                     else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
+                        print(_(f"\n%s ERROR: Selected file is not of type .img") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 elif image_mode in ['image', 'SIDELOAD']:
                     if extension == '.zip':
                         self.live_boot_radio_button.Enable(False)
@@ -1865,14 +1872,14 @@ class PixelFlasher(wx.Frame):
                         self.flash_button.Enable(True)
                         self.flash_radio_button.SetValue(True)
                     else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .zip")
+                        print(_(f"\n%s ERROR: Selected file is not of type .zip") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 elif extension == '.img':
                     self.live_boot_radio_button.Enable(False)
                     self.flash_radio_button.Enable(True)
                     self.flash_button.Enable(True)
                     self.flash_radio_button.SetValue(True)
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
+                    print(_(f"\n%s ERROR: Selected file is not of type .img") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     # -----------------------------------------------
     #                  _select_configured_device
@@ -1884,7 +1891,7 @@ class PixelFlasher(wx.Frame):
                 if device.id == self.config.device:
                     self.device_choice.Select(count)
                     set_phone_id(device.id)
-                    puml(f":Select Device;\n", True)
+                    puml(_(f":Select Device;\n"), True)
                     self._print_device_details(device)
                 count += 1
         elif self.device_choice.StringSelection:
@@ -1897,17 +1904,17 @@ class PixelFlasher(wx.Frame):
             for device in get_phones():
                 if device.id == id:
                     set_phone_id(device.id)
-                    puml(f":Select Device;\n", True)
+                    puml(_(f":Select Device;\n"), True)
                     self._print_device_details(device)
         else:
             set_phone_id(None)
-            self.device_label.Label = "ADB Connected Devices"
+            self.device_label.Label = _("ADB Connected Devices")
         if self.device_choice.StringSelection == '':
             set_phone_id(None)
-            self.device_label.Label = "ADB Connected Devices"
+            self.device_label.Label = _("ADB Connected Devices")
             self.config.device = None
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} No Device is selected!")
-            puml(f":Select Device;\nnote right:No Device is selected!\n")
+            print(_(f"%s No Device is selected!") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            puml(_(f":Select Device;\nnote right:No Device is selected!\n"))
         self._reflect_slots()
         self.update_widget_states()
 
@@ -1915,7 +1922,7 @@ class PixelFlasher(wx.Frame):
     #                  refresh_device
     # -----------------------------------------------
     def refresh_device(self):
-        print("Updating connected devices ...")
+        print(_("Updating connected devices ..."))
         selected_device = self.device_choice.StringSelection
         selected_device_id = None
         if selected_device:
@@ -1940,20 +1947,20 @@ class PixelFlasher(wx.Frame):
         device = get_phone()
         if device:
             if device.active_slot == 'a':
-                self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
+                self.device_label.Label = _("ADB Connected Devices\nCurrent Active Slot: [A]")
                 self.update_slot_image('a')
                 set_a_only(False)
             elif device.active_slot == 'b':
-                self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [B]"
+                self.device_label.Label = _("ADB Connected Devices\nCurrent Active Slot: [B]")
                 set_a_only(False)
                 self.update_slot_image('b')
             else:
-                self.device_label.Label = "ADB Connected Devices"
+                self.device_label.Label = _("ADB Connected Devices")
                 set_a_only(True)
                 self.update_slot_image('none')
             self.update_rooted_image(device.rooted)
         else:
-            self.device_label.Label = "ADB Connected Devices"
+            self.device_label.Label = _("ADB Connected Devices")
             self.update_slot_image('none')
             self.update_rooted_image(False)
 
@@ -2093,7 +2100,7 @@ class PixelFlasher(wx.Frame):
                 return False
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while evaluating a rule")
+            print(_(f"\n%s ERROR: Encountered an error while evaluating a rule") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
 
     #-----------------------------------------------------------------------------
@@ -2202,7 +2209,7 @@ class PixelFlasher(wx.Frame):
                     widget.Enable(enable_widget)
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating widgets.")
+            print(_(f"\n%s ERROR: Encountered an error while updating widgets.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -2226,7 +2233,7 @@ class PixelFlasher(wx.Frame):
                 self._reflect_slots()
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting a device")
+            print(_(f"\n%s ERROR: Encountered an error while selecting a device") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2235,10 +2242,10 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_scan(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scan")
+            print(_(f"\n%s User initiated Scan") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if get_adb():
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Scanning for Devices ...")
-                puml(":Scan for Devices;\n")
+                print(_(f"\n%s Scanning for Devices ...") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                puml(_(":Scan for Devices;\n"))
                 self._on_spin('start')
                 connected_devices = get_connected_devices()
                 self.device_choice.SetItems(connected_devices)
@@ -2246,22 +2253,22 @@ class PixelFlasher(wx.Frame):
                 puml(f"note right\n{d_list_string}\nend note\n")
                 if self.device_choice.Count == 0:
                     self.device_choice.SetSelection(-1)
-                    print("No Devices found.")
-                    puml(f"note right:No Devices are found\n")
-                    self.toast("Scan", "No devices are found..")
+                    print(_("No Devices found."))
+                    puml(_(f"note right:No Devices are found\n"))
+                    self.toast(_("Scan"), _("No devices are found.."))
                     self._on_spin('stop')
                     return
-                print(f"{self.device_choice.Count} Device(s) are found.")
+                print(_(f"%s Device(s) are found.") % self.device_choice.Count)
                 self._select_configured_device()
                 self._on_spin('stop')
                 if self.device_choice.StringSelection == '':
                     # Popup the devices dropdown
                     self.device_choice.Popup()
-                    self.toast("Scan", f"Select your device from the list of {self.device_choice.Count} found devices.")
+                    self.toast(_("Scan"), _(f"Select your device from the list of %s found devices.") % self.device_choice.Count)
             else:
-                print("Please set Android Platform Tools Path first.")
+                print(_("Please set Android Platform Tools Path first."))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while scanning")
+            print(_(f"\n%s ERROR: Encountered an error while scanning") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2274,12 +2281,12 @@ class PixelFlasher(wx.Frame):
             self.config.platform_tools_path = event.GetPath().replace("'", "")
             check_platform_tools(self)
             if get_sdk_version():
-                self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+                self.platform_tools_label.SetLabel(_(f"Android Platform Tools\nVersion %s") % get_sdk_version())
             else:
-                self.platform_tools_label.SetLabel("Android Platform Tools")
+                self.platform_tools_label.SetLabel(_("Android Platform Tools"))
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting platform tools")
+            print(_(f"\n%s ERROR: Encountered an error while selecting platform tools") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2295,10 +2302,10 @@ class PixelFlasher(wx.Frame):
                 self.config.firmware_sha256 = checksum
             else:
                 self.config.firmware_sha256 = None
-            self.firmware_picker.SetToolTip(f"SHA-256: {checksum}")
+            self.firmware_picker.SetToolTip(_(f"SHA-256: %s") % checksum)
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting firmware")
+            print(_(f"\n%s ERROR: Encountered an error while selecting firmware") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2307,13 +2314,13 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_process_firmware(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Process firmware")
+            print(_(f"\n%s User initiated Process firmware") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self._on_spin('start')
             if self.config.firmware_path:
                 process_file(self, 'firmware')
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing firmware")
+            print(_(f"\n%s ERROR: Encountered an error while processing firmware") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2322,13 +2329,13 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_process_rom(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Process ROM")
+            print(_(f"\n%s User initiated Process ROM") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self._on_spin('start')
             if self.config.custom_rom_path:
                 process_file(self, 'rom')
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing rom")
+            print(_(f"\n%s ERROR: Encountered an error while processing rom") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2343,7 +2350,7 @@ class PixelFlasher(wx.Frame):
             self._update_custom_flash_options()
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while choosing an image")
+            print(_(f"\n%s ERROR: Encountered an error while choosing an image") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2359,12 +2366,12 @@ class PixelFlasher(wx.Frame):
             if extension in ['.zip', '.img']:
                 set_image_path(image_path)
                 self._update_custom_flash_options()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Custom image file {image_path} is selected.")
+                print(_(f"\n%s Custom image file %s is selected.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_path))
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {image_path} is not img or zip file.")
+                print(_(f"\n%s ERROR: The selected file %s is not img or zip file.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), image_path))
                 self.image_file_picker.SetPath('')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting an image")
+            print(_(f"\n%s ERROR: Encountered an error while selecting an image") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2377,7 +2384,7 @@ class PixelFlasher(wx.Frame):
             custom_rom_path = event.GetPath().replace("'", "")
             filename, extension = os.path.splitext(custom_rom_path)
             extension = extension.lower()
-            puml(":Select ROM File;\n", True)
+            puml(_(":Select ROM File;\n"), True)
             if extension in ['.zip', '.tgz', '.tar']:
                 self.config.custom_rom_path = custom_rom_path
                 rom_file = ntpath.basename(custom_rom_path)
@@ -2388,17 +2395,17 @@ class PixelFlasher(wx.Frame):
                     self.config.rom_sha256 = rom_hash
                 else:
                     self.config.rom_sha256 = None
-                self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
-                print(f"Selected ROM {rom_file} SHA-256: {rom_hash}")
-                puml(f"note right\n{rom_file}\nSHA-256: {rom_hash}\nend note\n")
+                self.custom_rom.SetToolTip(_(f"SHA-256: %s") % rom_hash)
+                print(_(f"Selected ROM %s SHA-256: %s") % (rom_file, rom_hash))
+                puml(_(f"note right\n{rom_file}\nSHA-256: {rom_hash}\nend note\n"))
                 populate_boot_list(self)
                 self.update_widget_states()
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a valid archive.")
-                puml("#red:The selected ROM file is not valid;\n")
+                print(_(f"\n%s ERROR: The selected file %s is not a valid archive.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), custom_rom_path))
+                puml(_("#red:The selected ROM file is not valid;\n"))
                 self.custom_rom.SetPath('')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting rom")
+            print(_(f"\n%s ERROR: Encountered an error while selecting rom") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2411,8 +2418,8 @@ class PixelFlasher(wx.Frame):
         self.wipe_checkBox.SetValue(False)
         if self.mode_radio_button.GetValue():
             self.config.flash_mode = self.mode_radio_button.mode
-            print(f"Flash mode changed to: {self.config.flash_mode}")
-            puml(f":Flash mode change;\n", True)
+            print(_(f"Flash mode changed to: %s") % self.config.flash_mode)
+            puml(_(f":Flash mode change;\n"), True)
             puml(f"note right:{self.config.flash_mode}\n")
             self.update_widget_states()
         if self.config.flash_mode != 'customFlash':
@@ -2425,9 +2432,9 @@ class PixelFlasher(wx.Frame):
     def _on_flash_both_slots(self, event):
         self.flash_both_slots_checkBox = event.GetEventObject()
         status = self.flash_both_slots_checkBox.GetValue()
-        print(f"Flash Option: Flash Both Slots {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Flash Both Slots {status}\n")
+        print(_(f"Flash Option: Flash Both Slots %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Flash Both Slots %s\n") % status)
         self.config.flash_both_slots = status
         if status:
             self.config.flash_to_inactive_slot = not status
@@ -2439,9 +2446,9 @@ class PixelFlasher(wx.Frame):
     def _on_flash_to_inactive_slot(self, event):
         self.flash_to_inactive_slot_checkBox = event.GetEventObject()
         status = self.flash_to_inactive_slot_checkBox.GetValue()
-        print(f"Flash Option: Flash to Inactive Slot {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Flash to Inactive Slot {status}\n")
+        print(_(f"Flash Option: Flash to Inactive Slot %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Flash to Inactive Slot %s\n") % status)
         self.config.flash_to_inactive_slot = status
         if status:
             self.config.flash_both_slots = not status
@@ -2454,9 +2461,9 @@ class PixelFlasher(wx.Frame):
         self._on_spin('start')
         self.disable_verity_checkBox = event.GetEventObject()
         status = self.disable_verity_checkBox.GetValue()
-        print(f"Flash Option: Disable Verity {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Disable Verity {status}\n")
+        print(_(f"Flash Option: Disable Verity %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Disable Verity %s\n") % status)
         self.config.disable_verity = status
         self.vbmeta_alert(show_alert=False)
         self._on_spin('stop')
@@ -2468,9 +2475,9 @@ class PixelFlasher(wx.Frame):
         self._on_spin('start')
         self.disable_verification_checkBox = event.GetEventObject()
         status = self.disable_verification_checkBox.GetValue()
-        print(f"Flash Option: Disable Verification {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Disable Verification {status}\n")
+        print(_(f"Flash Option: Disable Verification %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Disable Verification %s\n") % status)
         self.config.disable_verification = status
         self.vbmeta_alert(show_alert=True)
         self._on_spin('stop')
@@ -2485,13 +2492,13 @@ class PixelFlasher(wx.Frame):
         alert = self.get_vbmeta(device)
         if show_alert and "WARNING!" in alert:
             try:
-                dlg = MessageBoxEx(parent=None, title="vbmeta issue.", message=f"Warning!\n{alert}", button_texts=["OK"], default_button=1)
-                puml(f"note right\nDialog\n====\nWarning!\n{alert}\nend note\n")
+                dlg = MessageBoxEx(parent=None, title=_("vbmeta issue."), message=_(f"Warning!\n%s") % alert, button_texts=[_("OK")], default_button=1)
+                puml(_(f"note right\nDialog\n====\nWarning!\n%s\nend note\n") % alert)
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
                 dlg.Destroy()
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                print(_(f"\n%s ERROR: Encountered an error.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 traceback.print_exc()
         print(alert)
 
@@ -2501,9 +2508,9 @@ class PixelFlasher(wx.Frame):
     def _on_fastboot_force(self, event):
         self.fastboot_force_checkBox = event.GetEventObject()
         status = self.fastboot_force_checkBox.GetValue()
-        print(f"Flash Option: Force {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Force {status}\n")
+        print(_(f"Flash Option: Force %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Force %s\n") % status)
         self.config.fastboot_force = status
 
     # -----------------------------------------------
@@ -2512,9 +2519,9 @@ class PixelFlasher(wx.Frame):
     def _on_fastboot_verbose(self, event):
         self.fastboot_verbose_checkBox = event.GetEventObject()
         status = self.fastboot_verbose_checkBox.GetValue()
-        print(f"Flash Option: Verbose {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Verbose {status}\n")
+        print(_(f"Flash Option: Verbose %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Verbose %s\n") % status)
         self.config.fastboot_verbose = status
 
     # -----------------------------------------------
@@ -2523,9 +2530,9 @@ class PixelFlasher(wx.Frame):
     def _on_temporary_root(self, event):
         self._on_temporary_root_checkBox = event.GetEventObject()
         status = self._on_temporary_root_checkBox.GetValue()
-        print(f"Flash Option: Temporary Root {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Temporary Root {status}\n")
+        print(_(f"Flash Option: Temporary Root %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Temporary Root %s\n") % status)
         self.config.temporary_root = status
 
     # -----------------------------------------------
@@ -2534,9 +2541,9 @@ class PixelFlasher(wx.Frame):
     def _on_no_reboot(self, event):
         self._on_no_reboot_checkBox = event.GetEventObject()
         status = self._on_no_reboot_checkBox.GetValue()
-        print(f"Flash Option: No Reboot {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:No Reboot {status}\n")
+        print(_(f"Flash Option: No Reboot %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:No Reboot %s\n") % status)
         self.config.no_reboot = status
 
     # -----------------------------------------------
@@ -2545,9 +2552,9 @@ class PixelFlasher(wx.Frame):
     def _on_wipe(self, event):
         self._on_wipe_checkBox = event.GetEventObject()
         status = self._on_wipe_checkBox.GetValue()
-        print(f"Flash Option: Wipe {status}")
-        puml(":Flash Option change;\n", True)
-        puml(f"note right:Wipe {status}\n")
+        print(_(f"Flash Option: Wipe %s") % status)
+        puml(_(":Flash Option change;\n"), True)
+        puml(_(f"note right:Wipe %s\n") % status)
         self.wipe = status
 
     # -----------------------------------------------
@@ -2556,8 +2563,8 @@ class PixelFlasher(wx.Frame):
     def _on_verbose(self, event):
         self.verbose_checkBox = event.GetEventObject()
         status = self.verbose_checkBox.GetValue()
-        print(f"Console Verbose: {status}")
-        puml(":Console Verbose;\n", True)
+        print(_(f"Console Verbose: %s") % status)
+        puml(_(":Console Verbose;\n"), True)
         puml(f"note right:{status}\n")
         self.config.verbose = status
         set_verbose(status)
@@ -2567,16 +2574,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_recovery(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Recovery")
+            print(_(f"\n%s User initiated Reboot Recovery") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     res = device.reboot_recovery()
                     if res != 0:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to recovery") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to recovery") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2586,16 +2593,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_download(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Download")
+            print(_(f"\n%s User initiated Reboot Download") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     res = device.reboot_download()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to download")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to download") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to download")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to download") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2605,16 +2612,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_sideload(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Sideload")
+            print(_(f"\n%s User initiated Reboot Sideload") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     res = device.reboot_sideload()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to sideload") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to sideload") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2624,16 +2631,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_safemode(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Safe Mode")
+            print(_(f"\n%s User initiated Reboot Safe Mode") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     res = device.reboot_safemode()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to safe mode")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to safe mode") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to safe mode")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to safe mode") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2643,9 +2650,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def select_file_and_push(self, destination):
         try:
-            with wx.FileDialog(self, "Select file to push", '', '', wildcard="All files (*.*)|*.*", style=wx.FD_OPEN) as fileDialog:
+            with wx.FileDialog(self, _("Select file to push"), '', '', wildcard=_("All files (*.*)|*.*"), style=wx.FD_OPEN) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
-                    print("User cancelled file push.")
+                    print(_("User cancelled file push."))
                     return
                 selected_file = fileDialog.GetPath()
 
@@ -2655,14 +2662,14 @@ class PixelFlasher(wx.Frame):
                 # push the file
                 res = device.push_file(selected_file, "/data/local/tmp/", False)
                 if res != 0:
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
-                    print("Aborting ...\n")
+                    print(_(f"Return Code: %s.") % res.returncode)
+                    print(_(f"Stdout: ") % res.stdout)
+                    print(_(f"Stderr: %s") % {res.stderr})
+                    print(_("Aborting ...\n"))
                     self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
                     return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to system") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2683,16 +2690,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_system(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot System")
+            print(_(f"\n%s User initiated Reboot System") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     res = device.reboot_system()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to system") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to system") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2702,16 +2709,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_bootloader(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Bootloader")
+            print(_(f"\n%s User initiated Reboot Bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     res = device.reboot_bootloader(fastboot_included = True)
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2721,16 +2728,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_fastbootd(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Fastbootd")
+            print(_(f"\n%s User initiated Reboot Fastbootd") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     res = device.reboot_fastboot()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fastbootd")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to fastbootd") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fatsbootd")
+            print(_(f"\n%s ERROR: Encountered an error while rebooting to fatsbootd") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2739,22 +2746,22 @@ class PixelFlasher(wx.Frame):
     #                  _on_lock_bootloader
     # -----------------------------------------------
     def _on_lock_bootloader(self, event):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Lock Bootloader")
+        print(_(f"\n%s User initiated Lock Bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         if not self.config.device:
             return
-        title = "Lock Bootloader"
-        message = "         WARNING!!! WARNING!!! WARNING!!!\n\n"
-        message += "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n"
-        message += "TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n"
-        message += "       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n"
-        message += "Do you want to continue to Lock the device bootloader?\n"
-        message += "       Press OK to continue or CANCEL to abort.\n"
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+        title = _("Lock Bootloader")
+        message = _("         WARNING!!! WARNING!!! WARNING!!!\n\n")
+        message += _("NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n")
+        message += _("TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n")
+        message += _("       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n")
+        message += _("Do you want to continue to Lock the device bootloader?\n")
+        message += _("       Press OK to continue or CANCEL to abort.\n")
+        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}"))
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
         try:
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
         except Exception:
             traceback.print_exc()
             return
@@ -2762,37 +2769,37 @@ class PixelFlasher(wx.Frame):
         result = dlg.ShowModal()
 
         if result == 1:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+            print(_(f"%s User Pressed Ok.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Aborting ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
 
-        title = "Lock Bootloader"
-        message = "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n"
-        message += "Make sure you first read either of the guides linked in the help menu.\n"
-        message += "Failing to follow the proper steps could potentially brick your phone.\n"
-        message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-        message += "fastboot commands, if your PC fastboot drivers are not propely setup,\n"
-        message += "fastboot will wait forever, and PixelFlasher will appear hung.\n"
-        message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
-        message += "      Do you want to continue to Lock the device bootloader?\n"
-        message += "              Press OK to continue or CANCEL to abort.\n"
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+        title = _("Lock Bootloader")
+        message = _("WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n")
+        message += _("Make sure you first read either of the guides linked in the help menu.\n")
+        message += _("Failing to follow the proper steps could potentially brick your phone.\n")
+        message += _("\nNote: Pressing OK button will invoke a script that will utilize\n")
+        message += _("fastboot commands, if your PC fastboot drivers are not propely setup,\n")
+        message += _("fastboot will wait forever, and PixelFlasher will appear hung.\n")
+        message += _("In such cases, killing the fastboot process will resume to normalcy.\n\n")
+        message += _("      Do you want to continue to Lock the device bootloader?\n")
+        message += _("              Press OK to continue or CANCEL to abort.\n")
+        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}"))
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
 
         if result == 1:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+            print(_(f"%s User Pressed Ok.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Aborting ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -2803,16 +2810,16 @@ class PixelFlasher(wx.Frame):
             if device:
                 res = device.lock_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
+                    print(_(f"\n%s ERROR: Encountered an error while locking bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             # only reboot if no_reboot is not selected
             if not self.config.no_reboot:
-                print("echo rebooting to system ...\n")
+                print(_("echo rebooting to system ...\n"))
                 if device:
                     res = device.reboot_system()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to system") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
+            print(_(f"\n%s ERROR: Encountered an error while locking bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2821,32 +2828,32 @@ class PixelFlasher(wx.Frame):
     #                  _on_unlock_bootloader
     # -----------------------------------------------
     def _on_unlock_bootloader(self, event):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Unlock Bootloader")
+        print(_(f"\n%s User initiated Unlock Bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         if not self.config.device:
             return
-        title = "Unlock Bootloader"
-        message = "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n"
-        message += "Make sure you first read either of the guides linked in the help menu.\n"
-        message += "Failing to follow the proper steps could potentially brick your phone.\n"
-        message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-        message += "fastboot commands, if your PC fastboot drivers are not propely setup,\n"
-        message += "fastboot will wait forever, and PixelFlasher will appear hung.\n"
-        message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
-        message += "      Do you want to continue to Unlock the device bootloader?\n"
-        message += "              Press OK to continue or CANCEL to abort.\n"
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+        title = _("Unlock Bootloader")
+        message = _("WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n")
+        message += _("Make sure you first read either of the guides linked in the help menu.\n")
+        message += _("Failing to follow the proper steps could potentially brick your phone.\n")
+        message += _("\nNote: Pressing OK button will invoke a script that will utilize\n")
+        message += _("fastboot commands, if your PC fastboot drivers are not propely setup,\n")
+        message += _("fastboot will wait forever, and PixelFlasher will appear hung.\n")
+        message += _("In such cases, killing the fastboot process will resume to normalcy.\n\n")
+        message += _("      Do you want to continue to Unlock the device bootloader?\n")
+        message += _("              Press OK to continue or CANCEL to abort.\n")
+        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}"))
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
 
         if result == 1:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+            print(_(f"%s User Pressed Ok.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Aborting ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -2857,15 +2864,15 @@ class PixelFlasher(wx.Frame):
             if device:
                 res = device.unlock_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+                    print(_(f"\n%s ERROR: Encountered an error while unlocking bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if not self.config.no_reboot:
-                print("echo rebooting to system ...\n")
+                print(_("echo rebooting to system ...\n"))
                 if device:
                     res = device.reboot_system()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                        print(_(f"\n%s ERROR: Encountered an error while rebooting to system") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+            print(_(f"\n%s ERROR: Encountered an error while unlocking bootloader") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -2874,30 +2881,30 @@ class PixelFlasher(wx.Frame):
     #                  _on_sos
     # -----------------------------------------------
     def _on_sos(self, event):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated SOS")
+        print(_(f"\n%s User initiated SOS") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         if not self.config.device:
             return
-        title = "Disable Magisk Modules"
-        message = "WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n"
-        message += "You would only need to do this if your device is bootlooping due to\n"
-        message += "incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n"
-        message += "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n"
-        message += "If your device is not detected PixelFlasher will appear hung.\n"
-        message += "In such cases, killing the adb process will resume to normalcy.\n\n"
-        message += "                        Press OK to continue or CANCEL to abort.\n"
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+        title = _("Disable Magisk Modules")
+        message = _("WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n")
+        message += _("You would only need to do this if your device is bootlooping due to\n")
+        message += _("incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n")
+        message += _("\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n")
+        message += _("If your device is not detected PixelFlasher will appear hung.\n")
+        message += _("In such cases, killing the adb process will resume to normalcy.\n\n")
+        message += _("                        Press OK to continue or CANCEL to abort.\n")
+        print(_(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}"))
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1)
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=1)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
 
         if result == 1:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+            print(_(f"%s User Pressed Ok.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Aborting ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -2915,13 +2922,13 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_adb_shell(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated ADB Shell")
+            print(_(f"\n%s User initiated ADB Shell") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 device.open_shell()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb shell")
+            print(_(f"\n%s ERROR: Encountered an error while getting adb shell") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2930,14 +2937,14 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_scrcpy(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scrcpy")
+            print(_(f"\n%s User initiated Scrcpy") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
                 if device:
                     device.scrcpy()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while launching scrcpy")
+            print(_(f"\n%s ERROR: Encountered an error while launching scrcpy") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2956,8 +2963,8 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
         result = dlg.ShowModal()
         if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting Magisk Modules Management ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Aborting Magisk Modules Management ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -2977,8 +2984,8 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
         result = dlg.ShowModal()
         if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting Magisk Installation ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Aborting Magisk Installation ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -3000,8 +3007,8 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
         result = dlg.ShowModal()
         if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Closing Backup Manager ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Closing Backup Manager ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -3021,7 +3028,7 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
         result = dlg.ShowModal()
         if result != wx.ID_OK:
-            print("Closing Partition Manager ...\n")
+            print(_("Closing Partition Manager ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -3031,28 +3038,28 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_switch_slot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Switch Slot")
+            print(_(f"\n%s User initiated Switch Slot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if not self.config.device:
                 return
             device = get_phone()
             self._on_spin('start')
             if device.active_slot not in ['a', 'b']:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown slot, is your device dual slot?")
+                print(_(f"\n%s ERROR: Unknown slot, is your device dual slot?") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 self._on_spin('stop')
                 return
-            print(f"User clicked on Switch Slot: Current Slot: [{device.active_slot}]")
+            print(_(f"User clicked on Switch Slot: Current Slot: [%s]") % device.active_slot)
             self.vbmeta_alert(show_alert=True)
             device.switch_slot()
             if device:
                 res = device.switch_slot()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
+                    print(_(f"\n%s ERROR: Encountered an error while switching slot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             if not self.config.no_reboot and device:
                 res = device.reboot_system()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                    print(_(f"\n%s ERROR: Encountered an error while rebooting to system") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
+            print(_(f"\n%s ERROR: Encountered an error while switching slot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3063,11 +3070,11 @@ class PixelFlasher(wx.Frame):
     def _open_sdk_link(self, event):
         try:
             self._on_spin('start')
-            print("Launching browser for SDK download URL: https://developer.android.com/studio/releases/platform-tools.html")
+            print(_("Launching browser for SDK download URL: https://developer.android.com/studio/releases/platform-tools.html"))
             webbrowser.open_new('https://developer.android.com/studio/releases/platform-tools.html')
-            puml(f":Open SDK Link;\nnote right\n=== Android Platform Tools\n[[https://developer.android.com/studio/releases/platform-tools.html]]\nend note\n", True)
+            puml(_(f":Open SDK Link;\nnote right\n=== Android Platform Tools\n[[https://developer.android.com/studio/releases/platform-tools.html]]\nend note\n"), True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link")
+            print(_(f"\n%s ERROR: Encountered an error while opening skd link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3077,10 +3084,10 @@ class PixelFlasher(wx.Frame):
     def _on_wifi_manager(self, event):
         self._on_spin('start')
         try:
-            print("Opening Wireless Manager ...\n")
+            print(_("Opening Wireless Manager ...\n"))
             dlg = Wireless(self)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while loading wifi screen.")
+            print(_(f"\n%s ERROR: Encountered an error while loading wifi screen.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
             self._on_spin('stop')
             return
@@ -3088,8 +3095,8 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
         result = dlg.ShowModal()
         if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Closing Wireless Manager ...\n")
+            print(_(f"%s User Pressed Cancel.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(_("Closing Wireless Manager ...\n"))
             dlg.Destroy()
             return
         dlg.Destroy()
@@ -3099,18 +3106,18 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_adb_kill_server(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated ADB Kill")
-            dlg = wx.MessageDialog(None, "This will invoke the command adb kill-server.\nAre you sure want to continue?",'ADB Kill Server',wx.YES_NO | wx.ICON_EXCLAMATION)
+            print(_(f"\n%s User initiated ADB Kill") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            dlg = wx.MessageDialog(None, _("This will invoke the command adb kill-server.\nAre you sure want to continue?"),_('ADB Kill Server'),wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result != wx.ID_YES:
-                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled Killing ADB server.")
+                print(_(f"%s User canceled Killing ADB server.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 return
-            print("User pressed ok kill ADB server")
-            puml(":Kill ADB Server;\n", True)
+            print(_("User pressed ok kill ADB server"))
+            puml(_(":Kill ADB Server;\n"), True)
             self._on_spin('start')
             adb_kill_server(self)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while killing adb server")
+            print(_(f"\n%s ERROR: Encountered an error while killing adb server") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3122,11 +3129,11 @@ class PixelFlasher(wx.Frame):
         status = self.custom_rom_checkbox.GetValue()
         self.config.custom_rom = status
         if status:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Enabled Custom ROM")
-            puml(":Custom ROM: ON;\n", True)
+            print(_(f"%s Enabled Custom ROM") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            puml(_(":Custom ROM: ON;\n"), True)
         else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Disabled Custom ROM")
-            puml(":Custom ROM: OFF;\n", True)
+            print(_(f"%s Disabled Custom ROM") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            puml(_(":Custom ROM: OFF;\n"), True)
         populate_boot_list(self)
         self.update_widget_states()
 
@@ -3137,8 +3144,8 @@ class PixelFlasher(wx.Frame):
         self.show_all_boot_checkBox = event.GetEventObject()
         status = self.show_all_boot_checkBox.GetValue()
         self.config.show_all_boot = status
-        print("Show All Boot Images")
-        puml(":Show all boot images;\n", True)
+        print(_("Show All Boot Images"))
+        puml(_(":Show all boot images;\n"), True)
         populate_boot_list(self)
 
     # -----------------------------------------------
@@ -3222,40 +3229,40 @@ class PixelFlasher(wx.Frame):
                     package_boot_count += 1
             self.config.boot_id = boot.boot_id
             self.config.selected_boot_md5 = boot.boot_hash
-            print("Selected Boot:")
-            puml(":Select Boot;\n", True)
-            message = f"    File:                  {os.path.basename(urlparse(boot.boot_path).path)}\n"
-            message += f"    Path:                  {boot.boot_path}\n"
-            message += f"    SHA1:                  {boot.boot_hash}\n"
+            print(_("Selected Boot:"))
+            puml(_(":Select Boot;\n"), True)
+            message = _(f"    File:                  %s\n") % os.path.basename(urlparse(boot.boot_path).path)
+            message += _(f"    Path:                  %s\n") % boot.boot_path
+            message += _(f"    SHA1:                  %s\n") % boot.boot_hash
             if boot.is_patched == 1:
                 patched = True
-                message += f"    Patched:               {patched}\n"
+                message += _(f"    Patched:               %s\n") % patched
                 if boot.patch_method:
-                    message += f"    Patched Method:        {boot.patch_method}\n"
+                    message += _(f"    Patched Method:        %s\n") % boot.patch_method
                 if boot.patch_source_sha1:
-                    message += f"    Patch Source SHA1:     {boot.patch_source_sha1}\n"
-                message += f"    Patched With Magisk:   {boot.magisk_version}\n"
-                message += f"    Patched on Device:     {boot.hardware}\n"
+                    message += _(f"    Patch Source SHA1:     %s\n") % boot.patch_source_sha1
+                message += _(f"    Patched With Magisk:   %s\n") % boot.magisk_version
+                message += _(f"    Patched on Device:     %s\n") % boot.hardware
             else:
                 patched = False
-                message += f"    Patched:               {patched}\n"
+                message += _(f"    Patched:               %s\n") % patched
             ts = datetime.fromtimestamp(boot.boot_epoch)
             if boot.is_odin == 1:
-                message += f"    Samsung Boot:          True\n"
+                message += _(f"    Samsung Boot:          True\n")
             if boot.is_stock_boot == 0:
-                message += f"    Stock Boot:            False\n"
+                message += _(f"    Stock Boot:            False\n")
             elif boot.is_stock_boot == 1:
-                message += f"    Stock Boot:            True\n"
+                message += _(f"    Stock Boot:            True\n")
             if boot.is_init_boot == 0:
-                message += f"    Init Boot:             False\n"
+                message += _(f"    Init Boot:             False\n")
             elif boot.is_init_boot == 1:
-                message += f"    Init Boot:             True\n"
-            message += f"    Date:                  {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            message += f"    Firmware Fingerprint:  {boot.package_sig}\n"
-            message += f"    Firmware:              {boot.package_path}\n"
-            message += f"    Type:                  {boot.package_type}\n"
+                message += _(f"    Init Boot:             True\n")
+            message += _(f"    Date:                  %s\n") % ts.strftime('%Y-%m-%d %H:%M:%S')
+            message += _(f"    Firmware Fingerprint:  %s\n") % boot.package_sig
+            message += _(f"    Firmware:              %s\n") % boot.package_path
+            message += _(f"    Type:                  %s\n") % boot.package_type
             if package_boot_count > 1:
-                message += f"\nINFO: Multiple PACKAGE_BOOT records found for {boot.boot_hash}."
+                message += _(f"\nINFO: Multiple PACKAGE_BOOT records found for %s.") % boot.boot_hash
             print(f"{message}\n")
             puml(f"note right\n{message}\nend note\n")
         else:
@@ -3263,9 +3270,9 @@ class PixelFlasher(wx.Frame):
             self.config.selected_boot_md5 = None
             if self.list.ItemCount == 0 :
                 if self.config.firmware_path:
-                    print("\nPlease Process the firmware!")
+                    print(_("\nPlease Process the firmware!"))
             else:
-                print("\nPlease select a boot/init_boot!")
+                print(_("\nPlease select a boot/init_boot!"))
         set_boot(boot)
         set_flash_button_state(self)
         self._update_custom_flash_options()
@@ -3278,10 +3285,10 @@ class PixelFlasher(wx.Frame):
         self._on_spin('start')
         boot = get_boot()
         if boot.boot_id and boot.package_id:
-            print("Delete boot image button is pressed.")
-            puml(":Delete boot image;\n", True)
-            print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
-            puml(f"note right\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8]}\nend note\n")
+            print(_("Delete boot image button is pressed."))
+            puml(_(":Delete boot image;\n"), True)
+            print(_(f"Deleting boot record,  ID:%s  Boot_ID:%s ...") % (boot.boot_id, boot.boot_hash[:8] ))
+            puml(_(f"note right\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8]}\nend note\n"))
             con = get_db()
             con.execute("PRAGMA foreign_keys = ON")
             con.commit()
@@ -3296,10 +3303,10 @@ class PixelFlasher(wx.Frame):
                     data = con.execute(sql, (boot.boot_id, boot.package_id))
                 con.commit()
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                puml("#red:Encountered an error;\n", True)
+                print(_(f"\n%s ERROR: Encountered an error.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                puml(_("#red:Encountered an error;\n"), True)
                 traceback.print_exc()
-                print("Aborting ...")
+                print(_("Aborting ..."))
                 set_boot(None)
                 populate_boot_list(self)
                 self._on_spin('stop')
@@ -3320,33 +3327,33 @@ class PixelFlasher(wx.Frame):
                         with con:
                             data = con.execute(sql, (boot.boot_id,))
                         con.commit()
-                        print(f"Cleared db entry for BOOT: {boot.boot_id}")
+                        print(_(f"Cleared db entry for BOOT: %s") % boot.boot_id)
                         # delete the boot file
-                        print(f"Deleting Boot file: {boot.boot_path} ...")
+                        print(_(f"Deleting Boot file: %s ...") % boot.boot_path)
                         if os.path.exists(boot.boot_path):
                             os.remove(boot.boot_path)
                             boot_dir = os.path.dirname(boot.boot_path)
                             # if deleting init_boot.img and boot.img exists, delete that as well
                             boot_img_path = os.path.join(boot_dir, 'boot.img')
                             if boot.is_init_boot and os.path.exists(boot_img_path):
-                                print(f"Deleting {boot_img_path} ...")
+                                print(_(f"Deleting %s ...") % boot_img_path)
                                 os.remove(boot_img_path)
                         else:
-                            print(f"Warning: Boot file: {boot.boot_path} does not exist")
+                            print(_(f"Warning: Boot file: %s does not exist") % boot.boot_path)
                     except Exception as e:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                        puml("#red:Encountered an error;\n", True)
+                        print(_(f"\n%s ERROR: Encountered an error.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        puml(_("#red:Encountered an error;\n"), True)
                         traceback.print_exc()
-                        print("Aborting ...")
+                        print(_("Aborting ..."))
                         set_boot(None)
                         populate_boot_list(self)
                         self._on_spin('stop')
                         return
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                puml("#red:Encountered an error;\n", True)
+                print(_(f"\n%s ERROR: Encountered an error.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                puml(_("#red:Encountered an error;\n"), True)
                 traceback.print_exc()
-                print("Aborting ...")
+                print(_("Aborting ..."))
                 set_boot(None)
                 populate_boot_list(self)
                 self._on_spin('stop')
@@ -3377,17 +3384,17 @@ class PixelFlasher(wx.Frame):
                         with con:
                             data = con.execute(sql, (boot.package_id,))
                         con.commit()
-                        print(f"Cleared db entry for PACKAGE: {boot.package_path}")
+                        print(_(f"Cleared db entry for PACKAGE: %s") % boot.package_path)
                         config_path = get_config_path()
                         package_path = os.path.join(config_path, 'factory_images', boot.package_sig)
                         with contextlib.suppress(Exception):
-                            print(f"Deleting Firmware cache for: {package_path} ...")
+                            print(_(f"Deleting Firmware cache for: %s ...") % package_path)
                             delete_all(package_path)
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                puml("#red:Encountered an error;\n", True)
+                print(_(f"\n%s ERROR: Encountered an error.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                puml(_("#red:Encountered an error;\n"), True)
                 traceback.print_exc()
-                print("Aborting ...")
+                print(_("Aborting ..."))
                 set_boot(None)
                 populate_boot_list(self)
                 self._on_spin('stop')
@@ -3407,7 +3414,7 @@ class PixelFlasher(wx.Frame):
             if boot:
                 open_folder(self, boot.boot_path, True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening boot folder")
+            print(_(f"\n%s ERROR: Encountered an error while opening boot folder") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3423,7 +3430,7 @@ class PixelFlasher(wx.Frame):
                 working_dir = os.path.join(config_path, 'factory_images', boot.package_sig)
                 open_folder(self, working_dir, False)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware folder")
+            print(_(f"\n%s ERROR: Encountered an error while opening firmware folder") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3432,11 +3439,11 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_live_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Live boot")
+            print(_(f"\n%s User initiated Live boot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self._on_spin('start')
             live_flash_boot_phone(self, 'Live')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while live booting")
+            print(_(f"\n$s ERROR: Encountered an error while live booting") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3445,11 +3452,11 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_flash_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Flash Boot")
+            print(_(f"\n%s User initiated Flash Boot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self._on_spin('start')
             live_flash_boot_phone(self, 'Flash')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing boot")
+            print(_(f"\n%s ERROR: Encountered an error while flashing boot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3476,29 +3483,29 @@ class PixelFlasher(wx.Frame):
         elif image_mode == "image":
             pasted_filename = find_file_by_prefix(package_dir_full, "image-")
         else:
-            print("Nothing to paste!")
+            print(_("Nothing to paste!"))
             flag = False
             return
         if flag and os.path.exists(pasted_filename):
-            print(f"Pasted {pasted_filename} to custom flash")
-            puml(f":Paste boot path;\nnote right:{pasted_filename};\n", True)
+            print(_(f"Pasted %s to custom flash") % pasted_filename)
+            puml(_(f":Paste boot path;\nnote right:%s;\n") % pasted_filename, True)
             self.image_file_picker.SetPath(pasted_filename)
             set_image_path(pasted_filename)
             self._update_custom_flash_options()
             set_flash_button_state(self)
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file: {pasted_filename} Not Found.")
+            print(_(f"\n%s ERROR: file: %s Not Found.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), pasted_filename))
 
     # -----------------------------------------------
     #                  _on_patch_boot
     # -----------------------------------------------
     def _on_patch_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Patch boot")
+            print(_(f"\n%s User initiated Patch boot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self._on_spin('start')
             patch_boot_img(self, False)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching boot")
+            print(_(f"\n%s ERROR: Encountered an error while patching boot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3507,11 +3514,11 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_patch_custom_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Custom Patch boot")
+            print(_(f"\n%s User initiated Custom Patch boot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             self._on_spin('start')
             patch_boot_img(self, True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching custom boot")
+            print(_(f"\n%s ERROR: Encountered an error while patching custom boot") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3520,25 +3527,25 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_flash(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Flash Pixel Phone.")
-            self.spinner_label.Label = "Please be patient ...\n\nDuring this process:\n ! Do not touch the device\n ! Do not unplug your device"
+            print(_(f"\n%s User initiated Flash Pixel Phone.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            self.spinner_label.Label = _("Please be patient ...\n\nDuring this process:\n ! Do not touch the device\n ! Do not unplug your device")
             self._on_spin('start')
             self.flash_button.Enable(False)
             res = flash_phone(self)
             if res == -1:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} INFO: Flashing was aborted.")
-                print("This could be user initiated or a problem encountered during flashing.")
+                print(_(f"\n%s INFO: Flashing was aborted.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                print(_("This could be user initiated or a problem encountered during flashing."))
                 device = get_phone()
                 mode = device.get_device_state()
-                print(f"Current device mode: {mode}")
-                print("You might need to manually reboot your device.\n")
+                print(_(f"Current device mode: %s") % mode)
+                print(_("You might need to manually reboot your device.\n"))
             self.refresh_device()
             self._on_spin('stop')
             self.flash_button.Enable(True)
             self.update_widget_states()
-            self.spinner_label.Label = "Please be patient ..."
+            self.spinner_label.Label = _("Please be patient ...")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing")
+            print(_(f"\n%s ERROR: Encountered an error while flashing") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3547,7 +3554,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_clear(self, event):
         self.console_ctrl.SetValue("")
-        puml(":Clear Console Logs;\n", True)
+        puml(_(":Clear Console Logs;\n"), True)
 
     # -----------------------------------------------
     #                  update_slot_image
@@ -3572,7 +3579,7 @@ class PixelFlasher(wx.Frame):
             if slot_image_height == 0 and rooted_image_height == 0 and slot !=  'none':
                 self._refresh_ui()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating slot image")
+            print(_(f"\n%s ERROR: Encountered an error while updating slot image") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -3596,7 +3603,7 @@ class PixelFlasher(wx.Frame):
             if rooted_image_height == 0 and slot_image_height == 0 and is_rooted:
                 self._refresh_ui()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating root image")
+            print(_(f"\n%s ERROR: Encountered an error while updating root image") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             traceback.print_exc()
 
     #-----------------------------------------------------------------------------
@@ -3631,12 +3638,12 @@ class PixelFlasher(wx.Frame):
         self._build_toolbar(self.toolbar_flags)
 
         # 1st row widgets, Android platform tools
-        self.platform_tools_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Android Platform Tools")
+        self.platform_tools_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Android Platform Tools"))
         self.sdk_link = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.sdk_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
-        self.sdk_link.SetToolTip("Download Latest Android Platform-Tools")
+        self.sdk_link.SetToolTip(_("Download Latest Android Platform-Tools"))
         self.platform_tools_picker = wx.DirPickerCtrl(parent=panel, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
-        self.platform_tools_picker.SetToolTip("Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
+        self.platform_tools_picker.SetToolTip(_("Select Android Platform-Tools Folder\nWhere adb and fastboot are located."))
         platform_tools_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         platform_tools_label_sizer.Add(window=self.platform_tools_label, proportion=0, flag=wx.ALL, border=5)
         platform_tools_label_sizer.AddStretchSpacer()
@@ -3645,11 +3652,11 @@ class PixelFlasher(wx.Frame):
         self.sdk_sizer.Add(window=self.platform_tools_picker, proportion=1, flag=wx.EXPAND)
 
         # 2nd row widgets, Connected Devices
-        self.device_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"ADB Connected Devices")
-        self.device_label.SetToolTip(u"Double click this label to issue the command:\nadb kill-server")
+        self.device_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"ADB Connected Devices"))
+        self.device_label.SetToolTip(_(u"Double click this label to issue the command:\nadb kill-server"))
         self.wifi_adb = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.wifi_adb.SetBitmap(images.wifi_adb_24.GetBitmap())
-        self.wifi_adb.SetToolTip(u"Open wireless manager dialog.")
+        self.wifi_adb.SetToolTip(_(u"Open wireless manager dialog."))
         adb_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         adb_label_sizer.Add(window=self.device_label, proportion=0, flag=wx.ALL, border=5)
         adb_label_sizer.AddStretchSpacer()
@@ -3658,16 +3665,16 @@ class PixelFlasher(wx.Frame):
         self.device_choice.SetSelection(-1)
         self.device_choice.SetFont(font=wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
-        device_tooltip += "✓ Rooted with Magisk.\n"
-        device_tooltip += "✗ Probably Not Root (Magisk Tools not found).\n"
-        device_tooltip += "?  Unable to determine the root status.\n\n"
-        device_tooltip += "(adb) device is in adb mode\n"
-        device_tooltip += "(f.b) device is in fastboot mode\n"
-        device_tooltip += "(sid) device is in sideload mode\n"
-        device_tooltip += "(rec) device is in recovery mode\n"
+        device_tooltip += _("✓ Rooted with Magisk.\n")
+        device_tooltip += _("✗ Probably Not Root (Magisk Tools not found).\n")
+        device_tooltip += _("?  Unable to determine the root status.\n\n")
+        device_tooltip += _("(adb) device is in adb mode\n")
+        device_tooltip += _("(f.b) device is in fastboot mode\n")
+        device_tooltip += _("(sid) device is in sideload mode\n")
+        device_tooltip += _("(rec) device is in recovery mode\n")
         self.device_choice.SetToolTip(device_tooltip)
-        self.scan_button = wx.Button(parent=panel, label=u"Scan")
-        self.scan_button.SetToolTip(u"Scan for Devices\nPlease manually select the device after the scan is completed.")
+        self.scan_button = wx.Button(parent=panel, label=_(u"Scan"))
+        self.scan_button.SetToolTip(_(u"Scan for Devices\nPlease manually select the device after the scan is completed."))
         self.scan_button.SetBitmap(images.scan_24.GetBitmap())
         device_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         device_sizer.Add(window=self.device_choice, proportion=1, flag=wx.EXPAND)
@@ -3688,19 +3695,19 @@ class PixelFlasher(wx.Frame):
         self.staticline1.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT))
 
         # 5th row widgets, firmware file
-        firmware_label = wx.StaticText(parent=panel, label=u"Device Image")
+        firmware_label = wx.StaticText(parent=panel, label=_(u"Device Image"))
         firmware_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         firmware_button.SetBitmap(images.open_link_24.GetBitmap())
-        firmware_button.SetToolTip(u"Download image file for Pixel devices.")
-        firmware_button.AddLink("Full OTA Images for Pixel Phones / Tablets", FULL_OTA_IMAGES_FOR_PIXEL_DEVICES, images.phone_green_24.GetBitmap())
-        firmware_button.AddLink("Factory Images for Pixel Phones / Tablets", FACTORY_IMAGES_FOR_PIXEL_DEVICES, images.phone_blue_24.GetBitmap())
-        firmware_button.AddLink("Full OTA Images for Pixel Watches", FULL_OTA_IMAGES_FOR_WATCH_DEVICES, images.watch_green_24.GetBitmap())
-        firmware_button.AddLink("Factory Images for Pixel Watches", FACTORY_IMAGES_FOR_WATCH_DEVICES, images.watch_blue_24.GetBitmap())
-        self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
-        self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        firmware_button.SetToolTip(_(u"Download image file for Pixel devices."))
+        firmware_button.AddLink(_("Full OTA Images for Pixel Phones / Tablets"), FULL_OTA_IMAGES_FOR_PIXEL_DEVICES, images.phone_green_24.GetBitmap())
+        firmware_button.AddLink(_("Factory Images for Pixel Phones / Tablets"), FACTORY_IMAGES_FOR_PIXEL_DEVICES, images.phone_blue_24.GetBitmap())
+        firmware_button.AddLink(_("Full OTA Images for Pixel Watches"), FULL_OTA_IMAGES_FOR_WATCH_DEVICES, images.watch_green_24.GetBitmap())
+        firmware_button.AddLink(_("Factory Images for Pixel Watches"), FACTORY_IMAGES_FOR_WATCH_DEVICES, images.watch_blue_24.GetBitmap())
+        self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_(u"Select a file"), wildcard=_(u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker.SetToolTip(_(u"Select Pixel Firmware"))
+        self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_firmware.SetBitmap(images.process_file_24.GetBitmap())
-        self.process_firmware.SetToolTip(u"Process the firmware file and extract the boot.img")
+        self.process_firmware.SetToolTip(_(u"Process the firmware file and extract the boot.img"))
         firmware_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         firmware_label_sizer.Add(window=firmware_label, proportion=0, flag=wx.ALL, border=5)
         firmware_label_sizer.AddStretchSpacer(1)
@@ -3710,21 +3717,21 @@ class PixelFlasher(wx.Frame):
         self.firmware_sizer.Add(window=self.process_firmware, flag=wx.LEFT, border=5)
 
         # 6th row widgets, custom_rom
-        self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Apply Custom ROM", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
-        self.custom_rom = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.custom_rom.SetToolTip(u"Select Custom ROM")
-        self.process_rom = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Apply Custom ROM"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.custom_rom_checkbox.SetToolTip(_(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM"))
+        self.custom_rom = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_(u"Select a file"), wildcard=_(u"ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.custom_rom.SetToolTip(_(u"Select Custom ROM"))
+        self.process_rom = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_rom.SetBitmap(images.process_file_24.GetBitmap())
-        self.process_rom.SetToolTip(u"Process the ROM file and extract the boot.img")
+        self.process_rom.SetToolTip(_(u"Process the ROM file and extract the boot.img"))
         custom_rom_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_rom_sizer.Add(window=self.custom_rom, proportion=1, flag=wx.EXPAND)
         custom_rom_sizer.Add(window=self.process_rom, flag=wx.LEFT, border=5)
 
         # 7th row widgets, boot.img related widgets
-        self.select_boot_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Select a boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Show All boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_all_boot_checkBox.SetToolTip(u"Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM")
+        self.select_boot_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Select a boot/init_boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Show All boot/init_boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_all_boot_checkBox.SetToolTip(_(u"Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM"))
         # list control
         if self.CharHeight > 20:
             self.il = wx.ImageList(24, 24)
@@ -3734,14 +3741,14 @@ class PixelFlasher(wx.Frame):
             self.idx1 = self.il.Add(images.patched_16.GetBitmap())
         self.list = wx.ListCtrl(parent=panel, id=-1, size=(-1, self.CharHeight * 6), style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
-        self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(1, 'Source SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(2, 'Package Fingerprint  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(3, 'Patched with Magisk  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(4, 'Patch Method  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(5, 'Patched on Device  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(6, 'Date  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(7, 'Package Path  ', wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(0, _('SHA1  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(1, _('Source SHA1  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(2, _('Package Fingerprint  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(3, _('Patched with Magisk  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(4, _('Patch Method  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(5, _('Patched on Device  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(6, _('Date  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(7, _('Package Path  '), wx.LIST_FORMAT_LEFT, -1)
         self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'), wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         if sys.platform != "win32":
             self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
@@ -3767,27 +3774,27 @@ class PixelFlasher(wx.Frame):
             column_widths.append(self.list.GetColumnWidth(i))
         # Create a new list (will be by value and not by reference)
         self.boot_column_widths = list(column_widths)
-        self.flash_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Flash Boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Flash Boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.flash_boot_button.SetBitmap(images.flash_24.GetBitmap())
-        self.flash_boot_button.SetToolTip(u"Flash just the selected item")
-        self.patch_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Patch", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.flash_boot_button.SetToolTip(_(u"Flash just the selected item"))
+        self.patch_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Patch"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.patch_boot_button.SetBitmap(images.patch_24.GetBitmap())
-        self.patch_boot_button.SetToolTip(u"Patch the selected item")
+        self.patch_boot_button.SetToolTip(_(u"Patch the selected item"))
         self.patch_custom_boot_button = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.patch_custom_boot_button.SetBitmap(images.custom_patch_24.GetBitmap())
-        self.patch_custom_boot_button.SetToolTip(u"Custom Patch\n\nSelect a file from disk to patch, and then save the patched file to disk.\nUse this if you want to patch a manually extracted boot image.")
-        self.delete_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Delete", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.patch_custom_boot_button.SetToolTip(_(u"Custom Patch\n\nSelect a file from disk to patch, and then save the patched file to disk.\nUse this if you want to patch a manually extracted boot image."))
+        self.delete_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Delete"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.delete_boot_button.SetBitmap(images.delete_24.GetBitmap())
-        self.delete_boot_button.SetToolTip(u"Delete the selected item")
-        self.boot_folder_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Open Folder", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.delete_boot_button.SetToolTip(_(u"Delete the selected item"))
+        self.boot_folder_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Open Folder"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.boot_folder_button.SetBitmap(images.folder_24.GetBitmap())
-        self.boot_folder_button.SetToolTip(u"Open boot files folder.")
+        self.boot_folder_button.SetToolTip(_(u"Open boot files folder."))
         self.firmware_folder_button = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.firmware_folder_button.SetBitmap(images.folder_24.GetBitmap())
-        self.firmware_folder_button.SetToolTip(u"Open Working Directory\n\nOpens the firmware working directory.\nUse this if you want to manually run commands from the working directory")
-        self.live_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Live Boot", pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
+        self.firmware_folder_button.SetToolTip(_(u"Open Working Directory\n\nOpens the firmware working directory.\nUse this if you want to manually run commands from the working directory"))
+        self.live_boot_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Live Boot"), pos=wx.DefaultPosition, size=self.flash_boot_button.BestSize, style=0)
         self.live_boot_button.SetBitmap(images.boot_24.GetBitmap())
-        self.live_boot_button.SetToolTip(u"Live boot to the selected item")
+        self.live_boot_button.SetToolTip(_(u"Live boot to the selected item"))
         boot_label_v_sizer = wx.BoxSizer(wx.VERTICAL)
         boot_label_v_sizer.Add(window=self.select_boot_label, flag=wx.ALL, border=0)
         boot_label_v_sizer.AddSpacer(10)
@@ -3809,24 +3816,24 @@ class PixelFlasher(wx.Frame):
         list_sizer.Add(image_buttons_sizer, proportion=0, flag=wx.ALL|wx.EXPAND)
 
         # 8th row widgets (Flash Mode)
-        mode_label = wx.StaticText(panel, label=u"Flash Mode")
+        mode_label = wx.StaticText(panel, label= _(u"Flash Mode"))
         self.mode_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         # _add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
-        _add_mode_radio_button(sizer=self.mode_sizer, index=0, flash_mode='keepData', label="Keep Data", tooltip="Data will be kept intact.")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label="WIPE all data", tooltip="CAUTION: This will wipe your data")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label="Dry Run", tooltip="Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label="Full OTA", tooltip="Flash full OTA, and have the choice of flashing patched image(s).")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label="Custom Flash", tooltip="Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file.")
+        _add_mode_radio_button(sizer=self.mode_sizer, index=0, flash_mode='keepData', label=_("Keep Data"), tooltip=_("Data will be kept intact."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label=_("WIPE all data"), tooltip=_("CAUTION: This will wipe your data"))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label=_("Dry Run"), tooltip=_("Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label=_("Full OTA"), tooltip=_("Flash full OTA, and have the choice of flashing patched image(s)."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label=_("Custom Flash"), tooltip=_("Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\nIt will flash the single selected file."))
 
 
         # 9th row widgets (custom flash)
-        self.live_boot_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=u"Live Boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.RB_GROUP)
+        self.live_boot_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=_(u"Live Boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.RB_GROUP)
         self.live_boot_radio_button.Enable(False)
-        self.live_boot_radio_button.SetToolTip(u"Live Boot to selected boot / init_boot")
-        self.flash_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=u"Flash", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.live_boot_radio_button.SetToolTip(_(u"Live Boot to selected boot / init_boot"))
+        self.flash_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=_(u"Flash"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.flash_radio_button.SetValue(True)
         self.flash_radio_button.Enable(False)
-        self.flash_radio_button.SetToolTip(u"Flashes the selected boot / init_boot")
+        self.flash_radio_button.SetToolTip(_(u"Flashes the selected boot / init_boot"))
         custom_advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_advanced_options_sizer.Add(window=self.live_boot_radio_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         custom_advanced_options_sizer.Add(window=self.flash_radio_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
@@ -3835,10 +3842,10 @@ class PixelFlasher(wx.Frame):
         image_choices = [ u"boot", u"init_boot", u"bootloader", u"cache", u"dtbo", u"dts", u"odm", u"odm_dlkm", u"product", u"pvmfw", u"radio", u"recovery", u"super", u"super_empty", u"system", u"system_dlkm", u"system_ext", u"system_other", u"userdata", u"vbmeta", u"vbmeta_system", u"vbmeta_vendor", u"vendor", u"vendor_boot", u"vendor_dlkm", u"vendor_kernel_boot", u"vendor_other", u"image", u"SIDELOAD" ]
         self.image_choice = wx.Choice(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=image_choices, style=0)
         self.image_choice.SetSelection(-1)
-        self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Flashable files (*.img;*.zip)|*.img;*.zip", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_(u"Select a file"), wildcard=_(u"Flashable files (*.img;*.zip)|*.img;*.zip"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
         self.paste_selection = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.paste_selection.SetBitmap(images.paste_24.GetBitmap())
-        self.paste_selection.SetToolTip(u"Depending on the flash selection, paste the appropriate path as custom image.")
+        self.paste_selection.SetToolTip(_(u"Depending on the flash selection, paste the appropriate path as custom image."))
         custom_flash_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_flash_sizer.Add(window=self.image_choice, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         custom_flash_sizer.Add(window=self.image_file_picker, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
@@ -3846,25 +3853,25 @@ class PixelFlasher(wx.Frame):
 
 
         # 10th row widgets, Flash options
-        self.advanced_options_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Flash Options")
-        self.flash_to_inactive_slot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to inactive slot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.flash_to_inactive_slot_checkBox.SetToolTip(u"This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact.")
-        self.flash_both_slots_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to both slots", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.flash_both_slots_checkBox.SetToolTip(u"This option when checked will flash to both slots.")
-        self.disable_verity_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.disable_verity_checkBox.SetToolTip(u"Disables Verity")
-        self.disable_verification_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verification", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.disable_verification_checkBox.SetToolTip(u"Disables Verification")
-        self.fastboot_force_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Force", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.fastboot_force_checkBox.SetToolTip(u"Force a flash operation that may be unsafe (will wipe your data)")
-        self.fastboot_verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Verbose", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.fastboot_verbose_checkBox.SetToolTip(u"Set fastboot option to verbose")
-        self.temporary_root_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Temporary Root", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if Magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image.")
-        self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"No reboot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
-        self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Wipe", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.wipe_checkBox.SetToolTip(u"This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.")
+        self.advanced_options_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Flash Options"))
+        self.flash_to_inactive_slot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Flash to inactive slot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_to_inactive_slot_checkBox.SetToolTip(_(u"This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact."))
+        self.flash_both_slots_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Flash to both slots"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_both_slots_checkBox.SetToolTip(_(u"This option when checked will flash to both slots."))
+        self.disable_verity_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Disable Verity"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verity_checkBox.SetToolTip(_(u"Disables Verity"))
+        self.disable_verification_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Disable Verification"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verification_checkBox.SetToolTip(_(u"Disables Verification"))
+        self.fastboot_force_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Force"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.fastboot_force_checkBox.SetToolTip(_(u"Force a flash operation that may be unsafe (will wipe your data)"))
+        self.fastboot_verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Verbose"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.fastboot_verbose_checkBox.SetToolTip(_(u"Set fastboot option to verbose"))
+        self.temporary_root_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Temporary Root"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.temporary_root_checkBox.SetToolTip(_(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if Magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image."))
+        self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"No reboot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.no_reboot_checkBox.SetToolTip(_(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot."))
+        self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Wipe"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.wipe_checkBox.SetToolTip(_(u"This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time."))
         self.advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -3877,21 +3884,21 @@ class PixelFlasher(wx.Frame):
         self.advanced_options_sizer.Add(window=self.wipe_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         # 11th row widgets, Flash button
-        self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Pixel Phone", pos=wx.DefaultPosition, size=wx.Size(-1, 50))
+        self.flash_button = wx.Button(parent=panel, id=-1, label=_("Flash Pixel Phone"), pos=wx.DefaultPosition, size=wx.Size(-1, 50))
         self.flash_button.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.flash_button.SetToolTip(u"Flashes the selected device with chosen flash options.")
+        self.flash_button.SetToolTip(_(u"Flashes the selected device with chosen flash options."))
         self.flash_button.SetBitmap(images.flash_32.GetBitmap())
 
         # 12th row widgets, console
-        console_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Console", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        console_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Console"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spinner = wx.ActivityIndicator(panel, -1, size=(100, 100), style=0)
-        self.spinner_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Please be patient ...", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spinner_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_(u"Please be patient ..."), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spinner_label.SetForegroundColour((255,0,0))
         self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Support", size=wx.Size(-1, 50), style=0)
+        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_(u"Support"), size=wx.Size(-1, 50), style=0)
         self.support_button.SetBitmap(images.support_24.GetBitmap())
         self.support_button.SetBitmapMargins(wx.Size(10, -1))
-        self.support_button.SetToolTip(u"Create sanitized support.zip file\nAll sensitive data is redacted.\n\nThis if absolutely required when asking for help.")
+        self.support_button.SetToolTip(_(u"Create sanitized support.zip file\nAll sensitive data is redacted.\n\nThis if absolutely required when asking for help."))
         console_v_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL, border=0)
         console_v_sizer.AddSpacer(40)
@@ -3912,9 +3919,9 @@ class PixelFlasher(wx.Frame):
                 self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
         # 13th row widgets, debug and clear button
-        self.verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Debug", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.verbose_checkBox.SetToolTip(u"Enable Debug Messages in the console.")
-        clear_button = wx.Button(parent=panel, id=-1, label="Clear Console", pos=wx.DefaultPosition)
+        self.verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_(u"Debug"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.verbose_checkBox.SetToolTip(_(u"Enable Debug Messages in the console."))
+        clear_button = wx.Button(parent=panel, id=-1, label=_("Clear Console"), pos=wx.DefaultPosition)
 
         # add the rows to flexgrid
         fgs1.AddMany([
@@ -4037,7 +4044,7 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
         self.ResetLocale()
         wx.SystemOptions.SetOption("mac.window-plain-transition", 1)
         self.SetAppName("PixelFlasher")
-        print(f"global_args.config: {self.global_args.config}")
+        print(_(f"global_args.config: {self.global_args.config}"))
 
         if self.global_args.config:
             init_config_path(self.global_args.config)
@@ -4082,9 +4089,9 @@ class GlobalArgs():
 # ============================================================================
 def parse_arguments():
     # sourcery skip: inline-immediately-returned-variable
-    parser = argparse.ArgumentParser(description="Process command-line arguments")
-    parser.add_argument("-c", "--config", help="Path to the configuration file")
-    parser.add_argument("-l", "--console", action="store_true", help="Log to console as well")
+    parser = argparse.ArgumentParser(description=_("Process command-line arguments"))
+    parser.add_argument("-c", "--config", help=_("Path to the configuration file"))
+    parser.add_argument("-l", "--console", action="store_true", help=_("Log to console as well"))
     args  = parser.parse_args()
     return args
 
@@ -4100,11 +4107,11 @@ def open_device_image_download_link(url):
                 hardware = device.hardware
             else:
                 hardware = ''
-        print(f"Launching browser for Google image download URL: {url}#{hardware}")
+        print(_(f"Launching browser for Google image download URL: %s#%s") % (url, hardware))
         webbrowser.open_new(f"{url}#{hardware}")
         puml(f":Open Link;\nnote right\n=== {hardware} Firmware Link\n[[{url}#{hardware}]]\nend note\n", True)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware link")
+        print(_(f"\n%s ERROR: Encountered an error while opening firmware link") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         traceback.print_exc()
 
 # ============================================================================
@@ -4128,7 +4135,7 @@ def main():
         global_args = parse_arguments()
     except SystemExit:
         # Handle the case where parsing arguments fails
-        print("Failed to parse command-line arguments.")
+        print(_("Failed to parse command-line arguments."))
         return
 
     app = App(global_args, False)

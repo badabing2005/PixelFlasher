@@ -2,7 +2,7 @@
 
 import webbrowser
 from urllib.parse import urlparse
-
+import gettext
 import pyperclip
 import darkdetect
 import markdown
@@ -15,6 +15,7 @@ import wx.lib.wxpTag
 import images as images
 from runtime import *
 
+_ = gettext.gettext
 
 # ============================================================================
 #                               Class HtmlWindow
@@ -37,7 +38,7 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 class MagiskDownloads(wx.Dialog):
     def __init__(self, *args, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs)
-        self.SetTitle("Download and Install Magisk")
+        self.SetTitle(_("Download and Install Magisk"))
         self.url =  None
         self.channel = None
         self.version = None
@@ -52,7 +53,7 @@ class MagiskDownloads(wx.Dialog):
 
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
-        self.message_label.Label = "Select Magisk version to install."
+        self.message_label.Label = _("Select Magisk version to install.")
         if sys.platform == "win32":
             self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
 
@@ -75,11 +76,11 @@ class MagiskDownloads(wx.Dialog):
         device = get_phone()
         apks = device.magisk_apks
 
-        self.list.InsertColumn(0, 'Channel', width = -1)
-        self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(2, 'VersionCode', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(3, 'URL', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(4, 'Package', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(0, _('Channel'), width = -1)
+        self.list.InsertColumn(1, _('Version'), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(2, _('VersionCode'), wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(3, _('URL'), wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(4, _('Package'), wx.LIST_FORMAT_LEFT,  -1)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
@@ -127,11 +128,11 @@ class MagiskDownloads(wx.Dialog):
 
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
-        self.install_button = wx.Button(self, wx.ID_ANY, u"Install", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.install_button.SetToolTip(u"WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install.")
+        self.install_button = wx.Button(self, wx.ID_ANY, _(u"Install"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.install_button.SetToolTip(_(u"WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install."))
         self.install_button.Enable(False)
         buttons_sizer.Add(self.install_button, 0, wx.ALL, 20)
-        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.cancel_button = wx.Button(self, wx.ID_ANY, _(u"Cancel"), wx.DefaultPosition, wx.DefaultSize, 0)
         buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 20)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
@@ -159,8 +160,8 @@ class MagiskDownloads(wx.Dialog):
         a = self.list.GetViewRect()
         self.SetSize(vSizer.MinSize.Width + 80, vSizer.MinSize.Height + 420)
 
-        print("\nOpening Magisk Downloader/Installer ...")
-        puml(f":Open Magisk Downloader/Installer;\n", True)
+        print(_("\nOpening Magisk Downloader/Installer ..."))
+        puml(_(f":Open Magisk Downloader/Installer;\n"), True)
 
 
     # -----------------------------------------------
@@ -168,8 +169,8 @@ class MagiskDownloads(wx.Dialog):
     # -----------------------------------------------
     def _onItemSelected(self, event):
         self.currentItem = event.Index
-        print(f"Magisk {self.list.GetItemText(self.currentItem)} is selected.")
-        puml(f":Select Magisk {self.list.GetItemText(self.currentItem)};\n")
+        print(_(f"Magisk %s is selected.") % self.list.GetItemText(self.currentItem))
+        puml(_(f":Select Magisk {self.list.GetItemText(self.currentItem)};\n"))
         event.Skip()
 
     # -----------------------------------------------
@@ -200,8 +201,8 @@ class MagiskDownloads(wx.Dialog):
 
         # build the menu
         menu = wx.Menu()
-        menu.Append(self.popupCopyURL, "Copy URL to Clipboard")
-        menu.Append(self.popupCopyPackageId, "Copy Package ID to Clipboard")
+        menu.Append(self.popupCopyURL, _("Copy URL to Clipboard"))
+        menu.Append(self.popupCopyPackageId, _("Copy Package ID to Clipboard"))
 
         # Popup the menu.  If an item is selected then its handler
         # will be called before PopupMenu returns.
@@ -232,7 +233,7 @@ class MagiskDownloads(wx.Dialog):
     #                  _onCancel
     # -----------------------------------------------
     def _onCancel(self, e):
-        puml(f":Cancelled Magisk Downloader/Installer;\n", True)
+        puml(_(f":Cancelled Magisk Downloader/Installer;\n"), True)
         self.EndModal(wx.ID_CANCEL)
 
     # -----------------------------------------------
@@ -278,39 +279,39 @@ class MagiskDownloads(wx.Dialog):
     # -----------------------------------------------
     def _onOk(self, e):
         proceed = True
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+        print(_(f"%s User Pressed Ok.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         filename = f"magisk_{self.version}_{self.versionCode}.apk"
         device = get_phone()
         if 'Namelesswonder' in self.url and not device.has_init_boot:
-            print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
-            print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.")
-            print("         See details at: https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")
+            print(_(f"WARNING: The selected Magisk is not supported for your device: ") % device.hardware)
+            print(_("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported."))
+            print(_("         See details at: https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/"))
 
-            title = "Device Not Supported"
-            message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
-            message += "The selected Magisk is not supported for your device\n"
-            message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
-            message += "Unless you know what you are doing, if you choose to continue\n"
-            message += "you risk running into serious issues, proceed only if you are absolutely\n"
-            message += "certian that this is what you want, you have been warned.\n\n"
-            message += "Click OK to accept and continue.\n"
-            message += "or Hit CANCEL to abort."
+            title = _("Device Not Supported")
+            message =  _(f"ERROR: Your phone model is: %s\n\n") % device.hardware
+            message += _("The selected Magisk is not supported for your device\n")
+            message += _("Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n")
+            message += _("Unless you know what you are doing, if you choose to continue\n")
+            message += _("you risk running into serious issues, proceed only if you are absolutely\n")
+            message += _("certian that this is what you want, you have been warned.\n\n")
+            message += _("Click OK to accept and continue.\n")
+            message += _("or Hit CANCEL to abort.")
             print(f"\n*** Dialog ***\n{message}\n______________\n")
             # puml(":Dialog;\n")
             # puml(f"note right\n{message}\nend note\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:
-                print("User pressed ok.")
+                print(_("User pressed ok."))
                 # puml(":User Pressed OK;\n")
             else:
-                print("User pressed cancel.")
-                print("Aborting ...\n")
+                print(_("User pressed cancel."))
+                print(_("Aborting ...\n"))
                 # puml("#pink:User Pressed Cancel to abort;\n}\n")
                 proceed = False
         if proceed:
             self._on_spin('start')
-            print(f"Downloading Magisk: {self.channel} version: {self.version} versionCode: {self.versionCode} ...")
+            print(_(f"Downloading Magisk: %s version: %s versionCode: %s ...") % (self.channel, self.version, self.versionCode))
             download_file(self.url, filename)
             config_path = get_config_path()
             app = os.path.join(config_path, 'tmp', filename)

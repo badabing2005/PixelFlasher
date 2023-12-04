@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import gettext
 import sys
 
 import wx
@@ -7,12 +8,14 @@ import wx.stc as stc
 
 from runtime import *
 
+_ = gettext.gettext
+
 # ============================================================================
 #                               Class FileEditor
 # ============================================================================
 class FileEditor(wx.Dialog):
     def __init__(self, parent, file_path, language='batch', width=1500, height=600):
-        super().__init__(parent=parent, title="File Editor", style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(width, height))
+        super().__init__(parent=parent, title=_("File Editor"), style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(width, height))
 
         self.file_path = file_path
         self.language = language
@@ -76,18 +79,18 @@ class FileEditor(wx.Dialog):
         font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.text_ctrl.StyleSetFont(wx.stc.STC_STYLE_DEFAULT, font)
 
-        self.open_folder = wx.Button(self, label="Open Folder")
-        self.open_shell = wx.Button(self, label="Open Shell")
-        self.save_button = wx.Button(self, label="Save and Continue")
-        self.cancel_button = wx.Button(self, label="Cancel and Abort")
+        self.open_folder = wx.Button(self, label=_("Open Folder"))
+        self.open_shell = wx.Button(self, label=_("Open Shell"))
+        self.save_button = wx.Button(self, label=_("Save and Continue"))
+        self.cancel_button = wx.Button(self, label=_("Cancel and Abort"))
         if sys.platform in ["win32", "darwin"]:
-            self.open_folder.SetToolTip(u"Open Folder in working directory")
-            self.open_shell.SetToolTip(u"Open command shell in working directory")
+            self.open_folder.SetToolTip(_(u"Open Folder in working directory"))
+            self.open_shell.SetToolTip(_(u"Open command shell in working directory"))
         else:
-            self.open_folder.SetToolTip(u"Open Folder in working directory\nNote: PF_FILEMANAGER needs to be set.")
-            self.open_shell.SetToolTip(u"Open Terminal shell in working directory")
-        self.save_button.SetToolTip(u"Save the file and continue.")
-        self.cancel_button.SetToolTip(u"Cancel and Abort.")
+            self.open_folder.SetToolTip(_(u"Open Folder in working directory\nNote: PF_FILEMANAGER needs to be set."))
+            self.open_shell.SetToolTip(_(u"Open Terminal shell in working directory"))
+        self.save_button.SetToolTip(_(u"Save the file and continue."))
+        self.cancel_button.SetToolTip(_(u"Cancel and Abort."))
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.text_ctrl, proportion=1, flag=wx.EXPAND|wx.ALL, border=10)

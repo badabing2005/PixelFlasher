@@ -1744,7 +1744,7 @@ add_hosts_module
             source = remove_quotes(source)
             dest = remove_quotes(dest)
             print(f"Copying {source} to {dest} ...")
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\"\'\""
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\";chmod 666 \"{dest}\"\'\""
             res = run_shell(theCmd)
             if res.returncode == 0:
                 print("Return Code: 0")

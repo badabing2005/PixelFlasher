@@ -44,8 +44,8 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 # ============================================================================
 class MagiskModules(wx.Dialog):
     def __init__(self, *args, **kwargs):
-        wx.Dialog.__init__(self, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(1400, 1050))
-        self.SetTitle(_("Manage Magisk"))
+        wx.Dialog.__init__(self, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(1600, 1200))
+        self.SetTitle((_"Manage Magisk"))
         self.pif_json_path = PIF_JSON_PATH
 
         # Instance variable to store current selected module
@@ -560,7 +560,7 @@ class MagiskModules(wx.Dialog):
                 # we need to create one.
                 with open(pif_prop, 'w') as file:
                     pass
-            dlg = FileEditor(self, pif_prop, "json", width=1200, height=400)
+            dlg = FileEditor(self.Parent, pif_prop, "json", width=1200, height=400)
             dlg.CenterOnParent()
             result = dlg.ShowModal()
             dlg.Destroy()

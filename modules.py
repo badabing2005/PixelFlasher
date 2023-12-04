@@ -78,7 +78,7 @@ def check_platform_tools(self):
             adb = os.path.join(self.config.platform_tools_path, adb_binary)
             fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
             if os.path.exists(fastboot) and os.path.exists(adb):
-                print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Selected Platform Tools Path:\n{self.config.platform_tools_path}."))
+                print(_(f"\n%s Selected Platform Tools Path:\n%s.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S")), self.config.platform_tools_path)
                 adb = os.path.join(self.config.platform_tools_path, adb_binary)
                 fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
                 set_adb(adb)
@@ -86,17 +86,17 @@ def check_platform_tools(self):
                 set_adb_sha256(sha256(adb))
                 set_fastboot_sha256(sha256(fastboot))
                 res = identify_sdk_version(self)
-                print(_(f"SDK Version:      {get_sdk_version()}"))
-                print(_(f"Adb SHA256:       {get_adb_sha256()}"))
-                print(_(f"Fastboot SHA256:  {get_fastboot_sha256()}"))
-                puml(_(f":Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:{get_sdk_version()}\n"))
+                print(_(f"SDK Version:      %s") % get_sdk_version())
+                print(_(f"Adb SHA256:       %s") % get_adb_sha256())
+                print(_(f"Fastboot SHA256:  %s") % get_fastboot_sha256())
+                puml(_(f":Selected Platform Tools;\nnote left: %s\nnote right:%s\n") % (self.config.platform_tools_path, get_sdk_version()))
                 if res == -1:
                     return -1
                 set_android_product_out(self.config.platform_tools_path)
                 return
             else:
-                print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected path {self.config.platform_tools_path} does not have adb and or fastboot"))
-                puml(_(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:The selected path does not have adb and or fastboot\n"))
+                print(_(f"\n%s ERROR: The selected path %s does not have adb and or fastboot") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), self.config.platform_tools_path))
+                puml(_(f"#red:Selected Platform Tools;\nnote left: %s\nnote right:The selected path does not have adb and or fastboot\n") % self.config.platform_tools_path)
                 self.config.platform_tools_path = None
                 set_adb(None)
                 set_fastboot(None)
@@ -104,7 +104,7 @@ def check_platform_tools(self):
             print(_("Android Platform Tools is not found."))
     except Exception as e:
         traceback.print_exc()
-        print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for platform tools."))
+        print(_(f"\n%s ERROR: Encountered an error while checking for platform tools.") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     with contextlib.suppress(Exception):
         if self.config.platform_tools_path:
@@ -270,7 +270,7 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
         # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
         self.process_firmware.SetFocus()
     except Exception as e:
-        print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating boot list"))
+        print(_(f"\n%s ERROR: Encountered an error while populating boot list") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         puml(_("#red:Encountered an error while populating boot list;\n"))
         traceback.print_exc()
 
@@ -297,7 +297,7 @@ def auto_resize_boot_list(self):
         available_width = self.list.BestVirtualSize.Width - cw - 10
         self.list.SetColumnWidth(self.list.ColumnCount - 1, available_width)
     except Exception as e:
-        print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while auto resizing boot list"))
+        print(_(f"\n%s ERROR: Encountered an error while auto resizing boot list") % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         puml(_("#red:Encountered an error while auto resizing boot list;\n"))
         traceback.print_exc()
 
@@ -324,9 +324,9 @@ def identify_sdk_version(self):
                             # If version is old treat it as bad SDK
                             sdkver = sdk_version.split("-")[0]
                             if parse(sdkver) < parse(SDKVERSION) or (sdkver in ('34.0.0', '34.0.1', '34.0.2', '34.0.3')):
-                                print(_(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected old or problematic Android Platform Tools version {sdk_version}"))
+                                print(_(f"\n%s ERROR: Detected old or problematic Android Platform Tools version %s") % ( datetime.now().strftime("%Y-%m-%d %H:%M:%S"), sdk_version))
                                 # confirm if you want to use older version
-                                dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest known good version to avoid any issues.\n(Android Platform-Tools version 33.0.3 is known to be good).\n\nAre you sure want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+                                dlg = wx.MessageDialog(None, _(f"You have an old or problematic Android platform Tools version %s\nYou are strongly advised to update to the latest known good version to avoid any issues.\n(Android Platform-Tools version 33.0.3 is known to be good).\n\nAre you sure want to continue?") % sdk_version,_('Bad Android Platform Tools'),wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
                                 result = dlg.ShowModal()
                                 puml(_(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n"))
                                 if result == wx.ID_YES:
@@ -3369,10 +3369,10 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     ### Done
     endFlash = time.time()
     print(_(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds"))
-    print(_("------------------------------------------------------------------------------\n"))
+    print("------------------------------------------------------------------------------\n")
     puml(_("#cee7ee:End Flashing;\n"), True)
     puml(_(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n"))
     self.toast(_("Flash action", f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds"))
-    puml(_("}\n"))
+    puml("}\n")
     os.chdir(cwd)
     return 0

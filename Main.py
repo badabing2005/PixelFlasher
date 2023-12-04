@@ -3823,7 +3823,7 @@ class PixelFlasher(wx.Frame):
         _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label=_("WIPE all data"), tooltip=_("CAUTION: This will wipe your data"))
         _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label=_("Dry Run"), tooltip=_("Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing."))
         _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label=_("Full OTA"), tooltip=_("Flash full OTA, and have the choice of flashing patched image(s)."))
-        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label=_("Custom Flash"), tooltip=_("Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label=_("Custom Flash"), tooltip=_("Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\nIt will flash the single selected file."))
 
 
         # 9th row widgets (custom flash)

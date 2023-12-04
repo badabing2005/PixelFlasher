@@ -78,7 +78,7 @@ def check_platform_tools(self):
             adb = os.path.join(self.config.platform_tools_path, adb_binary)
             fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
             if os.path.exists(fastboot) and os.path.exists(adb):
-                print(_(f"\n%s Selected Platform Tools Path:\n%s.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S")), self.config.platform_tools_path)
+                print(_(f"\n%s Selected Platform Tools Path:\n%s.") % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), self.config.platform_tools_path))
                 adb = os.path.join(self.config.platform_tools_path, adb_binary)
                 fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
                 set_adb(adb)
@@ -1966,7 +1966,7 @@ def patch_boot_img(self, custom_patch = False):
                     puml(_(f":Found Magisk Manager;\nnote right:version {magisk_app_version}\n"), True)
                     method = 2  # app
                 else:
-                    print(_("Magisk Manager is still not detected.\n\Aborting ...\n"))
+                    print(_("Magisk Manager is still not detected.\nAborting ...\n"))
                     puml(_("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n"), True)
                     return
             except Exception:

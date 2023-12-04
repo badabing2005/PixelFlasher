@@ -790,66 +790,67 @@ class MagiskModules(wx.Dialog):
             print(_(f"\nSelected %s for processing.") % pathname)
             try:
                 self._on_spin('start')
-                ro_product_name = ''
-                ro_product_device = ''
-                ro_product_manufacturer = ''
-                ro_product_brand = ''
-                ro_product_model = ''
-                ro_build_fingerprint = ''
-                ro_build_version_security_patch = ''
-                ro_product_first_api_level = ''
-                ro_build_version_release = ''
-                ro_build_id = ''
-                ro_build_version_incremental = ''
-                ro_build_type = ''
-                ro_build_tags = ''
-
                 with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
-                    contents = f.read()
-                for line in contents.split("\n"):
-                    if line[:1] == "#":
-                        continue
+                    content = f.readlines()
 
-                    if 'ro.product.name' in line :
-                        ro_product_name = self.extract_prop('ro.product.name', line.strip())
+                contentList = [x.strip().split('#')[0].split('=', 1) for x in content if '=' in x.split('#')[0]]
+                contentDict = dict(contentList)
+                for k, v in contentList:
+                    for x in v.split('$')[1:]:
+                        key = re.findall(r'\w+', x)[0]
+                        v = v.replace(f'${key}', contentDict[key])
+                    contentDict[k] = v.strip()
 
-                    elif 'ro.product.device' in line :
-                        ro_product_device = self.extract_prop('ro.product.device', line.strip())
+                # PRODUCT
+                keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name']
+                ro_product_name = get_first_match(contentDict, keys)
 
-                    elif 'ro.product.manufacturer' in line :
-                        ro_product_manufacturer = self.extract_prop('ro.product.manufacturer', line.strip())
+                # DEVICE
+                keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device']
+                ro_product_device = get_first_match(contentDict, keys)
 
-                    elif 'ro.product.brand' in line :
-                        ro_product_brand = self.extract_prop('ro.product.brand', line.strip())
+                # MANUFACTURER
+                keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer']
+                ro_product_manufacturer = get_first_match(contentDict, keys)
 
-                    elif 'ro.product.mode' in line :
-                        ro_product_model = self.extract_prop('ro.product.mode', line.strip())
+                # BRAND
+                keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand']
+                ro_product_brand = get_first_match(contentDict, keys)
 
-                    elif 'ro.build.fingerprint' in line :
-                        ro_build_fingerprint = self.extract_prop('ro.build.fingerprint', line.strip())
+                # MODEL
+                keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model']
+                ro_product_model = get_first_match(contentDict, keys)
 
-                    elif 'ro.build.version.security_patch' in line :
-                        ro_build_version_security_patch = self.extract_prop('ro.build.version.security_patch', line.strip())
+                # FINGERPRINT
+                keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint']
+                ro_build_fingerprint = get_first_match(contentDict, keys)
 
-                    elif 'ro.product.first_api_level' in line :
-                        ro_product_first_api_level = self.extract_prop('ro.product.first_api_level', line.strip())
+                # SECURITY_PATCH
+                keys = ['ro.build.version.security_patch']
+                ro_build_version_security_patch = get_first_match(contentDict, keys)
 
-                    elif 'ro.build.version.release' in line :
-                        ro_build_version_release = self.extract_prop('ro.build.version.release', line.strip())
-
-                    elif 'ro.build.id' in line :
-                        ro_build_id = self.extract_prop('ro.build.id', line.strip())
-
-                    elif 'ro.build.version.incremental' in line :
-                        ro_build_version_incremental = self.extract_prop('ro.build.version.incremental', line.strip())
-
-                    elif 'ro.build.type' in line :
-                        ro_build_type = self.extract_prop('ro.build.type', line.strip())
-
-                    elif 'ro.build.tags' in line :
-                        ro_build_tags = self.extract_prop('ro.build.tags', line.strip())
+                # FIRST_API_LEVEL
+                keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
+                ro_product_first_api_level = get_first_match(contentDict, keys)
+                if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
+                    ro_product_first_api_level = '32'
 
                 if ro_build_fingerprint is None:
+                    keys = ['ro.build.version.release']
+                    ro_build_version_release = get_first_match(contentDict, keys)
+
+                    keys = ['ro.build.id']
+                    ro_build_id = get_first_match(contentDict, keys)
+
+                    keys = ['ro.build.version.incremental']
+                    ro_build_version_incremental = get_first_match(contentDict, keys)
+
+                    keys = ['ro.build.type']
+                    ro_build_type = get_first_match(contentDict, keys)
+
+                    keys = ['ro.build.tags']
+                    ro_build_tags = get_first_match(contentDict, keys)
+
                     ro_build_fingerprint = f"{ro_product_brand}/{ro_product_name}/{ro_product_device}:{ro_build_version_release}/{ro_build_id}/{ro_build_version_incremental}:{ro_build_type}/{ro_build_tags}"
 
                 donor_print = "{\n"

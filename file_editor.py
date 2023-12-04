@@ -155,5 +155,5 @@ class FileEditor(wx.Dialog):
     def _on_resize(self, event):
         width = self.Rect.Width
         height = self.Rect.Height
-        print(_(f"width: {width}\nheight: {height}"))
+        print(f"width: {width}\nheight: {height}")
         event.Skip(True)

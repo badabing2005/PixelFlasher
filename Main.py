@@ -252,26 +252,27 @@ class PixelFlasher(wx.Frame):
                     set_firmware_model(None)
                     set_firmware_id(filename)
             set_ota(self, self.config.firmware_is_ota)
-            if self.config.firmware_sha256:
-                print("Using previously stored firmware SHA-256 ...")
-                firmware_hash = self.config.firmware_sha256
-            else:
-                print("Computing firmware SHA-256 ...")
-                firmware_hash = sha256(self.config.firmware_path)
-                self.config.firmware_sha256 = firmware_hash
-            print(f"Firmware SHA-256: {firmware_hash}")
-            self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
-            # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
-            if firmware_hash[:8] in self.config.firmware_path:
-                print(f"Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
-                puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
-                # self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
-                set_firmware_hash_validity(True)
-            else:
-                print(f"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
-                puml("#orange:Unable to match the checksum in the filename;\n")
-                self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
-                set_firmware_hash_validity(False)
+            if self.config.check_for_firmware_hash_validity:
+                if self.config.firmware_sha256:
+                    print("Using previously stored firmware SHA-256 ...")
+                    firmware_hash = self.config.firmware_sha256
+                else:
+                    print("Computing firmware SHA-256 ...")
+                    firmware_hash = sha256(self.config.firmware_path)
+                    self.config.firmware_sha256 = firmware_hash
+                print(f"Firmware SHA-256: {firmware_hash}")
+                self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
+                # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
+                if firmware_hash[:8] in self.config.firmware_path:
+                    print(f"Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
+                    puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
+                    # self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
+                    set_firmware_hash_validity(True)
+                else:
+                    print(f"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
+                    puml("#orange:Unable to match the checksum in the filename;\n")
+                    self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                    set_firmware_hash_validity(False)
 
         # check platform tools
         res_sdk = check_platform_tools(self)
@@ -802,6 +803,10 @@ class PixelFlasher(wx.Frame):
         self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif pirnt")
         self.pif_info_menu_item.SetBitmap(images.json_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pif_info, self.pif_info_menu_item)
+        # Dump Screen XML Menu
+        self.xml_view_menu_item = device_menu.Append(wx.ID_ANY, "Dump Screen XML", "Use uiautomator to dump the screen view in xml")
+        self.xml_view_menu_item.SetBitmap(images.xml_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_xml_view, self.xml_view_menu_item)
         # # Verity / Verification Menu
         # self.verity_menu_item = device_menu.Append(wx.ID_ANY, "Verity / Verification Status", "Check Verity / Verification Status")
         # self.verity_menu_item.SetBitmap(images.shield_24.GetBitmap())
@@ -1581,6 +1586,22 @@ class PixelFlasher(wx.Frame):
             notification.Show()
 
     # -----------------------------------------------
+    #                  _on_xml_view
+    # -----------------------------------------------
+    def _on_xml_view(self, event):
+        self._on_spin('start')
+        timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Dump Screen Xml")
+        with wx.FileDialog(self, "Dump Screen Xml", '', f"screen_dump_{timestr}.xml", wildcard="Screen Dump (*.xml)|*.xml",
+                        style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return     # the user changed their mind
+            pathname = fileDialog.GetPath()
+            device = get_phone()
+            device.ui_action(f"/data/local/tmp/screen_dump_{timestr}.xml", pathname)
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  Test
     # -----------------------------------------------
     def Test(self, event):
@@ -2112,6 +2133,7 @@ class PixelFlasher(wx.Frame):
                 self.scrcpy_menu_item:                  ['device_attached', 'scrcpy_path_is_set'],
                 self.device_info_menu_item:             ['device_attached'],
                 self.pif_info_menu_item:                ['device_attached'],
+                self.xml_view_menu_item:                ['device_attached'],
                 self.push_menu:                         ['device_attached'],
                 self.push_file_to_tmp_menu:             ['device_attached'],
                 self.push_file_to_download_menu:        ['device_attached'],
@@ -2947,7 +2969,7 @@ class PixelFlasher(wx.Frame):
     def _on_magisk(self, event):
         self._on_spin('start')
         try:
-            dlg = MagiskModules(self)
+            dlg = MagiskModules(parent=self, config=self.config)
         except Exception:
             traceback.print_exc()
             self._on_spin('stop')
@@ -4052,8 +4074,8 @@ class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
 
         if inspector:
             frame = PixelFlasher(None, "PixelFlasher")
-            # frame.SetClientSize(frame.FromDIP(wx.Size(WIDTH, HEIGHT)))
-            # frame.SetClientSize(wx.Size(WIDTH, HEIGHT))
+            # frame.SetClientSize(frame.FromDIP(wx.Size(MAIN_WIDTH, MAIN_HEIGHT)))
+            # frame.SetClientSize(wx.Size(MAIN_WIDTH, MAIN_HEIGHT))
             frame.Show()
         else:
             # Create and show the splash screen.  It will then create and

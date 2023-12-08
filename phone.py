@@ -2227,20 +2227,47 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def click(self, coords):
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not click. Device is not in ADB mode.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Device is not in ADB mode.")
+            return -1
+        if coords is None or coords == '' or coords == -1:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Coordinates are [{coords}]")
             return -1
         try:
-            print(f"click {coords} on the device ...")
+            print(f"tap {coords} on the device ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell input tap {coords}"
             res = run_shell(theCmd)
             if res.returncode == 0:
                 return 0
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: click failed.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: tap failed.")
             print(res.stderr)
             return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: click failed.")
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: tap failed.")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method swipe
+    # ----------------------------------------------------------------------------
+    def swipe(self, coords):
+        if self.mode != 'adb':
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not swipe. Device is not in ADB mode.")
+            return -1
+        if coords is None or coords == '' or coords == -1:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not swipe. Coordinates are [{coords}]")
+            return -1
+        try:
+            print(f"swipe {coords} on the device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell input swipe {coords}"
+            res = run_shell(theCmd)
+            if res.returncode == 0:
+                return 0
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: swipe failed.")
+            print(res.stderr)
+            return -1
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: swipe failed.")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -3141,6 +3168,55 @@ This is a special Magisk build\n\n
             return 'UNKNOWN'
 
     # ----------------------------------------------------------------------------
+    #                               Method get_wm_size
+    # ----------------------------------------------------------------------------
+    def get_wm_size(self):
+        try:
+            if self.mode != 'adb' and get_adb():
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
+                return -1
+            print(f"Getting device resolution ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell wm size"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            if res.returncode != 0:
+                return -1
+            lines = (f"{res.stdout}").splitlines()
+            for line in lines:
+                if "Physical size:" in line:
+                    value = line.split("Physical size:")[1].strip()
+                    return value
+            return -1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_wm_size")
+            puml("#red:Encountered an error in get_wm_size;\n")
+            traceback.print_exc()
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method swipe_up
+    # ----------------------------------------------------------------------------
+    def swipe_up(self, percentage=10):
+        try:
+            if self.mode != 'adb' and get_adb():
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
+                return -1
+            print(f"Swipe up ...")
+            wm_size = self.get_wm_size()
+            x,y = wm_size.split('x')
+            coords = f"{int(x) / 2} {int(int(y) * (1 - (percentage / 100)))} {int(x) / 2} {int(int(y) * percentage / 100)}"
+            debug(f"coord: {coords}")
+            res = self.swipe(coords)
+            if res != 0:
+                return -1
+            return coords
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_wm_size")
+            puml("#red:Encountered an error in get_wm_size;\n")
+            traceback.print_exc()
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method set_active
     # ----------------------------------------------------------------------------
     def set_active_slot(self, slot):
@@ -3527,15 +3603,22 @@ This is a special Magisk build\n\n
 
             coords = -1
             if look_for is not None:
-                # get bounds
-                coords = get_ui_cooridnates(local_file, look_for)
-
-                # Check for Display being locked again
-                if not self.is_display_unlocked():
-                    print("ERROR: The device display is Locked!\n")
-                    return -1
+                if look_for == "PixelFlasher_Playstore":
+                    coords = get_playstore_user_coords(local_file)
+                else:
+                    # get bounds
+                    coords = get_ui_cooridnates(local_file, look_for)
 
                 if click:
+                    if coords is None or coords == '' or coords == -1:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Coordinates are [{coords}]")
+                        return -1
+
+                    # Check for Display being locked again
+                    if not self.is_display_unlocked():
+                        print("ERROR: The device display is Locked!\n")
+                        return -1
+
                     # Click on coordinates
                     res = self.click(coords)
                     if res == -1:
@@ -3555,7 +3638,6 @@ This is a special Magisk build\n\n
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing ui action")
             puml("#red:Encountered an error while performing ui action;\n")
             traceback.print_exc()
-
 
     # ----------------------------------------------------------------------------
     #                               method perform_package_action

@@ -7,8 +7,10 @@ import html
 import images as images
 import darkdetect
 import markdown
+import re
 import wx.html
 import webbrowser
+from datetime import datetime
 from file_editor import FileEditor
 from runtime import *
 
@@ -42,8 +44,15 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 #                               Class MagiskModules
 # ============================================================================
 class MagiskModules(wx.Dialog):
-    def __init__(self, *args, **kwargs):
-        wx.Dialog.__init__(self, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(1600, 1200))
+    def __init__(self, *args, parent=None, config=None, **kwargs):
+        if config:
+            size = (config.magisk_width, config.magisk_height)
+        else:
+            size=(MAGISK_WIDTH, MAGISK_HEIGHT)
+
+        wx.Dialog.__init__(self, parent, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=size)
+
+        self.config = config
         self.SetTitle("Manage Magisk")
         self.pif_json_path = PIF_JSON_PATH
 
@@ -121,7 +130,7 @@ class MagiskModules(wx.Dialog):
         self.process_build_prop_button.SetToolTip(u"Process build.prop to extract pif.json.")
 
         # option button PI Selectedion
-        self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker"], style=wx.RA_VERTICAL)
+        self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store"], style=wx.RA_VERTICAL)
 
         # Play Integrity API Checkerbutton
         self.pi_checker_button = wx.Button(self, wx.ID_ANY, u"Play Integrity Check", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -246,6 +255,7 @@ class MagiskModules(wx.Dialog):
         self.pi_option.Bind(wx.EVT_RADIOBOX, self.onPiSelection)
         self.html.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
         self.list.Bind(wx.EVT_LEFT_DOWN, self.onModuleSelection)
+        self.Bind(wx.EVT_SIZE, self.OnResize)
 
         # Autosize the dialog
         # self.list.PostSizeEventToParent()
@@ -293,6 +303,8 @@ class MagiskModules(wx.Dialog):
                 if module.id == "playintegrityfix" and "Play Integrity" in module.name:
                     if module.name == "Play Integrity Fork":
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                    if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
+                        self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
                     self.pif_button.Enable(False)
                     self.check_pif_json()
                     self.edit_pif_button.Enable(True)
@@ -380,6 +392,10 @@ class MagiskModules(wx.Dialog):
         elif option == "TB Checker":
             print("TB Checker option selected")
             self.pi_app = 'krypton.tbsafetychecker'
+
+        elif option == "Play Store":
+            print("Play Store option selected")
+            self.pi_app = 'com.android.vending'
 
     # -----------------------------------------------
     #                  __del__
@@ -676,7 +692,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     #                  get_pi_app_coords
     # -----------------------------------------------
-    def get_pi_app_coords(self):
+    def get_pi_app_coords(self, child=None):
         try:
             device = get_phone()
             if not device.rooted:
@@ -687,9 +703,6 @@ class MagiskModules(wx.Dialog):
             config_path = get_config_path()
             pi_app_xml = os.path.join(config_path, 'tmp', 'pi_app.xml')
 
-            # Do this to find out the string to look for
-            # return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml)
-
             if self.pi_app == 'gr.nikolasspyr.integritycheck':
                 return  device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "CHECK", False)
 
@@ -698,6 +711,23 @@ class MagiskModules(wx.Dialog):
 
             elif self.pi_app == 'krypton.tbsafetychecker':
                 return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Run Play Integrity Check", False)
+
+            elif self.pi_app == 'com.android.vending':
+                if child == 'user':
+                    # This needs custom handling, as there is no identifiable string to look for
+                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "PixelFlasher_Playstore", True)
+                if child == 'settings':
+                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Settings", True)
+                if child == 'general':
+                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "General", True)
+                if child == 'scroll':
+                    return device.swipe_up()
+                if child == 'developer_options':
+                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Developer options", True)
+                if child == 'test':
+                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Check integrity", False)
+                if child == 'dismiss':
+                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Dismiss", False)
 
         except IOError:
             traceback.print_exc()
@@ -714,7 +744,7 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
 
             # We need to kill TB Checker to make sure we read fresh values
-            if self.pi_option.Selection == 2:
+            if self.pi_option.Selection in [2, 3]:
                 res = device.perform_package_action(self.pi_app, 'kill', False)
 
             # launch the app
@@ -726,27 +756,169 @@ class MagiskModules(wx.Dialog):
 
             # See if we have coordinates saved
             coords = self.coords.query_entry(device.id, self.pi_app)
+            coord_dismiss = None
             if coords is None:
-                # Get coordinates for the first time
-                coords = self.get_pi_app_coords()
-                if coords is not None and coords != -1:
-                    # update coords.json
-                    self.coords.update_entry(device.id, self.pi_app, coords)
+                # For Play Store, we need to save multiple coordinates
+                if self.pi_option.Selection == 3:
+                    # Get coordinates for the first time
+                    # user
+                    coord_user = self.get_pi_app_coords(child='user')
+                    if coord_user == -1:
+                        print(f"Error: during tapping {self.pi_app} [user] screen.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                        return -1
+                    self.coords.update_nested_entry(device.id, self.pi_app, "user", coord_user)
+
+                    # settings
+                    coord_settings = self.get_pi_app_coords(child='settings')
+                    if coord_settings == -1:
+                        print(f"Error: during tapping {self.pi_app} [settings] screen.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                        return -1
+                    self.coords.update_nested_entry(device.id, self.pi_app, "settings", coord_settings)
+
+                    # general
+                    coord_general = self.get_pi_app_coords(child='general')
+                    if coord_general == -1:
+                        print(f"Error: during tapping {self.pi_app} [general] screen.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                        return -1
+                    self.coords.update_nested_entry(device.id, self.pi_app, "general", coord_general)
+                    # page scroll
+                    coord_scroll = self.get_pi_app_coords(child='scroll')
+                    if coord_scroll == -1:
+                        print(f"Error: during swipping {self.pi_app} [scroll] screen.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                        return -1
+                    self.coords.update_nested_entry(device.id, self.pi_app, "scroll", coord_scroll)
+                    # Developer Options
+                    coord_developer_options = self.get_pi_app_coords(child='developer_options')
+                    if coord_developer_options == -1:
+                        print(f"Error: during tapping {self.pi_app} [developer_options] screen.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                        return -1
+                    self.coords.update_nested_entry(device.id, self.pi_app, "developer_options", coord_developer_options)
+                    # Check Integrity
+                    coord_test = self.get_pi_app_coords(child='test')
+                    if coord_test == -1:
+                        print(f"Error: during tapping {self.pi_app} [Check Integrity] screen.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                        return -1
+                    self.coords.update_nested_entry(device.id, self.pi_app, "test", coord_test)
+                    coords = coord_test
                 else:
-                    print("Error: Could not get coordinates.")
+                    # Get coordinates for the first time
+                    coords = self.get_pi_app_coords()
+                    if coords is not None and coords != -1:
+                        # update coords.json
+                        self.coords.update_entry(device.id, self.pi_app, coords)
+                    else:
+                        print("Error: Could not get coordinates.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                        return -1
+            elif self.pi_option.Selection == 3:
+                coord_user = self.coords.query_nested_entry(device.id, self.pi_app, "user")
+                coord_settings = self.coords.query_nested_entry(device.id, self.pi_app, "settings")
+                coord_general = self.coords.query_nested_entry(device.id, self.pi_app, "general")
+                coord_scroll = self.coords.query_nested_entry(device.id, self.pi_app, "scroll")
+                coord_developer_options = self.coords.query_nested_entry(device.id, self.pi_app, "developer_options")
+                coord_test = self.coords.query_nested_entry(device.id, self.pi_app, "test")
+                coord_dismiss = self.coords.query_nested_entry(device.id, self.pi_app, "dismiss")
+                if coord_user is None or coord_user == '' or coord_settings is None or coord_settings == '' or coord_general is None or coord_general == '' or coord_developer_options is None or coord_developer_options == '' or coord_test is None or coord_test == '':
+                    print(f"\nError: coordinates for {self.pi_app} is missing from settings\nPlease run the test again so that PixelFlasher can try to get fresh new coordinates.")
+                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                        del self.coords.data[device.id][self.pi_app]
+                        self.coords.save_data()
                     self._on_spin('stop')
                     return -1
+
+                # user
+                res = device.click(coord_user)
+                if res == -1:
+                    print(f"Error: during tapping {self.pi_app} [user] screen.")
+                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                        del self.coords.data[device.id][self.pi_app]
+                        self.coords.save_data()
+                    self._on_spin('stop')
+                    return -1
+                time.sleep(1)
+                # settings
+                res = device.click(coord_settings)
+                if res == -1:
+                    print(f"Error: during tapping {self.pi_app} [settings] screen.")
+                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                        del self.coords.data[device.id][self.pi_app]
+                        self.coords.save_data()
+                    self._on_spin('stop')
+                    return -1
+                time.sleep(1)
+                # general
+                res = device.click(coord_general)
+                if res == -1:
+                    print(f"Error: during tapping {self.pi_app} [general] screen.")
+                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                        del self.coords.data[device.id][self.pi_app]
+                        self.coords.save_data()
+                    self._on_spin('stop')
+                    return -1
+                time.sleep(1)
+                res = device.swipe(coord_scroll)
+                if res == -1:
+                    print(f"Error: during swiping {self.pi_app} [scroll] screen.")
+                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                        del self.coords.data[device.id][self.pi_app]
+                        self.coords.save_data()
+                    self._on_spin('stop')
+                    return -1
+                time.sleep(1)
+                # developer_options
+                res = device.click(coord_developer_options)
+                if res == -1:
+                    print(f"Error: during tapping {self.pi_app} [developer_options] screen.")
+                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                        del self.coords.data[device.id][self.pi_app]
+                        self.coords.save_data()
+                    self._on_spin('stop')
+                    return -1
+                time.sleep(1)
+                # test
+                coords = coord_test
 
             # Click on coordinates
             res = device.click(coords)
             if res == -1:
-                print(f"Error: during tapping {self.pi_app}.")
+                print(f"\nError: coordinates for {self.pi_app} is missing from settings\nPlease run the test again so that PixelFlasher can try to get fresh new coordinates.")
+                if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                    del self.coords.data[device.id][self.pi_app]
+                    self.coords.save_data()
                 self._on_spin('stop')
                 return -1
 
             # pull view
             config_path = get_config_path()
             pi_xml = os.path.join(config_path, 'tmp', 'pi.xml')
+            time.sleep(5)
             res = device.ui_action('/data/local/tmp/pi.xml', pi_xml)
             if res == -1:
                 print(f"Error: during uiautomator {self.pi_app}.")
@@ -754,15 +926,25 @@ class MagiskModules(wx.Dialog):
                 return -1
 
             # extract result
-            time.sleep(2)
             if self.pi_option.Selection == 0:
-                time.sleep(5)
-                res = process_pi_xml(pi_xml)
+                res = process_pi_xml_piac(pi_xml)
             if self.pi_option.Selection == 1:
-                res = process_pi_xml2(pi_xml)
+                res = process_pi_xml_spic(pi_xml)
             if self.pi_option.Selection == 2:
-                time.sleep(5)
-                res = process_pi_xml3(pi_xml)
+                res = process_pi_xml_tb(pi_xml)
+            if self.pi_option.Selection == 3:
+                res = process_pi_xml_ps(pi_xml)
+                # dismiss
+                if coord_dismiss is None or coord_dismiss == '' or coord_dismiss == -1:
+                    coord_dismiss = self.get_pi_app_coords(child='dismiss')
+                    if coord_dismiss == -1:
+                        print(f"Error: getting coordinates for {self.pi_app} [dismiss] screen.")
+                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                            del self.coords.data[device.id][self.pi_app]['dismiss']
+                            self.coords.save_data()
+                        self._on_spin('stop')
+                    self.coords.update_nested_entry(device.id, self.pi_app, "dismiss", coord_dismiss)
+
             if res == -1:
                 print(f"Error: during processing the response from {self.pi_app}.")
                 self._on_spin('stop')
@@ -774,6 +956,7 @@ class MagiskModules(wx.Dialog):
         except IOError:
             traceback.print_exc()
         self._on_spin('stop')
+
 
     # -----------------------------------------------
     #                  onProcessBuildProp
@@ -801,31 +984,31 @@ class MagiskModules(wx.Dialog):
                     contentDict[k] = v.strip()
 
                 # PRODUCT
-                keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name']
+                keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name']
                 ro_product_name = get_first_match(contentDict, keys)
 
                 # DEVICE
-                keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device']
+                keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device']
                 ro_product_device = get_first_match(contentDict, keys)
 
                 # MANUFACTURER
-                keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer']
+                keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer']
                 ro_product_manufacturer = get_first_match(contentDict, keys)
 
                 # BRAND
-                keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand']
+                keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand']
                 ro_product_brand = get_first_match(contentDict, keys)
 
                 # MODEL
-                keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model']
+                keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model']
                 ro_product_model = get_first_match(contentDict, keys)
 
                 # FINGERPRINT
-                keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint']
+                keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
                 ro_build_fingerprint = get_first_match(contentDict, keys)
 
                 # SECURITY_PATCH
-                keys = ['ro.build.version.security_patch']
+                keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
                 ro_build_version_security_patch = get_first_match(contentDict, keys)
 
                 # FIRST_API_LEVEL
@@ -834,12 +1017,19 @@ class MagiskModules(wx.Dialog):
                 if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
                     ro_product_first_api_level = '32'
 
-                if ro_build_fingerprint is None:
+                # BUILD_ID
+                keys = ['ro.build.id']
+                ro_build_id = get_first_match(contentDict, keys)
+                ro_build_id = None
+                if ro_build_id is None or ro_build_id == '':
+                    pattern = r'[^\/]*\/[^\/]*\/[^:]*:[^\/]*\/([^\/]*)\/[^\/]*\/[^\/]*'
+                    match = re.search(pattern, ro_build_fingerprint)
+                    if match:
+                        ro_build_id = match[1]
+
+                if ro_build_fingerprint is None or ro_build_fingerprint == '':
                     keys = ['ro.build.version.release']
                     ro_build_version_release = get_first_match(contentDict, keys)
-
-                    keys = ['ro.build.id']
-                    ro_build_id = get_first_match(contentDict, keys)
 
                     keys = ['ro.build.version.incremental']
                     ro_build_version_incremental = get_first_match(contentDict, keys)
@@ -861,6 +1051,7 @@ class MagiskModules(wx.Dialog):
                 donor_print += f"    \"FINGERPRINT\" : \"{ro_build_fingerprint}\",\n"
                 donor_print += f"    \"SECURITY_PATCH\" : \"{ro_build_version_security_patch}\",\n"
                 donor_print += f"    \"FIRST_API_LEVEL\" : \"{ro_product_first_api_level}\"\n"
+                donor_print += f"    \"BUILD_ID\" : \"{ro_build_id}\"\n"
                 donor_print += "}"
 
                 donor_print_html = f"<pre>{html.escape(donor_print)}</pre>"
@@ -966,3 +1157,15 @@ class MagiskModules(wx.Dialog):
         self.list.ClearAll()
         self.PopulateList(True)
         # self.Thaw
+
+    # -----------------------------------------------
+    #                  OnResize
+    # -----------------------------------------------
+    def OnResize(self, event):
+        self.resizing = True
+        self.Parent.config.magisk_width = self.Rect.Width
+        self.Parent.config.magisk_height = self.Rect.Height
+
+        self.Layout()
+        event.Skip(True)
+

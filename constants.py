@@ -2,10 +2,12 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '6.3.1.0'
+VERSION = '6.3.2.0'
 SDKVERSION = '33.0.3'
-WIDTH = 1400
-HEIGHT = 1040
+MAIN_WIDTH = 1400
+MAIN_HEIGHT = 1040
+MAGISK_WIDTH = 1400
+MAGISK_HEIGHT = 1040
 POS_X = 40
 POS_Y = 40
 KNOWN_INIT_BOOT_DEVICES = ['panther', 'cheetah', 'lynx', 'tangorpro', 'felix', 'shiba', 'husky', 'aurora', 'eos']

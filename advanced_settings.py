@@ -112,13 +112,17 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_update_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
 
-        # Check for Minimum Disk space options
+        # Check for Minimum Disk space option
         self.check_for_disk_space_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for Minumum Disk (5Gb)", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_disk_space_checkbox.SetToolTip(u"Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues.")
 
-        # Check for Bootloader unlocked options
+        # Check for Bootloader unlocked option
         self.check_for_bootloader_unlocked_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for bootloader unlocked", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_bootloader_unlocked_checkbox.SetToolTip(u"Checks to make sure bootloader is unlocked before flashing.")
+
+        # Check for Firmware hash validity option
+        self.check_for_firmware_hash_validity_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Check for firmware hash validity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_firmware_hash_validity_checkbox.SetToolTip(u"Checks for sha256 portion to be in the image filename to detect Pixel compatible image.")
 
         # Force codepage
         self.force_codepage_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force codepage to", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -201,6 +205,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_update_checkbox.SetValue(self.Parent.config.update_check)
         self.check_for_disk_space_checkbox.SetValue(self.Parent.config.check_for_disk_space)
         self.check_for_bootloader_unlocked_checkbox.SetValue(self.Parent.config.check_for_bootloader_unlocked)
+        self.check_for_firmware_hash_validity_checkbox.SetValue(self.Parent.config.check_for_firmware_hash_validity)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
@@ -247,6 +252,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add((0, 0))
 
         fgs1.Add(self.check_for_bootloader_unlocked_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.check_for_firmware_hash_validity_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
@@ -374,6 +382,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if self.check_for_bootloader_unlocked_checkbox.GetValue() != self.Parent.config.check_for_bootloader_unlocked:
             print(f"Setting Check for Miminum Disk Space to: {self.check_for_bootloader_unlocked_checkbox.GetValue()}")
         self.Parent.config.check_for_bootloader_unlocked = self.check_for_bootloader_unlocked_checkbox.GetValue()
+
+        if self.check_for_firmware_hash_validity_checkbox.GetValue() != self.Parent.config.check_for_firmware_hash_validity:
+            print(f"Setting Check for Firmware Hash Validity to: {self.check_for_firmware_hash_validity_checkbox.GetValue()}")
+        self.Parent.config.check_for_firmware_hash_validity = self.check_for_firmware_hash_validity_checkbox.GetValue()
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):

@@ -109,6 +109,7 @@ command_lines = [
     "-a -F -i -n push-24 images/push-24.png images.py",
     "-a -F -i -n push-cart-24 images/push-cart-24.png images.py",
     "-a -F -i -n json-24 images/json-24.png images.py",
+    "-a -F -i -n xml-24 images/xml-24.png images.py",
 ]
 
 if __name__ == "__main__":

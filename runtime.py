@@ -120,9 +120,10 @@ class Coords:
         self.data = self.load_data()
 
     def load_data(self):
-        if path.exists(self.file_path):
-            with open(self.file_path, "r", encoding='ISO-8859-1', errors="replace") as file:
-                return json.load(file)
+        with contextlib.suppress(Exception):
+            if path.exists(self.file_path):
+                with open(self.file_path, "r", encoding='ISO-8859-1', errors="replace") as file:
+                    return json.load(file)
         return {}
 
     def save_data(self):
@@ -134,10 +135,23 @@ class Coords:
             return self.data[device][package]
         return None
 
+    def query_nested_entry(self, device, package, nested_key):
+        if device in self.data and package in self.data[device] and nested_key in self.data[device][package]:
+            return self.data[device][package][nested_key]
+        return None
+
     def update_entry(self, device, package, coordinates):
         if device not in self.data:
             self.data[device] = {}
         self.data[device][package] = coordinates
+        self.save_data()
+
+    def update_nested_entry(self, device, package, nested_key, nested_value):
+        if device not in self.data:
+            self.data[device] = {}
+        if package not in self.data[device]:
+            self.data[device][package] = {}
+        self.data[device][package][nested_key] = nested_value
         self.save_data()
 
 
@@ -1399,6 +1413,37 @@ def get_ui_cooridnates(xmlfile, search):
 
 
 # ============================================================================
+#                               Function get_playstore_user_coords
+# ============================================================================
+def get_playstore_user_coords(xmlfile):
+    with open(xmlfile, "r", encoding='ISO-8859-1', errors="replace") as fin:
+        xml_content = fin.read()
+
+    # Find the position of "Show notifications and offers"
+    show_notifications_position = xml_content.find('Show notifications and offers')
+
+    # Check if "Show notifications and offers" is found
+    if show_notifications_position != -1:
+        node = xml_content.find('/node', show_notifications_position)
+
+        if node != -1:
+            bounds_pos = xml_content.find('bounds=', node)
+
+            if bounds_pos != -1:
+                value_start_pos = xml_content.find('"', bounds_pos) + 1
+                value_end_pos = xml_content.find('"', value_start_pos)
+                bounds = xml_content[value_start_pos:value_end_pos]
+
+                bounds_values = re.findall(r'\d+', bounds)
+                x = (int(bounds_values[0]) + int(bounds_values[2])) // 2
+                y = (int(bounds_values[1]) + int(bounds_values[3])) // 2
+
+                debug(f"Found Bounds: {bounds}")
+                debug(f"Click Coordinates: {x} {y}")
+                return f"{x} {y}"
+
+
+# ============================================================================
 #                               Function extract_sha1
 # ============================================================================
 def extract_sha1(binfile, length=8):
@@ -1953,7 +1998,7 @@ def get_first_match(dictionary, keys):
 # ============================================================================
 #                               Function process_pi_xml
 # ============================================================================
-def process_pi_xml(filename):
+def process_pi_xml_piac(filename):
     with open(filename, 'r') as file:
         xml_string = file.read()
 
@@ -1966,6 +2011,10 @@ def process_pi_xml(filename):
         'gr.nikolasspyr.integritycheck:id/basic_integrity_icon',
         'gr.nikolasspyr.integritycheck:id/strong_integrity_icon'
     ]
+
+    # Check if the XML contains the specific string
+    if 'The calling app is making too many requests to the API' in xml_string:
+        return "Quota Reached.\nPlay Integrity API Checker is making too many requests to the Google API."
 
     # Print the 'content-desc' values along with a modified version of the resource-id
     result = ''
@@ -1984,9 +2033,13 @@ def process_pi_xml(filename):
 # ============================================================================
 #                               Function process_pi_xml2
 # ============================================================================
-def process_pi_xml2(filename):
+def process_pi_xml_spic(filename):
     with open(filename, 'r') as file:
         xml_content = file.read()
+
+    # Check if the XML contains the specific string
+    if 'Integrity API error (-8)' in xml_content:
+        return "Quota Reached.\nSimple Play Integrity Checker is making too many requests to the Google API."
 
     # Find the position of "Play Integrity Result:"
     play_integrity_result_pos = xml_content.find("Play Integrity Result:")
@@ -2025,7 +2078,7 @@ def process_pi_xml2(filename):
 # ============================================================================
 #                               Function process_pi_xml3
 # ============================================================================
-def process_pi_xml3(filename):
+def process_pi_xml_tb(filename):
     with open(filename, 'r') as file:
         xml_content = file.read()
 
@@ -2087,6 +2140,28 @@ def process_pi_xml3(filename):
     else:
         print("'Result Play integrity' not found")
         return -1
+
+# ============================================================================
+#                               Function process_pi_xml4
+# ============================================================================
+def process_pi_xml_ps(filename):
+    with open(filename, 'r') as file:
+        xml_content = file.read()
+
+    # Find the position of "Play Integrity Result:"
+    labels_pos = xml_content.find('text="Labels:')
+
+    # If "Result Play integrity" is found, continue searching for index="3"
+    if labels_pos != -1:
+
+        # Adjust the position to point at the end of 'text=' and then get the next value between [ ].
+        labels_pos += len('text="Labels:')
+
+        value_start_pos = xml_content.find('[', labels_pos) + 1
+        value_end_pos = xml_content.find(']', value_start_pos)
+        result = xml_content[value_start_pos:value_end_pos]
+        debug(result)
+        return result
 
 # ============================================================================
 #                               Function run_shell

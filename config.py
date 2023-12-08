@@ -20,8 +20,10 @@ class Config():
         self.device = None
         self.phone_path = '/storage/emulated/0/Download'
         self.magisk = 'com.topjohnwu.magisk'
-        self.width = WIDTH
-        self.height = HEIGHT
+        self.width = MAIN_WIDTH
+        self.height = MAIN_HEIGHT
+        self.magisk_width = MAGISK_WIDTH
+        self.magisk_height = MAGISK_HEIGHT
         self.boot_id = None
         self.selected_boot_md5 = None
         self.custom_rom = False
@@ -70,6 +72,7 @@ class Config():
         self.delete_bundled_libs = ''
         self.check_for_disk_space = True
         self.check_for_bootloader_unlocked = True
+        self.check_for_firmware_hash_validity = True
 
         self.toolbar = {
             'tb_position': 'top',
@@ -134,6 +137,10 @@ class Config():
                     conf.width = data['width']
                 with contextlib.suppress(KeyError):
                     conf.height = data['height']
+                with contextlib.suppress(KeyError):
+                    conf.magisk_width = data['magisk_width']
+                with contextlib.suppress(KeyError):
+                    conf.magisk_height = data['magisk_height']
                 with contextlib.suppress(KeyError):
                     conf.custom_rom = data['custom_rom']
                 with contextlib.suppress(KeyError):
@@ -220,6 +227,8 @@ class Config():
                     conf.check_for_disk_space = data['check_for_disk_space']
                 with contextlib.suppress(KeyError):
                     conf.check_for_bootloader_unlocked = data['check_for_bootloader_unlocked']
+                with contextlib.suppress(KeyError):
+                    conf.check_for_firmware_hash_validity = data['check_for_firmware_hash_validity']
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
                     toolbar_data = data['toolbar']
@@ -318,6 +327,8 @@ class Config():
             'last_run_date': f"{datetime.now():%Y-%m-%d %H:%M:%S}",
             'width': self.width,
             'height': self.height,
+            'magisk_width': self.magisk_width,
+            'magisk_height': self.magisk_height,
             'custom_rom': self.custom_rom,
             'custom_rom_path': self.custom_rom_path,
             'disable_verification': self.disable_verification,
@@ -359,6 +370,7 @@ class Config():
             'delete_bundled_libs': self.delete_bundled_libs,
             'check_for_disk_space': self.check_for_disk_space,
             'check_for_bootloader_unlocked': self.check_for_bootloader_unlocked,
+            'check_for_firmware_hash_validity': self.check_for_firmware_hash_validity,
             'toolbar': self.toolbar,  # Save the toolbar settings as well
             'scrcpy': self.scrcpy  # Save the scrcpy settings as well
         }

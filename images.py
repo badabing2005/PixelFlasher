@@ -2643,3 +2643,14 @@ json_24 = PyEmbeddedImage(
     b'+zooMzAGPnNSU3wzXs0K92d/F58JKu8HkbnneL+w+RzEJCcoZP8bxAleaktvMvZnjEnQWuNB'
     b'WQr9fx3U/8O5HlPmTN1oXEehAAAAAElFTkSuQmCC')
 
+#----------------------------------------------------------------------
+xml_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABY0lEQVRIS82VgU0CQRBFoQPt'
+    b'4OxAOtAOtAPsQCtAK8AOtAPoQDvQDqQD7ED/IzswjDu3FwkJm0yO29z+t/NndhmPjjzGR9Yf'
+    b'nSTgUlkvFK+Kp5YD/8ngXqLzArg7FHAmge8g8qL3qeJB8ayofbNd0pcBCxG7DYAvvXdlfqnn'
+    b'h+K6spHNsgxg4jfhG+bXBXheRH/0/MwgNYAXZ+HEZXCl329F0ObJgMJXIREQxbFn5QBWYLyn'
+    b'BgzWAK1CPKAljhjtiW2A8d9GCjHAEHHErMAXIbM0Ew9I0yzb7AqAtqXAcVQ3GS3qg2ANFr0r'
+    b'aEs/UgdqRc4gMyk+KnyBzRrOCxugk/YaI2tTD7F2zAps83/EofcdNIPYN1mB7aDFlt5Y2Loq'
+    b'gJABPc6BigcPDear4i2A+UvXTBX4TO/Hu6nT3Gq/5ru3ode13aAUufkf4GFDAXQQ1wT3vz/B'
+    b'2ca380MBTaFDLTpdwC/P+GQZw57SpwAAAABJRU5ErkJggg==')
+

@@ -473,21 +473,22 @@ def select_firmware(self):
         if extension in ['.zip', '.tgz', '.tar']:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
 
-            firmware_hash = sha256(self.config.firmware_path)
-            print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
-            puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
+            if self.config.check_for_firmware_hash_validity:
+                firmware_hash = sha256(self.config.firmware_path)
+                print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
+                puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
 
-            # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
-            if firmware_hash[:8] in firmware:
-                print(f"Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
-                puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
-                self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
-                set_firmware_hash_validity(True)
-            else:
-                print(f"WARNING: Expected to match {firmware_hash[:8]} in the filename but didn't, please double check to make sure the checksum is good.")
-                puml("#orange:Unable to match the checksum in the filename;\n")
-                self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
-                set_firmware_hash_validity(False)
+                # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
+                if firmware_hash[:8] in firmware:
+                    print(f"Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
+                    puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
+                    self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
+                    set_firmware_hash_validity(True)
+                else:
+                    print(f"WARNING: Expected to match {firmware_hash[:8]} in the filename but didn't, please double check to make sure the checksum is good.")
+                    puml("#orange:Unable to match the checksum in the filename;\n")
+                    self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                    set_firmware_hash_validity(False)
 
             firmware = filename.split("-")
             if len(firmware) == 1:
@@ -513,7 +514,10 @@ def select_firmware(self):
                 self.flash_button.Disable()
             populate_boot_list(self)
             self.update_widget_states()
-            return firmware_hash
+            if self.config.check_for_firmware_hash_validity:
+                return firmware_hash
+            else:
+                return 'Checksum validity check is disabled!'
         else:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a valid archive file.")
             puml("#red:The selected firmware is not valid;\n")
@@ -571,9 +575,12 @@ def process_file(self, file_type):
             if found_init_boot_img:
                 set_firmware_has_init_boot(True)
                 is_init_boot = True
-            if found_flash_all_bat and found_flash_all_sh and get_firmware_hash_validity():
+            if found_flash_all_bat and found_flash_all_sh and (get_firmware_hash_validity() or not self.config.check_for_firmware_hash_validity):
                 # assume Pixel factory file
-                print("Detected Pixel firmware")
+                if self.config.check_for_firmware_hash_validity:
+                    print("Detected Pixel firmware")
+                package_sig = found_flash_all_bat.split('/')[0]
+                package_dir_full = os.path.join(factory_images, package_sig)
                 image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
                 # Unzip the factory image
                 debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
@@ -616,7 +623,7 @@ def process_file(self, file_type):
             elif check_zip_contains_file(file_to_process, "payload.bin", self.config.low_mem):
                 is_payload_bin = True
                 set_ota(self, True)
-                if get_firmware_hash_validity() and get_ota():
+                if get_ota() and (get_firmware_hash_validity() or not self.config.check_for_firmware_hash_validity):
                     print("Detected OTA file")
                 else:
                     print("Detected a firmware, with payload.bin")
@@ -3284,6 +3291,14 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         image_mode = get_image_mode()
         self.refresh_device()
         device = get_phone()
+
+        # see if we got a device
+        if not device:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Your device is not found in bootloader mode.\nIf your device is actually in bootloader mode,\nhit the scan button and see if PixelFlasher finds it.\nIf it does, you can hit the Flash button again,\notherwise there seems to be a connection issue (USB drivers, cable, PC port ...)\n")
+            print("Aborting ...\n")
+            puml("#red:Device not found after rebooting to bootloader;\n}\n")
+            self.toast("Flash action", "Device is not found after rebooting to bootloader.")
+            return -1
 
         # If we're doing Sideload image flashing
         if self.config.flash_mode == 'OTA':

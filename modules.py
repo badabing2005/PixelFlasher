@@ -1756,7 +1756,7 @@ def patch_boot_img(self, custom_patch = False):
                 magisk_path = device.magisk_path
             data += f"MAGISK_PATH={magisk_path}\n"
 
-            if patch_method == "app" or patch_method == "other":
+            if patch_method in ["app", "other"]:
                 data += f"ARCH={device.architecture}\n"
                 data += f"cp {magisk_path} /data/local/tmp/pf.zip\n"
                 data += "cd /data/local/tmp\n"
@@ -1808,7 +1808,7 @@ def patch_boot_img(self, custom_patch = False):
             data += "PATCH_FILENAME=magisk_patched_${MAGISK_VERSION}_${STOCK_SHA1}_${PATCH_SHA1}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
 
-            if patch_method == "app" or patch_method == "other":
+            if patch_method in ["app", "other"]:
                 data += "cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
                 # if we're rooted, copy the stock boot.img to /data/adb/magisk/stock_boot.img so that magisk can backup
                 if perform_as_root:
@@ -1827,7 +1827,7 @@ def patch_boot_img(self, custom_patch = False):
             # intentionally not including \n
             data += "rm -f /data/local/tmp/pf_patch.sh"
 
-            if patch_method == "app" or patch_method == "other":
+            if patch_method in ["app", "other"]:
                 data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
                 data += "rm -rf /data/local/tmp/pf\n"
             data += "\n"
@@ -1853,7 +1853,7 @@ def patch_boot_img(self, custom_patch = False):
             puml("#red:Failed to set the executable bit on patch script;\n")
             return -1
 
-        if patch_method == "app" or patch_method == "other":
+        if patch_method in ["app", "other"]:
             # Transfer busybox to the phone
             res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
             if res != 0:
@@ -2297,7 +2297,7 @@ Unless you know what you're doing, it is recommended that you take the default s
 # ============================================================================
 #                               Function live_flash_boot_phone
 # ============================================================================
-def live_flash_boot_phone(self, option):
+def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     puml(f"#cyan:{option} Boot;\n", True)
     puml(f"partition \"**{option} Boot**\"")
     puml(" {\n")

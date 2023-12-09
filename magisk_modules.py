@@ -1027,6 +1027,10 @@ class MagiskModules(wx.Dialog):
                     if match:
                         ro_build_id = match[1]
 
+                # VNDK_VERSION
+                keys = ['ro.vndk.version', 'ro.product.vndk.version']
+                ro_vndk_version = get_first_match(contentDict, keys)
+
                 if ro_build_fingerprint is None or ro_build_fingerprint == '':
                     keys = ['ro.build.version.release']
                     ro_build_version_release = get_first_match(contentDict, keys)
@@ -1042,22 +1046,25 @@ class MagiskModules(wx.Dialog):
 
                     ro_build_fingerprint = f"{ro_product_brand}/{ro_product_name}/{ro_product_device}:{ro_build_version_release}/{ro_build_id}/{ro_build_version_incremental}:{ro_build_type}/{ro_build_tags}"
 
-                donor_print = "{\n"
-                donor_print += f"    \"PRODUCT\" : \"{ro_product_name}\",\n"
-                donor_print += f"    \"DEVICE\" : \"{ro_product_device}\",\n"
-                donor_print += f"    \"MANUFACTURER\" : \"{ro_product_manufacturer}\",\n"
-                donor_print += f"    \"BRAND\" : \"{ro_product_brand}\",\n"
-                donor_print += f"    \"MODEL\" : \"{ro_product_model}\",\n"
-                donor_print += f"    \"FINGERPRINT\" : \"{ro_build_fingerprint}\",\n"
-                donor_print += f"    \"SECURITY_PATCH\" : \"{ro_build_version_security_patch}\",\n"
-                donor_print += f"    \"FIRST_API_LEVEL\" : \"{ro_product_first_api_level}\"\n"
-                donor_print += f"    \"BUILD_ID\" : \"{ro_build_id}\"\n"
-                donor_print += "}"
+                donor_data = {
+                    "PRODUCT": ro_product_name,
+                    "DEVICE": ro_product_device,
+                    "MANUFACTURER": ro_product_manufacturer,
+                    "BRAND": ro_product_brand,
+                    "MODEL": ro_product_model,
+                    "FINGERPRINT": ro_build_fingerprint,
+                    "SECURITY_PATCH": ro_build_version_security_patch,
+                    "FIRST_API_LEVEL": ro_product_first_api_level,
+                    "BUILD_ID": ro_build_id,
+                    "VNDK_VERSION": ro_vndk_version
+                }
+                donor_json = json.dumps(donor_data, indent=4)
 
-                donor_print_html = f"<pre>{html.escape(donor_print)}</pre>"
+
+                donor_print_html = f"<pre>{html.escape(donor_json)}</pre>"
                 self.html.SetPage(donor_print_html)
 
-                # print(donor_print)
+                # print(donor_json)
 
             except IOError:
                 wx.LogError(f"Cannot process file: '{pathname}'.")

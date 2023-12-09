@@ -86,7 +86,7 @@ class MagiskModules(wx.Dialog):
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         # Change Log
-        self.html = HtmlWindow(self, wx.ID_ANY, size=(-1, 254))
+        self.html = HtmlWindow(self, wx.ID_ANY, size=(-1, 320))
         if darkdetect.isDark():
             black_html = "<!DOCTYPE html>\n<html><body style=\"background-color:#1e1e1e;\"></body></html>"
             self.html.SetPage(black_html)
@@ -126,8 +126,22 @@ class MagiskModules(wx.Dialog):
         self.kill_gms_button.Show(False)
 
         # Process build.prop button
-        self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
         self.process_build_prop_button.SetToolTip(u"Process build.prop to extract pif.json.")
+
+        # Check for Auto Copy to Clipboard
+        self.auto_copy_to_clipboard_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Copy to Clipboard", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_copy_to_clipboard_checkbox.SetToolTip(u"After Processing build.props, the json is copied to clipboard.")
+
+        # Check for Auto Push pif.json
+        self.auto_push_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Push pif.json", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_push_pif_checkbox.SetToolTip(u"After Processing build.props, the pif.json is automatically pushed to the device and the GMS process is killed.")
+        self.auto_push_pif_checkbox.Enable(False)
+
+        # Check for Auto Check Play Integrity
+        self.auto_check_pi_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Check Play Integrity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_check_pi_checkbox.SetToolTip(u"After editing (pushing) pif.json, automatically run Play Integrity Check.")
+        self.auto_check_pi_checkbox.Enable(False)
 
         # option button PI Selectedion
         self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store"], style=wx.RA_VERTICAL)
@@ -168,6 +182,9 @@ class MagiskModules(wx.Dialog):
         self.edit_pif_button.SetMinSize((button_width, -1))
         self.kill_gms_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
+        self.auto_copy_to_clipboard_checkbox.SetMinSize((button_width, -1))
+        self.auto_push_pif_checkbox.SetMinSize((button_width, -1))
+        self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
         self.pi_checker_button.SetMinSize((button_width, -1))
         self.systemless_hosts_button.SetMinSize((button_width, -1))
         self.enable_zygisk_button.SetMinSize((button_width, -1))
@@ -210,6 +227,9 @@ class MagiskModules(wx.Dialog):
         v_buttons_sizer.Add(self.disable_denylist_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.RIGHT, 10)
+        v_buttons_sizer.Add(self.auto_copy_to_clipboard_checkbox, 0, wx.RIGHT, 10)
+        v_buttons_sizer.Add(self.auto_push_pif_checkbox, 0, wx.RIGHT, 10)
+        v_buttons_sizer.Add(self.auto_check_pi_checkbox, 0, wx.RIGHT, 10)
         v_buttons_sizer.Add(self.edit_pif_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.kill_gms_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.pi_option, 0, wx.ALL, 5)
@@ -276,6 +296,8 @@ class MagiskModules(wx.Dialog):
 
         self.pif_button.Enable(True)
         self.edit_pif_button.Enable(False)
+        self.auto_push_pif_checkbox.Enable(False)
+        self.auto_check_pi_checkbox.Enable(False)
         self.kill_gms_button.Enable(False)
         self.pi_checker_button.Enable(False)
 
@@ -291,6 +313,8 @@ class MagiskModules(wx.Dialog):
         if modules:
             i = 0
             for module in modules:
+                if module.id == '' and module.name == '' or module.dirname == '*':
+                    continue
                 if module.id == '':
                     if len(modules) == 1:
                         continue
@@ -308,6 +332,8 @@ class MagiskModules(wx.Dialog):
                     self.pif_button.Enable(False)
                     self.check_pif_json()
                     self.edit_pif_button.Enable(True)
+                    self.auto_push_pif_checkbox.Enable(True)
+                    self.auto_check_pi_checkbox.Enable(True)
                     self.kill_gms_button.Enable(True)
                     self.pi_checker_button.Enable(True)
 
@@ -600,6 +626,11 @@ class MagiskModules(wx.Dialog):
                     print("Killing Google GMS succeeded.")
 
                 self.check_pif_json()
+
+                # Auto test Play Integrity
+                if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
+                    print("Auto Testing Play Integrity ...")
+                    self.onPiChecker(None)
             else:
                 print("User cancelled editing pif.json file.")
                 puml(f"note right\nCancelled and Aborted\nend note\n")
@@ -950,8 +981,13 @@ class MagiskModules(wx.Dialog):
                 self._on_spin('stop')
                 return -1
 
-            pi_print_html = f"<pre>{html.escape(res)}</pre>"
-            self.html.SetPage(pi_print_html)
+            self.html.SetPage('')
+            if res is None or res == '':
+                if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                    del self.coords.data[device.id][self.pi_app]['dismiss']
+            else:
+                pi_print_html = f"<pre>{html.escape(res)}</pre>"
+                self.html.SetPage(pi_print_html)
 
         except IOError:
             traceback.print_exc()
@@ -959,116 +995,200 @@ class MagiskModules(wx.Dialog):
 
 
     # -----------------------------------------------
+    #                  sort_prop
+    # -----------------------------------------------
+    def sort_prop(self, file_path):
+        filename = os.path.basename(file_path)
+        if filename == "build.prop":
+            return 1
+        elif filename == "system-build.prop":
+            return 2
+        elif filename == "vendor.prop":
+            return 3
+        elif filename == "product-build.prop":
+            return 4
+        elif filename == "build.default.prop":
+            return 5
+        elif filename == "default.prop":
+            return 6
+        elif filename == "system.prop":
+            return 7
+        elif filename == "product.prop":
+            return 8
+        elif filename == "oem.prop":
+            return 9
+        elif filename == "cust.prop":
+            return 10
+        else:
+            return 999
+
+    # -----------------------------------------------
     #                  onProcessBuildProp
     # -----------------------------------------------
     def onProcessBuildProp(self, e):
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Process build.prop")
-        with wx.FileDialog(self, "select build.prop file to process", '', '', wildcard="build.prop files (*.*.prop)|*.prop", style=wx.FD_OPEN) as fileDialog:
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                print("User cancelled processing build.prop")
-                return
-            # save the current contents in the file
-            pathname = fileDialog.GetPath()
-            print(f"\nSelected {pathname} for processing.")
-            try:
-                self._on_spin('start')
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User presses Process build.prop")
+        wildcard = "Property files (*.prop)|*.prop|All files (*.*)|*.*"
+        dialog = wx.FileDialog(self, "Choose property files to open", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+
+        if dialog.ShowModal() == wx.ID_CANCEL:
+            print("User cancelled file selection.")
+            return
+
+        paths = dialog.GetPaths()
+        dialog.Destroy()
+        sorted_paths = sorted(paths, key=self.sort_prop)
+
+        print(f"Selected files: {sorted_paths}")
+
+        try:
+            self._on_spin('start')
+            processed_dict = {}
+            for pathname in reversed(sorted_paths):
                 with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
                     content = f.readlines()
 
                 contentList = [x.strip().split('#')[0].split('=', 1) for x in content if '=' in x.split('#')[0]]
                 contentDict = dict(contentList)
-                for k, v in contentList:
+
+                # Update processed_dict with entries from the current file
+                # processed_dict.update(contentDict)
+                processed_dict |= contentDict
+
+                # Apply the substitution to the values in processed_dict
+                for k, v in contentDict.items():
                     for x in v.split('$')[1:]:
                         key = re.findall(r'\w+', x)[0]
-                        v = v.replace(f'${key}', contentDict[key])
-                    contentDict[k] = v.strip()
+                        v = v.replace(f'${key}', processed_dict[key])
+                    processed_dict[k] = v.strip()
 
-                # PRODUCT
-                keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name']
-                ro_product_name = get_first_match(contentDict, keys)
+            # PRODUCT
+            keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name']
+            ro_product_name = get_first_match(processed_dict, keys)
 
-                # DEVICE
-                keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device']
-                ro_product_device = get_first_match(contentDict, keys)
+            # DEVICE
+            keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device']
+            ro_product_device = get_first_match(processed_dict, keys)
 
-                # MANUFACTURER
-                keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer']
-                ro_product_manufacturer = get_first_match(contentDict, keys)
+            # MANUFACTURER
+            keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer']
+            ro_product_manufacturer = get_first_match(processed_dict, keys)
 
-                # BRAND
-                keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand']
-                ro_product_brand = get_first_match(contentDict, keys)
+            # BRAND
+            keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand']
+            ro_product_brand = get_first_match(processed_dict, keys)
 
-                # MODEL
-                keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model']
-                ro_product_model = get_first_match(contentDict, keys)
+            # MODEL
+            keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model']
+            ro_product_model = get_first_match(processed_dict, keys)
 
-                # FINGERPRINT
-                keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
-                ro_build_fingerprint = get_first_match(contentDict, keys)
+            # FINGERPRINT
+            keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
+            ro_build_fingerprint = get_first_match(processed_dict, keys)
 
-                # SECURITY_PATCH
-                keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
-                ro_build_version_security_patch = get_first_match(contentDict, keys)
+            # SECURITY_PATCH
+            keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
+            ro_build_version_security_patch = get_first_match(processed_dict, keys)
 
-                # FIRST_API_LEVEL
-                keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
-                ro_product_first_api_level = get_first_match(contentDict, keys)
-                if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
-                    ro_product_first_api_level = '32'
+            # FIRST_API_LEVEL
+            keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
+            ro_product_first_api_level = get_first_match(processed_dict, keys)
+            if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
+                ro_product_first_api_level = '32'
 
-                # BUILD_ID
-                keys = ['ro.build.id']
-                ro_build_id = get_first_match(contentDict, keys)
-                ro_build_id = None
-                if ro_build_id is None or ro_build_id == '':
-                    pattern = r'[^\/]*\/[^\/]*\/[^:]*:[^\/]*\/([^\/]*)\/[^\/]*\/[^\/]*'
-                    match = re.search(pattern, ro_build_fingerprint)
-                    if match:
-                        ro_build_id = match[1]
+            # BUILD_ID
+            keys = ['ro.build.id']
+            ro_build_id = get_first_match(processed_dict, keys)
+            ro_build_id = None
+            if ro_build_id is None or ro_build_id == '':
+                pattern = r'[^\/]*\/[^\/]*\/[^:]*:[^\/]*\/([^\/]*)\/[^\/]*\/[^\/]*'
+                match = re.search(pattern, ro_build_fingerprint)
+                if match:
+                    ro_build_id = match[1]
 
-                # VNDK_VERSION
-                keys = ['ro.vndk.version', 'ro.product.vndk.version']
-                ro_vndk_version = get_first_match(contentDict, keys)
+            # VNDK_VERSION
+            keys = ['ro.vndk.version', 'ro.product.vndk.version']
+            ro_vndk_version = get_first_match(processed_dict, keys)
 
-                if ro_build_fingerprint is None or ro_build_fingerprint == '':
-                    keys = ['ro.build.version.release']
-                    ro_build_version_release = get_first_match(contentDict, keys)
+            if ro_build_fingerprint is None or ro_build_fingerprint == '':
+                keys = ['ro.build.version.release']
+                ro_build_version_release = get_first_match(processed_dict, keys)
 
-                    keys = ['ro.build.version.incremental']
-                    ro_build_version_incremental = get_first_match(contentDict, keys)
+                keys = ['ro.build.version.incremental']
+                ro_build_version_incremental = get_first_match(processed_dict, keys)
 
-                    keys = ['ro.build.type']
-                    ro_build_type = get_first_match(contentDict, keys)
+                keys = ['ro.build.type']
+                ro_build_type = get_first_match(processed_dict, keys)
 
-                    keys = ['ro.build.tags']
-                    ro_build_tags = get_first_match(contentDict, keys)
+                keys = ['ro.build.tags']
+                ro_build_tags = get_first_match(processed_dict, keys)
 
-                    ro_build_fingerprint = f"{ro_product_brand}/{ro_product_name}/{ro_product_device}:{ro_build_version_release}/{ro_build_id}/{ro_build_version_incremental}:{ro_build_type}/{ro_build_tags}"
+                ro_build_fingerprint = f"{ro_product_brand}/{ro_product_name}/{ro_product_device}:{ro_build_version_release}/{ro_build_id}/{ro_build_version_incremental}:{ro_build_type}/{ro_build_tags}"
 
-                donor_data = {
-                    "PRODUCT": ro_product_name,
-                    "DEVICE": ro_product_device,
-                    "MANUFACTURER": ro_product_manufacturer,
-                    "BRAND": ro_product_brand,
-                    "MODEL": ro_product_model,
-                    "FINGERPRINT": ro_build_fingerprint,
-                    "SECURITY_PATCH": ro_build_version_security_patch,
-                    "FIRST_API_LEVEL": ro_product_first_api_level,
-                    "BUILD_ID": ro_build_id,
-                    "VNDK_VERSION": ro_vndk_version
-                }
-                donor_json = json.dumps(donor_data, indent=4)
+            donor_data = {
+                "PRODUCT": ro_product_name,
+                "DEVICE": ro_product_device,
+                "MANUFACTURER": ro_product_manufacturer,
+                "BRAND": ro_product_brand,
+                "MODEL": ro_product_model,
+                "FINGERPRINT": ro_build_fingerprint,
+                "SECURITY_PATCH": ro_build_version_security_patch,
+                "FIRST_API_LEVEL": ro_product_first_api_level,
+                "BUILD_ID": ro_build_id,
+                "VNDK_VERSION": ro_vndk_version
+            }
+            donor_json = json.dumps(donor_data, indent=4)
 
 
-                donor_print_html = f"<pre>{html.escape(donor_json)}</pre>"
+            donor_print_html = f"<pre>{html.escape(donor_json)}</pre>"
+            self.html.SetPage(donor_print_html)
+
+            # print(donor_json)
+
+            # copy to clipboard
+            if self.auto_copy_to_clipboard_checkbox.IsEnabled() and self.auto_copy_to_clipboard_checkbox.IsChecked():
+                self.html.SelectAll()
+                self.html.CopySelectedText()
                 self.html.SetPage(donor_print_html)
 
-                # print(donor_json)
+            # Auto Push pif.json
+            if self.auto_push_pif_checkbox.IsEnabled() and self.auto_push_pif_checkbox.IsChecked():
+                device = get_phone()
+                if not device.rooted:
+                    print("ERROR: Device not found!")
+                    self._on_spin('stop')
+                    return -1
+                print("Auto Pushing pif.json ...")
+                config_path = get_config_path()
+                pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
 
-            except IOError:
-                wx.LogError(f"Cannot process file: '{pathname}'.")
-                traceback.print_exc()
+                # Save the file
+                with open(pif_prop, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+                    json.dump(donor_data, f, indent=4, ensure_ascii=False)
+
+                res = device.push_file(pif_prop, self.pif_json_path, True)
+                if res != 0:
+                    print("Aborting ...\n")
+                    # puml("#red:Failed to push pif.json from the phone;\n}\n")
+                    self._on_spin('stop')
+                    return -1
+
+                print("Killing Google GMS  ...")
+                res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
+                if res.returncode != 0:
+                    print("Error killing GMS.")
+                else:
+                    print("Killing Google GMS succeeded.")
+
+                self.check_pif_json()
+
+                # Auto test Play Integrity
+                if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
+                    print("Auto Testing Play Integrity ...")
+                    self.onPiChecker(None)
+
+        except IOError:
+            wx.LogError(f"Cannot process file: '{pathname}'.")
+            traceback.print_exc()
         self._on_spin('stop')
 
 

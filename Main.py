@@ -35,6 +35,7 @@ from config import Config
 from constants import *
 from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
+from pif_manager import PifManager
 from message_box_ex import MessageBoxEx
 from modules import (adb_kill_server, auto_resize_boot_list,
                      check_platform_tools, flash_phone, live_flash_boot_phone,
@@ -565,6 +566,12 @@ class PixelFlasher(wx.Frame):
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=220)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=220)
 
+            # Pif Manager
+            if self.config.toolbar['visible']['pif_manager']:
+                tb.AddTool(toolId=225, label="Pif Manager", bitmap=images.pif_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Pif Manager", longHelp="Pif Manager", clientData=None)
+                self.Bind(wx.EVT_TOOL, self.OnToolClick, id=225)
+                self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=225)
+
             # SOS, Disable Magisk Modules
             if self.config.toolbar['visible']['sos'] and self.config.advanced_options:
                 tb.AddTool(toolId=230, label="SOS", bitmap=images.sos_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=u"Disable Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).", longHelp="SOS", clientData=None)
@@ -572,7 +579,7 @@ class PixelFlasher(wx.Frame):
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=230)
 
             # separator
-            if self.config.toolbar['visible']['magisk_modules'] or self.config.toolbar['visible']['install_magisk'] or self.config.toolbar['visible']['magisk_backup_manager'] or (self.config.toolbar['visible']['sos'] and self.config.advanced_options):
+            if self.config.toolbar['visible']['magisk_modules'] or self.config.toolbar['visible']['install_magisk'] or self.config.toolbar['visible']['magisk_backup_manager'] or self.config.toolbar['visible']['pif_manager'] or (self.config.toolbar['visible']['sos'] and self.config.advanced_options):
                 tb.AddSeparator()
 
             # Lock Bootloader
@@ -670,6 +677,8 @@ class PixelFlasher(wx.Frame):
             self._on_magisk_install(event)
         elif id == 220:
             self._on_backup_manager(event)
+        elif id == 225:
+            self._on_pif_manager(event)
         elif id == 230:
             self._on_sos(event)
         elif id == 300:
@@ -715,6 +724,20 @@ class PixelFlasher(wx.Frame):
                 print(f"Current device's Print:\n------------\n{device.current_device_print}\n------------\n")
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device print")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_props_as_json
+    # -----------------------------------------------
+    def _on_props_as_json(self, event):
+        try:
+            if self.config.device:
+                self._on_spin('start')
+                device = get_phone()
+                print(f"Current device's properties as json :\n------------\n{device.current_device_props_as_json}\n------------\n")
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device properties as json")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -800,9 +823,13 @@ class PixelFlasher(wx.Frame):
         self.device_info_menu_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_device_info, self.device_info_menu_item)
         # Get PIF Print Menu
-        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif pirnt")
+        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif print")
         self.pif_info_menu_item.SetBitmap(images.json_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pif_info, self.pif_info_menu_item)
+        # Get Props as json Menu
+        self.props_as_json_menu_item = device_menu.Append(wx.ID_ANY, "Props as Json", "Get current device's properties in json format")
+        self.props_as_json_menu_item.SetBitmap(images.json_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_props_as_json, self.props_as_json_menu_item)
         # Dump Screen XML Menu
         self.xml_view_menu_item = device_menu.Append(wx.ID_ANY, "Dump Screen XML", "Use uiautomator to dump the screen view in xml")
         self.xml_view_menu_item.SetBitmap(images.xml_24.GetBitmap())
@@ -872,6 +899,10 @@ class PixelFlasher(wx.Frame):
         self.magisk_backup_manager_menu = device_menu.Append(wx.ID_ANY, "Magisk Backup Manager", "Manage Magisk Backups")
         self.magisk_backup_manager_menu.SetBitmap(images.backup_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_backup_manager, self.magisk_backup_manager_menu)
+        # Pif Manager
+        self.pif_manager_menu = device_menu.Append(wx.ID_ANY, "Pif Manager", "Pif Backups")
+        self.pif_manager_menu.SetBitmap(images.pif_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_pif_manager, self.pif_manager_menu)
         # SOS
         self.sos_menu = device_menu.Append(wx.ID_ANY, "SOS", "Disable Magisk Modules")
         self.sos_menu.SetBitmap(images.sos_24.GetBitmap())
@@ -945,6 +976,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Append(200, "Magisk", "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
         tb_buttons_menu.Append(210, "Install Magisk", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
         tb_buttons_menu.Append(220, "Magisk Backup Manager", "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
+        tb_buttons_menu.Append(225, "Pif Manager", "", wx.ITEM_CHECK).SetBitmap(images.pif_24.GetBitmap())
         tb_buttons_menu.Append(230, "SOS", "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
         tb_buttons_menu.Append(300, "Lock Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.lock_24.GetBitmap())
         tb_buttons_menu.Append(310, "Unlock Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.unlock_24.GetBitmap())
@@ -971,6 +1003,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Check(200, self.config.toolbar['visible']['magisk_modules'])
         tb_buttons_menu.Check(210, self.config.toolbar['visible']['install_magisk'])
         tb_buttons_menu.Check(220, self.config.toolbar['visible']['magisk_backup_manager'])
+        tb_buttons_menu.Check(225, self.config.toolbar['visible']['pif_manager'])
         tb_buttons_menu.Check(230, self.config.toolbar['visible']['sos'])
         tb_buttons_menu.Check(300, self.config.toolbar['visible']['lock_bootloader'])
         tb_buttons_menu.Check(310, self.config.toolbar['visible']['unlock_bootloader'])
@@ -1147,6 +1180,8 @@ class PixelFlasher(wx.Frame):
             self.config.toolbar['visible']['install_magisk'] = button_visible
         if button_id == 220:
             self.config.toolbar['visible']['magisk_backup_manager'] = button_visible
+        if button_id == 225:
+            self.config.toolbar['visible']['pif_manager'] = button_visible
         if button_id == 230:
             self.config.toolbar['visible']['sos'] = button_visible
         if button_id == 300:
@@ -1204,7 +1239,7 @@ class PixelFlasher(wx.Frame):
     #                  _on_advanced_config
     # -----------------------------------------------
     def _on_advanced_config(self, event):
-        advanced_setting_dialog = AdvancedSettings(self)
+        advanced_setting_dialog = AdvancedSettings(parent=self)
         advanced_setting_dialog.CentreOnParent(wx.BOTH)
         print("Entering Advanced Configuration ...")
         res = advanced_setting_dialog.ShowModal()
@@ -1607,6 +1642,8 @@ class PixelFlasher(wx.Frame):
     def Test(self, event):
         print("Entrering Test function (used during development only) ...")
         # device = get_phone()
+        # device.dump_props()
+        # self._on_pif_manager(None)
         # res = device.scrcpy()
         # start_time = time.time()
         # self.update_widget_states()
@@ -1732,7 +1769,7 @@ class PixelFlasher(wx.Frame):
                 message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
                 message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"
         message += f"    Has init_boot partition:         {device.has_init_boot}\n"
-        message += f"    Device Bootloader Version:       {device.bootloader_version}\n"
+        message += f"    Device Bootloader Version:       {device.get_prop('version-bootloader', 'ro.bootloader')}\n"
         if device.mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
             message += f"    Device Build:                    {device.build}\n"
@@ -1746,21 +1783,21 @@ class PixelFlasher(wx.Frame):
                 message += f"    Android Release Date:            {android_version['Release date']}\n"
                 message += f"    Android Latest Update:           {android_version['Latest update']}\n"
             message += f"    Device Architecture:             {device.architecture}\n"
-            message += f"    Device Kernel Version:           {device.ro_kernel_version}\n"
-            message += f"    sys_oem_unlock_allowed:          {device.sys_oem_unlock_allowed}\n"
+            message += f"    Device Kernel Version:           {device.get_prop('ro.kernel.version')}\n"
+            message += f"    sys_oem_unlock_allowed:          {device.get_prop('sys.oem_unlock_allowed')}\n"
             message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
-            message += f"    ro.boot.vbmeta.device_state:     {device.ro_boot_vbmeta_device_state}\n"
-            message += f"    vendor.boot.vbmeta.device_state: {device.vendor_boot_vbmeta_device_state}\n"
-            message += f"    ro.product.first_api_level:      {device.ro_product_first_api_level}\n"
-            message += f"    ro.boot.warranty_bit:            {device.ro_boot_warranty_bit}\n"
-            message += f"    ro.boot.veritymode:              {device.ro_boot_veritymode}\n"
-            message += f"    ro.boot.verifiedbootstate:       {device.ro_boot_verifiedbootstate}\n"
-            message += f"    vendor.boot.verifiedbootstate:   {device.vendor_boot_verifiedbootstate}\n"
-            message += f"    ro.warranty_bit:                 {device.ro_warranty_bit}\n"
-            message += f"    ro.secure:                       {device.ro_secure}\n"
-            message += f"    ro.zygote:                       {device.ro_zygote}\n"
-            message += f"    ro.vendor.product.cpu.abilist:   {device.ro_vendor_product_cpu_abilist}\n"
-            message += f"    ro.vendor.product.cpu.abilist32: {device.ro_vendor_product_cpu_abilist32}\n"
+            message += f"    ro.boot.vbmeta.device_state:     {device.get_prop('ro.boot.vbmeta.device_state')}\n"
+            # message += f"    vendor.boot.vbmeta.device_state: {device.get_prop('vendor.boot.vbmeta.device_state')}\n"
+            message += f"    ro.product.first_api_level:      {device.get_prop('ro.product.first_api_level')}\n"
+            # message += f"    ro.boot.warranty_bit:            {device.get_prop('ro.boot.warranty_bit')}\n"
+            message += f"    ro.boot.veritymode:              {device.get_prop('ro.boot.veritymode')}\n"
+            message += f"    ro.boot.verifiedbootstate:       {device.get_prop('ro.boot.verifiedbootstate')}\n"
+            # message += f"    vendor.boot.verifiedbootstate:   {device.get_prop('vendor.boot.verifiedbootstate')}\n"
+            # message += f"    ro.warranty_bit:                 {device.get_prop('ro.warranty_bit')}\n"
+            message += f"    ro.secure:                       {device.get_prop('ro.secure')}\n"
+            message += f"    ro.zygote:                       {device.get_prop('ro.zygote')}\n"
+            message += f"    ro.vendor.product.cpu.abilist:   {device.get_prop('ro.vendor.product.cpu.abilist')}\n"
+            message += f"    ro.vendor.product.cpu.abilist32: {device.get_prop('ro.vendor.product.cpu.abilist32')}\n"
             if device.rooted:
                 message += self.get_vbmeta(device)
             m_app_version = device.magisk_app_version
@@ -1772,12 +1809,12 @@ class PixelFlasher(wx.Frame):
             message += f"    Device Unlocked:                 {device.unlocked}\n"
             if not device.unlocked:
                 message += f"    Device Unlockable:               {device.unlock_ability}\n"
-            message += f"    slot-retry-count:a:              {device.slot_retry_count_a}\n"
-            message += f"    slot-unbootable:a:               {device.slot_unbootable_a}\n"
-            message += f"    slot-successful:a:               {device.slot_successful_a}\n"
-            message += f"    slot-retry-count:b:              {device.slot_retry_count_b}\n"
-            message += f"    slot-unbootable:b:               {device.slot_unbootable_b}\n"
-            message += f"    slot-successful:b:               {device.slot_successful_b}\n"
+            message += f"    slot-retry-count:a:              {device.get_prop('slot-retry-count:a')}\n"
+            message += f"    slot-unbootable:a:               {device.get_prop('slot-unbootable:a')}\n"
+            message += f"    slot-successful:a:               {device.get_prop('slot-successful:a')}\n"
+            message += f"    slot-retry-count:b:              {device.get_prop('slot-retry-count:b')}\n"
+            message += f"    slot-unbootable:b:               {device.get_prop('slot-unbootable:b')}\n"
+            message += f"    slot-successful:b:               {device.get_prop('slot-successful:b')}\n"
         if device.rooted:
             m_version = device.magisk_version
             message += f"    Magisk Version:                  {m_version}\n"
@@ -1935,13 +1972,16 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     #                  refresh_device
     # -----------------------------------------------
-    def refresh_device(self):
+    def refresh_device(self, look_for_device=None):
         print("Updating connected devices ...")
-        selected_device = self.device_choice.StringSelection
-        selected_device_id = None
-        if selected_device:
-            # selected_device_id = selected_device.split()[2]
-            selected_device_id = self.config.device
+        if look_for_device:
+            selected_device_id = look_for_device
+        else:
+            selected_device = self.device_choice.StringSelection
+            selected_device_id = None
+            if selected_device:
+                # selected_device_id = selected_device.split()[2]
+                selected_device_id = self.config.device
         self.device_choice.Clear()
         phones = get_phones()
         for device in phones:
@@ -2133,6 +2173,7 @@ class PixelFlasher(wx.Frame):
                 self.scrcpy_menu_item:                  ['device_attached', 'scrcpy_path_is_set'],
                 self.device_info_menu_item:             ['device_attached'],
                 self.pif_info_menu_item:                ['device_attached'],
+                self.props_as_json_menu_item:           ['device_attached'],
                 self.xml_view_menu_item:                ['device_attached'],
                 self.push_menu:                         ['device_attached'],
                 self.push_file_to_tmp_menu:             ['device_attached'],
@@ -2165,6 +2206,7 @@ class PixelFlasher(wx.Frame):
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
                 self.magisk_menu:                       ['device_attached', 'device_mode_adb'],
                 self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.pif_manager_menu:                  ['device_attached', 'device_mode_adb'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 # self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.disable_verity_checkBox:           ['device_attached'],
@@ -2199,6 +2241,7 @@ class PixelFlasher(wx.Frame):
                 200:                                    ['device_attached', 'device_mode_adb'],                         # Magisk Modules
                 210:                                    ['device_attached'],                                            # Magisk Install
                 220:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Magisk Backup Manager
+                225:                                    ['device_attached', 'device_mode_adb'],                         # Pif Manager
                 230:                                    ['no_rule'],                                                    # SOS
                 300:                                    ['device_attached'],                                            # Lock
                 310:                                    ['device_attached'],                                            # Unock
@@ -2985,6 +3028,21 @@ class PixelFlasher(wx.Frame):
         dlg.Destroy()
 
     # -----------------------------------------------
+    #                  _on_pif_manager
+    # -----------------------------------------------
+    def _on_pif_manager(self, event):
+        self._on_spin('start')
+        try:
+            dlg = PifManager(parent=self, config=self.config)
+        except Exception:
+            traceback.print_exc()
+            self._on_spin('stop')
+            return
+        dlg.CentreOnParent(wx.BOTH)
+        self._on_spin('stop')
+        result = dlg.Show()
+
+    # -----------------------------------------------
     #                  _on_magisk_install
     # -----------------------------------------------
     def _on_magisk_install(self, event):
@@ -3551,10 +3609,11 @@ class PixelFlasher(wx.Frame):
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} INFO: Flashing was aborted.")
                 print("This could be user initiated or a problem encountered during flashing.")
                 device = get_phone()
-                mode = device.get_device_state()
-                print(f"Current device mode: {mode}")
+                if device:
+                    mode = device.get_device_state()
+                    print(f"Current device mode: {mode}")
                 print("You might need to manually reboot your device.\n")
-            self.refresh_device()
+                self.refresh_device()
             self._on_spin('stop')
             self.flash_button.Enable(True)
             self.update_widget_states()
@@ -4021,7 +4080,7 @@ class PixelFlasher(wx.Frame):
 # ============================================================================
 class MySplashScreen(wx.adv.SplashScreen):
     def __init__(self):
-        wx.adv.SplashScreen.__init__(self, images.Splash.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 20000, None, -1, wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        wx.adv.SplashScreen.__init__(self, images.Splash_dark.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 20000, None, -1, wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.__fc = wx.CallLater(1000, self._show_main)
 

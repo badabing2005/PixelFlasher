@@ -48,6 +48,7 @@ command_lines = [
     "-a -F -i -n partition-24 images/partition-24.png images.py",
     "-a -F -i -n partition-64 images/partition-64.png images.py",
     "-a -F -i -n paste-24 images/paste-24.png images.py",
+    "-a -F -i -n paste-up-24 images/paste-up-24.png images.py",
     "-a -F -i -n patch-24 images/patch-24.png images.py",
     "-a -F -i -n patched-16 images/patched-16.png images.py",
     "-a -F -i -n patched-24 images/patched-24.png images.py",
@@ -80,6 +81,7 @@ command_lines = [
     "-a -F -i -n sos-24 images/sos-24.png images.py",
     "-a -F -i -n sos-64 images/sos-64.png images.py",
     "-a -F -i -n Splash images/splash.png images.py",
+    "-a -F -i -n Splash-dark images/splash-dark.png images.py",
     "-a -F -i -n support-24 images/support-24.png images.py",
     "-a -F -i -n switch-slot-24 images/switch-slot-24.png images.py",
     "-a -F -i -n switch-slot-64 images/switch-slot-64.png images.py",
@@ -110,6 +112,10 @@ command_lines = [
     "-a -F -i -n push-cart-24 images/push-cart-24.png images.py",
     "-a -F -i -n json-24 images/json-24.png images.py",
     "-a -F -i -n xml-24 images/xml-24.png images.py",
+    "-a -F -i -n alert-red-24 images/alert-red-24.png images.py",
+    "-a -F -i -n alert-gray-24 images/alert-gray-24.png images.py",
+    "-a -F -i -n pif-24 images/pif-24.png images.py",
+    "-a -F -i -n pif-64 images/pif-64.png images.py",
 ]
 
 if __name__ == "__main__":

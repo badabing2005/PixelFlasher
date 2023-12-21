@@ -23,6 +23,7 @@ class FileEditor(wx.Dialog):
         self.SetSize((self.width, self.height))
 
     def create_widgets(self):
+        # sourcery skip: merge-duplicate-blocks, merge-else-if-into-elif, remove-pass-elif, remove-redundant-if
         self.text_ctrl = stc.StyledTextCtrl(self, style=wx.HSCROLL)
         if sys.platform == "win32":
             if self.language == "batch":

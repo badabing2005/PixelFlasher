@@ -333,7 +333,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     device_id = f"{self.ip_ctrl.Value}:{self.port.Value}"
                     set_phone_id(device_id)
                     self.Parent.config.device = device_id
-                    self.Parent.refresh_device()
+                    self.Parent.refresh_device(device_id)
                 self._on_spin('stop')
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while wifi connecting")

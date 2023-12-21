@@ -3,16 +3,14 @@
 import wx
 import wx.lib.mixins.listctrl as listmix
 import traceback
-import html
 import images as images
 import darkdetect
 import markdown
-import re
 import wx.html
 import webbrowser
 from datetime import datetime
-from file_editor import FileEditor
 from runtime import *
+from message_box_ex import MessageBoxEx
 
 
 # ============================================================================
@@ -110,45 +108,9 @@ class MagiskModules(wx.Dialog):
         self.uninstall_module_button.SetToolTip(u"Uninstall magisk module.")
         self.uninstall_module_button.Enable(False)
 
-        # Play Integrity Fix button
-        self.pif_button = wx.Button(self, wx.ID_ANY, u"Install Pif Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pif_button.SetToolTip(u"Install Play Integrity Fix module.")
-
-        # Edit pif.json button
-        self.edit_pif_button = wx.Button(self, wx.ID_ANY, u"Edit pif.json", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.edit_pif_button.SetToolTip(u"Edit pif.json.")
-        self.edit_pif_button.Enable(False)
-
-        # Kill  gms button
-        self.kill_gms_button = wx.Button(self, wx.ID_ANY, u"Kill Google GMS", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.kill_gms_button.SetToolTip(u"Kill Google GMS process, required after pif edit to avoid a reboot.")
-        self.kill_gms_button.Enable(False)
-        self.kill_gms_button.Show(False)
-
-        # Process build.prop button
-        self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.process_build_prop_button.SetToolTip(u"Process build.prop to extract pif.json.")
-
-        # Check for Auto Copy to Clipboard
-        self.auto_copy_to_clipboard_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Copy to Clipboard", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_copy_to_clipboard_checkbox.SetToolTip(u"After Processing build.props, the json is copied to clipboard.")
-
-        # Check for Auto Push pif.json
-        self.auto_push_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Push pif.json", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_push_pif_checkbox.SetToolTip(u"After Processing build.props, the pif.json is automatically pushed to the device and the GMS process is killed.")
-        self.auto_push_pif_checkbox.Enable(False)
-
-        # Check for Auto Check Play Integrity
-        self.auto_check_pi_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Check Play Integrity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_check_pi_checkbox.SetToolTip(u"After editing (pushing) pif.json, automatically run Play Integrity Check.")
-        self.auto_check_pi_checkbox.Enable(False)
-
-        # option button PI Selectedion
-        self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store"], style=wx.RA_VERTICAL)
-
-        # Play Integrity API Checkerbutton
-        self.pi_checker_button = wx.Button(self, wx.ID_ANY, u"Play Integrity Check", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pi_checker_button.SetToolTip(u"Play Integrity API Checker\nNote: Need to install app from Play store.")
+        # Play Integrity Fix Installbutton
+        self.pif_install_button = wx.Button(self, wx.ID_ANY, u"Install Pif Module", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pif_install_button.SetToolTip(u"Install Play Integrity Fix module.")
 
         # Systemless hosts button
         self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, u"Systemless Hosts", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -170,22 +132,18 @@ class MagiskModules(wx.Dialog):
         self.disable_denylist_button = wx.Button(self, wx.ID_ANY, u"Disable Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_denylist_button.SetToolTip(u"Disable Magisk denylist")
 
+        # static line
+        self.staticline1 = wx.StaticLine(parent=self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LI_HORIZONTAL)
+
         # Cancel button
         self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Make the buttons the same size
-        button_width = self.pi_option.GetSize()[0] + 10
+        button_width = self.systemless_hosts_button.GetSize()[0] + 10
         self.install_module_button.SetMinSize((button_width, -1))
         self.update_module_button.SetMinSize((button_width, -1))
         self.uninstall_module_button.SetMinSize((button_width, -1))
-        self.pif_button.SetMinSize((button_width, -1))
-        self.edit_pif_button.SetMinSize((button_width, -1))
-        self.kill_gms_button.SetMinSize((button_width, -1))
-        self.process_build_prop_button.SetMinSize((button_width, -1))
-        self.auto_copy_to_clipboard_checkbox.SetMinSize((button_width, -1))
-        self.auto_push_pif_checkbox.SetMinSize((button_width, -1))
-        self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
-        self.pi_checker_button.SetMinSize((button_width, -1))
+        self.pif_install_button.SetMinSize((button_width, -1))
         self.systemless_hosts_button.SetMinSize((button_width, -1))
         self.enable_zygisk_button.SetMinSize((button_width, -1))
         self.disable_zygisk_button.SetMinSize((button_width, -1))
@@ -216,24 +174,17 @@ class MagiskModules(wx.Dialog):
         h_buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
         v_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
-        v_buttons_sizer.Add(self.install_module_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.update_module_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.uninstall_module_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.pif_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.systemless_hosts_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.enable_zygisk_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.disable_zygisk_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.enable_denylist_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.disable_denylist_button, 0, wx.TOP | wx.RIGHT, 10)
+        v_buttons_sizer.Add(self.install_module_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.update_module_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.uninstall_module_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.pif_install_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.systemless_hosts_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.enable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.disable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.enable_denylist_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.disable_denylist_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.staticline1, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.AddStretchSpacer()
-        v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.auto_copy_to_clipboard_checkbox, 0, wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.auto_push_pif_checkbox, 0, wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.auto_check_pi_checkbox, 0, wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.edit_pif_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.kill_gms_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.pi_option, 0, wx.ALL, 5)
-        v_buttons_sizer.Add(self.pi_checker_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
 
         modules_sizer = wx.BoxSizer(wx.VERTICAL)
         modules_sizer.Add(self.list, 1, wx.EXPAND | wx.ALL, 10)
@@ -260,11 +211,7 @@ class MagiskModules(wx.Dialog):
         self.install_module_button.Bind(wx.EVT_BUTTON, self.onInstallModule)
         self.update_module_button.Bind(wx.EVT_BUTTON, self.onUpdateModule)
         self.uninstall_module_button.Bind(wx.EVT_BUTTON, self.onUninstallModule)
-        self.pif_button.Bind(wx.EVT_BUTTON, self.onInstallPif)
-        self.edit_pif_button.Bind(wx.EVT_BUTTON, self.onEditPifProp)
-        self.kill_gms_button.Bind(wx.EVT_BUTTON, self.onKillGms)
-        self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.onProcessBuildProp)
-        self.pi_checker_button.Bind(wx.EVT_BUTTON, self.onPiChecker)
+        self.pif_install_button.Bind(wx.EVT_BUTTON, self.onInstallPif)
         self.systemless_hosts_button.Bind(wx.EVT_BUTTON, self.onSystemlessHosts)
         self.enable_zygisk_button.Bind(wx.EVT_BUTTON, self.onEnableZygisk)
         self.disable_zygisk_button.Bind(wx.EVT_BUTTON, self.onDisableZygisk)
@@ -272,7 +219,6 @@ class MagiskModules(wx.Dialog):
         self.disable_denylist_button.Bind(wx.EVT_BUTTON, self.onDisableDenylist)
         self.cancel_button.Bind(wx.EVT_BUTTON, self.onCancel)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected, self.list)
-        self.pi_option.Bind(wx.EVT_RADIOBOX, self.onPiSelection)
         self.html.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
         self.list.Bind(wx.EVT_LEFT_DOWN, self.onModuleSelection)
         self.Bind(wx.EVT_SIZE, self.OnResize)
@@ -294,12 +240,7 @@ class MagiskModules(wx.Dialog):
             return
         modules = device.get_magisk_detailed_modules(refresh)
 
-        self.pif_button.Enable(True)
-        self.edit_pif_button.Enable(False)
-        self.auto_push_pif_checkbox.Enable(False)
-        self.auto_check_pi_checkbox.Enable(False)
-        self.kill_gms_button.Enable(False)
-        self.pi_checker_button.Enable(False)
+        self.pif_install_button.Enable(True)
 
         self.list.InsertColumn(0, 'ID', width = -1)
         self.list.InsertColumn(1, 'Name', width = -1)
@@ -307,8 +248,6 @@ class MagiskModules(wx.Dialog):
         self.list.InsertColumn(3, 'Description', wx.LIST_FORMAT_LEFT,  -1)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
-
-        self.list.EnableCheckBoxes()
 
         if modules:
             i = 0
@@ -329,17 +268,28 @@ class MagiskModules(wx.Dialog):
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
                     if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
-                    self.pif_button.Enable(False)
-                    self.check_pif_json()
-                    self.edit_pif_button.Enable(True)
-                    self.auto_push_pif_checkbox.Enable(True)
-                    self.auto_check_pi_checkbox.Enable(True)
-                    self.kill_gms_button.Enable(True)
-                    self.pi_checker_button.Enable(True)
+                    self.pif_install_button.Enable(False)
 
                 # disable Systemless Hosts button if it is already installed.
                 if module.id == "hosts" and module.name == "Systemless Hosts":
                     self.systemless_hosts_button.Enable(False)
+
+                # disable denylist if Magisk is delta
+                if get_magisk_package() == 'io.github.huskydg.magisk':
+                    self.enable_denylist_button.Enable(False)
+                    self.disable_denylist_button.Enable(False)
+
+                # disable button if device is not rooted.
+                if not device.rooted:
+                    self.install_module_button.Enable(False)
+                    self.update_module_button.Enable(False)
+                    self.uninstall_module_button.Enable(False)
+                    self.pif_install_button.Enable(False)
+                    self.enable_zygisk_button.Enable(False)
+                    self.disable_zygisk_button.Enable(False)
+                    self.systemless_hosts_button.Enable(False)
+                    self.enable_denylist_button.Enable(False)
+                    self.disable_denylist_button.Enable(False)
 
                 self.list.SetItemColumnImage(i, 0, -1)
                 with contextlib.suppress(Exception):
@@ -382,46 +332,6 @@ class MagiskModules(wx.Dialog):
             data += f"Magisk Version:          {device.magisk_version}\n"
         data += "\nMagisk Modules"
         self.modules_label.SetLabel(data)
-
-    # -----------------------------------------------
-    #                  check_pif_json
-    # -----------------------------------------------
-    def check_pif_json(self):
-        device = get_phone()
-        if not device.rooted:
-            return
-        # check for presence of pif.json
-        res, tmp = device.check_file(self.pif_json_path, True)
-        if res == 1:
-            # pif.json exists, change button to Edit
-            self.edit_pif_button.SetLabel("Edit pif.json")
-            self.edit_pif_button.SetToolTip(u"Edit pif.json.")
-        elif res == 0:
-            # pif.json does not exits, change button to create
-            self.edit_pif_button.SetLabel("Create pif.json")
-            self.edit_pif_button.SetToolTip(u"Create and upload pif.json.")
-
-    # -----------------------------------------------
-    #                  onPiSelection
-    # -----------------------------------------------
-    def onPiSelection(self, event):
-        option = event.GetString()
-
-        if option == "Play Integrity API Checker":
-            print("Play Integrity API Checker option selected")
-            self.pi_app = 'gr.nikolasspyr.integritycheck'
-
-        elif option == "Simple Play Integrity Checker":
-            print("Simple Play Integrity Checker option selected")
-            self.pi_app = 'com.henrikherzig.playintegritychecker'
-
-        elif option == "TB Checker":
-            print("TB Checker option selected")
-            self.pi_app = 'krypton.tbsafetychecker'
-
-        elif option == "Play Store":
-            print("Play Store option selected")
-            self.pi_app = 'com.android.vending'
 
     # -----------------------------------------------
     #                  __del__
@@ -547,98 +457,29 @@ class MagiskModules(wx.Dialog):
             device = get_phone()
             if not device.rooted:
                 return
-            url = check_module_update(PIF_UPDATE_URL)
+            buttons_text = ["osm0sis PlayIntegrityFork", "chiteroman PlayIntegrityFix", "Cancel"]
+            dlg = MessageBoxEx(parent=self, title='PlayIntegrityFix Module', message="Select the module you want to install", button_texts=buttons_text, default_button=1)
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            if result == 1:
+                update_url = OSM0SIS_PIF_UPDATE_URL
+            elif result == 2:
+                update_url = PIF_UPDATE_URL
+            else:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting ...\n")
+                return -1
+
+            url = check_module_update(update_url)
             self._on_spin('start')
-            print(f"Installing Play Integrity Fix module URL: {url} ...")
-            downloaded_file_path = download_file(url)
+            downloaded_file_path = download_file(url.zipUrl)
+            print(f"Installing Play Integrity Fix module URL: {downloaded_file_path} ...")
             device.install_magisk_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
-            traceback.print_exc()
-        self._on_spin('stop')
-
-    # -----------------------------------------------
-    #                  onKillGms
-    # -----------------------------------------------
-    def onKillGms(self, e):
-        try:
-            device = get_phone()
-            if not device.rooted:
-                return
-            self._on_spin('start')
-            print("Killing Google GMS  ...")
-            res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
-            if res.returncode != 0:
-                print("Error killing GMS.")
-            else:
-                print("Killing Google GMS succeeded.")
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during killing GMS.")
-            traceback.print_exc()
-        self._on_spin('stop')
-
-    # -----------------------------------------------
-    #                  onEditPifProp
-    # -----------------------------------------------
-    def onEditPifProp(self, e):
-        try:
-            device = get_phone()
-            if not device.rooted:
-                return
-            self._on_spin('start')
-            config_path = get_config_path()
-            pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
-            if self.edit_pif_button.GetLabel() == "Edit pif.json":
-                # pull the file
-                res = device.pull_file(self.pif_json_path, pif_prop, True)
-                if res != 0:
-                    print("Aborting ...\n")
-                    # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
-                    self._on_spin('stop')
-                    return
-            else:
-                # we need to create one.
-                with open(pif_prop, 'w') as file:
-                    pass
-            dlg = FileEditor(self.Parent, pif_prop, "json", width=1200, height=400)
-            dlg.CenterOnParent()
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            if result == wx.ID_OK:
-                # get the contents of modified pif.json
-                with open(pif_prop, 'r', encoding='ISO-8859-1', errors="replace") as f:
-                    contents = f.read()
-                print(f"\npif.prep file has been modified!")
-                # push the file
-                res = device.push_file(pif_prop, self.pif_json_path, True)
-                if res != 0:
-                    print("Aborting ...\n")
-                    # puml("#red:Failed to push pif.json from the phone;\n}\n")
-                    self._on_spin('stop')
-                    return -1
-
-                print("Killing Google GMS  ...")
-                res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
-                if res.returncode != 0:
-                    print("Error killing GMS.")
-                else:
-                    print("Killing Google GMS succeeded.")
-
-                self.check_pif_json()
-
-                # Auto test Play Integrity
-                if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
-                    print("Auto Testing Play Integrity ...")
-                    self.onPiChecker(None)
-            else:
-                print("User cancelled editing pif.json file.")
-                puml(f"note right\nCancelled and Aborted\nend note\n")
-                self._on_spin('stop')
-                return -1
-            self.check_pif_json()
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip edit process.")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -721,478 +562,6 @@ class MagiskModules(wx.Dialog):
         self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  get_pi_app_coords
-    # -----------------------------------------------
-    def get_pi_app_coords(self, child=None):
-        try:
-            device = get_phone()
-            if not device.rooted:
-                return
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Getting coordinates for {self.pi_app}")
-
-            # pull view
-            config_path = get_config_path()
-            pi_app_xml = os.path.join(config_path, 'tmp', 'pi_app.xml')
-
-            if self.pi_app == 'gr.nikolasspyr.integritycheck':
-                return  device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "CHECK", False)
-
-            elif self.pi_app == 'com.henrikherzig.playintegritychecker':
-                return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Make Play Integrity Request", False)
-
-            elif self.pi_app == 'krypton.tbsafetychecker':
-                return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Run Play Integrity Check", False)
-
-            elif self.pi_app == 'com.android.vending':
-                if child == 'user':
-                    # This needs custom handling, as there is no identifiable string to look for
-                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "PixelFlasher_Playstore", True)
-                if child == 'settings':
-                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Settings", True)
-                if child == 'general':
-                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "General", True)
-                if child == 'scroll':
-                    return device.swipe_up()
-                if child == 'developer_options':
-                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Developer options", True)
-                if child == 'test':
-                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Check integrity", False)
-                if child == 'dismiss':
-                    return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Dismiss", False)
-
-        except IOError:
-            traceback.print_exc()
-
-    # -----------------------------------------------
-    #                  onPiChecker
-    # -----------------------------------------------
-    def onPiChecker(self, e):
-        try:
-            device = get_phone()
-            if not device.rooted:
-                return
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Play Integrity API Checker.")
-            self._on_spin('start')
-
-            # We need to kill TB Checker to make sure we read fresh values
-            if self.pi_option.Selection in [2, 3]:
-                res = device.perform_package_action(self.pi_app, 'kill', False)
-
-            # launch the app
-            res = device.perform_package_action(self.pi_app, 'launch', False)
-            if res == -1:
-                print(f"Error: during launching app {self.pi_app}.")
-                self._on_spin('stop')
-                return -1
-
-            # See if we have coordinates saved
-            coords = self.coords.query_entry(device.id, self.pi_app)
-            coord_dismiss = None
-            if coords is None:
-                # For Play Store, we need to save multiple coordinates
-                if self.pi_option.Selection == 3:
-                    # Get coordinates for the first time
-                    # user
-                    coord_user = self.get_pi_app_coords(child='user')
-                    if coord_user == -1:
-                        print(f"Error: during tapping {self.pi_app} [user] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                        return -1
-                    self.coords.update_nested_entry(device.id, self.pi_app, "user", coord_user)
-
-                    # settings
-                    coord_settings = self.get_pi_app_coords(child='settings')
-                    if coord_settings == -1:
-                        print(f"Error: during tapping {self.pi_app} [settings] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                        return -1
-                    self.coords.update_nested_entry(device.id, self.pi_app, "settings", coord_settings)
-
-                    # general
-                    coord_general = self.get_pi_app_coords(child='general')
-                    if coord_general == -1:
-                        print(f"Error: during tapping {self.pi_app} [general] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                        return -1
-                    self.coords.update_nested_entry(device.id, self.pi_app, "general", coord_general)
-                    # page scroll
-                    coord_scroll = self.get_pi_app_coords(child='scroll')
-                    if coord_scroll == -1:
-                        print(f"Error: during swipping {self.pi_app} [scroll] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                        return -1
-                    self.coords.update_nested_entry(device.id, self.pi_app, "scroll", coord_scroll)
-                    # Developer Options
-                    coord_developer_options = self.get_pi_app_coords(child='developer_options')
-                    if coord_developer_options == -1:
-                        print(f"Error: during tapping {self.pi_app} [developer_options] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                        return -1
-                    self.coords.update_nested_entry(device.id, self.pi_app, "developer_options", coord_developer_options)
-                    # Check Integrity
-                    coord_test = self.get_pi_app_coords(child='test')
-                    if coord_test == -1:
-                        print(f"Error: during tapping {self.pi_app} [Check Integrity] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                        return -1
-                    self.coords.update_nested_entry(device.id, self.pi_app, "test", coord_test)
-                    coords = coord_test
-                else:
-                    # Get coordinates for the first time
-                    coords = self.get_pi_app_coords()
-                    if coords is not None and coords != -1:
-                        # update coords.json
-                        self.coords.update_entry(device.id, self.pi_app, coords)
-                    else:
-                        print("Error: Could not get coordinates.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                        return -1
-            elif self.pi_option.Selection == 3:
-                coord_user = self.coords.query_nested_entry(device.id, self.pi_app, "user")
-                coord_settings = self.coords.query_nested_entry(device.id, self.pi_app, "settings")
-                coord_general = self.coords.query_nested_entry(device.id, self.pi_app, "general")
-                coord_scroll = self.coords.query_nested_entry(device.id, self.pi_app, "scroll")
-                coord_developer_options = self.coords.query_nested_entry(device.id, self.pi_app, "developer_options")
-                coord_test = self.coords.query_nested_entry(device.id, self.pi_app, "test")
-                coord_dismiss = self.coords.query_nested_entry(device.id, self.pi_app, "dismiss")
-                if coord_user is None or coord_user == '' or coord_settings is None or coord_settings == '' or coord_general is None or coord_general == '' or coord_developer_options is None or coord_developer_options == '' or coord_test is None or coord_test == '':
-                    print(f"\nError: coordinates for {self.pi_app} is missing from settings\nPlease run the test again so that PixelFlasher can try to get fresh new coordinates.")
-                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                        del self.coords.data[device.id][self.pi_app]
-                        self.coords.save_data()
-                    self._on_spin('stop')
-                    return -1
-
-                # user
-                res = device.click(coord_user)
-                if res == -1:
-                    print(f"Error: during tapping {self.pi_app} [user] screen.")
-                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                        del self.coords.data[device.id][self.pi_app]
-                        self.coords.save_data()
-                    self._on_spin('stop')
-                    return -1
-                time.sleep(1)
-                # settings
-                res = device.click(coord_settings)
-                if res == -1:
-                    print(f"Error: during tapping {self.pi_app} [settings] screen.")
-                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                        del self.coords.data[device.id][self.pi_app]
-                        self.coords.save_data()
-                    self._on_spin('stop')
-                    return -1
-                time.sleep(1)
-                # general
-                res = device.click(coord_general)
-                if res == -1:
-                    print(f"Error: during tapping {self.pi_app} [general] screen.")
-                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                        del self.coords.data[device.id][self.pi_app]
-                        self.coords.save_data()
-                    self._on_spin('stop')
-                    return -1
-                time.sleep(1)
-                res = device.swipe(coord_scroll)
-                if res == -1:
-                    print(f"Error: during swiping {self.pi_app} [scroll] screen.")
-                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                        del self.coords.data[device.id][self.pi_app]
-                        self.coords.save_data()
-                    self._on_spin('stop')
-                    return -1
-                time.sleep(1)
-                # developer_options
-                res = device.click(coord_developer_options)
-                if res == -1:
-                    print(f"Error: during tapping {self.pi_app} [developer_options] screen.")
-                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                        del self.coords.data[device.id][self.pi_app]
-                        self.coords.save_data()
-                    self._on_spin('stop')
-                    return -1
-                time.sleep(1)
-                # test
-                coords = coord_test
-
-            # Click on coordinates
-            res = device.click(coords)
-            if res == -1:
-                print(f"\nError: coordinates for {self.pi_app} is missing from settings\nPlease run the test again so that PixelFlasher can try to get fresh new coordinates.")
-                if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                    del self.coords.data[device.id][self.pi_app]
-                    self.coords.save_data()
-                self._on_spin('stop')
-                return -1
-
-            # pull view
-            config_path = get_config_path()
-            pi_xml = os.path.join(config_path, 'tmp', 'pi.xml')
-            time.sleep(5)
-            res = device.ui_action('/data/local/tmp/pi.xml', pi_xml)
-            if res == -1:
-                print(f"Error: during uiautomator {self.pi_app}.")
-                self._on_spin('stop')
-                return -1
-
-            # extract result
-            if self.pi_option.Selection == 0:
-                res = process_pi_xml_piac(pi_xml)
-            if self.pi_option.Selection == 1:
-                res = process_pi_xml_spic(pi_xml)
-            if self.pi_option.Selection == 2:
-                res = process_pi_xml_tb(pi_xml)
-            if self.pi_option.Selection == 3:
-                res = process_pi_xml_ps(pi_xml)
-                # dismiss
-                if coord_dismiss is None or coord_dismiss == '' or coord_dismiss == -1:
-                    coord_dismiss = self.get_pi_app_coords(child='dismiss')
-                    if coord_dismiss == -1:
-                        print(f"Error: getting coordinates for {self.pi_app} [dismiss] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]['dismiss']
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                    self.coords.update_nested_entry(device.id, self.pi_app, "dismiss", coord_dismiss)
-
-            if res == -1:
-                print(f"Error: during processing the response from {self.pi_app}.")
-                self._on_spin('stop')
-                return -1
-
-            self.html.SetPage('')
-            if res is None or res == '':
-                if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                    del self.coords.data[device.id][self.pi_app]['dismiss']
-            else:
-                pi_print_html = f"<pre>{html.escape(res)}</pre>"
-                self.html.SetPage(pi_print_html)
-
-        except IOError:
-            traceback.print_exc()
-        self._on_spin('stop')
-
-
-    # -----------------------------------------------
-    #                  sort_prop
-    # -----------------------------------------------
-    def sort_prop(self, file_path):
-        filename = os.path.basename(file_path)
-        if filename == "build.prop":
-            return 1
-        elif filename == "system-build.prop":
-            return 2
-        elif filename == "vendor.prop":
-            return 3
-        elif filename == "product-build.prop":
-            return 4
-        elif filename == "build.default.prop":
-            return 5
-        elif filename == "default.prop":
-            return 6
-        elif filename == "system.prop":
-            return 7
-        elif filename == "product.prop":
-            return 8
-        elif filename == "oem.prop":
-            return 9
-        elif filename == "cust.prop":
-            return 10
-        else:
-            return 999
-
-    # -----------------------------------------------
-    #                  onProcessBuildProp
-    # -----------------------------------------------
-    def onProcessBuildProp(self, e):
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User presses Process build.prop")
-        wildcard = "Property files (*.prop)|*.prop|All files (*.*)|*.*"
-        dialog = wx.FileDialog(self, "Choose property files to open", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
-
-        if dialog.ShowModal() == wx.ID_CANCEL:
-            print("User cancelled file selection.")
-            return
-
-        paths = dialog.GetPaths()
-        dialog.Destroy()
-        sorted_paths = sorted(paths, key=self.sort_prop)
-
-        print(f"Selected files: {sorted_paths}")
-
-        try:
-            self._on_spin('start')
-            processed_dict = {}
-            for pathname in reversed(sorted_paths):
-                with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
-                    content = f.readlines()
-
-                contentList = [x.strip().split('#')[0].split('=', 1) for x in content if '=' in x.split('#')[0]]
-                contentDict = dict(contentList)
-
-                # Update processed_dict with entries from the current file
-                # processed_dict.update(contentDict)
-                processed_dict |= contentDict
-
-                # Apply the substitution to the values in processed_dict
-                for k, v in contentDict.items():
-                    for x in v.split('$')[1:]:
-                        key = re.findall(r'\w+', x)[0]
-                        v = v.replace(f'${key}', processed_dict[key])
-                    processed_dict[k] = v.strip()
-
-            # PRODUCT
-            keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name']
-            ro_product_name = get_first_match(processed_dict, keys)
-
-            # DEVICE
-            keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device']
-            ro_product_device = get_first_match(processed_dict, keys)
-
-            # MANUFACTURER
-            keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer']
-            ro_product_manufacturer = get_first_match(processed_dict, keys)
-
-            # BRAND
-            keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand']
-            ro_product_brand = get_first_match(processed_dict, keys)
-
-            # MODEL
-            keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model']
-            ro_product_model = get_first_match(processed_dict, keys)
-
-            # FINGERPRINT
-            keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
-            ro_build_fingerprint = get_first_match(processed_dict, keys)
-
-            # SECURITY_PATCH
-            keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
-            ro_build_version_security_patch = get_first_match(processed_dict, keys)
-
-            # FIRST_API_LEVEL
-            keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
-            ro_product_first_api_level = get_first_match(processed_dict, keys)
-            if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
-                ro_product_first_api_level = '32'
-
-            # BUILD_ID
-            keys = ['ro.build.id']
-            ro_build_id = get_first_match(processed_dict, keys)
-            ro_build_id = None
-            if ro_build_id is None or ro_build_id == '':
-                pattern = r'[^\/]*\/[^\/]*\/[^:]*:[^\/]*\/([^\/]*)\/[^\/]*\/[^\/]*'
-                match = re.search(pattern, ro_build_fingerprint)
-                if match:
-                    ro_build_id = match[1]
-
-            # VNDK_VERSION
-            keys = ['ro.vndk.version', 'ro.product.vndk.version']
-            ro_vndk_version = get_first_match(processed_dict, keys)
-
-            if ro_build_fingerprint is None or ro_build_fingerprint == '':
-                keys = ['ro.build.version.release']
-                ro_build_version_release = get_first_match(processed_dict, keys)
-
-                keys = ['ro.build.version.incremental']
-                ro_build_version_incremental = get_first_match(processed_dict, keys)
-
-                keys = ['ro.build.type']
-                ro_build_type = get_first_match(processed_dict, keys)
-
-                keys = ['ro.build.tags']
-                ro_build_tags = get_first_match(processed_dict, keys)
-
-                ro_build_fingerprint = f"{ro_product_brand}/{ro_product_name}/{ro_product_device}:{ro_build_version_release}/{ro_build_id}/{ro_build_version_incremental}:{ro_build_type}/{ro_build_tags}"
-
-            donor_data = {
-                "PRODUCT": ro_product_name,
-                "DEVICE": ro_product_device,
-                "MANUFACTURER": ro_product_manufacturer,
-                "BRAND": ro_product_brand,
-                "MODEL": ro_product_model,
-                "FINGERPRINT": ro_build_fingerprint,
-                "SECURITY_PATCH": ro_build_version_security_patch,
-                "FIRST_API_LEVEL": ro_product_first_api_level,
-                "BUILD_ID": ro_build_id,
-                "VNDK_VERSION": ro_vndk_version
-            }
-            donor_json = json.dumps(donor_data, indent=4)
-
-
-            donor_print_html = f"<pre>{html.escape(donor_json)}</pre>"
-            self.html.SetPage(donor_print_html)
-
-            # print(donor_json)
-
-            # copy to clipboard
-            if self.auto_copy_to_clipboard_checkbox.IsEnabled() and self.auto_copy_to_clipboard_checkbox.IsChecked():
-                self.html.SelectAll()
-                self.html.CopySelectedText()
-                self.html.SetPage(donor_print_html)
-
-            # Auto Push pif.json
-            if self.auto_push_pif_checkbox.IsEnabled() and self.auto_push_pif_checkbox.IsChecked():
-                device = get_phone()
-                if not device.rooted:
-                    print("ERROR: Device not found!")
-                    self._on_spin('stop')
-                    return -1
-                print("Auto Pushing pif.json ...")
-                config_path = get_config_path()
-                pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
-
-                # Save the file
-                with open(pif_prop, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
-                    json.dump(donor_data, f, indent=4, ensure_ascii=False)
-
-                res = device.push_file(pif_prop, self.pif_json_path, True)
-                if res != 0:
-                    print("Aborting ...\n")
-                    # puml("#red:Failed to push pif.json from the phone;\n}\n")
-                    self._on_spin('stop')
-                    return -1
-
-                print("Killing Google GMS  ...")
-                res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
-                if res.returncode != 0:
-                    print("Error killing GMS.")
-                else:
-                    print("Killing Google GMS succeeded.")
-
-                self.check_pif_json()
-
-                # Auto test Play Integrity
-                if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
-                    print("Auto Testing Play Integrity ...")
-                    self.onPiChecker(None)
-
-        except IOError:
-            wx.LogError(f"Cannot process file: '{pathname}'.")
-            traceback.print_exc()
-        self._on_spin('stop')
-
-
-    # -----------------------------------------------
     #                  onContextMenu
     # -----------------------------------------------
     def onContextMenu(self, event):
@@ -1263,18 +632,6 @@ class MagiskModules(wx.Dialog):
         else:
             self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
             self.Parent._on_spin('stop')
-
-    # ----------------------------------------------------------------------------
-    #                               extract_prop
-    # ----------------------------------------------------------------------------
-    def extract_prop(self, search, match):
-        try:
-            l,r = match.rsplit("=", 1)
-            return r.strip()
-        except Exception as e:
-            traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract_prop for {search}")
-            return ''
 
     # ----------------------------------------------------------------------------
     #                               refresh_modules

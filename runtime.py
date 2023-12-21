@@ -2014,7 +2014,7 @@ def process_pi_xml_piac(filename):
 
     # Check if the XML contains the specific string
     if 'The calling app is making too many requests to the API' in xml_string:
-        return "Quota Reached.\nPlay Integrity API Checker is making too many requests to the Google API."
+        return "Quota Reached.\nPlay Integrity API Checker\nis making too many requests to the Google API."
 
     # Print the 'content-desc' values along with a modified version of the resource-id
     result = ''
@@ -2039,7 +2039,7 @@ def process_pi_xml_spic(filename):
 
     # Check if the XML contains the specific string
     if 'Integrity API error (-8)' in xml_content:
-        return "Quota Reached.\nSimple Play Integrity Checker is making too many requests to the Google API."
+        return "Quota Reached.\nSimple Play Integrity Checker\nis making too many requests to the Google API."
 
     # Find the position of "Play Integrity Result:"
     play_integrity_result_pos = xml_content.find("Play Integrity Result:")
@@ -2199,7 +2199,6 @@ def run_shell(cmd, timeout=None):
 #                               Function run_shell2
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
-# no returncode is available.
 def run_shell2(cmd, timeout=None, detached=False, directory=None):
     try:
         flush_output()

@@ -24,6 +24,8 @@ class Config():
         self.height = MAIN_HEIGHT
         self.magisk_width = MAGISK_WIDTH
         self.magisk_height = MAGISK_HEIGHT
+        self.pif_width = PIF_WIDTH
+        self.pif_height = PIF_HEIGHT
         self.boot_id = None
         self.selected_boot_md5 = None
         self.custom_rom = False
@@ -96,6 +98,7 @@ class Config():
                 'magisk_modules': True,
                 'install_magisk': True,
                 'magisk_backup_manager': True,
+                'pif_manager': True,
                 'sos': True,
                 'lock_bootloader': True,
                 'unlock_bootloader': True,
@@ -141,6 +144,10 @@ class Config():
                     conf.magisk_width = data['magisk_width']
                 with contextlib.suppress(KeyError):
                     conf.magisk_height = data['magisk_height']
+                with contextlib.suppress(KeyError):
+                    conf.pif_width = data['pif_width']
+                with contextlib.suppress(KeyError):
+                    conf.pif_height = data['pif_height']
                 with contextlib.suppress(KeyError):
                     conf.custom_rom = data['custom_rom']
                 with contextlib.suppress(KeyError):
@@ -275,6 +282,8 @@ class Config():
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['magisk_backup_manager'] = toolbar_data['visible']['magisk_backup_manager']
                     with contextlib.suppress(KeyError):
+                        conf.toolbar['visible']['pif_manager'] = toolbar_data['visible']['pif_manager']
+                    with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['sos'] = toolbar_data['visible']['sos']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['lock_bootloader'] = toolbar_data['visible']['lock_bootloader']
@@ -329,6 +338,8 @@ class Config():
             'height': self.height,
             'magisk_width': self.magisk_width,
             'magisk_height': self.magisk_height,
+            'pif_width': self.pif_width,
+            'pif_height': self.pif_height,
             'custom_rom': self.custom_rom,
             'custom_rom_path': self.custom_rom_path,
             'disable_verification': self.disable_verification,

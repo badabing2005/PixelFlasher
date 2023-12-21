@@ -72,6 +72,20 @@ class MagiskApk():
 
 
 # ============================================================================
+#                               Class DeviceProps
+# ============================================================================
+class DeviceProps:
+    def __init__(self):
+        self.property = {}
+
+    def get(self, key):
+        return self.property.get(key, "Property not found")
+
+    def upsert(self, key, value):
+        self.property[key] = value
+
+
+# ============================================================================
 #                               Class Device
 # ============================================================================
 class Device():
@@ -89,41 +103,7 @@ class Device():
         # The below are for caching.
         self._adb_device_info = None
         self._fastboot_device_info = None
-        self._hardware = None
-        self._build = None
-        self._api_level = None
-        self._architecture = None
-        self._active_slot = None
-        self._bootloader_version = None
-        self._sys_oem_unlock_allowed = None
-        self._ro_boot_flash_locked = None
-        self._ro_boot_vbmeta_device_state = None
-        self._vendor_boot_verifiedbootstate = None
-        self._ro_product_first_api_level = None
-        self._ro_boot_verifiedbootstate = None
-        self._ro_boot_veritymode = None
-        self._vendor_boot_vbmeta_device_state = None
-        self._ro_boot_warranty_bit = None
-        self._ro_warranty_bit = None
-        self._ro_secure = None
-        self._ro_zygote = None
-        self._ro_vendor_product_cpu_abilist = None
-        self._ro_vendor_product_cpu_abilist32 = None
-        self._ro_product_name = None
-        self._ro_product_device = None
-        self._ro_product_manufacturer = None
-        self._ro_product_brand = None
-        self._ro_product_model = None
-        self._ro_build_version_security_patch = None
-        self._ro_build_version_release = None
-        self._ro_build_id = None
-        self._ro_build_version_incremental = None
-        self._ro_build_type = None
-        self._ro_build_tags = None
-        self._ro_build_fingerprint = None
-        self._current_device_print = None
         self._rooted = None
-        self._unlocked = None
         self._magisk_version = None
         self._magisk_app_version = None
         self._magisk_version_code = None
@@ -133,16 +113,10 @@ class Device():
         self._magisk_apks = None
         self._magisk_config_path = None
         self._has_init_boot = None
-        self._slot_retry_count_a = None
-        self._slot_unbootable_a = None
-        self._slot_successful_a = None
-        self._slot_retry_count_b = None
-        self._slot_unbootable_b = None
-        self._slot_successful_b = None
         self.packages = {}
         self.backups = {}
         self.vbmeta = {}
-        self._ro_kernel_version = None
+        self.props = {}
         # Get vbmeta details
         self.vbmeta = self.get_vbmeta_details()
 
@@ -307,154 +281,28 @@ class Device():
     # ----------------------------------------------------------------------------
     def init(self, mode):
         try:
-            if mode == 'adb':
-                device_info = self.adb_device_info
-                if device_info:
-                    s_active_slot = "ro.boot.slot_suffix"
-                    s_bootloader_version = "ro.bootloader"
-                    s_build = "ro.build.fingerprint"
-                    s_api_level = "ro.build.version.sdk"
-                    s_hardware = "ro.hardware"
-                    s_architecture = "ro.product.cpu.abi"
-                    s_ro_kernel_version = "ro.kernel.version"
-                    # USNF related props
-                    s_sys_oem_unlock_allowed = 'sys.oem_unlock_allowed'
-                    s_ro_boot_flash_locked = 'ro.boot.flash.locked'
-                    s_ro_boot_vbmeta_device_state = 'ro.boot.vbmeta.device_state'
-                    s_vendor_boot_verifiedbootstate = 'vendor.boot.verifiedbootstate'
-                    s_ro_product_first_api_level = 'ro.product.first_api_level'
-                    s_ro_boot_verifiedbootstate = 'ro.boot.verifiedbootstate'
-                    s_ro_boot_veritymode = 'ro.boot.veritymode'
-                    s_vendor_boot_vbmeta_device_state = 'vendor.boot.vbmeta.device_state'
-                    s_ro_boot_warranty_bit = 'ro.boot.warranty_bit'
-                    s_ro_warranty_bit = 'ro.warranty_bit'
-                    s_ro_secure = 'ro.secure'
-                    # Magisk zygote64_32 related props. https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/
-                    s_ro_zygote = 'ro.zygote'
-                    s_ro_vendor_product_cpu_abilist = 'ro.vendor.product.cpu.abilist'
-                    s_ro_vendor_product_cpu_abilist32 = 'ro.vendor.product.cpu.abilist32'
-                    s_ro_product_name = 'ro.product.name'
-                    s_ro_product_device = 'ro.product.device'
-                    s_ro_product_manufacturer = 'ro.product.manufacturer'
-                    s_ro_product_brand = 'ro.product.brand'
-                    s_ro_product_model = 'ro.product.model'
-                    s_ro_build_version_security_patch = 'ro.build.version.security_patch'
-                    s_ro_build_version_release = 'ro.build.version.release'
-                    s_ro_build_id = 'ro.build.id'
-                    s_ro_build_version_incremental = 'ro.build.version.incremental'
-                    s_ro_build_type = 'ro.build.type'
-                    s_ro_build_tags = 'ro.build.tags'
-                    for line in device_info.split("\n"):
-                        if s_active_slot in line and not self._active_slot:
-                            self._active_slot = self.extract_prop(s_active_slot, line.strip())
-                            self._active_slot = self._active_slot.replace("_", "")
-                        elif s_bootloader_version in line and not self._bootloader_version:
-                            self._bootloader_version = self.extract_prop(s_bootloader_version, line.strip())
-                        elif s_build in line and not self._build:
-                            self._ro_build_fingerprint = self.extract_prop(s_build, line.strip())
-                            self._build = self._ro_build_fingerprint
-                            self._build = self._build.split('/')[3]
-                        elif s_api_level in line and not self._api_level:
-                            self._api_level = self.extract_prop(s_api_level, line.strip())
-                        elif s_hardware in line and not self._hardware:
-                            self._hardware = self.extract_prop(s_hardware, line.strip())
-                        elif s_architecture in line and not self._architecture:
-                            self._architecture = self.extract_prop(s_architecture, line.strip())
-                        elif s_ro_kernel_version in line and not self._ro_kernel_version:
-                            self._ro_kernel_version = self.extract_prop(s_ro_kernel_version, line.strip())
-                        elif s_sys_oem_unlock_allowed in line and not self._sys_oem_unlock_allowed:
-                            self._sys_oem_unlock_allowed = self.extract_prop(s_sys_oem_unlock_allowed, line.strip())
-                        elif s_ro_boot_flash_locked in line and not self._ro_boot_flash_locked:
-                            self._ro_boot_flash_locked = self.extract_prop(s_ro_boot_flash_locked, line.strip())
-                            if self._ro_boot_flash_locked == '0':
-                                add_unlocked_device(self.id)
-                        elif s_ro_boot_vbmeta_device_state in line and not self._ro_boot_vbmeta_device_state:
-                            self._ro_boot_vbmeta_device_state = self.extract_prop(s_ro_boot_vbmeta_device_state, line.strip())
-                        elif s_vendor_boot_verifiedbootstate in line and not self._vendor_boot_verifiedbootstate:
-                            self._vendor_boot_verifiedbootstate = self.extract_prop(s_vendor_boot_verifiedbootstate, line.strip())
-                        elif s_ro_product_first_api_level in line and not self._ro_product_first_api_level:
-                            self._ro_product_first_api_level = self.extract_prop(s_ro_product_first_api_level, line.strip())
-                        elif s_ro_boot_verifiedbootstate in line and not self._ro_boot_verifiedbootstate:
-                            self._ro_boot_verifiedbootstate = self.extract_prop(s_ro_boot_verifiedbootstate, line.strip())
-                        elif s_ro_boot_veritymode in line and not self._ro_boot_veritymode:
-                            self._ro_boot_veritymode = self.extract_prop(s_ro_boot_veritymode, line.strip())
-                        elif s_vendor_boot_vbmeta_device_state in line and not self._vendor_boot_vbmeta_device_state:
-                            self._vendor_boot_vbmeta_device_state = self.extract_prop(s_vendor_boot_vbmeta_device_state, line.strip())
-                        elif s_ro_boot_warranty_bit in line and not self._ro_boot_warranty_bit:
-                            self._ro_boot_warranty_bit = self.extract_prop(s_ro_boot_warranty_bit, line.strip())
-                        elif s_ro_warranty_bit in line and not self._ro_warranty_bit:
-                            self._ro_warranty_bit = self.extract_prop(s_ro_warranty_bit, line.strip())
-                        elif s_ro_secure in line and not self._ro_secure:
-                            self._ro_secure = self.extract_prop(s_ro_secure, line.strip())
-                        elif s_ro_zygote in line and not self._ro_zygote:
-                            self._ro_zygote = self.extract_prop(s_ro_zygote, line.strip())
-                        elif s_ro_vendor_product_cpu_abilist in line and not self._ro_vendor_product_cpu_abilist:
-                            self._ro_vendor_product_cpu_abilist = self.extract_prop(s_ro_vendor_product_cpu_abilist, line.strip())
-                        elif s_ro_vendor_product_cpu_abilist32 in line and not self._ro_vendor_product_cpu_abilist32:
-                            self._ro_vendor_product_cpu_abilist32 = self.extract_prop(s_ro_vendor_product_cpu_abilist32, line.strip())
-                        elif s_ro_product_name in line and not self._ro_product_name:
-                            self._ro_product_name = self.extract_prop(s_ro_product_name, line.strip())
-                        elif s_ro_product_device in line and not self._ro_product_device:
-                            self._ro_product_device = self.extract_prop(s_ro_product_device, line.strip())
-                        elif s_ro_product_brand in line and not self._ro_product_brand:
-                            self._ro_product_brand = self.extract_prop(s_ro_product_brand, line.strip())
-                        elif s_ro_product_manufacturer in line and not self._ro_product_manufacturer:
-                            self._ro_product_manufacturer = self.extract_prop(s_ro_product_manufacturer, line.strip())
-                        elif s_ro_product_model in line and not self._ro_product_model:
-                            self._ro_product_model = self.extract_prop(s_ro_product_model, line.strip())
-                        elif s_ro_build_version_security_patch in line and not self._ro_build_version_security_patch:
-                            self._ro_build_version_security_patch = self.extract_prop(s_ro_build_version_security_patch, line.strip())
-                        elif s_ro_build_version_release in line and not self._ro_build_version_release:
-                            self._ro_build_version_release = self.extract_prop(s_ro_build_version_release, line.strip())
-                        elif s_ro_build_id in line and not self._ro_build_id:
-                            self._ro_build_id = self.extract_prop(s_ro_build_id, line.strip())
-                        elif s_ro_build_version_incremental in line and not self._ro_build_version_incremental:
-                            self._ro_build_version_incremental = self.extract_prop(s_ro_build_version_incremental, line.strip())
-                        elif s_ro_build_type in line and not self._ro_build_type:
-                            self._ro_build_type = self.extract_prop(s_ro_build_type, line.strip())
-                        elif s_ro_build_tags in line and not self._ro_build_tags:
-                            self._ro_build_tags = self.extract_prop(s_ro_build_tags, line.strip())
-                    if self._ro_build_fingerprint is None:
-                        self._ro_build_fingerprint = f"{self._ro_product_brand}/{self._ro_product_name}/{self._ro_product_device}:{self._ro_build_version_release}/{self._ro_build_id}/{self._ro_build_version_incremental}:{self._ro_build_type}/{self._ro_build_tags}"
-            elif mode == 'f.b':
+            device_props = DeviceProps()
+            if mode == 'f.b':
                 device_info = self.fastboot_device_info
-                if device_info:
-                    s_active_slot = "(bootloader) current-slot"
-                    s_hardware = "(bootloader) product"
-                    s_unlocked = "(bootloader) unlocked"
-                    s_bootloader_version = "(bootloader) version-bootloader"
-                    s_slot_retry_count_a = "(bootloader) slot-retry-count:a"
-                    s_slot_unbootable_a = "(bootloader) slot-unbootable:a"
-                    s_slot_successful_a = "(bootloader) slot-successful:a"
-                    s_slot_retry_count_b = "(bootloader) slot-retry-count:b"
-                    s_slot_unbootable_b = "(bootloader) slot-unbootable:b"
-                    s_slot_successful_b = "(bootloader) slot-successful:b"
-                    for line in device_info.split("\n"):
-                        if s_active_slot in line and not self._active_slot:
-                            self._active_slot = self.extract_prop(s_active_slot, line.strip())
-                        elif s_hardware in line and not self._hardware:
-                            self._hardware = self.extract_prop(s_hardware, line.strip())
-                        elif s_unlocked in line and not self._unlocked:
-                            self._unlocked = self.extract_prop(s_unlocked, line.strip())
-                            if self._unlocked == 'yes':
-                                self._unlocked = True
-                                add_unlocked_device(self.id)
-                            else:
-                                self._unlocked = False
-                        elif s_bootloader_version in line and not self._bootloader_version:
-                            self._bootloader_version = self.extract_prop(s_bootloader_version, line.strip())
-                        elif s_slot_retry_count_a in line and not self._slot_retry_count_a:
-                            self._slot_retry_count_a = self.extract_prop(s_slot_retry_count_a, line.strip())
-                        elif s_slot_unbootable_a in line and not self._slot_unbootable_a:
-                            self._slot_unbootable_a = self.extract_prop(s_slot_unbootable_a, line.strip())
-                        elif s_slot_successful_a in line and not self._slot_successful_a:
-                            self._slot_successful_a = self.extract_prop(s_slot_successful_a, line.strip())
-                        elif s_slot_retry_count_b in line and not self._slot_retry_count_b:
-                            self._slot_retry_count_b = self.extract_prop(s_slot_retry_count_b, line.strip())
-                        elif s_slot_unbootable_b in line and not self._slot_unbootable_b:
-                            self._slot_unbootable_b = self.extract_prop(s_slot_unbootable_b, line.strip())
-                        elif s_slot_successful_b in line and not self._slot_successful_b:
-                            self._slot_successful_b = self.extract_prop(s_slot_successful_b, line.strip())
+            else:
+                device_info = self.adb_device_info
+
+            if device_info:
+                for line in device_info.split('\n'):
+                    if not line or ':' not in line:
+                        continue
+
+                    line = line.strip()
+                    if mode == 'f.b':
+                        key, value = line.split(':', 1)
+                        key = key.replace('(bootloader) ', 'bootloader_')
+                    else:
+                        key, value = line.split(': ', 1)
+                        key = key.strip('[]')
+                        value = value.strip('[]')
+
+                    device_props.upsert(key, value)
+                self.props = device_props
 
             # set has_init_boot
             self._has_init_boot = False
@@ -463,49 +311,56 @@ class Device():
             partitions = self.get_partitions()
             if partitions != -1 and ('init_boot' in partitions or 'init_boot_a' in partitions or 'init_boot_b' in partitions):
                 self._has_init_boot = True
+
         except Exception as e:
             traceback.print_exc()
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not init device class")
             puml("#red:ERROR: Could not get_package_details;\n", True)
 
     # ----------------------------------------------------------------------------
-    #                               property extract_prop
+    #                               method get_prop
     # ----------------------------------------------------------------------------
-    def extract_prop(self, search, match):
-        """
-            Extracts a property value based on the search key and match string.
+    def get_prop(self, prop, prop2=None):
+        if self.props is None:
+            return ''
+        if self.mode == "f.b":
+            res = self.props.get(f"bootloader_{prop}")
+            # debug(f"prop: {prop} value: [{res}]")
+            if res == 'Property not found' or res is None:
+                if not prop2:
+                    # debug(f"Property {prop} not found.")
+                    return ''
+                res = self.props.get(f"bootloader_{prop2}")
+                # debug(f"prop2: {prop2} value: [{res}]")
+                if res == 'Property not found' or res is None:
+                    # debug(f"Bootloader property {prop} and {prop2} are not found.")
+                    return ''
+                return res
+        else:
+            res = self.props.get(prop)
+            # debug(f"prop: {prop} value: [{res}]")
+            if res == 'Property not found' or res is None:
+                if prop2:
+                    res = self.props.get(prop2)
+                    # debug(f"prop2: {prop2} value: [{res}]")
+                    if res == 'Property not found' or res is None:
+                        # debug(f"Bootloader property {prop} and {prop2} are not found.")
+                        return ''
+                    return res
+                else:
+                    # debug(f"Property {prop} not found.")
+                    return ''
+        return res
 
-            Args:
-                search (str): The search key to match against.
-                match (str): The string to match and extract the property value from.
-
-            Returns:
-                str: The extracted property value.
-
-            Raises:
-                None
-
-            Example:
-                ```python
-                phone = Phone()
-                value = phone.extract_prop("key", "key: value")
-                print(value)
-                ```
-        """
-        try:
-            if self.mode == 'adb':
-                l,r = match.rsplit(": ", 1)
-                if l.strip() == f"[{search}]":
-                    return r.strip().strip("[").strip("]")
-            elif self.mode == 'f.b':
-                l,r = match.rsplit(":", 1)
-                if l.strip() == f"{search}":
-                    return r.strip()
-        except Exception as e:
-            traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract_prop for {search}")
-            puml("#red:ERROR: Could not extract_prop for {search};\n", True)
-            return 'ERROR: Could the extract prop value.'
+    # ----------------------------------------------------------------------------
+    #                               method dump_prop
+    # ----------------------------------------------------------------------------
+    def dump_props(self):  # sourcery skip: use-join
+        print("\nDumping properties ...")
+        data = ''
+        for key, value in self.props.property.items():
+            data += f"[{key}]: [{value}]\n"
+        print(data)
 
     # ----------------------------------------------------------------------------
     #                               property has_init_boot
@@ -522,10 +377,12 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def active_slot(self):
-        if self._active_slot is None:
+        res = self.get_prop('current-slot', 'ro.boot.slot_suffix')
+        if not res:
             return ''
-        else:
-            return self._active_slot
+        if res != '':
+            res = res.replace("_", "")
+        return res
 
     # ----------------------------------------------------------------------------
     #                               property inactive_slot
@@ -534,401 +391,82 @@ class Device():
     def inactive_slot(self):
         if self.active_slot is None:
             return ''
-        current_slot = self.active_slot
-        if current_slot == 'a':
+        if self.active_slot == 'a':
             return 'b'
         else:
             return 'a'
-
-    # ----------------------------------------------------------------------------
-    #                               property bootloader_version
-    # ----------------------------------------------------------------------------
-    @property
-    def bootloader_version(self):
-        if self._bootloader_version is None:
-            return ''
-        else:
-            return self._bootloader_version
-
-    # ----------------------------------------------------------------------------
-    #                               property slot_retry_count_a
-    # ----------------------------------------------------------------------------
-    @property
-    def slot_retry_count_a(self):
-        if self._slot_retry_count_a is None:
-            return ''
-        else:
-            return self._slot_retry_count_a
-
-    # ----------------------------------------------------------------------------
-    #                               property slot_unbootable_a
-    # ----------------------------------------------------------------------------
-    @property
-    def slot_unbootable_a(self):
-        if self._slot_unbootable_a is None:
-            return ''
-        else:
-            return self._slot_unbootable_a
-
-    # ----------------------------------------------------------------------------
-    #                               property slot_successful_a
-    # ----------------------------------------------------------------------------
-    @property
-    def slot_successful_a(self):
-        if self._slot_successful_a is None:
-            return ''
-        else:
-            return self._slot_successful_a
-
-    # ----------------------------------------------------------------------------
-    #                               property slot_retry_count_b
-    # ----------------------------------------------------------------------------
-    @property
-    def slot_retry_count_b(self):
-        if self._slot_retry_count_b is None:
-            return ''
-        else:
-            return self._slot_retry_count_b
-
-    # ----------------------------------------------------------------------------
-    #                               property slot_unbootable_b
-    # ----------------------------------------------------------------------------
-    @property
-    def slot_unbootable_b(self):
-        if self._slot_unbootable_b is None:
-            return ''
-        else:
-            return self._slot_unbootable_b
-
-    # ----------------------------------------------------------------------------
-    #                               property slot_successful_a
-    # ----------------------------------------------------------------------------
-    @property
-    def slot_successful_b(self):
-        if self._slot_successful_b is None:
-            return ''
-        else:
-            return self._slot_successful_b
 
     # ----------------------------------------------------------------------------
     #                               property build
     # ----------------------------------------------------------------------------
     @property
     def build(self):
-        if self._build is None:
+        try:
+            build =  self.get_prop('ro.build.id')
+            if build is not None and build != '':
+                return build
+            build =  self.ro_build_fingerprint
+            if self.ro_build_fingerprint != '':
+                return build.split('/')[3]
+            else:
+                return ''
+        except Exception:
             return ''
-        else:
-            return self._build
 
     # ----------------------------------------------------------------------------
     #                               property api_level
     # ----------------------------------------------------------------------------
     @property
     def api_level(self):
-        if self._api_level is None:
-            return ''
-        else:
-            return self._api_level
+        return self.get_prop('ro.build.version.sdk')
 
     # ----------------------------------------------------------------------------
     #                               property hardware
     # ----------------------------------------------------------------------------
     @property
     def hardware(self):
-        if self._hardware is None:
-            return ''
+        res = self.get_prop('product', 'ro.hardware')
+        if res:
+            return res
         else:
-            return self._hardware
+            return ''
 
     # ----------------------------------------------------------------------------
     #                               property architecture
     # ----------------------------------------------------------------------------
     @property
     def architecture(self):
-        if self._architecture is None:
-            return ''
-        else:
-            return self._architecture
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_product_name
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_product_name(self):
-        if self._ro_product_name is None:
-            return ''
-        else:
-            return self._ro_product_name
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_product_device
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_product_device(self):
-        if self._ro_product_device is None:
-            return ''
-        else:
-            return self._ro_product_device
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_product_manufacturer
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_product_manufacturer(self):
-        if self._ro_product_manufacturer is None:
-            return ''
-        else:
-            return self._ro_product_manufacturer
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_product_brand
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_product_brand(self):
-        if self._ro_product_brand is None:
-            return ''
-        else:
-            return self._ro_product_brand
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_product_model
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_product_model(self):
-        if self._ro_product_model is None:
-            return ''
-        else:
-            return self._ro_product_model
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_build_version_security_patch
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_build_version_security_patch(self):
-        if self._ro_build_version_security_patch is None:
-            return ''
-        else:
-            return self._ro_build_version_security_patch
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_build_version_release
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_build_version_release(self):
-        if self._ro_build_version_release is None:
-            return ''
-        else:
-            return self._ro_build_version_release
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_build_id
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_build_id(self):
-        if self._ro_build_id is None:
-            return ''
-        else:
-            return self._ro_build_id
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_build_version_incremental
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_build_version_incremental(self):
-        if self._ro_build_version_incremental is None:
-            return ''
-        else:
-            return self._ro_build_version_incremental
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_build_type
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_build_type(self):
-        if self._ro_build_type is None:
-            return ''
-        else:
-            return self._ro_build_type
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_build_tags
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_build_tags(self):
-        if self._ro_build_tags is None:
-            return ''
-        else:
-            return self._ro_build_tags
+        return self.get_prop('ro.product.cpu.abi')
 
     # ----------------------------------------------------------------------------
     #                               property ro_build_fingerprint
     # ----------------------------------------------------------------------------
     @property
     def ro_build_fingerprint(self):
-        if self._ro_build_fingerprint is None:
-            return ''
-        else:
-            return self._ro_build_fingerprint
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_kernel_version
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_kernel_version(self):
-        if self._ro_kernel_version is None:
-            return ''
-        else:
-            return self._ro_kernel_version
-
-    # ----------------------------------------------------------------------------
-    #                               property sys_oem_unlock_allowed
-    # ----------------------------------------------------------------------------
-    @property
-    def sys_oem_unlock_allowed(self):
-        if self._sys_oem_unlock_allowed is None:
-            return ''
-        else:
-            return self._sys_oem_unlock_allowed
+        res = self.get_prop('ro.build.fingerprint')
+        if res == '':
+            return f"{self.get_prop('ro.product.brand')}/{self.get_prop('ro.product.name')}/{self.get_prop('ro.product.device')}:{self.get_prop('ro.build.version.release')}/{self.get_prop('ro.build.id')}/{self.get_prop('ro.build.version.incremental')}:{self.get_prop('ro.build.type')}/{self.get_prop('ro.build.tags')}"
 
     # ----------------------------------------------------------------------------
     #                               property ro_boot_flash_locked
     # ----------------------------------------------------------------------------
     @property
     def ro_boot_flash_locked(self):
-        if self._ro_boot_flash_locked is None:
-            return ''
-        else:
-            return self._ro_boot_flash_locked
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_boot_vbmeta_device_state
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_boot_vbmeta_device_state(self):
-        if self._ro_boot_vbmeta_device_state is None:
-            return ''
-        else:
-            return self._ro_boot_vbmeta_device_state
-
-    # ----------------------------------------------------------------------------
-    #                               property vendor_boot_verifiedbootstate
-    # ----------------------------------------------------------------------------
-    @property
-    def vendor_boot_verifiedbootstate(self):
-        if self._vendor_boot_verifiedbootstate is None:
-            return ''
-        else:
-            return self._vendor_boot_verifiedbootstate
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_product_first_api_level
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_product_first_api_level(self):
-        if self._ro_product_first_api_level is None:
-            return ''
-        else:
-            return self._ro_product_first_api_level
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_boot_verifiedbootstate
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_boot_verifiedbootstate(self):
-        if self._ro_boot_verifiedbootstate is None:
-            return ''
-        else:
-            return self._ro_boot_verifiedbootstate
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_boot_veritymode
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_boot_veritymode(self):
-        if self._ro_boot_veritymode is None:
-            return ''
-        else:
-            return self._ro_boot_veritymode
-
-    # ----------------------------------------------------------------------------
-    #                               property vendor_boot_vbmeta_device_state
-    # ----------------------------------------------------------------------------
-    @property
-    def vendor_boot_vbmeta_device_state(self):
-        if self._vendor_boot_vbmeta_device_state is None:
-            return ''
-        else:
-            return self._vendor_boot_vbmeta_device_state
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_boot_warranty_bit
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_boot_warranty_bit(self):
-        if self._ro_boot_warranty_bit is None:
-            return ''
-        else:
-            return self._ro_boot_warranty_bit
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_warranty_bit
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_warranty_bit(self):
-        if self._ro_warranty_bit is None:
-            return ''
-        else:
-            return self._ro_warranty_bit
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_secure
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_secure(self):
-        if self._ro_secure is None:
-            return ''
-        else:
-            return self._ro_secure
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_zygote
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_zygote(self):
-        if self._ro_zygote is None:
-            return ''
-        else:
-            return self._ro_zygote
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_vendor_product_cpu_abilist
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_vendor_product_cpu_abilist(self):
-        if self._ro_vendor_product_cpu_abilist is None:
-            return ''
-        else:
-            return self._ro_vendor_product_cpu_abilist
-
-    # ----------------------------------------------------------------------------
-    #                               property ro_vendor_product_cpu_abilist32
-    # ----------------------------------------------------------------------------
-    @property
-    def ro_vendor_product_cpu_abilist32(self):
-        if self._ro_vendor_product_cpu_abilist32 is None:
-            return ''
-        else:
-            return self._ro_vendor_product_cpu_abilist32
+        res = self.get_prop('ro.boot.flash.locked')
+        if res == '0':
+            add_unlocked_device(self.id)
+        return res
 
     # ----------------------------------------------------------------------------
     #                               property unlocked
     # ----------------------------------------------------------------------------
     @property
     def unlocked(self):
-        if self._unlocked is None:
-            return ''
+        res = self.get_prop('unlocked')
+        if res != 'yes':
+            return False
         add_unlocked_device(self.id)
-        return self._unlocked
+        return True
 
     # ----------------------------------------------------------------------------
     #                               property root_symbol
@@ -1022,18 +560,26 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def current_device_print(self):
-        if self._current_device_print is None:
-            self._current_device_print = "{\n"
-            self._current_device_print += f"    \"PRODUCT\" : \"{self.ro_product_name}\",\n"
-            self._current_device_print += f"    \"DEVICE\" : \"{self.ro_product_device}\",\n"
-            self._current_device_print += f"    \"MANUFACTURER\" : \"{self.ro_product_manufacturer}\",\n"
-            self._current_device_print += f"    \"BRAND\" : \"{self.ro_product_brand}\",\n"
-            self._current_device_print += f"    \"MODEL\" : \"{self.ro_product_model}\",\n"
-            self._current_device_print += f"    \"FINGERPRINT\" : \"{self.ro_build_fingerprint}\",\n"
-            self._current_device_print += f"    \"SECURITY_PATCH\" : \"{self.ro_build_version_security_patch}\",\n"
-            self._current_device_print += f"    \"FIRST_API_LEVEL\" : \"{self.ro_product_first_api_level}\"\n"
-            self._current_device_print += "}"
-        return self._current_device_print
+        device_data = {
+            "PRODUCT": self.get_prop('ro.product.name'),
+            "DEVICE": self.get_prop('ro.product.device'),
+            "MANUFACTURER": self.get_prop('ro.product.manufacturer'),
+            "BRAND": self.get_prop('ro.product.brand'),
+            "MODEL": self.get_prop('ro.product.model'),
+            "FINGERPRINT": self.ro_build_fingerprint,
+            "SECURITY_PATCH": self.get_prop('ro.build.version.security_patch'),
+            "FIRST_API_LEVEL": self.get_prop('ro.product.first_api_level'),
+            "BUILD_ID": self.get_prop('ro.build.id'),
+            "VNDK_VERSION": self.get_prop('ro.vndk.version')
+        }
+        return json.dumps(device_data, indent=4)
+
+    # ----------------------------------------------------------------------------
+    #                               property current_device_props_in_json
+    # ----------------------------------------------------------------------------
+    @property
+    def current_device_props_as_json(self):  # sourcery skip: use-join
+        return json.dumps(self.props.property, indent=4)
 
     # ----------------------------------------------------------------------------
     #                               method get_partitions
@@ -1424,25 +970,29 @@ add_hosts_module
     #                               method magisk_enable_denylist
     # ----------------------------------------------------------------------------
     def magisk_enable_denylist(self, enable):
-        if self.mode == 'adb' and self.rooted:
-            try:
-                value = "1" if enable else "0"
-                print(f"Updating Enforce denylist flag value to: {value}")
-                puml(f":Updating Enforce denylist flag value to: {value};\n", True)
+        if self.mode != 'adb' or not self.rooted:
+            return
+        try:
+            if get_magisk_package() == 'io.github.huskydg.magisk':
+                print("Magisk denylist is currently not supported in PixelFlasher for Magisk Delta.")
+                return
+            value = "1" if enable else "0"
+            print(f"Updating Enforce denylist flag value to: {value}")
+            puml(f":Updating Enforce denylist flag value to: {value};\n", True)
 
-                data = f"magisk --sqlite \"UPDATE settings SET value = {value} WHERE key = 'denylist';\""
-                res = self.exec_magisk_settings(data)
-                if res == 0:
-                    print("Updating Enforce denylist flag succeeded")
-                    puml("note right:Updating Enforce denylist flag succeeded;\n")
-                else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Enforce denylist flag")
-                    puml("note right:ERROR: Updating Enforce denylist flag;\n")
-                    return -1
-            except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist opeation.")
-                traceback.print_exc()
-                puml("#red:Exception during magisk_enable_denylist opeation.;\n", True)
+            data = f"magisk --sqlite \"UPDATE settings SET value = {value} WHERE key = 'denylist';\""
+            res = self.exec_magisk_settings(data)
+            if res == 0:
+                print("Updating Enforce denylist flag succeeded")
+                puml("note right:Updating Enforce denylist flag succeeded;\n")
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Enforce denylist flag")
+                puml("note right:ERROR: Updating Enforce denylist flag;\n")
+                return -1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist opeation.")
+            traceback.print_exc()
+            puml("#red:Exception during magisk_enable_denylist opeation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -2683,7 +2233,7 @@ This is a special Magisk build\n\n
             mode = self.get_device_state()
             print(f"Rebooting device: {self.id} to system ...")
             puml(f":Rebooting device: {self.id} to system;\n", True)
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
@@ -2707,10 +2257,11 @@ This is a special Magisk build\n\n
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
                 if res.returncode == 0:
-                    res = self.adb_wait_for(timeout=timeout, wait_for='device')
-                    # puml(f"note right:Res [{res}];\n")
+                    if timeout:
+                        res = self.adb_wait_for(timeout=timeout, wait_for='device')
+                        # puml(f"note right:Res [{res}];\n")
                     update_phones(self.id)
-                    return res
+                    return 0
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
@@ -2730,7 +2281,7 @@ This is a special Magisk build\n\n
             mode = self.get_device_state()
             print(f"Rebooting device: {self.id} to recovery ...")
             puml(f":Rebooting device: {self.id} to recovery;\n", True)
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot recovery"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
@@ -2772,7 +2323,7 @@ This is a special Magisk build\n\n
             mode = self.get_device_state()
             print(f"Rebooting device: {self.id} to download ...")
             puml(f":Rebooting device: {self.id} to download;\n", True)
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot download"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
@@ -2802,7 +2353,7 @@ This is a special Magisk build\n\n
             mode = self.get_device_state()
             print(f"Rebooting device: {self.id} to safe mode ...")
             puml(f":Rebooting device: {self.id} to safe mode;\n", True)
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'setprop persist.sys.safemode 1\'\""
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
@@ -2829,7 +2380,7 @@ This is a special Magisk build\n\n
             mode = self.get_device_state()
             print(f"Rebooting device: {self.id} to bootloader ...")
             puml(f":Rebooting device: {self.id} to bootloader;\n", True)
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot bootloader "
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
@@ -2877,7 +2428,7 @@ This is a special Magisk build\n\n
             print("This process will wait for fastbootd indefinitly.")
             print("WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you'd have to kill it.")
             puml(f":Rebooting device: {self.id} to fastbootd;\n", True)
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot fastboot "
                 debug(theCmd)
                 return run_shell(theCmd, timeout=timeout)
@@ -2908,7 +2459,7 @@ This is a special Magisk build\n\n
             mode = self.get_device_state()
             print(f"Rebooting device: {self.id} to sideload ...")
             puml(f":Rebooting device: {self.id} to sideload;\n", True)
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot sideload"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
@@ -2978,6 +2529,7 @@ This is a special Magisk build\n\n
             for _ in range(retry + 1):
                 if get_adb():
                     theCmd = f"\"{get_adb()}\" -s {device_id} get-state"
+                    debug(theCmd)
                     res = run_shell(theCmd, timeout=timeout)
                     if res.returncode == 0:
                         device_mode = res.stdout.strip('\n')
@@ -3078,6 +2630,9 @@ This is a special Magisk build\n\n
                 return []
             print("Getting Magisk denylist ...")
             puml(f":Magisk denylist;\n", True)
+            if get_magisk_package() == 'io.github.huskydg.magisk':
+                print("Magisk denylist is currently not supported in PixelFlasher for Magisk Delta.")
+                return []
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist ls\'\""
             debug(theCmd)
             res = run_shell(theCmd)
@@ -3175,7 +2730,7 @@ This is a special Magisk build\n\n
             if self.mode != 'adb' and get_adb():
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
                 return -1
-            print(f"Getting device resolution ...")
+            print("Getting device resolution ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell wm size"
             debug(theCmd)
             res = run_shell(theCmd)
@@ -3184,8 +2739,7 @@ This is a special Magisk build\n\n
             lines = (f"{res.stdout}").splitlines()
             for line in lines:
                 if "Physical size:" in line:
-                    value = line.split("Physical size:")[1].strip()
-                    return value
+                    return line.split("Physical size:")[1].strip()
             return -1
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_wm_size")
@@ -3201,7 +2755,7 @@ This is a special Magisk build\n\n
             if self.mode != 'adb' and get_adb():
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
                 return -1
-            print(f"Swipe up ...")
+            print("Swipe up ...")
             wm_size = self.get_wm_size()
             x,y = wm_size.split('x')
             coords = f"{int(x) / 2} {int(int(y) * (1 - (percentage / 100)))} {int(x) / 2} {int(int(y) * percentage / 100)}"
@@ -3244,7 +2798,7 @@ This is a special Magisk build\n\n
     def switch_slot(self, timeout=60):
         try:
             mode = self.get_device_state()
-            if mode in ['adb', 'recovery', 'sideload'] and get_adb():
+            if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
@@ -3643,9 +3197,12 @@ This is a special Magisk build\n\n
     #                               method perform_package_action
     # ----------------------------------------------------------------------------
     def perform_package_action(self, pkg, action, isSystem=False):
-        # possible actions 'uninstall', 'disable', 'enable', 'launch', 'kill', killall', 'clear-data', 'add-to-denylist', 'rm-from-denylist'
+        # possible actions 'uninstall', 'disable', 'enable', 'launch', 'kill', killall', 'clear-data', 'clear-cache', 'add-to-denylist', 'rm-from-denylist', 'optimize', 'reset-optimize'
         if self.mode != 'adb':
             return
+        if action in ['add-to-denylist', 'rm-from-denylist'] and get_magisk_package() == 'io.github.huskydg.magisk':
+                print("Magisk denylist is currently not supported in PixelFlasher for Magisk Delta.")
+                return
         try:
             if action == 'uninstall':
                 if isSystem:
@@ -3670,10 +3227,16 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'killall {pkg}\'\""
             elif action == 'clear-data':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm clear {pkg}"
+            elif action == 'clear-cache':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm clear --cache-only {pkg}"
             elif action == 'add-to-denylist':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist add {pkg}\'\""
             elif action == 'rm-from-denylist':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist rm {pkg}\'\""
+            elif action == 'optimize':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell cmd {pkg} compile -m speed-profile -a"
+            elif action == 'reset-optimize':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell cmd {pkg} compile --reset -a"
 
             return run_shell2(theCmd)
         except Exception as e:
@@ -3878,19 +3441,28 @@ def get_connected_devices():
             if response.stdout:
                 debug(f"adb devices:\n{response.stdout}")
                 for device in response.stdout.split('\n'):
-                    if 'device' in device or 'recovery' in device or 'sideload' in device:
-                        with contextlib.suppress(Exception):
+                    if 'device' in device or 'recovery' in device or 'sideload' in device or 'rescue' in device:
+                        if device == "List of devices attached":
+                            continue
+                        # with contextlib.suppress(Exception):
+                        try:
                             d_id = device.split("\t")
+                            if len(d_id) != 2:
+                                continue
                             mode = d_id[1].strip()
                             d_id = d_id[0].strip()
                             true_mode = None
-                            if mode in ('recovery', 'sideload'):
+                            if mode in ('recovery', 'sideload', 'rescue'):
                                 true_mode = mode
                             device = Device(d_id, 'adb', true_mode)
                             device.init('adb')
                             device_details = device.get_device_details()
                             devices.append(device_details)
                             phones.append(device)
+                        except Exception as e:
+                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
+                            traceback.print_exc()
+
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
         else:

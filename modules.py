@@ -539,7 +539,7 @@ def process_file(self, file_type):
         print("==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}         Processing {file_type} file ...")
         print("==============================================================================")
-        print(f"Low memory option: {self.config.low_mem}")
+        print(f"Low memory option:     {self.config.low_mem}")
         print(get_printable_memory())
         puml(f"#cyan:Process {file_type};\n", True)
         config_path = get_config_path()
@@ -561,6 +561,7 @@ def process_file(self, file_type):
         if file_type == 'firmware':
             is_stock_boot = True
             file_to_process = self.config.firmware_path
+            print(f"Factory File:          {file_to_process}")
             puml(f"note right:{file_to_process}\n")
             package_sig = get_firmware_id()
             package_dir_full = os.path.join(factory_images, package_sig)
@@ -716,6 +717,7 @@ def process_file(self, file_type):
                     return
         else:
             file_to_process = self.config.custom_rom_path
+            print(f"ROM File:              {file_to_process}")
             found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
             found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=False)
             found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=False)
@@ -1771,7 +1773,7 @@ def patch_boot_img(self, custom_patch = False):
                 data += "done\n"
                 if device.architecture == "x86_64":
                     data += "cp ../lib/x86/libmagisk32.so magisk32\n"
-                elif device.architecture == "arm64-v8a" and (device.ro_zygote != "zygote64" or "zygote64_32" in with_version.lower()):
+                elif device.architecture == "arm64-v8a" and (device.get_prop('ro.zygote') != "zygote64" or "zygote64_32" in with_version.lower()):
                     data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
                 data += "chmod 755 *\n"
                 data += "if [[ -f \"/data/local/tmp/pf/assets/magisk32\" ]]; then\n"
@@ -2424,6 +2426,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         puml("}\n")
         return -1
 
+    device_id = device.id
     mode = device.get_device_state()
     if mode in ['adb', 'recovery', 'sideload'] and get_adb():
         res = device.reboot_bootloader()
@@ -2436,7 +2439,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     if mode == 'fastboot' and get_fastboot():
         # Check for bootloader unlocked
         if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device.id):
-            self.refresh_device()
+            self.refresh_device(device_id)
             device = get_phone()
             print("Checking if the bootloader is unlocked ...")
             if not device.unlocked:
@@ -2494,7 +2497,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         if option == 'Live':
             res = device.adb_wait_for(timeout=60, wait_for='device')
             update_phones(device.id)
-            self.refresh_device()
+            self.refresh_device(device_id)
             return
         elif option == 'Flash' and not self.config.no_reboot:
             puml(":Reboot to System;\n")
@@ -2508,7 +2511,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     if done_flashing:
         puml(f"note right:Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds\n")
     puml("}\n")
-    self.refresh_device()
+    self.refresh_device(device_id)
     return
 
 
@@ -2543,6 +2546,8 @@ def flash_phone(self):
         self.toast("Flash Option", "Valid device is not selected.")
         return -1
 
+    device_id = device.id
+
     # Check if we're flashing older OTA
     if self.config.flash_mode == 'OTA':
         print("Checking OTA version against the currently installed firmware.")
@@ -2556,7 +2561,7 @@ def flash_phone(self):
             number1 = int(match1.group(1))
             number2 = int(match2.group(1))
             print(f"OTA date:                     {number1}")
-            print(f"Currently firmware date:      {number2}\n")
+            print(f"Current firmware date:        {number2}\n")
             if number1 < number2:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You can only sidload OTA that is equal or higher than the currently installed version.")
                 puml("#red:You can only sidload OTA that is equal or higher than the currently installed version.;\n}\n")
@@ -2758,14 +2763,14 @@ def flash_phone(self):
             # Sideload
             if image_mode == 'SIDELOAD':
                 msg  = "\nADB Sideload:           "
-                data_win += f"call \"{get_adb()}\" -s {device.id} sideload \"{get_image_path()}\"\n"
+                data_win += f"call \"{get_adb()}\" -s {device_id} sideload \"{get_image_path()}\"\n"
                 data_win += "if errorlevel 1 (\n"
                 data_win += "    echo Error: The sideload command encountered an error, aborting ...\n"
                 data_win += "    echo You should manually reboot to system if necessary.\n"
                 data_win += "    exit/b 1\n"
                 data_win += ")\n"
 
-                data_linux += f"\"{get_adb()}\" -s {device.id} sideload \"{get_image_path()}\"\n"
+                data_linux += f"\"{get_adb()}\" -s {device_id} sideload \"{get_image_path()}\"\n"
                 data_linux += "if [ $? -ne 0 ]; then\n"
                 data_linux += "    echo Error: The sideload command encountered an error, aborting ...\n"
                 data_linux += "    echo You should manually reboot to system if necessary.\n"
@@ -2788,7 +2793,7 @@ def flash_phone(self):
                 else:
                     action = f"flash {image_mode}"
                     msg  = f"\nFlash {image_mode:<18}"
-                data_tmp = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {action} \"{get_image_path()}\"\n"
+                data_tmp = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {action} \"{get_image_path()}\"\n"
                 data_win += data_tmp
                 data_linux += data_tmp
 
@@ -2898,7 +2903,7 @@ def flash_phone(self):
             data_win += f"set \"INACTIVE_SLOT={device.inactive_slot}\"\n"
             data_win += "echo Current active slot is:   [%ACTIVE_SLOT%]\n"
             data_win += "echo Current inactive slot is: [%INACTIVE_SLOT%]\n"
-            data_win += f"call \"{get_adb()}\" -s {device.id} sideload \"{self.config.firmware_path}\"\n"
+            data_win += f"call \"{get_adb()}\" -s {device_id} sideload \"{self.config.firmware_path}\"\n"
             data_win += "if errorlevel 1 (\n"
             data_win += "    echo Error: The sideload command encountered an error, aborting ...\n"
             data_win += "    echo You should manually reboot to system if necessary.\n"
@@ -2913,7 +2918,7 @@ def flash_phone(self):
             data_linux += f"INACTIVE_SLOT=\"{device.inactive_slot}\"\n"
             data_linux += "echo Current active Slot is:   [$ACTIVE_SLOT]\n"
             data_linux += "echo Current inactive Slot is: [$ACTIVE_SLOT]\n"
-            data_linux += f"\"{get_adb()}\" -s {device.id} sideload \"{self.config.firmware_path}\"\n"
+            data_linux += f"\"{get_adb()}\" -s {device_id} sideload \"{self.config.firmware_path}\"\n"
             data_linux += "if [ $? -ne 0 ]; then\n"
             data_linux += "    echo Error: The sideload command encountered an error, aborting ...\n"
             data_linux += "    echo You should manually reboot to system if necessary.\n"
@@ -3021,7 +3026,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     data_linux += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
                     if self.config.flash_to_inactive_slot:
                         data_tmp = "\necho Switching active slot to the other ...\n"
-                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
+                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device_id} --set-active=other\n"
                         data_win += data_tmp
                         data_linux += data_tmp
                     continue
@@ -3036,12 +3041,12 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     data_linux += f"{f.full_line}\n"
                     continue
                 if f.action == 'reboot-bootloader':
-                    data_tmp = f"\"{get_fastboot()}\" -s {device.id} {f.action} {f.arg1} {f.arg2}\n"
+                    data_tmp = f"\"{get_fastboot()}\" -s {device_id} {f.action} {f.arg1} {f.arg2}\n"
                     data_win += data_tmp
                     data_linux += data_tmp
                     continue
                 if f.action == 'flash':
-                    data_tmp = f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
+                    data_tmp = f"{add_echo}\"{get_fastboot()}\" -s {device_id} {fastboot_options} {f.action} {f.arg1} {f.arg2}\n"
                     data_win += data_tmp
                     data_linux += data_tmp
                     continue
@@ -3052,16 +3057,16 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                         action = '--skip-reboot -w update'
                     if self.config.custom_rom and self.config.advanced_options:
                         arg1 = f"\"{get_custom_rom_file()}\""
-                    data_tmp = f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
+                    data_tmp = f"{add_echo}\"{get_fastboot()}\" -s {device_id} {fastboot_options2} {action} {arg1}\n"
                     data_win += data_tmp
                     data_linux += data_tmp
                     # flash on each slot separately
                     # https://forum.xda-developers.com/t/psa-do-not-try-to-boot-into-the-old-slot-after-updating-only-one-slot-to-android-13-unlocking-the-pixel-6-pro-bootloader-central-repository.4352027/post-87309913
                     if self.config.advanced_options and self.config.flash_both_slots:
                         data_tmp = "\necho Switching active slot to the other ...\n"
-                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device.id} --set-active=other\n"
+                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device_id} --set-active=other\n"
                         data_tmp += "\necho rebooting to bootloader ...\n"
-                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device.id} reboot bootloader\n"
+                        data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device_id} reboot bootloader\n"
                         data_tmp += "\necho Sleeping 5-10 seconds ...\n"
                         data_win += data_tmp
                         data_linux += data_tmp
@@ -3069,8 +3074,8 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                         data_win += sleep_line_win
                         data_linux += sleep_line_linux
                         data_linux += sleep_line_linux
-                        data_win += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
-                        data_linux += f"{add_echo}\"{get_fastboot()}\" -s {device.id} {fastboot_options2} {action} {arg1}\n"
+                        data_win += f"{add_echo}\"{get_fastboot()}\" -s {device_id} {fastboot_options2} {action} {arg1}\n"
+                        data_linux += f"{add_echo}\"{get_fastboot()}\" -s {device_id} {fastboot_options2} {action} {arg1}\n"
                     # echo add testing of fastbootd mode if we are in dry run mode and sdk < 34
                     sdk_version_components = get_sdk_version().split('.')
                     sdk_major_version = int(sdk_version_components[0])
@@ -3079,7 +3084,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                         data_tmp += "echo This process will wait for fastbootd indefinitly until it responds ...\n"
                         data_tmp += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you would have to kill it.. ...\n"
                         data_tmp += "echo rebooting to fastbootd ...\n"
-                        data_tmp += f"\"{get_fastboot()}\" -s {device.id} reboot fastboot\n"
+                        data_tmp += f"\"{get_fastboot()}\" -s {device_id} reboot fastboot\n"
                         data_tmp += "\necho It looks like fastbootd worked.\n"
                         data_win += data_tmp
                         data_linux += data_tmp
@@ -3225,9 +3230,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
             return -1
         # Check for bootloader unlocked
-        if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device.id):
+        if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device_id):
             image_mode = get_image_mode()
-            self.refresh_device()
+            self.refresh_device(device_id)
             device = get_phone()
             print("Checking if the bootloader is unlocked ...")
             if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD') or self.config.flash_mode == 'OTA'):
@@ -3241,8 +3246,8 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     # -------------------------------------------------------------------------
     # 4 Run the script
     # -------------------------------------------------------------------------
-    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device: {device.id} ...")
-    puml(f":Flashing device: {device.id};\n", True)
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device: {device_id} ...")
+    puml(f":Flashing device: {device_id};\n", True)
     theCmd = flash_pf_file
     os.chdir(package_dir_full)
     theCmd = f"\"{theCmd}\""
@@ -3277,7 +3282,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         # if wipe is selected perform wipe.
         if self.wipe:
             print("Wiping userdata ...")
-            cmd= f"\"{get_fastboot()}\" -s {device.id} -w"
+            cmd= f"\"{get_fastboot()}\" -s {device_id} -w"
             wipe_flag = True
     else:
         # reboot to bootloader
@@ -3289,16 +3294,23 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
             return -1
         image_mode = get_image_mode()
-        self.refresh_device()
+        self.refresh_device(device_id)
         device = get_phone()
 
         # see if we got a device
         if not device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Your device is not found in bootloader mode.\nIf your device is actually in bootloader mode,\nhit the scan button and see if PixelFlasher finds it.\nIf it does, you can hit the Flash button again,\notherwise there seems to be a connection issue (USB drivers, cable, PC port ...)\n")
-            print("Aborting ...\n")
-            puml("#red:Device not found after rebooting to bootloader;\n}\n")
-            self.toast("Flash action", "Device is not found after rebooting to bootloader.")
-            return -1
+            # sleep 5 seconds and try again
+            print("Sleeping 5 seconds to find the device ...")
+            time.sleep(5)
+            self.refresh_device(device_id)
+            device = get_phone()
+            if not device:
+                # TODO: Improve the message, we don't need to suggest flashing when doing OTA, depending on the options selected, the suggestions vary.
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Your device is not found in bootloader mode.\nIf your device is actually in bootloader mode,\nhit the scan button and see if PixelFlasher finds it.\nIf it does, you can hit the Flash button again,\notherwise there seems to be a connection issue (USB drivers, cable, PC port ...)\n")
+                print("Aborting ...\n")
+                puml("#red:Device not found after rebooting to bootloader;\n}\n")
+                self.toast("Flash action", "Device is not found after rebooting to bootloader.")
+                return -1
 
         # If we're doing Sideload image flashing
         if self.config.flash_mode == 'OTA':
@@ -3318,7 +3330,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             vbmeta_file = os.path.join(package_dir_full, "vbmeta.img")
             if self.config.disable_verity or self.config.disable_verification and os.path.exists(vbmeta_file):
                 print("flashing vbmeta ...")
-                theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} flash vbmeta \"{vbmeta_file}\""
+                theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} flash vbmeta \"{vbmeta_file}\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res.returncode != 0:
@@ -3335,7 +3347,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         # flash patched boot / init_boot if dry run is not selected.
         if not boot.is_stock_boot and self.config.flash_mode != 'dryRun':
             print("Checking if the bootloader is unlocked ...")
-            if check_for_unlocked(device.id) or device.unlocked:
+            if check_for_unlocked(device_id) or device.unlocked:
                 print("Bootloader is unlocked, continuing ...")
                 # we do not want to flash if we have selected Temporary root
                 if self.config.advanced_options and self.config.temporary_root and boot.is_patched:
@@ -3346,10 +3358,10 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
                 if boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES:
                     print("Flashing patched init_boot ...")
-                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
+                    theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
                 else:
                     print("Flashing patched boot ...")
-                    theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {flash} boot \"{boot.boot_path}\"\n"
+                    theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} boot \"{boot.boot_path}\"\n"
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res.returncode != 0:
@@ -3377,6 +3389,10 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             res = device.reboot_system(timeout=timeout)
             if res == -1:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+
+    ### Refresh Device
+    self.refresh_device(device_id)
+    # device = get_phone()
 
     ### Done
     endFlash = time.time()

@@ -266,6 +266,8 @@ class MagiskModules(wx.Dialog):
                 if module.id == "playintegrityfix" and "Play Integrity" in module.name:
                     if module.name == "Play Integrity Fork":
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                    elif module.name != "Play Integrity NEXT":
+                        self.pif_json_path = '/data/adb/pif.json'
                     if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
                     self.pif_install_button.Enable(False)

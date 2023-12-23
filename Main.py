@@ -3031,7 +3031,13 @@ class PixelFlasher(wx.Frame):
     #                  _on_pif_manager
     # -----------------------------------------------
     def _on_pif_manager(self, event):
+        # load xiaomi if not already loaded
+        if not get_xiaomi() and os.path.exists(get_xiaomi_file_path()):
+            with open(get_xiaomi_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
+                set_xiaomi(json.load(f))
         self._on_spin('start')
+        print("Launching Pif Manager ...\n")
+
         try:
             dlg = PifManager(parent=self, config=self.config)
         except Exception:

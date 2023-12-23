@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import apk
 import binascii
 import contextlib
 import fnmatch
@@ -24,6 +25,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from os import path
 from urllib.parse import urlparse
+import xml.etree.ElementTree as ET
 
 import lz4.frame
 import requests
@@ -67,6 +69,7 @@ customize_font = False
 pf_font_face = ''
 pf_font_size = 12
 app_labels = {}
+xiaomi_list = {}
 a_only = False
 offer_patch_methods = False
 use_busybox_shell = False
@@ -252,6 +255,22 @@ def get_labels():
 def set_labels(value):
     global app_labels
     app_labels = value
+
+
+# ============================================================================
+#                               Function get_xiaomi
+# ============================================================================
+def get_xiaomi():
+    global xiaomi_list
+    return xiaomi_list
+
+
+# ============================================================================
+#                               Function set_xiaomi
+# ============================================================================
+def set_xiaomi(value):
+    global xiaomi_list
+    xiaomi_list = value
 
 
 # ============================================================================
@@ -1042,6 +1061,13 @@ def set_config_path(value):
 # ============================================================================
 def get_labels_file_path():
     return os.path.join(get_config_path(), "labels.json").strip()
+
+
+# ============================================================================
+#                               Function get_xiaomi_file_path
+# ============================================================================
+def get_xiaomi_file_path():
+    return os.path.join(get_config_path(), "xiaomi.json").strip()
 
 
 # ============================================================================
@@ -2162,6 +2188,167 @@ def process_pi_xml_ps(filename):
         result = xml_content[value_start_pos:value_end_pos]
         debug(result)
         return result
+
+# ============================================================================
+#                               Function get_xiaomi_apk
+# ============================================================================
+def get_xiaomi_apk(filename):
+    try:
+        xiaomi_pifs = get_xiaomi()
+        # Fetch RSS feed and extract the latest link
+        print("Checking for latest xiaomi apk link ...")
+        response = requests.get(XIAOMI_URL)
+        latest_link = response.text.split('<link>')[2].split('</link>')[0]
+        print(f"Xiaomi apk link: {latest_link}")
+        match = re.search(r'([^/]+\.apk)', latest_link)
+        value = None
+        if match:
+            apk_name = match[1]
+            key = os.path.splitext(apk_name)[0]
+            value = xiaomi_pifs.get(key)
+
+        if not value:
+            print("Downloading xiaomi apk ...")
+            with open(filename, "wb") as apk_file:
+                apk_file.write(requests.get(latest_link).content)
+        else:
+            print("No new Xiaomi update!")
+        return key
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_xiaomi_apk function")
+        traceback.print_exc()
+        return None
+
+# ============================================================================
+#                               Function extract_from_zip
+# ============================================================================
+def extract_from_zip(zip_path, to_extract, extracted_file_path):
+    try:
+        print(f"Extracting {to_extract} from xiaomi apk ...")
+        with zipfile.ZipFile(zip_path, "r") as apk_zip:
+            apk_zip.extract(to_extract, extracted_file_path)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_from_zip function")
+        traceback.print_exc()
+
+# ============================================================================
+#                               Function axml2xml
+# ============================================================================
+def axml2xml(inputfile, outputfile=None):
+    try:
+        print(f"Decoding extracted xml file: {inputfile} ...")
+        buff = ""
+        if path.exists(inputfile):
+            ap = apk.AXMLPrinter(open(inputfile, "rb").read())
+            buff = ap.get_xml_obj().toprettyxml()
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: XML input file {inputfile} is not found.")
+            return
+
+        if outputfile:
+            with open(outputfile, "w") as fd:
+                fd.write( buff )
+        return(buff)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in axml2xml function")
+        traceback.print_exc()
+
+# ============================================================================
+#                               Function xiaomi_xml_to_json
+# ============================================================================
+def xiaomi_xml_to_json(decoded_xml, json_path=None):
+    # sourcery skip: use-dictionary-union
+    try:
+        print(f"Extracting pif data from {decoded_xml} ...")
+        # Parse the XML string
+        root = ET.fromstring(decoded_xml)
+
+        # Extract key-value pairs under android.os.Build
+        build_data = {}
+        build_class = root.find(".//class[@name='android.os.Build']")
+        for field in build_class.iter("field"):
+            field_name = field.get("name")
+            field_value = field.get("value")
+            build_data[field_name] = field_value
+
+        # Extract key-value pairs under android.os.Build$VERSION
+        version_data = {}
+        version_class = root.find(".//class[@name='android.os.Build$VERSION']")
+        for field in version_class.iter("field"):
+            field_name = field.get("name")
+            field_value = field.get("value")
+            version_data[field_name] = field_value
+
+        # Flatten the key-value pairs
+        flattened_data = {**build_data, **version_data}
+        # flattened_data = build_data | version_data
+
+        # Save the data as JSON
+        if json_path:
+            with open(json_path, "w") as json_file:
+                json.dump(flattened_data, json_file, indent=4)
+
+        return json.dumps(flattened_data, indent=4)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in xiaomi_xml_to_json function")
+        traceback.print_exc()
+
+# ============================================================================
+#                               Function get_xiaomi_pif
+# ============================================================================
+def get_xiaomi_pif():  # sourcery skip: move-assign
+    try:
+        xiaomi_pifs = get_xiaomi()
+        config_path = get_config_path()
+        tmp_dir_full = os.path.join(config_path, 'tmp')
+        xiaomi_dir_full = os.path.join(config_path, 'xiaomi')
+        xiaomi_apk = os.path.join(tmp_dir_full, 'xiaomi.apk')
+        to_extract = "res/xml/inject_fields.xml"
+
+        # download apk if we need to download
+        key = get_xiaomi_apk(xiaomi_apk)
+        xiaomi_axml = os.path.join(xiaomi_dir_full, f"{key}")
+        xiaomi_xml = os.path.join(xiaomi_dir_full, f"{key}.xml")
+        xiaomi_json = os.path.join(xiaomi_dir_full, f"{key}.json")
+        if key in xiaomi_pifs:
+            pif_object = xiaomi_pifs.get(key)
+            if pif_object is not None:
+                pif_value = pif_object.get("pif")
+                if pif_value is not None:
+                    print("Xiaomi Pif:")
+                    print(json.dumps(pif_value, indent=4))
+                    return json.dumps(pif_value, indent=4)
+            del xiaomi_pifs[key]
+
+        # Extract res/xml/inject_fields.xml
+        if path.exists(xiaomi_apk):
+            extract_from_zip(xiaomi_apk, to_extract, xiaomi_axml)
+            xiaomi_pifs.setdefault(key, {})["axml_path"] = xiaomi_axml
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Xiaomi download failed.")
+
+        # Decode xml
+        if path.exists(xiaomi_axml):
+            xiaomi_xml_content = axml2xml(os.path.join(xiaomi_axml, to_extract), xiaomi_xml)
+            xiaomi_pifs.setdefault(key, {})["xml_path"] = xiaomi_xml
+        else:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Xiaomi axml not found")
+
+        # Extract the build fields and convert to json
+        xiaomi_json = xiaomi_xml_to_json(xiaomi_xml_content, xiaomi_json)
+        if xiaomi_json:
+            xiaomi_pifs.setdefault(key, {})["pif"] = json.loads(xiaomi_json)
+            set_xiaomi(xiaomi_pifs)
+
+            print("Caching data ...")
+            with open(get_xiaomi_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
+                # Write the dictionary to the file in JSON format
+                json.dump(xiaomi_pifs, f, indent=4)
+        return xiaomi_json
+
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_xiaomi_pif function")
+        traceback.print_exc()
 
 # ============================================================================
 #                               Function run_shell

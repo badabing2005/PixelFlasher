@@ -22,12 +22,12 @@ class PifManager(wx.Dialog):
         self.SetTitle("Pif Manager")
         self.pif_json_path = PIF_JSON_PATH
         self.device_pif = ''
-
         self.pi_app = 'gr.nikolasspyr.integritycheck'
         self.coords = Coords()
         self.enable_buttons = False
         self.pif_exists = False
         self.advanced_props_support = False
+        self.favorite_pifs = get_favorite_pifs()
 
         # Active pif label
         self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Active Pif")
@@ -39,8 +39,17 @@ class PifManager(wx.Dialog):
         self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
         self.pif_modified_image.SetToolTip(u"Active pif is not modified.")
         #
-        self.pif_version_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"")
+        # Modified status
+        self.favorite_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
+        self.favorite_pif_button.SetToolTip(u"Active pif is not saved in favorites.")
+        #
+        self.pif_version_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"", style=wx.ST_ELLIPSIZE_END)
         self.pif_version_label.SetToolTip(u"Pif Module")
+        #
+        # Combo Box of favorites
+        pif_labels = [pif["label"] for pif in self.favorite_pifs.values()]
+        self.pif_combo_box = wx.ComboBox(self, choices=pif_labels, style=wx.CB_READONLY)
 
         # Active Pif
         self.active_pif_stc = stc.StyledTextCtrl(self)
@@ -127,6 +136,10 @@ class PifManager(wx.Dialog):
         self.xiaomi_pif_button = wx.Button(self, wx.ID_ANY, u"Get Xiaomi Pif", wx.DefaultPosition, wx.DefaultSize, 0)
         self.xiaomi_pif_button.SetToolTip(u"Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own.")
 
+        # Get TheFreeman193 Pif button
+        self.freeman_pif_button = wx.Button(self, wx.ID_ANY, u"Get TheFreeman193 Random Pif", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.freeman_pif_button.SetToolTip(u"Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work.")
+
         # Make the buttons the same size
         button_width = self.pi_option.GetSize()[0] + 10
         self.create_pif_button.SetMinSize((button_width, -1))
@@ -136,6 +149,7 @@ class PifManager(wx.Dialog):
         self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
         self.pi_checker_button.SetMinSize((button_width, -1))
         self.xiaomi_pif_button.SetMinSize((button_width, -1))
+        self.freeman_pif_button.SetMinSize((button_width, -1))
 
         h_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         h_buttons_sizer.Add((0, 0), 1, wx.EXPAND, 10)
@@ -152,11 +166,12 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.pi_option, 0, wx.TOP, 10)
         v_buttons_sizer.Add(self.pi_checker_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.xiaomi_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
+        v_buttons_sizer.Add(self.freeman_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
 
         console_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.console_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        console_label_sizer.AddStretchSpacer()
+        console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.paste_selection, 0, wx.ALIGN_CENTER_VERTICAL)
 
         stc_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -174,7 +189,11 @@ class PifManager(wx.Dialog):
         active_pif_label_sizer.AddSpacer(10)
         active_pif_label_sizer.Add(self.pif_modified_image, 0, wx.ALIGN_CENTER_VERTICAL)
         active_pif_label_sizer.AddSpacer(100)
-        active_pif_label_sizer.Add(self.pif_version_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        active_pif_label_sizer.Add(self.pif_version_label, 1, wx.EXPAND)
+        active_pif_label_sizer.AddSpacer(100)
+        active_pif_label_sizer.Add(self.favorite_pif_button, 0, wx.ALIGN_CENTER_VERTICAL)
+        active_pif_label_sizer.AddSpacer(10)
+        active_pif_label_sizer.Add(self.pif_combo_box, 1, wx.EXPAND)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(active_pif_label_sizer, 0, wx.TOP, 10)
@@ -193,12 +212,15 @@ class PifManager(wx.Dialog):
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.onProcessBuildProp)
         self.pi_checker_button.Bind(wx.EVT_BUTTON, self.onPiChecker)
         self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.onXiaomiPif)
+        self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.onFreemanPif)
         self.pi_option.Bind(wx.EVT_RADIOBOX, self.onPiSelection)
         self.Bind(wx.EVT_SIZE, self.onResize)
         self.Bind(wx.EVT_SHOW, self.onShow)
         self.paste_selection.Bind(wx.EVT_BUTTON, self.onPasteSelection)
+        self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.onFavorite)
         self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.onActivePifStcChange)
         self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.onConsoleStcChange)
+        self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.onPifComboBox)
 
         # init button states
         self.init()
@@ -256,10 +278,11 @@ class PifManager(wx.Dialog):
                     self.auto_check_pi_checkbox.Enable(True)
                     self.pi_checker_button.Enable(True)
                     self.enable_buttons = True
-                    self.pif_version_label.SetLabel(f"{module.name} \tVersion: {module.version}")
+                    self.pif_version_label.SetLabel(f"{module.name} {module.version}")
                     self.check_pif_json()
                     if self.pif_exists:
                         self.load_reload_pif(None)
+                    break
 
     # -----------------------------------------------
     #                  check_pif_json
@@ -281,6 +304,18 @@ class PifManager(wx.Dialog):
             self.create_pif_button.SetLabel("Create pif.json")
             self.create_pif_button.SetToolTip(u"Create pif.json.")
         self.onActivePifStcChange(None)
+
+    # -----------------------------------------------
+    #                  onPifComboBox
+    # -----------------------------------------------
+    def onPifComboBox(self, event):
+        selected_label = event.GetString()
+        selected_pif = next((pif for pif in self.favorite_pifs.values() if pif["label"] == selected_label), None)
+        if selected_pif:
+            pif_object = selected_pif["pif"]
+            self.active_pif_stc.SetText(json.dumps(pif_object, indent=4))
+        else:
+            print("Selected Pif not found")
 
     # -----------------------------------------------
     #                  onPiSelection
@@ -472,6 +507,27 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
             xiaomi_pif = get_xiaomi_pif()
             self.console_stc.SetValue(xiaomi_pif)
+        except IOError:
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  onFreemanPif
+    # -----------------------------------------------
+    def onFreemanPif(self, e):
+        try:
+            device = get_phone()
+            if not device:
+                abilist = ''
+            else:
+                if not device.rooted:
+                    return
+                self._on_spin('start')
+                keys = ['ro.product.cpu.abilist', 'ro.product.cpu.abi', 'ro.system.product.cpu.abilist', 'ro.vendor.product.cpu.abilist']
+                abilist = get_first_match(device.props.property, keys)
+
+            freeman_pif = get_freeman_pif(abilist)
+            self.console_stc.SetValue(freeman_pif)
         except IOError:
             traceback.print_exc()
         self._on_spin('stop')
@@ -936,14 +992,83 @@ class PifManager(wx.Dialog):
             self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
             self.pif_modified_image.SetToolTip(u"Active pif is not modified.")
 
+        if self.create_pif_button.Enabled:
+            pif_hash = json_hexdigest(json_data)
+            if pif_hash in self.favorite_pifs:
+                self.favorite_pif_button.SetBitmap(images.heart_red_24.GetBitmap())
+                self.favorite_pif_button.SetToolTip(u"Active pif is saved in favorites.")
+                self.updateComboBox(pif_hash)
+            else:
+                self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
+                self.favorite_pif_button.SetToolTip(u"Active pif is not saved in favorites.")
+
         if event:
             event.Skip()
+
+    # -----------------------------------------------
+    #                  updateComboBox
+    # -----------------------------------------------
+    def updateComboBox(self, pif_hash=None):
+        pif_labels = [pif["label"] for pif in self.favorite_pifs.values()]
+        self.pif_combo_box.SetItems(pif_labels)
+
+        # temporarily unbind so that we don't trigger another onActivePifStcChange with the combo box selection
+        self.active_pif_stc.Unbind(wx.stc.EVT_STC_CHANGE, handler=self.onActivePifStcChange)
+        # Make the combo box selection
+        if pif_hash is None:
+            self.pif_combo_box.SetSelection(-1)
+        else:
+            label = self.favorite_pifs[pif_hash]["label"]
+            index = self.pif_combo_box.FindString(label)
+            if index != wx.NOT_FOUND:
+                self.pif_combo_box.SetSelection(index)
+            else:
+                self.pif_combo_box.SetSelection(-1)
+        # rebind the event
+        self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.onActivePifStcChange)
 
     # -----------------------------------------------
     #                  onPasteSelection
     # -----------------------------------------------
     def onPasteSelection(self, event):
         self.active_pif_stc.SetValue(self.console_stc.GetValue())
+        event.Skip()
+
+    # -----------------------------------------------
+    #                  onFavorite
+    # -----------------------------------------------
+    def onFavorite(self, event):
+        active_pif = self.active_pif_stc.GetValue()
+        pif_hash = json_hexdigest(active_pif)
+        if pif_hash in self.favorite_pifs:
+            # Delete from favorites
+            del self.favorite_pifs[pif_hash]
+            pif_hash = None
+            self.updateComboBox()
+            # self.pif_combo_box.SetSelection(-1)
+        else:
+            # Add to favorites
+            dialog = wx.TextEntryDialog(None, "Enter a label:", "Save Pif to Favorites")
+            result = dialog.ShowModal()
+            if result == wx.ID_OK:
+                label = dialog.GetValue()
+                print("Label:", label)
+                self.favorite_pifs.setdefault(pif_hash, {})["label"] = label
+                self.favorite_pifs.setdefault(pif_hash, {})["date_added"] = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
+                self.favorite_pifs.setdefault(pif_hash, {})["pif"] = json.loads(active_pif)
+                dialog.Destroy()
+            elif result == wx.ID_CANCEL:
+                print("Dialog canceled")
+                dialog.Destroy()
+                return
+
+        set_favorite_pifs(self.favorite_pifs)
+
+        with open(get_favorite_pifs_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
+            json.dump(self.favorite_pifs, f, indent=4)
+
+        # self.updateComboBox(pif_hash)
+        self.onActivePifStcChange(None)
         event.Skip()
 
     # -----------------------------------------------

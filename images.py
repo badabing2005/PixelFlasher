@@ -6041,3 +6041,25 @@ pif_64 = PyEmbeddedImage(
     b'gDPBCbe8IUskc8io7YZf0iRiDAB3hM6ku2KWBYG72K4sOSlTFeCWcnhlz2IeLeEyv0sCLwkZ'
     b'e7vlWkuR/HL1Q86CgoKCgoKCvGFZ/wLTfN9xeSSi8AAAAABJRU5ErkJggg==')
 
+#----------------------------------------------------------------------
+heart_red_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABdklEQVRIS72Vy1HDMBCGd8Xk'
+    b'Hm7MOAd3QNRB6ABKSAVACVQAHQAVhA6SDmwqwAfMcMNnGEusbMtIWJFExmYvHo/l/fbflxAm'
+    b'NpzYP/w/IIN0ztjnpQQ8J3UpSNwhilwI8cjhvVCK3WdkIcTshkNRmVmxFGSQLJHBpnE8tEqi'
+    b'XEPNKmTyfu8ZgRccXnf69x6gokL29UIf5oG6qAh9Zyopaq7V9oBnltxKgKuRiv6wFOVa+eoB'
+    b'OS42gFLlfQyrCHBsA1jyEZGeaDgBmuANBcmW3lbRHvwHcwJwCzBmDSjqu1NRXluArkWzMRRI'
+    b'gWe6Va05GEOFGb2lQE8ozYJS4Rq0GHGFFDOagZ9pHuyiLlXbAzqqmXRevz2ZkTiX3QH1cDof'
+    b'pMgkZ7BY0c5RSkK217kX0NakWX6+zvI6DwIMiKsmQedRgBZykiI7UhDdXbQxgXq9zEP5i77R'
+    b'unXe1ITWMe389vIJWTRAz4l6/r61fJA/AULRur5PDvgGkN6bGamx95wAAAAASUVORK5CYII=')
+
+#----------------------------------------------------------------------
+heart_gray_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABdUlEQVRIS72V222DMBSGw+09'
+    b'3YARygbNBs0ISFzEU9sROkH7hgRItBO0GyQbhA3KBvUAXPofBMgQwFYEtRQlxMfn8/8fH6Ps'
+    b'Nh7Kxvl3/w9I03RfFMUTlD3iYyqKcq7rOsN/n0EQ5KR4JibXdf3Vtm3GuzJQEEXRvaqqX0ho'
+    b'TljHqqqyMc8ATedisO7ouu65W98D2l39YGIvqAvtcCmGQa3Vqe0BcRy/YeHzGkWHwg/HcWzK'
+    b'1QOSJCFryPc1BoNNdwMAFPxK2CMNB6DZPG/RCc8P0hmWAzMArDFgtRog8TsALwMAHVEU57KS'
+    b'gkN3VAd9sNJJ6nc/UEAP1AtlWV5mmkgoDg7kmqZZfDdf3UWtVVRwUcONgU2n+77/zU9MXnY3'
+    b'1GMy+ZVFPBn1oCNLSkRjNvkigCYllCwmFwI4yFRNhMmlABQUhqFpGMaJO10Mvw+e52Ui/6Tf'
+    b'aO113tQE1/Gxu45XA3R9Qt/jt9YSRFqBaKdz85sD/gA0X7UZ/caCnQAAAABJRU5ErkJggg==')
+

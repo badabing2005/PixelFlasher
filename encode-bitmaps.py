@@ -116,6 +116,8 @@ command_lines = [
     "-a -F -i -n alert-gray-24 images/alert-gray-24.png images.py",
     "-a -F -i -n pif-24 images/pif-24.png images.py",
     "-a -F -i -n pif-64 images/pif-64.png images.py",
+    "-a -F -i -n heart-red-24 images/heart-red-24.png images.py",
+    "-a -F -i -n heart-gray-24 images/heart-gray-24.png images.py",
 ]
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ import signal
 import sqlite3 as sl
 import subprocess
 import sys
+import random
 import tarfile
 import tempfile
 import time
@@ -26,6 +27,8 @@ from datetime import datetime
 from os import path
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
+from urllib.request import urlopen
+
 
 import lz4.frame
 import requests
@@ -70,6 +73,7 @@ pf_font_face = ''
 pf_font_size = 12
 app_labels = {}
 xiaomi_list = {}
+favorite_pifs = {}
 a_only = False
 offer_patch_methods = False
 use_busybox_shell = False
@@ -271,6 +275,22 @@ def get_xiaomi():
 def set_xiaomi(value):
     global xiaomi_list
     xiaomi_list = value
+
+
+# ============================================================================
+#                               Function get_favorite_pifs
+# ============================================================================
+def get_favorite_pifs():
+    global favorite_pifs
+    return favorite_pifs
+
+
+# ============================================================================
+#                               Function set_favorite_pifs
+# ============================================================================
+def set_favorite_pifs(value):
+    global favorite_pifs
+    favorite_pifs = value
 
 
 # ============================================================================
@@ -1071,6 +1091,13 @@ def get_xiaomi_file_path():
 
 
 # ============================================================================
+#                               Function get_favorite_pifs_file_path
+# ============================================================================
+def get_favorite_pifs_file_path():
+    return os.path.join(get_config_path(), "favorite_pifs.json").strip()
+
+
+# ============================================================================
 #                               Function get_coords_file_path
 # ============================================================================
 def get_coords_file_path():
@@ -1587,6 +1614,26 @@ def md5(fname):
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error computing md5.")
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function json_hexdigest
+# ============================================================================
+def json_hexdigest(json_string):
+    # Convert the JSON string to a dictionary to eliminate space being a factor
+    dictionary = json.loads(json_string)
+
+    # Convert the dictionary to a JSON string with sorted keys to keep them consistent
+    sorted_json_string = json.dumps(dictionary, sort_keys=True)
+
+    # Create a hash object using md5
+    hash_object = hashlib.md5()
+
+    # Update the hash object with the sorted JSON string
+    hash_object.update(sorted_json_string.encode('utf-8'))
+
+    # Get the hexadecimal representation of the hash
+    return hash_object.hexdigest()
 
 
 # ============================================================================
@@ -2167,6 +2214,7 @@ def process_pi_xml_tb(filename):
         print("'Result Play integrity' not found")
         return -1
 
+
 # ============================================================================
 #                               Function process_pi_xml4
 # ============================================================================
@@ -2188,6 +2236,7 @@ def process_pi_xml_ps(filename):
         result = xml_content[value_start_pos:value_end_pos]
         debug(result)
         return result
+
 
 # ============================================================================
 #                               Function get_xiaomi_apk
@@ -2219,6 +2268,7 @@ def get_xiaomi_apk(filename):
         traceback.print_exc()
         return None
 
+
 # ============================================================================
 #                               Function extract_from_zip
 # ============================================================================
@@ -2230,6 +2280,7 @@ def extract_from_zip(zip_path, to_extract, extracted_file_path):
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_from_zip function")
         traceback.print_exc()
+
 
 # ============================================================================
 #                               Function axml2xml
@@ -2252,6 +2303,7 @@ def axml2xml(inputfile, outputfile=None):
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in axml2xml function")
         traceback.print_exc()
+
 
 # ============================================================================
 #                               Function xiaomi_xml_to_json
@@ -2292,6 +2344,7 @@ def xiaomi_xml_to_json(decoded_xml, json_path=None):
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in xiaomi_xml_to_json function")
         traceback.print_exc()
+
 
 # ============================================================================
 #                               Function get_xiaomi_pif
@@ -2349,6 +2402,61 @@ def get_xiaomi_pif():  # sourcery skip: move-assign
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_xiaomi_pif function")
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function run_shell
+# ============================================================================
+def get_freeman_pif(abi_list=None):
+    print("\n===== PIFS Random Profile/Fingerprint Picker =====\nCopyright (C) MIT License 2023 Nicholas Bissell (TheFreeman193)")
+
+    config_path = get_config_path()
+    tmp_dir_full = os.path.join(config_path, 'tmp')
+    freeman_dir_full = os.path.join(config_path, 'TheFreeman193_JSON')
+    zip_file = os.path.join(tmp_dir_full, 'PIFS.zip')
+
+    if not os.path.exists(freeman_dir_full):
+        if not os.path.exists(zip_file):
+            print("Downloading profile/fingerprint repo from GitHub...")
+            d_url = "https://codeload.github.com/TheFreeman193/PIFS/zip/refs/heads/main"
+            with urlopen(d_url) as response, open(zip_file, 'wb') as out_file:
+                shutil.copyfileobj(response, out_file)
+
+        temp_dir = tempfile.mkdtemp()
+        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+        # Move the extracted 'JSON' directory contents directly to the target directory
+        json_contents_path = os.path.join(temp_dir, "PIFS-main", "JSON")
+        shutil.move(json_contents_path, freeman_dir_full)
+        # Remove the temporary directory
+        shutil.rmtree(temp_dir)
+
+    if abi_list:
+        print(f"Will use profile/fingerprint with ABI list '{abi_list}'")
+        file_list = [os.path.join(root, file) for root, dirs, files in os.walk(f"{freeman_dir_full}/{abi_list}") for file in files]
+    else:
+        print("Couldn't detect ABI list. Will use profile/fingerprint from anywhere.")
+        file_list = [os.path.join(root, file) for root, dirs, files in os.walk(f"{freeman_dir_full}") for file in files]
+
+        if not file_list:
+            print("Couldn't find any profiles/fingerprints. Is the JSON directory empty?")
+            return
+
+    f_count = len(file_list)
+    debug(f"Matching json count: {f_count}")
+    if f_count == 0:
+        print("Couldn't parse JSON file list!")
+        return
+
+    print("Picking a random profile/fingerprint...")
+    random_fp_num = random.randint(1, f_count)
+    rand_fp = file_list[random_fp_num - 1]
+
+    print(f"\nRandom profile/fingerprint file: '{os.path.basename(rand_fp)}'\n")
+    with open(rand_fp, "r") as file:
+        json_content = json.load(file)
+        return json.dumps(json_content, indent=4)
+
 
 # ============================================================================
 #                               Function run_shell

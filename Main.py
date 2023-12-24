@@ -3035,6 +3035,10 @@ class PixelFlasher(wx.Frame):
         if not get_xiaomi() and os.path.exists(get_xiaomi_file_path()):
             with open(get_xiaomi_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
                 set_xiaomi(json.load(f))
+        # load favorite_pifs if not already loaded
+        if not get_favorite_pifs() and os.path.exists(get_favorite_pifs_file_path()):
+            with open(get_favorite_pifs_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
+                set_favorite_pifs(json.load(f))
         self._on_spin('start')
         print("Launching Pif Manager ...\n")
 

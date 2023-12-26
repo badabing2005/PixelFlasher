@@ -3044,6 +3044,7 @@ class PixelFlasher(wx.Frame):
 
         try:
             dlg = PifManager(parent=self, config=self.config)
+            dlg.CentreOnParent()
         except Exception:
             traceback.print_exc()
             self._on_spin('stop')

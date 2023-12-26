@@ -11,7 +11,7 @@ from datetime import datetime
 from runtime import *
 
 # ============================================================================
-#                               Class MagiskModules
+#                               Class PifManager
 # ============================================================================
 class PifManager(wx.Dialog):
     def __init__(self, *args, parent=None, config=None, **kwargs):
@@ -28,6 +28,7 @@ class PifManager(wx.Dialog):
         self.pif_exists = False
         self.advanced_props_support = False
         self.favorite_pifs = get_favorite_pifs()
+        self.insync = False
 
         # Active pif label
         self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Active Pif")
@@ -38,18 +39,20 @@ class PifManager(wx.Dialog):
         self.pif_modified_image = wx.StaticBitmap(parent=self)
         self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
         self.pif_modified_image.SetToolTip(u"Active pif is not modified.")
-        #
-        # Modified status
+        # Module version label
+        self.pif_version_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"", style=wx.ST_ELLIPSIZE_END)
+        self.pif_version_label.SetToolTip(u"Pif Module")
+        # Favorite button
         self.favorite_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
         self.favorite_pif_button.SetToolTip(u"Active pif is not saved in favorites.")
-        #
-        self.pif_version_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"", style=wx.ST_ELLIPSIZE_END)
-        self.pif_version_label.SetToolTip(u"Pif Module")
-        #
         # Combo Box of favorites
         pif_labels = [pif["label"] for pif in self.favorite_pifs.values()]
         self.pif_combo_box = wx.ComboBox(self, choices=pif_labels, style=wx.CB_READONLY)
+        # Import button
+        self.import_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.import_pif_button.SetBitmap(images.import_24.GetBitmap())
+        self.import_pif_button.SetToolTip(u"Select a folder to import pif json files.")
 
         # Active Pif
         self.active_pif_stc = stc.StyledTextCtrl(self)
@@ -75,10 +78,23 @@ class PifManager(wx.Dialog):
         font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.console_label.SetFont(font)
         # Paste Up
-        self.paste_selection = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
-        self.paste_selection.SetBitmap(images.paste_up_24.GetBitmap())
-        self.paste_selection.SetToolTip(u"Paste the console content to Active pif.")
-        self.paste_selection.Enable(False)
+        self.paste_up = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.paste_up.SetBitmap(images.paste_up_24.GetBitmap())
+        self.paste_up.SetToolTip(u"Paste the console window content to Active pif.")
+        self.paste_up.Enable(False)
+        # Paste Down
+        self.paste_down = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.paste_down.SetBitmap(images.paste_down_24.GetBitmap())
+        self.paste_down.SetToolTip(u"Paste the Active pif to console window.")
+        self.paste_down.Enable(False)
+        # Reprocess
+        self.reprocess = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.reprocess.SetBitmap(images.scan_24.GetBitmap())
+        self.reprocess.SetToolTip(u"Reprocess current console window json.\nUseful if you changed module version which might required additional / different fields.")
+        self.reprocess.Enable(False)
+        # Add missing keys checkbox
+        self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Add missing Keys from device", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.add_missing_keys_checkbox.SetToolTip(u"When Processing or Reprocessing, add missing fields from device.")
 
         # Console
         self.console_stc = stc.StyledTextCtrl(self)
@@ -126,7 +142,11 @@ class PifManager(wx.Dialog):
         self.auto_check_pi_checkbox.Enable(False)
 
         # option button PI Selectedion
-        self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store"], style=wx.RA_VERTICAL)
+        self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store", "YASNAC"], style=wx.RA_VERTICAL)
+
+        # Skip getting results checkbox
+        self.disable_uiautomator_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Disable UIAutomator", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_uiautomator_checkbox.SetToolTip(u"Disables UIAutomator\nThis is useful for devices with buggy UIAutomator.\nNOTE: Create the coords.json file manually to make use of automated testing.")
 
         # Play Integrity API Checker button
         self.pi_checker_button = wx.Button(self, wx.ID_ANY, u"Play Integrity Check", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -147,6 +167,7 @@ class PifManager(wx.Dialog):
         self.process_build_prop_button.SetMinSize((button_width, -1))
         self.auto_push_pif_checkbox.SetMinSize((button_width, -1))
         self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
+        self.disable_uiautomator_checkbox.SetMinSize((button_width, -1))
         self.pi_checker_button.SetMinSize((button_width, -1))
         self.xiaomi_pif_button.SetMinSize((button_width, -1))
         self.freeman_pif_button.SetMinSize((button_width, -1))
@@ -164,6 +185,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.auto_push_pif_checkbox, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.auto_check_pi_checkbox, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.pi_option, 0, wx.TOP, 10)
+        v_buttons_sizer.Add(self.disable_uiautomator_checkbox, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.pi_checker_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.xiaomi_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.freeman_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
@@ -172,7 +194,13 @@ class PifManager(wx.Dialog):
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.console_label, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
-        console_label_sizer.Add(self.paste_selection, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.Add(self.paste_up, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.paste_down, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.reprocess, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.add_missing_keys_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
 
         stc_sizer = wx.BoxSizer(wx.VERTICAL)
         stc_sizer.Add(self.active_pif_stc, 1, wx.EXPAND | wx.ALL, 10)
@@ -194,6 +222,8 @@ class PifManager(wx.Dialog):
         active_pif_label_sizer.Add(self.favorite_pif_button, 0, wx.ALIGN_CENTER_VERTICAL)
         active_pif_label_sizer.AddSpacer(10)
         active_pif_label_sizer.Add(self.pif_combo_box, 1, wx.EXPAND)
+        active_pif_label_sizer.AddSpacer(10)
+        active_pif_label_sizer.Add(self.import_pif_button, 0, wx.ALIGN_CENTER_VERTICAL)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(active_pif_label_sizer, 0, wx.TOP, 10)
@@ -207,20 +237,23 @@ class PifManager(wx.Dialog):
 
         # Connect Events
         self.close_button.Bind(wx.EVT_BUTTON, self.onClose)
-        self.create_pif_button.Bind(wx.EVT_BUTTON, self.onCreatePifProp)
-        self.reload_pif_button.Bind(wx.EVT_BUTTON, self.load_reload_pif)
-        self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.onProcessBuildProp)
-        self.pi_checker_button.Bind(wx.EVT_BUTTON, self.onPiChecker)
-        self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.onXiaomiPif)
-        self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.onFreemanPif)
-        self.pi_option.Bind(wx.EVT_RADIOBOX, self.onPiSelection)
+        self.create_pif_button.Bind(wx.EVT_BUTTON, self.CreatePifJson)
+        self.reload_pif_button.Bind(wx.EVT_BUTTON, self.LoadReload)
+        self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
+        self.pi_checker_button.Bind(wx.EVT_BUTTON, self.PlayIntegrityCheck)
+        self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.XiaomiPif)
+        self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.FreemanPif)
+        self.pi_option.Bind(wx.EVT_RADIOBOX, self.TestSelection)
         self.Bind(wx.EVT_SIZE, self.onResize)
         self.Bind(wx.EVT_SHOW, self.onShow)
-        self.paste_selection.Bind(wx.EVT_BUTTON, self.onPasteSelection)
-        self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.onFavorite)
-        self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.onActivePifStcChange)
-        self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.onConsoleStcChange)
-        self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.onPifComboBox)
+        self.paste_up.Bind(wx.EVT_BUTTON, self.PasteUp)
+        self.paste_down.Bind(wx.EVT_BUTTON, self.PasteDown)
+        self.reprocess.Bind(wx.EVT_BUTTON, self.ReProcess)
+        self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.Favorite)
+        self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
+        self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
+        self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.PifComboBox)
+        self.import_pif_button.Bind(wx.EVT_BUTTON, self.ImportFavorites)
 
         # init button states
         self.init()
@@ -278,10 +311,10 @@ class PifManager(wx.Dialog):
                     self.auto_check_pi_checkbox.Enable(True)
                     self.pi_checker_button.Enable(True)
                     self.enable_buttons = True
-                    self.pif_version_label.SetLabel(f"{module.name} {module.version}")
+                    self.pif_version_label.SetLabel(f"{module.name} {module.version} {module.versionCode}")
                     self.check_pif_json()
                     if self.pif_exists:
-                        self.load_reload_pif(None)
+                        self.LoadReload(None)
                     break
 
     # -----------------------------------------------
@@ -303,12 +336,12 @@ class PifManager(wx.Dialog):
             self.reload_pif_button.Enable(False)
             self.create_pif_button.SetLabel("Create pif.json")
             self.create_pif_button.SetToolTip(u"Create pif.json.")
-        self.onActivePifStcChange(None)
+        self.ActivePifStcChange(None)
 
     # -----------------------------------------------
-    #                  onPifComboBox
+    #                  PifComboBox
     # -----------------------------------------------
-    def onPifComboBox(self, event):
+    def PifComboBox(self, event):
         selected_label = event.GetString()
         selected_pif = next((pif for pif in self.favorite_pifs.values() if pif["label"] == selected_label), None)
         if selected_pif:
@@ -318,9 +351,9 @@ class PifManager(wx.Dialog):
             print("Selected Pif not found")
 
     # -----------------------------------------------
-    #                  onPiSelection
+    #                  TestSelection
     # -----------------------------------------------
-    def onPiSelection(self, event):
+    def TestSelection(self, event):
         option = event.GetString()
 
         if option == "Play Integrity API Checker":
@@ -339,6 +372,10 @@ class PifManager(wx.Dialog):
             print("Play Store option selected")
             self.pi_app = 'com.android.vending'
 
+        elif option == "YASNAC":
+            print("YASNAC option selected")
+            self.pi_app = 'rikka.safetynetchecker'
+
     # -----------------------------------------------
     #                  __del__
     # -----------------------------------------------
@@ -356,9 +393,9 @@ class PifManager(wx.Dialog):
         self.Close()
 
     # -----------------------------------------------
-    #                  load_reload_pif
+    #                  LoadReload
     # -----------------------------------------------
-    def load_reload_pif(self, e):
+    def LoadReload(self, e):
         try:
             device = get_phone()
             if not device.rooted:
@@ -390,15 +427,15 @@ class PifManager(wx.Dialog):
         self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  onCreatePifProp
+    #                  CreatePifJson
     # -----------------------------------------------
-    def onCreatePifProp(self, e):
+    def CreatePifJson(self, e):
         self.create_update_pif()
 
     # -----------------------------------------------
-    #                  onUpdatePifProp
+    #                  UpdatePifJson
     # -----------------------------------------------
-    def onUpdatePifProp(self, e):
+    def UpdatePifJson(self, e):
         self.create_update_pif()
 
     # -----------------------------------------------
@@ -448,12 +485,13 @@ class PifManager(wx.Dialog):
         else:
             print("Killing Google GMS succeeded.")
 
+        self.check_pif_json()
+        self.LoadReload(None)
+
         # Auto test Play Integrity
         if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
             print("Auto Testing Play Integrity ...")
-            self.onPiChecker(None)
-        self.check_pif_json()
-        self.load_reload_pif(None)
+            self.PlayIntegrityCheck(None)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -479,6 +517,9 @@ class PifManager(wx.Dialog):
             elif self.pi_app == 'krypton.tbsafetychecker':
                 return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Run Play Integrity Check", False)
 
+            elif self.pi_app == 'rikka.safetynetchecker':
+                return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Run SafetyNet Attestation", False)
+
             elif self.pi_app == 'com.android.vending':
                 if child == 'user':
                     # This needs custom handling, as there is no identifiable string to look for
@@ -496,25 +537,25 @@ class PifManager(wx.Dialog):
                 if child == 'dismiss':
                     return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Dismiss", False)
 
-        except IOError:
+        except Exception:
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  onXiaomiPif
+    #                  XiaomiPif
     # -----------------------------------------------
-    def onXiaomiPif(self, e):
+    def XiaomiPif(self, e):
         try:
             self._on_spin('start')
             xiaomi_pif = get_xiaomi_pif()
             self.console_stc.SetValue(xiaomi_pif)
-        except IOError:
+        except Exception:
             traceback.print_exc()
         self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  onFreemanPif
+    #                  FreemanPif
     # -----------------------------------------------
-    def onFreemanPif(self, e):
+    def FreemanPif(self, e):
         try:
             device = get_phone()
             if not device:
@@ -528,14 +569,14 @@ class PifManager(wx.Dialog):
 
             freeman_pif = get_freeman_pif(abilist)
             self.console_stc.SetValue(freeman_pif)
-        except IOError:
+        except Exception:
             traceback.print_exc()
         self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  onPiChecker
+    #                  PlayIntegrityCheck
     # -----------------------------------------------
-    def onPiChecker(self, e):
+    def PlayIntegrityCheck(self, e):
         try:
             device = get_phone()
             if not device.rooted:
@@ -543,8 +584,11 @@ class PifManager(wx.Dialog):
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Play Integrity API Checker.")
             self._on_spin('start')
 
-            # We need to kill TB Checker to make sure we read fresh values
-            if self.pi_option.Selection in [2, 3]:
+            if not self.insync:
+                self.toast("Active pif not in sync", "WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing.")
+
+            # We need to kill TB Checker , Play Store and YASNAC to make sure we read fresh values
+            if self.pi_option.Selection in [2, 3, 4]:
                 res = device.perform_package_action(self.pi_app, 'kill', False)
 
             # launch the app
@@ -558,6 +602,10 @@ class PifManager(wx.Dialog):
             coords = self.coords.query_entry(device.id, self.pi_app)
             coord_dismiss = None
             if coords is None:
+                if self.disable_uiautomator_checkbox.IsChecked():
+                    print(f"WARNING! You have disabled using UIAutomator.\nPlease uncheck Disable UIAutomator checkbox if you want to enable UIAutomator usage.")
+                    self._on_spin('stop')
+                    return
                 # For Play Store, we need to save multiple coordinates
                 if self.pi_option.Selection == 3:
                     # Get coordinates for the first time
@@ -715,49 +763,53 @@ class PifManager(wx.Dialog):
                 self._on_spin('stop')
                 return -1
 
-            # pull view
-            config_path = get_config_path()
-            pi_xml = os.path.join(config_path, 'tmp', 'pi.xml')
-            time.sleep(5)
-            res = device.ui_action('/data/local/tmp/pi.xml', pi_xml)
-            if res == -1:
-                print(f"Error: during uiautomator {self.pi_app}.")
-                self._on_spin('stop')
-                return -1
+            # Skip Getting results if UIAutomator is disabled.
+            if not self.disable_uiautomator_checkbox.IsChecked():
+                # pull view
+                config_path = get_config_path()
+                pi_xml = os.path.join(config_path, 'tmp', 'pi.xml')
+                time.sleep(5)
+                res = device.ui_action('/data/local/tmp/pi.xml', pi_xml)
+                if res == -1:
+                    print(f"Error: during uiautomator {self.pi_app}.")
+                    self._on_spin('stop')
+                    return -1
 
-            # extract result
-            if self.pi_option.Selection == 0:
-                res = process_pi_xml_piac(pi_xml)
-            if self.pi_option.Selection == 1:
-                res = process_pi_xml_spic(pi_xml)
-            if self.pi_option.Selection == 2:
-                res = process_pi_xml_tb(pi_xml)
-            if self.pi_option.Selection == 3:
-                res = process_pi_xml_ps(pi_xml)
-                # dismiss
-                if coord_dismiss is None or coord_dismiss == '' or coord_dismiss == -1:
-                    coord_dismiss = self.get_pi_app_coords(child='dismiss')
-                    if coord_dismiss == -1:
-                        print(f"Error: getting coordinates for {self.pi_app} [dismiss] screen.")
-                        if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                            del self.coords.data[device.id][self.pi_app]['dismiss']
-                            self.coords.save_data()
-                        self._on_spin('stop')
-                    self.coords.update_nested_entry(device.id, self.pi_app, "dismiss", coord_dismiss)
+                # extract result
+                if self.pi_option.Selection == 0:
+                    res = process_pi_xml_piac(pi_xml)
+                if self.pi_option.Selection == 1:
+                    res = process_pi_xml_spic(pi_xml)
+                if self.pi_option.Selection == 2:
+                    res = process_pi_xml_tb(pi_xml)
+                if self.pi_option.Selection == 3:
+                    res = process_pi_xml_ps(pi_xml)
+                    # dismiss
+                    if coord_dismiss is None or coord_dismiss == '' or coord_dismiss == -1:
+                        coord_dismiss = self.get_pi_app_coords(child='dismiss')
+                        if coord_dismiss == -1:
+                            print(f"Error: getting coordinates for {self.pi_app} [dismiss] screen.")
+                            if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                                del self.coords.data[device.id][self.pi_app]['dismiss']
+                                self.coords.save_data()
+                            self._on_spin('stop')
+                        self.coords.update_nested_entry(device.id, self.pi_app, "dismiss", coord_dismiss)
+                if self.pi_option.Selection == 4:
+                    res = process_pi_xml_yasnac(pi_xml)
 
-            if res == -1:
-                print(f"Error: during processing the response from {self.pi_app}.")
-                self._on_spin('stop')
-                return -1
+                if res == -1:
+                    print(f"Error: during processing the response from {self.pi_app}.")
+                    self._on_spin('stop')
+                    return -1
 
-            self.console_stc.SetValue('')
-            if res is None or res == '':
-                if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
-                    del self.coords.data[device.id][self.pi_app]['dismiss']
-            else:
-                self.console_stc.SetValue(res)
+                self.console_stc.SetValue('')
+                if res is None or res == '':
+                    if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
+                        del self.coords.data[device.id][self.pi_app]['dismiss']
+                else:
+                    self.console_stc.SetValue(res)
 
-        except IOError:
+        except Exception:
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -786,9 +838,178 @@ class PifManager(wx.Dialog):
 
 
     # -----------------------------------------------
-    #                  onProcessBuildProp
+    #                  ProcessBuildProp
     # -----------------------------------------------
-    def onProcessBuildProp(self, e):
+    def process_dict(self, dict):
+        try:
+            # FINGERPRINT
+            fp_ro_product_brand = ''
+            fp_ro_product_name = ''
+            fp_ro_product_device = ''
+            fp_ro_build_version_release = ''
+            fp_ro_build_id = ''
+            fp_ro_build_version_incremental = ''
+            fp_ro_build_type = ''
+            fp_ro_build_tags = ''
+            keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
+            ro_build_fingerprint = get_first_match(dict, keys)
+            if ro_build_fingerprint:
+                # Let's extract props from fingerprint in case we need them
+                pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
+                match = re.search(pattern, ro_build_fingerprint)
+                if match and match.lastindex == 8:
+                    fp_ro_product_brand = match[1]
+                    fp_ro_product_name = match[2]
+                    fp_ro_product_device = match[3]
+                    fp_ro_build_version_release = match[4]
+                    fp_ro_build_id = match[5]
+                    fp_ro_build_version_incremental = match[6]
+                    fp_ro_build_type = match[7]
+                    fp_ro_build_tags = match[8]
+
+            autofill = False
+            if self.add_missing_keys_checkbox.IsChecked():
+                device = get_phone()
+                if device:
+                    autofill = True
+                else:
+                    print("ERROR: Device is unavilable to add missing fields from device.")
+
+            # PRODUCT
+            keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name', 'ro.vendor.product.name']
+            ro_product_name = get_first_match(dict, keys)
+            if (ro_product_name is None or ro_product_name == '') and fp_ro_product_name != '':
+                debug(f"Properties for PRODUCT are not found, using value from FINGERPRINT: {fp_ro_product_name}")
+                ro_product_name = fp_ro_product_name
+
+            # DEVICE
+            keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.build.product', 'ro.vendor.product.device']
+            ro_product_device = get_first_match(dict, keys)
+            if (ro_product_device is None or ro_product_device == '') and fp_ro_product_device != '':
+                debug(f"Properties for DEVICE are not found, using value from FINGERPRINT: {fp_ro_product_device}")
+                ro_product_device = fp_ro_product_device
+
+            # MANUFACTURER
+            keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer', 'ro.vendor.product.manufacturer']
+            ro_product_manufacturer = get_first_match(dict, keys)
+            if autofill and ro_product_manufacturer == '':
+                ro_product_manufacturer = device.get_prop('ro.product.manufacturer')
+
+            # BRAND
+            keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand', 'ro.vendor.product.brand']
+            ro_product_brand = get_first_match(dict, keys)
+            if (ro_product_brand is None or ro_product_brand == '') and fp_ro_product_brand != '':
+                debug(f"Properties for BRAND are not found, using value from FINGERPRINT: {fp_ro_product_brand}")
+                ro_product_brand = fp_ro_product_brand
+
+            # MODEL
+            keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
+            ro_product_model = get_first_match(dict, keys)
+
+            # SECURITY_PATCH
+            keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
+            ro_build_version_security_patch = get_first_match(dict, keys)
+
+            # FIRST_API_LEVEL
+            keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
+            ro_product_first_api_level = get_first_match(dict, keys)
+            if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
+                ro_product_first_api_level = '32'
+
+            # BUILD_ID
+            keys = ['ro.build.id']
+            ro_build_id = get_first_match(dict, keys)
+            if (ro_build_id is None or ro_build_id == '') and fp_ro_build_id != '':
+                debug(f"Properties for ID are not found, using value from FINGERPRINT: {fp_ro_build_id}")
+                ro_build_id = fp_ro_build_id
+
+            # RELEASE
+            keys = ['ro.build.version.release']
+            ro_build_version_release = get_first_match(dict, keys)
+            if (ro_build_version_release is None or ro_build_version_release == '') and fp_ro_build_version_release != '':
+                debug(f"Properties for RELEASE are not found, using value from FINGERPRINT: {fp_ro_build_version_release}")
+                ro_build_version_release = fp_ro_build_version_release
+
+            # INCREMENTAL
+            keys = ['ro.build.version.incremental']
+            ro_build_version_incremental = get_first_match(dict, keys)
+            if (ro_build_version_incremental is None or ro_build_version_incremental == '') and fp_ro_build_version_incremental != '':
+                debug(f"Properties for INCREMENTAL are not found, using value from FINGERPRINT: {fp_ro_build_version_incremental}")
+                ro_build_version_incremental = fp_ro_build_version_incremental
+
+            # TYPE
+            keys = ['ro.build.type']
+            ro_build_type = get_first_match(dict, keys)
+            if (ro_build_type is None or ro_build_type == '') and fp_ro_build_type != '':
+                debug(f"Properties for TYPE are not found, using value from FINGERPRINT: {fp_ro_build_type}")
+                ro_build_type = fp_ro_build_type
+
+            # TAGS
+            keys = ['ro.build.tags']
+            ro_build_tags = get_first_match(dict, keys)
+            if (ro_build_tags is None or ro_build_tags == '') and fp_ro_build_tags != '':
+                debug(f"Properties for TAGS are not found, using value from FINGERPRINT: {fp_ro_build_tags}")
+                ro_build_tags = fp_ro_build_tags
+
+            # VNDK_VERSION
+            keys = ['ro.vndk.version', 'ro.product.vndk.version']
+            ro_vndk_version = get_first_match(dict, keys)
+
+            # Get any missing FINGERPRINT fields
+            ffp_ro_product_brand = fp_ro_product_brand if fp_ro_product_brand != '' else ro_product_brand
+            ffp_ro_product_name = fp_ro_product_name if fp_ro_product_name != '' else ro_product_name
+            ffp_ro_product_device = fp_ro_product_device if fp_ro_product_device != '' else ro_product_device
+            ffp_ro_build_version_release = fp_ro_build_version_release if fp_ro_build_version_release != '' else ro_build_version_release
+            ffp_ro_build_id = fp_ro_build_id if fp_ro_build_id != '' else ro_build_id
+            ffp_ro_build_version_incremental = fp_ro_build_version_incremental if fp_ro_build_version_incremental != '' else ro_build_version_incremental
+            ffp_ro_build_type = fp_ro_build_type if fp_ro_build_type != '' else ro_build_type
+            ffp_ro_build_tags = fp_ro_build_tags if fp_ro_build_tags != '' else ro_build_tags
+            # Rebuild the FINGERPRINT
+            ro_build_fingerprint = f"{ffp_ro_product_brand}/{ffp_ro_product_name}/{ffp_ro_product_device}:{ffp_ro_build_version_release}/{ffp_ro_build_id}/{ffp_ro_build_version_incremental}:{ffp_ro_build_type}/{ffp_ro_build_tags}"
+
+            donor_data = {
+                "PRODUCT": ro_product_name,
+                "DEVICE": ro_product_device,
+                "MANUFACTURER": ro_product_manufacturer,
+                "BRAND": ro_product_brand,
+                "MODEL": ro_product_model,
+                "FINGERPRINT": ro_build_fingerprint,
+                "SECURITY_PATCH": ro_build_version_security_patch
+            }
+            if self.advanced_props_support:
+                donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
+                donor_data["*api_level"] = ro_product_first_api_level
+                donor_data["*.security_patch"] = ro_build_version_security_patch
+                donor_data["ID"] = ro_build_id
+                donor_data["*.build.id"] = ro_build_id
+                donor_data["RELEASE"] = ro_build_version_release
+                donor_data["INCREMENTAL"] = ro_build_version_incremental
+                donor_data["TYPE"] = ro_build_type
+                donor_data["TAGS"] = ro_build_tags
+                donor_data["*.vndk_version"] = ro_vndk_version
+                donor_data["VERBOSE_LOGS"] = "0"
+            else:
+                donor_data["FIRST_API_LEVEL"] = ro_product_first_api_level
+                donor_data["BUILD_ID"] = ro_build_id
+                donor_data["VNDK_VERSION"] = ro_vndk_version
+
+            # Discard keys with empty values if the flag is set
+            if self.advanced_props_support:
+                modified_donor_data = {key: value for key, value in donor_data.items() if value != ""}
+            else:
+                modified_donor_data = donor_data
+
+            return json.dumps(modified_donor_data, indent=4)
+
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function process_dict.")
+            traceback.print_exc()
+            return ''
+
+    # -----------------------------------------------
+    #                  ProcessBuildProp
+    # -----------------------------------------------
+    def ProcessBuildProp(self, e):
         # sourcery skip: dict-assign-update-to-union
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.prop")
         wildcard = "Property files (*.prop)|*.prop|All files (*.*)|*.*"
@@ -826,262 +1047,289 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
-            # PRODUCT
-            keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name']
-            ro_product_name = get_first_match(processed_dict, keys)
-
-            # DEVICE
-            keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.build.product']
-            ro_product_device = get_first_match(processed_dict, keys)
-
-            # MANUFACTURER
-            keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer']
-            ro_product_manufacturer = get_first_match(processed_dict, keys)
-
-            # BRAND
-            keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand']
-            ro_product_brand = get_first_match(processed_dict, keys)
-
-            # MODEL
-            keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model']
-            ro_product_model = get_first_match(processed_dict, keys)
-
-            # FINGERPRINT
-            keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
-            ro_build_fingerprint = get_first_match(processed_dict, keys)
-
-            # SECURITY_PATCH
-            keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
-            ro_build_version_security_patch = get_first_match(processed_dict, keys)
-
-            # FIRST_API_LEVEL
-            keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
-            ro_product_first_api_level = get_first_match(processed_dict, keys)
-            if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
-                ro_product_first_api_level = '32'
-
-            # BUILD_ID
-            keys = ['ro.build.id']
-            ro_build_id = get_first_match(processed_dict, keys)
-            if ro_build_id is None or ro_build_id == '':
-                pattern = r'[^\/]*\/[^\/]*\/[^:]*:[^\/]*\/([^\/]*)\/[^\/]*\/[^\/]*'
-                match = re.search(pattern, ro_build_fingerprint)
-                if match:
-                    ro_build_id = match[1]
-
-            # VNDK_VERSION
-            keys = ['ro.vndk.version', 'ro.product.vndk.version']
-            ro_vndk_version = get_first_match(processed_dict, keys)
-
-            if ro_build_fingerprint is None or ro_build_fingerprint == '':
-                keys = ['ro.build.version.release']
-                ro_build_version_release = get_first_match(processed_dict, keys)
-
-                keys = ['ro.build.version.incremental']
-                ro_build_version_incremental = get_first_match(processed_dict, keys)
-
-                keys = ['ro.build.type']
-                ro_build_type = get_first_match(processed_dict, keys)
-
-                keys = ['ro.build.tags']
-                ro_build_tags = get_first_match(processed_dict, keys)
-
-                ro_build_fingerprint = f"{ro_product_brand}/{ro_product_name}/{ro_product_device}:{ro_build_version_release}/{ro_build_id}/{ro_build_version_incremental}:{ro_build_type}/{ro_build_tags}"
-
-            donor_data = {
-                "PRODUCT": ro_product_name,
-                "DEVICE": ro_product_device,
-                "MANUFACTURER": ro_product_manufacturer,
-                "BRAND": ro_product_brand,
-                "MODEL": ro_product_model,
-                "FINGERPRINT": ro_build_fingerprint,
-                "SECURITY_PATCH": ro_build_version_security_patch,
-                "BUILD_ID": ro_build_id,
-                "VNDK_VERSION": ro_vndk_version
-            }
-            if self.advanced_props_support:
-                donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
-                donor_data["*api_level"] = ro_product_first_api_level
-                donor_data["*.security_patch"] = ro_build_version_security_patch
-                donor_data["*.build.id"] = ro_build_id
-                donor_data["VERBOSE_LOGS"] = "0"
-            else:
-                donor_data["FIRST_API_LEVEL"] = ro_product_first_api_level
-
-            donor_json = json.dumps(donor_data, indent=4)
-
+            donor_json = self.process_dict(processed_dict)
             self.console_stc.SetValue(donor_json)
             # print(donor_json)
 
             # Auto Push pif.json
             if self.auto_push_pif_checkbox.IsEnabled() and self.auto_push_pif_checkbox.IsChecked():
                 self.active_pif_stc.SetValue(self.console_stc.GetValue())
-                self.onUpdatePifProp(None)
+                self.UpdatePifJson(None)
 
                 # Auto test Play Integrity
                 if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
                     print("Auto Testing Play Integrity ...")
-                    self.onPiChecker(None)
+                    self.PlayIntegrityCheck(None)
 
-        except IOError:
-            wx.LogError(f"Cannot process file: '{pathname}'.")
+        except Exception:
+            print(f"Cannot process file: '{pathname}'.")
             traceback.print_exc()
         self._on_spin('stop')
 
-
     # -----------------------------------------------
-    #                  onContextMenu
+    #                  ConsoleStcChange
     # -----------------------------------------------
-    def onContextMenu(self, event):
-        menu = wx.Menu()
-        copy_item = menu.Append(wx.ID_COPY, "Copy")
-        select_all_item = menu.Append(wx.ID_SELECTALL, "Select All")
-        self.Bind(wx.EVT_MENU, self.onCopy, copy_item)
-        self.Bind(wx.EVT_MENU, self.onSelectAll, select_all_item)
+    def ConsoleStcChange(self, event):
+        try:
+            json_data = self.console_stc.GetValue()
 
-        self.PopupMenu(menu)
-        menu.Destroy()
-
-    # -----------------------------------------------
-    #                  onConsoleStcChange
-    # -----------------------------------------------
-    def onConsoleStcChange(self, event):
-        json_data = self.console_stc.GetValue()
-
-        if json_data:
-            try:
-                json.loads(json_data)
-                self.paste_selection.Enable(True)
-            except Exception:
+            if json_data:
                 try:
-                    json5.loads(json_data)
-                    self.paste_selection.Enable(True)
+                    json.loads(json_data)
+                    self.paste_up.Enable(True)
                 except Exception:
-                    self.paste_selection.Enable(False)
-        else:
-            self.paste_selection.Enable(False)
-        event.Skip()
-
-    # -----------------------------------------------
-    #                  onActivePifStcChange
-    # -----------------------------------------------
-    def onActivePifStcChange(self, event):
-        json_data = self.active_pif_stc.GetValue()
-
-        if not self.enable_buttons:
-            self.create_pif_button.Enable(False)
-            return
-
-        if json_data:
-            try:
-                json.loads(json_data)
-                self.create_pif_button.Enable(True)
-            except Exception:
-                try:
-                    json5.loads(json_data)
-                    self.create_pif_button.Enable(True)
-                except Exception:
-                    self.create_pif_button.Enable(False)
-        else:
-            self.create_pif_button.Enable(False)
-
-        if json_data != self.device_pif:
-            self.pif_modified_image.SetBitmap(images.alert_red_24.GetBitmap())
-            self.pif_modified_image.SetToolTip(u"The contents is different than what is currently on the device.\nUpdate pif.json before testing.")
-        else:
-            self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
-            self.pif_modified_image.SetToolTip(u"Active pif is not modified.")
-
-        if self.create_pif_button.Enabled:
-            pif_hash = json_hexdigest(json_data)
-            if pif_hash in self.favorite_pifs:
-                self.favorite_pif_button.SetBitmap(images.heart_red_24.GetBitmap())
-                self.favorite_pif_button.SetToolTip(u"Active pif is saved in favorites.")
-                self.updateComboBox(pif_hash)
+                    try:
+                        json5.loads(json_data)
+                        self.paste_up.Enable(True)
+                    except Exception:
+                        self.paste_up.Enable(False)
             else:
-                self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
-                self.favorite_pif_button.SetToolTip(u"Active pif is not saved in favorites.")
+                self.paste_up.Enable(False)
 
+        except Exception:
+            traceback.print_exc()
         if event:
             event.Skip()
 
     # -----------------------------------------------
-    #                  updateComboBox
+    #                  ActivePifStcChange
     # -----------------------------------------------
-    def updateComboBox(self, pif_hash=None):
-        pif_labels = [pif["label"] for pif in self.favorite_pifs.values()]
-        self.pif_combo_box.SetItems(pif_labels)
+    def ActivePifStcChange(self, event):
+        try:
+            json_data = self.active_pif_stc.GetValue()
 
-        # temporarily unbind so that we don't trigger another onActivePifStcChange with the combo box selection
-        self.active_pif_stc.Unbind(wx.stc.EVT_STC_CHANGE, handler=self.onActivePifStcChange)
-        # Make the combo box selection
-        if pif_hash is None:
-            self.pif_combo_box.SetSelection(-1)
-        else:
-            label = self.favorite_pifs[pif_hash]["label"]
-            index = self.pif_combo_box.FindString(label)
-            if index != wx.NOT_FOUND:
-                self.pif_combo_box.SetSelection(index)
+            if not self.enable_buttons:
+                self.create_pif_button.Enable(False)
+                return
+
+            if json_data:
+                try:
+                    json.loads(json_data)
+                    self.paste_down.Enable(True)
+                    self.reprocess.Enable(True)
+                    self.create_pif_button.Enable(True)
+                    self.favorite_pif_button.Enable(True)
+                except Exception:
+                    try:
+                        json5.loads(json_data)
+                        self.paste_down.Enable(False)
+                        self.reprocess.Enable(True)
+                        self.create_pif_button.Enable(True)
+                        self.favorite_pif_button.Enable(True)
+                    except Exception:
+                        self.create_pif_button.Enable(False)
+                        self.reprocess.Enable(False)
+                        self.paste_down.Enable(False)
+                        self.favorite_pif_button.Enable(False)
             else:
-                self.pif_combo_box.SetSelection(-1)
-        # rebind the event
-        self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.onActivePifStcChange)
+                self.paste_down.Enable(False)
+                self.create_pif_button.Enable(False)
+                self.reprocess.Enable(False)
+                self.favorite_pif_button.Enable(False)
+
+            if json_data != self.device_pif:
+                self.pif_modified_image.SetBitmap(images.alert_red_24.GetBitmap())
+                self.pif_modified_image.SetToolTip(u"The contents is different than what is currently on the device.\nUpdate pif.json before testing.")
+                self.insync = False
+            else:
+                self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
+                self.pif_modified_image.SetToolTip(u"Active pif is not modified.")
+                self.insync = True
+
+            if self.create_pif_button.Enabled and self.favorite_pif_button.Enabled:
+                pif_hash = json_hexdigest(json_data)
+                if pif_hash in self.favorite_pifs:
+                    self.favorite_pif_button.SetBitmap(images.heart_red_24.GetBitmap())
+                    self.favorite_pif_button.SetToolTip(u"Active pif is saved in favorites.")
+                    self.update_combo_box(pif_hash)
+                else:
+                    self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
+                    self.favorite_pif_button.SetToolTip(u"Active pif is not saved in favorites.")
+
+        except Exception:
+            traceback.print_exc()
+        if event:
+            event.Skip()
 
     # -----------------------------------------------
-    #                  onPasteSelection
+    #                  update_combo_box
     # -----------------------------------------------
-    def onPasteSelection(self, event):
+    def update_combo_box(self, pif_hash=None):
+        try:
+            pif_labels = [pif["label"] for pif in self.favorite_pifs.values()]
+            self.pif_combo_box.SetItems(pif_labels)
+
+            # temporarily unbind so that we don't trigger another ActivePifStcChange with the combo box selection
+            self.active_pif_stc.Unbind(wx.stc.EVT_STC_CHANGE, handler=self.ActivePifStcChange)
+            # Make the combo box selection
+            if pif_hash is None:
+                self.pif_combo_box.SetSelection(-1)
+            else:
+                label = self.favorite_pifs[pif_hash]["label"]
+                index = self.pif_combo_box.FindString(label)
+                if index != wx.NOT_FOUND:
+                    self.pif_combo_box.SetSelection(index)
+                else:
+                    self.pif_combo_box.SetSelection(-1)
+            # rebind the event
+            self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
+
+        except Exception:
+            traceback.print_exc()
+
+    # -----------------------------------------------
+    #                  PasteUp
+    # -----------------------------------------------
+    def PasteUp(self, event):
         self.active_pif_stc.SetValue(self.console_stc.GetValue())
         event.Skip()
 
     # -----------------------------------------------
-    #                  onFavorite
+    #                  PasteDown
     # -----------------------------------------------
-    def onFavorite(self, event):
-        active_pif = self.active_pif_stc.GetValue()
-        pif_hash = json_hexdigest(active_pif)
-        if pif_hash in self.favorite_pifs:
-            # Delete from favorites
-            del self.favorite_pifs[pif_hash]
-            pif_hash = None
-            self.updateComboBox()
-            # self.pif_combo_box.SetSelection(-1)
-        else:
-            # Add to favorites
-            dialog = wx.TextEntryDialog(None, "Enter a label:", "Save Pif to Favorites")
-            result = dialog.ShowModal()
-            if result == wx.ID_OK:
-                label = dialog.GetValue()
-                print("Label:", label)
-                self.favorite_pifs.setdefault(pif_hash, {})["label"] = label
-                self.favorite_pifs.setdefault(pif_hash, {})["date_added"] = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
-                self.favorite_pifs.setdefault(pif_hash, {})["pif"] = json.loads(active_pif)
-                dialog.Destroy()
-            elif result == wx.ID_CANCEL:
-                print("Dialog canceled")
-                dialog.Destroy()
-                return
-
-        set_favorite_pifs(self.favorite_pifs)
-
-        with open(get_favorite_pifs_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
-            json.dump(self.favorite_pifs, f, indent=4)
-
-        # self.updateComboBox(pif_hash)
-        self.onActivePifStcChange(None)
+    def PasteDown(self, event):
+        self.console_stc.SetValue(self.active_pif_stc.GetValue())
         event.Skip()
 
-    # -----------------------------------------------
-    #                  onCopy
-    # -----------------------------------------------
-    def onCopy(self, event):
-        self.console_stc.CopySelectedText()
 
     # -----------------------------------------------
-    #                  onSelectAll
+    #                  load_json_with_rules
     # -----------------------------------------------
-    def onSelectAll(self, event):
-        self.console_stc.SelectAll()
+    def load_json_with_rules(self, json_str, discard_empty_keys=False):
+        # Load JSON string into a dictionary
+        data = json5.loads(json_str)
+
+        # Define the mapping rules
+        mapping_rules = {
+            "MANUFACTURER": "ro.product.manufacturer",
+            "MODEL": "ro.product.model",
+            "BRAND": "ro.product.brand",
+            "PRODUCT": "ro.product.name",
+            "DEVICE": "ro.product.device",
+            "FINGERPRINT": "ro.build.fingerprint",
+            "SECURITY_PATCH": "ro.build.version.security_patch",
+            "*.security_patch": "ro.build.version.security_patch",
+            "FIRST_API_LEVEL": "ro.product.first_api_level",
+            "*api_level": "ro.product.first_api_level",
+            "BUILD_ID": "ro.build.id",
+            "ID": "ro.build.id",
+            "VNDK_VERSION": "ro.vndk.version",
+            "*.vndk_version": "ro.vndk.version",
+            "INCREMENTAL": "ro.build.version.incremental",
+            "TYPE": "ro.build.type",
+            "TAGS": "ro.build.tags"
+        }
+
+        # Create a new dictionary with the modified keys
+        modified_data = {mapping_rules.get(key, key): value for key, value in data.items()}
+
+        # Discard keys with empty values if the flag is set
+        if discard_empty_keys:
+            modified_data = {key: value for key, value in modified_data.items() if value != ""}
+
+        return modified_data
+
+    # -----------------------------------------------
+    #                  ReProcess
+    # -----------------------------------------------
+    def ReProcess(self, event):
+        try:
+            self._on_spin('start')
+            print("Reprocessing Active Pif content ...")
+            self._on_spin('start')
+            active_pif = self.active_pif_stc.GetValue()
+            processed_dict = self.load_json_with_rules(active_pif, self.advanced_props_support)
+            donor_json = self.process_dict(processed_dict)
+            self.console_stc.SetValue(donor_json)
+
+        except Exception:
+            traceback.print_exc()
+        self._on_spin('stop')
+        if event:
+            event.Skip()
+
+    # -----------------------------------------------
+    #                  Favorite
+    # -----------------------------------------------
+    def Favorite(self, event):
+        try:
+            active_pif = self.active_pif_stc.GetValue()
+            pif_hash = json_hexdigest(active_pif)
+            if pif_hash in self.favorite_pifs:
+                # Delete from favorites
+                del self.favorite_pifs[pif_hash]
+                pif_hash = None
+                self.update_combo_box()
+                # self.pif_combo_box.SetSelection(-1)
+            else:
+                # Add to favorites
+                dialog = wx.TextEntryDialog(None, "Enter a label:", "Save Pif to Favorites")
+                result = dialog.ShowModal()
+                if result == wx.ID_OK:
+                    label = dialog.GetValue()
+                    print("Label:", label)
+                    self.favorite_pifs.setdefault(pif_hash, {})["label"] = label
+                    self.favorite_pifs.setdefault(pif_hash, {})["date_added"] = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
+                    self.favorite_pifs.setdefault(pif_hash, {})["pif"] = json.loads(active_pif)
+                    dialog.Destroy()
+                elif result == wx.ID_CANCEL:
+                    print("Dialog canceled")
+                    dialog.Destroy()
+                    return
+
+            set_favorite_pifs(self.favorite_pifs)
+
+            with open(get_favorite_pifs_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
+                json.dump(self.favorite_pifs, f, indent=4)
+
+            # self.update_combo_box(pif_hash)
+            self.ActivePifStcChange(None)
+
+        except Exception:
+            traceback.print_exc()
+        if event:
+            event.Skip()
+
+    # -----------------------------------------------
+    #                  ImportFavorites
+    # -----------------------------------------------
+    def ImportFavorites(self, e):
+        try:
+            with wx.DirDialog(self, "Select folder to Import Pifs", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+                if folderDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled folder selection.")
+                    return
+                selected_folder = folderDialog.GetPath()
+
+            self._on_spin('start')
+            pif_files = [file for file in os.listdir(selected_folder) if file.endswith(".json")]
+            for pif_file in pif_files:
+                with open(os.path.join(selected_folder, pif_file), 'r', encoding="ISO-8859-1", errors="replace") as f:
+                    data = json5.load(f)
+                with contextlib.suppress(KeyError):
+                    brand = data['BRAND']
+                with contextlib.suppress(KeyError):
+                    model = data['MODEL']
+                label = f"{brand} {model}"
+                pif_data = json.dumps(data, indent=4)
+                pif_hash = json_hexdigest(pif_data)
+                # Add to favorites
+                print(f"Importing: {label} ...")
+                self.favorite_pifs.setdefault(pif_hash, {})["label"] = label
+                self.favorite_pifs.setdefault(pif_hash, {})["date_added"] = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
+                self.favorite_pifs.setdefault(pif_hash, {})["pif"] = json.loads(pif_data)
+                wx.YieldIfNeeded()
+
+            set_favorite_pifs(self.favorite_pifs)
+            with open(get_favorite_pifs_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
+                json.dump(self.favorite_pifs, f, indent=4)
+
+            # self.update_combo_box(pif_hash)
+            self.update_combo_box(None)
+
+        except Exception:
+            traceback.print_exc()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_spin
@@ -1106,5 +1354,15 @@ class PifManager(wx.Dialog):
         self.console_stc.SetScrollWidth(x - 30)
 
         self.Layout()
-        event.Skip(True)
+        if event:
+            event.Skip(True)
+
+    # -----------------------------------------------
+    #                  toast
+    # -----------------------------------------------
+    def toast(self, title, message):
+        if self.config.show_notifications:
+            notification = wx.adv.NotificationMessage(title, message, parent=None, flags=wx.ICON_INFORMATION)
+            notification.SetIcon(images.Icon_256.GetIcon())
+            notification.Show()
 

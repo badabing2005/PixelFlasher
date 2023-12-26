@@ -49,6 +49,7 @@ command_lines = [
     "-a -F -i -n partition-64 images/partition-64.png images.py",
     "-a -F -i -n paste-24 images/paste-24.png images.py",
     "-a -F -i -n paste-up-24 images/paste-up-24.png images.py",
+    "-a -F -i -n paste-down-24 images/paste-down-24.png images.py",
     "-a -F -i -n patch-24 images/patch-24.png images.py",
     "-a -F -i -n patched-16 images/patched-16.png images.py",
     "-a -F -i -n patched-24 images/patched-24.png images.py",
@@ -118,6 +119,7 @@ command_lines = [
     "-a -F -i -n pif-64 images/pif-64.png images.py",
     "-a -F -i -n heart-red-24 images/heart-red-24.png images.py",
     "-a -F -i -n heart-gray-24 images/heart-gray-24.png images.py",
+    "-a -F -i -n import-24 images/import-24.png images.py",
 ]
 
 if __name__ == "__main__":

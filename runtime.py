@@ -7,6 +7,7 @@ import fnmatch
 import hashlib
 import io
 import json
+import json5
 import ntpath
 import os
 import re
@@ -14,6 +15,7 @@ import shutil
 import signal
 import sqlite3 as sl
 import subprocess
+import ssl
 import sys
 import random
 import tarfile
@@ -1621,7 +1623,7 @@ def md5(fname):
 # ============================================================================
 def json_hexdigest(json_string):
     # Convert the JSON string to a dictionary to eliminate space being a factor
-    dictionary = json.loads(json_string)
+    dictionary = json5.loads(json_string)
 
     # Convert the dictionary to a JSON string with sorted keys to keep them consistent
     sorted_json_string = json.dumps(dictionary, sort_keys=True)
@@ -2069,7 +2071,7 @@ def get_first_match(dictionary, keys):
 
 
 # ============================================================================
-#                               Function process_pi_xml
+#                               Function process_pi_xml_piac
 # ============================================================================
 def process_pi_xml_piac(filename):
     with open(filename, 'r') as file:
@@ -2104,7 +2106,7 @@ def process_pi_xml_piac(filename):
 
 
 # ============================================================================
-#                               Function process_pi_xml2
+#                               Function process_pi_xml_spic
 # ============================================================================
 def process_pi_xml_spic(filename):
     with open(filename, 'r') as file:
@@ -2149,7 +2151,7 @@ def process_pi_xml_spic(filename):
 
 
 # ============================================================================
-#                               Function process_pi_xml3
+#                               Function process_pi_xml_tb
 # ============================================================================
 def process_pi_xml_tb(filename):
     with open(filename, 'r') as file:
@@ -2216,16 +2218,16 @@ def process_pi_xml_tb(filename):
 
 
 # ============================================================================
-#                               Function process_pi_xml4
+#                               Function process_pi_xml_ps
 # ============================================================================
 def process_pi_xml_ps(filename):
     with open(filename, 'r') as file:
         xml_content = file.read()
 
-    # Find the position of "Play Integrity Result:"
+    # Find the position of text="Labels:
     labels_pos = xml_content.find('text="Labels:')
 
-    # If "Result Play integrity" is found, continue searching for index="3"
+    # If found
     if labels_pos != -1:
 
         # Adjust the position to point at the end of 'text=' and then get the next value between [ ].
@@ -2237,6 +2239,72 @@ def process_pi_xml_ps(filename):
         debug(result)
         return result
 
+
+# ============================================================================
+#                               Function process_pi_xml_yasnac
+# ============================================================================
+def process_pi_xml_yasnac(filename):
+    with open(filename, 'r') as file:
+        xml_content = file.read()
+
+    # Find the position of text="Result"
+    yasnac_result_pos = xml_content.find('text="Result"')
+
+    # If found, continue searching for text="Basic integrity"
+    if yasnac_result_pos != -1:
+        basic_integrity_pos = xml_content.find('"Basic integrity"', yasnac_result_pos)
+
+        # If "Basic integrity" is found, continue looking for text=
+        if basic_integrity_pos != -1:
+            # find next text= position
+            basic_integrity_result_pos = xml_content.find('text=', basic_integrity_pos)
+
+            # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+            basic_integrity_result_pos += len('text=')
+
+            value_start_pos = xml_content.find('"', basic_integrity_result_pos) + 1
+            value_end_pos = xml_content.find('"', value_start_pos)
+            basic_integrity = xml_content[value_start_pos:value_end_pos]
+
+            cts_profile_match_pos = xml_content.find('"CTS profile match"', value_end_pos)
+            # If "CTS profile match" is found, continue looking for text=
+            if cts_profile_match_pos != -1:
+                # find next text= position
+                cts_profile_match_result_pos = xml_content.find('text=', cts_profile_match_pos)
+
+                # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+                cts_profile_match_result_pos += len('text=')
+
+                value_start_pos = xml_content.find('"', cts_profile_match_result_pos) + 1
+                value_end_pos = xml_content.find('"', value_start_pos)
+                cts_profile_match = xml_content[value_start_pos:value_end_pos]
+
+
+                evaluation_type_pos = xml_content.find('"Evaluation type"', value_end_pos)
+                # If "Evaluation type" is found, continue looking for text=
+                if evaluation_type_pos != -1:
+                    # find next text= position
+                    evaluation_type_result_pos = xml_content.find('text=', evaluation_type_pos)
+
+                    # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+                    evaluation_type_result_pos += len('text=')
+
+                    value_start_pos = xml_content.find('"', evaluation_type_result_pos) + 1
+                    value_end_pos = xml_content.find('"', value_start_pos)
+                    evaluation_type = xml_content[value_start_pos:value_end_pos]
+
+                result = f"Basic integrity:   {basic_integrity}\n"
+                result += f"CTS profile match: {cts_profile_match}\n"
+                result += f"Evaluation type:   {evaluation_type}\n"
+
+                debug(result)
+                return result
+        else:
+            print("Error")
+            return -1
+    else:
+        print("'Result' not found")
+        return -1
 
 # ============================================================================
 #                               Function get_xiaomi_apk
@@ -2418,9 +2486,22 @@ def get_freeman_pif(abi_list=None):
     if not os.path.exists(freeman_dir_full):
         if not os.path.exists(zip_file):
             print("Downloading profile/fingerprint repo from GitHub...")
-            d_url = "https://codeload.github.com/TheFreeman193/PIFS/zip/refs/heads/main"
-            with urlopen(d_url) as response, open(zip_file, 'wb') as out_file:
-                shutil.copyfileobj(response, out_file)
+            d_url = FREEMANURL
+            try:
+                # Try making the request with SSL certificate verification
+                download_file(FREEMANURL, zip_file)
+                # with urlopen(d_url) as response, open(zip_file, 'wb') as out_file:
+                #     shutil.copyfileobj(response, out_file)
+            except ssl.SSLCertVerificationError:
+                # Retry with SSL certificate verification disabled
+                print(f"WARNING! Encountered SSL certification error while downloading from: {FREEMANURL}")
+                print("Attempting to download with SSL certificate verification disabled.")
+                print("For security you should double check and make sure your system or communication is not compromised.")
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                with urlopen(d_url, context=ssl_context) as response, open(zip_file, 'wb') as out_file:
+                    shutil.copyfileobj(response, out_file)
 
         temp_dir = tempfile.mkdtemp()
         with zipfile.ZipFile(zip_file, 'r') as zip_ref:

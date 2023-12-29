@@ -560,19 +560,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def current_device_print(self):
-        device_data = {
-            "PRODUCT": self.get_prop('ro.product.name'),
-            "DEVICE": self.get_prop('ro.product.device'),
-            "MANUFACTURER": self.get_prop('ro.product.manufacturer'),
-            "BRAND": self.get_prop('ro.product.brand'),
-            "MODEL": self.get_prop('ro.product.model'),
-            "FINGERPRINT": self.ro_build_fingerprint,
-            "SECURITY_PATCH": self.get_prop('ro.build.version.security_patch'),
-            "FIRST_API_LEVEL": self.get_prop('ro.product.first_api_level'),
-            "BUILD_ID": self.get_prop('ro.build.id'),
-            "VNDK_VERSION": self.get_prop('ro.vndk.version')
-        }
-        return json.dumps(device_data, indent=4)
+        return process_dict(self.props.property, True, True)
 
     # ----------------------------------------------------------------------------
     #                               property current_device_props_in_json
@@ -3197,7 +3185,7 @@ This is a special Magisk build\n\n
     #                               method perform_package_action
     # ----------------------------------------------------------------------------
     def perform_package_action(self, pkg, action, isSystem=False):
-        # possible actions 'uninstall', 'disable', 'enable', 'launch', 'kill', killall', 'clear-data', 'clear-cache', 'add-to-denylist', 'rm-from-denylist', 'optimize', 'reset-optimize'
+        # possible actions 'uninstall', 'disable', 'enable', 'launch', 'launch-am', 'launch-am-main', 'kill', killall', 'clear-data', 'clear-cache', 'add-to-denylist', 'rm-from-denylist', 'optimize', 'reset-optimize'
         if self.mode != 'adb':
             return
         if action in ['add-to-denylist', 'rm-from-denylist'] and get_magisk_package() == 'io.github.huskydg.magisk':
@@ -3221,6 +3209,10 @@ This is a special Magisk build\n\n
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell pm enable {pkg}"
             elif action == 'launch':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell monkey -p {pkg} -c android.intent.category.LAUNCHER 1"
+            elif action == 'launch-am':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell am start -n {pkg}/{pkg}.MainActivity"
+            elif action == 'launch-am-main':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell am start -n {pkg}/{pkg}.main.MainActivity"
             elif action == 'kill':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell am force-stop {pkg}"
             elif action == 'killall':

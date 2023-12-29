@@ -2071,6 +2071,176 @@ def get_first_match(dictionary, keys):
 
 
 # ============================================================================
+#                               Function process_dict
+# ============================================================================
+def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
+    try:
+        # FINGERPRINT
+        fp_ro_product_brand = ''
+        fp_ro_product_name = ''
+        fp_ro_product_device = ''
+        fp_ro_build_version_release = ''
+        fp_ro_build_id = ''
+        fp_ro_build_version_incremental = ''
+        fp_ro_build_type = ''
+        fp_ro_build_tags = ''
+        keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
+        ro_build_fingerprint = get_first_match(dict, keys)
+        if ro_build_fingerprint:
+            # Let's extract props from fingerprint in case we need them
+            pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
+            match = re.search(pattern, ro_build_fingerprint)
+            if match and match.lastindex == 8:
+                fp_ro_product_brand = match[1]
+                fp_ro_product_name = match[2]
+                fp_ro_product_device = match[3]
+                fp_ro_build_version_release = match[4]
+                fp_ro_build_id = match[5]
+                fp_ro_build_version_incremental = match[6]
+                fp_ro_build_type = match[7]
+                fp_ro_build_tags = match[8]
+
+        autofill = False
+        if add_missing_keys:
+            device = get_phone()
+            if device:
+                autofill = True
+            else:
+                print("ERROR: Device is unavilable to add missing fields from device.")
+
+        # PRODUCT
+        keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name', 'ro.vendor.product.name']
+        ro_product_name = get_first_match(dict, keys)
+        if (ro_product_name is None or ro_product_name == '') and fp_ro_product_name != '':
+            debug(f"Properties for PRODUCT are not found, using value from FINGERPRINT: {fp_ro_product_name}")
+            ro_product_name = fp_ro_product_name
+
+        # DEVICE (ro.build.product os fallback, keep it last)
+        keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.vendor.product.device', 'ro.build.product']
+        ro_product_device = get_first_match(dict, keys)
+        if (ro_product_device is None or ro_product_device == '') and fp_ro_product_device != '':
+            debug(f"Properties for DEVICE are not found, using value from FINGERPRINT: {fp_ro_product_device}")
+            ro_product_device = fp_ro_product_device
+
+        # MANUFACTURER
+        keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer', 'ro.vendor.product.manufacturer']
+        ro_product_manufacturer = get_first_match(dict, keys)
+        if autofill and ro_product_manufacturer == '':
+            ro_product_manufacturer = device.get_prop('ro.product.manufacturer')
+
+        # BRAND
+        keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand', 'ro.vendor.product.brand']
+        ro_product_brand = get_first_match(dict, keys)
+        if (ro_product_brand is None or ro_product_brand == '') and fp_ro_product_brand != '':
+            debug(f"Properties for BRAND are not found, using value from FINGERPRINT: {fp_ro_product_brand}")
+            ro_product_brand = fp_ro_product_brand
+
+        # MODEL
+        keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
+        ro_product_model = get_first_match(dict, keys)
+
+        # SECURITY_PATCH
+        keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
+        ro_build_version_security_patch = get_first_match(dict, keys)
+
+        # FIRST_API_LEVEL
+        keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
+        ro_product_first_api_level = get_first_match(dict, keys)
+        if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
+            ro_product_first_api_level = '32'
+
+        # BUILD_ID
+        keys = ['ro.build.id']
+        ro_build_id = get_first_match(dict, keys)
+        if (ro_build_id is None or ro_build_id == '') and fp_ro_build_id != '':
+            debug(f"Properties for ID are not found, using value from FINGERPRINT: {fp_ro_build_id}")
+            ro_build_id = fp_ro_build_id
+
+        # RELEASE
+        keys = ['ro.build.version.release']
+        ro_build_version_release = get_first_match(dict, keys)
+        if (ro_build_version_release is None or ro_build_version_release == '') and fp_ro_build_version_release != '':
+            debug(f"Properties for RELEASE are not found, using value from FINGERPRINT: {fp_ro_build_version_release}")
+            ro_build_version_release = fp_ro_build_version_release
+
+        # INCREMENTAL
+        keys = ['ro.build.version.incremental']
+        ro_build_version_incremental = get_first_match(dict, keys)
+        if (ro_build_version_incremental is None or ro_build_version_incremental == '') and fp_ro_build_version_incremental != '':
+            debug(f"Properties for INCREMENTAL are not found, using value from FINGERPRINT: {fp_ro_build_version_incremental}")
+            ro_build_version_incremental = fp_ro_build_version_incremental
+
+        # TYPE
+        keys = ['ro.build.type']
+        ro_build_type = get_first_match(dict, keys)
+        if (ro_build_type is None or ro_build_type == '') and fp_ro_build_type != '':
+            debug(f"Properties for TYPE are not found, using value from FINGERPRINT: {fp_ro_build_type}")
+            ro_build_type = fp_ro_build_type
+
+        # TAGS
+        keys = ['ro.build.tags']
+        ro_build_tags = get_first_match(dict, keys)
+        if (ro_build_tags is None or ro_build_tags == '') and fp_ro_build_tags != '':
+            debug(f"Properties for TAGS are not found, using value from FINGERPRINT: {fp_ro_build_tags}")
+            ro_build_tags = fp_ro_build_tags
+
+        # VNDK_VERSION
+        keys = ['ro.vndk.version', 'ro.product.vndk.version']
+        ro_vndk_version = get_first_match(dict, keys)
+
+        # Get any missing FINGERPRINT fields
+        ffp_ro_product_brand = fp_ro_product_brand if fp_ro_product_brand != '' else ro_product_brand
+        ffp_ro_product_name = fp_ro_product_name if fp_ro_product_name != '' else ro_product_name
+        ffp_ro_product_device = fp_ro_product_device if fp_ro_product_device != '' else ro_product_device
+        ffp_ro_build_version_release = fp_ro_build_version_release if fp_ro_build_version_release != '' else ro_build_version_release
+        ffp_ro_build_id = fp_ro_build_id if fp_ro_build_id != '' else ro_build_id
+        ffp_ro_build_version_incremental = fp_ro_build_version_incremental if fp_ro_build_version_incremental != '' else ro_build_version_incremental
+        ffp_ro_build_type = fp_ro_build_type if fp_ro_build_type != '' else ro_build_type
+        ffp_ro_build_tags = fp_ro_build_tags if fp_ro_build_tags != '' else ro_build_tags
+        # Rebuild the FINGERPRINT
+        ro_build_fingerprint = f"{ffp_ro_product_brand}/{ffp_ro_product_name}/{ffp_ro_product_device}:{ffp_ro_build_version_release}/{ffp_ro_build_id}/{ffp_ro_build_version_incremental}:{ffp_ro_build_type}/{ffp_ro_build_tags}"
+
+        donor_data = {
+            "PRODUCT": ro_product_name,
+            "DEVICE": ro_product_device,
+            "MANUFACTURER": ro_product_manufacturer,
+            "BRAND": ro_product_brand,
+            "MODEL": ro_product_model,
+            "FINGERPRINT": ro_build_fingerprint,
+            "SECURITY_PATCH": ro_build_version_security_patch
+        }
+        if advanced_props_support:
+            donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
+            donor_data["*api_level"] = ro_product_first_api_level
+            donor_data["*.security_patch"] = ro_build_version_security_patch
+            donor_data["ID"] = ro_build_id
+            donor_data["*.build.id"] = ro_build_id
+            donor_data["RELEASE"] = ro_build_version_release
+            donor_data["INCREMENTAL"] = ro_build_version_incremental
+            donor_data["TYPE"] = ro_build_type
+            donor_data["TAGS"] = ro_build_tags
+            donor_data["*.vndk_version"] = ro_vndk_version
+            donor_data["VERBOSE_LOGS"] = "0"
+        else:
+            donor_data["FIRST_API_LEVEL"] = ro_product_first_api_level
+            donor_data["BUILD_ID"] = ro_build_id
+            donor_data["VNDK_VERSION"] = ro_vndk_version
+
+        # Discard keys with empty values if the flag is set
+        if advanced_props_support:
+            modified_donor_data = {key: value for key, value in donor_data.items() if value != ""}
+        else:
+            modified_donor_data = donor_data
+
+        return json.dumps(modified_donor_data, indent=4)
+
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function process_dict.")
+        traceback.print_exc()
+        return ''
+
+
+# ============================================================================
 #                               Function process_pi_xml_piac
 # ============================================================================
 def process_pi_xml_piac(filename):

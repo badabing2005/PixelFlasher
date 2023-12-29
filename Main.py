@@ -823,7 +823,7 @@ class PixelFlasher(wx.Frame):
         self.device_info_menu_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_device_info, self.device_info_menu_item)
         # Get PIF Print Menu
-        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif print")
+        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif print (osm0sis fork v5 format)")
         self.pif_info_menu_item.SetBitmap(images.json_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pif_info, self.pif_info_menu_item)
         # Get Props as json Menu

@@ -23,6 +23,7 @@ class PifManager(wx.Dialog):
         self.pif_json_path = PIF_JSON_PATH
         self.device_pif = ''
         self.pi_app = 'gr.nikolasspyr.integritycheck'
+        self.launch_method = 'launch-am'
         self.coords = Coords()
         self.enable_buttons = False
         self.pif_exists = False
@@ -90,8 +91,12 @@ class PifManager(wx.Dialog):
         # Reprocess
         self.reprocess = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.reprocess.SetBitmap(images.scan_24.GetBitmap())
-        self.reprocess.SetToolTip(u"Reprocess current console window json.\nUseful if you changed module version which might required additional / different fields.")
+        self.reprocess.SetToolTip(u"Reprocess current console window json.\nUseful if you changed module version which might require additional / different fields.")
         self.reprocess.Enable(False)
+        # Reprocess Json File(s)
+        self.reprocess_json_file = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.reprocess_json_file.SetBitmap(images.json_24.GetBitmap())
+        self.reprocess_json_file.SetToolTip(u"Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place.")
         # Add missing keys checkbox
         self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Add missing Keys from device", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.add_missing_keys_checkbox.SetToolTip(u"When Processing or Reprocessing, add missing fields from device.")
@@ -200,6 +205,8 @@ class PifManager(wx.Dialog):
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.reprocess, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.reprocess_json_file, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.add_missing_keys_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
 
         stc_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -249,6 +256,7 @@ class PifManager(wx.Dialog):
         self.paste_up.Bind(wx.EVT_BUTTON, self.PasteUp)
         self.paste_down.Bind(wx.EVT_BUTTON, self.PasteDown)
         self.reprocess.Bind(wx.EVT_BUTTON, self.ReProcess)
+        self.reprocess_json_file.Bind(wx.EVT_BUTTON, self.ReProcessJsonFile)
         self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.Favorite)
         self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
         self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
@@ -359,22 +367,27 @@ class PifManager(wx.Dialog):
         if option == "Play Integrity API Checker":
             print("Play Integrity API Checker option selected")
             self.pi_app = 'gr.nikolasspyr.integritycheck'
+            self.launch_method = 'launch-am'
 
         elif option == "Simple Play Integrity Checker":
             print("Simple Play Integrity Checker option selected")
             self.pi_app = 'com.henrikherzig.playintegritychecker'
+            self.launch_method = 'launch-am'
 
         elif option == "TB Checker":
             print("TB Checker option selected")
             self.pi_app = 'krypton.tbsafetychecker'
+            self.launch_method = 'launch-am-main'
 
         elif option == "Play Store":
             print("Play Store option selected")
             self.pi_app = 'com.android.vending'
+            self.launch_method = 'launch'
 
         elif option == "YASNAC":
             print("YASNAC option selected")
             self.pi_app = 'rikka.safetynetchecker'
+            self.launch_method = 'launch-am-main'
 
     # -----------------------------------------------
     #                  __del__
@@ -592,7 +605,7 @@ class PifManager(wx.Dialog):
                 res = device.perform_package_action(self.pi_app, 'kill', False)
 
             # launch the app
-            res = device.perform_package_action(self.pi_app, 'launch', False)
+            res = device.perform_package_action(self.pi_app, self.launch_method, False)
             if res == -1:
                 print(f"Error: during launching app {self.pi_app}.")
                 self._on_spin('stop')
@@ -836,176 +849,6 @@ class PifManager(wx.Dialog):
         else:
             return 999
 
-
-    # -----------------------------------------------
-    #                  ProcessBuildProp
-    # -----------------------------------------------
-    def process_dict(self, dict):
-        try:
-            # FINGERPRINT
-            fp_ro_product_brand = ''
-            fp_ro_product_name = ''
-            fp_ro_product_device = ''
-            fp_ro_build_version_release = ''
-            fp_ro_build_id = ''
-            fp_ro_build_version_incremental = ''
-            fp_ro_build_type = ''
-            fp_ro_build_tags = ''
-            keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
-            ro_build_fingerprint = get_first_match(dict, keys)
-            if ro_build_fingerprint:
-                # Let's extract props from fingerprint in case we need them
-                pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
-                match = re.search(pattern, ro_build_fingerprint)
-                if match and match.lastindex == 8:
-                    fp_ro_product_brand = match[1]
-                    fp_ro_product_name = match[2]
-                    fp_ro_product_device = match[3]
-                    fp_ro_build_version_release = match[4]
-                    fp_ro_build_id = match[5]
-                    fp_ro_build_version_incremental = match[6]
-                    fp_ro_build_type = match[7]
-                    fp_ro_build_tags = match[8]
-
-            autofill = False
-            if self.add_missing_keys_checkbox.IsChecked():
-                device = get_phone()
-                if device:
-                    autofill = True
-                else:
-                    print("ERROR: Device is unavilable to add missing fields from device.")
-
-            # PRODUCT
-            keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name', 'ro.vendor.product.name']
-            ro_product_name = get_first_match(dict, keys)
-            if (ro_product_name is None or ro_product_name == '') and fp_ro_product_name != '':
-                debug(f"Properties for PRODUCT are not found, using value from FINGERPRINT: {fp_ro_product_name}")
-                ro_product_name = fp_ro_product_name
-
-            # DEVICE
-            keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.build.product', 'ro.vendor.product.device']
-            ro_product_device = get_first_match(dict, keys)
-            if (ro_product_device is None or ro_product_device == '') and fp_ro_product_device != '':
-                debug(f"Properties for DEVICE are not found, using value from FINGERPRINT: {fp_ro_product_device}")
-                ro_product_device = fp_ro_product_device
-
-            # MANUFACTURER
-            keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer', 'ro.vendor.product.manufacturer']
-            ro_product_manufacturer = get_first_match(dict, keys)
-            if autofill and ro_product_manufacturer == '':
-                ro_product_manufacturer = device.get_prop('ro.product.manufacturer')
-
-            # BRAND
-            keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand', 'ro.vendor.product.brand']
-            ro_product_brand = get_first_match(dict, keys)
-            if (ro_product_brand is None or ro_product_brand == '') and fp_ro_product_brand != '':
-                debug(f"Properties for BRAND are not found, using value from FINGERPRINT: {fp_ro_product_brand}")
-                ro_product_brand = fp_ro_product_brand
-
-            # MODEL
-            keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
-            ro_product_model = get_first_match(dict, keys)
-
-            # SECURITY_PATCH
-            keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
-            ro_build_version_security_patch = get_first_match(dict, keys)
-
-            # FIRST_API_LEVEL
-            keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
-            ro_product_first_api_level = get_first_match(dict, keys)
-            if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
-                ro_product_first_api_level = '32'
-
-            # BUILD_ID
-            keys = ['ro.build.id']
-            ro_build_id = get_first_match(dict, keys)
-            if (ro_build_id is None or ro_build_id == '') and fp_ro_build_id != '':
-                debug(f"Properties for ID are not found, using value from FINGERPRINT: {fp_ro_build_id}")
-                ro_build_id = fp_ro_build_id
-
-            # RELEASE
-            keys = ['ro.build.version.release']
-            ro_build_version_release = get_first_match(dict, keys)
-            if (ro_build_version_release is None or ro_build_version_release == '') and fp_ro_build_version_release != '':
-                debug(f"Properties for RELEASE are not found, using value from FINGERPRINT: {fp_ro_build_version_release}")
-                ro_build_version_release = fp_ro_build_version_release
-
-            # INCREMENTAL
-            keys = ['ro.build.version.incremental']
-            ro_build_version_incremental = get_first_match(dict, keys)
-            if (ro_build_version_incremental is None or ro_build_version_incremental == '') and fp_ro_build_version_incremental != '':
-                debug(f"Properties for INCREMENTAL are not found, using value from FINGERPRINT: {fp_ro_build_version_incremental}")
-                ro_build_version_incremental = fp_ro_build_version_incremental
-
-            # TYPE
-            keys = ['ro.build.type']
-            ro_build_type = get_first_match(dict, keys)
-            if (ro_build_type is None or ro_build_type == '') and fp_ro_build_type != '':
-                debug(f"Properties for TYPE are not found, using value from FINGERPRINT: {fp_ro_build_type}")
-                ro_build_type = fp_ro_build_type
-
-            # TAGS
-            keys = ['ro.build.tags']
-            ro_build_tags = get_first_match(dict, keys)
-            if (ro_build_tags is None or ro_build_tags == '') and fp_ro_build_tags != '':
-                debug(f"Properties for TAGS are not found, using value from FINGERPRINT: {fp_ro_build_tags}")
-                ro_build_tags = fp_ro_build_tags
-
-            # VNDK_VERSION
-            keys = ['ro.vndk.version', 'ro.product.vndk.version']
-            ro_vndk_version = get_first_match(dict, keys)
-
-            # Get any missing FINGERPRINT fields
-            ffp_ro_product_brand = fp_ro_product_brand if fp_ro_product_brand != '' else ro_product_brand
-            ffp_ro_product_name = fp_ro_product_name if fp_ro_product_name != '' else ro_product_name
-            ffp_ro_product_device = fp_ro_product_device if fp_ro_product_device != '' else ro_product_device
-            ffp_ro_build_version_release = fp_ro_build_version_release if fp_ro_build_version_release != '' else ro_build_version_release
-            ffp_ro_build_id = fp_ro_build_id if fp_ro_build_id != '' else ro_build_id
-            ffp_ro_build_version_incremental = fp_ro_build_version_incremental if fp_ro_build_version_incremental != '' else ro_build_version_incremental
-            ffp_ro_build_type = fp_ro_build_type if fp_ro_build_type != '' else ro_build_type
-            ffp_ro_build_tags = fp_ro_build_tags if fp_ro_build_tags != '' else ro_build_tags
-            # Rebuild the FINGERPRINT
-            ro_build_fingerprint = f"{ffp_ro_product_brand}/{ffp_ro_product_name}/{ffp_ro_product_device}:{ffp_ro_build_version_release}/{ffp_ro_build_id}/{ffp_ro_build_version_incremental}:{ffp_ro_build_type}/{ffp_ro_build_tags}"
-
-            donor_data = {
-                "PRODUCT": ro_product_name,
-                "DEVICE": ro_product_device,
-                "MANUFACTURER": ro_product_manufacturer,
-                "BRAND": ro_product_brand,
-                "MODEL": ro_product_model,
-                "FINGERPRINT": ro_build_fingerprint,
-                "SECURITY_PATCH": ro_build_version_security_patch
-            }
-            if self.advanced_props_support:
-                donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
-                donor_data["*api_level"] = ro_product_first_api_level
-                donor_data["*.security_patch"] = ro_build_version_security_patch
-                donor_data["ID"] = ro_build_id
-                donor_data["*.build.id"] = ro_build_id
-                donor_data["RELEASE"] = ro_build_version_release
-                donor_data["INCREMENTAL"] = ro_build_version_incremental
-                donor_data["TYPE"] = ro_build_type
-                donor_data["TAGS"] = ro_build_tags
-                donor_data["*.vndk_version"] = ro_vndk_version
-                donor_data["VERBOSE_LOGS"] = "0"
-            else:
-                donor_data["FIRST_API_LEVEL"] = ro_product_first_api_level
-                donor_data["BUILD_ID"] = ro_build_id
-                donor_data["VNDK_VERSION"] = ro_vndk_version
-
-            # Discard keys with empty values if the flag is set
-            if self.advanced_props_support:
-                modified_donor_data = {key: value for key, value in donor_data.items() if value != ""}
-            else:
-                modified_donor_data = donor_data
-
-            return json.dumps(modified_donor_data, indent=4)
-
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function process_dict.")
-            traceback.print_exc()
-            return ''
-
     # -----------------------------------------------
     #                  ProcessBuildProp
     # -----------------------------------------------
@@ -1047,9 +890,9 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
-            donor_json = self.process_dict(processed_dict)
-            self.console_stc.SetValue(donor_json)
-            # print(donor_json)
+            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support)
+            self.console_stc.SetValue(donor_json_string)
+            # print(donor_json_string)
 
             # Auto Push pif.json
             if self.auto_push_pif_checkbox.IsEnabled() and self.auto_push_pif_checkbox.IsChecked():
@@ -1239,9 +1082,48 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
             active_pif = self.active_pif_stc.GetValue()
             processed_dict = self.load_json_with_rules(active_pif, self.advanced_props_support)
-            donor_json = self.process_dict(processed_dict)
-            self.console_stc.SetValue(donor_json)
+            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support)
+            self.console_stc.SetValue(donor_json_string)
 
+        except Exception:
+            traceback.print_exc()
+        self._on_spin('stop')
+        if event:
+            event.Skip()
+
+    # -----------------------------------------------
+    #                  ReProcessJsonFile
+    # -----------------------------------------------
+    def ReProcessJsonFile(self, event):
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed ReProcess Json File(s)")
+        wildcard = "Property files (*.json)|*.json|All files (*.*)|*.*"
+        dialog = wx.FileDialog(self, "Choose one or multipe json files to reprocess", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+
+        if dialog.ShowModal() == wx.ID_CANCEL:
+            print("User cancelled file selection.")
+            return
+        paths = dialog.GetPaths()
+        dialog.Destroy()
+
+        # debug(f"Selected files: {paths}")
+        try:
+            self._on_spin('start')
+            count = len(paths)
+            i = 0
+            for pathname in paths:
+                i += 1
+                debug(f"Reprocessing {i}/{count} {pathname} ...")
+                with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
+                    data = json5.load(f)
+                json_string = json.dumps(data, indent=4)
+                processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
+                reprocessed_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support)
+                if count == 1:
+                    self.console_stc.SetValue(reprocessed_json_string)
+                else:
+                    with open(pathname, 'w', encoding='ISO-8859-1', errors="replace", newline='\n') as f:
+                        f.write(reprocessed_json_string)
+                        wx.YieldIfNeeded
         except Exception:
             traceback.print_exc()
         self._on_spin('stop')
@@ -1263,14 +1145,22 @@ class PifManager(wx.Dialog):
                 # self.pif_combo_box.SetSelection(-1)
             else:
                 # Add to favorites
+                active_pif_json = json5.loads(active_pif)
+                with contextlib.suppress(KeyError):
+                    brand = active_pif_json['BRAND']
+                with contextlib.suppress(KeyError):
+                    model = active_pif_json['MODEL']
+                label = f"{brand} {model}"
+
                 dialog = wx.TextEntryDialog(None, "Enter a label:", "Save Pif to Favorites")
+                dialog.SetValue(label)
                 result = dialog.ShowModal()
                 if result == wx.ID_OK:
                     label = dialog.GetValue()
                     print("Label:", label)
                     self.favorite_pifs.setdefault(pif_hash, {})["label"] = label
                     self.favorite_pifs.setdefault(pif_hash, {})["date_added"] = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
-                    self.favorite_pifs.setdefault(pif_hash, {})["pif"] = json.loads(active_pif)
+                    self.favorite_pifs.setdefault(pif_hash, {})["pif"] = active_pif_json
                     dialog.Destroy()
                 elif result == wx.ID_CANCEL:
                     print("Dialog canceled")

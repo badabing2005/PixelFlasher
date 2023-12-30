@@ -106,6 +106,16 @@ class Config():
             }
         }
 
+        self.pif = {
+            'auto_update_pif_json': False,
+            'auto_check_play_integrity': False,
+            'test_app_index': 0,
+            'disable_uiautomator': False,
+            'auto_fill': False,
+            'force_first_api': False,
+            'first_api_value_when_forced': "25"
+        }
+
         self.scrcpy = {
             'path': '',
             'flags': ''
@@ -291,6 +301,24 @@ class Config():
                         conf.toolbar['visible']['unlock_bootloader'] = toolbar_data['visible']['unlock_bootloader']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['configuration'] = toolbar_data['visible']['configuration']
+
+                    # read the pif section
+                    pif_data = data['pif']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['auto_update_pif_json'] = pif_data['auto_update_pif_json']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['auto_check_play_integrity'] = pif_data['auto_check_play_integrity']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['test_app_index'] = pif_data['test_app_index']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['disable_uiautomator'] = pif_data['disable_uiautomator']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['auto_fill'] = pif_data['auto_fill']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['force_first_api'] = pif_data['force_first_api']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['first_api_value_when_forced'] = pif_data['first_api_value_when_forced']
+
                 # read the scrcpy section
                 scrcpy_folder = ''
                 with contextlib.suppress(KeyError):
@@ -383,6 +411,7 @@ class Config():
             'check_for_bootloader_unlocked': self.check_for_bootloader_unlocked,
             'check_for_firmware_hash_validity': self.check_for_firmware_hash_validity,
             'toolbar': self.toolbar,  # Save the toolbar settings as well
+            'pif': self.pif,  # Save the pif settings as well
             'scrcpy': self.scrcpy  # Save the scrcpy settings as well
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:

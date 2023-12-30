@@ -1855,7 +1855,7 @@ class PixelFlasher(wx.Frame):
                     alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
                 if ( device.vbmeta.verification_a == self.config.disable_verification ) or ( device.vbmeta.verification_b == self.config.disable_verification ):
                     alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
-                    alert += "                                     This has a device wipe implications, please double check."
+                    alert += "                                     This has a device wipe implications, please double check.\n"
                 message += alert
             return message
         except Exception as e:
@@ -3044,12 +3044,10 @@ class PixelFlasher(wx.Frame):
 
         try:
             dlg = PifManager(parent=self, config=self.config)
-            dlg.CentreOnParent()
         except Exception:
             traceback.print_exc()
             self._on_spin('stop')
             return
-        dlg.CentreOnParent(wx.BOTH)
         self._on_spin('stop')
         result = dlg.Show()
 

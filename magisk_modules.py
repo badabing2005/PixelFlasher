@@ -245,10 +245,12 @@ class MagiskModules(wx.Dialog):
         self.list.InsertColumn(0, 'ID', width = -1)
         self.list.InsertColumn(1, 'Name', width = -1)
         self.list.InsertColumn(2, 'Version', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(3, 'Description', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(3, 'VersionCode', wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(4, 'Description', wx.LIST_FORMAT_LEFT,  -1)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
+        self.list.EnableCheckBoxes()
         if modules:
             i = 0
             for module in modules:
@@ -299,11 +301,9 @@ class MagiskModules(wx.Dialog):
                         self.list.SetItemColumnImage(i, 0, 0)
 
                 self.list.SetItem(index, 1, module.name)
-                if module.version == '':
-                    self.list.SetItem(index, 2, module.versionCode)
-                else:
-                    self.list.SetItem(index, 2, module.version)
-                self.list.SetItem(index, 3, module.description)
+                self.list.SetItem(index, 2, module.version)
+                self.list.SetItem(index, 3, module.versionCode)
+                self.list.SetItem(index, 4, module.description)
 
                 if module.state == 'enabled':
                     self.list.CheckItem(index, check=True)
@@ -320,6 +320,8 @@ class MagiskModules(wx.Dialog):
         grow_column(self.list, 2, 20)
         self.list.SetColumnWidth(3, -2)
         grow_column(self.list, 3, 20)
+        self.list.SetColumnWidth(4, -2)
+        grow_column(self.list, 4, 20)
 
     # -----------------------------------------------
     #                  add_magisk_details

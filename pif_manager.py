@@ -17,6 +17,10 @@ class PifManager(wx.Dialog):
     def __init__(self, *args, parent=None, config=None, **kwargs):
         self.config = config
         wx.Dialog.__init__(self, parent, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER)
+        # Position the dialog 200 px offset horizontally
+        default_pos = self.GetPosition()
+        offset_x = default_pos.x + 200
+        self.SetPosition((offset_x, default_pos.y))
 
         self.config = config
         self.SetTitle("Pif Manager")
@@ -100,6 +104,19 @@ class PifManager(wx.Dialog):
         # Add missing keys checkbox
         self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Add missing Keys from device", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.add_missing_keys_checkbox.SetToolTip(u"When Processing or Reprocessing, add missing fields from device.")
+        if self.config.pif:
+            with contextlib.suppress(KeyError):
+                self.add_missing_keys_checkbox.SetValue(self.config.pif['auto_fill'])
+        # Force First API
+        self.force_first_api_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force First API to 25", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.first_api_value = 25
+        if self.config.pif:
+            with contextlib.suppress(KeyError):
+                self.force_first_api_checkbox.SetValue(self.config.pif['force_first_api'])
+            with contextlib.suppress(KeyError):
+                self.first_api_value = self.config.pif['first_api_value_when_forced']
+        self.force_first_api_checkbox.SetToolTip(f"Forces First API value(s) to {self.first_api_value}")
+        self.force_first_api_checkbox.SetLabel(f"Force First API to {self.first_api_value}")
 
         # Console
         self.console_stc = stc.StyledTextCtrl(self)
@@ -119,7 +136,7 @@ class PifManager(wx.Dialog):
         self.console_stc.SetTabWidth(4)
         self.console_stc.SetIndent(4)
 
-        # Ok button
+        # Close button
         self.close_button = wx.Button(self, wx.ID_ANY, u"Close", wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Create pif.json button
@@ -137,21 +154,33 @@ class PifManager(wx.Dialog):
         self.process_build_prop_button.SetToolTip(u"Process build.prop to extract pif.json.")
 
         # Check for Auto Push pif.json
-        self.auto_push_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Update pif.json", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_push_pif_checkbox.SetToolTip(u"After Processing build.props, the pif.json is automatically pushed to the device and the GMS process is killed.")
-        self.auto_push_pif_checkbox.Enable(False)
+        self.auto_update_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Update pif.json", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_update_pif_checkbox.SetToolTip(u"After Processing build.props, the pif.json is automatically pushed to the device and the GMS process is killed.")
+        self.auto_update_pif_checkbox.Enable(False)
+        if self.config.pif:
+            with contextlib.suppress(KeyError):
+                self.auto_update_pif_checkbox.SetValue(self.config.pif['auto_update_pif_json'])
 
         # Check for Auto Check Play Integrity
         self.auto_check_pi_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Check Play Integrity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.auto_check_pi_checkbox.SetToolTip(u"After saving (pushing) pif.json, automatically run Play Integrity Check.")
         self.auto_check_pi_checkbox.Enable(False)
+        if self.config.pif:
+            with contextlib.suppress(KeyError):
+                self.auto_check_pi_checkbox.SetValue(self.config.pif['auto_check_play_integrity'])
 
         # option button PI Selectedion
         self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store", "YASNAC"], style=wx.RA_VERTICAL)
+        if self.config.pif:
+            with contextlib.suppress(KeyError):
+                self.pi_option.SetSelection(self.config.pif['test_app_index'])
 
-        # Skip getting results checkbox
+        # Disable UIAutomator
         self.disable_uiautomator_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Disable UIAutomator", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.disable_uiautomator_checkbox.SetToolTip(u"Disables UIAutomator\nThis is useful for devices with buggy UIAutomator.\nNOTE: Create the coords.json file manually to make use of automated testing.")
+        if self.config.pif:
+            with contextlib.suppress(KeyError):
+                self.disable_uiautomator_checkbox.SetValue(self.config.pif['disable_uiautomator'])
 
         # Play Integrity API Checker button
         self.pi_checker_button = wx.Button(self, wx.ID_ANY, u"Play Integrity Check", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -170,7 +199,7 @@ class PifManager(wx.Dialog):
         self.create_pif_button.SetMinSize((button_width, -1))
         self.reload_pif_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
-        self.auto_push_pif_checkbox.SetMinSize((button_width, -1))
+        self.auto_update_pif_checkbox.SetMinSize((button_width, -1))
         self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
         self.disable_uiautomator_checkbox.SetMinSize((button_width, -1))
         self.pi_checker_button.SetMinSize((button_width, -1))
@@ -187,7 +216,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.reload_pif_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.auto_push_pif_checkbox, 0, wx.ALL, 10)
+        v_buttons_sizer.Add(self.auto_update_pif_checkbox, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.auto_check_pi_checkbox, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.pi_option, 0, wx.TOP, 10)
         v_buttons_sizer.Add(self.disable_uiautomator_checkbox, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
@@ -208,6 +237,8 @@ class PifManager(wx.Dialog):
         console_label_sizer.Add(self.reprocess_json_file, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.add_missing_keys_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.force_first_api_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
 
         stc_sizer = wx.BoxSizer(wx.VERTICAL)
         stc_sizer.Add(self.active_pif_stc, 1, wx.EXPAND | wx.ALL, 10)
@@ -240,10 +271,10 @@ class PifManager(wx.Dialog):
         self.SetSizer(vSizer)
         self.SetMinSize((400, 300))
         self.Layout()
-        self.Centre(wx.BOTH)
 
         # Connect Events
         self.close_button.Bind(wx.EVT_BUTTON, self.onClose)
+        self.Bind(wx.EVT_CLOSE, self.onClose)
         self.create_pif_button.Bind(wx.EVT_BUTTON, self.CreatePifJson)
         self.reload_pif_button.Bind(wx.EVT_BUTTON, self.LoadReload)
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
@@ -262,6 +293,11 @@ class PifManager(wx.Dialog):
         self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
         self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.PifComboBox)
         self.import_pif_button.Bind(wx.EVT_BUTTON, self.ImportFavorites)
+        self.add_missing_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoFill)
+        self.force_first_api_checkbox.Bind(wx.EVT_CHECKBOX, self.onForceFirstAPI)
+        self.auto_update_pif_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoUpdatePif)
+        self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
+        self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
 
         # init button states
         self.init()
@@ -295,11 +331,16 @@ class PifManager(wx.Dialog):
 
         self.create_pif_button.Enable(True)
         self.reload_pif_button.Enable(False)
-        self.auto_push_pif_checkbox.Enable(False)
+        self.auto_update_pif_checkbox.Enable(False)
         self.auto_check_pi_checkbox.Enable(False)
         self.pi_checker_button.Enable(False)
         self.enable_buttons = False
         self.pif_version_label.SetLabel('')
+
+        if self.force_first_api_checkbox.IsChecked():
+            self.first_api = self.first_api_value
+        else:
+            self.first_api = None
 
         if modules:
             for module in modules:
@@ -315,7 +356,7 @@ class PifManager(wx.Dialog):
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
                     self.create_pif_button.Enable(False)
                     self.reload_pif_button.Enable(True)
-                    self.auto_push_pif_checkbox.Enable(True)
+                    self.auto_update_pif_checkbox.Enable(True)
                     self.auto_check_pi_checkbox.Enable(True)
                     self.pi_checker_button.Enable(True)
                     self.enable_buttons = True
@@ -389,6 +430,10 @@ class PifManager(wx.Dialog):
             self.pi_app = 'rikka.safetynetchecker'
             self.launch_method = 'launch-am-main'
 
+        print(f"Auto Update pif.json is set to: {option}")
+        self.config.pif['test_app_index'] = self.pi_option.Selection
+
+
     # -----------------------------------------------
     #                  __del__
     # -----------------------------------------------
@@ -401,9 +446,12 @@ class PifManager(wx.Dialog):
     def onClose(self, e):
         dialog_size = self.GetSize()
         dialog_x, dialog_y = dialog_size.GetWidth(), dialog_size.GetHeight()
-        self.Parent.config.pif_width = dialog_x
-        self.Parent.config.pif_height = dialog_y
-        self.Close()
+        config = get_config()
+        config.pif_width = dialog_x
+        config.pif_height = dialog_y
+        config.pif = self.config.pif
+        set_config(config)
+        self.Destroy()
 
     # -----------------------------------------------
     #                  LoadReload
@@ -890,12 +938,12 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
-            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support)
+            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api)
             self.console_stc.SetValue(donor_json_string)
             # print(donor_json_string)
 
             # Auto Push pif.json
-            if self.auto_push_pif_checkbox.IsEnabled() and self.auto_push_pif_checkbox.IsChecked():
+            if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 self.active_pif_stc.SetValue(self.console_stc.GetValue())
                 self.UpdatePifJson(None)
 
@@ -1036,6 +1084,60 @@ class PifManager(wx.Dialog):
 
 
     # -----------------------------------------------
+    #                  onAutoFill
+    # -----------------------------------------------
+    def onAutoFill(self, event):
+        self.add_missing_keys_checkbox = event.GetEventObject()
+        status = self.add_missing_keys_checkbox.GetValue()
+        print(f"Add Missing Keys is set to: {status}")
+        self.config.pif['auto_fill'] = status
+
+
+    # -----------------------------------------------
+    #                  onForceFirstAPI
+    # -----------------------------------------------
+    def onForceFirstAPI(self, event):
+        self.force_first_api_checkbox = event.GetEventObject()
+        status = self.force_first_api_checkbox.GetValue()
+        print(f"Force First API is set to: {status}")
+        self.config.pif['force_first_api'] = status
+        if status:
+            self.first_api = self.first_api_value
+        else:
+            self.first_api = None
+
+
+    # -----------------------------------------------
+    #                  onAutoUpdatePif
+    # -----------------------------------------------
+    def onAutoUpdatePif(self, event):
+        self.auto_update_pif_checkbox = event.GetEventObject()
+        status = self.auto_update_pif_checkbox.GetValue()
+        print(f"Auto Update pif.json is set to: {status}")
+        self.config.pif['auto_update_pif_json'] = status
+
+
+    # -----------------------------------------------
+    #                  onAutoCheckPlayIntegrity
+    # -----------------------------------------------
+    def onAutoCheckPlayIntegrity(self, event):
+        self.auto_check_pi_checkbox = event.GetEventObject()
+        status = self.auto_check_pi_checkbox.GetValue()
+        print(f"Auto Check Play Integrity is set to: {status}")
+        self.config.pif['auto_check_play_integrity'] = status
+
+
+    # -----------------------------------------------
+    #                  onDisableUIAutomator
+    # -----------------------------------------------
+    def onDisableUIAutomator(self, event):
+        self.disable_uiautomator_checkbox = event.GetEventObject()
+        status = self.disable_uiautomator_checkbox.GetValue()
+        print(f"Disable UIAutomator is set to: {status}")
+        self.config.pif['disable_uiautomator'] = status
+
+
+    # -----------------------------------------------
     #                  load_json_with_rules
     # -----------------------------------------------
     def load_json_with_rules(self, json_str, discard_empty_keys=False):
@@ -1082,7 +1184,7 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
             active_pif = self.active_pif_stc.GetValue()
             processed_dict = self.load_json_with_rules(active_pif, self.advanced_props_support)
-            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support)
+            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api)
             self.console_stc.SetValue(donor_json_string)
 
         except Exception:
@@ -1117,7 +1219,7 @@ class PifManager(wx.Dialog):
                     data = json5.load(f)
                 json_string = json.dumps(data, indent=4)
                 processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
-                reprocessed_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support)
+                reprocessed_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api)
                 if count == 1:
                     self.console_stc.SetValue(reprocessed_json_string)
                 else:

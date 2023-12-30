@@ -323,7 +323,7 @@ If you need support or assistance, please **generate and provide a support file*
 You can hit that big Support button on the main screen, or select it from the Help menu.
 The generated support.zip file is sanitized (redacted) to keep your sensitive information (username device id ...) private.
 
-- If your anti-virus program is telling you that PixelFlasher is a malware, or you are concerned in any way, please check [this post](https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/post-89090938).
+- If your anti-virus program is telling you that PixelFlasher is a malware, or you are concerned in any way, please check [this post](https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/post-89090938) about false positives.
 
 ## Disclaimer
 

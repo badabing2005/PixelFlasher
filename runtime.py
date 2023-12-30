@@ -2073,7 +2073,7 @@ def get_first_match(dictionary, keys):
 # ============================================================================
 #                               Function process_dict
 # ============================================================================
-def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
+def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set_first_api=None):
     try:
         autofill = False
         if add_missing_keys:
@@ -2157,12 +2157,15 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
             ro_build_version_security_patch = get_first_match(device_dict, keys)
 
         # FIRST_API_LEVEL
-        keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
-        ro_product_first_api_level = get_first_match(dict, keys)
-        if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
-            ro_product_first_api_level = '32'
-        if autofill and ro_product_first_api_level == '':
-            ro_product_first_api_level = get_first_match(device_dict, keys)
+        if set_first_api:
+            ro_product_first_api_level = set_first_api
+        else:
+            keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
+            ro_product_first_api_level = get_first_match(dict, keys)
+            if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
+                ro_product_first_api_level = '32'
+            if autofill and ro_product_first_api_level == '':
+                ro_product_first_api_level = get_first_match(device_dict, keys)
 
         # BUILD_ID
         keys = ['ro.build.id']

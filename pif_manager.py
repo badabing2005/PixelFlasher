@@ -82,6 +82,11 @@ class PifManager(wx.Dialog):
         self.console_label.SetToolTip(u"Console Output:\nIt could be the json output of processed prop\or it could be the Play Integrity Check result.\n\nThis is not what currently is on the device.")
         font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.console_label.SetFont(font)
+        # Smart Paste Up
+        self.smart_paste_up = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.smart_paste_up.SetBitmap(images.smart_paste_up_24.GetBitmap())
+        self.smart_paste_up.SetToolTip(u"Smart Paste:\nSets First API to 25 if it is missing.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif.")
+        self.smart_paste_up.Enable(False)
         # Paste Up
         self.paste_up = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.paste_up.SetBitmap(images.paste_up_24.GetBitmap())
@@ -228,6 +233,8 @@ class PifManager(wx.Dialog):
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.console_label, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.smart_paste_up, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.paste_up, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.paste_down, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -284,6 +291,7 @@ class PifManager(wx.Dialog):
         self.pi_option.Bind(wx.EVT_RADIOBOX, self.TestSelection)
         self.Bind(wx.EVT_SIZE, self.onResize)
         self.Bind(wx.EVT_SHOW, self.onShow)
+        self.smart_paste_up.Bind(wx.EVT_BUTTON, self.SmartPasteUp)
         self.paste_up.Bind(wx.EVT_BUTTON, self.PasteUp)
         self.paste_down.Bind(wx.EVT_BUTTON, self.PasteDown)
         self.reprocess.Bind(wx.EVT_BUTTON, self.ReProcess)
@@ -942,7 +950,7 @@ class PifManager(wx.Dialog):
             self.console_stc.SetValue(donor_json_string)
             # print(donor_json_string)
 
-            # Auto Push pif.json
+            # Auto Update pif.json
             if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 self.active_pif_stc.SetValue(self.console_stc.GetValue())
                 self.UpdatePifJson(None)
@@ -967,14 +975,18 @@ class PifManager(wx.Dialog):
             if json_data:
                 try:
                     json.loads(json_data)
+                    self.smart_paste_up.Enable(True)
                     self.paste_up.Enable(True)
                 except Exception:
                     try:
                         json5.loads(json_data)
+                        self.smart_paste_up.Enable(True)
                         self.paste_up.Enable(True)
                     except Exception:
+                        self.smart_paste_up.Enable(False)
                         self.paste_up.Enable(False)
             else:
+                self.smart_paste_up.Enable(False)
                 self.paste_up.Enable(False)
 
         except Exception:
@@ -1067,6 +1079,40 @@ class PifManager(wx.Dialog):
 
         except Exception:
             traceback.print_exc()
+
+    # -----------------------------------------------
+    #                  SmartPasteUp
+    # -----------------------------------------------
+    def SmartPasteUp(self, event):
+        try:
+            print("Smart pasting up the console content ...")
+            self._on_spin('start')
+            json_string = self.console_stc.GetValue()
+            json_dict = json5.loads(json_string)
+            keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
+            first_api = get_first_match(json_dict, keys)
+            json_string = json.dumps(json_dict, indent=4)
+            processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
+            if first_api == '':
+                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api_value)
+            else:
+                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, None)
+            self.active_pif_stc.SetValue(donor_json_string)
+
+            # Auto Update pif.json
+            if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
+                self.UpdatePifJson(None)
+
+                # Auto test Play Integrity
+                if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
+                    print("Auto Testing Play Integrity ...")
+                    self.PlayIntegrityCheck(None)
+
+        except Exception:
+            traceback.print_exc()
+        self._on_spin('stop')
+        if event:
+            event.Skip()
 
     # -----------------------------------------------
     #                  PasteUp
@@ -1179,7 +1225,6 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def ReProcess(self, event):
         try:
-            self._on_spin('start')
             print("Reprocessing Active Pif content ...")
             self._on_spin('start')
             active_pif = self.active_pif_stc.GetValue()

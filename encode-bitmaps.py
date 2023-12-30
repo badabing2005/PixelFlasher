@@ -49,6 +49,7 @@ command_lines = [
     "-a -F -i -n partition-64 images/partition-64.png images.py",
     "-a -F -i -n paste-24 images/paste-24.png images.py",
     "-a -F -i -n paste-up-24 images/paste-up-24.png images.py",
+    "-a -F -i -n smart-paste-up-24 images/smart-paste-up-24.png images.py",
     "-a -F -i -n paste-down-24 images/paste-down-24.png images.py",
     "-a -F -i -n patch-24 images/patch-24.png images.py",
     "-a -F -i -n patched-16 images/patched-16.png images.py",

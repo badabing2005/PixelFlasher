@@ -2075,6 +2075,15 @@ def get_first_match(dictionary, keys):
 # ============================================================================
 def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
     try:
+        autofill = False
+        if add_missing_keys:
+            device = get_phone()
+            if device:
+                device_dict = device.props.property
+                autofill = True
+            else:
+                print("ERROR: Device is unavilable to add missing fields from device.")
+
         # FINGERPRINT
         fp_ro_product_brand = ''
         fp_ro_product_name = ''
@@ -2086,6 +2095,8 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         fp_ro_build_tags = ''
         keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
         ro_build_fingerprint = get_first_match(dict, keys)
+        if autofill and ro_build_fingerprint == '':
+            ro_build_fingerprint = get_first_match(device_dict, keys)
         if ro_build_fingerprint:
             # Let's extract props from fingerprint in case we need them
             pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
@@ -2100,20 +2111,14 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
                 fp_ro_build_type = match[7]
                 fp_ro_build_tags = match[8]
 
-        autofill = False
-        if add_missing_keys:
-            device = get_phone()
-            if device:
-                autofill = True
-            else:
-                print("ERROR: Device is unavilable to add missing fields from device.")
-
         # PRODUCT
         keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name', 'ro.vendor.product.name']
         ro_product_name = get_first_match(dict, keys)
         if (ro_product_name is None or ro_product_name == '') and fp_ro_product_name != '':
             debug(f"Properties for PRODUCT are not found, using value from FINGERPRINT: {fp_ro_product_name}")
             ro_product_name = fp_ro_product_name
+        if autofill and ro_product_name == '':
+            ro_product_name = get_first_match(device_dict, keys)
 
         # DEVICE (ro.build.product os fallback, keep it last)
         keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.vendor.product.device', 'ro.build.product']
@@ -2121,12 +2126,14 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         if (ro_product_device is None or ro_product_device == '') and fp_ro_product_device != '':
             debug(f"Properties for DEVICE are not found, using value from FINGERPRINT: {fp_ro_product_device}")
             ro_product_device = fp_ro_product_device
+        if autofill and ro_product_device == '':
+            ro_product_device = get_first_match(device_dict, keys)
 
         # MANUFACTURER
         keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer', 'ro.vendor.product.manufacturer']
         ro_product_manufacturer = get_first_match(dict, keys)
         if autofill and ro_product_manufacturer == '':
-            ro_product_manufacturer = device.get_prop('ro.product.manufacturer')
+            ro_product_manufacturer = get_first_match(device_dict, keys)
 
         # BRAND
         keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand', 'ro.vendor.product.brand']
@@ -2134,20 +2141,28 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         if (ro_product_brand is None or ro_product_brand == '') and fp_ro_product_brand != '':
             debug(f"Properties for BRAND are not found, using value from FINGERPRINT: {fp_ro_product_brand}")
             ro_product_brand = fp_ro_product_brand
+        if autofill and ro_product_brand == '':
+            ro_product_brand = get_first_match(device_dict, keys)
 
         # MODEL
         keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
         ro_product_model = get_first_match(dict, keys)
+        if autofill and ro_product_model == '':
+            ro_product_model = get_first_match(device_dict, keys)
 
         # SECURITY_PATCH
         keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
         ro_build_version_security_patch = get_first_match(dict, keys)
+        if autofill and ro_build_version_security_patch == '':
+            ro_build_version_security_patch = get_first_match(device_dict, keys)
 
         # FIRST_API_LEVEL
         keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
         ro_product_first_api_level = get_first_match(dict, keys)
         if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
             ro_product_first_api_level = '32'
+        if autofill and ro_product_first_api_level == '':
+            ro_product_first_api_level = get_first_match(device_dict, keys)
 
         # BUILD_ID
         keys = ['ro.build.id']
@@ -2155,6 +2170,8 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         if (ro_build_id is None or ro_build_id == '') and fp_ro_build_id != '':
             debug(f"Properties for ID are not found, using value from FINGERPRINT: {fp_ro_build_id}")
             ro_build_id = fp_ro_build_id
+        if autofill and ro_build_id == '':
+            ro_build_id = get_first_match(device_dict, keys)
 
         # RELEASE
         keys = ['ro.build.version.release']
@@ -2162,6 +2179,8 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         if (ro_build_version_release is None or ro_build_version_release == '') and fp_ro_build_version_release != '':
             debug(f"Properties for RELEASE are not found, using value from FINGERPRINT: {fp_ro_build_version_release}")
             ro_build_version_release = fp_ro_build_version_release
+        if autofill and ro_build_version_release == '':
+            ro_build_version_release = get_first_match(device_dict, keys)
 
         # INCREMENTAL
         keys = ['ro.build.version.incremental']
@@ -2169,6 +2188,8 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         if (ro_build_version_incremental is None or ro_build_version_incremental == '') and fp_ro_build_version_incremental != '':
             debug(f"Properties for INCREMENTAL are not found, using value from FINGERPRINT: {fp_ro_build_version_incremental}")
             ro_build_version_incremental = fp_ro_build_version_incremental
+        if autofill and ro_build_version_incremental == '':
+            ro_build_version_incremental = get_first_match(device_dict, keys)
 
         # TYPE
         keys = ['ro.build.type']
@@ -2176,6 +2197,8 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         if (ro_build_type is None or ro_build_type == '') and fp_ro_build_type != '':
             debug(f"Properties for TYPE are not found, using value from FINGERPRINT: {fp_ro_build_type}")
             ro_build_type = fp_ro_build_type
+        if autofill and ro_build_type == '':
+            ro_build_type = get_first_match(device_dict, keys)
 
         # TAGS
         keys = ['ro.build.tags']
@@ -2183,10 +2206,14 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         if (ro_build_tags is None or ro_build_tags == '') and fp_ro_build_tags != '':
             debug(f"Properties for TAGS are not found, using value from FINGERPRINT: {fp_ro_build_tags}")
             ro_build_tags = fp_ro_build_tags
+        if autofill and ro_build_tags == '':
+            ro_build_tags = get_first_match(device_dict, keys)
 
         # VNDK_VERSION
         keys = ['ro.vndk.version', 'ro.product.vndk.version']
         ro_vndk_version = get_first_match(dict, keys)
+        if autofill and ro_vndk_version == '':
+            ro_vndk_version = get_first_match(device_dict, keys)
 
         # Get any missing FINGERPRINT fields
         ffp_ro_product_brand = fp_ro_product_brand if fp_ro_product_brand != '' else ro_product_brand
@@ -2224,7 +2251,9 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False):
         else:
             donor_data["FIRST_API_LEVEL"] = ro_product_first_api_level
             donor_data["BUILD_ID"] = ro_build_id
+            donor_data["ID"] = ro_build_id
             donor_data["VNDK_VERSION"] = ro_vndk_version
+            donor_data["FORCE_BASIC_ATTESTATION"] = "true"
 
         # Discard keys with empty values if the flag is set
         if advanced_props_support:

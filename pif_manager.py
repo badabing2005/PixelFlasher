@@ -27,7 +27,8 @@ class PifManager(wx.Dialog):
         self.pif_json_path = PIF_JSON_PATH
         self.device_pif = ''
         self.pi_app = 'gr.nikolasspyr.integritycheck'
-        self.launch_method = 'launch-am'
+        # self.launch_method = 'launch-am'
+        self.launch_method = 'launch'
         self.coords = Coords()
         self.enable_buttons = False
         self.pif_exists = False
@@ -175,10 +176,13 @@ class PifManager(wx.Dialog):
                 self.auto_check_pi_checkbox.SetValue(self.config.pif['auto_check_play_integrity'])
 
         # option button PI Selectedion
-        self.pi_option = wx.RadioBox(self, choices=["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store", "YASNAC"], style=wx.RA_VERTICAL)
+        choices = ["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store", "YASNAC"]
+        self.pi_option = wx.RadioBox(self, choices=choices, style=wx.RA_VERTICAL)
         if self.config.pif:
             with contextlib.suppress(KeyError):
-                self.pi_option.SetSelection(self.config.pif['test_app_index'])
+                selected_index = self.config.pif['test_app_index']
+                self.pi_option.SetSelection(selected_index)
+                self.pi_selection(choices[selected_index])
 
         # Disable UIAutomator
         self.disable_uiautomator_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Disable UIAutomator", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -412,35 +416,43 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def TestSelection(self, event):
         option = event.GetString()
+        self.pi_selection(option)
 
-        if option == "Play Integrity API Checker":
+    # -----------------------------------------------
+    #                  pi_selection
+    # -----------------------------------------------
+    def pi_selection(self, selected_option):
+        if selected_option == "Play Integrity API Checker":
             print("Play Integrity API Checker option selected")
             self.pi_app = 'gr.nikolasspyr.integritycheck'
-            self.launch_method = 'launch-am'
+            # self.launch_method = 'launch-am'
+            self.launch_method = 'launch'
 
-        elif option == "Simple Play Integrity Checker":
+        elif selected_option == "Simple Play Integrity Checker":
             print("Simple Play Integrity Checker option selected")
             self.pi_app = 'com.henrikherzig.playintegritychecker'
-            self.launch_method = 'launch-am'
+            # self.launch_method = 'launch-am'
+            self.launch_method = 'launch'
 
-        elif option == "TB Checker":
+        elif selected_option == "TB Checker":
             print("TB Checker option selected")
             self.pi_app = 'krypton.tbsafetychecker'
-            self.launch_method = 'launch-am-main'
+            # self.launch_method = 'launch-am-main'
+            self.launch_method = 'launch'
 
-        elif option == "Play Store":
+        elif selected_option == "Play Store":
             print("Play Store option selected")
             self.pi_app = 'com.android.vending'
             self.launch_method = 'launch'
 
-        elif option == "YASNAC":
+        elif selected_option == "YASNAC":
             print("YASNAC option selected")
             self.pi_app = 'rikka.safetynetchecker'
-            self.launch_method = 'launch-am-main'
+            # self.launch_method = 'launch-am-main'
+            self.launch_method = 'launch'
 
-        print(f"Auto Update pif.json is set to: {option}")
+        print(f"Auto Update pif.json is set to: {selected_option}")
         self.config.pif['test_app_index'] = self.pi_option.Selection
-
 
     # -----------------------------------------------
     #                  __del__

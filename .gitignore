@@ -144,4 +144,5 @@ images/*.psd
 .DS_Store
 /.sourcery.yaml
 .local/
+desktop.ini
 

@@ -2715,6 +2715,8 @@ def get_freeman_pif(abi_list=None):
         shutil.rmtree(temp_dir)
 
     if abi_list:
+        if abi_list == "arm64-v8a":
+            abi_list = "arm64-v8a,armeabi-v7a,armeabi"
         print(f"Will use profile/fingerprint with ABI list '{abi_list}'")
         file_list = [os.path.join(root, file) for root, dirs, files in os.walk(f"{freeman_dir_full}/{abi_list}") for file in files]
     else:

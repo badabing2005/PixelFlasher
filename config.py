@@ -75,6 +75,8 @@ class Config():
         self.check_for_disk_space = True
         self.check_for_bootloader_unlocked = True
         self.check_for_firmware_hash_validity = True
+        self.google_images_update_frequency = 1
+        self.google_images_last_checked = None
 
         self.toolbar = {
             'tb_position': 'top',
@@ -246,6 +248,11 @@ class Config():
                     conf.check_for_bootloader_unlocked = data['check_for_bootloader_unlocked']
                 with contextlib.suppress(KeyError):
                     conf.check_for_firmware_hash_validity = data['check_for_firmware_hash_validity']
+                with contextlib.suppress(KeyError):
+                    conf.google_images_update_frequency = data['google_images_update_frequency']
+                with contextlib.suppress(KeyError):
+                    conf.google_images_last_checked = data['google_images_last_checked']
+
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
                     toolbar_data = data['toolbar']
@@ -410,6 +417,8 @@ class Config():
             'check_for_disk_space': self.check_for_disk_space,
             'check_for_bootloader_unlocked': self.check_for_bootloader_unlocked,
             'check_for_firmware_hash_validity': self.check_for_firmware_hash_validity,
+            'google_images_update_frequency': self.google_images_update_frequency,
+            'google_images_last_checked': self.google_images_last_checked,
             'toolbar': self.toolbar,  # Save the toolbar settings as well
             'pif': self.pif,  # Save the pif settings as well
             'scrcpy': self.scrcpy  # Save the scrcpy settings as well

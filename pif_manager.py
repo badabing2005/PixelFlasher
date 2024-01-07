@@ -289,6 +289,7 @@ class PifManager(wx.Dialog):
         self.create_pif_button.Bind(wx.EVT_BUTTON, self.CreatePifJson)
         self.reload_pif_button.Bind(wx.EVT_BUTTON, self.LoadReload)
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
+        # self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildPropFolder)
         self.pi_checker_button.Bind(wx.EVT_BUTTON, self.PlayIntegrityCheck)
         self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.XiaomiPif)
         self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.FreemanPif)
@@ -974,6 +975,66 @@ class PifManager(wx.Dialog):
 
         except Exception:
             print(f"Cannot process file: '{pathname}'.")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  ProcessBuildPropFolder
+    # -----------------------------------------------
+    def ProcessBuildPropFolder(self, e):
+        # sourcery skip: dict-assign-update-to-union
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.props Folder")
+
+        with wx.DirDialog(self, "Select folder to bulk process props files", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+            if folderDialog.ShowModal() == wx.ID_CANCEL:
+                print("User cancelled folder selection.")
+                return
+            selected_folder = folderDialog.GetPath()
+
+        try:
+            self._on_spin('start')
+            prop_files = [file for file in os.listdir(selected_folder) if file.endswith(".prop")]
+            for prop in prop_files:
+                prop_path = os.path.join(selected_folder, prop)
+                processed_dict = {}
+                with open(prop_path, 'r', encoding='ISO-8859-1', errors="replace") as f:
+                    content = f.readlines()
+
+                contentList = [x.strip().split('#')[0].split('=', 1) for x in content if '=' in x.split('#')[0]]
+                contentDict = dict(contentList)
+
+                # Update processed_dict with entries from the current file
+                # In place Union operator below fails on Windows 2019 build, so use the update method instead.
+                # processed_dict |= contentDict
+                processed_dict.update(contentDict)
+
+                # Apply the substitution to the values in processed_dict
+                for k, v in contentDict.items():
+                    for x in v.split('$')[1:]:
+                        key = re.findall(r'\w+', x)[0]
+                        v = v.replace(f'${key}', processed_dict[key])
+                    processed_dict[k] = v.strip()
+
+                json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api)
+
+                # not needed if we don't want to auto-fill first api
+                json_dict = json5.loads(json_string)
+                keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
+                first_api = get_first_match(json_dict, keys)
+                json_string = json.dumps(json_dict, indent=4)
+                processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
+                if first_api == '':
+                    donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api_value)
+                else:
+                    donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, None)
+
+                # save json file
+                json_path = os.path.splitext(prop_path)[0] + ".json"
+                with open(json_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+                    f.write(donor_json_string)
+
+        except Exception:
+            print(f"Cannot process file: '{selected_folder}'.")
             traceback.print_exc()
         self._on_spin('stop')
 

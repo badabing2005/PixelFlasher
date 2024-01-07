@@ -417,6 +417,17 @@ class Device():
     #                               property api_level
     # ----------------------------------------------------------------------------
     @property
+    def firmware_date(self):
+        if self.build:
+            build_date_match = re.search(r'\b(\d{6})\b', self.build.lower())
+            if build_date_match:
+                build_date = build_date_match[1]
+                return int(build_date)
+
+    # ----------------------------------------------------------------------------
+    #                               property api_level
+    # ----------------------------------------------------------------------------
+    @property
     def api_level(self):
         return self.get_prop('ro.build.version.sdk')
 
@@ -485,12 +496,17 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_path(self):
-        if self.mode == 'adb' and get_magisk_package():
-            res = self.get_package_path(get_magisk_package(), True)
-            if res != -1:
-                return res
-            self._rooted = None
-            return None
+        try:
+            if self.mode == 'adb' and get_magisk_package():
+                res = self.get_package_path(get_magisk_package(), True)
+                if res != -1:
+                    return res
+                self._rooted = None
+                return None
+        except Exception:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk path")
+            traceback.print_exc()
+        return None
 
     # ----------------------------------------------------------------------------
     #                               property magisk_version
@@ -609,11 +625,11 @@ class Device():
         if not self.rooted:
             return -1
 
-        res = self.push_avbctl()
-        if res != 0:
-            return -1
-
         try:
+            res = self.push_avbctl()
+            if res != 0:
+                return -1
+
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/avbctl get-{item}\'\""
             print(f"Checking {item} status: ...")
             res = run_shell(theCmd)
@@ -627,6 +643,38 @@ class Device():
             traceback.print_exc()
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get {item} status.")
             puml(f"#red:ERROR: Could not get {item} status.;\n", True)
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               method reset_ota_update
+    # ----------------------------------------------------------------------------
+    def reset_ota_update(self):
+        if self.mode != 'adb':
+            return -1
+        if not self.rooted:
+            return -1
+
+        try:
+            res = self.push_update_engine_client()
+            if res != 0:
+                return -1
+
+            print("Cancelling onging OTA update (if one is in progress, ignore errors) ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --cancel\'\""
+            res = run_shell2(theCmd)
+            print("Resetting an already applied update (if one exists) ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --reset_status\'\""
+            res = run_shell2(theCmd)
+            if res.returncode == 0:
+                return res.stdout
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}")
+            print(f"Stderr: {res.stderr}")
+            return -1
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an exception if reset_ota_update function.")
+            puml(f"#red:ERROR: Encountered an exception if reset_ota_update function.;\n", True)
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1642,6 +1690,32 @@ add_hosts_module
             traceback.print_exc()
 
     # ----------------------------------------------------------------------------
+    #                               Method push_update_engine_client
+    # ----------------------------------------------------------------------------
+    def push_update_engine_client(self, file_path = "/data/local/tmp/update_engine_client") -> int:
+        try:
+            # Transfer extraction script to the phone
+            if self.architecture in ['armeabi-v7a', 'arm64-v8a']:
+                path_to_update_engine_client = os.path.join(get_bundle_dir(),'bin', 'update_engine_client')
+                res = self.push_file(f"{path_to_update_engine_client}", f"{file_path}")
+                if res != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                    return -1
+                # set the permissions.
+                res = self.set_file_permissions(f"{file_path}", "755")
+                if res != 0:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+                    return -1
+                return 0
+            else:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: update_engine_client is not available for device architecture: {self.architecture}")
+                return -1
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing update_engine_client")
+            puml("#red:Encountered an error while pushing update_engine_client;\n")
+            traceback.print_exc()
+
+    # ----------------------------------------------------------------------------
     #                               Method get_package_path
     # ----------------------------------------------------------------------------
     def get_package_path(self, pkg: str, check_details = True) -> str:
@@ -1895,9 +1969,13 @@ add_hosts_module
     #                               Method stop_magisk
     # ----------------------------------------------------------------------------
     def stop_magisk(self):
-        print("Stopping Magisk ...")
-        with contextlib.suppress(Exception):
-            self.perform_package_action(get_magisk_package(), 'kill')
+        try:
+            print("Stopping Magisk ...")
+            with contextlib.suppress(Exception):
+                self.perform_package_action(get_magisk_package(), 'kill')
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during stop_magisk")
+            traceback.print_exc()
 
     # ----------------------------------------------------------------------------
     #                               method get_magisk_detailed_modules

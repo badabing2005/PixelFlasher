@@ -8,6 +8,7 @@ import hashlib
 import io
 import json
 import json5
+import math
 import ntpath
 import os
 import re
@@ -29,8 +30,8 @@ from datetime import datetime
 from os import path
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
-from urllib.request import urlopen
-
+import urllib.request
+from bs4 import BeautifulSoup
 
 import lz4.frame
 import requests
@@ -407,10 +408,10 @@ def get_boot_images_dir():
 # ============================================================================
 def get_factory_images_dir():
     # factory_images only changed after version 5
-    if parse(VERSION) < parse('7.0.0'):
+    if parse(VERSION) < parse('9.0.0'):
         return 'factory_images'
     else:
-        return 'factory_images7'
+        return 'factory_images9'
 
 
 # ============================================================================
@@ -420,10 +421,10 @@ def get_pf_db():
     # we have different db schemas for each of these versions
     if parse(VERSION) < parse('4.0.0'):
         return 'PixelFlasher.db'
-    elif parse(VERSION) < parse('7.0.0'):
+    elif parse(VERSION) < parse('9.0.0'):
         return 'PixelFlasher4.db'
     else:
-        return 'PixelFlasher7.db'
+        return 'PixelFlasher9.db'
 
 
 # ============================================================================
@@ -2033,28 +2034,182 @@ def get_printable_memory():
 
 
 # ============================================================================
+#                               Function device_has_update
+# ============================================================================
+def device_has_update(data, device_id, target_date):
+    if not data:
+        return False
+    if device_id in data:
+        device_data = data[device_id]
+
+        for download_type in ['ota', 'factory']:
+            for download_entry in device_data[download_type]:
+                download_date = download_entry['date']
+                # Compare the download date with the target date
+                if download_date > target_date:
+                    return True
+    return False
+
+
+# ============================================================================
+#                               Function get_google_images
+# ============================================================================
+def get_google_images(save_to=None):
+    COOKIE = {'Cookie': 'devsite_wall_acks=nexus-ota-tos,nexus-image-tos,watch-image-tos,watch-ota-tos'}
+    data = {}
+
+    if save_to is None:
+        save_to = os.path.join(get_config_path(), "google_images.json").strip()
+
+    for image_type in ['ota', 'factory', 'ota-watch', 'factory-watch']:
+        if image_type == 'ota':
+            url = "https://developers.google.com/android/ota"
+            download_type = "ota"
+            device_type = "phone"
+        elif image_type == 'factory':
+            url = "https://developers.google.com/android/images"
+            download_type = "factory"
+            device_type = "phone"
+        elif image_type == 'ota-watch':
+            url = "https://developers.google.com/android/ota-watch"
+            download_type = "ota"
+            device_type = "watch"
+        elif image_type == 'factory-watch':
+            url = "https://developers.google.com/android/images-watch"
+            download_type = "factory"
+            device_type = "watch"
+
+        html = urllib.request.urlopen(urllib.request.Request(url, headers=COOKIE)).read()
+        soup = BeautifulSoup(html, 'html.parser')
+        marlin_flag = False
+
+        # Find all the <h2> elements containing device names
+        device_elements = soup.find_all('h2')
+
+        # Iterate through the device elements
+        for device_element in device_elements:
+            # Check if the text of the <h2> element should be skipped
+            if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions"]:
+                continue
+
+            # Extract the device name from the 'id' attribute
+            device_id = device_element.get('id')
+
+            # Extract the device label from the text and strip "id"
+            device_label = device_element.get('data-text').strip('"').split('" for ')[1]
+
+            # Initialize a dictionary to store the device's downloads for both OTA and Factory
+            downloads_dict = {'ota': [], 'factory': []}
+
+            # Find the <table> element following the <h2> for each device
+            table = device_element.find_next('table')
+
+            # Find all <tr> elements in the table
+            rows = table.find_all('tr')
+
+            # For factory images, the table format changes from Marlin onwards
+            if device_id == 'marlin':
+                marlin_flag = True
+
+            for row in rows:
+                # Extract the fields from each <tr> element
+                columns = row.find_all('td')
+                version = columns[0].text.strip()
+
+                # Different extraction is necessary per type
+                if image_type in ['ota', 'ota-watch'] or (marlin_flag and image_type == "factory"):
+                    sha256_checksum = columns[2].text.strip()
+                    download_url = columns[1].find('a')['href']
+                elif image_type in ['factory', 'factory-watch']:
+                    download_url = columns[2].find('a')['href']
+                    sha256_checksum = columns[3].text.strip()
+
+                date_match = re.search(r'\b(\d{6})\b', version)
+                date = None
+                if date_match:
+                    date = date_match[1]
+                else:
+                    date = extract_date_from_google_version(version)
+
+                # Create a dictionary for each download
+                download_info = {
+                    'version': version,
+                    'url': download_url,
+                    'sha256': sha256_checksum,
+                    'date': date
+                }
+
+                # Check if the download entry already exists, and only add it if it's a new entry
+                if download_info not in downloads_dict[download_type]:
+                    downloads_dict[download_type].append(download_info)
+
+            # Add the device name (using 'device_id') and device label (using 'device_label') to the data dictionary
+            if device_id not in data:
+                data[device_id] = {
+                    'label': device_label,
+                    'type': device_type,
+                    'ota': [],
+                    'factory': []
+                }
+
+            # Append the downloads to the corresponding list based on download_type
+            data[device_id]['ota'].extend(downloads_dict['ota'])
+            data[device_id]['factory'].extend(downloads_dict['factory'])
+
+    # Convert to JSON
+    json_data = json.dumps(data, indent=2)
+
+    # Save
+    with open(save_to, 'w', encoding='utf-8') as json_file:
+        json_file.write(json_data)
+
+
+# ============================================================================
+#                         extract_date_from_google_version
+# ============================================================================
+def extract_date_from_google_version(version_string):
+    # pattern to find a 3-letter month followed by a year
+    pattern = re.compile(r'(\b[A-Za-z]{3}\s\d{4}\b)')
+    match = pattern.search(version_string)
+
+    if match:
+        date_str = match.group()
+        date_obj = datetime.strptime(date_str, '%b %Y')
+        # convert to yymm01
+        return date_obj.strftime('%y%m01')
+    return None
+
+
+# ============================================================================
 #                               Function download_file
 # ============================================================================
-def download_file(url, filename = None):
-    if url:
-        print (f"Downloading File: {url}")
-        try:
-            response = requests.get(url)
-            config_path = get_config_path()
-            if not filename:
-                filename = os.path.basename(urlparse(url).path)
-            downloaded_file_path = os.path.join(config_path, 'tmp', filename)
-            open(downloaded_file_path, "wb").write(response.content)
-            # check if filename got downloaded
-            if not os.path.exists(downloaded_file_path):
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
-                print("Aborting ...\n")
-                return 'ERROR'
-        except Exception:
-            print (f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
-            traceback.print_exc()
+def download_file(url, filename=None, callback=None):
+    if not url:
+        return
+    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Downloading: {url} ...")
+    start = time.time()
+    try:
+        response = requests.get(url)
+        config_path = get_config_path()
+        if not filename:
+            filename = os.path.basename(urlparse(url).path)
+        downloaded_file_path = os.path.join(config_path, 'tmp', filename)
+        open(downloaded_file_path, "wb").write(response.content)
+        # check if filename got downloaded
+        if not os.path.exists(downloaded_file_path):
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
+            print("Aborting ...\n")
             return 'ERROR'
-    return downloaded_file_path
+        end = time.time()
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Download: {filename} completed! in {math.ceil(end - start)} seconds")
+        # Call the callback function if provided
+        if callback:
+            callback()
+        return downloaded_file_path
+    except Exception:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
+        traceback.print_exc()
+        return 'ERROR'
 
 
 # ============================================================================
@@ -2675,7 +2830,7 @@ def get_xiaomi_pif():  # sourcery skip: move-assign
 
 
 # ============================================================================
-#                               Function run_shell
+#                               Function get_freeman_pif
 # ============================================================================
 def get_freeman_pif(abi_list=None):
     print("\n===== PIFS Random Profile/Fingerprint Picker =====\nCopyright (C) MIT License 2023 Nicholas Bissell (TheFreeman193)")
@@ -2692,7 +2847,7 @@ def get_freeman_pif(abi_list=None):
             try:
                 # Try making the request with SSL certificate verification
                 download_file(FREEMANURL, zip_file)
-                # with urlopen(d_url) as response, open(zip_file, 'wb') as out_file:
+                # with urllib.request.urlopen(d_url) as response, open(zip_file, 'wb') as out_file:
                 #     shutil.copyfileobj(response, out_file)
             except ssl.SSLCertVerificationError:
                 # Retry with SSL certificate verification disabled
@@ -2702,7 +2857,7 @@ def get_freeman_pif(abi_list=None):
                 ssl_context = ssl.create_default_context()
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
-                with urlopen(d_url, context=ssl_context) as response, open(zip_file, 'wb') as out_file:
+                with urllib.request.urlopen(d_url, context=ssl_context) as response, open(zip_file, 'wb') as out_file:
                     shutil.copyfileobj(response, out_file)
 
         temp_dir = tempfile.mkdtemp()

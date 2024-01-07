@@ -13,4 +13,5 @@ bsdiff4>=1.1.5
 lz4>=4.3.2
 psutil>=5.9.5
 json5>=0.9.14
+bs4>=0.0.1
 wxPython>=4.2.0

@@ -1914,8 +1914,7 @@ def patch_boot_img(self, custom_patch = False):
     print(f"  Magisk Version:         {m_version}")
     puml(f"note right\nMagisk Manager Version: {m_app_version}\nMagisk Version:         {m_version}\nend note\n")
 
-    # Temporary workaround for rooted Magisk Delta, don't ever recommend it.
-    if is_rooted and self.config.magisk != 'io.github.huskydg.magisk':
+    if is_rooted:
         method = 1  # rooted
         # disable app method if app is not found or is hidden.
         if not magisk_app_version or ( self.config.magisk not in ['', 'com.topjohnwu.magisk', 'io.github.vvb2060.magisk', 'io.github.huskydg.magisk'] ):
@@ -2026,8 +2025,8 @@ Depending on the state of your phone (root, Magisk versions, Magisk hidden ...)
 PixelFlasher will offer available choices and recommend the best method to utilize for patching.
 Unless you know what you're doing, it is recommended that you take the default suggested selection.
 '''
-        message += f"<pre>Core Magisk Version:          {m_version}\n"
-        message += f"Magisk Application Version:   {m_app_version}\n"
+        message += f"<pre>Core Magisk Version:          {magisk_version}\n"
+        message += f"Magisk Application Version:   {magisk_app_version}\n"
         message += f"Recommended Patch method:     Method {method}</pre>\n"
         clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
         print(f"\n*** Dialog ***\n{clean_message}\n______________\n")

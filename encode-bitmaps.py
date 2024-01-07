@@ -43,6 +43,7 @@ command_lines = [
     "-a -F -i -n official-16 images/official-16.png images.py",
     "-a -F -i -n official-24 images/official-24.png images.py",
     "-a -F -i -n open-link-24 images/open-link-24.png images.py",
+    "-a -F -i -n open-link-red-24 images/open-link-red-24.png images.py",
     "-a -F -i -n packages-24 images/packages-24.png images.py",
     "-a -F -i -n packages-64 images/packages-64.png images.py",
     "-a -F -i -n partition-24 images/partition-24.png images.py",
@@ -121,6 +122,10 @@ command_lines = [
     "-a -F -i -n heart-red-24 images/heart-red-24.png images.py",
     "-a -F -i -n heart-gray-24 images/heart-gray-24.png images.py",
     "-a -F -i -n import-24 images/import-24.png images.py",
+    "-a -F -i -n cancel-ota-24 images/cancel-ota-24.png images.py",
+    "-a -F -i -n factory-24 images/factory-24.png images.py",
+    "-a -F -i -n cloud-24 images/cloud-24.png images.py",
+    "-a -F -i -n star-green-24 images/star-green-24.png images.py",
 ]
 
 if __name__ == "__main__":

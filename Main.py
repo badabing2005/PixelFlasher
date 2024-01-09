@@ -119,14 +119,29 @@ class DropDownButton(wx.BitmapButton):
 #                               Class GoogleImagesBaseMenu
 # ============================================================================
 class GoogleImagesBaseMenu(wx.Menu):
+    BASE_MENU_ID_START = 10000
+
     def __init__(self, parent):
         super(GoogleImagesBaseMenu, self).__init__()
 
         self.parent = parent
         self.load_data()
+        self.current_menu_id = self.BASE_MENU_ID_START
+
+    def generate_unique_id(self):
+        unique_id = self.current_menu_id
+        self.current_menu_id += 1
+        return unique_id
 
     def bind_download_event(self, menu, url):
-        self.parent.Bind(wx.EVT_MENU, lambda event, u=url: self.on_download(u, event), id=menu.GetId())
+        unique_id = self.generate_unique_id()
+        # next line is for debugging
+        # menu.SetItemLabel(f"{menu.GetItemLabel()} ({unique_id})")
+        def on_download_handler(event):
+            self.on_download(url, event, unique_id)
+
+        menu_id = menu.GetId()
+        self.parent.Bind(wx.EVT_MENU, on_download_handler, id=menu_id)
 
     def load_data(self):
         json_file_path = os.path.join(get_config_path(), "google_images.json").strip()
@@ -152,7 +167,8 @@ class GoogleImagesBaseMenu(wx.Menu):
         update_threshold = current_time - (update_frequency * 24 * 60 * 60)
         return last_checked < update_threshold
 
-    def on_download(self, url, event=None):
+    def on_download(self, url, event=None, unique_id=any):
+        # debug(f"Download triggered for URL: {url}, Menu ID: {unique_id}")
         def download_completed():
             self.parent.toast("Download Successful", f"File downloaded successfully: {url}")
 
@@ -1125,25 +1141,25 @@ class PixelFlasher(wx.Frame):
         # Toolbar Menu Items
         # ------------------
         # Top
-        tb_top_item = tb_menu.Append(1010, 'Top', 'Top', wx.ITEM_RADIO)
+        tb_top_item = tb_menu.Append(21010, 'Top', 'Top', wx.ITEM_RADIO)
         tb_top_item.SetBitmap(images.top_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'top':
             tb_top_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_top_item)
         # Left
-        tb_left_item = tb_menu.Append(1020, 'Left', 'Left', wx.ITEM_RADIO)
+        tb_left_item = tb_menu.Append(21020, 'Left', 'Left', wx.ITEM_RADIO)
         tb_left_item.SetBitmap(images.left_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'left':
             tb_left_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_left_item)
         # Right
-        tb_right_item = tb_menu.Append(1030, 'Right', 'Right', wx.ITEM_RADIO)
+        tb_right_item = tb_menu.Append(21030, 'Right', 'Right', wx.ITEM_RADIO)
         tb_right_item.SetBitmap(images.right_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'right':
             tb_right_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_right_item)
         # Bottom
-        tb_bottom_item = tb_menu.Append(1040, 'Bottom', 'Bottom', wx.ITEM_RADIO)
+        tb_bottom_item = tb_menu.Append(21040, 'Bottom', 'Bottom', wx.ITEM_RADIO)
         tb_bottom_item.SetBitmap(images.bottom_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'bottom':
             tb_bottom_item.Check()
@@ -1151,11 +1167,11 @@ class PixelFlasher(wx.Frame):
         # separator
         tb_menu.AppendSeparator()
         # Checkboxes
-        self.tb_show_text_item = tb_menu.Append(1100, "Show Button Text", "Show Button Text", wx.ITEM_CHECK)
+        self.tb_show_text_item = tb_menu.Append(21100, "Show Button Text", "Show Button Text", wx.ITEM_CHECK)
         if self.config.toolbar and self.config.toolbar['tb_show_text']:
             self.tb_show_text_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, self.tb_show_text_item)
-        self.tb_show_button_item = tb_menu.Append(1200, "Show Button Icon", "Show Button Icon", wx.ITEM_CHECK)
+        self.tb_show_button_item = tb_menu.Append(21200, "Show Button Icon", "Show Button Icon", wx.ITEM_CHECK)
         if self.config.toolbar and self.config.toolbar['tb_show_icons']:
             self.tb_show_button_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, self.tb_show_button_item)
@@ -1433,22 +1449,23 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_tb_update(self, event):
         clicked_item_id = event.GetId()
+        # print(f"Clicked item ID: {clicked_item_id}")
 
-        if clicked_item_id == 1010:
+        if clicked_item_id == 21010:
             self.config.toolbar['tb_position'] = 'top'
-        elif clicked_item_id == 1020:
+        elif clicked_item_id == 21020:
             self.config.toolbar['tb_position'] = 'left'
-        elif clicked_item_id == 1030:
+        elif clicked_item_id == 21030:
             self.config.toolbar['tb_position'] = 'right'
-        elif clicked_item_id == 1040:
+        elif clicked_item_id == 21040:
             self.config.toolbar['tb_position'] = 'bottom'
-        elif clicked_item_id == 1100:
+        elif clicked_item_id == 21100:
             # Button Text
             self.config.toolbar['tb_show_text'] = event.IsChecked()
             if not event.IsChecked():
                 self.config.toolbar['tb_show_icons'] = True
                 self.tb_show_button_item.Check(True)
-        elif clicked_item_id == 1200:
+        elif clicked_item_id == 21200:
             # Button icon
             self.config.toolbar['tb_show_icons'] = event.IsChecked()
             if not event.IsChecked():

@@ -255,10 +255,16 @@ class Device():
         """
         if self.mode == 'adb':
             if get_adb():
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell /bin/getprop"
+                if self.rooted:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/bin/getprop\'\""
+                else:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell /bin/getprop"
                 device_info = run_shell(theCmd)
                 if device_info.returncode == 127:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop"
+                    if self.rooted:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'getprop\'\""
+                    else:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop"
                     device_info = run_shell(theCmd)
                 return ''.join(device_info.stdout)
             else:

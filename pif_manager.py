@@ -107,6 +107,10 @@ class PifManager(wx.Dialog):
         self.reprocess_json_file = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.reprocess_json_file.SetBitmap(images.json_24.GetBitmap())
         self.reprocess_json_file.SetToolTip(u"Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place.")
+        # Env to Json
+        self.e2j = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.e2j.SetBitmap(images.e2j_24.GetBitmap())
+        self.e2j.SetToolTip(u"Convert console content from env (key=value) format to json")
         # Add missing keys checkbox
         self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Add missing Keys from device", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.add_missing_keys_checkbox.SetToolTip(u"When Processing or Reprocessing, add missing fields from device.")
@@ -154,6 +158,14 @@ class PifManager(wx.Dialog):
         self.reload_pif_button = wx.Button(self, wx.ID_ANY, u"Reload pif.json", wx.DefaultPosition, wx.DefaultSize, 0)
         self.reload_pif_button.SetToolTip(u"Reload pif.json from device.")
         self.reload_pif_button.Enable(False)
+
+        # Clean DG button
+        self.cleanup_dg_button = wx.Button(self, wx.ID_ANY, u"Cleanup DG", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.cleanup_dg_button.SetToolTip(u"Cleanup Droidguard Cache")
+        self.cleanup_dg_button.Enable(False)
+        self.cleanup_dg_button.Hide()
+        if self.config.enable_dg_clean:
+            self.cleanup_dg_button.Show()
 
         # Process build.prop button
         self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -207,6 +219,7 @@ class PifManager(wx.Dialog):
         button_width = self.pi_option.GetSize()[0] + 10
         self.create_pif_button.SetMinSize((button_width, -1))
         self.reload_pif_button.SetMinSize((button_width, -1))
+        self.cleanup_dg_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
         self.auto_update_pif_checkbox.SetMinSize((button_width, -1))
         self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
@@ -223,6 +236,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         v_buttons_sizer.Add(self.create_pif_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.reload_pif_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
+        v_buttons_sizer.Add(self.cleanup_dg_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.auto_update_pif_checkbox, 0, wx.ALL, 10)
@@ -246,6 +260,8 @@ class PifManager(wx.Dialog):
         console_label_sizer.Add(self.reprocess, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.reprocess_json_file, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.e2j, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.add_missing_keys_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
@@ -288,6 +304,7 @@ class PifManager(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.onClose)
         self.create_pif_button.Bind(wx.EVT_BUTTON, self.CreatePifJson)
         self.reload_pif_button.Bind(wx.EVT_BUTTON, self.LoadReload)
+        self.cleanup_dg_button.Bind(wx.EVT_BUTTON, self.CleanupDG)
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
         # self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildPropFolder)
         self.pi_checker_button.Bind(wx.EVT_BUTTON, self.PlayIntegrityCheck)
@@ -301,6 +318,7 @@ class PifManager(wx.Dialog):
         self.paste_down.Bind(wx.EVT_BUTTON, self.PasteDown)
         self.reprocess.Bind(wx.EVT_BUTTON, self.ReProcess)
         self.reprocess_json_file.Bind(wx.EVT_BUTTON, self.ReProcessJsonFile)
+        self.e2j.Bind(wx.EVT_BUTTON, self.E2J)
         self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.Favorite)
         self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
         self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
@@ -338,12 +356,13 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def init(self, refresh=False):
         device = get_phone()
-        if not device.rooted:
+        if not device or not device.rooted:
             return
         modules = device.get_magisk_detailed_modules(refresh)
 
         self.create_pif_button.Enable(True)
         self.reload_pif_button.Enable(False)
+        self.cleanup_dg_button.Enable(False)
         self.auto_update_pif_checkbox.Enable(False)
         self.auto_check_pi_checkbox.Enable(False)
         self.pi_checker_button.Enable(False)
@@ -369,6 +388,7 @@ class PifManager(wx.Dialog):
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
                     self.create_pif_button.Enable(False)
                     self.reload_pif_button.Enable(True)
+                    self.cleanup_dg_button.Enable(True)
                     self.auto_update_pif_checkbox.Enable(True)
                     self.auto_check_pi_checkbox.Enable(True)
                     self.pi_checker_button.Enable(True)
@@ -391,11 +411,13 @@ class PifManager(wx.Dialog):
         if res == 1:
             self.pif_exists = True
             self.reload_pif_button.Enable(True)
+            self.cleanup_dg_button.Enable(True)
             self.create_pif_button.SetLabel("Update pif.json")
             self.create_pif_button.SetToolTip(u"Update pif.json.")
         else:
             self.pif_exists = False
             self.reload_pif_button.Enable(False)
+            self.cleanup_dg_button.Enable(False)
             self.create_pif_button.SetLabel("Create pif.json")
             self.create_pif_button.SetToolTip(u"Create pif.json.")
         self.ActivePifStcChange(None)
@@ -513,6 +535,16 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def CreatePifJson(self, e):
         self.create_update_pif()
+
+    # -----------------------------------------------
+    #                  CleanupDG
+    # -----------------------------------------------
+    def CleanupDG(self, e):
+        device = get_phone()
+        if not device or not device.rooted:
+            return
+        debug("Cleaning up DG Cache ...")
+        device.delete("/data/data/com.google.android.gms/app_dg_cache", with_su = True, dir = True)
 
     # -----------------------------------------------
     #                  UpdatePifJson
@@ -1247,6 +1279,26 @@ class PifManager(wx.Dialog):
 
 
     # -----------------------------------------------
+    #                  E2J
+    # -----------------------------------------------
+    def E2J(self, event):
+        try:
+            self._on_spin('start')
+            content = self.console_stc.GetValue()
+            contentList = [x.strip().split('#')[0].split('=', 1) for x in content.split('\r\n') if '=' in x.split('#')[0]]
+            contentDict = dict(contentList)
+            for k, v in contentList:
+                for x in v.split('$')[1:]:
+                    key = re.findall(r'\w+', x)[0]
+                    v = v.replace(f'${key}', contentDict[key])
+                contentDict[k] = v.strip()
+            self.console_stc.SetValue(json.dumps(contentDict, indent=4))
+        except Exception:
+            traceback.print_exc()
+        self._on_spin('stop')
+
+
+    # -----------------------------------------------
     #                  onDisableUIAutomator
     # -----------------------------------------------
     def onDisableUIAutomator(self, event):
@@ -1366,6 +1418,8 @@ class PifManager(wx.Dialog):
             else:
                 # Add to favorites
                 active_pif_json = json5.loads(active_pif)
+                brand = '[NO BRAND]'
+                model = '[NO MODEL]'
                 with contextlib.suppress(KeyError):
                     brand = active_pif_json['BRAND']
                 with contextlib.suppress(KeyError):
@@ -1473,6 +1527,6 @@ class PifManager(wx.Dialog):
     def toast(self, title, message):
         if self.config.show_notifications:
             notification = wx.adv.NotificationMessage(title, message, parent=None, flags=wx.ICON_INFORMATION)
-            notification.SetIcon(images.Icon_256.GetIcon())
+            notification.SetIcon(images.Icon_dark_256.GetIcon())
             notification.Show()
 

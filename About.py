@@ -16,7 +16,7 @@ class AboutDlg(wx.Dialog):
 <html>
 <body bgcolor="#DCDCDC" style="font-family: Arial; background-color: #DCDCDC;">
 <center>
-    <img src="{0}/images/icon-64.png" width="64" height="64" alt="PixelFlasher">
+    <img src="{0}/images/icon-dark-64.png" width="64" height="64" alt="PixelFlasher">
 
     <h1>PixelFlasher</h1>
     <p>By Badabing</p>

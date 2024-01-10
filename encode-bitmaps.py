@@ -31,6 +31,7 @@ command_lines = [
     "-a -F -i -n github-24 images/github-24.png images.py",
     "-a -F -i -n guide-24 images/guide-24.png images.py",
     "-a -F -i -n Icon-256 images/icon-256.png images.py",
+    "-a -F -i -n Icon-dark-256 images/icon-dark-256.png images.py",
     "-a -F -i -n install-apk-24 images/install-apk-24.png images.py",
     "-a -F -i -n install-apk-64 images/install-apk-64.png images.py",
     "-a -F -i -n install-magisk-24 images/install-magisk-24.png images.py",
@@ -126,6 +127,7 @@ command_lines = [
     "-a -F -i -n factory-24 images/factory-24.png images.py",
     "-a -F -i -n cloud-24 images/cloud-24.png images.py",
     "-a -F -i -n star-green-24 images/star-green-24.png images.py",
+    "-a -F -i -n e2j-24 images/e2j-24.png images.py",
 ]
 
 if __name__ == "__main__":

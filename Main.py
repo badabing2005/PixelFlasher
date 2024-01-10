@@ -309,14 +309,15 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                             menu_item.SetBitmap(images.download_24.GetBitmap())
                             download_flag = True
 
-            ota_menu_item = self.AppendSubMenu(submenu_ota, "OTA")
-            factory_menu_item = self.AppendSubMenu(submenu_factory, "Factory")
-            if download_flag:
-                ota_menu_item.SetBitmap(images.download_24.GetBitmap())
-                factory_menu_item.SetBitmap(images.download_24.GetBitmap())
-            else:
-                ota_menu_item.SetBitmap(images.cloud_24.GetBitmap())
-                factory_menu_item.SetBitmap(images.factory_24.GetBitmap())
+            with contextlib.suppress(Exception):
+                ota_menu_item = self.AppendSubMenu(submenu_ota, "OTA")
+                factory_menu_item = self.AppendSubMenu(submenu_factory, "Factory")
+                if download_flag:
+                    ota_menu_item.SetBitmap(images.download_24.GetBitmap())
+                    factory_menu_item.SetBitmap(images.download_24.GetBitmap())
+                else:
+                    ota_menu_item.SetBitmap(images.cloud_24.GetBitmap())
+                    factory_menu_item.SetBitmap(images.factory_24.GetBitmap())
 
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while building Google Images Popup Menu.")
@@ -633,7 +634,7 @@ class PixelFlasher(wx.Frame):
     #                  _set_icons
     # -----------------------------------------------
     def _set_icons(self):
-        self.SetIcon(images.Icon_256.GetIcon())
+        self.SetIcon(images.Icon_dark_256.GetIcon())
 
     # -----------------------------------------------
     #                  _build_status_bar
@@ -1767,7 +1768,7 @@ class PixelFlasher(wx.Frame):
     def toast(self, title, message):
         if self.config.show_notifications:
             notification = wx.adv.NotificationMessage(title, message, parent=None, flags=wx.ICON_INFORMATION)
-            notification.SetIcon(images.Icon_256.GetIcon())
+            notification.SetIcon(images.Icon_dark_256.GetIcon())
             notification.Show()
 
     # -----------------------------------------------

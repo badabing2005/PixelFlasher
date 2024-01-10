@@ -13,7 +13,6 @@ import tempfile
 import time
 import traceback
 from datetime import datetime
-from urllib.parse import urlparse
 
 import wx
 from packaging.version import parse

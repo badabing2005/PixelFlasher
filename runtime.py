@@ -16,7 +16,6 @@ import shutil
 import signal
 import sqlite3 as sl
 import subprocess
-import ssl
 import sys
 import random
 import tarfile
@@ -30,7 +29,6 @@ from datetime import datetime
 from os import path
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
-import urllib.request
 from bs4 import BeautifulSoup
 
 import lz4.frame
@@ -2079,7 +2077,16 @@ def get_google_images(save_to=None):
             download_type = "factory"
             device_type = "watch"
 
-        html = urllib.request.urlopen(urllib.request.Request(url, headers=COOKIE)).read()
+        try:
+            response = requests.get(url, headers=COOKIE)
+            html = response.content
+        except requests.exceptions.SSLError:
+            # Retry with SSL certificate verification disabled
+            print(f"WARNING! Encountered SSL certification error while connecting to: {url}")
+            print("Retrying with SSL certificate verification disabled. ...")
+            print("For security, you should double check and make sure your system or communication is not compromised.")
+            response = requests.get(url, headers=COOKIE, verify=False)
+            html = response.content
         soup = BeautifulSoup(html, 'html.parser')
         marlin_flag = False
 
@@ -2190,6 +2197,14 @@ def download_file(url, filename=None, callback=None):
     start = time.time()
     try:
         response = requests.get(url)
+    except requests.exceptions.SSLError:
+        # Retry with SSL certificate verification disabled
+        print(f"WARNING! Encountered SSL certification error while connecting to: {url}")
+        print("Retrying with SSL certificate verification disabled. ...")
+        print("For security, you should double check and make sure your system or communication is not compromised.")
+        response = requests.get(url, verify=False)
+
+    try:
         config_path = get_config_path()
         if not filename:
             filename = os.path.basename(urlparse(url).path)
@@ -2835,67 +2850,56 @@ def get_xiaomi_pif():  # sourcery skip: move-assign
 def get_freeman_pif(abi_list=None):
     print("\n===== PIFS Random Profile/Fingerprint Picker =====\nCopyright (C) MIT License 2023 Nicholas Bissell (TheFreeman193)")
 
-    config_path = get_config_path()
-    tmp_dir_full = os.path.join(config_path, 'tmp')
-    freeman_dir_full = os.path.join(config_path, 'TheFreeman193_JSON')
-    zip_file = os.path.join(tmp_dir_full, 'PIFS.zip')
+    try:
+        config_path = get_config_path()
+        tmp_dir_full = os.path.join(config_path, 'tmp')
+        freeman_dir_full = os.path.join(config_path, 'TheFreeman193_JSON')
+        zip_file = os.path.join(tmp_dir_full, 'PIFS.zip')
 
-    if not os.path.exists(freeman_dir_full):
-        if not os.path.exists(zip_file):
-            print("Downloading profile/fingerprint repo from GitHub...")
-            d_url = FREEMANURL
-            try:
-                # Try making the request with SSL certificate verification
+        if not os.path.exists(freeman_dir_full):
+            if not os.path.exists(zip_file):
+                print("Downloading profile/fingerprint repo from GitHub...")
                 download_file(FREEMANURL, zip_file)
-                # with urllib.request.urlopen(d_url) as response, open(zip_file, 'wb') as out_file:
-                #     shutil.copyfileobj(response, out_file)
-            except ssl.SSLCertVerificationError:
-                # Retry with SSL certificate verification disabled
-                print(f"WARNING! Encountered SSL certification error while downloading from: {FREEMANURL}")
-                print("Attempting to download with SSL certificate verification disabled.")
-                print("For security you should double check and make sure your system or communication is not compromised.")
-                ssl_context = ssl.create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-                with urllib.request.urlopen(d_url, context=ssl_context) as response, open(zip_file, 'wb') as out_file:
-                    shutil.copyfileobj(response, out_file)
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+            # Move the extracted 'JSON' directory contents directly to the target directory
+            json_contents_path = os.path.join(temp_dir, "PIFS-main", "JSON")
+            shutil.move(json_contents_path, freeman_dir_full)
+            # Remove the temporary directory
+            shutil.rmtree(temp_dir)
 
-        temp_dir = tempfile.mkdtemp()
-        with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-            zip_ref.extractall(temp_dir)
-        # Move the extracted 'JSON' directory contents directly to the target directory
-        json_contents_path = os.path.join(temp_dir, "PIFS-main", "JSON")
-        shutil.move(json_contents_path, freeman_dir_full)
-        # Remove the temporary directory
-        shutil.rmtree(temp_dir)
+        if abi_list:
+            if abi_list == "arm64-v8a":
+                abi_list = "arm64-v8a,armeabi-v7a,armeabi"
+            print(f"Will use profile/fingerprint with ABI list '{abi_list}'")
+            file_list = [os.path.join(root, file) for root, dirs, files in os.walk(f"{freeman_dir_full}/{abi_list}") for file in files]
+        else:
+            print("Couldn't detect ABI list. Will use profile/fingerprint from anywhere.")
+            file_list = [os.path.join(root, file) for root, dirs, files in os.walk(f"{freeman_dir_full}") for file in files]
 
-    if abi_list:
-        if abi_list == "arm64-v8a":
-            abi_list = "arm64-v8a,armeabi-v7a,armeabi"
-        print(f"Will use profile/fingerprint with ABI list '{abi_list}'")
-        file_list = [os.path.join(root, file) for root, dirs, files in os.walk(f"{freeman_dir_full}/{abi_list}") for file in files]
-    else:
-        print("Couldn't detect ABI list. Will use profile/fingerprint from anywhere.")
-        file_list = [os.path.join(root, file) for root, dirs, files in os.walk(f"{freeman_dir_full}") for file in files]
+            if not file_list:
+                print("Couldn't find any profiles/fingerprints. Is the JSON directory empty?")
+                return
 
-        if not file_list:
-            print("Couldn't find any profiles/fingerprints. Is the JSON directory empty?")
+        f_count = len(file_list)
+        debug(f"Matching json count: {f_count}")
+        if f_count == 0:
+            print("Couldn't parse JSON file list!")
             return
 
-    f_count = len(file_list)
-    debug(f"Matching json count: {f_count}")
-    if f_count == 0:
-        print("Couldn't parse JSON file list!")
-        return
+        print("Picking a random profile/fingerprint...")
+        random_fp_num = random.randint(1, f_count)
+        rand_fp = file_list[random_fp_num - 1]
 
-    print("Picking a random profile/fingerprint...")
-    random_fp_num = random.randint(1, f_count)
-    rand_fp = file_list[random_fp_num - 1]
+        print(f"\nRandom profile/fingerprint file: '{os.path.basename(rand_fp)}'\n")
+        with open(rand_fp, "r") as file:
+            json_content = json.load(file)
+            return json.dumps(json_content, indent=4)
 
-    print(f"\nRandom profile/fingerprint file: '{os.path.basename(rand_fp)}'\n")
-    with open(rand_fp, "r") as file:
-        json_content = json.load(file)
-        return json.dumps(json_content, indent=4)
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_freeman_pif function")
+        traceback.print_exc()
 
 
 # ============================================================================

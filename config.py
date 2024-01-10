@@ -77,6 +77,7 @@ class Config():
         self.check_for_firmware_hash_validity = True
         self.google_images_update_frequency = 1
         self.google_images_last_checked = None
+        self.enable_dg_clean = False
 
         self.toolbar = {
             'tb_position': 'top',
@@ -252,6 +253,8 @@ class Config():
                     conf.google_images_update_frequency = data['google_images_update_frequency']
                 with contextlib.suppress(KeyError):
                     conf.google_images_last_checked = data['google_images_last_checked']
+                with contextlib.suppress(KeyError):
+                    conf.enable_dg_clean = data['enable_dg_clean']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -419,6 +422,7 @@ class Config():
             'check_for_firmware_hash_validity': self.check_for_firmware_hash_validity,
             'google_images_update_frequency': self.google_images_update_frequency,
             'google_images_last_checked': self.google_images_last_checked,
+            'enable_dg_clean': self.enable_dg_clean,
             'toolbar': self.toolbar,  # Save the toolbar settings as well
             'pif': self.pif,  # Save the pif settings as well
             'scrcpy': self.scrcpy  # Save the scrcpy settings as well

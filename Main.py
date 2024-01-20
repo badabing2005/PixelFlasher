@@ -93,6 +93,96 @@ class RedirectText():
             self.logfile.close()
 
 # ============================================================================
+#                               Class FilePickerComboBox
+# ============================================================================
+class FilePickerComboBox(wx.Panel):
+    def __init__(self, parent, dialog_title="Select a file", wildcard="All files (*.*)|*.*"):
+        super(FilePickerComboBox, self).__init__(parent)
+
+        self.history_file = get_device_images_history_file_path()
+        self.dialog_title = dialog_title
+        self.wildcard = wildcard
+        self.history = []
+
+        self.combo_box = wx.ComboBox(self, wx.ID_ANY, style=wx.CB_READONLY)
+        self.browse_button = wx.Button(self, wx.ID_ANY, 'Browse')
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.combo_box, 1, wx.EXPAND)
+        sizer.Add(self.browse_button, 0, wx.EXPAND)
+        self.SetSizer(sizer)
+
+        self.browse_button.Bind(wx.EVT_BUTTON, self.on_browse)
+
+        if os.path.exists(self.history_file):
+            try:
+                with open(self.history_file, 'r') as f:
+                    self.history = json.load(f)
+                    self.combo_box.SetItems(self.history)
+            except Exception as e:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during device_images_history_file loading.")
+                print(f"Exception: {e}")
+                print("Deleting the device_images_history_file to recover ...")
+                os.remove(self.history_file)
+
+    def on_browse(self, event):
+        file_dialog = wx.FileDialog(self, self.dialog_title, wildcard=self.wildcard)
+        if file_dialog.ShowModal() == wx.ID_OK:
+            file_path = file_dialog.GetPath()
+            if file_path not in self.history:
+                self.history.insert(0, file_path)
+                self.combo_box.Insert(file_path, 0)
+                if len(self.history) > 16:
+                    self.history.pop()
+                if self.combo_box.Count > 16:
+                    self.combo_box.Delete(self.combo_box.Count - 1)
+            self.combo_box.SetValue(file_path)
+            wx.PostEvent(self.combo_box, wx.CommandEvent(wx.EVT_COMBOBOX.typeId, self.combo_box.GetId()))
+
+    def SetPath(self, path):
+        if path and path != '' and path not in self.history:
+            self.history.insert(0, path)
+            self.combo_box.Insert(path, 0)
+            if len(self.history) > 16:
+                self.history.pop()
+            if self.combo_box.Count > 16:
+                self.combo_box.Delete(self.combo_box.Count - 1)
+            with open(self.history_file, 'w') as f:
+                json.dump(self.history, f)
+        self.combo_box.SetValue(path)
+
+    def on_combo_box_change(self, event):
+        path = event.GetString()
+        if path == '':
+            path = self.combo_box.GetValue()
+        if not os.path.exists(path):
+            self.history.remove(path)
+            self.combo_box.Delete(self.combo_box.FindString(path))
+        if path in self.history:
+            self.history.remove(path)
+            self.history.insert(0, path)
+            self.combo_box.Delete(self.combo_box.FindString(path))
+            self.combo_box.Insert(path, 0)
+            self.combo_box.SetValue(path)
+            with open(self.history_file, 'w') as f:
+                json.dump(self.history, f)
+
+    def Bind(self, event, handler):
+        if event == wx.EVT_FILEPICKER_CHANGED:
+            self.handler = handler
+            self.combo_box.Bind(wx.EVT_COMBOBOX, self._on_combo_box_change)
+
+    def _on_combo_box_change(self, event):
+        self.handler(event)
+        self.on_combo_box_change(event)
+
+    def GetPath(self):
+        return self.combo_box.GetStringSelection()
+
+    def SetToolTip(self, tooltip_text):
+        self.combo_box.SetToolTip(tooltip_text)
+
+# ============================================================================
 #                               Class DropDownButton
 # ============================================================================
 class DropDownButton(wx.BitmapButton):
@@ -119,7 +209,7 @@ class DropDownButton(wx.BitmapButton):
 #                               Class GoogleImagesBaseMenu
 # ============================================================================
 class GoogleImagesBaseMenu(wx.Menu):
-    BASE_MENU_ID_START = 10000
+    BASE_MENU_ID_START = 5000
 
     def __init__(self, parent):
         super(GoogleImagesBaseMenu, self).__init__()
@@ -132,6 +222,9 @@ class GoogleImagesBaseMenu(wx.Menu):
         unique_id = self.current_menu_id
         self.current_menu_id += 1
         return unique_id
+
+    def reset_menu_id(self):
+        self.current_menu_id = self.BASE_MENU_ID_START
 
     def bind_download_event(self, menu, url):
         unique_id = self.generate_unique_id()
@@ -169,15 +262,17 @@ class GoogleImagesBaseMenu(wx.Menu):
 
     def on_download(self, url, event=None, unique_id=any):
         # debug(f"Download triggered for URL: {url}, Menu ID: {unique_id}")
-        def download_completed():
-            self.parent.toast("Download Successful", f"File downloaded successfully: {url}")
+        def download_completed(destination_path):
+            self.parent.toast("Download Successful", f"File downloaded successfully: {url} and saved to {destination_path}")
+            # self.parent.firmware_picker.SetPath(destination_path)
+            # self.parent.update_firmware_selection(destination_path)
 
         filename = os.path.basename(url)
         dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
             print(f"Starting background download for: {url} please be patient ...")
             destination_path = dialog.GetPath()
-            download_thread = threading.Thread(target=download_file, args=(url, destination_path), kwargs={"callback": download_completed})
+            download_thread = threading.Thread(target=download_file, args=(url, destination_path), kwargs={"callback": lambda: download_completed(destination_path)})
             download_thread.start()
 
 # ============================================================================
@@ -220,7 +315,7 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
                         download_date = download_entry['date']
 
                         menu_label = f"{version} ({device_label})"
-                        menu_id = wx.NewId()
+                        menu_id = self.generate_unique_id()
                         download_menu_item = download_menu.Append(menu_id, menu_label, sha256)
                         # Set the background color and the icon for the current device. (background color is not working)
                         if device_id == device_hardware and device_firmware_date and download_date and int(download_date) > int(device_firmware_date):
@@ -288,7 +383,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                 download_flag = False
 
                 for download_entry in reversed(device_data['ota']):
-                    if not date_filter or (download_entry['date'] and int(download_entry['date']) >= int(date_filter)):
+                    if download_entry['date'] is not None and (not date_filter or (date_filter is not None and int(download_entry['date']) >= int(date_filter))):
                         version = download_entry['version']
                         menu_label = f"{version} (OTA)"
                         menu_id = wx.NewId()
@@ -299,7 +394,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                             download_flag = True
 
                 for download_entry in reversed(device_data['factory']):
-                    if not date_filter or (download_entry['date'] and int(download_entry['date']) >= int(date_filter)):
+                    if download_entry['date'] is not None and (not date_filter or (date_filter is not None and int(download_entry['date']) >= int(date_filter))):
                         version = download_entry['version']
                         menu_label = f"{version} (Factory)"
                         menu_id = wx.NewId()
@@ -362,6 +457,7 @@ class PixelFlasher(wx.Frame):
         self.resizing = False
         if not dont_initialize:
             self.initialize()
+        set_window_shown(True)
         self.Show(True)
 
     # -----------------------------------------------
@@ -547,6 +643,7 @@ class PixelFlasher(wx.Frame):
 
             debug("Populate device list")
             connected_devices = get_connected_devices()
+            print(f"Discovered {len(connected_devices)} device(s) connected.")
             self.device_choice.AppendItems(connected_devices)
             d_list_string = '\n'.join(connected_devices)
             puml(f"note right\n{d_list_string}\nend note\n")
@@ -1007,7 +1104,7 @@ class PixelFlasher(wx.Frame):
         file_menu.AppendSeparator()
         # Exit Menu
         wx.App.SetMacExitMenuItemId(wx.ID_EXIT)
-        exit_item = file_menu.Append(wx.ID_EXIT, "E&xit\tCtrl-Q", "Exit PixelFlasher")
+        exit_item = file_menu.Append(wx.ID_ANY, "E&xit\tCtrl-Q", "Exit PixelFlasher")
         exit_item.SetBitmap(images.exit_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_exit_app, exit_item)
 
@@ -1324,7 +1421,7 @@ class PixelFlasher(wx.Frame):
         # seperator
         help_menu.AppendSeparator()
         # About
-        about_item = help_menu.Append(wx.ID_ABOUT, '&About PixelFlasher', 'About')
+        about_item = help_menu.Append(wx.ID_ANY, '&About PixelFlasher', 'About')
         about_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, about_item)
 
@@ -1805,13 +1902,6 @@ class PixelFlasher(wx.Frame):
         print("Entrering Test function (used during development only) ...")
         # device = get_phone()
         # device.dump_props()
-        # self._on_pif_manager(None)
-        # res = device.scrcpy()
-        # start_time = time.time()
-        # self.update_widget_states()
-        # end_time = time.time()
-        # elapsed_time = end_time - start_time
-        # print(f"The function update_widget_states took {elapsed_time} seconds to execute.")
 
     # -----------------------------------------------
     #                  _advanced_options_hide
@@ -2019,6 +2109,8 @@ class PixelFlasher(wx.Frame):
                     alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
                     alert += "                                     This has a device wipe implications, please double check.\n"
                 message += alert
+                if alert != '':
+                    self.toast("vbmeta Warning!", alert)
             return message
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while getting vbmeta data.")
@@ -2454,6 +2546,7 @@ class PixelFlasher(wx.Frame):
                 d_id = d_id[2]
                 self.config.device = d_id
                 for device in get_phones():
+                    wx.YieldIfNeeded()
                     if device.id == d_id:
                         set_phone_id(device.id)
                         self._print_device_details(device)
@@ -2519,12 +2612,14 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  _on_select_firmware
+    #            update_firmware_selection
     # -----------------------------------------------
-    def _on_select_firmware(self, event):
+    def update_firmware_selection(self, path):
         try:
-            self.config.firmware_path = event.GetPath().replace("'", "")
-            self._on_spin('start')
+            if not os.path.exists(path):
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file {path} does not exist")
+                return -1
+            self.config.firmware_path = path.replace("'", "")
             checksum = select_firmware(self)
             if len(checksum) == 64:
                 self.config.firmware_sha256 = checksum
@@ -2535,6 +2630,18 @@ class PixelFlasher(wx.Frame):
         except Exception as e:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting firmware")
             traceback.print_exc()
+
+    # -----------------------------------------------
+    #                  _on_select_firmware
+    # -----------------------------------------------
+    def _on_select_firmware(self, event):
+        # path = event.GetPath()
+        path = self.firmware_picker.GetPath()
+        if not path:
+            # User cancelled the selecteion
+            return
+        self._on_spin('start')
+        self.update_firmware_selection(path)
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -2888,7 +2995,7 @@ class PixelFlasher(wx.Frame):
             device = get_phone()
             if device:
                 # push the file
-                res = device.push_file(selected_file, "/data/local/tmp/", False)
+                res = device.push_file(selected_file, destination, False)
                 if res != 0:
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
@@ -3962,7 +4069,8 @@ class PixelFlasher(wx.Frame):
         self.firmware_button = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.firmware_button.SetBitmap(images.open_link_24.GetBitmap())
         self.firmware_button.SetToolTip(u"Download image file for current Pixel device.")
-        self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        # self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker = FilePickerComboBox(parent=panel, dialog_title="Select a file", wildcard="Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar")
         self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
         self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_firmware.SetBitmap(images.process_file_24.GetBitmap())
@@ -4265,6 +4373,7 @@ class PixelFlasher(wx.Frame):
     #                  update_google_images_menu
     # -----------------------------------------------
     def update_google_images_menu(self):
+        self.google_images_menu.reset_menu_id()
         menu_index = self.menuBar.FindMenu("Google Images")
         self.menuBar.Remove(menu_index)
         self.google_images_menu = GoogleImagesMenu(self)

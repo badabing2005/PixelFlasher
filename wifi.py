@@ -2,6 +2,7 @@
 
 import contextlib
 import json
+import json5
 from datetime import datetime
 
 import wx
@@ -267,7 +268,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
         if os.path.exists(get_wifi_history_file_path()):
             with contextlib.suppress(FileNotFoundError):
                 with open(get_wifi_history_file_path(), "r", encoding='ISO-8859-1', errors="replace") as file:
-                    self.history = json.load(file)
+                    self.history = json5.load(file)
 
     # -----------------------------------------------
     #                  save_history
@@ -306,9 +307,9 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
             if res.returncode == 0 and 'cannot' not in res.stdout and 'failed' not in res.stdout:
                 print(f"ADB {command}ed: {ip}:{port}")
                 puml(f"#palegreen:Succeeded;\n")
-                self.Parent.device_choice.SetItems(get_connected_devices())
-                self.Parent._select_configured_device()
-                if command == 'connect':
+                if command != 'pair':
+                    self.Parent.device_choice.SetItems(get_connected_devices())
+                    self.Parent._select_configured_device()
                     print(f"Please select the device: {ip}:{port}")
                 return
             else:

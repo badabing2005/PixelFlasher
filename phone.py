@@ -2595,11 +2595,13 @@ This is a special Magisk build\n\n
         try:
             if not device_id:
                 device_id = self.id
-            retry_text = f"retry [{retry}] times" if retry > 0 else ''
+            retry_text = f"retry [{retry + 1}] times" if retry > 0 else ''
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Getting device: {device_id} state {retry_text} ...")
             puml(f":Getting device: {device_id} state {retry_text};\n", True)
-            for _ in range(retry + 1):
+            for i in range(retry + 1):
                 if get_adb():
+                    puml(f":Getting device: {device_id} state [{i + 1}/{retry + 1}] using get-state;\n", True)
+                    debug(f":Getting device: {device_id} state [{i + 1}/{retry + 1}] using get-state")
                     theCmd = f"\"{get_adb()}\" -s {device_id} get-state"
                     debug(theCmd)
                     res = run_shell(theCmd, timeout=timeout)
@@ -2613,6 +2615,8 @@ This is a special Magisk build\n\n
                             puml(f"note right:State {state};\n")
                             return state
                 if get_fastboot():
+                    puml(f":Getting device: {device_id} state [{i + 1}/{retry + 1}] using fastboot devices;\n", True)
+                    debug(f":Getting device: {device_id} state [{i + 1}/{retry + 1}] using fastboot devices")
                     theCmd = f"\"{get_fastboot()}\" devices"
                     res = run_shell(theCmd, timeout=timeout)
                     if res.returncode == 0 and device_id in res.stdout:
@@ -2634,8 +2638,8 @@ This is a special Magisk build\n\n
         try:
             if not device_id:
                 device_id = self.id
-            print(f"ADB waiting device: {device_id} for {wait_for} ...")
-            puml(f":ADB waiting device: {device_id} for {wait_for};\n", True)
+            print(f"ADB waiting for device: {device_id} for {wait_for} ...")
+            puml(f":ADB waiting for device: {device_id} for {wait_for};\n", True)
             if wait_for not in ['device', 'bootloader', 'sideload', 'recovery', 'rescue', 'disconnect']:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Wrong wait-for [{wait_for}] request!")
                 puml(f"#red:ERROR: Wrong wait-for [{wait_for}] request;\n", True)
@@ -3300,7 +3304,7 @@ This is a special Magisk build\n\n
             elif action == 'kill':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell am force-stop {pkg}"
             elif action == 'killall':
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'killall {pkg}\'\""
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'killall -v {pkg}\'\""
             elif action == 'clear-data':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm clear {pkg}"
             elif action == 'clear-cache':

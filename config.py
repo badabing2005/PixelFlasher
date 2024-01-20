@@ -78,6 +78,8 @@ class Config():
         self.google_images_update_frequency = 1
         self.google_images_last_checked = None
         self.enable_dg_clean = False
+        self.enable_bulk_prop = False
+        self.enable_pixel_img_process = False
 
         self.toolbar = {
             'tb_position': 'top',
@@ -116,7 +118,8 @@ class Config():
             'disable_uiautomator': False,
             'auto_fill': False,
             'force_first_api': False,
-            'first_api_value_when_forced': "25"
+            'first_api_value_when_forced': "25",
+            'sort_keys': True
         }
 
         self.scrcpy = {
@@ -255,6 +258,10 @@ class Config():
                     conf.google_images_last_checked = data['google_images_last_checked']
                 with contextlib.suppress(KeyError):
                     conf.enable_dg_clean = data['enable_dg_clean']
+                with contextlib.suppress(KeyError):
+                    conf.enable_bulk_prop = data['enable_bulk_prop']
+                with contextlib.suppress(KeyError):
+                    conf.enable_pixel_img_process = data['enable_pixel_img_process']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -328,6 +335,8 @@ class Config():
                         conf.pif['force_first_api'] = pif_data['force_first_api']
                     with contextlib.suppress(KeyError):
                         conf.pif['first_api_value_when_forced'] = pif_data['first_api_value_when_forced']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['sort_keys'] = pif_data['sort_keys']
 
                 # read the scrcpy section
                 scrcpy_folder = ''
@@ -423,6 +432,8 @@ class Config():
             'google_images_update_frequency': self.google_images_update_frequency,
             'google_images_last_checked': self.google_images_last_checked,
             'enable_dg_clean': self.enable_dg_clean,
+            'enable_bulk_prop': self.enable_bulk_prop,
+            'enable_pixel_img_process': self.enable_pixel_img_process,
             'toolbar': self.toolbar,  # Save the toolbar settings as well
             'pif': self.pif,  # Save the pif settings as well
             'scrcpy': self.scrcpy  # Save the scrcpy settings as well

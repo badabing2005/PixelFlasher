@@ -93,6 +93,7 @@ low_memory = False
 config = {}
 config_file_path = ''
 unlocked_devices = []
+window_shown = False
 
 # ============================================================================
 #                               Class Boot
@@ -186,6 +187,19 @@ def set_config(value):
     global config
     config = value
 
+# ============================================================================
+#                               Function get_window_shown
+# ============================================================================
+def get_window_shown():
+    global window_shown
+    return window_shown
+
+# ============================================================================
+#                               Function set_window_shown
+# ============================================================================
+def set_window_shown(value):
+    global window_shown
+    window_shown = value
 
 # ============================================================================
 #                               Function check_for_unlocked
@@ -223,11 +237,13 @@ def set_console_widget(widget):
 # ============================================================================
 def flush_output():
     global console_widget
-    wx.YieldIfNeeded()
+    if get_window_shown():
+        wx.YieldIfNeeded()
     if console_widget:
         sys.stdout.flush()
         wx.CallAfter(console_widget.Update)
-        wx.YieldIfNeeded()
+        if get_window_shown():
+            wx.YieldIfNeeded()
 
 
 # ============================================================================
@@ -1099,6 +1115,13 @@ def get_favorite_pifs_file_path():
 
 
 # ============================================================================
+#                      Function get_device_images_history_file_path
+# ============================================================================
+def get_device_images_history_file_path():
+    return os.path.join(get_config_path(), "device_images_history.json").strip()
+
+
+# ============================================================================
 #                               Function get_coords_file_path
 # ============================================================================
 def get_coords_file_path():
@@ -1263,8 +1286,10 @@ def check_archive_contains_file(archive_file_path, file_to_check, nested=False, 
 
         file_ext = os.path.splitext(archive_file_path)[1].lower()
 
-        if file_ext == '.zip':
+        if file_ext in ['.zip']:
             return check_zip_contains_file(archive_file_path, file_to_check, get_low_memory(), nested, is_recursive)
+        elif file_ext in ['.img']:
+            return check_img_contains_file(archive_file_path, file_to_check)
         elif file_ext in ['.tgz', '.gz', '.tar', '.md5']:
             return check_tar_contains_file(archive_file_path, file_to_check, nested, is_recursive)
         else:
@@ -1315,6 +1340,40 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
         print(f"Failed to check_zip_contains_file_fast. Reason: {e}")
         traceback.print_exc()
         return ''
+
+
+# ============================================================================
+#                               Function check_img_contains_file
+# ============================================================================
+def check_img_contains_file(img_file_path, file_to_check):
+    try:
+        result = subprocess.run([get_path_to_7z(), 'l', img_file_path], capture_output=True, text=True)
+
+        if "Unexpected end of archive" in result.stderr:
+            print(f"Warning: Unexpected end of archive in {img_file_path}")
+            return []
+
+        file_list = result.stdout.split('\n')
+
+        matches = []
+        for line in file_list:
+            columns = line.split()
+            if len(columns) < 6:  # Skip lines with less than 6 columns
+                continue
+            file_path = columns[5].replace('\\\\', '\\')
+            if file_path.endswith(file_to_check):
+                debug(f"Found: {file_path}\n")
+                # matches.append(file_path)
+                return file_path
+
+        if not matches:
+            debug(f"file: {file_to_check} was NOT found\n")
+
+        return matches
+    except Exception as e:
+        print(f"Failed to check_img_contains_file. Reason: {e}")
+        traceback.print_exc()
+        return []
 
 
 # ============================================================================
@@ -1968,16 +2027,19 @@ def check_module_update(url):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
             return -1
         response.raise_for_status()
-        data = response.json()
-        mu = ModuleUpdate(url)
-        setattr(mu, 'version', data['version'])
-        setattr(mu, 'versionCode', data['versionCode'])
-        setattr(mu, 'zipUrl', data['zipUrl'])
-        setattr(mu, 'changelog', data['changelog'])
-        headers = {}
-        response = requests.request("GET", mu.changelog, headers=headers, data=payload)
-        setattr(mu, 'changelog', response.text)
-        return mu
+        with contextlib.suppress(Exception):
+            data = response.json()
+            mu = ModuleUpdate(url)
+            setattr(mu, 'version', data['version'])
+            setattr(mu, 'versionCode', data['versionCode'])
+            setattr(mu, 'zipUrl', data['zipUrl'])
+            setattr(mu, 'changelog', data['changelog'])
+            headers = {}
+            response = requests.request("GET", mu.changelog, headers=headers, data=payload)
+            setattr(mu, 'changelog', response.text)
+            return mu
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
+        return -1
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during getUpdateDetails url: {url} processing")
         traceback.print_exc()
@@ -2243,8 +2305,9 @@ def get_first_match(dictionary, keys):
 # ============================================================================
 #                               Function process_dict
 # ============================================================================
-def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set_first_api=None):
+def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False, set_first_api=None, sort_data=False):
     try:
+        android_devices = get_android_devices()
         autofill = False
         if add_missing_keys:
             device = get_phone()
@@ -2264,7 +2327,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
         fp_ro_build_type = ''
         fp_ro_build_tags = ''
         keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
-        ro_build_fingerprint = get_first_match(dict, keys)
+        ro_build_fingerprint = get_first_match(the_dict, keys)
         if autofill and ro_build_fingerprint == '':
             ro_build_fingerprint = get_first_match(device_dict, keys)
         if ro_build_fingerprint:
@@ -2283,31 +2346,31 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # PRODUCT
         keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name', 'ro.vendor.product.name']
-        ro_product_name = get_first_match(dict, keys)
-        if (ro_product_name is None or ro_product_name == '') and fp_ro_product_name != '':
-            debug(f"Properties for PRODUCT are not found, using value from FINGERPRINT: {fp_ro_product_name}")
+        ro_product_name = get_first_match(the_dict, keys)
+        if ro_product_name in [None, '', 'mainline', 'generic'] and fp_ro_product_name != '':
+            debug(f"Properties for PRODUCT are extracted from FINGERPRINT: {fp_ro_product_name}")
             ro_product_name = fp_ro_product_name
         if autofill and ro_product_name == '':
             ro_product_name = get_first_match(device_dict, keys)
 
         # DEVICE (ro.build.product os fallback, keep it last)
         keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.vendor.product.device', 'ro.build.product']
-        ro_product_device = get_first_match(dict, keys)
-        if (ro_product_device is None or ro_product_device == '') and fp_ro_product_device != '':
-            debug(f"Properties for DEVICE are not found, using value from FINGERPRINT: {fp_ro_product_device}")
+        ro_product_device = get_first_match(the_dict, keys)
+        if ro_product_device in [None, '', 'mainline', 'generic'] and fp_ro_product_device != '':
+            debug(f"Properties for DEVICE are extracted from FINGERPRINT: {fp_ro_product_device}")
             ro_product_device = fp_ro_product_device
         if autofill and ro_product_device == '':
             ro_product_device = get_first_match(device_dict, keys)
 
         # MANUFACTURER
         keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer', 'ro.vendor.product.manufacturer']
-        ro_product_manufacturer = get_first_match(dict, keys)
+        ro_product_manufacturer = get_first_match(the_dict, keys)
         if autofill and ro_product_manufacturer == '':
             ro_product_manufacturer = get_first_match(device_dict, keys)
 
         # BRAND
         keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand', 'ro.vendor.product.brand']
-        ro_product_brand = get_first_match(dict, keys)
+        ro_product_brand = get_first_match(the_dict, keys)
         if (ro_product_brand is None or ro_product_brand == '') and fp_ro_product_brand != '':
             debug(f"Properties for BRAND are not found, using value from FINGERPRINT: {fp_ro_product_brand}")
             ro_product_brand = fp_ro_product_brand
@@ -2316,13 +2379,17 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # MODEL
         keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
-        ro_product_model = get_first_match(dict, keys)
+        ro_product_model = get_first_match(the_dict, keys)
+        if ro_product_model in ['mainline', 'generic'] and ro_product_manufacturer == 'Google':
+            # get model from android_devices if it is a Google device
+            # TODO: otherwise, or ideally from vendor/build.prop
+            ro_product_model = android_devices[ro_product_device]['device']
         if autofill and ro_product_model == '':
             ro_product_model = get_first_match(device_dict, keys)
 
         # SECURITY_PATCH
         keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
-        ro_build_version_security_patch = get_first_match(dict, keys)
+        ro_build_version_security_patch = get_first_match(the_dict, keys)
         if autofill and ro_build_version_security_patch == '':
             ro_build_version_security_patch = get_first_match(device_dict, keys)
 
@@ -2331,7 +2398,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
             ro_product_first_api_level = set_first_api
         else:
             keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
-            ro_product_first_api_level = get_first_match(dict, keys)
+            ro_product_first_api_level = get_first_match(the_dict, keys)
             if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
                 ro_product_first_api_level = '32'
             if autofill and ro_product_first_api_level == '':
@@ -2339,7 +2406,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # BUILD_ID
         keys = ['ro.build.id']
-        ro_build_id = get_first_match(dict, keys)
+        ro_build_id = get_first_match(the_dict, keys)
         if (ro_build_id is None or ro_build_id == '') and fp_ro_build_id != '':
             debug(f"Properties for ID are not found, using value from FINGERPRINT: {fp_ro_build_id}")
             ro_build_id = fp_ro_build_id
@@ -2348,7 +2415,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # RELEASE
         keys = ['ro.build.version.release']
-        ro_build_version_release = get_first_match(dict, keys)
+        ro_build_version_release = get_first_match(the_dict, keys)
         if (ro_build_version_release is None or ro_build_version_release == '') and fp_ro_build_version_release != '':
             debug(f"Properties for RELEASE are not found, using value from FINGERPRINT: {fp_ro_build_version_release}")
             ro_build_version_release = fp_ro_build_version_release
@@ -2357,7 +2424,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # INCREMENTAL
         keys = ['ro.build.version.incremental']
-        ro_build_version_incremental = get_first_match(dict, keys)
+        ro_build_version_incremental = get_first_match(the_dict, keys)
         if (ro_build_version_incremental is None or ro_build_version_incremental == '') and fp_ro_build_version_incremental != '':
             debug(f"Properties for INCREMENTAL are not found, using value from FINGERPRINT: {fp_ro_build_version_incremental}")
             ro_build_version_incremental = fp_ro_build_version_incremental
@@ -2366,7 +2433,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # TYPE
         keys = ['ro.build.type']
-        ro_build_type = get_first_match(dict, keys)
+        ro_build_type = get_first_match(the_dict, keys)
         if (ro_build_type is None or ro_build_type == '') and fp_ro_build_type != '':
             debug(f"Properties for TYPE are not found, using value from FINGERPRINT: {fp_ro_build_type}")
             ro_build_type = fp_ro_build_type
@@ -2375,7 +2442,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # TAGS
         keys = ['ro.build.tags']
-        ro_build_tags = get_first_match(dict, keys)
+        ro_build_tags = get_first_match(the_dict, keys)
         if (ro_build_tags is None or ro_build_tags == '') and fp_ro_build_tags != '':
             debug(f"Properties for TAGS are not found, using value from FINGERPRINT: {fp_ro_build_tags}")
             ro_build_tags = fp_ro_build_tags
@@ -2384,7 +2451,7 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
 
         # VNDK_VERSION
         keys = ['ro.vndk.version', 'ro.product.vndk.version']
-        ro_vndk_version = get_first_match(dict, keys)
+        ro_vndk_version = get_first_match(the_dict, keys)
         if autofill and ro_vndk_version == '':
             ro_vndk_version = get_first_match(device_dict, keys)
 
@@ -2434,8 +2501,10 @@ def process_dict(dict, add_missing_keys=False, advanced_props_support=False, set
         else:
             modified_donor_data = donor_data
 
-        return json.dumps(modified_donor_data, indent=4)
-
+        if not sort_data:
+            return json.dumps(modified_donor_data, indent=4)
+        sorted_donor_data = dict(sorted(modified_donor_data.items()))
+        return json.dumps(sorted_donor_data, indent=4)
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function process_dict.")
         traceback.print_exc()
@@ -2758,18 +2827,20 @@ def xiaomi_xml_to_json(decoded_xml, json_path=None):
         # Extract key-value pairs under android.os.Build
         build_data = {}
         build_class = root.find(".//class[@name='android.os.Build']")
-        for field in build_class.iter("field"):
-            field_name = field.get("name")
-            field_value = field.get("value")
-            build_data[field_name] = field_value
+        if build_class:
+            for field in build_class.iter("field"):
+                field_name = field.get("name")
+                field_value = field.get("value")
+                build_data[field_name] = field_value
 
         # Extract key-value pairs under android.os.Build$VERSION
         version_data = {}
         version_class = root.find(".//class[@name='android.os.Build$VERSION']")
-        for field in version_class.iter("field"):
-            field_name = field.get("name")
-            field_value = field.get("value")
-            version_data[field_name] = field_value
+        if version_class:
+            for field in version_class.iter("field"):
+                field_name = field.get("name")
+                field_value = field.get("value")
+                version_data[field_name] = field_value
 
         # Flatten the key-value pairs
         flattened_data = {**build_data, **version_data}
@@ -2900,6 +2971,109 @@ def get_freeman_pif(abi_list=None):
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_freeman_pif function")
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function get_pif_from_image
+# ============================================================================
+def get_pif_from_image(image_file):
+    try:
+        config_path = get_config_path()
+        path_to_7z = get_path_to_7z()
+        temp_dir = tempfile.TemporaryDirectory()
+        temp_dir_path = temp_dir.name
+
+        file_to_process = image_file
+        found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
+        found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
+        if found_flash_all_bat and found_flash_all_sh:
+            # assume Pixel factory file
+            package_sig = found_flash_all_bat.split('/')[0]
+            if not package_sig:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract package signature from {found_flash_all_bat}")
+                return
+            package_dir_full = os.path.join(temp_dir_path, package_sig)
+            image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
+            # Unzip the factory image
+            debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
+            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\""
+            debug(theCmd)
+            res = run_shell2(theCmd)
+            if res.returncode != 0:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                print("Aborting ...\n")
+                return
+
+            # create props folder
+            props_folder = os.path.join(config_path, "props")
+            props_path = os.path.join(props_folder, package_sig)
+            if os.path.exists(props_path):
+                shutil.rmtree(props_path)
+            os.makedirs(props_path, exist_ok=True)
+
+            # check if image file is included and contains what we need
+            if os.path.exists(image_file_path):
+                # process system.img
+                found_system_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="system.img", nested=False, is_recursive=False)
+                if found_system_img:
+                    print(f"Extracting system.img from {image_file_path} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" system.img"
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+                    img_archive = os.path.join(package_dir_full, "system.img")
+                    found_system_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+                    if found_system_build_prop:
+                        print(f"Extracting build.prop from {img_archive} ...")
+                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_system_build_prop}"
+                        debug(theCmd)
+                        res = run_shell2(theCmd)
+                    if os.path.exists(os.path.join(props_path, found_system_build_prop)):
+                        os.rename(os.path.join(props_path, found_system_build_prop), os.path.join(props_path, "system-build.prop"))
+
+                # process vendor.img
+                found_vendor_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="vendor.img", nested=False, is_recursive=False)
+                if found_vendor_img:
+                    print(f"Extracting system.img from {image_file_path} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" vendor.img"
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+                    img_archive = os.path.join(package_dir_full, "vendor.img")
+                    found_vendor_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+                    if found_vendor_build_prop:
+                        print(f"Extracting build.prop from {img_archive} ...")
+                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_vendor_build_prop}"
+                        debug(theCmd)
+                        res = run_shell2(theCmd)
+                    if os.path.exists(os.path.join(props_path, found_vendor_build_prop)):
+                        os.rename(os.path.join(props_path, found_vendor_build_prop), os.path.join(props_path, "vendor-build.prop"))
+
+                # process product.img
+                found_product_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="product.img", nested=False, is_recursive=False)
+                if found_product_img:
+                    print(f"Extracting system.img from {image_file_path} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" product.img"
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+                    img_archive = os.path.join(package_dir_full, "product.img")
+                    found_product_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+                    if found_product_build_prop:
+                        print(f"Extracting build.prop from {img_archive} ...")
+                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_product_build_prop}"
+                        debug(theCmd)
+                        res = run_shell2(theCmd)
+                    if os.path.exists(os.path.join(props_path, found_product_build_prop)):
+                        os.rename(os.path.join(props_path, found_product_build_prop), os.path.join(props_path, "product-build.prop"))
+
+                # return path to props folder
+                return props_path
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing ota/firmware file:")
+        traceback.print_exc()
+    finally:
+        temp_dir.cleanup()
 
 
 # ============================================================================

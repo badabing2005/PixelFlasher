@@ -478,15 +478,15 @@ def select_firmware(self):
                 puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
 
                 # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
-                if firmware_hash[:8] in firmware:
+                if firmware_hash and firmware_hash[:8] in firmware:
                     print(f"Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
                     puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
-                    self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
+                    self.toast("Firmware SHA256 Match", f"SHA256 of {filename}.{extension} matches the segment in the filename.")
                     set_firmware_hash_validity(True)
                 else:
-                    print(f"WARNING: Expected to match {firmware_hash[:8]} in the filename but didn't, please double check to make sure the checksum is good.")
+                    print(f"WARNING: Expected to match {firmware_hash[:8]} in the {filename}.{extension} but didn't, please double check to make sure the checksum is good.")
                     puml("#orange:Unable to match the checksum in the filename;\n")
-                    self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                    self.toast("Firmware SHA256 Mismatch", f"WARNING! SHA256 of {filename}.{extension} does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
                     set_firmware_hash_validity(False)
 
             firmware = filename.split("-")
@@ -962,6 +962,9 @@ def process_file(self, file_type):
 #                               Function process_flash_all_file
 # ============================================================================
 def process_flash_all_file(filepath):
+    if not os.path.exists(filepath):
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR! File: {filepath} not found.")
+        return "ERROR"
     try:
         cwd = os.getcwd()
         flash_file_lines = []
@@ -1454,24 +1457,24 @@ def manual_magisk(self, boot_file_name):
         title = "Manual Patching"
         buttons_text = ["Done creating the patch, continue", "Cancel"]
         message = '''
-    ## Magisk should now be running on your phone
+## Magisk should now be running on your phone
 
-    _If it is not, you  can try starting in manually._
+_If it is not, you  can try starting in manually._
 
-    Please follow these steps in Magisk.
+Please follow these steps in Magisk.
 
-    - Click on **Install** or **Upgrade** in the section under **Magisk** block (Not App)
-    - Click on **Select and patch a file**
-    '''
+- Click on **Install** or **Upgrade** in the section under **Magisk** block (Not App)
+- Click on **Select and patch a file**
+'''
         message += f"- Select `{boot_file_name}` in `{self.config.phone_path}` \n"
         message += '''
-    - Then hit **Let's go**
+- Then hit **Let's go**
 
-    When done creating the patch in Magisk <br/>
-    Click on **Done creating the patch, continue** button <br/>
-    or hit the **Cancel** button to abort.
+When done creating the patch in Magisk <br/>
+Click on **Done creating the patch, continue** button <br/>
+or hit the **Cancel** button to abort.
 
-    '''
+'''
         dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -3261,87 +3264,16 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         puml("#red:Encountered an error while running flash script.;\n}\n")
         self.toast("Flash action", "Encountered an error while running the flash script.")
         return -1
-    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done script flashing!")
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done flash script execution!")
+    puml(f":Done flash script execution;\n", True)
 
-    # -------------------------------------------------------------------------
-    # 5 Finish up Do the additional checks and flashing / rebooting
-    # -------------------------------------------------------------------------
-    # At this point when pf_script completes the execution,
-    # the device should be in bootloader mode for factory and custom flashing,
-    # And in recovery for sideload
-    # To be safe let's give it 10 seconds
-    print("Sleeping 10 seconds ...")
-    time.sleep(10)
-    mode = device.get_device_state()
-    if mode:
-        print(f"Currently the device is in {mode} mode.")
 
-    if self.config.flash_mode == 'customFlash':
-        # if wipe is selected perform wipe.
-        if self.wipe:
-            print("Wiping userdata ...")
-            cmd= f"\"{get_fastboot()}\" -s {device_id} -w"
-            wipe_flag = True
-    else:
-        # reboot to bootloader
-        res = device.reboot_bootloader(fastboot_included = True)
-        if res == -1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-            print("Aborting ...\n")
-            puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
-            self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
-            return -1
-        image_mode = get_image_mode()
-        self.refresh_device(device_id)
-        device = get_phone()
-
-        # see if we got a device
-        if not device:
-            # sleep 5 seconds and try again
-            print("Sleeping 5 seconds to find the device ...")
-            time.sleep(5)
-            self.refresh_device(device_id)
-            device = get_phone()
-            if not device:
-                # TODO: Improve the message, we don't need to suggest flashing when doing OTA, depending on the options selected, the suggestions vary.
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Your device is not found in bootloader mode.\nIf your device is actually in bootloader mode,\nhit the scan button and see if PixelFlasher finds it.\nIf it does, you can hit the Flash button again,\notherwise there seems to be a connection issue (USB drivers, cable, PC port ...)\n")
-                print("Aborting ...\n")
-                puml("#red:Device not found after rebooting to bootloader;\n}\n")
-                self.toast("Flash action", "Device is not found after rebooting to bootloader.")
-                return -1
-
-        # If we're doing Sideload image flashing
-        if self.config.flash_mode == 'OTA':
-            # check slot
-            slot_after_flash = device.get_current_slot()
-            print(f"Current slot: [{slot_after_flash}]")
-            print("Comparing the current slot with the previous active slot ...")
-            if slot_after_flash == "UNKNOWN" or slot_after_flash == slot_before_flash:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It appears that OTA flashing did not properly switch slots.")
-                print("Aborting ...")
-                puml("#red:It appears that OTA flashing did not properly switch slots.;\n}\n")
-                self.toast("Flash action", "It appears that OTA flashing did not properly switch slots.")
-                return -1
-            print("Current slot has changed, this is good.")
-
-            # flash vbmeta if disabling verity / verification
-            vbmeta_file = os.path.join(package_dir_full, "vbmeta.img")
-            if self.config.disable_verity or self.config.disable_verification and os.path.exists(vbmeta_file):
-                print("flashing vbmeta ...")
-                theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} flash vbmeta \"{vbmeta_file}\""
-                debug(theCmd)
-                res = run_shell(theCmd)
-                if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vbmeta flashing did not return the expected result.")
-                    print(f"theCmd: {theCmd}")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
-                    print("Aborting ...")
-                    puml("#red:vbmeta flashing did not return the expected result.;\n}\n")
-                    self.toast("Flash action", "vbmeta flashing did not return the expected result.")
-                    return -1
-
+    # define sub functions to simplify code
+    # ==========================================
+    # Sub Function         apply_patch_if_needed
+    # ==========================================
+    def apply_patch_if_needed():
+        nonlocal device
         # flash patched boot / init_boot if dry run is not selected.
         if not boot.is_stock_boot and self.config.flash_mode != 'dryRun':
             print("Checking if the bootloader is unlocked ...")
@@ -3371,34 +3303,330 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     print("Aborting ...")
                     puml("#red:Encountered an error while flashing the patch.;\n}\n")
                     self.toast("Flash action", "Encountered an error while flashing the patch.")
+                    print("Aborting ...\n")
                     return -1
             else:
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Bootloader is locked, skipping flashing ...")
                 puml("#orange:Bootloader is locked, skipping flashing.;\n")
+                print("Aborting ...\n")
+                return -1
+        return 0
 
-    # reboot to system if no_reboot is not checked
-    if not self.config.no_reboot:
-        device = get_phone()
-        if device:
-            if wipe_flag:
-                timeout = None
-            else:
-                timeout = 90
-            res = device.reboot_system(timeout=timeout)
+    # ==========================================
+    # Sub Function        flash_vbmeta_if_needed
+    # ==========================================
+    def flash_vbmeta_if_needed():
+        # flash vbmeta if disabling verity / verification
+        vbmeta_file = os.path.join(package_dir_full, "vbmeta.img")
+        if self.config.disable_verity or self.config.disable_verification and os.path.exists(vbmeta_file) and self.config.flash_mode != 'dryRun':
+            print("flashing vbmeta ...")
+            theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} flash vbmeta \"{vbmeta_file}\""
+            debug(theCmd)
+            res = run_shell(theCmd)
+            if res.returncode != 0:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vbmeta flashing did not return the expected result.")
+                print(f"theCmd: {theCmd}")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                print("Aborting ...")
+                puml("#red:vbmeta flashing did not return the expected result.;\n}\n")
+                self.toast("Flash action", "vbmeta flashing did not return the expected result.")
+                print("Aborting ...\n")
+                return -1
+        return 0
+
+    # ==========================================
+    # Sub Function                 compare_slots
+    # ==========================================
+    def compare_slots():
+        nonlocal device
+        # If we're doing Sideload image flashing
+        if self.config.flash_mode == 'OTA':
+            # check slot
+            slot_after_flash = device.get_current_slot()
+            print(f"Current slot: [{slot_after_flash}]")
+            print("Comparing the current slot with the previous active slot ...")
+            if slot_after_flash == "UNKNOWN" or slot_after_flash == slot_before_flash:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It appears that OTA flashing did not properly switch slots.")
+                print("Aborting ...")
+                puml("#red:It appears that OTA flashing did not properly switch slots.;\n}\n")
+                self.toast("Flash action", "It appears that OTA flashing did not properly switch slots.")
+                print("Aborting ...\n")
+                return -1
+            print("Current slot has changed, this is good.")
+        return 0
+
+    # ============================================
+    # Sub Function      reboot_to_system_if_needed
+    # ============================================
+    def reboot_to_system_if_needed():
+        nonlocal device
+        if not self.config.no_reboot:
+            device = get_phone()
+            if device:
+                if wipe_flag:
+                    timeout = None
+                else:
+                    timeout = 90
+                res = device.reboot_system(timeout=timeout)
+                if res == -1:
+                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                    print("Aborting ...\n")
+                    return -1
+        return 0
+
+    # ============================================
+    # Sub Function              device_is_detected
+    # ============================================
+    def device_is_detected():
+        # see if we got a device
+        nonlocal device
+        if not device:
+            # sleep 5 seconds and try again
+            print("Sleeping 5 seconds to find the device ...")
+            puml(f":Sleeping 5 seconds;\n", True)
+            time.sleep(5)
+            self.refresh_device(device_id)
+            device = get_phone()
+            if not device:
+                # TODO: Improve the message, we don't need to suggest flashing when doing OTA, depending on the options selected, the suggestions vary.
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Your device is not found in bootloader mode.\nIf your device is actually in bootloader mode,\nhit the scan button and see if PixelFlasher finds it.\nIf it does, you can hit the Flash button again,\notherwise there seems to be a connection issue (USB drivers, cable, PC port ...)\n")
+                print("Aborting ...\n")
+                puml("#red:Device not found after rebooting to bootloader;\n}\n")
+                self.toast("Flash action", "Device is not found after rebooting to bootloader.")
+                print("Aborting ...\n")
+                return -1
+        return 0
+
+    # ============================================
+    # Sub Function     reboot_device_to_bootloader
+    # ============================================
+    def reboot_device_to_bootloader():
+        nonlocal device
+        # reboot to bootloader if flashing is necessary
+        if self.config.disable_verity or self.config.disable_verification or not boot.is_stock_boot:
+            res = device.reboot_bootloader(fastboot_included = True)
             if res == -1:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                print("Aborting ...\n")
+                puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
+                self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
+                refresh_and_done()
+                return -1
+            image_mode = get_image_mode()
+            self.refresh_device(device_id)
+            device = get_phone()
+            return 0
+        else:
+            return 1
 
-    ### Refresh Device
-    self.refresh_device(device_id)
-    # device = get_phone()
+    # ============================================
+    # Sub Function                 get_device_mode
+    # ============================================
+    def get_device_mode(expect_bootloader=False):
+        nonlocal device
+        mode = device.get_device_state(device_id=device_id, timeout=60, retry=3)
+        if mode:
+            print(f"Currently the device is in {mode} mode.")
+            if expect_bootloader and mode != "fastboot":
+                print("ERROR: Expected the device to be in bootloader mode")
+                print("Aborting ...\n")
+                return -1
+            image_mode = get_image_mode()
+            self.refresh_device(device_id)
+            device = get_phone()
+            return 0
+        else:
+            print("ERROR: Device could not be detected")
+            print("Aborting ...\n")
+            return -1
 
-    ### Done
-    endFlash = time.time()
-    print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
-    print("------------------------------------------------------------------------------\n")
-    puml("#cee7ee:End Flashing;\n", True)
-    puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
-    self.toast("Flash action", f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
-    puml("}\n")
-    os.chdir(cwd)
+    # ============================================
+    # Sub Function                refresh_and_done
+    # ============================================
+    def refresh_and_done():
+        nonlocal device
+        self.refresh_device(device_id)
+        # device = get_phone()
+        ### Done
+        endFlash = time.time()
+        print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
+        print("------------------------------------------------------------------------------\n")
+        puml("#cee7ee:End Flashing;\n", True)
+        puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
+        self.toast("Flash action", f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
+        puml("}\n")
+        os.chdir(cwd)
+
+    # -------------------------------------------------------------------------
+    # 5 Finish up Do the additional checks and flashing / rebooting
+    # -------------------------------------------------------------------------
+    # At this point when pf_script completes the execution,
+    # the device should be in bootloader mode for factory and custom flashing,
+    # And in recovery for sideload
+    # To be safe let's give it 10 seconds
+    print("Sleeping 10 seconds ...")
+    puml(f":Sleeping 10 seconds;\n", True)
+    time.sleep(10)
+
+    # !!!!!!!!!!!!
+    # Custom Flash
+    # !!!!!!!!!!!!
+    if self.config.flash_mode == 'customFlash':
+        # get device state
+        res = get_device_mode(expect_bootloader=True)
+        if res == -1:
+            refresh_and_done()
+            return -1
+
+        # if wipe is selected perform wipe.
+        if self.wipe and mode == "f.b":
+            print("Wiping userdata ...")
+            theCmd= f"\"{get_fastboot()}\" -s {device_id} -w"
+            debug(theCmd)
+            res = run_shell(theCmd)
+            wipe_flag = True
+
+        # reboot to system if needed
+        reboot_to_system_if_needed()
+
+    # !!!!!!!!!!!!
+    # OTA
+    # !!!!!!!!!!!!
+    elif self.config.flash_mode == 'OTA':
+        continue_ota_flag = False
+
+        # if Device is a Phone
+        if device.hardware not in PIXEL_WATCHES:
+            res = get_device_mode(expect_bootloader=False)
+            # if res == -1:
+            #     refresh_and_done()
+            #     return -1
+
+            # reboot to bootloader if flashing is necessary
+            res = reboot_device_to_bootloader()
+            if res == -1:
+                refresh_and_done()
+                return -1
+            elif res == 1:
+                reboot_to_system_if_needed()
+            else:
+                continue_ota_flag = True
+
+        # if Device is a Watch
+        # Pixel Watches cannot be detected or rebooted to bootloader mode once sideloading is completed
+        # We need to have user interaction to continue further.
+        else:
+            # Determine if we need to root, otherwise just display a message to reboot to system
+            if self.config.disable_verity or self.config.disable_verification or not boot.is_stock_boot:
+                # display a popup to ask the user to select "Reboot to bootloader" and hit to continue here when done
+                title = "Waiting for user interaction"
+                buttons_text = ["Done rebooting to bootloader, continue", "Cancel"]
+                message = '''
+## Your watch should now be in Android Recovery
+
+_If it is not, please hit the cancel button._
+
+The watch is waiting for user intercation which can not be programatically invoked.
+
+- Using touch, scroll and select **Reboot to bootloader**
+- Press the side button to apply.
+
+When done, the watch should reboot to bootloader mode <br/>
+Wait for the watch to indicate that it is in bootloader mode <br/>
+Click on **Done rebooting to bootloader, continue** button <br/>
+or hit the **Cancel** button to abort.
+
+'''
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
+                dlg.CentreOnParent(wx.BOTH)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+                if result == 2:
+                    print("Aborting ...")
+                    refresh_and_done()
+                    return -1
+                continue_ota_flag = True
+            else:
+                # display a popup to ask the user to select "Reboot to system now"
+                title = "Waiting for user interaction"
+                buttons_text = ["Done rebooting to system, continue"]
+                message = '''
+## Your watch should now be in Android Recovery
+
+The watch is waiting for user intercation which can not be programatically invoked.
+
+- Using touch, scroll and select **Reboot to system now**
+- Press the side button to apply.
+
+When applied, the watch should reboot to system. <br/>
+Click on **Done rebooting to system, continue** button.
+
+'''
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,300])
+                dlg.CentreOnParent(wx.BOTH)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+
+        # Watch continue with flashing
+        if continue_ota_flag:
+            # make sure device is detected
+            res = device_is_detected()
+            if res == -1:
+                refresh_and_done()
+                return -1
+
+            # compare slots
+            res = compare_slots()
+            if res == -1:
+                refresh_and_done()
+                return -1
+
+            # flash vbmeta if disabling verity / verification
+            res = flash_vbmeta_if_needed()
+            if res == -1:
+                refresh_and_done()
+                return -1
+
+            # apply patch if needed
+            res = apply_patch_if_needed()
+            if res == -1:
+                refresh_and_done()
+                return -1
+
+            # reboot to system if needed
+            reboot_to_system_if_needed()
+
+    # !!!!!!!!!!!!
+    # Factory
+    # !!!!!!!!!!!!
+    else:
+        # get device state
+        res = get_device_mode(expect_bootloader=True)
+        if res == -1:
+            refresh_and_done()
+            return -1
+
+        # reboot to bootloader
+        res = reboot_device_to_bootloader()
+        if res == -1:
+            refresh_and_done()
+            return -1
+
+        # apply patch if needed
+        res = apply_patch_if_needed()
+        if res == -1:
+            refresh_and_done()
+            return -1
+
+        # reboot to system if needed
+        reboot_to_system_if_needed()
+
+    # !!!!!!!!!!!!
+    # Done
+    # !!!!!!!!!!!!
+    refresh_and_done()
     return 0

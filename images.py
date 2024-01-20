@@ -6445,3 +6445,12 @@ e2j_24 = PyEmbeddedImage(
     b'YcxHhcURiWO8xDY+aSFGA05C6vZRQzq+qs8Sqk/uaCEmHiAOUV/c8lV9HlB9dW7vPzFu9p/i'
     b'7FJRXi/7++D/vJMz4dwXiD1GdseRrBIAAAAASUVORK5CYII=')
 
+#----------------------------------------------------------------------
+save_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAA4UlEQVRIS2NkoDFgpLH5DHS3'
+    b'wADoo/lADKJJAYVAxROwaUD3wX6gIgdSTEZSi9USdAv+QzWQEnQgB4EcBgIYluCzAGYZPg/B'
+    b'9OO0hFoWgByBbAncXGpaALIEI4gH1AJyEhNJPqCrBQJA2+qhEQlib4AmSXRHkO0DkOENaKaB'
+    b'ci4o3SMDsi24DzRFAc2wD0C+4JCxoB/o0gJaBhHIbJgloKCBRTKITZU4IDbJEoxkbJFJrOEw'
+    b'dReADEMYB72ocABKgCoc9BRDrCUHgAoXAvECXBYQaxDR6kipWIg2FFkhzS0AAA+zORkpPFSg'
+    b'AAAAAElFTkSuQmCC')
+

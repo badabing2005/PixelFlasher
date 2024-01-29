@@ -112,6 +112,10 @@ class Device():
         self._magisk_modules_summary = None
         self._magisk_apks = None
         self._magisk_config_path = None
+        self._apatch_version = None
+        self._apatch_app_version = None
+        self._apatch_version_code = None
+        self._apatch_app_version_code = None
         self._has_init_boot = None
         self.packages = {}
         self.backups = {}
@@ -1894,29 +1898,42 @@ add_hosts_module
     @property
     def magisk_app_version(self):
         if self._magisk_app_version is None and self.mode == 'adb' and get_magisk_package():
+            self._magisk_app_version, self._magisk_app_version_code = self.get_app_version(get_magisk_package())
+        return self._magisk_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               property apatch_app_version
+    # ----------------------------------------------------------------------------
+    @property
+    def apatch_app_version(self):
+        if self._apatch_app_version is None and self.mode == 'adb':
+            self._apatch_app_version, self._apatch_app_version_code = self.get_app_version('me.bmax.apatch')
+        return self._apatch_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               method app_version
+    # ----------------------------------------------------------------------------
+    def get_app_version(self, pkg):
+        version = ''
+        versionCode = ''
+        if pkg and self.mode == 'adb':
             try:
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {get_magisk_package()}"
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {pkg}"
                 res = run_shell(theCmd)
                 data = res.stdout.split('\n')
-                version = None
-                versionCode = None
                 for line in data:
                     if re.search('versionCode', line):
                         versionCode = line.split('=')
                         versionCode = versionCode[1]
                         versionCode = versionCode.split(' ')
                         versionCode = versionCode[0]
-                        self._magisk_app_version_code = versionCode
                     if re.search('versionName', line):
                         version = line.split('=')
                         version = version[1]
             except Exception:
-                return ''
-            if version and versionCode:
-                self._magisk_app_version = f"{str(version)}:{str(versionCode)}"
-            else:
-                self._magisk_app_version = ''
-        return self._magisk_app_version
+                return '', ''
+        # return version, versionCode
+        return f"{str(version)}:{str(versionCode)}", versionCode
 
     # ----------------------------------------------------------------------------
     #                               property magisk_app_version_code
@@ -1929,11 +1946,28 @@ add_hosts_module
             return self._magisk_app_version_code
 
     # ----------------------------------------------------------------------------
+    #                               property apatch_app_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def apatch_app_version_code(self):
+        if self._apatch_app_version_code is None:
+            return ''
+        else:
+            return self._apatch_app_version_code
+
+    # ----------------------------------------------------------------------------
     #                               Method get_uncached_magisk_app_version
     # ----------------------------------------------------------------------------
     def get_uncached_magisk_app_version(self):
         self._magisk_app_version = None
         return self.magisk_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_uncached_apatch_app_version
+    # ----------------------------------------------------------------------------
+    def get_uncached_apatch_app_version(self):
+        self._apatch_app_version = None
+        return self.apatch_app_version
 
     # ----------------------------------------------------------------------------
     #                               Method is_display_unlocked

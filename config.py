@@ -119,7 +119,8 @@ class Config():
             'auto_fill': False,
             'force_first_api': False,
             'first_api_value_when_forced': "25",
-            'sort_keys': True
+            'sort_keys': True,
+            'keep_unknown': True
         }
 
         self.scrcpy = {
@@ -337,6 +338,8 @@ class Config():
                         conf.pif['first_api_value_when_forced'] = pif_data['first_api_value_when_forced']
                     with contextlib.suppress(KeyError):
                         conf.pif['sort_keys'] = pif_data['sort_keys']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['keep_unknown'] = pif_data['keep_unknown']
 
                 # read the scrcpy section
                 scrcpy_folder = ''

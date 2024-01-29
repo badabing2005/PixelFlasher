@@ -139,6 +139,12 @@ class PifManager(wx.Dialog):
             with contextlib.suppress(KeyError):
                 self.sort_keys_checkbox.SetValue(self.config.pif['sort_keys'])
         self.sort_keys_checkbox.SetToolTip(f"Sorts json keys")
+        # keep_unknown
+        self.keep_unknown_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Keep All keys", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        if self.config.pif:
+            with contextlib.suppress(KeyError):
+                self.keep_unknown_checkbox.SetValue(self.config.pif['keep_unknown'])
+        self.keep_unknown_checkbox.SetToolTip(f"Does not remove non standard / unrecognized keys")
 
         # Console
         self.console_stc = stc.StyledTextCtrl(self)
@@ -177,9 +183,6 @@ class PifManager(wx.Dialog):
         self.cleanup_dg_button = wx.Button(self, wx.ID_ANY, u"Cleanup DG", wx.DefaultPosition, wx.DefaultSize, 0)
         self.cleanup_dg_button.SetToolTip(u"Cleanup Droidguard Cache")
         self.cleanup_dg_button.Enable(False)
-        self.cleanup_dg_button.Hide()
-        if self.config.enable_dg_clean:
-            self.cleanup_dg_button.Show()
 
         # Process build.prop button
         self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -300,6 +303,8 @@ class PifManager(wx.Dialog):
         console_label_sizer.Add(self.force_first_api_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.sort_keys_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.keep_unknown_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
 
         stc_sizer = wx.BoxSizer(wx.VERTICAL)
         stc_sizer.Add(self.active_pif_stc, 1, wx.EXPAND | wx.ALL, 10)
@@ -365,6 +370,7 @@ class PifManager(wx.Dialog):
         self.add_missing_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoFill)
         self.force_first_api_checkbox.Bind(wx.EVT_CHECKBOX, self.onForceFirstAPI)
         self.sort_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onSortKeys)
+        self.keep_unknown_checkbox.Bind(wx.EVT_CHECKBOX, self.onKeepUnknown)
         self.auto_update_pif_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoUpdatePif)
         self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
         self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
@@ -408,6 +414,7 @@ class PifManager(wx.Dialog):
         self.enable_buttons = False
         self.pif_version_label.SetLabel('')
         self.sort_keys = self.sort_keys_checkbox.IsChecked()
+        self.keep_unknown = self.keep_unknown_checkbox.IsChecked()
 
         if self.force_first_api_checkbox.IsChecked():
             self.first_api = self.first_api_value
@@ -1041,7 +1048,7 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
-            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys)
+            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.keep_unknown)
             self.console_stc.SetValue(donor_json_string)
             # print(donor_json_string)
 
@@ -1115,7 +1122,7 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
-                json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys)
+                json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.keep_unknown)
 
                 # not needed if we don't want to auto-fill first api
                 json_dict = json5.loads(json_string)
@@ -1271,9 +1278,9 @@ class PifManager(wx.Dialog):
             json_string = json.dumps(json_dict, indent=4, sort_keys=True)
             processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
             if first_api == '' or self.force_first_api_checkbox.IsChecked():
-                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api_value, self.sort_keys)
+                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api_value, self.sort_keys, self.keep_unknown)
             else:
-                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, None, self.sort_keys)
+                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, None, self.sort_keys, self.keep_unknown)
             self.active_pif_stc.SetValue(donor_json_string)
 
             # Auto Update pif.json
@@ -1324,6 +1331,16 @@ class PifManager(wx.Dialog):
         status = self.sort_keys_checkbox.GetValue()
         self.sort_keys = status
         self.config.pif['sort_keys'] = status
+
+
+    # -----------------------------------------------
+    #                  onKeepUnknown
+    # -----------------------------------------------
+    def onKeepUnknown(self, event):
+        self.keep_unknown_checkbox = event.GetEventObject()
+        status = self.keep_unknown_checkbox.GetValue()
+        self.keep_unknown = status
+        self.config.pif['keep_unknown'] = status
 
 
     # -----------------------------------------------
@@ -1436,7 +1453,7 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
             active_pif = self.active_pif_stc.GetValue()
             processed_dict = self.load_json_with_rules(active_pif, self.advanced_props_support)
-            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys)
+            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys, self.keep_unknown)
             self.console_stc.SetValue(donor_json_string)
 
         except Exception:
@@ -1471,7 +1488,7 @@ class PifManager(wx.Dialog):
                     data = json5.load(f)
                 json_string = json.dumps(data, indent=4, sort_keys=True)
                 processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
-                reprocessed_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys)
+                reprocessed_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys, self.keep_unknown)
                 if count == 1:
                     self.console_stc.SetValue(reprocessed_json_string)
                 else:

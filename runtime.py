@@ -37,6 +37,7 @@ import wx
 from packaging.version import parse
 from platformdirs import *
 from constants import *
+import cProfile, pstats, io
 
 verbose = False
 adb = None
@@ -2303,9 +2304,19 @@ def get_first_match(dictionary, keys):
 
 
 # ============================================================================
+#                               Function delete_keys_from_dict
+# ============================================================================
+def delete_keys_from_dict(dictionary, keys):
+    for key in keys:
+        if key in dictionary:
+            del dictionary[key]
+    return dictionary
+
+
+# ============================================================================
 #                               Function process_dict
 # ============================================================================
-def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False, set_first_api=None, sort_data=False):
+def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False, set_first_api=None, sort_data=False, keep_all=False):
     try:
         android_devices = get_android_devices()
         autofill = False
@@ -2328,6 +2339,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         fp_ro_build_tags = ''
         keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
         ro_build_fingerprint = get_first_match(the_dict, keys)
+        if ro_build_fingerprint != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_build_fingerprint == '':
             ro_build_fingerprint = get_first_match(device_dict, keys)
         if ro_build_fingerprint:
@@ -2347,6 +2360,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # PRODUCT
         keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name', 'ro.vendor.product.name']
         ro_product_name = get_first_match(the_dict, keys)
+        if ro_product_name != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if ro_product_name in [None, '', 'mainline', 'generic'] and fp_ro_product_name != '':
             debug(f"Properties for PRODUCT are extracted from FINGERPRINT: {fp_ro_product_name}")
             ro_product_name = fp_ro_product_name
@@ -2356,6 +2371,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # DEVICE (ro.build.product os fallback, keep it last)
         keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.vendor.product.device', 'ro.build.product']
         ro_product_device = get_first_match(the_dict, keys)
+        if ro_product_device != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if ro_product_device in [None, '', 'mainline', 'generic'] and fp_ro_product_device != '':
             debug(f"Properties for DEVICE are extracted from FINGERPRINT: {fp_ro_product_device}")
             ro_product_device = fp_ro_product_device
@@ -2365,12 +2382,16 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # MANUFACTURER
         keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer', 'ro.vendor.product.manufacturer']
         ro_product_manufacturer = get_first_match(the_dict, keys)
+        if ro_product_manufacturer != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_product_manufacturer == '':
             ro_product_manufacturer = get_first_match(device_dict, keys)
 
         # BRAND
         keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand', 'ro.vendor.product.brand']
         ro_product_brand = get_first_match(the_dict, keys)
+        if ro_product_brand != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_product_brand is None or ro_product_brand == '') and fp_ro_product_brand != '':
             debug(f"Properties for BRAND are not found, using value from FINGERPRINT: {fp_ro_product_brand}")
             ro_product_brand = fp_ro_product_brand
@@ -2380,6 +2401,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # MODEL
         keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
         ro_product_model = get_first_match(the_dict, keys)
+        if ro_product_model != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if ro_product_model in ['mainline', 'generic'] and ro_product_manufacturer == 'Google':
             # get model from android_devices if it is a Google device
             # TODO: otherwise, or ideally from vendor/build.prop
@@ -2390,23 +2413,29 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # SECURITY_PATCH
         keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
         ro_build_version_security_patch = get_first_match(the_dict, keys)
+        if ro_build_version_security_patch != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_build_version_security_patch == '':
             ro_build_version_security_patch = get_first_match(device_dict, keys)
 
         # FIRST_API_LEVEL
+        keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
         if set_first_api:
             ro_product_first_api_level = set_first_api
         else:
-            keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
             ro_product_first_api_level = get_first_match(the_dict, keys)
             if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
                 ro_product_first_api_level = '32'
             if autofill and ro_product_first_api_level == '':
                 ro_product_first_api_level = get_first_match(device_dict, keys)
+        if ro_product_first_api_level != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
 
         # BUILD_ID
         keys = ['ro.build.id']
         ro_build_id = get_first_match(the_dict, keys)
+        if ro_build_id != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_id is None or ro_build_id == '') and fp_ro_build_id != '':
             debug(f"Properties for ID are not found, using value from FINGERPRINT: {fp_ro_build_id}")
             ro_build_id = fp_ro_build_id
@@ -2416,6 +2445,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # RELEASE
         keys = ['ro.build.version.release']
         ro_build_version_release = get_first_match(the_dict, keys)
+        if ro_build_version_release != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_version_release is None or ro_build_version_release == '') and fp_ro_build_version_release != '':
             debug(f"Properties for RELEASE are not found, using value from FINGERPRINT: {fp_ro_build_version_release}")
             ro_build_version_release = fp_ro_build_version_release
@@ -2425,6 +2456,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # INCREMENTAL
         keys = ['ro.build.version.incremental']
         ro_build_version_incremental = get_first_match(the_dict, keys)
+        if ro_build_version_incremental != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_version_incremental is None or ro_build_version_incremental == '') and fp_ro_build_version_incremental != '':
             debug(f"Properties for INCREMENTAL are not found, using value from FINGERPRINT: {fp_ro_build_version_incremental}")
             ro_build_version_incremental = fp_ro_build_version_incremental
@@ -2434,6 +2467,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # TYPE
         keys = ['ro.build.type']
         ro_build_type = get_first_match(the_dict, keys)
+        if ro_build_type != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_type is None or ro_build_type == '') and fp_ro_build_type != '':
             debug(f"Properties for TYPE are not found, using value from FINGERPRINT: {fp_ro_build_type}")
             ro_build_type = fp_ro_build_type
@@ -2443,6 +2478,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # TAGS
         keys = ['ro.build.tags']
         ro_build_tags = get_first_match(the_dict, keys)
+        if ro_build_tags != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_tags is None or ro_build_tags == '') and fp_ro_build_tags != '':
             debug(f"Properties for TAGS are not found, using value from FINGERPRINT: {fp_ro_build_tags}")
             ro_build_tags = fp_ro_build_tags
@@ -2452,6 +2489,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         # VNDK_VERSION
         keys = ['ro.vndk.version', 'ro.product.vndk.version']
         ro_vndk_version = get_first_match(the_dict, keys)
+        if ro_vndk_version != '':
+            the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_vndk_version == '':
             ro_vndk_version = get_first_match(device_dict, keys)
 
@@ -2465,7 +2504,8 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         ffp_ro_build_type = fp_ro_build_type if fp_ro_build_type != '' else ro_build_type
         ffp_ro_build_tags = fp_ro_build_tags if fp_ro_build_tags != '' else ro_build_tags
         # Rebuild the FINGERPRINT
-        ro_build_fingerprint = f"{ffp_ro_product_brand}/{ffp_ro_product_name}/{ffp_ro_product_device}:{ffp_ro_build_version_release}/{ffp_ro_build_id}/{ffp_ro_build_version_incremental}:{ffp_ro_build_type}/{ffp_ro_build_tags}"
+        if ffp_ro_product_brand and ffp_ro_product_name and ffp_ro_product_device and ffp_ro_build_version_release and ffp_ro_build_id and ffp_ro_build_version_incremental and ffp_ro_build_type and ffp_ro_build_tags:
+            ro_build_fingerprint = f"{ffp_ro_product_brand}/{ffp_ro_product_name}/{ffp_ro_product_device}:{ffp_ro_build_version_release}/{ffp_ro_build_id}/{ffp_ro_build_version_incremental}:{ffp_ro_build_type}/{ffp_ro_build_tags}"
 
         donor_data = {
             "PRODUCT": ro_product_name,
@@ -2494,12 +2534,19 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
             donor_data["ID"] = ro_build_id
             donor_data["VNDK_VERSION"] = ro_vndk_version
             donor_data["FORCE_BASIC_ATTESTATION"] = "true"
+            donor_data["KERNEL"] = "Goolag-perf"
 
         # Discard keys with empty values if the flag is set
         if advanced_props_support:
             modified_donor_data = {key: value for key, value in donor_data.items() if value != ""}
         else:
             modified_donor_data = donor_data
+
+        # Keep unknown props if the flag is set
+        if keep_all:
+            for key, value in the_dict.items():
+                if key not in modified_donor_data:
+                    modified_donor_data[key] = value
 
         if not sort_data:
             return json.dumps(modified_donor_data, indent=4)
@@ -3091,8 +3138,8 @@ def run_shell(cmd, timeout=None):
         # Return the response
         return subprocess.CompletedProcess(args=cmd, returncode=process.returncode, stdout=stdout, stderr=stderr)
     except subprocess.TimeoutExpired as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
-        puml("#red:Command timed out;\n", True)
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
+        puml("#red:Command {cmd} timed out;\n", True)
         puml(f"note right\n{e}\nend note\n")
         # Send CTRL + C signal to the process
         process.send_signal(signal.SIGTERM)
@@ -3100,7 +3147,7 @@ def run_shell(cmd, timeout=None):
         return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
 
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell {cmd}")
         traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")
@@ -3130,19 +3177,37 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None):
                 break
             if timeout is not None and time.time() > timeout:
                 proc.terminate()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command timed out after {timeout} seconds")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
                 puml("#red:Command timed out;\n", True)
-                puml(f"note right\nCommand timed out after {timeout} seconds\nend note\n")
+                puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
                 return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
         proc.wait()
         # Wait for the process to complete and capture the output
         stdout, stderr = proc.communicate()
         return subprocess.CompletedProcess(args=cmd, returncode=proc.returncode, stdout=stdout, stderr=stderr)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2")
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
         traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")
         raise e
         # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')
 
+
+
+# def run_shell(*args, **kwargs):
+#     pr = cProfile.Profile()
+#     pr.enable()
+#     result = run_shell1(*args, **kwargs)  # Call your function here
+#     pr.disable()
+#     s = io.StringIO()
+#     ps = pstats.Stats(pr, stream=s).sort_stats('tottime')
+#     ps.print_stats()
+
+#     # Get the calling function and line number
+#     stack = traceback.extract_stack()
+#     filename, lineno, function_name, _ = stack[-3]  # -3 because -1 is current function, -2 is the function that called this function
+#     print(f"Called from {function_name} at {filename}:{lineno}")
+
+#     print(s.getvalue())
+#     return result

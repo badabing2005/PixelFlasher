@@ -25,6 +25,7 @@ import wx.lib.mixins.inspection
 from packaging.version import parse
 
 import images as images
+import cProfile, pstats
 
 with contextlib.suppress(Exception):
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
@@ -53,6 +54,7 @@ locale.setlocale(locale.LC_ALL, 'C')
 # For troubleshooting, set inspector = True
 inspector = False
 dont_initialize = False
+do_profiling = False
 
 # Declare global_args at the global scope
 global_args = None
@@ -227,6 +229,9 @@ class GoogleImagesBaseMenu(wx.Menu):
         self.current_menu_id = self.BASE_MENU_ID_START
 
     def bind_download_event(self, menu, url):
+        if menu is None:
+            print(f"Error: menu is None when adding menu item for {url}")
+            return
         unique_id = self.generate_unique_id()
         # next line is for debugging
         # menu.SetItemLabel(f"{menu.GetItemLabel()} ({unique_id})")
@@ -264,14 +269,15 @@ class GoogleImagesBaseMenu(wx.Menu):
         # debug(f"Download triggered for URL: {url}, Menu ID: {unique_id}")
         def download_completed(destination_path):
             self.parent.toast("Download Successful", f"File downloaded successfully: {url} and saved to {destination_path}")
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Download Successful", f"File downloaded successfully: {url} and saved to {destination_path}")
             # self.parent.firmware_picker.SetPath(destination_path)
             # self.parent.update_firmware_selection(destination_path)
 
         filename = os.path.basename(url)
         dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
-            print(f"Starting background download for: {url} please be patient ...")
             destination_path = dialog.GetPath()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Starting background download for: {url} to be saved to {destination_path}\nplease be patient ...")
             download_thread = threading.Thread(target=download_file, args=(url, destination_path), kwargs={"callback": lambda: download_completed(destination_path)})
             download_thread.start()
 
@@ -310,26 +316,28 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
 
                     for download_entry in reversed(device_data[download_type]):
                         version = download_entry['version']
-                        url = download_entry['url']
                         sha256 = download_entry['sha256']
-                        download_date = download_entry['date']
-
                         menu_label = f"{version} ({device_label})"
                         menu_id = self.generate_unique_id()
                         download_menu_item = download_menu.Append(menu_id, menu_label, sha256)
-                        # Set the background color and the icon for the current device. (background color is not working)
-                        if device_id == device_hardware and device_firmware_date and download_date and int(download_date) > int(device_firmware_date):
-                            download_menu_item.SetBackgroundColour((100, 155, 139, 255))
-                            download_menu_item.SetBitmap(images.download_24.GetBitmap())
-                            device_download_flag = True
-                            download_available = True
-                            device_icon = images.download_24.GetBitmap()
-                            if device_type == "phone":
-                                phone_icon = images.download_24.GetBitmap()
-                            elif device_type == "watch":
-                                watch_icon = images.download_24.GetBitmap()
+                        if download_menu_item is None:
+                            print(f"Failed to create menu item with id {menu_id}, label {menu_label}, and sha256 {sha256}")
+                        else:
+                            download_date = download_entry['date']
+                            # Set the background color and the icon for the current device. (background color is not working)
+                            if device_id == device_hardware and device_firmware_date and download_date and int(download_date) > int(device_firmware_date):
+                                download_menu_item.SetBackgroundColour((100, 155, 139, 255))
+                                download_menu_item.SetBitmap(images.download_24.GetBitmap())
+                                device_download_flag = True
+                                download_available = True
+                                device_icon = images.download_24.GetBitmap()
+                                if device_type == "phone":
+                                    phone_icon = images.download_24.GetBitmap()
+                                elif device_type == "watch":
+                                    watch_icon = images.download_24.GetBitmap()
 
-                        self.bind_download_event(download_menu_item, url)
+                            url = download_entry['url']
+                            self.bind_download_event(download_menu_item, url)
 
                     download_type_menu_item = device_menu.AppendSubMenu(download_menu, download_type.capitalize())
                     if download_type == "ota":
@@ -464,6 +472,9 @@ class PixelFlasher(wx.Frame):
     #                  initialize
     # -----------------------------------------------
     def initialize(self):
+        if do_profiling:
+            profiler = cProfile.Profile()
+            profiler.enable()
         t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
         print(f"PixelFlasher {VERSION} started on {t}")
         puml(f"{t};\n")
@@ -674,6 +685,11 @@ class PixelFlasher(wx.Frame):
         self.spinner.Hide()
         self.spinner_label.Hide()
         self.init_complete = True
+
+        if do_profiling:
+            profiler.disable()
+            stats = pstats.Stats(profiler).sort_stats('tottime')  # 'tottime' for total time
+            stats.print_stats()
 
     # -----------------------------------------------
     #           enable_disable_radio_buttons
@@ -2563,7 +2579,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_scan(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scan")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scan")
+            print("==============================================================================")
             if get_adb():
                 print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Scanning for Devices ...")
                 puml(":Scan for Devices;\n")
@@ -2649,7 +2667,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_process_firmware(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Process firmware")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Process firmware")
+            print("==============================================================================")
             self._on_spin('start')
             if self.config.firmware_path:
                 process_file(self, 'firmware')
@@ -2664,7 +2684,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_process_rom(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Process ROM")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Process ROM")
+            print("==============================================================================")
             self._on_spin('start')
             if self.config.custom_rom_path:
                 process_file(self, 'rom')
@@ -2909,7 +2931,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_recovery(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Recovery")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Recovery")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -2928,7 +2952,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_download(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Download")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Download")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -2947,7 +2973,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_sideload(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Sideload")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Sideload")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -2966,7 +2994,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_safemode(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Safe Mode")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Safe Mode")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -3025,7 +3055,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_system(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot System")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot System")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -3044,7 +3076,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_bootloader(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Bootloader")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Bootloader")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -3063,7 +3097,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_reboot_fastbootd(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Fastbootd")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Fastbootd")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -3081,7 +3117,9 @@ class PixelFlasher(wx.Frame):
     #                  _on_lock_bootloader
     # -----------------------------------------------
     def _on_lock_bootloader(self, event):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Lock Bootloader")
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Lock Bootloader")
+        print("==============================================================================")
         if not self.config.device:
             return
         title = "Lock Bootloader"
@@ -3163,7 +3201,9 @@ class PixelFlasher(wx.Frame):
     #                  _on_unlock_bootloader
     # -----------------------------------------------
     def _on_unlock_bootloader(self, event):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Unlock Bootloader")
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Unlock Bootloader")
+        print("==============================================================================")
         if not self.config.device:
             return
         title = "Unlock Bootloader"
@@ -3216,7 +3256,9 @@ class PixelFlasher(wx.Frame):
     #                  _on_sos
     # -----------------------------------------------
     def _on_sos(self, event):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated SOS")
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated SOS")
+        print("==============================================================================")
         if not self.config.device:
             return
         title = "Disable Magisk Modules"
@@ -3257,7 +3299,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_adb_shell(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated ADB Shell")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated ADB Shell")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -3272,7 +3316,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_scrcpy(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scrcpy")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scrcpy")
+            print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
@@ -3397,7 +3443,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_switch_slot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Switch Slot")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Switch Slot")
+            print("==============================================================================")
             if not self.config.device:
                 return
             device = get_phone()
@@ -3465,7 +3513,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_adb_kill_server(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated ADB Kill")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated ADB Kill")
+            print("==============================================================================")
             dlg = wx.MessageDialog(None, "This will invoke the command adb kill-server.\nAre you sure want to continue?",'ADB Kill Server',wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result != wx.ID_YES:
@@ -3798,7 +3848,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_live_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Live boot")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Live boot")
+            print("==============================================================================")
             self._on_spin('start')
             live_flash_boot_phone(self, 'Live')
         except Exception as e:
@@ -3811,7 +3863,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_flash_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Flash Boot")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Flash Boot")
+            print("==============================================================================")
             self._on_spin('start')
             live_flash_boot_phone(self, 'Flash')
         except Exception as e:
@@ -3860,7 +3914,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_patch_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Patch boot")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Patch boot")
+            print("==============================================================================")
             self._on_spin('start')
             patch_boot_img(self, False)
         except Exception as e:
@@ -3873,7 +3929,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_patch_custom_boot(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Custom Patch boot")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Custom Patch boot")
+            print("==============================================================================")
             self._on_spin('start')
             patch_boot_img(self, True)
         except Exception as e:
@@ -3886,7 +3944,9 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_flash(self, event):
         try:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User initiated Flash Pixel Phone.")
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Flash Pixel Phone.")
+            print("==============================================================================")
             self.spinner_label.Label = "Please be patient ...\n\nDuring this process:\n ! Do not touch the device\n ! Do not unplug your device"
             self._on_spin('start')
             self.flash_button.Enable(False)

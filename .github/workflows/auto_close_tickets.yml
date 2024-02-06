@@ -23,6 +23,7 @@ jobs:
         id: calculate_date
         run: |
           date_threshold=$(date -u -d '15 days ago' +%s)
+          echo "date_threshold=$date_threshold" >> $GITHUB_ENV
           echo "Debug: Date threshold: $date_threshold"
         shell: bash
 
@@ -32,14 +33,15 @@ jobs:
           echo "Getting all open issues with tag: 'need more info' ..."
           open_issues_with_tag_json=$(curl -s -H 'Accept: application/vnd.github.v3+json' -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/issues?labels=need%20more%20info&state=open")
           echo "Debug: All Open Issues with Tag (need more info): $open_issues_with_tag_json"
-          filtered_issues=$(jq --arg threshold "$date_threshold" '.[] | select((.updated_at | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) < ($threshold | tonumber))' <<< "$open_issues_with_tag_json")
-          echo "Debug: Filtered Issues: $filtered_issues"
+          filtered_issue_numbers=$(jq --arg threshold "${{ env.date_threshold }}" '.[] | select((.updated_at | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime) < ($threshold | tonumber)) | .number' <<< "$open_issues_with_tag_json")
+          echo "Debug: Filtered Issue Numbers: $filtered_issue_numbers"
+          echo "filtered_issue_numbers=$filtered_issue_numbers" >> $GITHUB_ENV
         shell: bash
 
       - name: Iterate and close filtered issues
         run: |
           closed_issues=""
-          for issue_number in $(echo "$filtered_issues" | jq -r '.[].number'); do
+          for issue_number in ${{ env.filtered_issue_numbers }}; do
             echo "Adding a comment to issue $issue_number"
             curl -X POST -H "Accept: application/vnd.github.v3+json" -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" -d '{"body": "This issue was closed due to inactivity."}' "https://api.github.com/repos/${{ github.repository }}/issues/$issue_number/comments"
             echo "Closing issue $issue_number"

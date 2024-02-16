@@ -32,7 +32,7 @@ class PifManager(wx.Dialog):
         self.coords = Coords()
         self.enable_buttons = False
         self.pif_exists = False
-        self.advanced_props_support = False
+        self.pif_flavor = ''
         self.favorite_pifs = get_favorite_pifs()
         self.insync = False
 
@@ -400,6 +400,14 @@ class PifManager(wx.Dialog):
     #              Function init
     # -----------------------------------------------
     def init(self, refresh=False):
+        self.keep_unknown = self.keep_unknown_checkbox.IsChecked()
+        self.sort_keys = self.sort_keys_checkbox.IsChecked()
+
+        if self.force_first_api_checkbox.IsChecked():
+            self.first_api = self.first_api_value
+        else:
+            self.first_api = None
+
         device = get_phone()
         if not device or not device.rooted:
             return
@@ -413,13 +421,6 @@ class PifManager(wx.Dialog):
         self.pi_checker_button.Enable(False)
         self.enable_buttons = False
         self.pif_version_label.SetLabel('')
-        self.sort_keys = self.sort_keys_checkbox.IsChecked()
-        self.keep_unknown = self.keep_unknown_checkbox.IsChecked()
-
-        if self.force_first_api_checkbox.IsChecked():
-            self.first_api = self.first_api_value
-        else:
-            self.first_api = None
 
         if modules:
             for module in modules:
@@ -428,11 +429,12 @@ class PifManager(wx.Dialog):
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
                         if int(module.versionCode) > 4000:
                             print("Advanced props support enabled.")
-                            self.advanced_props_support = True
                     elif module.name != "Play Integrity NEXT":
                         self.pif_json_path = '/data/adb/pif.json'
                     if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
+                    flavor = module.name.replace(" ", "").lower()
+                    self.pif_flavor = f"{flavor}_{module.versionCode}"
                     self.create_pif_button.Enable(False)
                     self.reload_pif_button.Enable(True)
                     self.cleanup_dg_button.Enable(True)
@@ -1048,7 +1050,7 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
-            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.keep_unknown)
+            donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, keep_all=self.keep_unknown)
             self.console_stc.SetValue(donor_json_string)
             # print(donor_json_string)
 
@@ -1122,18 +1124,18 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
-                json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.keep_unknown)
+                json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, keep_all=self.keep_unknown)
 
                 # not needed if we don't want to auto-fill first api
                 json_dict = json5.loads(json_string)
                 keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
                 first_api = get_first_match(json_dict, keys)
                 json_string = json.dumps(json_dict, indent=4, sort_keys=True)
-                processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
+                processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
                 if first_api == '':
-                    donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api_value, self.sort_keys)
+                    donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api_value, sort_data=self.sort_keys)
                 else:
-                    donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, None, self.sort_keys)
+                    donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=None, sort_data=self.sort_keys)
 
                 # save json file
                 json_path = os.path.splitext(prop_path)[0] + ".json"
@@ -1276,11 +1278,11 @@ class PifManager(wx.Dialog):
             keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
             first_api = get_first_match(json_dict, keys)
             json_string = json.dumps(json_dict, indent=4, sort_keys=True)
-            processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
+            processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
             if first_api == '' or self.force_first_api_checkbox.IsChecked():
-                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api_value, self.sort_keys, self.keep_unknown)
+                donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api_value, sort_data=self.sort_keys, keep_all=self.keep_unknown)
             else:
-                donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, None, self.sort_keys, self.keep_unknown)
+                donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=None, sort_data=self.sort_keys, keep_all=self.keep_unknown)
             self.active_pif_stc.SetValue(donor_json_string)
 
             # Auto Update pif.json
@@ -1452,8 +1454,8 @@ class PifManager(wx.Dialog):
             print("Reprocessing Active Pif content ...")
             self._on_spin('start')
             active_pif = self.active_pif_stc.GetValue()
-            processed_dict = self.load_json_with_rules(active_pif, self.advanced_props_support)
-            donor_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys, self.keep_unknown)
+            processed_dict = self.load_json_with_rules(active_pif, self.pif_flavor)
+            donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, sort_data=self.sort_keys, keep_all=self.keep_unknown)
             self.console_stc.SetValue(donor_json_string)
 
         except Exception:
@@ -1487,8 +1489,8 @@ class PifManager(wx.Dialog):
                 with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
                     data = json5.load(f)
                 json_string = json.dumps(data, indent=4, sort_keys=True)
-                processed_dict = self.load_json_with_rules(json_string, self.advanced_props_support)
-                reprocessed_json_string = process_dict(processed_dict, self.add_missing_keys_checkbox.IsChecked(), self.advanced_props_support, self.first_api, self.sort_keys, self.keep_unknown)
+                processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
+                reprocessed_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, sort_data=self.sort_keys, keep_all=self.keep_unknown)
                 if count == 1:
                     self.console_stc.SetValue(reprocessed_json_string)
                 else:

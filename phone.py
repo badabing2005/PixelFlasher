@@ -117,6 +117,7 @@ class Device():
         self._apatch_version_code = None
         self._apatch_app_version_code = None
         self._has_init_boot = None
+        self._kernel = None
         self.packages = {}
         self.backups = {}
         self.vbmeta = {}
@@ -133,7 +134,7 @@ class Device():
             if self._adb_device_info is None:
                 self._adb_device_info = self.device_info
             else:
-                 self._adb_device_info = ''
+                self._adb_device_info = ''
             return self._adb_device_info
 
     # ----------------------------------------------------------------------------
@@ -230,7 +231,7 @@ class Device():
             if self._fastboot_device_info is None:
                 self._fastboot_device_info = self.device_info
             else:
-                 self._fastboot_device_info = ''
+                self._fastboot_device_info = ''
             return self._fastboot_device_info
 
     # ----------------------------------------------------------------------------
@@ -264,7 +265,7 @@ class Device():
                 else:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell /bin/getprop"
                 device_info = run_shell(theCmd)
-                if device_info.returncode == 127:
+                if device_info.returncode == 127 or "/system/bin/sh: /bin/getprop: not found" in device_info.stdout:
                     if self.rooted:
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'getprop\'\""
                     else:
@@ -502,13 +503,50 @@ class Device():
             return '✗'
 
     # ----------------------------------------------------------------------------
+    #                               property kernel
+    # ----------------------------------------------------------------------------
+    @property
+    def kernel(self):
+        if self._kernel is None and self.mode == 'adb':
+            try:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell uname -a"
+                res = run_shell(theCmd)
+                if res.returncode == 0:
+                    self._kernel = res.stdout.strip('\n')
+                    match = re.search(r"\b(\d+\.\d+\.\d+-android\d+)\b", self._kernel)
+                    if match:
+                        self._kmi = match[1]
+                    else:
+                        self._kmi = None
+            except Exception:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get kernel information.")
+                traceback.print_exc()
+                self._rooted = None
+        return self._kernel
+
+    # ----------------------------------------------------------------------------
+    #                               property kmi
+    # ----------------------------------------------------------------------------
+    @property
+    def kmi(self):
+        try:
+            match = re.search(r"\b(\d+\.\d+\.\d+-android\d+)\b", self.kernel)
+            if match:
+                return match[1]
+            else:
+                return ''
+        except Exception:
+            return ''
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_path
     # ----------------------------------------------------------------------------
     @property
     def magisk_path(self):
         try:
-            if self.mode == 'adb' and get_magisk_package():
-                res = self.get_package_path(get_magisk_package(), True)
+            magisk_path = get_magisk_package()
+            if self.mode == 'adb' and magisk_path is not None and magisk_path != '':
+                res = self.get_package_path(magisk_path, True)
                 if res != -1:
                     return res
                 self._rooted = None
@@ -586,7 +624,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def current_device_print(self):
-        return process_dict(self.props.property, True, True)
+        return process_dict(the_dict=self.props.property, add_missing_keys=True, pif_flavor=True)
 
     # ----------------------------------------------------------------------------
     #                               property current_device_props_in_json
@@ -1746,9 +1784,11 @@ add_hosts_module
             theCmd = f"\"{get_adb()}\" -s {self.id} shell pm path {pkg}"
             res = run_shell(theCmd)
             if res.returncode == 0:
-                pkg_path = res.stdout.split('\n')[0]
-                pkg_path = pkg_path.split(':')[1]
-                print(f"Package Path is: {pkg_path}")
+                pkg_path = ''
+                with contextlib.suppress(Exception):
+                    pkg_path = res.stdout.split('\n')[0]
+                    pkg_path = pkg_path.split(':')[1]
+                    print(f"Package Path is: {pkg_path}")
                 return pkg_path
             else:
                 if check_details:
@@ -2025,7 +2065,7 @@ add_hosts_module
             try:
                 if self.mode == 'adb' and self.rooted:
                     if sys.platform == "win32":
-                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/disable\"; then echo \"state=disabled\"; elif test -f \"$FILE/remove\"; then echo \"state=remove\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disabled\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
                         res = run_shell(theCmd)
                         if res.returncode == 0:
                             modules = []
@@ -2142,7 +2182,7 @@ add_hosts_module
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['stable', 'beta', 'canary', 'debug', 'delta canary', 'delta debug', 'special 25203', "special 26401"]
+                mlist = ['stable', 'beta', 'canary', 'debug', 'delta canary', 'delta debug', 'special 25203', "special 26401", "special 27001"]
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     if apk:
@@ -2237,6 +2277,23 @@ This is a special Magisk build\n\n
             """
             setattr(ma, 'release_notes', release_notes)
             return ma
+        elif channel == 'special 27001':
+            url = ""
+            setattr(ma, 'version', "79fd3e40")
+            setattr(ma, 'versionCode', "27001")
+            setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_27001/app-release.apk")
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', 'com.topjohnwu.magisk')
+            release_notes = """
+## 2024.02.12 Special Magisk v27.0 Build\n\n
+This is a special Magisk build\n\n
+- Based on build versionCode: 27001 versionName: 79fd3e40\n
+- Modified to disable loading modules while keep root.\n
+- Made to recover from bootloops due to bad / incompatible Modules.\n\n
+### Steps to follow [here](https://github.com/badabing2005/Magisk)\n
+            """
+            setattr(ma, 'release_notes', release_notes)
+            return ma
 
         else:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
@@ -2247,8 +2304,7 @@ This is a special Magisk build\n\n
             headers = {
                 'Content-Type': "application/json"
             }
-            response = requests.request("GET", url, headers=headers, data=payload)
-            response.raise_for_status()
+            response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
             data = response.json()
             setattr(ma, 'version', data['magisk']['version'])
             setattr(ma, 'versionCode', data['magisk']['versionCode'])
@@ -2267,7 +2323,7 @@ This is a special Magisk build\n\n
             headers = {}
             with contextlib.suppress(Exception):
                 setattr(ma, 'release_notes', '')
-                response = requests.request("GET", ma.note_link, headers=headers, data=payload)
+                response = request_with_fallback(method='GET', url=ma.note_link, headers=headers, data=payload)
                 setattr(ma, 'release_notes', response.text)
             return ma
         except Exception as e:
@@ -2303,7 +2359,7 @@ This is a special Magisk build\n\n
             if get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c 'ls -l /data/adb/'\""
                 res = run_shell(theCmd, timeout=8)
-                if res.returncode == 0:
+                if res.returncode == 0 and '/system/bin/sh: su: not found' not in res.stdout:
                     self._rooted = True
                 else:
                     # theCmd = f"\"{get_adb()}\" -s {self.id} shell busybox ls"
@@ -2710,8 +2766,8 @@ This is a special Magisk build\n\n
 
             if not device_id:
                 device_id = self.id
-            print(f"Fastboot waiting device: {device_id} for bootloader ...")
-            puml(f":Fastboot waiting device: {device_id} for bootloader;\n", True)
+            print(f"Fastboot waiting for device: {device_id} for bootloader ...")
+            puml(f":Fastboot waiting for device: {device_id} for bootloader;\n", True)
             start_time = time.time()
             while time.time() - start_time < timeout:
                 with contextlib.suppress(Exception):
@@ -2768,16 +2824,22 @@ This is a special Magisk build\n\n
     # ----------------------------------------------------------------------------
     #                               Method install_apk
     # ----------------------------------------------------------------------------
-    def install_apk(self, app, fastboot_included = False, owner_playstore = False):
+    def install_apk(self, app, fastboot_included = False, owner_playstore = False, bypass_low_target = False):
         try:
+            if owner_playstore:
+                playstore_flag = " -i \"com.android.vending\""
+            else:
+                playstore_flag = ""
+
+            if bypass_low_target:
+                sdk_flag = " --bypass-low-target-sdk-block"
+            else:
+                sdk_flag = ""
+
             if self.mode == 'adb' and get_adb():
                 print(f"Installing {app} on device ...")
                 puml(f":Installing {app};\n", True)
-                if owner_playstore:
-                    puml("note right:Set owner to be Play Store;\n")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} install -i \"com.android.vending\" -r \"{app}\""
-                else:
-                    theCmd = f"\"{get_adb()}\" -s {self.id} install -r \"{app}\""
+                theCmd = f"\"{get_adb()}\" -s {self.id} install {playstore_flag} {sdk_flag} -r \"{app}\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res.returncode != 0:

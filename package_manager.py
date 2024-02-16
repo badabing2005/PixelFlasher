@@ -150,6 +150,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.device = get_phone()
         self.download_folder = None
         self.abort = False
+        self.show_system_apps = True
+        self.show_user_apps = True
+
         res = self.device.get_detailed_packages()
         if res == 0:
             self.packages = self.device.packages
@@ -191,11 +194,19 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         hSizer1 = wx.BoxSizer( wx.HORIZONTAL )
         self.all_checkbox = wx.CheckBox(panel1, wx.ID_ANY, u"Check / Uncheck All", wx.DefaultPosition, wx.DefaultSize, style=wx.CHK_3STATE)
+        self.system_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, u"Show System apps", wx.DefaultPosition, wx.DefaultSize)
+        self.system_apps_checkbox.SetValue(True)
+        self.user_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, u"Show 3rd Party apps", wx.DefaultPosition, wx.DefaultSize)
+        self.user_apps_checkbox.SetValue(True)
 
         self.button_get_names = wx.Button( panel1, wx.ID_ANY, u"Get All Application Names", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.button_get_names.SetToolTip(u"Extracts App names, and caches them for faster loading in the future.\nNOTE: This could take a while.")
         hSizer1.Add( (10, 0), 0, wx.EXPAND, 5 )
         hSizer1.Add(self.all_checkbox, 0, wx.EXPAND, 5)
+        hSizer1.Add( (10, 0), 0, wx.EXPAND, 5 )
+        hSizer1.Add(self.system_apps_checkbox, 0, wx.EXPAND, 5)
+        hSizer1.Add( (10, 0), 0, wx.EXPAND, 5 )
+        hSizer1.Add(self.user_apps_checkbox, 0, wx.EXPAND, 5)
         hSizer1.Add( (0, 0), 1, wx.EXPAND, 5 )
         hSizer1.Add(self.searchCtrl, 1, wx.EXPAND)
         hSizer1.Add( (0, 0), 1, wx.EXPAND, 5 )
@@ -260,10 +271,6 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.install_apk_button.SetToolTip(u"Install an APK on the device")
         buttons_sizer.Add(self.install_apk_button, 0, wx.ALL, 20)
 
-        self.bulk_install_apk_button = wx.Button(panel2, wx.ID_ANY, u"Bulk Install APK", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.bulk_install_apk_button.SetToolTip(u"Bulk Install APKs by selecting a folder.")
-        buttons_sizer.Add(self.bulk_install_apk_button, 0, wx.ALL, 20)
-
         self.download_apk_button = wx.Button(panel2, wx.ID_ANY, u"Download APK", wx.DefaultPosition, wx.DefaultSize, 0)
         self.download_apk_button.SetToolTip(u"Extract and download APK")
         self.download_apk_button.Enable(False)
@@ -302,7 +309,6 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.add_to_deny_button.Bind(wx.EVT_BUTTON, self.OnAddToDeny)
         self.rm_from_deny_button.Bind(wx.EVT_BUTTON, self.OnRmFromDeny)
         self.install_apk_button.Bind(wx.EVT_BUTTON, self.OnInstallApk)
-        self.bulk_install_apk_button.Bind(wx.EVT_BUTTON, self.OnBulkInstallApk)
         self.download_apk_button.Bind(wx.EVT_BUTTON, self.OnDownloadApk)
         self.export_list_button.Bind(wx.EVT_BUTTON, self.OnExportList)
         self.close_button.Bind(wx.EVT_BUTTON, self.OnClose)
@@ -316,6 +322,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         # for wxGTK
         self.list.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
         self.all_checkbox.Bind(wx.EVT_CHECKBOX, self.OnAllCheckbox)
+        self.system_apps_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSystemAppsCheckbox)
+        self.user_apps_checkbox.Bind(wx.EVT_CHECKBOX, self.OnUserAppsCheckbox)
 
         self.Refresh()
 
@@ -368,6 +376,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             for key, data in items:
                 alltext = f"{key.lower()} {str(data.label.lower())}"
                 if query.lower() in alltext:
+                    if data.type and ((data.type == 'System' and not self.show_system_apps) or (data.type == '3rd Party' and not self.show_user_apps)):
+                        continue  # Skip this item
                     index = self.list.InsertItem(self.list.GetItemCount(), key)
                     if data.type:
                         itemDataMap[i + 1] = (key, data.type, data.installed, data.enabled, data.user0, data.magisk_denylist, data.uid, data.label)
@@ -502,6 +512,22 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.Check_UncheckAll(True)
         elif cb.Get3StateValue() == 0:
             self.Check_UncheckAll(False)
+
+    # -----------------------------------------------
+    #                  OnSystemAppsCheckbox
+    # -----------------------------------------------
+    def OnSystemAppsCheckbox(self, event):
+        cb = event.GetEventObject()
+        self.show_system_apps = cb.GetValue()
+        self.Refresh()
+
+    # -----------------------------------------------
+    #                  OnUserAppsCheckbox
+    # -----------------------------------------------
+    def OnUserAppsCheckbox(self, event):
+        cb = event.GetEventObject()
+        self.show_user_apps = cb.GetValue()
+        self.Refresh()
 
     # -----------------------------------------------
     #                  OnItemChecked
@@ -641,67 +667,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def OnInstallApk(self, e):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Install APK.")
-        with wx.FileDialog(self, "select APK file to install", '', '', wildcard="Android Applications (*.*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                print("User cancelled apk install.")
-                return
-            # save the current contents in the file
-            pathname = fileDialog.GetPath()
-            print(f"\nSelected {pathname} for installation.")
-            dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: Android auto apps require that they be installed from the Play Market.",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
-            result = dlg.ShowModal()
-            try:
-                self._on_spin('start')
-                if self.device:
-                    if result != wx.ID_YES:
-                        self.device.install_apk(pathname, fastboot_included=True)
-                    else:
-                        puml("note right:Set ownership to Play Store;\n")
-                        self.device.install_apk(pathname, fastboot_included=True, owner_playstore=True)
-                self._on_spin('stop')
-            except IOError:
-                traceback.print_exc()
-                wx.LogError(f"Cannot install file '{pathname}'.")
-                self._on_spin('stop')
-
-    # -----------------------------------------------
-    #                  OnBulkInstallApk
-    # -----------------------------------------------
-    def OnBulkInstallApk(self, event):
-        try:
-            with wx.DirDialog(self, "Select folder to bulk install APKs", style=wx.DD_DEFAULT_STYLE) as folderDialog:
-                if folderDialog.ShowModal() == wx.ID_CANCEL:
-                    print("User cancelled folder selection.")
-                    return
-                selected_folder = folderDialog.GetPath()
-
-            self._on_spin('start')
-            device = get_phone()
-            if device:
-                apk_files = [file for file in os.listdir(selected_folder) if file.endswith(".apk")]
-                show_playstore_prompt = True
-                for apk_file in apk_files:
-                    if show_playstore_prompt:
-                        dlg = wx.MessageDialog(None, "Do you want to set the ownership to Play Store Market?\nNote: This will apply to all the current bulk apks.\n(Android auto apps require that they be installed from the Play Market.)",'Set Play Market',wx.YES_NO | wx.ICON_EXCLAMATION)
-                        result = dlg.ShowModal()
-                        if result != wx.ID_YES:
-                            owner_playstore = False
-                        else:
-                            owner_playstore = True
-                        show_playstore_prompt = False
-                    apk_path = os.path.join(selected_folder, apk_file)
-                    res = device.install_apk(apk_path, fastboot_included=True, owner_playstore=owner_playstore)
-                    if res.returncode != 0:
-                        print(f"Return Code: {res.returncode}.")
-                        print(f"Stdout: {res.stdout}")
-                        print(f"Stderr: {res.stderr}")
-                        print("Aborting ...\n")
-                        self._on_spin('stop')
-                        return res
-        except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing APKs")
-            traceback.print_exc()
-        self._on_spin('stop')
+        self.Parent._on_install_apk(None)
 
     # -----------------------------------------------
     #                  OnGetAllNames

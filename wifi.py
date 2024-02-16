@@ -331,7 +331,10 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.add_to_history(action='connect', status="Failed", note=res)
                 else:
                     self.add_to_history(action='connect', status="Success")
-                    device_id = f"{self.ip_ctrl.Value}:{self.port.Value}"
+                    port = self.port.Value
+                    if port == '':
+                        port = "5555"
+                    device_id = f"{self.ip_ctrl.Value}:{port}"
                     set_phone_id(device_id)
                     self.Parent.config.device = device_id
                     self.Parent.refresh_device(device_id)

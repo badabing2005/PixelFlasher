@@ -2,6 +2,7 @@
 
 import wx
 import images as images
+import webbrowser
 from runtime import *
 
 
@@ -166,17 +167,17 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self._onFontSelect(None)
 
         # scrcpy 1st row widgets, select path
-        self.scrcpy_path_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=u"Srccpy Path")
-        self.srccpy_link = wx.BitmapButton(parent=scrolled_panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
-        self.srccpy_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
-        self.srccpy_link.SetToolTip("Download Srccpy")
+        self.scrcpy_path_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=u"scrcpy Path")
+        self.scrcpy_link = wx.BitmapButton(parent=scrolled_panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.scrcpy_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
+        self.scrcpy_link.SetToolTip("Download scrcpy")
         self.scrcpy_path_picker = wx.FilePickerCtrl(parent=scrolled_panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select scrcpy executable", wildcard=u"Scrcpy executable (*.exe;*)|*.exe;*", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
 
         self.scrcpy_path_picker.SetToolTip("Select scrcpy executable")
         self.scrcpy_h1sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.scrcpy_h1sizer.Add(window=self.scrcpy_path_label, proportion=0, flag=wx.EXPAND)
         self.scrcpy_h1sizer.AddSpacer(10)
-        self.scrcpy_h1sizer.Add(window=self.srccpy_link, proportion=0, flag=wx.EXPAND)
+        self.scrcpy_h1sizer.Add(window=self.scrcpy_link, proportion=0, flag=wx.EXPAND)
         self.scrcpy_h1sizer.AddSpacer(10)
         self.scrcpy_h1sizer.Add(window=self.scrcpy_path_picker, proportion=1, flag=wx.EXPAND)
 
@@ -315,6 +316,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.patch_methods_checkbox.Bind(wx.EVT_CHECKBOX, self._on_offer_patch_methods)
         self.use_custom_font_checkbox.Bind(wx.EVT_CHECKBOX, self._on_use_custom_fontface)
         self.Bind(wx.EVT_INIT_DIALOG, self.on_init_dialog)
+        self.scrcpy_link.Bind(wx.EVT_BUTTON, self._open_scrcpy_link)
         # self.Bind(wx.EVT_SIZE, self.on_resize)
 
         # Enable / Disable Widgets
@@ -380,6 +382,14 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.sample.SetFont(font)
         self.Refresh()
 
+    def _open_scrcpy_link(self, event):
+        try:
+            print(f"Launching browser for scrcpy download URL: {SCRCPYURL}")
+            webbrowser.open_new(SCRCPYURL)
+            puml(f":Open scrcpy Link;\nnote right\n=== scrcpy\n[[{SCRCPYURL}]]\nend note\n", True)
+        except Exception as e:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link")
+            traceback.print_exc()
 
     def _onResetMagiskPkg(self, e):
         self.package_name.Label = 'com.topjohnwu.magisk'

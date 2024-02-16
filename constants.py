@@ -2,7 +2,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '6.7.1.0'
+VERSION = '6.8.0.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -25,4 +25,30 @@ OSM0SIS_PIF_UPDATE_URL = 'https://raw.githubusercontent.com/osm0sis/PlayIntegrit
 PIF_JSON_PATH = '/data/adb/pif.json'
 XIAOMI_URL = "https://sourceforge.net/projects/xiaomi-eu-multilang-miui-roms/rss?path=/xiaomi.eu/Xiaomi.eu-app"
 FREEMANURL = "https://codeload.github.com/TheFreeman193/PIFS/zip/refs/heads/main"
+SCRCPYURL = "https://github.com/Genymobile/scrcpy/releases/latest"
 PIXEL_WATCHES = ['eos', 'aurora', 'r11', 'r11btwifi']
+BANNED_KERNELS = [
+    '-AICP',
+    '-arter97',
+    '-blu_spark',
+    '-cm-',
+    '-crDroid',
+    '-crdroid',
+    '-CyanogenMod',
+    '-Deathly',
+    '-EAS-',
+    '-eas-',
+    '-ElementalX',
+    '-Elite',
+    '-franco',
+    '-Lineage-',
+    '-lineage-',
+    '-LineageOS',
+    '-lineageos',
+    '-MoRoKernel',
+    '-Noble',
+    '-Optimus',
+    '-SlimRoms',
+    '-Sultan',
+    '-sultan'
+]

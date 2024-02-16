@@ -1196,7 +1196,8 @@ def get_bundle_dir():
 # ============================================================================
 def check_latest_version():
     try:
-        response = requests.get('https://github.com/badabing2005/PixelFlasher/releases/latest')
+        url = 'https://github.com/badabing2005/PixelFlasher/releases/latest'
+        response = request_with_fallback(method='GET', url=url)
         # look in history to find the 302, and get the loaction header
         location = response.history[0].headers['Location']
         # split by '/' and get the last item
@@ -2023,11 +2024,10 @@ def check_module_update(url):
         headers = {
             'Content-Type': "application/json"
         }
-        response = requests.request("GET", url, headers=headers, data=payload)
+        response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
         if response.status_code == 404:
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
             return -1
-        response.raise_for_status()
         with contextlib.suppress(Exception):
             data = response.json()
             mu = ModuleUpdate(url)
@@ -2036,7 +2036,7 @@ def check_module_update(url):
             setattr(mu, 'zipUrl', data['zipUrl'])
             setattr(mu, 'changelog', data['changelog'])
             headers = {}
-            response = requests.request("GET", mu.changelog, headers=headers, data=payload)
+            response = request_with_fallback(method='GET', url=mu.changelog, headers=headers, data=payload)
             setattr(mu, 'changelog', response.text)
             return mu
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
@@ -2140,16 +2140,8 @@ def get_google_images(save_to=None):
             download_type = "factory"
             device_type = "watch"
 
-        try:
-            response = requests.get(url, headers=COOKIE)
-            html = response.content
-        except requests.exceptions.SSLError:
-            # Retry with SSL certificate verification disabled
-            print(f"WARNING! Encountered SSL certification error while connecting to: {url}")
-            print("Retrying with SSL certificate verification disabled. ...")
-            print("For security, you should double check and make sure your system or communication is not compromised.")
-            response = requests.get(url, headers=COOKIE, verify=False)
-            html = response.content
+        response = request_with_fallback(method='GET', url=url, headers=COOKIE)
+        html = response.content
         soup = BeautifulSoup(html, 'html.parser')
         marlin_flag = False
 
@@ -2258,21 +2250,16 @@ def download_file(url, filename=None, callback=None):
         return
     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Downloading: {url} ...")
     start = time.time()
-    try:
-        response = requests.get(url)
-    except requests.exceptions.SSLError:
-        # Retry with SSL certificate verification disabled
-        print(f"WARNING! Encountered SSL certification error while connecting to: {url}")
-        print("Retrying with SSL certificate verification disabled. ...")
-        print("For security, you should double check and make sure your system or communication is not compromised.")
-        response = requests.get(url, verify=False)
+    response = request_with_fallback(method='GET', url=url, stream=True)
 
     try:
         config_path = get_config_path()
         if not filename:
             filename = os.path.basename(urlparse(url).path)
         downloaded_file_path = os.path.join(config_path, 'tmp', filename)
-        open(downloaded_file_path, "wb").write(response.content)
+        with open(downloaded_file_path, "wb") as fd:
+            for chunk in response.iter_content(chunk_size=131072):
+                fd.write(chunk)
         # check if filename got downloaded
         if not os.path.exists(downloaded_file_path):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
@@ -2316,8 +2303,13 @@ def delete_keys_from_dict(dictionary, keys):
 # ============================================================================
 #                               Function process_dict
 # ============================================================================
-def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False, set_first_api=None, sort_data=False, keep_all=False):
+def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=None, sort_data=False, keep_all=False):
     try:
+        module_flavor = 'playintegrityfork'
+        module_versionCode = 0
+        with contextlib.suppress(Exception):
+            module_flavor = pif_flavor.split('_')[0]
+            module_versionCode = int(pif_flavor.split('_')[1])
         android_devices = get_android_devices()
         autofill = False
         if add_missing_keys:
@@ -2507,6 +2499,7 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
         if ffp_ro_product_brand and ffp_ro_product_name and ffp_ro_product_device and ffp_ro_build_version_release and ffp_ro_build_id and ffp_ro_build_version_incremental and ffp_ro_build_type and ffp_ro_build_tags:
             ro_build_fingerprint = f"{ffp_ro_product_brand}/{ffp_ro_product_name}/{ffp_ro_product_device}:{ffp_ro_build_version_release}/{ffp_ro_build_id}/{ffp_ro_build_version_incremental}:{ffp_ro_build_type}/{ffp_ro_build_tags}"
 
+        # Global Common
         donor_data = {
             "PRODUCT": ro_product_name,
             "DEVICE": ro_product_device,
@@ -2516,30 +2509,41 @@ def process_dict(the_dict, add_missing_keys=False, advanced_props_support=False,
             "FINGERPRINT": ro_build_fingerprint,
             "SECURITY_PATCH": ro_build_version_security_patch
         }
-        if advanced_props_support:
-            donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
-            donor_data["*api_level"] = ro_product_first_api_level
-            donor_data["*.security_patch"] = ro_build_version_security_patch
-            donor_data["ID"] = ro_build_id
-            donor_data["*.build.id"] = ro_build_id
-            donor_data["RELEASE"] = ro_build_version_release
+
+        # Play Integrity Fork
+        if module_flavor == 'playintegrityfork':
+            # Common in Play Integrity Fork (v4 and newer)
             donor_data["INCREMENTAL"] = ro_build_version_incremental
             donor_data["TYPE"] = ro_build_type
             donor_data["TAGS"] = ro_build_tags
-            donor_data["*.vndk_version"] = ro_vndk_version
-            donor_data["VERBOSE_LOGS"] = "0"
+            donor_data["RELEASE"] = ro_build_version_release
+            donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
+            donor_data["ID"] = ro_build_id
+
+            # v5 or newer
+            if module_versionCode >= 5000:
+                donor_data["*api_level"] = ro_product_first_api_level
+                donor_data["*.security_patch"] = ro_build_version_security_patch
+                donor_data["*.build.id"] = ro_build_id
+                if module_versionCode <= 7000:
+                    donor_data["VERBOSE_LOGS"] = "0"
+            if module_versionCode > 7000:
+                donor_data["verboseLogs"] = "0"
+            # donor_data["*.vndk_version"] = ro_vndk_version
+
+            # Discard keys with empty values if the flag is set
+            modified_donor_data = {key: value for key, value in donor_data.items() if value != ""}
+
+        # Chit's module and other forks
         else:
             donor_data["FIRST_API_LEVEL"] = ro_product_first_api_level
             donor_data["BUILD_ID"] = ro_build_id
             donor_data["ID"] = ro_build_id
             donor_data["VNDK_VERSION"] = ro_vndk_version
             donor_data["FORCE_BASIC_ATTESTATION"] = "true"
-            donor_data["KERNEL"] = "Goolag-perf"
+            # donor_data["KERNEL"] = "Goolag-perf"
 
-        # Discard keys with empty values if the flag is set
-        if advanced_props_support:
-            modified_donor_data = {key: value for key, value in donor_data.items() if value != ""}
-        else:
+            # No discard keys with empty values on chit's module
             modified_donor_data = donor_data
 
         # Keep unknown props if the flag is set
@@ -2802,7 +2806,8 @@ def get_xiaomi_apk(filename):
         xiaomi_pifs = get_xiaomi()
         # Fetch RSS feed and extract the latest link
         print("Checking for latest xiaomi apk link ...")
-        response = requests.get(XIAOMI_URL)
+        response = request_with_fallback(method='GET', url=XIAOMI_URL)
+
         latest_link = response.text.split('<link>')[2].split('</link>')[0]
         print(f"Xiaomi apk link: {latest_link}")
         match = re.search(r'([^/]+\.apk)', latest_link)
@@ -2813,9 +2818,10 @@ def get_xiaomi_apk(filename):
             value = xiaomi_pifs.get(key)
 
         if not value:
+            url = (latest_link).content
             print("Downloading xiaomi apk ...")
             with open(filename, "wb") as apk_file:
-                apk_file.write(requests.get(latest_link).content)
+                apk_file.write(response = request_with_fallback(method='GET', url=url))
         else:
             print("No new Xiaomi update!")
         return key
@@ -2830,9 +2836,9 @@ def get_xiaomi_apk(filename):
 # ============================================================================
 def extract_from_zip(zip_path, to_extract, extracted_file_path):
     try:
-        print(f"Extracting {to_extract} from xiaomi apk ...")
-        with zipfile.ZipFile(zip_path, "r") as apk_zip:
-            apk_zip.extract(to_extract, extracted_file_path)
+        print(f"Extracting {to_extract} from {zip_path}...")
+        with zipfile.ZipFile(zip_path, "r") as archive:
+            archive.extract(to_extract, extracted_file_path)
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_from_zip function")
         traceback.print_exc()
@@ -3121,6 +3127,129 @@ def get_pif_from_image(image_file):
         traceback.print_exc()
     finally:
         temp_dir.cleanup()
+
+
+# ============================================================================
+#                               Function patch_binary_file
+# ============================================================================
+def patch_binary_file(file_path, hex_offset, text, output_file_path=None):
+    with open(file_path, 'rb') as f:
+        data = f.read()
+    # convert to decimal
+    offset = int(hex_offset, 16)
+    # Patch the data
+    data = data[:offset] + text.encode() + data[offset + len(text):]
+
+    if output_file_path is None:
+        output_file_path = file_path
+
+    with open(output_file_path, 'wb') as f:
+        f.write(data)
+
+
+# ============================================================================
+#                               Function download_gh_latest_release_asset
+# ============================================================================
+def download_gh_latest_release_asset(user, repo, asset_name=None, anykernel=True):
+    url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+    response = request_with_fallback(method='GET', url=url)
+    assets = response.json().get('assets', [])
+
+    if not asset_name:
+        return assets
+
+    # Split the asset_name into parts
+    parts = asset_name.split('-')
+    base_name = parts[0]
+    base_name = f"{base_name}"
+    version_parts = parts[1].split('.')
+    fixed_version = '.'.join(version_parts[:-1])
+    variable_version = int(version_parts[-1])
+
+    # Prepare the regular expression pattern
+    if anykernel:
+        pattern = re.compile(f"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\\.zip$")
+    else:
+        pattern = re.compile(f"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\\.img\\.gz$")
+
+    # Find the best match
+    best_match = None
+    best_version = -1
+    for asset in assets:
+        match = pattern.match(asset['name'])
+        if match:
+            asset_version = int(match[1])
+            if asset_version <= variable_version and asset_version > best_version:
+                best_match = asset
+                best_version = asset_version
+                if asset_version == variable_version:
+                    break
+    if best_match:
+        print(f"Found best match KernelSU: {best_match['name']}")
+        download_file(best_match['browser_download_url'])
+        print(f"Downloaded {best_match['name']}")
+        return best_match['name']
+    else:
+        print(f"Asset {asset_name} not found in the latest release of {user}/{repo}")
+
+
+# ============================================================================
+#                               Function get_gh_latest_release_version
+# ============================================================================
+def get_gh_latest_release_version(user, repo):
+    # Get the latest release
+    url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+    response = request_with_fallback(method='GET', url=url)
+    return response.json().get('tag_name', '')
+
+
+# ============================================================================
+#                               Function extract_magiskboot
+# ============================================================================
+def extract_magiskboot(apk_path, architecture, output_path):
+    path_to_7z = get_path_to_7z()
+    file_path_in_apk = f"lib/{architecture}/libmagiskboot.so"
+    output_file_path = os.path.join(output_path, "magiskboot")
+
+    cmd = f"{path_to_7z} e {apk_path} -o{output_path} -r {file_path_in_apk} -y"
+    debug(cmd)
+    res = run_shell2(cmd)
+    if res.returncode != 0:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
+        print(f"Return Code: {res.returncode}.")
+        print(f"Stdout: {res.stdout}.")
+        print(f"Stderr: {res.stderr}.")
+        puml("#red:ERROR: Could not extract image;\n")
+        print("Aborting ...\n")
+        return
+
+    if os.path.exists(output_file_path):
+        os.remove(output_file_path)
+    os.rename(os.path.join(output_path, "libmagiskboot.so"), output_file_path)
+
+
+# ============================================================================
+#                               Function request_with_fallback
+# ============================================================================
+def request_with_fallback(method, url, headers=None, data=None, stream=False):
+    try:
+        response = requests.request(method, url, headers=headers, data=data, stream=stream)
+        response.raise_for_status()
+    except requests.exceptions.SSLError:
+        # Retry with SSL certificate verification disabled
+        print(f"WARNING! Encountered SSL certification error while connecting to: {url}")
+        print("Retrying with SSL certificate verification disabled. ...")
+        print("For security, you should double check and make sure your system or communication is not compromised.")
+        response = requests.request(method, url, headers=headers, data=data, verify=False, stream=stream)
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error occurred: {err}")
+    except requests.exceptions.Timeout:
+        print("The request timed out")
+    except requests.exceptions.TooManyRedirects:
+        print("Too many redirects")
+    except requests.exceptions.RequestException as err:
+        print(f"An error occurred: {err}")
+    return response
 
 
 # ============================================================================

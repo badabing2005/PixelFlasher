@@ -286,6 +286,12 @@ jobs:
         run: |
           ls /usr/local/Cellar
 
+      - name: Install node graphicsmagick imagemagick
+        run: brew install node graphicsmagick imagemagick
+
+      - name: Install create-dmg
+        run: npm install --global create-dmg
+
       - name: Uninstall Pythons other than 3.11
         run: |
           brew uninstall --ignore-dependencies python@3.10
@@ -310,12 +316,6 @@ jobs:
       - name: Activate virtual environment
         run: source myenv/bin/activate
         shell: bash
-
-      - name: Install node graphicsmagick imagemagick
-        run: brew install node graphicsmagick imagemagick
-
-      - name: Install create-dmg
-        run: npm install --global create-dmg
 
       - name: Install requirements
         run: python3.11 -m pip install -r requirements.txt
@@ -349,7 +349,7 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_11]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04]
 
     runs-on: ubuntu-latest
 

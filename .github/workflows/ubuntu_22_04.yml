@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         run: |
@@ -74,7 +74,7 @@ jobs:
       # Upload artifacts Ubuntu 22.04 to Actions
       - name: Upload Ubuntu 22.04 Artifact
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         id: upload_artifacts_ubuntu_22_04
         with:
           name: PixelFlasher_Ubuntu_22_04 Artifacts

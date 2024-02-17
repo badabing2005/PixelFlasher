@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: List Cellar directory Again
         run: |
@@ -41,7 +41,7 @@ jobs:
           ls /usr/local/Cellar
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -89,7 +89,7 @@ jobs:
       # Upload artifacts Mac-OS 11
       - name: Upload Mac-OS 11 Artifact
         if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         id: upload_artifact_macos_11
         with:
           name: PixelFlasher_MacOS_11.dmg Artifacts

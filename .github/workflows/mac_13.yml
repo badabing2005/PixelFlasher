@@ -31,35 +31,35 @@ jobs:
         run: |
           ls /usr/local/Cellar
 
-      - name: Uninstall Pythons other than 3.11
-        run: |
-          brew uninstall --ignore-dependencies python@3.10
-          brew uninstall --ignore-dependencies python@3.12
-          echo "doing brew list"
-          brew list
-          echo "getting directory list for /usr/local/Cellar"
-          ls /usr/local/Cellar
+      # - name: Uninstall Pythons other than 3.11
+      #   run: |
+      #     brew uninstall --ignore-dependencies python@3.10
+      #     brew uninstall --ignore-dependencies python@3.12
+      #     echo "doing brew list"
+      #     brew list
+      #     echo "getting directory list for /usr/local/Cellar"
+      #     ls /usr/local/Cellar
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
+
+      - name: Install node graphicsmagick imagemagick
+        run: brew install node graphicsmagick imagemagick
 
       - name: Install wxPython
         # run: brew install wxpython
         run: pip install wxPython
 
-      - name: Install node graphicsmagick imagemagick
-        run: brew install node graphicsmagick imagemagick
-
       - name: Install create-dmg
         run: npm install --global create-dmg
 
-      - name: Add Python 3.11 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
+      - name: Add Python 3.12 to PATH
+        run: export PATH=/usr/local/Cellar/python@3.12/bin:$PATH
 
       - name: Create virtual environment
-        run: python3.11 -m venv myenv
+        run: python3.12 -m venv myenv
         shell: bash
 
       - name: Activate virtual environment
@@ -67,10 +67,10 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: python3.11 -m pip install -r requirements.txt
+        run: python3.12 -m pip install -r requirements.txt
 
       - name: List modules and their versions
-        run: python3.11 -m pip freeze
+        run: python3.12 -m pip freeze
 
       - name: Build application
         run: ./build.sh

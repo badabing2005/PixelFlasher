@@ -270,79 +270,87 @@ jobs:
             dist/PixelFlasher_Ubuntu_22_04
             dist/PixelFlasher_Ubuntu_22_04.sha256
 
-  # ---------------------------------------------------------------------------
-  #                              build_mac_11
-  # ---------------------------------------------------------------------------
-  build_mac_11:
-    if: github.actor == 'badabing2005'
-    # runs-on: macos-latest
-    runs-on: macos-11
+  # # ---------------------------------------------------------------------------
+  # #                              build_mac_11
+  # # ---------------------------------------------------------------------------
+  # build_mac_11:
+  #   if: github.actor == 'badabing2005'
+  #   # runs-on: macos-latest
+  #   runs-on: macos-11
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: List Cellar directory Again
-        run: |
-          ls /usr/local/Cellar
+  #     - name: List Cellar directory Again
+  #       run: |
+  #         ls /usr/local/Cellar
 
-      - name: Install node graphicsmagick imagemagick
-        run: brew install node graphicsmagick imagemagick
+  #     - name: Cache brew dependencies
+  #       uses: actions/cache@v2
+  #       with:
+  #         path: /usr/local/Cellar
+  #         key: ${{ runner.os }}-brew-${{ hashFiles('**/Brewfile.lock.json') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-brew-
 
-      - name: Install create-dmg
-        run: npm install --global create-dmg
+  #     - name: Install node graphicsmagick imagemagick
+  #       run: brew install node graphicsmagick imagemagick
 
-      - name: Uninstall Pythons other than 3.11
-        run: |
-          brew uninstall --ignore-dependencies python@3.10
-          brew uninstall --ignore-dependencies python@3.12
+  #     - name: Install create-dmg
+  #       run: npm install --global create-dmg
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+  #     - name: Uninstall Pythons other than 3.11
+  #       run: |
+  #         brew uninstall --ignore-dependencies python@3.10
+  #         brew uninstall --ignore-dependencies python@3.12
 
-      - name: Install wxPython
-        # run: brew install wxpython
-        run: pip install wxPython
+  #     - name: Set up Python 3.11
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.11'
 
-      - name: Add Python 3.11 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
+  #     - name: Install wxPython
+  #       # run: brew install wxpython
+  #       run: pip install wxPython
 
-      - name: Create virtual environment
-        run: python3.11 -m venv myenv
-        shell: bash
+  #     - name: Add Python 3.11 to PATH
+  #       run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
 
-      - name: Activate virtual environment
-        run: source myenv/bin/activate
-        shell: bash
+  #     - name: Create virtual environment
+  #       run: python3.11 -m venv myenv
+  #       shell: bash
 
-      - name: Install requirements
-        run: python3.11 -m pip install -r requirements.txt
+  #     - name: Activate virtual environment
+  #       run: source myenv/bin/activate
+  #       shell: bash
 
-      - name: List modules and their versions
-        run: python3.11 -m pip freeze
+  #     - name: Install requirements
+  #       run: python3.11 -m pip install -r requirements.txt
 
-      - name: Build application
-        run: ./build.sh
+  #     - name: List modules and their versions
+  #       run: python3.11 -m pip freeze
 
-      - name: Get sha256
-        run: |
-          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
-          cat dist/PixelFlasher.dmg.sha256
+  #     - name: Build application
+  #       run: ./build.sh
 
-      - name: List contents of dist directory
-        run: ls dist
+  #     - name: Get sha256
+  #       run: |
+  #         shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+  #         cat dist/PixelFlasher.dmg.sha256
 
-      # Upload artifacts Mac-OS
-      - name: Upload Mac-OS 11 Artifact
-        uses: actions/upload-artifact@v4
-        id: upload_artifact_macos_11
-        with:
-          name: PixelFlasher.dmg Artifacts
-          path: |
-            dist/PixelFlasher.dmg
-            dist/PixelFlasher.dmg.sha256
+  #     - name: List contents of dist directory
+  #       run: ls dist
+
+  #     # Upload artifacts Mac-OS
+  #     - name: Upload Mac-OS 11 Artifact
+  #       uses: actions/upload-artifact@v4
+  #       id: upload_artifact_macos_11
+  #       with:
+  #         name: PixelFlasher.dmg Artifacts
+  #         path: |
+  #           dist/PixelFlasher.dmg
+  #           dist/PixelFlasher.dmg.sha256
 
   # ---------------------------------------------------------------------------
   #                              deploy
@@ -367,7 +375,7 @@ jobs:
 
       # Download the Windows artifact from the build_windows job
       - name: Download Windows Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: PixelFlasher.exe Artifacts
           path: release
@@ -375,7 +383,7 @@ jobs:
 
       # Download the Windows-2019 artifact from the build_windows_2019 job
       - name: Download Windows-2019 Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: PixelFlasher_Win_2019.exe Artifacts
           path: release
@@ -383,7 +391,7 @@ jobs:
 
       # Download the Ubuntu_20_04 artifact from the build_ubuntu_20_04 job
       - name: Download Ubuntu_20_04 Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: PixelFlasher_Ubuntu_20_04 Artifacts
           path: release
@@ -391,19 +399,19 @@ jobs:
 
       # Download the Ubuntu_22_04 artifact from the build_ubuntu_22_04 job
       - name: Download Ubuntu_22_04 Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: PixelFlasher_Ubuntu_22_04 Artifacts
           path: release
         continue-on-error: true
 
-      # Download the Mac-OS artifacts from the build_mac_11 job
-      - name: Download Mac-OS Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: PixelFlasher.dmg Artifacts
-          path: release
-        continue-on-error: true
+      # # Download the Mac-OS artifacts from the build_mac_11 job
+      # - name: Download Mac-OS Artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: PixelFlasher.dmg Artifacts
+      #     path: release
+      #   continue-on-error: true
 
       # List the artifacts downloaded
       - name: List contents of dist directory

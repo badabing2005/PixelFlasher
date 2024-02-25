@@ -2566,7 +2566,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
 #                               Function process_pi_xml_piac
 # ============================================================================
 def process_pi_xml_piac(filename):
-    with open(filename, 'r') as file:
+    with open(filename, 'r', encoding='UTF-8') as file:
         xml_string = file.read()
 
     # Parse the XML string

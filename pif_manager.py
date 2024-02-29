@@ -569,7 +569,8 @@ class PifManager(wx.Dialog):
                 with open(pif_prop, 'w') as file:
                     pass
             # get the contents of modified pif.json
-            with open(pif_prop, 'r', encoding='ISO-8859-1', errors="replace") as f:
+            encoding = detect_encoding(pif_prop)
+            with open(pif_prop, 'r', encoding=encoding, errors="replace") as f:
                 contents = f.read()
                 self.device_pif = contents
             self.active_pif_stc.SetValue(contents)

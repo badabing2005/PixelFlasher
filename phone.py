@@ -545,7 +545,7 @@ class Device():
     def magisk_path(self):
         try:
             magisk_path = get_magisk_package()
-            if self.mode == 'adb' and magisk_path is not None and magisk_path != '':
+            if self.true_mode == 'adb' and magisk_path is not None and magisk_path != '':
                 res = self.get_package_path(magisk_path, True)
                 if res != -1:
                     return res
@@ -1776,7 +1776,7 @@ add_hosts_module
             pkg_path    on success returns package apk path.
             -1          if an exception is raised.
         """
-        if self.mode != 'adb':
+        if self.true_mode != 'adb':
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path. Device is not in ADB mode.")
             return -1
         try:

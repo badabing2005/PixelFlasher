@@ -121,7 +121,8 @@ class FilePickerComboBox(wx.Panel):
 
         if os.path.exists(self.history_file):
             try:
-                with open(self.history_file, 'r') as f:
+                encoding = detect_encoding(self.history_file)
+                with open(self.history_file, 'r', encoding=encoding, errors="replace") as f:
                     self.history = json.load(f)
                     self.combo_box.SetItems(self.history)
             except Exception as e:
@@ -566,13 +567,15 @@ class PixelFlasher(wx.Frame):
 
         # load android_versions into a dict.
         with contextlib.suppress(Exception):
-            with open('android_versions.json', 'r', encoding='ISO-8859-1', errors="replace") as file:
+            encoding = detect_encoding('android_versions.json')
+            with open('android_versions.json', 'r', encoding=encoding, errors="replace") as file:
                 android_versions = json.load(file)
             set_android_versions(android_versions)
 
         # load android_devices into a dict.
         with contextlib.suppress(Exception):
-            with open('android_devices.json', 'r', encoding='ISO-8859-1', errors="replace") as file:
+            encoding = detect_encoding('android_devices.json')
+            with open('android_devices.json', 'r', encoding=encoding, errors="replace") as file:
                 android_devices = json.load(file)
             set_android_devices(android_devices)
 

@@ -3067,7 +3067,7 @@ def flash_phone(self):
                 return -1
 
         # Make sure Phone model matches firmware model
-        if not (len(device.hardware) >= 3 and device.hardware in get_firmware_model()):
+        if (get_firmware_model() is None or get_firmware_model() == '') or not (len(device.hardware) >= 3 and device.hardware in get_firmware_model()):
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware Model {get_firmware_model()}")
             puml(f"#orange:Hardware does not match firmware;\n")
             puml(f"note right\nAndroid device model {device.hardware}\nfirmware Model {get_firmware_model()}\nend note\n")

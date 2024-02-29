@@ -114,6 +114,8 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
 - [Android SDK Platform-Tools](https://developer.android.com/studio/releases/platform-tools.html).
 - Android Pixel phone [factory image](https://developers.google.com/android/images) or Android Pixel phone [full OTA image](https://developers.google.com/android/ota).
 - Bootloader unlocked phone (see excellent guide links in credits section below).
+- On Windows: The latest [Google USB drivers](https://developer.android.com/studio/run/win-usb?authuser=1%2F) installed in adb and fastboot modes.
+- On MacOS: [Allow USB Accessory to connect](https://support.apple.com/en-us/102282) (very important!).
 
 ## Installation
 

@@ -3,6 +3,7 @@
 import apk
 import binascii
 import contextlib
+import chardet
 import fnmatch
 import hashlib
 import io
@@ -948,23 +949,18 @@ def init_config_path(config_file_path=''):
             print(f"config_file_path: {config_file_path}")
             set_config_file_path(config_file_path)
             if os.path.exists(config_file_path):
-                with open(config_file_path, 'r', encoding="ISO-8859-1", errors="replace") as f:
+                encoding = detect_encoding(config_file_path)
+                with open(config_file_path, 'r', encoding=encoding, errors="replace") as f:
                     data = json.load(f)
-                    f.close()
                 pf_home = data['pf_home']
                 if pf_home and os.path.exists(pf_home):
                     set_config_path(pf_home)
         config_path = get_config_path()
-        if not os.path.exists(os.path.join(config_path, 'logs')):
-            os.makedirs(os.path.join(config_path, 'logs'), exist_ok=True)
-        if not os.path.exists(os.path.join(config_path, 'factory_images')):
-            os.makedirs(os.path.join(config_path, 'factory_images'), exist_ok=True)
-        if not os.path.exists(os.path.join(config_path, get_boot_images_dir())):
-            os.makedirs(os.path.join(config_path, get_boot_images_dir()), exist_ok=True)
-        if not os.path.exists(os.path.join(config_path, 'tmp')):
-            os.makedirs(os.path.join(config_path, 'tmp'), exist_ok=True)
-        if not os.path.exists(os.path.join(config_path, 'puml')):
-            os.makedirs(os.path.join(config_path, 'puml'), exist_ok=True)
+        directories = ['logs', 'factory_images', get_boot_images_dir(), 'tmp', 'puml']
+        for directory in directories:
+            full_path = os.path.join(config_path, directory)
+            if not os.path.exists(full_path):
+                os.makedirs(full_path, exist_ok=True)
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_config_path")
         traceback.print_exc()
@@ -2563,10 +2559,20 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
 
 
 # ============================================================================
+#                               Function detect_encoding
+# ============================================================================
+def detect_encoding(filename):
+    with open(filename, 'rb') as file:
+        result = chardet.detect(file.read())
+    return result['encoding']
+
+
+# ============================================================================
 #                               Function process_pi_xml_piac
 # ============================================================================
 def process_pi_xml_piac(filename):
-    with open(filename, 'r') as file:
+    encoding = detect_encoding(filename)
+    with open(filename, 'r', encoding=encoding, errors="replace") as file:
         xml_string = file.read()
 
     # Parse the XML string
@@ -2601,7 +2607,8 @@ def process_pi_xml_piac(filename):
 #                               Function process_pi_xml_spic
 # ============================================================================
 def process_pi_xml_spic(filename):
-    with open(filename, 'r') as file:
+    encoding = detect_encoding(filename)
+    with open(filename, 'r', encoding=encoding, errors="replace") as file:
         xml_content = file.read()
 
     # Check if the XML contains the specific string
@@ -2646,7 +2653,8 @@ def process_pi_xml_spic(filename):
 #                               Function process_pi_xml_tb
 # ============================================================================
 def process_pi_xml_tb(filename):
-    with open(filename, 'r') as file:
+    encoding = detect_encoding(filename)
+    with open(filename, 'r', encoding=encoding, errors="replace") as file:
         xml_content = file.read()
 
     # Find the position of "Play Integrity Result:"
@@ -2713,7 +2721,8 @@ def process_pi_xml_tb(filename):
 #                               Function process_pi_xml_ps
 # ============================================================================
 def process_pi_xml_ps(filename):
-    with open(filename, 'r') as file:
+    encoding = detect_encoding(filename)
+    with open(filename, 'r', encoding=encoding, errors="replace") as file:
         xml_content = file.read()
 
     # Find the position of text="Labels:
@@ -2736,7 +2745,8 @@ def process_pi_xml_ps(filename):
 #                               Function process_pi_xml_yasnac
 # ============================================================================
 def process_pi_xml_yasnac(filename):
-    with open(filename, 'r') as file:
+    encoding = detect_encoding(filename)
+    with open(filename, 'r', encoding=encoding, errors="replace") as file:
         xml_content = file.read()
 
     # Find the position of text="Result"
@@ -2818,10 +2828,8 @@ def get_xiaomi_apk(filename):
             value = xiaomi_pifs.get(key)
 
         if not value:
-            url = (latest_link).content
             print("Downloading xiaomi apk ...")
-            with open(filename, "wb") as apk_file:
-                apk_file.write(response = request_with_fallback(method='GET', url=url))
+            download_file(url=latest_link, filename=filename)
         else:
             print("No new Xiaomi update!")
         return key

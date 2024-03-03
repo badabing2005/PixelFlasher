@@ -87,7 +87,7 @@ class MagiskDownloads(wx.Dialog):
         for apk in apks:
             if apk.type:
                 index = self.list.InsertItem(i, apk.type)
-                if apk.type in ('stable', 'beta', 'canary', 'debug'):
+                if apk.type in ('stable', 'beta', 'alpha', 'canary', 'debug'):
                     self.list.SetItemColumnImage(i, 0, 0)
                 else:
                     self.list.SetItemColumnImage(i, 0, -1)

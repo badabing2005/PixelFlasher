@@ -2182,7 +2182,7 @@ add_hosts_module
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['stable', 'beta', 'canary', 'debug', 'delta canary', 'delta debug', 'special 25203', "special 26401", "special 27001"]
+                mlist = ['stable', 'beta', 'alpha', 'canary', 'debug', 'delta canary', 'delta debug', 'special 25203', "special 26401", "special 27001"]
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     if apk:
@@ -2204,6 +2204,29 @@ add_hosts_module
 
         elif channel == 'beta':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/beta.json"
+            
+        elif channel == 'alpha':
+            # Now published at appcenter: https://install.appcenter.ms/users/vvb2060/apps/magisk/distribution_groups/public
+            
+            info_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/public_releases?scope=tester"
+            release_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/releases/{}"
+            
+            res = request_with_fallback(method='GET', url=info_endpoint)
+            
+            latest_id = res.json()[0]['id']
+            
+            res = request_with_fallback(method='GET', url=release_endpoint.format(latest_id))
+            
+            latest_release = res.json()
+            
+            setattr(ma, 'version', latest_release['short_version'])
+            setattr(ma, 'versionCode', latest_release['version'])
+            setattr(ma, 'link', latest_release['download_url'])
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', latest_release['bundle_identifier'])
+            setattr(ma, 'release_notes', latest_release['release_notes'])
+            
+            return ma
 
         elif channel == 'canary':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/canary.json"
@@ -2312,11 +2335,6 @@ This is a special Magisk build\n\n
             note_link = data['magisk']['note']
             setattr(ma, 'note_link', note_link)
             setattr(ma, 'package', 'com.topjohnwu.magisk')
-            # if channel == 'alpha':
-            #     # Magisk alpha app link is not a full url, build it from url
-            #     setattr(ma, 'link', f"https://github.com/vvb2060/magisk_files/raw/alpha/{ma.link}")
-            #     setattr(ma, 'note_link', "https://raw.githubusercontent.com/vvb2060/magisk_files/alpha/README.md")
-            #     setattr(ma, 'package', 'io.github.vvb2060.magisk')
             if channel in ['delta canary', 'delta debug']:
                 setattr(ma, 'package', 'io.github.huskydg.magisk')
             # Get the note contents

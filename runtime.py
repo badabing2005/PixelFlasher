@@ -3266,10 +3266,10 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False):
 # We use this when we want to capture the returncode and also selectively
 # output what we want to console. Nothing is sent to console, both stdout and
 # stderr are only available when the call is completed.
-def run_shell(cmd, timeout=None):
+def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
     try:
         flush_output()
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='ISO-8859-1', errors="replace", env=get_env_variables())
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding=encoding, errors="replace", env=get_env_variables())
         # Wait for the process to complete or timeout
         stdout, stderr = process.communicate(timeout=timeout)
         # Return the response

@@ -271,7 +271,7 @@ jobs:
             dist/PixelFlasher_Ubuntu_22_04.sha256
 
   # ---------------------------------------------------------------------------
-  #                              build_mac_11
+  #                              build_mac_13
   # ---------------------------------------------------------------------------
   build_mac_13:
     if: github.actor == 'badabing2005'
@@ -286,16 +286,16 @@ jobs:
         run: |
           ls /usr/local/Cellar
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: Install node graphicsmagick imagemagick
         run: brew install node graphicsmagick imagemagick
 
       - name: Install create-dmg
         run: npm install --global create-dmg
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       # - name: Uninstall Pythons other than 3.11
       #   run: |
@@ -349,7 +349,7 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_13]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04]
 
     runs-on: ubuntu-latest
 

@@ -36,6 +36,8 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 # ============================================================================
 class MagiskDownloads(wx.Dialog):
     def __init__(self, *args, **kwargs):
+        style = kwargs.get('style', wx.DEFAULT_DIALOG_STYLE) | wx.RESIZE_BORDER
+        kwargs['style'] = style
         wx.Dialog.__init__(self, *args, **kwargs)
         self.SetTitle("Download and Install Magisk")
         self.url =  None
@@ -75,10 +77,12 @@ class MagiskDownloads(wx.Dialog):
         device = get_phone()
         apks = device.magisk_apks
 
+        max_url_column_width = 600
         self.list.InsertColumn(0, 'Channel', width = -1)
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(2, 'VersionCode', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(3, 'URL', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(3, 'URL', wx.LIST_FORMAT_LEFT, -1)
+        self.list.SetColumnWidth(3, min(self.list.GetColumnWidth(3), max_url_column_width))
         self.list.InsertColumn(4, 'Package', wx.LIST_FORMAT_LEFT,  -1)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
@@ -109,6 +113,7 @@ class MagiskDownloads(wx.Dialog):
         grow_column(self.list, 2, 20)
         self.list.SetColumnWidth(3, -2)
         grow_column(self.list, 3, 20)
+        self.list.SetColumnWidth(3, min(self.list.GetColumnWidth(3), max_url_column_width))  # Set maximum width after growing
         self.list.SetColumnWidth(4, -1)
         grow_column(self.list, 4, 20)
 
@@ -194,14 +199,17 @@ class MagiskDownloads(wx.Dialog):
         if not hasattr(self, "popupDisable"):
             self.popupCopyURL = wx.NewIdRef()
             self.popupCopyPackageId = wx.NewIdRef()
+            self.popupDownloadMagisk = wx.NewIdRef()
 
             self.Bind(wx.EVT_MENU, self._OnCopyURL, id=self.popupCopyURL)
             self.Bind(wx.EVT_MENU, self._OnCopyPackageId, id=self.popupCopyPackageId)
+            self.Bind(wx.EVT_MENU, self._OnDownloadMagisk, id=self.popupDownloadMagisk)
 
         # build the menu
         menu = wx.Menu()
         menu.Append(self.popupCopyURL, "Copy URL to Clipboard")
         menu.Append(self.popupCopyPackageId, "Copy Package ID to Clipboard")
+        menu.Append(self.popupDownloadMagisk, "Download Selected Magisk")
 
         # Popup the menu.  If an item is selected then its handler
         # will be called before PopupMenu returns.
@@ -221,6 +229,20 @@ class MagiskDownloads(wx.Dialog):
     def _OnCopyURL(self, event):
         item = self.list.GetItem(self.currentItem, 3)
         pyperclip.copy(item.Text)
+
+    # -----------------------------------------------
+    #                  _OnDownloadMagisk
+    # -----------------------------------------------
+    def _OnDownloadMagisk(self, event):
+        url = self.list.GetItem(self.currentItem, 3).Text
+        version = self.list.GetItem(self.currentItem, 1).Text
+        versionCode = self.list.GetItem(self.currentItem, 2).Text
+        filename = f"magisk_{version}_{versionCode}.apk"
+        dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dialog.ShowModal() == wx.ID_OK:
+            destination_path = dialog.GetPath()
+            print(f"Downloading {destination_path} from {url}...")
+            download_file(url=url, filename=destination_path, callback=None, stream=False)
 
     # -----------------------------------------------
     #                  __del__
@@ -284,7 +306,7 @@ class MagiskDownloads(wx.Dialog):
         if 'Namelesswonder' in self.url and not device.has_init_boot:
             print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
             print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.")
-            print("         See details at: https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")
+            print("         See details at: https://xdaforums.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")
 
             title = "Device Not Supported"
             message =  f"ERROR: Your phone model is: {device.hardware}\n\n"

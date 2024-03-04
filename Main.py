@@ -566,18 +566,27 @@ class PixelFlasher(wx.Frame):
         print(f"Available Free Disk on PixelFlasher data drive: {str(get_free_space(get_config_path()))} GB\n")
 
         # load android_versions into a dict.
-        with contextlib.suppress(Exception):
-            encoding = detect_encoding('android_versions.json')
-            with open('android_versions.json', 'r', encoding=encoding, errors="replace") as file:
+        try:
+            file_path = os.path.join(get_bundle_dir(), 'android_versions.json')
+            encoding = detect_encoding(file_path)
+            with open(file_path, 'r', encoding=encoding, errors="replace") as file:
                 android_versions = json.load(file)
             set_android_versions(android_versions)
+        except Exception as e:
+            print(f"Error: Unable to load {file_path} {e}")
 
         # load android_devices into a dict.
-        with contextlib.suppress(Exception):
-            encoding = detect_encoding('android_devices.json')
-            with open('android_devices.json', 'r', encoding=encoding, errors="replace") as file:
+        try:
+            file_path = os.path.join(get_bundle_dir(), 'android_devices.json')
+            encoding = detect_encoding(file_path)
+            with open(file_path, 'r', encoding=encoding, errors="replace") as file:
                 android_devices = json.load(file)
             set_android_devices(android_devices)
+        except Exception as e:
+            print(f"Error: Unable to load {file_path} {e}")
+
+        # clear file_path
+        file_path = None
 
         # load Magisk Package Name
         set_magisk_package(self.config.magisk)
@@ -1801,10 +1810,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.issue_item.GetId(): ('https://github.com/badabing2005/PixelFlasher/issues/new', "Report an Issue"),
                 self.feature_item.GetId(): ('https://github.com/badabing2005/PixelFlasher/issues/new', "Feature Request"),
                 self.project_page_item.GetId(): ('https://github.com/badabing2005/PixelFlasher', "PixelFlasher Project Page"),
-                self.forum_item.GetId(): ('https://forum.xda-developers.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/', "PixelFlasher Community (Forum)"),
+                self.forum_item.GetId(): ('https://xdaforums.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/', "PixelFlasher Community (Forum)"),
                 self.linksMenuItem1.GetId(): ('https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/', "Homeboy76's Guide"),
-                self.linksMenuItem2.GetId(): ('https://forum.xda-developers.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/', "V0latyle's Guide"),
-                self.linksMenuItem3.GetId(): ('https://forum.xda-developers.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/', "roirraW's Guide"),
+                self.linksMenuItem2.GetId(): ('https://xdaforums.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/', "V0latyle's Guide"),
+                self.linksMenuItem3.GetId(): ('https://xdaforums.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/', "roirraW's Guide"),
                 self.linksMenuItem4.GetId(): ('https://github.com/osm0sis/PlayIntegrityFork', "osm0sis's PlayIntegrityFork"),
                 self.linksMenuItem5.GetId(): ('https://github.com/chiteroman/PlayIntegrityFix', "chiteroman's PlayIntegrityFix"),
                 self.linksMenuItem6.GetId(): ('https://developer.android.com/studio/run/win-usb?authuser=1%2F', "Get the Google USB Driver"),
@@ -2071,6 +2080,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             android_device = android_devices[device.hardware]
             if android_device:
                 message += f"    Device:                          {android_device['device']}\n"
+                message += f"    Device First API Level:          {android_device['first_api_level']}\n"
                 message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
                 message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"
         message += f"    Has init_boot partition:         {device.has_init_boot}\n"
@@ -2537,7 +2547,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
                 self.magisk_menu:                       ['device_attached', 'device_mode_adb'],
                 self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
-                self.pif_manager_menu:                  ['device_attached', 'device_mode_adb'],
+                # self.pif_manager_menu:                  ['device_attached', 'device_mode_adb'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 # self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.disable_verity_checkBox:           ['device_attached'],
@@ -2575,7 +2585,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 200:                                    ['device_attached', 'device_mode_adb'],                         # Magisk Modules
                 210:                                    ['device_attached'],                                            # Magisk Install
                 220:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Magisk Backup Manager
-                225:                                    ['device_attached', 'device_mode_adb'],                         # Pif Manager
+                # 225:                                    ['device_attached', 'device_mode_adb'],                         # Pif Manager
                 230:                                    ['no_rule'],                                                    # SOS
                 300:                                    ['device_attached'],                                            # Lock
                 310:                                    ['device_attached'],                                            # Unock

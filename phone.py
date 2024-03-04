@@ -2204,35 +2204,28 @@ add_hosts_module
 
         elif channel == 'beta':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/beta.json"
-            
-        elif channel == 'alpha':
-            # Now published at appcenter: https://install.appcenter.ms/users/vvb2060/apps/magisk/distribution_groups/public
-            
-            info_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/public_releases?scope=tester"
-            release_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/releases/{}"
-            
-            res = request_with_fallback(method='GET', url=info_endpoint)
-            
-            latest_id = res.json()[0]['id']
-            
-            res = request_with_fallback(method='GET', url=release_endpoint.format(latest_id))
-            
-            latest_release = res.json()
-            
-            setattr(ma, 'version', latest_release['short_version'])
-            setattr(ma, 'versionCode', latest_release['version'])
-            setattr(ma, 'link', latest_release['download_url'])
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', latest_release['bundle_identifier'])
-            setattr(ma, 'release_notes', latest_release['release_notes'])
-            
-            return ma
 
         elif channel == 'canary':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/canary.json"
 
         elif channel == 'debug':
             url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/debug.json"
+
+        elif channel == 'alpha':
+            # Now published at appcenter: https://install.appcenter.ms/users/vvb2060/apps/magisk/distribution_groups/public
+            info_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/public_releases?scope=tester"
+            release_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/releases/{}"
+            res = request_with_fallback(method='GET', url=info_endpoint)
+            latest_id = res.json()[0]['id']
+            res = request_with_fallback(method='GET', url=release_endpoint.format(latest_id))
+            latest_release = res.json()
+            setattr(ma, 'version', latest_release['short_version'])
+            setattr(ma, 'versionCode', latest_release['version'])
+            setattr(ma, 'link', latest_release['download_url'])
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', latest_release['bundle_identifier'])
+            setattr(ma, 'release_notes', latest_release['release_notes'])
+            return ma
 
         elif channel == 'delta canary':
             url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
@@ -2256,12 +2249,12 @@ add_hosts_module
             url = ""
             setattr(ma, 'version', "f9e82c9e")
             setattr(ma, 'versionCode', "25203")
-            setattr(ma, 'link', "https://forum.xda-developers.com/attachments/app-debug-apk.5725759/")
+            setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_25203/app-release.apk")
             setattr(ma, 'note_link', "note_link")
             setattr(ma, 'package', 'com.topjohnwu.magisk')
             release_notes = """
 ## 2022.10.03 Special Magisk v25.2 Build\n\n
-This is a special Magisk build by XDA Member [gecowa6967](https://forum.xda-developers.com/m/gecowa6967.11238881/)\n\n
+This is a special Magisk build by XDA Member [gecowa6967](https://xdaforums.com/m/gecowa6967.11238881/)\n\n
 - Based on build versionCode: 25203 versionName: f9e82c9e\n
 - Modified to disable loading modules.\n
 - Made to recover from bootloops due to bad / incompatible Modules.\n\n
@@ -2278,7 +2271,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
 - Create patched boot / init_boot image.\n
 - Flash the patched image.\n
 - You should be good to go.\n\n
-### Full Details: [here](https://forum.xda-developers.com/t/magisk-general-support-discussion.3432382/page-2667#post-87520397)\n
+### Full Details: [here](https://xdaforums.com/t/magisk-general-support-discussion.3432382/page-2667#post-87520397)\n
             """
             setattr(ma, 'release_notes', release_notes)
             return ma

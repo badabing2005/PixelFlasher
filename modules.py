@@ -1857,7 +1857,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         puml("#red:Valid device is not selected;\n}\n")
         return
     else:
-        print(f"Patching on device: {device.hardware}")
+        print(f"Patching on hardware: {device.hardware}")
 
     if patch_flavor == 'KernelSU':
         kmi = device.kmi
@@ -2661,7 +2661,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         startFlash = time.time()
         # if device.hardware in KNOWN_INIT_BOOT_DEVICES:
         #     # Pixel 7 and 7P need a special command to Live Boot.
-        #     # https://forum.xda-developers.com/t/td1a-220804-031-factory-image-zip-is-up-unlock-bootloader-root-pixel-7-pro-cheetah-limited-safetynet-all-relevant-links.4502805/post-87571843
+        #     # https://xdaforums.com/t/td1a-220804-031-factory-image-zip-is-up-unlock-bootloader-root-pixel-7-pro-cheetah-limited-safetynet-all-relevant-links.4502805/post-87571843
         #     kernel = os.path.join(os.path.dirname(boot.boot_path), "boot.img")
         #     if os.path.exists(kernel):
         #         theCmd = f"\"{get_fastboot()}\" -s {device.id} boot \"{kernel}\" \"{boot.boot_path}\""
@@ -3158,8 +3158,8 @@ def flash_phone(self):
 The selected patch is created by [Magisk Zygote64_32](https://github.com/Namelesswonder/magisk-files).<br/>
 
 **PixelFlasher** detected a condition where a wipe is necessary to avoid bootloops.<br/>
-You can learn about it [here](https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/post-88504869
-) and [here](https://forum.xda-developers.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/)<br/>
+You can learn about it [here](https://xdaforums.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/post-88504869
+) and [here](https://xdaforums.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/)<br/>
 
 You have not selected the **Wipe Data** option.<br/>
 
@@ -3269,7 +3269,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     data_win += data_tmp
                     data_linux += data_tmp
                     # flash on each slot separately
-                    # https://forum.xda-developers.com/t/psa-do-not-try-to-boot-into-the-old-slot-after-updating-only-one-slot-to-android-13-unlocking-the-pixel-6-pro-bootloader-central-repository.4352027/post-87309913
+                    # https://xdaforums.com/t/psa-do-not-try-to-boot-into-the-old-slot-after-updating-only-one-slot-to-android-13-unlocking-the-pixel-6-pro-bootloader-central-repository.4352027/post-87309913
                     if self.config.advanced_options and self.config.flash_both_slots:
                         data_tmp = "\necho Switching active slot to the other ...\n"
                         data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device_id} --set-active=other\n"

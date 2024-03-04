@@ -4,7 +4,7 @@ block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
              binaries=[('bin/7zz', 'bin')],
-             datas=[("images/icon-64.png", "images"), ("images/icon-dark-64.png", "images"), ('bin/busybox_arm64-v8a', 'bin'), ('bin/busybox_armeabi-v7a', 'bin'), ('bin/busybox_x86', 'bin'), ('bin/busybox_x86_64', 'bin'), ('bin/aapt2_arm64-v8a', 'bin'), ('bin/aapt2_armeabi-v7a', 'bin'), ('bin/aapt2_x86', 'bin'), ('bin/aapt2_x86_64', 'bin'), ('bin/avbctl', 'bin'), ('bin/update_engine_client', 'bin')],
+             datas=[("images/icon-64.png", "images"), ("images/icon-dark-64.png", "images"), ('bin/busybox_arm64-v8a', 'bin'), ('bin/busybox_armeabi-v7a', 'bin'), ('bin/busybox_x86', 'bin'), ('bin/busybox_x86_64', 'bin'), ('bin/aapt2_arm64-v8a', 'bin'), ('bin/aapt2_armeabi-v7a', 'bin'), ('bin/aapt2_x86', 'bin'), ('bin/aapt2_x86_64', 'bin'), ('bin/avbctl', 'bin'), ('bin/update_engine_client', 'bin'), ('android_versions.json', '.'), ('android_devices.json', '.')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -28,6 +28,6 @@ exe = EXE(pyz,
           icon='images/icon-dark-256.icns')
 app = BUNDLE(exe,
              name='PixelFlasher.app',
-             version='6.8.1.0',
+             version='6.8.2.0',
              icon='./images/icon-dark-256.icns',
              bundle_identifier='com.badabing.pixelflasher')

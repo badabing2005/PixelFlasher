@@ -123,7 +123,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
 
         # Check for Minimum Disk space option
-        self.check_for_disk_space_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check for Minumum Disk (5Gb)", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_disk_space_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check for Minimum Disk (5Gb)", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_disk_space_checkbox.SetToolTip(u"Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues.")
 
         # Check for Bootloader unlocked option

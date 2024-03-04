@@ -2241,14 +2241,14 @@ def extract_date_from_google_version(version_string):
 # ============================================================================
 #                               Function download_file
 # ============================================================================
-def download_file(url, filename=None, callback=None):
+def download_file(url, filename=None, callback=None, stream=True):
     if not url:
         return
     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Downloading: {url} ...")
     start = time.time()
-    response = request_with_fallback(method='GET', url=url, stream=True)
 
     try:
+        response = request_with_fallback(method='GET', url=url, stream=stream)
         config_path = get_config_path()
         if not filename:
             filename = os.path.basename(urlparse(url).path)
@@ -2301,11 +2301,14 @@ def delete_keys_from_dict(dictionary, keys):
 # ============================================================================
 def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=None, sort_data=False, keep_all=False):
     try:
-        module_flavor = 'playintegrityfork'
         module_versionCode = 0
         with contextlib.suppress(Exception):
             module_flavor = pif_flavor.split('_')[0]
             module_versionCode = int(pif_flavor.split('_')[1])
+        if module_flavor == '':
+            module_flavor = 'playintegrityfork'
+        if module_versionCode == 0:
+            module_versionCode = 9999999
         android_devices = get_android_devices()
         autofill = False
         if add_missing_keys:
@@ -3296,13 +3299,13 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
 #                               Function run_shell2
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
-def run_shell2(cmd, timeout=None, detached=False, directory=None):
+def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-8859-1'):
     try:
         flush_output()
         if directory is None:
-            proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", start_new_session=detached, env=get_env_variables())
+            proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
         else:
-            proc = subprocess.Popen(f"{cmd}", cwd=directory, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding='ISO-8859-1', errors="replace", start_new_session=detached, env=get_env_variables())
+            proc = subprocess.Popen(f"{cmd}", cwd=directory, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
 
         print
         while True:

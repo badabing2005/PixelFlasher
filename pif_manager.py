@@ -32,7 +32,7 @@ class PifManager(wx.Dialog):
         self.coords = Coords()
         self.enable_buttons = False
         self.pif_exists = False
-        self.pif_flavor = ''
+        self.pif_flavor = 'playintegrityfork_9999999'
         self.favorite_pifs = get_favorite_pifs()
         self.insync = False
 

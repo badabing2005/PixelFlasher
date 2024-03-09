@@ -107,7 +107,13 @@ jobs:
           echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
           echo "PATH = ${{env.PATH}}"
           ls -l ${{env.MAGICK_HOME}}/bin/
-          ./build.sh
+          ./build.sh || echo "Build failed, creating artifacts from PixelFlasher.app" && exit 1
+        if: ${{ failure() }}
+      - name: Upload PixelFlasher.app as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelFlasher.app
+          path: dist/PixelFlasher.app
 
       - name: Rename the file
         run: mv dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_13.dmg

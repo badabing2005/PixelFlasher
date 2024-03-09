@@ -70,6 +70,10 @@ jobs:
           echo "MAGICK_HOME=$(pwd)/ImageMagick-7.0.10" >> $GITHUB_ENV
           echo "DYLD_LIBRARY_PATH=$(pwd)/ImageMagick-7.0.10/lib/" >> $GITHUB_ENV
           echo "PATH=$(pwd)/ImageMagick-7.0.10/bin:$PATH" >> $GITHUB_ENV
+          echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
+          echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
+          echo "PATH = ${{env.PATH}}"
+          ls -l ${{env.MAGICK_HOME}}/bin/
 
       - name: Install create-dmg
         run: npm install --global create-dmg
@@ -92,7 +96,12 @@ jobs:
         run: python3.11 -m pip freeze
 
       - name: Build application
-        run: ./build.sh
+        run: |
+          echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
+          echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
+          echo "PATH = ${{env.PATH}}"
+          ls -l ${{env.MAGICK_HOME}}/bin/
+          ./build.sh
 
       - name: Rename the file
         run: mv dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_11.dmg

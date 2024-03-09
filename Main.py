@@ -2079,7 +2079,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             android_devices = get_android_devices()
             android_device = android_devices[device.hardware]
             if android_device:
-                message += f"    Device:                          {android_device['device']}\n"
+                message += f"    Device Name:                     {android_device['device']}\n"
                 message += f"    Device First API Level:          {android_device['first_api_level']}\n"
                 message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
                 message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"

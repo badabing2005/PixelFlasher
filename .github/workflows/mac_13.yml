@@ -45,8 +45,14 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install node graphicsmagick imagemagick
-        run: brew install node graphicsmagick imagemagick
+      - name: Install dependencies
+        run: |
+          brew install node graphicsmagick
+          curl -O https://imagemagick.org/archive/binaries/ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
+          tar -xzf ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
+          export MAGICK_HOME="$(pwd)/ImageMagick-7.0.10"
+          export DYLD_LIBRARY_PATH="$MAGICK_HOME/lib/"
+          export PATH="$PATH:$MAGICK_HOME/bin"
 
       - name: Install wxPython
         # run: brew install wxpython

@@ -45,9 +45,22 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install GraphicsMagick
         run: |
-          brew install node graphicsmagick
+          curl -O https://downloads.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.gz
+          tar -xzf GraphicsMagick-1.3.42.tar.gz
+          cd GraphicsMagick-1.3.42
+          ./configure
+          make
+          sudo make install
+          cd ..
+
+      - name: Install node
+        run: |
+          brew install node
+
+      - name: Install ImageMagick
+        run: |
           curl -O https://imagemagick.org/archive/binaries/ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
           tar -xzf ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
           export MAGICK_HOME="$(pwd)/ImageMagick-7.0.10"

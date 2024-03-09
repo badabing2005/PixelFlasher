@@ -47,8 +47,8 @@ jobs:
 
       - name: Install GraphicsMagick
         run: |
-          curl -L -O https://downloads.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.36/GraphicsMagick-1.3.42.tar.gz
-          tar -xzf GraphicsMagick-1.3.42.tar.gz
+          curl -L -O https://sourceforge.net/projects/graphicsmagick/files/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.xz/download
+          tar -xJf GraphicsMagick-1.3.42.tar.gz
           cd GraphicsMagick-1.3.42
           ./configure
           make

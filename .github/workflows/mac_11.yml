@@ -75,10 +75,10 @@ jobs:
       #     echo "PATH = ${{env.PATH}}"
       #     ls -l ${{env.MAGICK_HOME}}/bin/
 
-      # - name: Install create-dmg
-      #   run: |
-      #     npm cache clean --force
-      #     npm install --global create-dmg
+      - name: Install create-dmg
+        run: |
+          npm cache clean --force
+          npm install --global create-dmg
 
       - name: Add Python 3.11 to PATH
         run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH

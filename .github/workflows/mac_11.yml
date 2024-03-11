@@ -98,6 +98,7 @@ jobs:
         run: python3.11 -m pip freeze
 
       - name: Build application
+        id: build_app
         run: |
           echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
           echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
@@ -112,17 +113,24 @@ jobs:
           path: dist/PixelFlasher.app
 
       - name: Create DMG
+        id: create_dmg
         run: |
           create-dmg dist/PixelFlasher.app
           # hdiutil create -volname "PixelFlasher" -srcfolder dist/PixelFlasher.app -ov -format UDZO dist/PixelFlasher_MacOS_11.dmg
+          ls -l dist/
+        if: ${{ steps.build_app.outcome == 'success' }}
+        continue-on-error: true
 
       - name: Rename the file
+        id: rename_dmg
         run: mv dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_11.dmg
+        if: ${{ steps.create_dmg.outcome == 'success' }}
 
       - name: Get sha256
         run: |
           shasum -a 256 dist/PixelFlasher_MacOS_11.dmg > dist/PixelFlasher_MacOS_11.dmg.sha256
           cat dist/PixelFlasher_MacOS_11.dmg.sha256
+        if: ${{ steps.rename_dmg.outcome == 'success' }}
 
       - name: List contents of dist directory
         run: ls dist

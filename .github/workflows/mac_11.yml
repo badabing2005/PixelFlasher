@@ -116,8 +116,7 @@ jobs:
         id: create_dmg
         run: |
           create-dmg dist/PixelFlasher.app
-          # hdiutil create -volname "PixelFlasher" -srcfolder dist/PixelFlasher.app -ov -format UDZO dist/PixelFlasher_MacOS_11.dmg
-          ls -l dist/
+          ls -l ./ dist/
         if: ${{ steps.build_app.outcome == 'success' }}
         continue-on-error: true
 
@@ -133,7 +132,7 @@ jobs:
         if: ${{ steps.rename_dmg.outcome == 'success' }}
 
       - name: List contents of dist directory
-        run: ls dist
+        run: ls ./ dist/
 
       # Upload artifacts Mac-OS 11
       - name: Upload Mac-OS 11 Artifact

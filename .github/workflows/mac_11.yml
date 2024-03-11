@@ -52,33 +52,33 @@ jobs:
       - name: Install node
         run: brew install node
 
-      - name: Install GraphicsMagick
-        run: |
-          curl -L -O https://newcontinuum.dl.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.xz
-          xz -d GraphicsMagick-1.3.42.tar.xz
-          tar -xf GraphicsMagick-1.3.42.tar
-          cd GraphicsMagick-1.3.42
-          ./configure
-          make
-          sudo make install
-          cd ..
+      # - name: Install GraphicsMagick
+      #   run: |
+      #     curl -L -O https://newcontinuum.dl.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.xz
+      #     xz -d GraphicsMagick-1.3.42.tar.xz
+      #     tar -xf GraphicsMagick-1.3.42.tar
+      #     cd GraphicsMagick-1.3.42
+      #     ./configure
+      #     make
+      #     sudo make install
+      #     cd ..
 
-      - name: Install ImageMagick
-        run: |
-          curl -O https://imagemagick.org/archive/binaries/ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
-          tar -xzf ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
-          echo "MAGICK_HOME=$(pwd)/ImageMagick-7.0.10" >> $GITHUB_ENV
-          echo "DYLD_LIBRARY_PATH=$(pwd)/ImageMagick-7.0.10/lib/" >> $GITHUB_ENV
-          echo "PATH=$(pwd)/ImageMagick-7.0.10/bin:$PATH" >> $GITHUB_ENV
-          echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
-          echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
-          echo "PATH = ${{env.PATH}}"
-          ls -l ${{env.MAGICK_HOME}}/bin/
+      # - name: Install ImageMagick
+      #   run: |
+      #     curl -O https://imagemagick.org/archive/binaries/ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
+      #     tar -xzf ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
+      #     echo "MAGICK_HOME=$(pwd)/ImageMagick-7.0.10" >> $GITHUB_ENV
+      #     echo "DYLD_LIBRARY_PATH=$(pwd)/ImageMagick-7.0.10/lib/" >> $GITHUB_ENV
+      #     echo "PATH=$(pwd)/ImageMagick-7.0.10/bin:$PATH" >> $GITHUB_ENV
+      #     echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
+      #     echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
+      #     echo "PATH = ${{env.PATH}}"
+      #     ls -l ${{env.MAGICK_HOME}}/bin/
 
-      - name: Install create-dmg
-        run: |
-          npm cache clean --force
-          npm install --global create-dmg
+      # - name: Install create-dmg
+      #   run: |
+      #     npm cache clean --force
+      #     npm install --global create-dmg
 
       - name: Add Python 3.11 to PATH
         run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
@@ -104,12 +104,17 @@ jobs:
           echo "PATH = ${{env.PATH}}"
           ls -l ${{env.MAGICK_HOME}}/bin/
           ./build.sh || echo "Build failed, creating artifacts from PixelFlasher.app" && exit 1
+
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v4
         with:
           name: PixelFlasher.app
           path: dist/PixelFlasher.app
-        if: ${{ failure() }}
+
+      - name: Create DMG
+        run: |
+          create-dmg dist/PixelFlasher.app
+          # hdiutil create -volname "PixelFlasher" -srcfolder dist/PixelFlasher.app -ov -format UDZO dist/PixelFlasher_MacOS_11.dmg
 
       - name: Rename the file
         run: mv dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_11.dmg

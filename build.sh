@@ -18,12 +18,12 @@ pyinstaller --log-level=DEBUG \
             --noconfirm \
             $specfile
 
-if [[ $OSTYPE == 'darwin'* ]]; then
-    # https://github.com/sindresorhus/create-dmg
-    ls -l dist/
-    create-dmg "dist/$NAME.app"
-    mv "$NAME $VERSION.dmg" "dist/$DIST_NAME.dmg"
-fi
+# if [[ $OSTYPE == 'darwin'* ]]; then
+#     # https://github.com/sindresorhus/create-dmg
+#     ls -l dist/
+#     create-dmg "dist/$NAME.app"
+#     mv "$NAME $VERSION.dmg" "dist/$DIST_NAME.dmg"
+# fi
 
 popd
 ls -l build/ dist/

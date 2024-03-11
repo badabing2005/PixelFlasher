@@ -31,6 +31,7 @@ from os import path
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
+from cryptography import x509
 
 import lz4.frame
 import requests
@@ -2021,22 +2022,23 @@ def check_module_update(url):
             'Content-Type': "application/json"
         }
         response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
-        if response.status_code == 404:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
+        if response != 'ERROR':
+            if response.status_code == 404:
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
+                return -1
+            with contextlib.suppress(Exception):
+                data = response.json()
+                mu = ModuleUpdate(url)
+                setattr(mu, 'version', data['version'])
+                setattr(mu, 'versionCode', data['versionCode'])
+                setattr(mu, 'zipUrl', data['zipUrl'])
+                setattr(mu, 'changelog', data['changelog'])
+                headers = {}
+                response = request_with_fallback(method='GET', url=mu.changelog, headers=headers, data=payload)
+                setattr(mu, 'changelog', response.text)
+                return mu
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
             return -1
-        with contextlib.suppress(Exception):
-            data = response.json()
-            mu = ModuleUpdate(url)
-            setattr(mu, 'version', data['version'])
-            setattr(mu, 'versionCode', data['versionCode'])
-            setattr(mu, 'zipUrl', data['zipUrl'])
-            setattr(mu, 'changelog', data['changelog'])
-            headers = {}
-            response = request_with_fallback(method='GET', url=mu.changelog, headers=headers, data=payload)
-            setattr(mu, 'changelog', response.text)
-            return mu
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
-        return -1
     except Exception as e:
         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during getUpdateDetails url: {url} processing")
         traceback.print_exc()
@@ -2137,12 +2139,15 @@ def get_google_images(save_to=None):
             device_type = "watch"
 
         response = request_with_fallback(method='GET', url=url, headers=COOKIE)
-        html = response.content
-        soup = BeautifulSoup(html, 'html.parser')
-        marlin_flag = False
+        if response != 'ERROR':
+            html = response.content
+            soup = BeautifulSoup(html, 'html.parser')
+            marlin_flag = False
 
-        # Find all the <h2> elements containing device names
-        device_elements = soup.find_all('h2')
+            # Find all the <h2> elements containing device names
+            device_elements = soup.find_all('h2')
+        else:
+            device_elements = []
 
         # Iterate through the device elements
         for device_element in device_elements:
@@ -3243,15 +3248,18 @@ def extract_magiskboot(apk_path, architecture, output_path):
 #                               Function request_with_fallback
 # ============================================================================
 def request_with_fallback(method, url, headers=None, data=None, stream=False):
+    response = 'ERROR'
     try:
-        response = requests.request(method, url, headers=headers, data=data, stream=stream)
-        response.raise_for_status()
+        if check_internet():
+            response = requests.request(method, url, headers=headers, data=data, stream=stream)
+            response.raise_for_status()
     except requests.exceptions.SSLError:
         # Retry with SSL certificate verification disabled
         print(f"WARNING! Encountered SSL certification error while connecting to: {url}")
         print("Retrying with SSL certificate verification disabled. ...")
         print("For security, you should double check and make sure your system or communication is not compromised.")
-        response = requests.request(method, url, headers=headers, data=data, verify=False, stream=stream)
+        if check_internet():
+            response = requests.request(method, url, headers=headers, data=data, verify=False, stream=stream)
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
     except requests.exceptions.Timeout:
@@ -3260,7 +3268,61 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False):
         print("Too many redirects")
     except requests.exceptions.RequestException as err:
         print(f"An error occurred: {err}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
     return response
+
+
+# ============================================================================
+#                               Function check_internet
+# ============================================================================
+def check_internet():
+    url = "http://www.google.com"
+    timeout = 5
+    try:
+        _ = requests.get(url, timeout=timeout)
+        return True
+    except requests.ConnectionError:
+        print("No internet connection available.")
+    return False
+
+
+# ============================================================================
+#                               Function check_kb
+# Credit to hldr4 https://gist.github.com/hldr4/b933f584b2e2c3088bcd56eb056587f8
+# ============================================================================
+def check_kb(filename):
+    url = "https://android.googleapis.com/attestation/status"
+    headers = {'Cache-Control':'max-age=0'}
+    try:
+        crl = request_with_fallback(method='GET', url=url, headers=headers)
+        if crl is not None or crl != 'ERROR':
+            crl = crl.json()
+        else:
+            print(f"ERROR: Could not fetch CRL from {url}")
+            return False
+
+        certs = [elem.text for elem in ET.parse(filename).getroot().iter() if elem.tag == 'Certificate']
+
+        def parse_cert(cert):
+            cert = "\n".join(line.strip() for line in cert.strip().split("\n"))
+            parsed = x509.load_pem_x509_certificate(cert.encode())
+            return f'{parsed.serial_number:x}'
+
+        ec_cert_sn, rsa_cert_sn = parse_cert(certs[0]), parse_cert(certs[3])
+
+        print(f'\nEC Cert SN: {ec_cert_sn}\nRSA Cert SN: {rsa_cert_sn}')
+
+        if any(sn in crl["entries"].keys() for sn in (ec_cert_sn, rsa_cert_sn)):
+            print('\nKeybox is revoked!')
+            return False
+        else:
+            print('\nKeybox is still valid!')
+            return True
+    except Exception as e:
+        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
+        print(e)
+        traceback.print_exc()
 
 
 # ============================================================================

@@ -103,7 +103,7 @@ jobs:
           echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
           echo "PATH = ${{env.PATH}}"
           ls -l ${{env.MAGICK_HOME}}/bin/
-          ./build.sh || echo "Build failed, creating artifacts from PixelFlasher.app" && exit 1
+          ./build.sh # || echo "Build failed, creating artifacts from PixelFlasher.app" && exit 1
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v4

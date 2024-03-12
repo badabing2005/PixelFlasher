@@ -99,12 +99,7 @@ jobs:
 
       - name: Build application
         id: build_app
-        run: |
-          echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
-          echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
-          echo "PATH = ${{env.PATH}}"
-          ls -l ${{env.MAGICK_HOME}}/bin/
-          ./build.sh # || echo "Build failed, creating artifacts from PixelFlasher.app" && exit 1
+        run: ./build.sh
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v4
@@ -123,7 +118,6 @@ jobs:
       - name: Rename the file
         id: rename_dmg
         run: mv dist/PixelFlasher*.dmg dist/PixelFlasher_MacOS_11.dmg
-        if: ${{ steps.create_dmg.outcome == 'success' }}
 
       - name: Get sha256
         run: |

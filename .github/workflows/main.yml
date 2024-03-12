@@ -271,12 +271,12 @@ jobs:
             dist/PixelFlasher_Ubuntu_22_04.sha256
 
   # ---------------------------------------------------------------------------
-  #                              build_mac_13
+  #                              build_mac_11
   # ---------------------------------------------------------------------------
-  build_mac_13:
+  build_mac_11:
     if: github.actor == 'badabing2005'
     # runs-on: macos-latest
-    runs-on: macos-13
+    runs-on: macos-11
 
     steps:
       - name: Checkout code
@@ -286,31 +286,37 @@ jobs:
         run: |
           ls /usr/local/Cellar
 
-      - name: Install node graphicsmagick imagemagick
-        run: brew install node graphicsmagick imagemagick
+      - name: Uninstall Pythons other than 3.11
+        run: |
+          brew uninstall --ignore-dependencies python@3.10
+          brew uninstall --ignore-dependencies python@3.12
+          echo "doing brew list"
+          brew list
+          echo "getting directory list for /usr/local/Cellar"
+          ls /usr/local/Cellar
 
-      - name: Install create-dmg
-        run: npm install --global create-dmg
-
-      - name: Set up Python 3.12
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-
-      # - name: Uninstall Pythons other than 3.11
-      #   run: |
-      #     brew uninstall --ignore-dependencies python@3.10
-      #     brew uninstall --ignore-dependencies python@3.12
+          python-version: '3.11'
 
       - name: Install wxPython
         # run: brew install wxpython
         run: pip install wxPython
 
-      - name: Add Python 3.12 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.12/bin:$PATH
+      - name: Install node
+        run: brew install node
+
+      - name: Install create-dmg
+        run: |
+          npm cache clean --force
+          npm install --global create-dmg
+
+      - name: Add Python 3.11 to PATH
+        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
 
       - name: Create virtual environment
-        run: python3.12 -m venv myenv
+        run: python3.11 -m venv myenv
         shell: bash
 
       - name: Activate virtual environment
@@ -318,26 +324,46 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: python3.12 -m pip install -r requirements.txt
+        run: python3.11 -m pip install -r requirements.txt
 
       - name: List modules and their versions
-        run: python3.12 -m pip freeze
+        run: python3.11 -m pip freeze
 
       - name: Build application
+        id: build_app
         run: ./build.sh
+
+      - name: Upload PixelFlasher.app as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelFlasher.app
+          path: dist/PixelFlasher.app
+
+      - name: Create DMG
+        id: create_dmg
+        run: |
+          create-dmg dist/PixelFlasher.app dist
+          ls -l ./ dist/
+        if: ${{ steps.build_app.outcome == 'success' }}
+        continue-on-error: true
+
+      - name: Rename the file
+        id: rename_dmg
+        run: mv dist/PixelFlasher*.dmg dist/PixelFlasher.dmg
 
       - name: Get sha256
         run: |
           shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
           cat dist/PixelFlasher.dmg.sha256
+        if: ${{ steps.create_dmg.outcome == 'success' }}
 
       - name: List contents of dist directory
-        run: ls dist
+        run: ls ./ dist/
 
-      # Upload artifacts Mac-OS
-      - name: Upload Mac-OS 13 Artifact
+      # Upload artifacts Mac-OS 11
+      - name: Upload Mac-OS 11 Artifact
         uses: actions/upload-artifact@v4
-        id: upload_artifact_macos_13
+        id: upload_artifact_macos_11
         with:
           name: PixelFlasher.dmg Artifacts
           path: |

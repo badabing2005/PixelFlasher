@@ -115,15 +115,15 @@ jobs:
       - name: Create DMG
         id: create_dmg
         run: |
-          create-dmg dist/PixelFlasher.app dist/PixelFlasher_MacOS_11.dmg
+          create-dmg dist/PixelFlasher.app dist
           ls -l ./ dist/
         if: ${{ steps.build_app.outcome == 'success' }}
         continue-on-error: true
 
-      # - name: Rename the file
-      #   id: rename_dmg
-      #   run: mv dist/PixelFlasher.dmg dist/PixelFlasher_MacOS_11.dmg
-      #   if: ${{ steps.create_dmg.outcome == 'success' }}
+      - name: Rename the file
+        id: rename_dmg
+        run: mv dist/PixelFlasher*.dmg dist/PixelFlasher_MacOS_11.dmg
+        if: ${{ steps.create_dmg.outcome == 'success' }}
 
       - name: Get sha256
         run: |

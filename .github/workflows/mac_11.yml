@@ -121,7 +121,7 @@ jobs:
 
       - name: Get sha256
         run: |
-          shasum -a 256 dist/PixelFlasher_MacOS_11.dmg > dist/PixelFlasher_MacOS_11.dmg.sha256
+          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher_MacOS_11.dmg.sha256
           cat dist/PixelFlasher_MacOS_11.dmg.sha256
         if: ${{ steps.build_app.outcome == 'success' }}
 

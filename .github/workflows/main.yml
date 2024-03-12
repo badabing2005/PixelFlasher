@@ -339,23 +339,23 @@ jobs:
           name: PixelFlasher.app
           path: dist/PixelFlasher.app
 
-      - name: Create DMG
-        id: create_dmg
-        run: |
-          create-dmg dist/PixelFlasher.app dist
-          ls -l ./ dist/
-        if: ${{ steps.build_app.outcome == 'success' }}
-        continue-on-error: true
+      # - name: Create DMG
+      #   id: create_dmg
+      #   run: |
+      #     create-dmg dist/PixelFlasher.app dist
+      #     ls -l ./ dist/
+      #   if: ${{ steps.build_app.outcome == 'success' }}
+      #   continue-on-error: true
 
-      - name: Rename the file
-        id: rename_dmg
-        run: mv dist/PixelFlasher*.dmg dist/PixelFlasher.dmg
+      # - name: Rename the file
+      #   id: rename_dmg
+      #   run: mv dist/PixelFlasher*.dmg dist/PixelFlasher.dmg
 
       - name: Get sha256
         run: |
           shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
           cat dist/PixelFlasher.dmg.sha256
-        if: ${{ steps.create_dmg.outcome == 'success' }}
+        if: ${{ steps.build_app.outcome == 'success' }}
 
       - name: List contents of dist directory
         run: ls ./ dist/

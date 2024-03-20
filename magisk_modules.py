@@ -483,7 +483,7 @@ class MagiskModules(wx.Dialog):
             device.install_magisk_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -511,10 +511,10 @@ class MagiskModules(wx.Dialog):
                         modules[i].state = 'remove'
                         self.refresh_modules()
                     else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to remove module: {modules[i].name}")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to remove module: {modules[i].name}")
                     break
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules uninstall")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules uninstall")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -537,7 +537,7 @@ class MagiskModules(wx.Dialog):
                 device.install_magisk_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -614,14 +614,14 @@ class MagiskModules(wx.Dialog):
                 if res == 0:
                     modules[i].state = 'enabled'
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
             else:
                 print(f"Module: {modules[i].name:<36} state has changed,       DISABLING the module ...")
                 res = device.disable_magisk_module(modules[i].dirname)
                 if res == 0:
                     modules[i].state = 'disbled'
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
         print('')
         self.EndModal(wx.ID_OK)
 

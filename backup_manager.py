@@ -34,7 +34,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.all_cb_clicked = False
         self.device = get_phone()
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return -1
 
         self.sha1 = self.device.magisk_sha1
@@ -454,7 +454,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 self._on_spin('stop')
                 return
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The dumped partition does not contain source boot's SHA1")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The dumped partition does not contain source boot's SHA1")
             print("This is normal for older devices, but newer deviced should have it.")
             print("Cannot create automatic backup file, you can still manually select and create one.")
             print("Aborting ...")

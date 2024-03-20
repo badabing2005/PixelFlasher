@@ -163,7 +163,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.package_count = 0
 
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return -1
 
         splitter = wx.SplitterWindow(self, -1)
@@ -744,7 +744,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     def DownloadApk(self, pkg, multiple = False):
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return
         package = self.device.packages[pkg]
         path = package.path or package.path2
@@ -753,7 +753,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             if path != -1:
                 package.path = path
         if path == '':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get apk path for {pkg}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get apk path for {pkg}")
             print("Aborting download ...")
             return
         label = package.label
@@ -1092,7 +1092,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             isSystem = False
 
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return
         # res = self.device.get_detailed_packages()
         if action == "disable":

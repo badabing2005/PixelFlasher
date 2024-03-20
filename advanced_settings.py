@@ -388,7 +388,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             webbrowser.open_new(SCRCPYURL)
             puml(f":Open scrcpy Link;\nnote right\n=== scrcpy\n[[{SCRCPYURL}]]\nend note\n", True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link")
             traceback.print_exc()
 
     def _onResetMagiskPkg(self, e):

@@ -35,7 +35,7 @@ class PartitionManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.abort = False
         self.device = get_phone()
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return -1
 
         warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -289,7 +289,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     # -----------------------------------------------
     def Erase(self, partition):
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return
         dlg = wx.MessageDialog(None, f"You have selected to ERASE partition: {partition}\nAre you sure want to continue?", f"Erase Partition: {partition}",wx.YES_NO | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
@@ -310,7 +310,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     # -----------------------------------------------
     def Dump(self, partition, multiple = False):
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return
 
         # delete existing partition dump if it exists on the phone
@@ -490,7 +490,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         partition = self.list.GetItem(index).Text
 
         if not self.device:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return
         if action == "erase":
             print(f"Erasing {partition} ...")

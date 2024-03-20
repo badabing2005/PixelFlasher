@@ -126,7 +126,7 @@ class FilePickerComboBox(wx.Panel):
                     self.history = json.load(f)
                     self.combo_box.SetItems(self.history)
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during device_images_history_file loading.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during device_images_history_file loading.")
                 print(f"Exception: {e}")
                 print("Deleting the device_images_history_file to recover ...")
                 os.remove(self.history_file)
@@ -409,7 +409,7 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
                     self.parent.firmware_button.SetBitmap(images.open_link_red_24.GetBitmap())
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while building Google Images Menu.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while building Google Images Menu.")
             traceback.print_exc()
 
 # ============================================================================
@@ -460,7 +460,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                     factory_menu_item.SetBitmap(images.factory_24.GetBitmap())
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while building Google Images Popup Menu.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while building Google Images Popup Menu.")
             traceback.print_exc()
 
 # ============================================================================
@@ -1089,7 +1089,7 @@ class PixelFlasher(wx.Frame):
                 device = get_phone()
                 print(f"Device Info:\n------------\n{device.device_info}")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device info")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device info")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1103,7 +1103,7 @@ class PixelFlasher(wx.Frame):
                 device = get_phone()
                 print(f"Current device's Print:\n------------\n{device.current_device_print}\n------------\n")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device print")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device print")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1117,7 +1117,7 @@ class PixelFlasher(wx.Frame):
                 device = get_phone()
                 print(f"Current device's properties as json :\n------------\n{device.current_device_props_as_json}\n------------\n")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device properties as json")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device properties as json")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1137,7 +1137,7 @@ class PixelFlasher(wx.Frame):
     #                 if verification != -1:
     #                     print(f"\n{verification}")
     #     except Exception as e:
-    #         print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking verity")
+    #         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking verity")
     #         traceback.print_exc()
     #     self._on_spin('stop')
 
@@ -1156,6 +1156,9 @@ class PixelFlasher(wx.Frame):
 
         # Create the Toolbar menu
         tb_menu = wx.Menu()
+
+        # Create the Tools menu
+        tools_menu = wx.Menu()
 
         # Create the Help menu
         help_menu = wx.Menu()
@@ -1297,6 +1300,13 @@ class PixelFlasher(wx.Frame):
         self.bootloader_unlock_menu = device_menu.Append(wx.ID_ANY, "Unlock Bootloader", "Unlock Bootloader (Will wipe data)")
         self.bootloader_unlock_menu.SetBitmap(images.unlock_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_unlock_bootloader, self.bootloader_unlock_menu)
+
+        # Tools Menu Items
+        # ----------------
+        # check keybox.xml
+        self.check_keybox = tools_menu.Append(wx.ID_ANY, "Check keybox.xml", "Check keybox.xml")
+        self.check_keybox.SetBitmap(images.cert_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_check_keybox, self.check_keybox)
 
         # Toolbar Menu Items
         # ------------------
@@ -1491,10 +1501,12 @@ class PixelFlasher(wx.Frame):
         self.menuBar.Append(file_menu, "&File")
         # Add the Device menu to the menu bar
         self.menuBar.Append(device_menu, "&Device")
+        # Add the Tools menu to the menu bar
+        self.menuBar.Append(tools_menu, "Dev Tools")
         # Create an instance of GoogleImagesMenu
         self.google_images_menu = GoogleImagesMenu(self)
         # Append GoogleImagesMenu to the menu bar
-        self.menuBar.Append(self.google_images_menu, "Google Images")
+        self.menuBar.Append(self.google_images_menu, "&Google Images")
         # Add the Toolbar menu to the menu bar
         self.menuBar.Append(tb_menu, "&Toolbar")
         # Add the Help menu to the menu bar
@@ -1762,7 +1774,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     device.install_apk(pathname, fastboot_included=True, owner_playstore=checkbox_values[0], bypass_low_target=checkbox_values[1])
                 except IOError:
                     traceback.print_exc()
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Cannot install file '{pathname}'")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Cannot install file '{pathname}'")
         except Exception:
             traceback.print_exc()
         self._on_spin('stop')
@@ -1833,10 +1845,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 print(f"Open Link {description} {url}")
                 puml(f":Open Link;\nnote right\n=== {description}\n[[{url}]]\nend note\n", True)
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown menu item clicked")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown menu item clicked")
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
             traceback.print_exc()
 
         self._on_spin('stop')
@@ -1849,7 +1861,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             open_folder(self, get_sys_config_path())
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening configuration folder")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening configuration folder")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1861,7 +1873,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             open_folder(self, get_config_path())
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening PixelFlasher working directory")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening PixelFlasher working directory")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -1962,6 +1974,11 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     # -----------------------------------------------
     def Test(self, event):
         print("Entrering Test function (used during development only) ...")
+        # print("Error: ❌ (U+274C, Cross Mark)")
+        # print("Warning: ⚠️ (U+26A0, Warning)")
+        # print("Info: ℹ️ (U+2139, Information Source)")
+        # print("Fatal: ☠️ (U+2620, Skull and Crossbones)")
+
         # device = get_phone()
         # device.dump_props()
 
@@ -2179,7 +2196,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     self.toast("vbmeta Warning!", alert)
             return message
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while getting vbmeta data.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while getting vbmeta data.")
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -2249,7 +2266,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                         self.flash_radio_button.Enable(True)
                         self.flash_button.Enable(True)
                     else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
                 elif image_mode in ['image', 'SIDELOAD']:
                     if extension == '.zip':
                         self.live_boot_radio_button.Enable(False)
@@ -2257,14 +2274,14 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                         self.flash_button.Enable(True)
                         self.flash_radio_button.SetValue(True)
                     else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .zip")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .zip")
                 elif extension == '.img':
                     self.live_boot_radio_button.Enable(False)
                     self.flash_radio_button.Enable(True)
                     self.flash_button.Enable(True)
                     self.flash_radio_button.SetValue(True)
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Selected file is not of type .img")
 
     # -----------------------------------------------
     #                  _select_configured_device
@@ -2306,7 +2323,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._reflect_slots()
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function _select_configured_device")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function _select_configured_device")
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -2448,7 +2465,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     boot = get_boot()
                     if boot:
                         return True
-                elif image_mode in ["vbmeta", "bootloader", "radio", "image"]:
+                elif image_mode in ["vbmeta", "bootloader", "radio", "image", 'dtbo', 'vendor_boot', 'vendor_kernel_boot', 'super_empty']:
                     return True
                 return False
 
@@ -2494,7 +2511,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 return False
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while evaluating a rule")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while evaluating a rule")
             traceback.print_exc()
 
     #-----------------------------------------------------------------------------
@@ -2611,7 +2628,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     widget.Enable(enable_widget)
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating widgets.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating widgets.")
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -2637,7 +2654,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self._reflect_slots()
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting a device")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting a device")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2674,7 +2691,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             else:
                 print("Please set Android Platform Tools Path first.")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while scanning")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while scanning")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2692,7 +2709,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.platform_tools_label.SetLabel("Android Platform Tools")
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting platform tools")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting platform tools")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2702,7 +2719,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     def update_firmware_selection(self, path):
         try:
             if not os.path.exists(path):
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file {path} does not exist")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file {path} does not exist")
                 return -1
             self.config.firmware_path = path.replace("'", "")
             checksum = select_firmware(self)
@@ -2713,7 +2730,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self.firmware_picker.SetToolTip(f"SHA-256: {checksum}")
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting firmware")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting firmware")
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -2742,7 +2759,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 process_file(self, 'firmware')
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing firmware")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing firmware")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2759,7 +2776,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 process_file(self, 'rom')
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing rom")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing rom")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2774,7 +2791,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._update_custom_flash_options()
             self.update_widget_states()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while choosing an image")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while choosing an image")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2790,12 +2807,12 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if extension in ['.zip', '.img']:
                 set_image_path(image_path)
                 self._update_custom_flash_options()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Custom image file {image_path} is selected.")
+                print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Custom image file {image_path} is selected.")
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {image_path} is not img or zip file.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {image_path} is not img or zip file.")
                 self.image_file_picker.SetPath('')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting an image")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting an image")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2825,11 +2842,11 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 populate_boot_list(self)
                 self.update_widget_states()
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a valid archive.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a valid archive.")
                 puml("#red:The selected ROM file is not valid;\n")
                 self.custom_rom.SetPath('')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting rom")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting rom")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -2922,7 +2939,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 result = dlg.ShowModal()
                 dlg.Destroy()
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                 traceback.print_exc()
         print(alert)
 
@@ -3007,9 +3024,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     res = device.reboot_recovery()
                     if res != 0:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3028,9 +3045,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     res = device.reboot_download()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to download")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to download")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to download")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to download")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3049,9 +3066,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     res = device.reboot_sideload()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3070,9 +3087,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     res = device.reboot_safemode()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to safe mode")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to safe mode")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to safe mode")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to safe mode")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3101,7 +3118,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
                     return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3131,9 +3148,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     res = device.reboot_system()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3152,9 +3169,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     res = device.reboot_bootloader(fastboot_included = True)
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3173,9 +3190,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     res = device.reboot_fastboot()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fastbootd")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fastbootd")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fatsbootd")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fatsbootd")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3250,16 +3267,16 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if device:
                 res = device.lock_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
             # only reboot if no_reboot is not selected
             if not self.config.no_reboot:
                 print("echo rebooting to system ...\n")
                 if device:
                     res = device.reboot_system()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3306,15 +3323,15 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if device:
                 res = device.unlock_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
             if not self.config.no_reboot:
                 print("echo rebooting to system ...\n")
                 if device:
                     res = device.reboot_system()
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3374,7 +3391,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 device = get_phone()
                 device.open_shell()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb shell")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb shell")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3392,7 +3409,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if device:
                     device.scrcpy()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while launching scrcpy")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while launching scrcpy")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3518,7 +3535,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             device = get_phone()
             self._on_spin('start')
             if device.active_slot not in ['a', 'b']:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown slot, is your device dual slot?")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown slot, is your device dual slot?")
                 self._on_spin('stop')
                 return
             print(f"User clicked on Switch Slot: Current Slot: [{device.active_slot}]")
@@ -3527,13 +3544,13 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if device:
                 res = device.switch_slot()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
             if not self.config.no_reboot and device:
                 res = device.reboot_system()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
             traceback.print_exc()
         self.refresh_device()
         self._on_spin('stop')
@@ -3548,7 +3565,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             webbrowser.open_new('https://developer.android.com/studio/releases/platform-tools.html')
             puml(f":Open SDK Link;\nnote right\n=== Android Platform Tools\n[[https://developer.android.com/studio/releases/platform-tools.html]]\nend note\n", True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3561,7 +3578,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("Opening Wireless Manager ...\n")
             dlg = Wireless(self)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while loading wifi screen.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while loading wifi screen.")
             traceback.print_exc()
             self._on_spin('stop')
             return
@@ -3593,7 +3610,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             adb_kill_server(self)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while killing adb server")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while killing adb server")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3612,6 +3629,25 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             puml(":Custom ROM: OFF;\n", True)
         populate_boot_list(self)
         self.update_widget_states()
+
+    # -----------------------------------------------
+    #                  _on_check_keybox
+    # -----------------------------------------------
+    def _on_check_keybox(self, event):
+        try:
+            with wx.FileDialog(self, "Select keybox to test", '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled file push.")
+                    return
+                selected_file = fileDialog.GetPath()
+
+            self._on_spin('start')
+            res = check_kb(selected_file)
+            debug(f"Result: {res}")
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_show_all_boot
@@ -3717,7 +3753,12 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     message += f"    Patched Method:        {boot.patch_method}\n"
                 if boot.patch_source_sha1:
                     message += f"    Patch Source SHA1:     {boot.patch_source_sha1}\n"
-                message += f"    Patched With Magisk:   {boot.magisk_version}\n"
+                if boot.patch_method == "kernelsu":
+                    message += f"    Patched With KernelSU: {boot.magisk_version}\n"
+                elif boot.patch_method == "apatch":
+                    message += f"    Patched With Apatch:   {boot.magisk_version}\n"
+                else:
+                    message += f"    Patched With Magisk:   {boot.magisk_version}\n"
                 message += f"    Patched on Device:     {boot.hardware}\n"
             else:
                 patched = False
@@ -3779,7 +3820,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     data = con.execute(sql, (boot.boot_id, boot.package_id))
                 con.commit()
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                 puml("#red:Encountered an error;\n", True)
                 traceback.print_exc()
                 print("Aborting ...")
@@ -3817,7 +3858,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                         else:
                             print(f"Warning: Boot file: {boot.boot_path} does not exist")
                     except Exception as e:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                         puml("#red:Encountered an error;\n", True)
                         traceback.print_exc()
                         print("Aborting ...")
@@ -3826,7 +3867,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                         self._on_spin('stop')
                         return
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                 puml("#red:Encountered an error;\n", True)
                 traceback.print_exc()
                 print("Aborting ...")
@@ -3867,7 +3908,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                             print(f"Deleting Firmware cache for: {package_path} ...")
                             delete_all(package_path)
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                 puml("#red:Encountered an error;\n", True)
                 traceback.print_exc()
                 print("Aborting ...")
@@ -3890,7 +3931,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if boot:
                 open_folder(self, boot.boot_path, True)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening boot folder")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening boot folder")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3906,7 +3947,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 working_dir = os.path.join(config_path, 'factory_images', boot.package_sig)
                 open_folder(self, working_dir, False)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware folder")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware folder")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3921,7 +3962,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             live_flash_boot_phone(self, 'Live')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while live booting")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while live booting")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3936,7 +3977,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             live_flash_boot_phone(self, 'Flash')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing boot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing boot")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -3960,10 +4001,20 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             pasted_filename = find_file_by_prefix(package_dir_full, "bootloader-")
         elif image_mode == "radio":
             pasted_filename = find_file_by_prefix(package_dir_full, "radio-")
-        elif image_mode == "image":
-            pasted_filename = find_file_by_prefix(package_dir_full, "image-")
+        elif image_mode == "dtbo":
+            pasted_filename = find_file_by_prefix(package_dir_full, "dtbo.img")
+        elif image_mode == "vendor_boot":
+            pasted_filename = find_file_by_prefix(package_dir_full, "vendor_boot.img")
+        elif image_mode == "vendor_kernel_boot":
+            pasted_filename = find_file_by_prefix(package_dir_full, "vendor_kernel_boot.img")
+        elif image_mode == "super_empty":
+            pasted_filename = find_file_by_prefix(package_dir_full, "super_empty.img")
         else:
             print("Nothing to paste!")
+            flag = False
+            return
+        if pasted_filename is None:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file Not Found in {package_dir_full}")
             flag = False
             return
         if flag and os.path.exists(pasted_filename):
@@ -3974,7 +4025,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._update_custom_flash_options()
             set_flash_button_state(self)
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file: {pasted_filename} Not Found.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file: {pasted_filename} Not Found in {package_dir_full}")
 
     # -----------------------------------------------
     #                  _on_magisk_patch_boot
@@ -3987,7 +4038,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             patch_boot_img(self, 'Magisk')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching boot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching boot")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -4002,7 +4053,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             patch_boot_img(self, 'KernelSU')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching boot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching boot")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -4017,7 +4068,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             patch_boot_img(self, 'Custom')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching custom boot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching custom boot")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -4034,7 +4085,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self.flash_button.Enable(False)
             res = flash_phone(self)
             if res == -1:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} INFO: Flashing was aborted.")
+                print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} INFO: Flashing was aborted.")
                 print("This could be user initiated or a problem encountered during flashing.")
                 device = get_phone()
                 if device:
@@ -4047,7 +4098,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self.update_widget_states()
             self.spinner_label.Label = "Please be patient ..."
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -4081,7 +4132,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if slot_image_height == 0 and rooted_image_height == 0 and slot !=  'none':
                 self._refresh_ui()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating slot image")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating slot image")
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -4105,7 +4156,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if rooted_image_height == 0 and slot_image_height == 0 and is_rooted:
                 self._refresh_ui()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating root image")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating root image")
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -4253,7 +4304,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
         self.list.InsertColumn(1, 'Source SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
         self.list.InsertColumn(2, 'Package Fingerprint  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(3, 'Patched with Magisk  ', wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(3, 'Patched with version ', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(4, 'Patch Method  ', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(5, 'Patched on Device  ', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(6, 'Date  ', wx.LIST_FORMAT_LEFT, -1)
@@ -4415,7 +4466,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         set_console_widget(self.console_ctrl)
         if not self.config.customize_font:
             self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-            self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+            # self.console_ctrl.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+            font = wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Courier New")
+            self.console_ctrl.SetFont(font)
             if darkdetect.isLight():
                 self.console_ctrl.SetBackgroundColour(wx.WHITE)
                 self.console_ctrl.SetForegroundColour(wx.BLUE)
@@ -4625,7 +4678,7 @@ def open_device_image_download_link(url):
         webbrowser.open_new(f"{url}#{hardware}")
         puml(f":Open Link;\nnote right\n=== {hardware} Firmware Link\n[[{url}#{hardware}]]\nend note\n", True)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware link")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware link")
         traceback.print_exc()
 
 # ============================================================================

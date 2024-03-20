@@ -6515,3 +6515,13 @@ apatch_24 = PyEmbeddedImage(
     b'ahIogQqCASNzc0trW3tHTGcXWoR0S9X1VNb2Wgj2QQVgoJ9ZJW3CxLSQSf1QATjol5g8Zeo0'
     b'ielQLhLoB1pagqEeHTAwAAAEn0WcBB+K8QAAAABJRU5ErkJggg==')
 
+#----------------------------------------------------------------------
+cert_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABFklEQVRIS9WUzRGCMBCFd8UC'
+    b'bEBGOsAO8CacLAUqcKwAOlAr0BN6kxLsAIY+MGYPwZARiPw4ygkIvC9v920QRr5wZH34HsAL'
+    b'Uxtwugdgdh9XDCBhrNhdAyshndKBG+U3/uD0EZf+zWLftCoAL8o5HIAv9CqbqlOKyQviXnWj'
+    b'Ax8EwEVOD1YEfAMLRGN78c2V2IwWoK0PqkPZmRagTmAdpg7t+E0YzuSIJyfrBXDDfIMIIZVG'
+    b'dilHUwvw9RIJoKg1zQwNE4IxI0ci8/SdloPRYzpWiVK1eXWDVpey13u8x/58WTkqKIITNPhh'
+    b'V02IDBE9aAJQopDBMQ7MQwXQVhZ5vWnQVJ1OB9v/A5rmYJASfdKvTj34KcATT0TYGZdaUUAA'
+    b'AAAASUVORK5CYII=')
+

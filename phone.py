@@ -162,7 +162,7 @@ class Device():
             return 'UNKNOWN'  # Value not found
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get unlock ability.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get unlock ability.")
             puml("#red:ERROR: Could not get unlock ability;\n", True)
             return 'UNKNOWN'
 
@@ -182,7 +182,7 @@ class Device():
                 return '', ''
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get_package_details.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get_package_details.")
             puml("#red:ERROR: Could not get_package_details;\n", True)
             return '', ''
 
@@ -202,7 +202,7 @@ class Device():
                 return '', ''
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get battery details.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get battery details.")
             puml("#red:ERROR: Could not get battery details;\n", True)
             return '', ''
 
@@ -219,7 +219,7 @@ class Device():
                 return ''
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get_path_from_package_details.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get_path_from_package_details.")
             puml("#red:ERROR: Could not get_path_from_package_details;\n", True)
 
     # ----------------------------------------------------------------------------
@@ -273,7 +273,7 @@ class Device():
                     device_info = run_shell(theCmd)
                 return ''.join(device_info.stdout)
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
                 puml("#red:ERROR: adb command is not found!;\n", True)
         elif self.mode == 'f.b':
             if get_fastboot():
@@ -284,7 +284,7 @@ class Device():
                 else:
                     return ''.join(device_info.stdout)
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
                 puml("#red:ERROR: fastboot command is not found!;\n", True)
 
     # ----------------------------------------------------------------------------
@@ -325,7 +325,7 @@ class Device():
 
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not init device class")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not init device class")
             puml("#red:ERROR: Could not get_package_details;\n", True)
 
     # ----------------------------------------------------------------------------
@@ -519,7 +519,7 @@ class Device():
                     else:
                         self._kmi = None
             except Exception:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get kernel information.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get kernel information.")
                 traceback.print_exc()
                 self._rooted = None
         return self._kernel
@@ -552,7 +552,7 @@ class Device():
                 self._rooted = None
                 return None
         except Exception:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk path")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk path")
             traceback.print_exc()
         return None
 
@@ -584,7 +584,7 @@ class Device():
                         self._magisk_version = res.stdout.strip('\n')
                         self._magisk_version_code = self._magisk_version.strip(':')
                 except Exception:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
                     traceback.print_exc()
                     self._rooted = None
         return self._magisk_version
@@ -614,7 +614,7 @@ class Device():
                     self._magisk_config_path = None
             except Exception as e:
                 traceback.print_exc()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
                 puml("#red:ERROR: Could not get magisk sha1;\n", True)
                 self._magisk_config_path = None
         return self._magisk_config_path
@@ -654,12 +654,12 @@ class Device():
                     return -1
             except Exception as e:
                 traceback.print_exc()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get partitions list.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get partitions list.")
                 puml("#red:ERROR: Could not get partitions list.;\n", True)
                 return -1
             return list
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_partitions.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_partitions.")
             puml("#red:Encountered an error in get_partitions.;\n")
             traceback.print_exc()
             return -1
@@ -689,7 +689,7 @@ class Device():
             return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get {item} status.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get {item} status.")
             puml(f"#red:ERROR: Could not get {item} status.;\n", True)
             return -1
 
@@ -721,7 +721,7 @@ class Device():
             return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an exception if reset_ota_update function.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an exception if reset_ota_update function.")
             puml(f"#red:ERROR: Encountered an exception if reset_ota_update function.;\n", True)
             return -1
 
@@ -802,7 +802,7 @@ class Device():
             self.vbmeta = vbmeta
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get vbmeta details.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get vbmeta details.")
             puml("#red:ERROR: Could not get vbmeta details.;\n", True)
             return vbmeta
         return vbmeta
@@ -837,7 +837,7 @@ class Device():
                     self.backups[backup_sha1] = backup
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get backup list.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get backup list.")
             puml("#red:ERROR: Could not get backup list.;\n", True)
             return -1
         return 0
@@ -858,7 +858,7 @@ class Device():
             else:
                 return ''
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting firmware from boot.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting firmware from boot.")
             puml("#red:Encountered an error while while getting firmware from boot.;\n")
             traceback.print_exc()
 
@@ -877,7 +877,7 @@ class Device():
                     _magisk_backups = None
             except Exception as e:
                 traceback.print_exc()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk backups.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk backups.")
                 puml("#red:ERROR: Could not get magisk backups;\n", True)
                 _magisk_backups = None
         if _magisk_backups:
@@ -900,7 +900,7 @@ class Device():
                     _magisk_sha1 = ''
             except Exception as e:
                 traceback.print_exc()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
                 puml("#red:ERROR: Could not get magisk sha1;\n", True)
                 _magisk_sha1 = ''
         if _magisk_sha1:
@@ -967,14 +967,14 @@ class Device():
                     return -1
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during pfmagisk_settings script execution")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during pfmagisk_settings script execution")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
                 puml("note right:ERROR: during pfmagisk_settings script execution;\n")
                 return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during exec_magisk_settings opeation.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during exec_magisk_settings opeation.")
             traceback.print_exc()
             puml("#red:Exception during exec_magisk_settings opeation.;\n", True)
             return -1
@@ -1016,11 +1016,11 @@ add_hosts_module
                     print("Magisk adding built-in systemless hosts module succeeded")
                     puml("note right:Magisk adding built-in systemless hosts module;\n")
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to add built-in systemless hosts module.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to add built-in systemless hosts module.")
                     puml("note right:ERROR: Failed to add built-in systemless hosts module;\n")
                     return -1
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_add_systemless_hosts opeation.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_add_systemless_hosts opeation.")
                 traceback.print_exc()
                 puml("#red:Exception during magisk_add_systemless_hosts opeation.;\n", True)
 
@@ -1041,11 +1041,11 @@ add_hosts_module
                     print("Updating Zygisk flag succeeded")
                     puml("note right:Updating Zygisk flag succeeded;\n")
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Zygisk flag")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Zygisk flag")
                     puml("note right:ERROR: Updating Zygisk flag;\n")
                     return -1
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk opeation.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk opeation.")
                 traceback.print_exc()
                 puml("#red:Exception during magisk_enable_zygisk opeation.;\n", True)
 
@@ -1070,11 +1070,11 @@ add_hosts_module
                 print("Updating Enforce denylist flag succeeded")
                 puml("note right:Updating Enforce denylist flag succeeded;\n")
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Enforce denylist flag")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Enforce denylist flag")
                 puml("note right:ERROR: Updating Enforce denylist flag;\n")
                 return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist opeation.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist opeation.")
             traceback.print_exc()
             puml("#red:Exception during magisk_enable_denylist opeation.;\n", True)
 
@@ -1104,11 +1104,11 @@ add_hosts_module
                     print("Setting SU permissions succeeded")
                     puml("note right:Setting SU permissions succeeded;\n")
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to Setting SU permissions")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to Setting SU permissions")
                     puml("note right:ERROR: Setting SU permissions flag;\n")
                     return -1
             except Exception as e:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_update_su opeation.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_update_su opeation.")
                 traceback.print_exc()
                 puml("#red:Exception during magisk_update_su opeation.;\n", True)
 
@@ -1124,7 +1124,7 @@ add_hosts_module
                 res = run_shell(theCmd)
                 # expect 0
                 if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
                     print(f"Stderr: {res.stderr}")
@@ -1142,14 +1142,14 @@ add_hosts_module
                             print(f"Magisk backup for {sha1} was successful")
                             return 0
                         else:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                             return -1
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                     return -1
             except Exception as e:
                 traceback.print_exc()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                 return -1
         return -1
 
@@ -1165,7 +1165,7 @@ add_hosts_module
 
                 boot_img = os.path.join(get_boot_images_dir(), sha1, 'boot.img')
                 if not os.path.exists(boot_img):
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img with SHA1 of {sha1} is not found.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img with SHA1 of {sha1} is not found.")
                     print("Aborting backup ...\n")
                     return -1
                 # Transfer boot image to the device
@@ -1173,7 +1173,7 @@ add_hosts_module
 
                 res = self.push_file(f"{boot_img}", "/data/local/tmp/stock_boot.img")
                 if res != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {boot_img}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {boot_img}")
                     return -1
 
                 # copy stock_boot from /data/local/tmp folder
@@ -1183,7 +1183,7 @@ add_hosts_module
                 res = run_shell(theCmd)
                 # expect ret 0
                 if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
                     print(f"Stderr: {res.stderr}")
@@ -1195,7 +1195,7 @@ add_hosts_module
                 print("Triggering Magisk run_migration to create a Backup ...")
                 res = self.run_magisk_migration(sha1)
                 if res < 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                     return -1
 
                 # read config
@@ -1206,7 +1206,7 @@ add_hosts_module
                     print(f"Updating Magisk Config SHA1 to {sha1} to match the SHA1 of the source boot.img ...")
                     res = self.update_magisk_config(sha1)
                     if res == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
                         return -1
                     else:
                         print(f"Magisk config successfully updated with SHA1: {sha1}")
@@ -1214,7 +1214,7 @@ add_hosts_module
                 return 0
             except Exception as e:
                 traceback.print_exc()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                 return -1
         return -1
 
@@ -1239,20 +1239,20 @@ add_hosts_module
                     magisk_sha1 = self.magisk_sha1
                     print(f"SHA1 from Magisk config is: {magisk_sha1}")
                     if magisk_sha1 != sha1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
                         return -1
                     else:
                         print(f"Magisk config successfully updated with SHA1: {sha1}")
                         return 0
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not update Magisk config")
                     return -1
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk config")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk config")
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk sha1.")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1274,7 +1274,7 @@ add_hosts_module
         if dir:
             flag = 'r'
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not in ADB mode.")
             return -1
         try:
             file_path = remove_quotes(file_path)
@@ -1283,7 +1283,7 @@ add_hosts_module
                     print(f"Deleting {file_path} from the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -{flag}f \"{file_path}\"\'\""
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not rooted.")
             else:
                 print(f"Deleting {file_path} from the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell rm -{flag}f \"{file_path}\""
@@ -1292,14 +1292,14 @@ add_hosts_module
                 print("Return Code: 0")
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}")
                 print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1320,7 +1320,7 @@ add_hosts_module
             -1, ''          if an exception is raised.
         """
         if self.mode != 'adb' and self.rooted:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump partition. Device must be in ADB mode and be rooted.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump partition. Device must be in ADB mode and be rooted.")
             return -1, ''
         try:
             if partition == '':
@@ -1344,14 +1344,14 @@ add_hosts_module
                 print("Return Code: 0")
                 return 0, file_path
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition.")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}")
                 print(f"Stderr: {res.stderr}")
                 return -1, ''
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition")
             return -1, ''
 
     # ----------------------------------------------------------------------------
@@ -1369,7 +1369,7 @@ add_hosts_module
             -1          if an exception is raised.
         """
         if self.mode != 'adb' or not self.rooted:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy. Device is not in ADB mode or is not rooted.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy. Device is not in ADB mode or is not rooted.")
             return -1
         try:
             source = remove_quotes(source)
@@ -1381,14 +1381,14 @@ add_hosts_module
                 print("Return Code: 0")
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}")
                 print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Copy failed")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Copy failed")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1407,7 +1407,7 @@ add_hosts_module
             -1, None          if an exception is raised.
         """
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not in ADB mode.")
             return -1, None
         try:
             file_path = remove_quotes(file_path)
@@ -1416,7 +1416,7 @@ add_hosts_module
                     print(f"Checking for {file_path} on the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls \"{file_path}\"\'\""
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not rooted.")
             else:
                 print(f"Checking for {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell ls \"{file_path}\""
@@ -1429,7 +1429,7 @@ add_hosts_module
                 return 0, None
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}")
             return -1, None
 
     # ----------------------------------------------------------------------------
@@ -1447,7 +1447,7 @@ add_hosts_module
             -1          if an exception is raised.
         """
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {dir_path}. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {dir_path}. Device is not in ADB mode.")
             return -1
         try:
             dir_path = remove_quotes(dir_path)
@@ -1456,7 +1456,7 @@ add_hosts_module
                     print(f"Creating directory {dir_path} on the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'mkdir -p \"{dir_path}\"\'\""
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory {dir_path}. Device is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory {dir_path}. Device is not rooted.")
             else:
                 print(f"Creating directory {dir_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell mkdir -p \"{dir_path}\""
@@ -1465,11 +1465,11 @@ add_hosts_module
                 print("Return Code: 0")
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1487,7 +1487,7 @@ add_hosts_module
             -1          if an exception is raised.
         """
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not in ADB mode.")
             return -1
         try:
             file_path = remove_quotes(file_path)
@@ -1496,7 +1496,7 @@ add_hosts_module
                     print(f"Getting file content of {file_path} on the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat \"{file_path}\"\'\""
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not rooted.")
             else:
                 print(f"Getting file content of {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell cat \"{file_path}\""
@@ -1505,11 +1505,11 @@ add_hosts_module
                 print("Return Code: 0")
                 return res.stdout
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1538,7 +1538,7 @@ add_hosts_module
                 ```
         """
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}. Device is not in ADB mode.")
             return -1
         try:
             local_file = remove_quotes(local_file)
@@ -1550,15 +1550,15 @@ add_hosts_module
                     remote_file = f"\"/data/local/tmp/{filename}\""
                     res = self.push_file(local_file, remote_file, with_su=False)
                     if res != 0:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {local_file}")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {local_file}")
                         return -1
                     res = self.su_cp_on_device(remote_file, file_path)
                     if res != 0:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file}")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file}")
                         return -1
                     return 0
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy to {file_path}. Device is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy to {file_path}. Device is not rooted.")
                     return -1
             else:
                 print(f"Pushing local file: {local_file} to the device: {file_path} ...")
@@ -1568,14 +1568,14 @@ add_hosts_module
                     print("Return Code: 0")
                     return 0
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
                     print(f"Stderr: {res.stderr}")
                     return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1594,7 +1594,7 @@ add_hosts_module
             -1              if an exception is raised.
         """
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not in ADB mode.")
             return -1
         try:
             remote_file = remove_quotes(remote_file)
@@ -1605,12 +1605,12 @@ add_hosts_module
                     temp_remote_file = f"/data/local/tmp/{filename}"
                     res = self.su_cp_on_device(remote_file, temp_remote_file)
                     if res != 0:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Perhaps the file does not exist.")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Perhaps the file does not exist.")
                         return -1
                     else:
                         remote_file = temp_remote_file
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not rooted.")
                     return -1
 
             print(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
@@ -1620,14 +1620,14 @@ add_hosts_module
                 print("Return Code: 0")
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}")
                 print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1646,7 +1646,7 @@ add_hosts_module
             -1              if an exception is raised.
         """
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not in ADB mode.")
             return -1
         try:
             file_path = remove_quotes(file_path)
@@ -1655,7 +1655,7 @@ add_hosts_module
                     print(f"Setting permissions {permissions} on {file_path} as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'chmod {permissions} \"{file_path}\"\'\""
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not rooted.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not rooted.")
             else:
                 print(f"Setting permissions {permissions} on {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell chmod {permissions} \"{file_path}\""
@@ -1668,7 +1668,7 @@ add_hosts_module
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1689,16 +1689,16 @@ add_hosts_module
             path_to_aapt2 = os.path.join(get_bundle_dir(),'bin', f"aapt2_{self.architecture}")
             res = self.push_file(f"{path_to_aapt2}", f"{file_path}")
             if res != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
                 return -1
             # set the permissions.
             res = self.set_file_permissions(f"{file_path}", "755")
             if res != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
                 return -1
             return 0
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing aapt.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing aapt.")
             puml("#red:Encountered an error while pushing appt.;\n")
             traceback.print_exc()
 
@@ -1721,19 +1721,19 @@ add_hosts_module
                 path_to_avbctl = os.path.join(get_bundle_dir(),'bin', 'avbctl')
                 res = self.push_file(f"{path_to_avbctl}", f"{file_path}")
                 if res != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
                     return -1
                 # set the permissions.
                 res = self.set_file_permissions(f"{file_path}", "755")
                 if res != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
                     return -1
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: avbctl is not available for device architecture: {self.architecture}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: avbctl is not available for device architecture: {self.architecture}")
                 return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing avbctl")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing avbctl")
             puml("#red:Encountered an error while pushing avbctl;\n")
             traceback.print_exc()
 
@@ -1747,19 +1747,19 @@ add_hosts_module
                 path_to_update_engine_client = os.path.join(get_bundle_dir(),'bin', 'update_engine_client')
                 res = self.push_file(f"{path_to_update_engine_client}", f"{file_path}")
                 if res != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
                     return -1
                 # set the permissions.
                 res = self.set_file_permissions(f"{file_path}", "755")
                 if res != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
                     return -1
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: update_engine_client is not available for device architecture: {self.architecture}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: update_engine_client is not available for device architecture: {self.architecture}")
                 return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing update_engine_client")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing update_engine_client")
             puml("#red:Encountered an error while pushing update_engine_client;\n")
             traceback.print_exc()
 
@@ -1777,7 +1777,7 @@ add_hosts_module
             -1          if an exception is raised.
         """
         if self.true_mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path. Device is not in ADB mode.")
             return -1
         try:
             print(f"Getting package {pkg} path on the device ...")
@@ -1796,12 +1796,12 @@ add_hosts_module
                     if pkg_path:
                         print(f"Package Path is: {pkg_path}")
                         return pkg_path
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
+                print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Could not get package {pkg} path.")
                 print(f"{details}")
                 return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} path.")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1819,14 +1819,14 @@ add_hosts_module
             -1          if an exception is raised.
         """
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label. Device is not in ADB mode.")
             return -1, -1
         print()
         try:
             if pkg_path == '':
                 pkg_path = self.get_package_path(f"{pkg}", True)
                 if pkg_path == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
                     return -1, -1
                 print(f"    Package Path: {pkg_path}")
             print(f"Getting package {pkg} label from the device ...")
@@ -1853,14 +1853,14 @@ add_hosts_module
                 print(f"{pkg} label is: {pkg_label}")
                 return pkg_label, ''
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}")
                 print(f"Stderr: {res.stderr}")
                 return -1, -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
             return -1, -1
 
     # ----------------------------------------------------------------------------
@@ -1868,7 +1868,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def uiautomator_dump(self, path: str):
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not uiautomator dump. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not uiautomator dump. Device is not in ADB mode.")
             return -1
         try:
             print(f"uiautomator dump {path} path on the device ...")
@@ -1876,12 +1876,12 @@ add_hosts_module
             res = run_shell(theCmd)
             if res.returncode == 0 and res.stderr == '':
                 return path
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
             print(res.stderr)
             return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: not uiautomator dump.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: not uiautomator dump.")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1889,10 +1889,10 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def click(self, coords):
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Device is not in ADB mode.")
             return -1
         if coords is None or coords == '' or coords == -1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Coordinates are [{coords}]")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Coordinates are [{coords}]")
             return -1
         try:
             print(f"tap {coords} on the device ...")
@@ -1900,12 +1900,12 @@ add_hosts_module
             res = run_shell(theCmd)
             if res.returncode == 0:
                 return 0
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: tap failed.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: tap failed.")
             print(res.stderr)
             return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: tap failed.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: tap failed.")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1913,10 +1913,10 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def swipe(self, coords):
         if self.mode != 'adb':
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not swipe. Device is not in ADB mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not swipe. Device is not in ADB mode.")
             return -1
         if coords is None or coords == '' or coords == -1:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not swipe. Coordinates are [{coords}]")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not swipe. Coordinates are [{coords}]")
             return -1
         try:
             print(f"swipe {coords} on the device ...")
@@ -1924,12 +1924,12 @@ add_hosts_module
             res = run_shell(theCmd)
             if res.returncode == 0:
                 return 0
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: swipe failed.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: swipe failed.")
             print(res.stderr)
             return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: swipe failed.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: swipe failed.")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -2054,7 +2054,7 @@ add_hosts_module
             with contextlib.suppress(Exception):
                 self.perform_package_action(get_magisk_package(), 'kill')
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during stop_magisk")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during stop_magisk")
             traceback.print_exc()
 
     # ----------------------------------------------------------------------------
@@ -2106,7 +2106,7 @@ add_hosts_module
                                     modules.append(m)
                             self._get_magisk_detailed_modules = modules
                         else:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
                             print(f"Return Code: {res.returncode}.")
                             print(f"Stdout: {res.stdout}.")
                             print(f"Stderr: {res.stderr}.")
@@ -2162,13 +2162,13 @@ add_hosts_module
                                             modules.append(m)
                             self._get_magisk_detailed_modules = modules
                         else:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
                             print(f"Return Code: {res.returncode}.")
                             print(f"Stdout: {res.stdout}.")
                             print(f"Stderr: {res.stderr}.")
             except Exception as e:
                 self._get_magisk_detailed_modules is None
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing")
                 traceback.print_exc()
                 print(f"    Module: {module}\n    Line: {line}")
                 print(f"    module.prop:\n-----\n{res.stdout}-----\n")
@@ -2190,7 +2190,7 @@ add_hosts_module
                 self._magisk_apks = apks
             except Exception as e:
                 self._magisk_apks is None
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads link: {i} processing")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads link: {i} processing")
                 traceback.print_exc()
         return self._magisk_apks
 
@@ -2312,7 +2312,7 @@ This is a special Magisk build\n\n
             return ma
 
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
             return
 
         try:
@@ -2338,7 +2338,7 @@ This is a special Magisk build\n\n
                 setattr(ma, 'release_notes', response.text)
             return ma
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links: {url} processing")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links: {url} processing")
             traceback.print_exc()
             return
 
@@ -2376,10 +2376,10 @@ This is a special Magisk build\n\n
                     # theCmd = f"\"{get_adb()}\" -s {self.id} shell busybox ls"
                     # res = run_shell(theCmd, 8)
                     # if res.returncode == 0:
-                    #     print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: appears to be rooted, however adb root access is not granted.\Please grant root access to adb and scan again.")
+                    #     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: appears to be rooted, however adb root access is not granted.\Please grant root access to adb and scan again.")
                     self._rooted = False
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
                 puml("#red:ERROR: adb command is not found;\n", True)
         return self._rooted
 
@@ -2394,7 +2394,7 @@ This is a special Magisk build\n\n
                 mode = self.mode
             return f"{self.root_symbol:<3}({mode:<3})   {self.id:<25}{self.hardware:<12}{self.build:<25}"
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device details.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device details.")
             puml("#red:Encountered an error while getting device details.;\n")
             traceback.print_exc()
 
@@ -2414,13 +2414,13 @@ This is a special Magisk build\n\n
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='device')
                         if res == 1:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during adb_wait_for in reboot_system")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during adb_wait_for in reboot_system")
                             # puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
                             return -1
                         update_phones(self.id)
                     puml("note right:State ADB;\n")
                     return res
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
@@ -2435,13 +2435,13 @@ This is a special Magisk build\n\n
                         # puml(f"note right:Res [{res}];\n")
                     update_phones(self.id)
                     return 0
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_system")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_system")
             traceback.print_exc()
             puml(f"note right:Exception: during reboot_system;\n")
             return -1
@@ -2462,7 +2462,7 @@ This is a special Magisk build\n\n
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='recovery')
                         if res == 1:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
                             # puml(f"note right:ERROR: during adb_wait_for in reboot_recovery;\n")
                             return -1
                         update_phones(self.id)
@@ -2477,13 +2477,13 @@ This is a special Magisk build\n\n
                     # puml(f"note right:Res [{res}];\n")
                     update_phones(self.id)
                     return res
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_recovery;\n")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_recovery")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_recovery")
             traceback.print_exc()
             puml(f"note right:Exception: during reboot_recovery;\n")
             return -1
@@ -2508,12 +2508,12 @@ This is a special Magisk build\n\n
                         # puml(f"note right:ERROR: during get_device_state in reboot_download;\n")
                         id = self.id
                     else:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Download state cannot be confirmed, please check your device.")
+                        print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} Download state cannot be confirmed, please check your device.")
                         puml(f"note right:Download state cannot be confirmed, please check your device.;\n")
                         id = None
                 return res
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_download")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_download")
             traceback.print_exc()
             puml(f"note right:Exception: during reboot_download;\n")
             return -1
@@ -2533,7 +2533,7 @@ This is a special Magisk build\n\n
                 if res.returncode == 0:
                     res = self.reboot_system(timeout=timeout)
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while setting safemode prop")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while setting safemode prop")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")
@@ -2541,7 +2541,7 @@ This is a special Magisk build\n\n
                     res = res.returncode
                 return res
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_safemode")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_safemode")
             traceback.print_exc()
             return -1
 
@@ -2561,14 +2561,14 @@ This is a special Magisk build\n\n
                     if timeout:
                         res = self.fastboot_wait_for_bootloader(timeout=timeout)
                         if res == 1:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
                             # puml(f"note right:ERROR: during fastboot_wait_for_bootloader in reboot_bootloader;\n")
                             return -1
                         update_phones(self.id)
                         puml("note right:State Bootloader;\n")
                         return res
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
                     print(f"stdout: {res.stdout}   stderr: {res.stderr}")
                     puml(f"note right:ERROR: during reboot_bootloader;\n")
                     return -1
@@ -2580,13 +2580,13 @@ This is a special Magisk build\n\n
                     res = self.fastboot_wait_for_bootloader(timeout=timeout)
                     update_phones(self.id)
                     return res
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
                 puml(f"note right:ERROR: during reboot_bootloader;\n")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_bootloader")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_bootloader")
             traceback.print_exc()
             puml(f"note right:Exception: during reboot_bootloader;\n")
             return -1
@@ -2613,13 +2613,13 @@ This is a special Magisk build\n\n
                     res = self.fastboot_wait_for_bootloader(timeout=timeout)
                     update_phones(self.id)
                     return res
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_fastboot")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_fastboot")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_fastboot;\n")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_fastbootd")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_fastbootd")
             traceback.print_exc()
             puml(f"note right:Exception: during reboot_fastboot;\n")
             return -1
@@ -2640,13 +2640,13 @@ This is a special Magisk build\n\n
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='sideload')
                         if res == 1:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
                             # puml(f"note right:ERROR: during adb_wait_for in reboot_sideload;\n")
                             return -1
                         update_phones(self.id)
                         puml("note right:State sideload;\n")
                         return res
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")
@@ -2661,13 +2661,13 @@ This is a special Magisk build\n\n
                     debug("Calling reboot_sideload ...")
                     res = self.reboot_sideload(timeout=timeout)
                     return res
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_sideload")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_sideload")
             traceback.print_exc()
             puml(f"note right:Exception: during reboot_sideload;\n")
             return -1
@@ -2727,7 +2727,7 @@ This is a special Magisk build\n\n
             update_phones(device_id)
             return 'ERROR'
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during get_device_state for device: {device_id}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during get_device_state for device: {device_id}")
             traceback.print_exc()
             puml(f"note right:ERROR: Exception during get_device_state for device;\n")
             return 'ERROR'
@@ -2742,7 +2742,7 @@ This is a special Magisk build\n\n
             print(f"ADB waiting for device: {device_id} for {wait_for} ...")
             puml(f":ADB waiting for device: {device_id} for {wait_for};\n", True)
             if wait_for not in ['device', 'bootloader', 'sideload', 'recovery', 'rescue', 'disconnect']:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Wrong wait-for [{wait_for}] request!")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Wrong wait-for [{wait_for}] request!")
                 puml(f"#red:ERROR: Wrong wait-for [{wait_for}] request;\n", True)
                 return -1
 
@@ -2762,7 +2762,7 @@ This is a special Magisk build\n\n
                 with contextlib.suppress(Exception):
                     return res.returncode
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during adb_wait_for: {wait_for}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during adb_wait_for: {wait_for}")
             traceback.print_exc()
             puml(f"note right:ERROR: Exception during adb_wait_for: {wait_for};\n")
             return -1
@@ -2793,7 +2793,7 @@ This is a special Magisk build\n\n
             puml(f":Timeout: [{timeout}] Fastboot could not detect device: {device_id} in bootloader mode;\n", True)
             return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in fastboot_wait_for_bootloader")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in fastboot_wait_for_bootloader")
             puml("#red:Encountered an error in fastboot_wait_for_bootloader;\n")
             traceback.print_exc()
             return -1
@@ -2814,7 +2814,7 @@ This is a special Magisk build\n\n
             debug(theCmd)
             res = run_shell(theCmd)
             if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Magisk denylist")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Magisk denylist")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
@@ -2827,7 +2827,7 @@ This is a special Magisk build\n\n
                     unique_packages.add(package)
             return list(unique_packages)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_magisk_denylist")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_magisk_denylist")
             puml("#red:Encountered an error in get_magisk_denylist;\n")
             traceback.print_exc()
             return []
@@ -2854,7 +2854,7 @@ This is a special Magisk build\n\n
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res.returncode != 0:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing \"{app}\"")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing \"{app}\"")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
                     print(f"Stderr: {res.stderr}.")
@@ -2872,7 +2872,7 @@ This is a special Magisk build\n\n
                     print("Please perform the install again when the device is in adb mode.")
                 return res
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in install_apk")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in install_apk")
             puml("#red:Encountered an error in install_apk;\n")
             traceback.print_exc()
             return -1
@@ -2900,7 +2900,7 @@ This is a special Magisk build\n\n
                             return value
                 return 'UNKNOWN'
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_current_slot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_current_slot")
             puml("#red:Encountered an error in get_current_slot;\n")
             traceback.print_exc()
             return 'UNKNOWN'
@@ -2911,7 +2911,7 @@ This is a special Magisk build\n\n
     def get_wm_size(self):
         try:
             if self.mode != 'adb' and get_adb():
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
                 return -1
             print("Getting device resolution ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell wm size"
@@ -2925,7 +2925,7 @@ This is a special Magisk build\n\n
                     return line.split("Physical size:")[1].strip()
             return -1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_wm_size")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_wm_size")
             puml("#red:Encountered an error in get_wm_size;\n")
             traceback.print_exc()
             return -1
@@ -2936,7 +2936,7 @@ This is a special Magisk build\n\n
     def swipe_up(self, percentage=10):
         try:
             if self.mode != 'adb' and get_adb():
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not in adb mode.")
                 return -1
             print("Swipe up ...")
             wm_size = self.get_wm_size()
@@ -2948,7 +2948,7 @@ This is a special Magisk build\n\n
                 return -1
             return coords
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_wm_size")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_wm_size")
             puml("#red:Encountered an error in get_wm_size;\n")
             traceback.print_exc()
             return -1
@@ -2961,7 +2961,7 @@ This is a special Magisk build\n\n
             if self.mode == 'adb' and get_adb():
                 res = self.reboot_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Setting active slot to slot [{slot}] for device: {self.id} ...")
@@ -2970,7 +2970,7 @@ This is a special Magisk build\n\n
                 debug(theCmd)
                 return run_shell(theCmd)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in set_active_slot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in set_active_slot")
             puml("#red:Encountered an error in set_active_slot;\n")
             traceback.print_exc()
             return -1
@@ -2984,7 +2984,7 @@ This is a special Magisk build\n\n
             if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
                 res = self.reboot_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
                 # self.refresh_phone_mode()
                 update_phones(self.id)
             if mode == 'fastboot' and get_fastboot():
@@ -2995,19 +2995,19 @@ This is a special Magisk build\n\n
                 elif self.active_slot == 'b':
                     switch_to_slot = 'a'
                 else:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Slot.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Slot.")
                     puml("#red:ERROR: Unknown Slot;\n", True)
                     return 1
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={switch_to_slot}"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
                 if res == 1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during slot switch")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during slot switch")
                     return -1
                 update_phones(self.id)
                 return res
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during switch_slot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during switch_slot")
             traceback.print_exc()
             return -1
 
@@ -3019,7 +3019,7 @@ This is a special Magisk build\n\n
             if self.mode == 'adb' and get_adb():
                 res = self.reboot_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Erasing Partition [{partition}] for device: {self.id} ...")
@@ -3029,7 +3029,7 @@ This is a special Magisk build\n\n
                 # return run_shell(theCmd)
                 return
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in erase_partition.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in erase_partition.")
             puml("#red:Encountered an error in erase_partition.;\n")
             traceback.print_exc()
             return -1
@@ -3042,7 +3042,7 @@ This is a special Magisk build\n\n
             if self.mode == 'adb' and get_adb():
                 res = self.reboot_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 # add a popup warning before continuing.
@@ -3051,7 +3051,7 @@ This is a special Magisk build\n\n
                 debug(theCmd)
                 return run_shell(theCmd)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in lock_bootloader.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in lock_bootloader.")
             puml("#red:Encountered an error in lock_bootloader.;\n")
             traceback.print_exc()
             return -1
@@ -3064,7 +3064,7 @@ This is a special Magisk build\n\n
             if self.mode == 'adb' and get_adb():
                 res = self.reboot_bootloader()
                 if res == -1:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Unlocking bootloader for device: {self.id} ...")
@@ -3072,7 +3072,7 @@ This is a special Magisk build\n\n
                 debug(theCmd)
                 return run_shell(theCmd)
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in unlock_bootloader.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in unlock_bootloader.")
             puml("#red:Encountered an error in unlock_bootloader.;\n")
             traceback.print_exc()
             return -1
@@ -3101,11 +3101,11 @@ This is a special Magisk build\n\n
                     return -1
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in install_magisk_module.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in install_magisk_module.")
             puml("#red:Encountered an error in install_magisk_module.;\n")
             traceback.print_exc()
             return -1
@@ -3124,11 +3124,11 @@ This is a special Magisk build\n\n
                 res = run_shell(theCmd)
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in enable_magisk_module.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in enable_magisk_module.")
             puml("#red:Encountered an error in enable_magisk_module.;\n")
             traceback.print_exc()
             return -1
@@ -3147,11 +3147,11 @@ This is a special Magisk build\n\n
                 res = run_shell(theCmd)
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in restore_magisk_module.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in restore_magisk_module.")
             puml("#red:Encountered an error in restore_magisk_module.;\n")
             traceback.print_exc()
             return -1
@@ -3180,11 +3180,11 @@ This is a special Magisk build\n\n
                     os.remove(script_file.name)
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in open_shell.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in open_shell.")
             puml("#red:Encountered an error in open_shell.;\n")
             traceback.print_exc()
             return -1
@@ -3198,7 +3198,7 @@ This is a special Magisk build\n\n
             scrcpy_path = config.scrcpy['path']
             flags = config.scrcpy['flags']
             if not os.path.exists(scrcpy_path):
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: invalid scrcpy path {scrcpy_path} ")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: invalid scrcpy path {scrcpy_path} ")
                 return 1
             scrcpy_folder = os.path.dirname(scrcpy_path)
             if self.mode == 'adb' and get_adb():
@@ -3219,11 +3219,11 @@ This is a special Magisk build\n\n
                     os.remove(script_file.name)
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in scrcpy.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in scrcpy.")
             puml("#red:Encountered an error in scrcpy.;\n")
             traceback.print_exc()
             return -1
@@ -3242,11 +3242,11 @@ This is a special Magisk build\n\n
                 res = run_shell(theCmd)
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in uninstall_magisk_module.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in uninstall_magisk_module.")
             puml("#red:Encountered an error in uninstall_magisk_module.;\n")
             traceback.print_exc()
             return -1
@@ -3265,11 +3265,11 @@ This is a special Magisk build\n\n
                 res = run_shell(theCmd)
                 return 0
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in disable_magisk_module.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in disable_magisk_module.")
             puml("#red:Encountered an error in disable_magisk_module.;\n")
             traceback.print_exc()
             return -1
@@ -3293,7 +3293,7 @@ This is a special Magisk build\n\n
                 time.sleep(15)
                 return self.disable_magisk_modules()
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in disable_magisk_modules.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in disable_magisk_modules.")
             puml("#red:Encountered an error in disable_magisk_modules.;\n")
             traceback.print_exc()
             return -1
@@ -3314,7 +3314,7 @@ This is a special Magisk build\n\n
                 if self.id in response.stdout:
                     self.mode = 'adb'
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in refresh_phone_mode.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in refresh_phone_mode.")
             puml("#red:Encountered an error in refresh_phone_mode.;\n")
             traceback.print_exc()
             return -1
@@ -3348,7 +3348,7 @@ This is a special Magisk build\n\n
 
                 if click:
                     if coords is None or coords == '' or coords == -1:
-                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Coordinates are [{coords}]")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not tap. Coordinates are [{coords}]")
                         return -1
 
                     # Check for Display being locked again
@@ -3372,7 +3372,7 @@ This is a special Magisk build\n\n
                         return -1
                 return coords
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing ui action")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing ui action")
             puml("#red:Encountered an error while performing ui action;\n")
             traceback.print_exc()
 
@@ -3428,7 +3428,7 @@ This is a special Magisk build\n\n
             return run_shell2(theCmd)
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {action} {pkg}.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {action} {pkg}.")
 
     # ----------------------------------------------------------------------------
     #                               method get_package_list
@@ -3458,14 +3458,14 @@ This is a special Magisk build\n\n
             res = run_shell(theCmd)
             if res.returncode == 0:
                 return res.stdout.replace('package:','')
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
             print(f"Stderr: {res.stderr}.")
             return None
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
             return None
 
 
@@ -3546,7 +3546,7 @@ This is a special Magisk build\n\n
 
         except Exception as e:
             traceback.print_exc()
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get detailed packages.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get detailed packages.")
             puml("#red:ERROR: Could not get detailed packages;\n", True)
             return -1
         return 0
@@ -3605,7 +3605,7 @@ def update_phones(device_id):
                     set_phone_id(None)
         set_phones(phones)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating phones.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating phones.")
         traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")
@@ -3647,13 +3647,13 @@ def get_connected_devices():
                             devices.append(device_details)
                             phones.append(device)
                         except Exception as e:
-                            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
                             traceback.print_exc()
 
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
 
         if get_fastboot():
             theCmd = f"\"{get_fastboot()}\" devices"
@@ -3669,11 +3669,11 @@ def get_connected_devices():
                     devices.append(device_details)
                     phones.append(device)
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
 
         set_phones(phones)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
         traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")

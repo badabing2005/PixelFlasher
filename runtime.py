@@ -963,7 +963,7 @@ def init_config_path(config_file_path=''):
             if not os.path.exists(full_path):
                 os.makedirs(full_path, exist_ok=True)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_config_path")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_config_path")
         traceback.print_exc()
 
 
@@ -1048,7 +1048,7 @@ def init_db():
                 # Add the full_ota column to the BOOT table (values: 0:Not Full OTA, 1:Full OTA NULL:UNKNOWN)
                 db.execute("ALTER TABLE PACKAGE ADD COLUMN full_ota INTEGER;")
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_db")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_db")
         traceback.print_exc()
 
 # ============================================================================
@@ -1145,7 +1145,7 @@ def get_path_to_7z():
         path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zzs')
 
     if not os.path.exists(path_to_7z):
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {path_to_7z} is not found")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {path_to_7z} is not found")
         return None
     return path_to_7z
 
@@ -1170,7 +1170,7 @@ def delete_bundled_library(library_names):
                         print(f"Found library and deleted: {file_path}")
                         os.remove(file_path)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while deleting bundled library")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while deleting bundled library")
         traceback.print_exc()
 
 # ============================================================================
@@ -1248,7 +1248,7 @@ def open_folder(self, path, isFile = False):
         else:
             subprocess.Popen(["nautilus", dir_path], env=get_env_variables())
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a folder.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a folder.")
         traceback.print_exc()
 
 
@@ -1272,7 +1272,7 @@ def open_terminal(self, path, isFile=False):
             elif sys.platform.startswith("darwin"):
                 subprocess.Popen(["open", "-a", "Terminal", dir_path], env=get_env_variables())
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a terminal.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a terminal.")
         traceback.print_exc()
 
 
@@ -1295,7 +1295,7 @@ def check_archive_contains_file(archive_file_path, file_to_check, nested=False, 
             debug("Unsupported file format.")
             return ''
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_archive_contains_file.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_archive_contains_file.")
         traceback.print_exc()
 
 
@@ -1463,7 +1463,7 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
             debug(f"File {file_to_check} was NOT found\n")
             return ''
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_tar_contains_file.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_tar_contains_file.")
         traceback.print_exc()
 
 
@@ -1476,7 +1476,7 @@ def get_zip_file_list(zip_file_path):
             file_list = zip_file.namelist()
         return file_list
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting sip file list.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting sip file list.")
         traceback.print_exc()
 
 
@@ -1618,7 +1618,7 @@ def compare_sha1(SHA1, Extracted_SHA1):
             # return confidence level
             return num_match / len(SHA1)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while comparing sha1.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while comparing sha1.")
         traceback.print_exc()
 
 
@@ -1648,7 +1648,7 @@ def extract_fingerprint(binfile):
             ascii_string = ''.join(['!' if ord(c) < 32 or ord(c) > 126 else c for c in ascii_string])
             return ascii_string
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while extracting fingerprint.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while extracting fingerprint.")
         traceback.print_exc()
 
 
@@ -1671,7 +1671,7 @@ def md5(fname):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error computing md5.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error computing md5.")
         traceback.print_exc()
 
 
@@ -1706,7 +1706,7 @@ def sha1(fname):
                 hash_sha1.update(chunk)
         return hash_sha1.hexdigest()
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha1")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha1")
         traceback.print_exc()
 
 
@@ -1721,7 +1721,7 @@ def sha256(fname):
                 hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha256")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha256")
         traceback.print_exc()
 
 
@@ -1736,7 +1736,7 @@ def unpack_lz4(source, dest):
         with open(dest, 'wb') as file:
             file.write(decompressed_data)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unpacking lz4")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unpacking lz4")
         traceback.print_exc()
 
 
@@ -1776,14 +1776,14 @@ def get_code_page():
                     print(f"Active code page: {cp}")
                     set_system_codepage(cp)
                 except Exception:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
                     traceback.print_exc()
                     print(f"{res.stderr}")
                     print(f"{res.stdout}")
             else:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get Active code page.\n")
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting codepage.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting codepage.")
         traceback.print_exc()
 
 
@@ -1823,7 +1823,7 @@ def remove_quotes(string):
 # ============================================================================
 def create_support_zip():
     try:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
+        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
         config_path = get_config_path()
         tmp_dir_full = os.path.join(config_path, 'tmp')
         support_dir_full = os.path.join(config_path, 'support')
@@ -1922,7 +1922,7 @@ def create_support_zip():
         debug(f"Zipping {support_dir_full} ...")
         shutil.make_archive(support_dir_full, 'zip', support_dir_full)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while creating support.zip.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while creating support.zip.")
         traceback.print_exc()
 
 
@@ -2024,7 +2024,7 @@ def check_module_update(url):
         response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
         if response != 'ERROR':
             if response.status_code == 404:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
                 return -1
             with contextlib.suppress(Exception):
                 data = response.json()
@@ -2037,10 +2037,10 @@ def check_module_update(url):
                 response = request_with_fallback(method='GET', url=mu.changelog, headers=headers, data=payload)
                 setattr(mu, 'changelog', response.text)
                 return mu
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
             return -1
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during getUpdateDetails url: {url} processing")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during getUpdateDetails url: {url} processing")
         traceback.print_exc()
         return -1
 
@@ -2058,7 +2058,7 @@ def get_free_space(path=''):
 
         return int(round(free / (1024 ** 3)))
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting free space.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting free space.")
         traceback.print_exc()
 
 
@@ -2263,17 +2263,17 @@ def download_file(url, filename=None, callback=None, stream=True):
                 fd.write(chunk)
         # check if filename got downloaded
         if not os.path.exists(downloaded_file_path):
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
             print("Aborting ...\n")
             return 'ERROR'
         end = time.time()
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Download: {filename} completed! in {math.ceil(end - start)} seconds")
+        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Download: {filename} completed! in {math.ceil(end - start)} seconds")
         # Call the callback function if provided
         if callback:
             callback()
         return downloaded_file_path
     except Exception:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to download file from  {url}\n")
         traceback.print_exc()
         return 'ERROR'
 
@@ -2561,7 +2561,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         sorted_donor_data = dict(sorted(modified_donor_data.items()))
         return json.dumps(sorted_donor_data, indent=4)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function process_dict.")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function process_dict.")
         traceback.print_exc()
         return ''
 
@@ -2842,7 +2842,7 @@ def get_xiaomi_apk(filename):
             print("No new Xiaomi update!")
         return key
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_xiaomi_apk function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_xiaomi_apk function")
         traceback.print_exc()
         return None
 
@@ -2856,7 +2856,7 @@ def extract_from_zip(zip_path, to_extract, extracted_file_path):
         with zipfile.ZipFile(zip_path, "r") as archive:
             archive.extract(to_extract, extracted_file_path)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_from_zip function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_from_zip function")
         traceback.print_exc()
 
 
@@ -2871,7 +2871,7 @@ def axml2xml(inputfile, outputfile=None):
             ap = apk.AXMLPrinter(open(inputfile, "rb").read())
             buff = ap.get_xml_obj().toprettyxml()
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: XML input file {inputfile} is not found.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: XML input file {inputfile} is not found.")
             return
 
         if outputfile:
@@ -2879,7 +2879,7 @@ def axml2xml(inputfile, outputfile=None):
                 fd.write( buff )
         return(buff)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in axml2xml function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in axml2xml function")
         traceback.print_exc()
 
 
@@ -2922,7 +2922,7 @@ def xiaomi_xml_to_json(decoded_xml, json_path=None):
 
         return json.dumps(flattened_data, indent=4)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in xiaomi_xml_to_json function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in xiaomi_xml_to_json function")
         traceback.print_exc()
 
 
@@ -2958,14 +2958,14 @@ def get_xiaomi_pif():  # sourcery skip: move-assign
             extract_from_zip(xiaomi_apk, to_extract, xiaomi_axml)
             xiaomi_pifs.setdefault(key, {})["axml_path"] = xiaomi_axml
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Xiaomi download failed.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Xiaomi download failed.")
 
         # Decode xml
         if path.exists(xiaomi_axml):
             xiaomi_xml_content = axml2xml(os.path.join(xiaomi_axml, to_extract), xiaomi_xml)
             xiaomi_pifs.setdefault(key, {})["xml_path"] = xiaomi_xml
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Xiaomi axml not found")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Xiaomi axml not found")
 
         # Extract the build fields and convert to json
         xiaomi_json = xiaomi_xml_to_json(xiaomi_xml_content, xiaomi_json)
@@ -2980,7 +2980,7 @@ def get_xiaomi_pif():  # sourcery skip: move-assign
         return xiaomi_json
 
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_xiaomi_pif function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_xiaomi_pif function")
         traceback.print_exc()
 
 
@@ -3038,7 +3038,7 @@ def get_freeman_pif(abi_list=None):
             return json.dumps(json_content, indent=4)
 
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_freeman_pif function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_freeman_pif function")
         traceback.print_exc()
 
 
@@ -3059,7 +3059,7 @@ def get_pif_from_image(image_file):
             # assume Pixel factory file
             package_sig = found_flash_all_bat.split('/')[0]
             if not package_sig:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract package signature from {found_flash_all_bat}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract package signature from {found_flash_all_bat}")
                 return
             package_dir_full = os.path.join(temp_dir_path, package_sig)
             image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
@@ -3069,7 +3069,7 @@ def get_pif_from_image(image_file):
             debug(theCmd)
             res = run_shell2(theCmd)
             if res.returncode != 0:
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
                 print(f"Stderr: {res.stderr}.")
@@ -3139,7 +3139,7 @@ def get_pif_from_image(image_file):
                 # return path to props folder
                 return props_path
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing ota/firmware file:")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing ota/firmware file:")
         traceback.print_exc()
     finally:
         temp_dir.cleanup()
@@ -3231,7 +3231,7 @@ def extract_magiskboot(apk_path, architecture, output_path):
     debug(cmd)
     res = run_shell2(cmd)
     if res.returncode != 0:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
         print(f"Return Code: {res.returncode}.")
         print(f"Stdout: {res.stdout}.")
         print(f"Stderr: {res.stderr}.")
@@ -3320,7 +3320,7 @@ def check_kb(filename):
             print('\nKeybox is still valid!')
             return True
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
         print(e)
         traceback.print_exc()
 
@@ -3340,7 +3340,7 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
         # Return the response
         return subprocess.CompletedProcess(args=cmd, returncode=process.returncode, stdout=stdout, stderr=stderr)
     except subprocess.TimeoutExpired as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
         puml("#red:Command {cmd} timed out;\n", True)
         puml(f"note right\n{e}\nend note\n")
         # Send CTRL + C signal to the process
@@ -3349,7 +3349,7 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
         return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
 
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell {cmd}")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell {cmd}")
         traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")
@@ -3379,7 +3379,7 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
                 break
             if timeout is not None and time.time() > timeout:
                 proc.terminate()
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
                 puml("#red:Command timed out;\n", True)
                 puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
                 return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
@@ -3388,7 +3388,7 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
         stdout, stderr = proc.communicate()
         return subprocess.CompletedProcess(args=cmd, returncode=proc.returncode, stdout=stdout, stderr=stderr)
     except Exception as e:
-        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
         traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")

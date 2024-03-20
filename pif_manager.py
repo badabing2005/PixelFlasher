@@ -576,7 +576,7 @@ class PifManager(wx.Dialog):
             self.active_pif_stc.SetValue(contents)
 
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip Load process.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip Load process.")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -622,10 +622,10 @@ class PifManager(wx.Dialog):
                 try:
                     data = json5.loads(json_data)
                 except Exception:
-                    print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
                     return
         else:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
             return
 
         # Save the data as normal JSON

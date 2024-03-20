@@ -229,7 +229,7 @@ The following details are listed.
     - **SHA1** is (shortened for display only) sha1 of `boot.img` (or `init_boot.img` for Pixel 7 or newer devices)
     - **Source SHA1** (shortened for display only) SHA1 of source `boot.img` extracted from the image (This should be the same as SHA1 of an unpatched `boot.img`)
     - **Package Fingerprint** is just the filename portion of the image (without the extension).
-    - **Patched with Magisk** indicates the version of Magisk used to patch the image (if applicable).
+    - **Patched with Version** indicates the version of Magisk / KernelSU / Apatch used to patch the image (if applicable).
     - **Patched Method** indicates what method PixelFlasher used to create a patch (possible options: `root`, `app`, `uiautomator`, `manual`)
     - **Patched on Device** indicates the device model that performed the patching. You should always use patched images that match the model of the device that it will be flashed on.
     - **Date** is the either the date the `boot.img` was extracted, or the date it was patched.

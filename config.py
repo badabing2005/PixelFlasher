@@ -363,7 +363,7 @@ class Config():
                 conf.first_run = True
                 conf.first_run_date = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
         except Exception as e:
-            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during configuartion file loading.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during configuartion file loading.")
             print(f"Exception: {e}")
             print("Deleting the configuration file to recover ...")
             os.remove(file_path)

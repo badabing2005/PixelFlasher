@@ -2328,7 +2328,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             print("Aborting ...\n}\n")
             return
         # check if transfer worked.
-        res, tmp = device.check_file(f"{self.config.phone_path}/init_boot.img")
+        res, tmp = device.check_file(f"{self.config.phone_path}/{init_boot_img}")
         if res != 1:
             print("Aborting ...\n")
             puml("#red:Failed to transfer the init_boot file to the phone;\n}\n")

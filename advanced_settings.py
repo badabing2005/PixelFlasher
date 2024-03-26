@@ -66,7 +66,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.package_name.SetToolTip(u"If you have hidden Magisk,\nset this to the hidden package name.")
         self.reset_magisk_pkg = wx.BitmapButton(parent=scrolled_panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.reset_magisk_pkg.SetBitmap(images.scan_24.GetBitmap())
-        self.reset_magisk_pkg.SetToolTip(u"Resets package name to default: com.topjohnwu.magisk")
+        self.reset_magisk_pkg.SetToolTip(f"Resets package name to default: {MAGISK_PKG_NAME}")
         package_name_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         package_name_sizer.Add(self.package_name, proportion=1, flag=wx.ALL, border=0)
         package_name_sizer.Add(self.reset_magisk_pkg, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -392,7 +392,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             traceback.print_exc()
 
     def _onResetMagiskPkg(self, e):
-        self.package_name.Label = 'com.topjohnwu.magisk'
+        self.package_name.Label = MAGISK_PKG_NAME
 
 
     def _onCancel(self, e):
@@ -451,10 +451,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):
-                if self.package_name.GetValue() != self.Parent.config.magisk:
+                if self.package_name.GetValue() != self.Parent.config.magisk and self.package_name.GetValue() in [MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME]:
                     print(f"Setting Magisk Package Name to: {self.package_name.GetValue()}")
-                set_magisk_package(self.package_name.GetValue())
-                self.Parent.config.magisk = self.package_name.GetValue()
+                    set_magisk_package(self.package_name.GetValue())
+                    self.Parent.config.magisk = self.package_name.GetValue()
 
         if sys.platform.startswith("linux"):
             with contextlib.suppress(Exception):

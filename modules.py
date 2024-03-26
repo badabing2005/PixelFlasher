@@ -1134,7 +1134,7 @@ def drive_magisk(self, boot_file_name):
     # if res == -1:
     #     return -1
 
-    # res = device.ui_action(f"{self.config.phone_path}/view5.xml", os.path.join(config_path, 'tmp', 'view5.xml'), "com.topjohnwu.magisk:id/action_save")
+    # res = device.ui_action(f"{self.config.phone_path}/view5.xml", os.path.join(config_path, 'tmp', 'view5.xml'), "{MAGISK_PKG_NAME}:id/action_save")
     # if res == -1:
     #     return -1
 
@@ -1388,14 +1388,14 @@ def drive_magisk(self, boot_file_name):
     #     return -1
 
     # # get view5 bounds / click coordinates (Save button)
-    # coords = get_ui_cooridnates(view5, "com.topjohnwu.magisk:id/action_save")
+    # coords = get_ui_cooridnates(view5, f"{MAGISK_PKG_NAME}:id/action_save")
 
     # # Check for Display being locked again
     # if not device.is_display_unlocked():
     #     print("ERROR: The device display is Locked!\nAborting ...\n")
     #     return -1
 
-    # # Click on coordinates of `com.topjohnwu.magisk:id/action_save`
+    # # Click on coordinates of `{MAGISK_PKG_NAME}:id/action_save`
     # # For Pixel 6 this would be: adb shell input tap 1010 198
     # theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
     # debug(theCmd)
@@ -1498,21 +1498,13 @@ or hit the **Cancel** button to abort.
 
 
 # ============================================================================
-#                               Function patch_with_apatch
-# ============================================================================
-def patch_with_apatch(self):
-    print("Feature in development ...")
-    return
-
-
-# ============================================================================
 #                               Function patch_boot_img
 # ============================================================================
 def patch_boot_img(self, patch_flavor = 'Magisk'):
     # ==========================================
     # Sub Function       patch_script
     # ==========================================
-    def patch_script(patch_method):
+    def patch_magisk_script(patch_method):
         print("Creating pf_patch.sh script ...")
         if self.config.use_busybox_shell:
             # busybox_shell_cmd = "export ASH_STANDALONE=1; /data/adb/magisk/busybox ash"
@@ -1554,7 +1546,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 print(f"\nSelected {other_magisk} for patch use.")
                 puml(f"note right\nSelected {other_magisk} for patch use.\nend note\n")
             # Transfer user Magisk app to the phone
-            res = device.push_file(f"\"{other_magisk}\"", '/sdcard/Download/Magisk-Uploaded.apk', with_su=perform_as_root)
+            res = device.push_file(f"\"{other_magisk}\"", f"{self.config.phone_path}/Magisk-Uploaded.apk", with_su=perform_as_root)
             if res != 0:
                 print("Aborting ...\n")
                 puml("#red:Failed to transfer Magisk Application to the phone;\n")
@@ -1579,7 +1571,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += f"STOCK_SHA1={stock_sha1}\n"
             data += f"RECOVERYMODE={recovery}\n"
             if patch_method == "other":
-                magisk_path = '/sdcard/Download/Magisk-Uploaded.apk'
+                magisk_path = f"{self.config.phone_path}/Magisk-Uploaded.apk"
             else:
                 magisk_path = device.magisk_path
             data += f"MAGISK_PATH={magisk_path}\n"
@@ -1630,22 +1622,22 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "echo -------------------------\n"
             data += "echo \"Creating a patch ...\"\n"
             data += "./magiskboot cleanup\n"
-            data += f"./boot_patch.sh /sdcard/Download/{boot_img}\n"
+            data += f"./boot_patch.sh {self.config.phone_path}/{boot_img}\n"
             data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"PATCH_FILENAME={patch_name}_${{MAGISK_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
 
             if patch_method in ["app", "other"]:
-                data += "cp -f /data/local/tmp/pf/assets/new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
+                data += f"cp -f /data/local/tmp/pf/assets/new-boot.img {self.config.phone_path}/${{PATCH_FILENAME}}\n"
                 # if we're rooted, copy the stock boot.img to /data/adb/magisk/stock_boot.img so that magisk can backup
                 if perform_as_root:
                     data += "cp -f /data/local/tmp/pf/assets/stock_boot.img /data/adb/magisk/stock_boot.img\n"
                     # TODO see if we need to update the config SHA1
             else:
-                data += "mv new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
+                data += f"mv new-boot.img {self.config.phone_path}/${{PATCH_FILENAME}}\n"
 
-            data += "if [[ -s /sdcard/Download/${PATCH_FILENAME} ]]; then\n"
+            data += f"if [[ -s {self.config.phone_path}/${{PATCH_FILENAME}} ]]; then\n"
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
             data += "	if [[ -n \"$PATCHING_MAGISK_VERSION\" ]]; then echo $PATCHING_MAGISK_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
@@ -1757,7 +1749,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "mv ../magiskboot .\n"
             data += "mv ../Image .\n"
             data += "chmod 755 magiskboot\n"
-            data += f"cp /sdcard/Download/{boot_img} ./boot.img\n\n"
+            data += f"cp {self.config.phone_path}/{boot_img} ./boot.img\n\n"
 
             data += "echo \"Unpacking boot.img ...\"\n"
             data += "./magiskboot unpack boot.img\n\n"
@@ -1773,9 +1765,9 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += f"PATCH_FILENAME={patch_name}_${{KERNELSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
 
-            data += "cp -f /data/local/tmp/pf/new-boot.img /sdcard/Download/${PATCH_FILENAME}\n"
+            data += f"cp -f /data/local/tmp/pf/new-boot.img {self.config.phone_path}/${{PATCH_FILENAME}}\n"
 
-            data += "if [[ -s /sdcard/Download/${PATCH_FILENAME} ]]; then\n"
+            data += f"if [[ -s {self.config.phone_path}/${{PATCH_FILENAME}} ]]; then\n"
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
             data += "	if [[ -n \"$KERNELSU_VERSION\" ]]; then echo $KERNELSU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
@@ -1837,12 +1829,307 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
         return patched_img
 
+    # ==========================================
+    # Sub Function     patch_kernelsu_lkm_script
+    # ==========================================
+    def patch_kernelsu_lkm_script():
+        patch_label = "KernelSU App"
+        path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
+        script_path = "/data/local/tmp/pf_patch.sh"
+        exec_cmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
+        with_version = device.get_uncached_ksu_app_version()
+        with_version_code = device.ksu_app_version_code
+        perform_as_root = False
+
+        set_patched_with(with_version)
+        puml(f":Patching with {patch_label}: {with_version};\n", True)
+
+        dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
+        with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+            data = " #!/system/bin/sh\n"
+            data += " ##############################################################################\n"
+            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
+            data += " ##############################################################################\n"
+            data += f"KSU_VERSION=\"{with_version_code}\"\n"
+            data += f"STOCK_SHA1={stock_sha1}\n"
+            ksu_path = device.ksu_path
+            data += f"KSU_PATH={ksu_path}\n"
+
+            data += f"ARCH={device.architecture}\n"
+            data += f"cp {ksu_path} /data/local/tmp/pf.zip\n"
+            data += "cd /data/local/tmp\n"
+            data += "rm -rf pf\n"
+            data += "mkdir pf\n"
+            data += "cd pf\n"
+            data += "../busybox unzip -o ../pf.zip\n"
+            data += "cd assets\n"
+            data += "for FILE in ../lib/$ARCH/lib*.so; do\n"
+            data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
+            data += "    cp $FILE $NEWNAME\n"
+            data += "done\n"
+            data += "chmod 755 *\n"
+            data += "PATCHING_KSU_VERSION=$(/data/local/tmp/pf/assets/ksud -V)\n"
+            data += "echo \"PATCHING_KSU_VERSION: $PATCHING_KSU_VERSION\"\n"
+
+            data += "echo -------------------------\n"
+            data += "echo \"Creating a patch ...\"\n"
+            data += "rm -f kernelsu_boot_*\n"
+            data += f" ./ksud boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot\n"
+            data += "PATCH_SHA1=$(./magiskboot sha1 kernelsu_boot_* | cut -c-8)\n"
+            data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
+            data += f"PATCH_FILENAME={patch_name}_${{KSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
+            data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
+            data += f"cp kernelsu_boot_* {self.config.phone_path}/${{PATCH_FILENAME}}\n"
+
+            data += f"if [[ -s {self.config.phone_path}/${{PATCH_FILENAME}} ]]; then\n"
+            data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
+            data += "	if [[ -n \"$PATCHING_KSU_VERSION\" ]]; then echo $PATCHING_KSU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
+            data += "else\n"
+            data += "	echo \"ERROR: Patching failed!\"\n"
+            data += "fi\n\n"
+            data += "echo \"Cleaning up ...\"\n"
+            data += "rm -f /data/local/tmp/pf_patch.sh /data/local/tmp/pf.zip /data/local/tmp/busybox\n"
+            data += "rm -rf /data/local/tmp/pf\n"
+            data += "\n"
+
+            f.write(data)
+            puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
+
+        print("PixelFlasher patching script contents:")
+        print(f"___________________________________________________\n{data}")
+        print("___________________________________________________\n")
+
+        # Transfer extraction script to the phone
+        res = device.push_file(f"{dest}", script_path, with_su=perform_as_root)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to transfer Patch Script to the phone;\n")
+            return -1
+
+        # set the permissions.
+        res = device.set_file_permissions(script_path, "755", perform_as_root)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to set the executable bit on patch script;\n")
+            return -1
+
+        # Transfer busybox to the phone
+        res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to transfer busybox to the phone;\n")
+            return -1
+
+        # set the permissions.
+        res = device.set_file_permissions("/data/local/tmp/busybox", "755")
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to set the executable bit on busybox;\n")
+            return -1
+
+        #------------------------------------
+        # Execute the pf_patch.sh script
+        #------------------------------------
+        print("Executing the pf_patch.sh script ...")
+        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
+        puml(":Executing the patch script;\n")
+        debug(f"exec_cmd: {exec_cmd}")
+        res = run_shell2(exec_cmd)
+
+        # get the patched_filename
+        print("Checking patch log: /data/local/tmp/pf_patch.log ...")
+        res = device.file_content("/data/local/tmp/pf_patch.log")
+        if res == -1:
+            print("Aborting ...\n")
+            puml("#red:Failed to pull pf_patch.log from the phone;\n")
+            return -1
+        else:
+            lines = res.split("\n")
+            patched_img = lines[0] if len(lines) > 0 else ""
+            if patch_method == "other":
+                set_patched_with(lines[1]) if len(lines) > 1 else ""
+
+        # delete pf_patch.log from phone
+        res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to delete pf_patch.log from the phone;\n")
+            return -1
+
+        return patched_img
+
+    # ==========================================
+    # Sub Function     patch_apatch_script
+    # ==========================================
+    def patch_apatch_script(patch_method="app"):
+        dialog = wx.TextEntryDialog(None,
+            "The SUPERKEY has higher privileges than root access.\n"
+            "Weak or compromised keys can result in unauthorized control of your device.\n"
+            "It is critical to use robust keys and safeguard them from exposure to maintain the security of your device.\n\n"
+            "The length of superkey should be at least 8 characters and include both numbers and letters.",
+            "Please enter a Superkey", style=wx.OK)
+        if dialog.ShowModal() == wx.ID_OK:
+            superkey = dialog.GetValue()
+        dialog.Destroy()
+        print("Creating pf_patch.sh script ...")
+        if patch_method == "rooted":
+            patch_label = "rooted APatch"
+            script_path = "/data/adb/apatch/pf_patch.sh"
+            exec_cmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'cd /data/adb/apatch; ./pf_patch.sh\'\""
+            with_version = device.apatch_version
+            with_version_code = device.apatch_version_code
+            perform_as_root = True
+        elif patch_method == "app":
+            patch_label = "APatch App"
+            path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
+            script_path = "/data/local/tmp/pf_patch.sh"
+            # if is_rooted:
+            #     exec_cmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'/data/local/tmp/pf_patch.sh\'\""
+            # else:
+            exec_cmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
+            with_version = device.get_uncached_apatch_app_version()
+            with_version_code = device.apatch_app_version_code
+            perform_as_root = False
+        else:
+            print(f"ERROR: Unsupported patch method: {patch_method}")
+            puml("#red:Unsupported patch method;\n")
+            return -1
+
+        set_patched_with(with_version)
+        puml(f":Patching with {patch_label}: {with_version};\n", True)
+
+        dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
+        with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+            data = " #!/system/bin/sh\n"
+            data += " ##############################################################################\n"
+            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
+            data += " ##############################################################################\n"
+            data += f"APATCH_VERSION=\"{with_version_code}\"\n"
+            data += f"STOCK_SHA1={stock_sha1}\n"
+            apatch_path = device.apatch_path
+            data += f"APATCH_PATH={apatch_path}\n"
+
+            if patch_method == "app":
+                data += f"ARCH={device.architecture}\n"
+                data += f"cp {apatch_path} /data/local/tmp/pf.zip\n"
+                data += "cd /data/local/tmp\n"
+                data += "rm -rf pf\n"
+                data += "mkdir pf\n"
+                data += "cd pf\n"
+                data += "../busybox unzip -o ../pf.zip\n"
+                data += "cd assets\n"
+                data += "for FILE in ../lib/$ARCH/lib*.so; do\n"
+                data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
+                data += "    cp $FILE $NEWNAME\n"
+                data += "done\n"
+                data += "chmod 755 *\n"
+                data += "PATCHING_APATCH_VERSION=$(/data/local/tmp/pf/assets/apd -V)\n"
+                data += "echo \"PATCHING_APATCH_VERSION: $PATCHING_APATCH_VERSION\"\n"
+                data += "echo \"Extracting ramdisk from init_boot ...\"\n"
+                data += f"cp {self.config.phone_path}/{init_boot_img} ./init_boot.img\n"
+                # unpack ramdisk.cpio from init_boot.img first and place it in the assets folder
+                data += "./magiskboot unpack init_boot.img\n"
+
+            data += "echo \"Creating a patch ...\"\n"
+            data += f"./boot_patch.sh {superkey} {self.config.phone_path}/{boot_img} -K kpatch\n"
+            data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+            data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
+            data += f"PATCH_FILENAME={patch_name}_${{APATCH_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
+            data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
+
+            if patch_method in ["app"]:
+                data += f"cp -f /data/local/tmp/pf/assets/new-boot.img {self.config.phone_path}/${{PATCH_FILENAME}}\n"
+            else:
+                data += f"mv new-boot.img {self.config.phone_path}/${{PATCH_FILENAME}}\n"
+
+            data += f"if [[ -s {self.config.phone_path}/${{PATCH_FILENAME}} ]]; then\n"
+            data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
+            data += "	if [[ -n \"$PATCHING_APATCH_VERSION\" ]]; then echo $PATCHING_APATCH_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
+            data += "else\n"
+            data += "	echo \"ERROR: Patching failed!\"\n"
+            data += "fi\n\n"
+            data += "echo \"Cleaning up ...\"\n"
+            # intentionally not including \n
+            data += "rm -f /data/local/tmp/pf_patch.sh"
+
+            if patch_method in ["app"]:
+                data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
+                data += "rm -rf /data/local/tmp/pf\n"
+            data += "\n"
+
+            f.write(data)
+            puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
+
+        print("PixelFlasher patching script contents:")
+        print(f"___________________________________________________\n{data}")
+        print("___________________________________________________\n")
+
+        # Transfer extraction script to the phone
+        res = device.push_file(f"{dest}", script_path, with_su=perform_as_root)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to transfer Patch Script to the phone;\n")
+            return -1
+
+        # set the permissions.
+        res = device.set_file_permissions(script_path, "755", perform_as_root)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to set the executable bit on patch script;\n")
+            return -1
+
+        if patch_method in ["app", "other"]:
+            # Transfer busybox to the phone
+            res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to transfer busybox to the phone;\n")
+                return -1
+
+            # set the permissions.
+            res = device.set_file_permissions("/data/local/tmp/busybox", "755")
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to set the executable bit on busybox;\n")
+                return -1
+
+        #------------------------------------
+        # Execute the pf_patch.sh script
+        #------------------------------------
+        print("Executing the pf_patch.sh script ...")
+        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
+        puml(":Executing the patch script;\n")
+        debug(f"exec_cmd: {exec_cmd}")
+        res = run_shell2(exec_cmd)
+
+        # get the patched_filename
+        print("Checking patch log: /data/local/tmp/pf_patch.log ...")
+        res = device.file_content("/data/local/tmp/pf_patch.log")
+        if res == -1:
+            print("Aborting ...\n")
+            puml("#red:Failed to pull pf_patch.log from the phone;\n")
+            return -1
+        else:
+            lines = res.split("\n")
+            patched_img = lines[0] if len(lines) > 0 else ""
+            if patch_method == "other":
+                set_patched_with(lines[1]) if len(lines) > 1 else ""
+
+        # delete pf_patch.log from phone
+        res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to delete pf_patch.log from the phone;\n")
+            return -1
+
+        return patched_img
 
     #------------------
     # Start of function
     #------------------
     recovery = 'false'
     custom_text = ""
+    tmp_path = os.path.join(get_config_path(), 'tmp')
     print("")
     print("==============================================================================")
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Patching {patch_flavor} boot")
@@ -1860,7 +2147,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     else:
         print(f"Patching on hardware: {device.hardware}")
 
-    if patch_flavor == 'KernelSU':
+    if patch_flavor in ['KernelSU', 'KernelSU_LKM']:
         kmi = device.kmi
         anykernel = False
         pixel_devices = get_android_devices()
@@ -1913,7 +2200,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         return
 
     start = time.time()
-
+    init_boot_path = None
     config_path = get_config_path()
     factory_images = os.path.join(config_path, 'factory_images')
     if patch_flavor == 'Custom':
@@ -1935,9 +2222,21 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             boot_path = boot_path.replace("init_boot.img", "boot.img")
             stock_sha1 = sha1(boot_path)[:8]
             print(f"Using boot.img for KernelSU patching with SHA1 of {stock_sha1}")
+        if patch_flavor == 'APatch' and "init_boot.img" in boot_path:
+            print(f"With APatch patching, the boot.img will be used, instead of init_boot.img, however we need ramdisk from init_boot.img")
+            init_boot_path = boot_path
+            boot_path = boot_path.replace("init_boot.img", "boot.img")
+            stock_init_sha1 = sha1(init_boot_path)[:8]
+            stock_sha1 = sha1(boot_path)[:8]
+            print(f"Using boot.img for APatch patching with SHA1 of {stock_sha1}")
+            print(f"Also using init_boot.img for APatch patching (to extract Ramdisk) with SHA1 of {stock_init_sha1}")
         boot_file_name = os.path.basename(boot_path)
         filename, extension = os.path.splitext(boot_file_name)
         boot_img = f"{filename}_{stock_sha1}.img"
+        if init_boot_path is not None:
+            init_boot_file_name = os.path.basename(init_boot_path)
+            init_filename, init_extension = os.path.splitext(init_boot_file_name)
+            init_boot_img = f"{init_filename}_{stock_init_sha1}.img"
         patch_name = f"{patch_flavor.lower()}_patched"
         patched_img = f"{patch_name}_{boot.boot_hash[:8]}.img"
         package_dir_full = os.path.join(factory_images, boot.package_sig)
@@ -2021,6 +2320,19 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         puml("#red:Failed to transfer the boot file to the phone;\n")
         print("Aborting ...\n}\n")
         return
+    if patch_flavor == 'APatch':
+        # transfer init_boot.img to the phone as the RAMDISK is in the init_boot.img and is needed for patching
+        res = device.push_file(f"{init_boot_path}", f"{self.config.phone_path}/{init_boot_img}")
+        if res != 0:
+            puml("#red:Failed to transfer the init_boot file to the phone;\n")
+            print("Aborting ...\n}\n")
+            return
+        # check if transfer worked.
+        res, tmp = device.check_file(f"{self.config.phone_path}/init_boot.img")
+        if res != 1:
+            print("Aborting ...\n")
+            puml("#red:Failed to transfer the init_boot file to the phone;\n}\n")
+            return
 
     # check if transfer worked.
     res, tmp = device.check_file(f"{self.config.phone_path}/{boot_img}")
@@ -2034,7 +2346,6 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # KernelSU
     if patch_flavor == 'KernelSU':
         method = 80
-        tmp_path = os.path.join(get_config_path(), 'tmp')
         magiskboot_created = False
         if is_rooted:
             res, tmp = device.check_file("/data/adb/magisk/magiskboot", True)
@@ -2065,7 +2376,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         # download the latest KernelSU
         kmi_parts = kmi.split('-')
         look_for_kernelsu = '-'.join(kmi_parts[::-1])
-        kernel_su_gz_file = download_gh_latest_release_asset('tiann', 'KernelSU', look_for_kernelsu, anykernel)
+        kernel_su_gz_file = download_ksu_latest_release_asset(user='tiann', repo='KernelSU', asset_name=look_for_kernelsu, anykernel=anykernel)
         if not kernel_su_gz_file:
             print("ERROR: Could not find matching KernelSU generic image\nAborting ...\n")
             return
@@ -2091,6 +2402,78 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     puml("#red:Failed to transfer magiskboot to the phone;\n")
                     return
 
+    # KerlnelSU_LKM
+    elif patch_flavor == 'KernelSU_LKM':
+        method = 81
+        # check if KernelSU app is installed
+        print("Checking to see if KernelSU app is installed ...")
+        puml(":Checking KernelSU App;\n")
+        kernelsu_app_path = device.ksu_path
+        if not kernelsu_app_path:
+            print("KernelSU app not found on the phone.\n Trying to download and install it ...\n")
+            # download and install it https://github.com/tiann/KernelSU/releases
+            kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
+            kernelsu_url = download_gh_latest_release_asset_regex('tiann', 'KernelSU', '^KernelSU.*\.apk$', True)
+            if kernelsu_url is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install KernelSU.\n Aborting ...")
+                return
+            match = re.search(r'_([0-9]+)-', kernelsu_url)
+            if match:
+                kernelsu_versionCode =  match.group(1)
+            else:
+                if kernelsu_version:
+                    kernelsu_versionCode = kernelsu_version
+                else:
+                    parts = version.split('.')
+                    a = int(parts[0])
+                    b = int(parts[1])
+                    c = int(parts[2])
+                    kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+            filename = f"KernerlSU_{kernelsu_version}_{kernelsu_versionCode}.apk"
+            download_file(kernelsu_url, filename)
+            # install the apk
+            res = device.install_apk(os.path.join(tmp_path, filename))
+            kernelsu_app_path = device.ksu_path
+            if not kernelsu_app_path:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not install KernelSU.\n Aborting ...")
+                return
+
+    # APatch
+    elif patch_flavor == 'APatch':
+        method = 90
+        # check if APatch app is installed
+        print("Checking to see if APatch app is installed ...")
+        puml(":Checking APatch App;\n")
+        apatch_app_path = device.apatch_path
+        if not apatch_app_path:
+            print("APatch app not found on the phone.\n Trying to download and install it ...\n")
+            # download and install it https://github.com/bmax121/APatch/releases
+            apatch_version = get_gh_latest_release_version('bmax121', 'APatch')
+            apatch_url = download_gh_latest_release_asset_regex('bmax121', 'APatch', '^APatch_.*\.apk$', True)
+            if apatch_url is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install APatch.\n Aborting ...")
+                return
+            match = re.search(r'_([0-9]+)-', apatch_url)
+            if match:
+                apatch_versionCode =  match.group(1)
+            else:
+                if apatch_version:
+                    apatch_versionCode = apatch_version
+                else:
+                    parts = version.split('.')
+                    a = int(parts[0])
+                    b = int(parts[1])
+                    c = int(parts[2])
+                    apatch_versionCode = (a * 256 * 256) + (b * 256) + c
+            filename = f"APatch_{apatch_version}_{apatch_versionCode}.apk"
+            download_file(apatch_url, filename)
+            # install the apk
+            res = device.install_apk(os.path.join(tmp_path, filename))
+            apatch_app_path = device.apatch_path
+            if not apatch_app_path:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not install APatch.\n Aborting ...")
+                return
+
     # Magisk
     else:
         #------------------------------------
@@ -2103,7 +2486,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
         # If the device is not reporting rooted, and adb shell access is not granted
         # Display a warning and abort.
-        if self.config.magisk not in ['', 'com.topjohnwu.magisk', 'io.github.vvb2060.magisk', 'io.github.huskydg.magisk'] and not is_rooted:
+        if self.config.magisk not in ['', MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME, KERNEL_SU_PKG_NAME, APATCH_PKG_NAME] and not is_rooted:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It looks like you have a hidden Magisk Manager, and have not allowed root access to adb shell")
             print("Patching can not be performed, to correct this, either grant root access to adb shell (recommended) or unhide Magisk Manager.")
             print("And try again.")
@@ -2127,7 +2510,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         if is_rooted:
             method = 1  # rooted
             # disable app method if app is not found or is hidden.
-            if not magisk_app_version or ( self.config.magisk not in ['', 'com.topjohnwu.magisk', 'io.github.vvb2060.magisk', 'io.github.huskydg.magisk'] ):
+            if not magisk_app_version or ( self.config.magisk not in ['', MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME, KERNEL_SU_PKG_NAME, APATCH_PKG_NAME] ):
                 disabled_buttons = [2, 3, 4]
             elif magisk_version and magisk_app_version:
                 disabled_buttons = [3]
@@ -2265,10 +2648,10 @@ Unless you know what you're doing, it is recommended that you take the default s
     # Perform the patching
     if method == 1:
         patch_method = 'root'
-        patched_img = patch_script("rooted")
+        patched_img = patch_magisk_script("rooted")
     elif method == 2:
         patch_method = 'app'
-        patched_img = patch_script("app")
+        patched_img = patch_magisk_script("app")
     elif method == 3:
         patch_method = 'ui-auto'
         set_patched_with(device.magisk_app_version)
@@ -2280,12 +2663,22 @@ Unless you know what you're doing, it is recommended that you take the default s
     elif method == 5:
         patch_method = 'other'
         set_patched_with("Other")
-        patched_img = patch_script("other")
+        patched_img = patch_magisk_script("other")
     elif method == 80:
         # KernelSU
         patch_method = 'kernelsu'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
+    elif method == 81:
+        # KernelSU_LKM
+        patch_method = 'kernelsu_lkm'
+        # set_patched_with(ksu_app_version)
+        patched_img = patch_kernelsu_lkm_script()
+    elif method == 90:
+        # APatch
+        patch_method = 'apatch'
+        # set_patched_with(apatch_app_version)
+        patched_img = patch_apatch_script("app")
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexepected patch method.")
         puml("#red:Unexpected patch method;\nnote right:Abort\n}\n", True)
@@ -2369,7 +2762,7 @@ Unless you know what you're doing, it is recommended that you take the default s
                     # copy stock_boot from Downloads folder it already exists, and do it as su if rooted
                     stock_boot_path = '/data/adb/magisk/stock_boot.img'
                     print(f"Copying {boot_img} to {stock_boot_path} ...")
-                    res = device.su_cp_on_device(f"/sdcard/Download/{boot_img}", stock_boot_path)
+                    res = device.su_cp_on_device(f"{self.config.phone_path}/{boot_img}", stock_boot_path)
                     if res != 0:
                         print("Aborting Backup ...\n")
                     else:
@@ -2449,8 +2842,11 @@ Unless you know what you're doing, it is recommended that you take the default s
         con.execute("PRAGMA foreign_keys = ON")
         con.commit()
         cursor = con.cursor()
+        is_init_boot = 1 if boot.is_init_boot else 0
+        if patch_flavor in ['KernelSU', 'APatch']:
+            is_init_boot = 0
         sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
-        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False, False, boot.is_init_boot, boot_sha1_long)
+        data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False, False, is_init_boot, boot_sha1_long)
         debug(f"Creating BOOT record, boot_hash: {checksum}")
         try:
             cursor.execute(sql, data)
@@ -2688,7 +3084,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 if self.config.fastboot_verbose:
                     fastboot_options += '--verbose '
             fastboot_options += 'flash '
-        if (device.hardware in KNOWN_INIT_BOOT_DEVICES) and boot.patch_method != 'kernelsu':
+        if (device.hardware in KNOWN_INIT_BOOT_DEVICES) and boot.patch_method not in ['kernelsu', 'apatch']:
             theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} init_boot \"{boot.boot_path}\""
         else:
             theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot \"{boot.boot_path}\""
@@ -3503,12 +3899,14 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     # flash the patch
                     flash = "flash"
 
-                if (boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES) and boot.patch_method != 'kernelsu':
+                if (boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES) and boot.patch_method not in ['kernelsu', 'apatch']:
                     print("Flashing patched init_boot ...")
                     theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
+                    is_init_boot = True
                 else:
                     print("Flashing patched boot ...")
                     theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} boot \"{boot.boot_path}\"\n"
+                    is_init_boot = False
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res.returncode != 0:

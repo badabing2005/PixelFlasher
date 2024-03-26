@@ -1825,6 +1825,7 @@ def create_support_zip():
     try:
         print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
         config_path = get_config_path()
+        sys_config_path = get_sys_config_path()
         tmp_dir_full = os.path.join(config_path, 'tmp')
         support_dir_full = os.path.join(config_path, 'support')
         support_zip = os.path.join(tmp_dir_full, 'support.zip')
@@ -1842,7 +1843,7 @@ def create_support_zip():
             os.makedirs(support_dir_full, exist_ok=True)
 
         # copy the default PixelFlasher.json to tmp\support folder
-        to_copy = os.path.join(config_path, 'PixelFlasher.json')
+        to_copy = os.path.join(sys_config_path, 'PixelFlasher.json')
         if os.path.exists(to_copy):
             debug(f"Copying {to_copy} to {support_dir_full}")
             shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
@@ -1856,10 +1857,10 @@ def create_support_zip():
                 filename = "PixelFlasher_Custom.json"
             custom_config_file = os.path.join(folder, filename)
             debug(f"Copying {custom_config_file} to {support_dir_full}")
-            shutil.copy(custom_config_file, support_dir_full, follow_symlinks=True)
+            shutil.copy(current_config, os.path.join(support_dir_full, filename), follow_symlinks=True)
 
         # copy PixelFlasher.db to tmp\support folder
-        to_copy = os.path.join(config_path, get_pf_db())
+        to_copy = os.path.join(sys_config_path, get_pf_db())
         if os.path.exists(to_copy):
             debug(f"Copying {to_copy} to {support_dir_full}")
             shutil.copy(to_copy, support_dir_full, follow_symlinks=True)
@@ -1940,6 +1941,8 @@ def sanitize_file(filename):
         data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(device\s+\')(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(superkey:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(./boot_patch.sh\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(Flashing device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(waiting for\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
@@ -3149,99 +3152,145 @@ def get_pif_from_image(image_file):
 #                               Function patch_binary_file
 # ============================================================================
 def patch_binary_file(file_path, hex_offset, text, output_file_path=None):
-    with open(file_path, 'rb') as f:
-        data = f.read()
-    # convert to decimal
-    offset = int(hex_offset, 16)
-    # Patch the data
-    data = data[:offset] + text.encode() + data[offset + len(text):]
+    try:
+        with open(file_path, 'rb') as f:
+            data = f.read()
+        # convert to decimal
+        offset = int(hex_offset, 16)
+        # Patch the data
+        data = data[:offset] + text.encode() + data[offset + len(text):]
 
-    if output_file_path is None:
-        output_file_path = file_path
+        if output_file_path is None:
+            output_file_path = file_path
 
-    with open(output_file_path, 'wb') as f:
-        f.write(data)
+        with open(output_file_path, 'wb') as f:
+            f.write(data)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in patch_binary_file function")
+        traceback.print_exc()
 
 
 # ============================================================================
-#                               Function download_gh_latest_release_asset
+#                 Function download_ksu_latest_release_asset
 # ============================================================================
-def download_gh_latest_release_asset(user, repo, asset_name=None, anykernel=True):
-    url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
-    response = request_with_fallback(method='GET', url=url)
-    assets = response.json().get('assets', [])
+def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True):
+    try:
+        if not asset_name:
+            url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+            response = request_with_fallback(method='GET', url=url)
+            return response.json().get('assets', [])
 
-    if not asset_name:
-        return assets
+        # Split the asset_name into parts
+        parts = asset_name.split('-')
+        base_name = parts[0]
+        version_parts = parts[1].split('.')
+        fixed_version = '.'.join(version_parts[:-1])
 
-    # Split the asset_name into parts
-    parts = asset_name.split('-')
-    base_name = parts[0]
-    base_name = f"{base_name}"
-    version_parts = parts[1].split('.')
-    fixed_version = '.'.join(version_parts[:-1])
-    variable_version = int(version_parts[-1])
+        # Prepare the regular expression pattern
+        if anykernel:
+            pattern = f"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\\.zip$"
+        else:
+            pattern = f"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\\.img\\.gz$"
 
-    # Prepare the regular expression pattern
-    if anykernel:
-        pattern = re.compile(f"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\\.zip$")
-    else:
-        pattern = re.compile(f"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\\.img\\.gz$")
+        return download_gh_latest_release_asset_regex(user, repo, pattern)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_ksu_latest_release_asset function")
+        traceback.print_exc()
 
-    # Find the best match
-    best_match = None
-    best_version = -1
-    for asset in assets:
-        match = pattern.match(asset['name'])
-        if match:
-            asset_version = int(match[1])
-            if asset_version <= variable_version and asset_version > best_version:
+
+# ============================================================================
+#                 Function download_gh_latest_release_asset_regex
+# ============================================================================
+def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern, just_url_info=False):
+    try:
+        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        response = request_with_fallback(method='GET', url=url)
+        assets = response.json().get('assets', [])
+
+        # Prepare the regular expression pattern
+        pattern = re.compile(asset_name_pattern)
+
+        # Find the best match
+        best_match = None
+        for asset in assets:
+            match = pattern.match(asset['name'])
+            if match:
                 best_match = asset
-                best_version = asset_version
-                if asset_version == variable_version:
-                    break
-    if best_match:
-        print(f"Found best match KernelSU: {best_match['name']}")
-        download_file(best_match['browser_download_url'])
-        print(f"Downloaded {best_match['name']}")
-        return best_match['name']
-    else:
-        print(f"Asset {asset_name} not found in the latest release of {user}/{repo}")
+                break
+
+        if best_match:
+            print(f"Found match: {best_match['name']}")
+            if just_url_info:
+                return best_match['browser_download_url']
+            download_file(best_match['browser_download_url'])
+            print(f"Downloaded {best_match['name']}")
+            return best_match['name']
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_gh_latest_release_asset_regex function")
+        traceback.print_exc()
 
 
 # ============================================================================
-#                               Function get_gh_latest_release_version
+#                   Function get_gh_latest_release_notes
+# ============================================================================
+def get_gh_latest_release_notes(owner, repo):
+    try:
+        url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+        response = requests.get(url)
+        data = response.json()
+
+        if 'body' in data:
+            return data['body']
+        else:
+            return "# No release notes found for the latest release."
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_notes function")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                   Function get_gh_latest_release_version
 # ============================================================================
 def get_gh_latest_release_version(user, repo):
-    # Get the latest release
-    url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
-    response = request_with_fallback(method='GET', url=url)
-    return response.json().get('tag_name', '')
+    try:
+        # Get the latest release
+        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        response = request_with_fallback(method='GET', url=url)
+        return response.json().get('tag_name', '')
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_version function")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function extract_magiskboot
 # ============================================================================
 def extract_magiskboot(apk_path, architecture, output_path):
-    path_to_7z = get_path_to_7z()
-    file_path_in_apk = f"lib/{architecture}/libmagiskboot.so"
-    output_file_path = os.path.join(output_path, "magiskboot")
+    try:
+        path_to_7z = get_path_to_7z()
+        file_path_in_apk = f"lib/{architecture}/libmagiskboot.so"
+        output_file_path = os.path.join(output_path, "magiskboot")
 
-    cmd = f"{path_to_7z} e {apk_path} -o{output_path} -r {file_path_in_apk} -y"
-    debug(cmd)
-    res = run_shell2(cmd)
-    if res.returncode != 0:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
-        print(f"Return Code: {res.returncode}.")
-        print(f"Stdout: {res.stdout}.")
-        print(f"Stderr: {res.stderr}.")
-        puml("#red:ERROR: Could not extract image;\n")
-        print("Aborting ...\n")
-        return
+        cmd = f"{path_to_7z} e {apk_path} -o{output_path} -r {file_path_in_apk} -y"
+        debug(cmd)
+        res = run_shell2(cmd)
+        if res.returncode != 0:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
+            print(f"Return Code: {res.returncode}.")
+            print(f"Stdout: {res.stdout}.")
+            print(f"Stderr: {res.stderr}.")
+            puml("#red:ERROR: Could not extract image;\n")
+            print("Aborting ...\n")
+            return
 
-    if os.path.exists(output_file_path):
-        os.remove(output_file_path)
-    os.rename(os.path.join(output_path, "libmagiskboot.so"), output_file_path)
+        if os.path.exists(output_file_path):
+            os.remove(output_file_path)
+        os.rename(os.path.join(output_path, "libmagiskboot.so"), output_file_path)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_magiskboot function")
+        traceback.print_exc()
 
 
 # ============================================================================

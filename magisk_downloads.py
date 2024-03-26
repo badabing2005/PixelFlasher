@@ -39,7 +39,7 @@ class MagiskDownloads(wx.Dialog):
         style = kwargs.get('style', wx.DEFAULT_DIALOG_STYLE) | wx.RESIZE_BORDER
         kwargs['style'] = style
         wx.Dialog.__init__(self, *args, **kwargs)
-        self.SetTitle("Download and Install Magisk")
+        self.SetTitle("Download and Install Rooting Application")
         self.url =  None
         self.channel = None
         self.version = None
@@ -54,7 +54,7 @@ class MagiskDownloads(wx.Dialog):
 
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
-        self.message_label.Label = "Select Magisk version to install."
+        self.message_label.Label = "Select rooting app to install."
         if sys.platform == "win32":
             self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
 
@@ -78,7 +78,7 @@ class MagiskDownloads(wx.Dialog):
         apks = device.magisk_apks
 
         max_url_column_width = 600
-        self.list.InsertColumn(0, 'Channel', width = -1)
+        self.list.InsertColumn(0, 'Root App', width = -1)
         self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
         self.list.InsertColumn(2, 'VersionCode', wx.LIST_FORMAT_LEFT,  -1)
         self.list.InsertColumn(3, 'URL', wx.LIST_FORMAT_LEFT, -1)
@@ -209,7 +209,7 @@ class MagiskDownloads(wx.Dialog):
         menu = wx.Menu()
         menu.Append(self.popupCopyURL, "Copy URL to Clipboard")
         menu.Append(self.popupCopyPackageId, "Copy Package ID to Clipboard")
-        menu.Append(self.popupDownloadMagisk, "Download Selected Magisk")
+        menu.Append(self.popupDownloadMagisk, "Download Selected Rooting App")
 
         # Popup the menu.  If an item is selected then its handler
         # will be called before PopupMenu returns.
@@ -237,7 +237,8 @@ class MagiskDownloads(wx.Dialog):
         url = self.list.GetItem(self.currentItem, 3).Text
         version = self.list.GetItem(self.currentItem, 1).Text
         versionCode = self.list.GetItem(self.currentItem, 2).Text
-        filename = f"magisk_{version}_{versionCode}.apk"
+        app = self.channel.replace(' ', '_')
+        filename = f"{app}_{version}_{versionCode}.apk"
         dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
             destination_path = dialog.GetPath()
@@ -301,7 +302,8 @@ class MagiskDownloads(wx.Dialog):
     def _onOk(self, e):
         proceed = True
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
-        filename = f"magisk_{self.version}_{self.versionCode}.apk"
+        app = self.channel.replace(' ', '_')
+        filename = f"{app}_{self.version}_{self.versionCode}.apk"
         device = get_phone()
         if 'Namelesswonder' in self.url and not device.has_init_boot:
             print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
@@ -332,14 +334,15 @@ class MagiskDownloads(wx.Dialog):
                 proceed = False
         if proceed:
             self._on_spin('start')
-            print(f"Downloading Magisk: {self.channel} version: {self.version} versionCode: {self.versionCode} ...")
+            print(f"Downloading {app}: {self.channel} version: {self.version} versionCode: {self.versionCode} ...")
             download_file(self.url, filename)
             config_path = get_config_path()
             app = os.path.join(config_path, 'tmp', filename)
             device.install_apk(app, fastboot_included = True)
             # Fresh install of Magisk, reset the package name to default value
-            set_magisk_package(self.package)
-            self.Parent.config.magisk = self.package
+            if self.package in [MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME]:
+                set_magisk_package(self.package)
+                self.Parent.config.magisk = self.package
             print('')
             self._on_spin('stop')
             self.EndModal(wx.ID_OK)

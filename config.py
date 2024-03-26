@@ -19,7 +19,7 @@ class Config():
         self.platform_tools_path = None
         self.device = None
         self.phone_path = '/storage/emulated/0/Download'
-        self.magisk = 'com.topjohnwu.magisk'
+        self.magisk = MAGISK_PKG_NAME
         self.width = MAIN_WIDTH
         self.height = MAIN_HEIGHT
         self.magisk_width = MAGISK_WIDTH

@@ -112,6 +112,10 @@ class MagiskModules(wx.Dialog):
         self.pif_install_button = wx.Button(self, wx.ID_ANY, u"Install Pif Module", wx.DefaultPosition, wx.DefaultSize, 0)
         self.pif_install_button.SetToolTip(u"Install Play Integrity Fix module.")
 
+        # ZygiskNext Installbutton
+        self.zygisk_next_install_button = wx.Button(self, wx.ID_ANY, u"Install ZygiskNext Module", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.zygisk_next_install_button.SetToolTip(u"Install ZygiskNext module.")
+
         # Systemless hosts button
         self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, u"Systemless Hosts", wx.DefaultPosition, wx.DefaultSize, 0)
         self.systemless_hosts_button.SetToolTip(u"Add Systemless Hosts Module.")
@@ -139,11 +143,12 @@ class MagiskModules(wx.Dialog):
         self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Make the buttons the same size
-        button_width = self.systemless_hosts_button.GetSize()[0] + 10
+        button_width = self.zygisk_next_install_button.GetSize()[0] + 10
         self.install_module_button.SetMinSize((button_width, -1))
         self.update_module_button.SetMinSize((button_width, -1))
         self.uninstall_module_button.SetMinSize((button_width, -1))
         self.pif_install_button.SetMinSize((button_width, -1))
+        self.zygisk_next_install_button.SetMinSize((button_width, -1))
         self.systemless_hosts_button.SetMinSize((button_width, -1))
         self.enable_zygisk_button.SetMinSize((button_width, -1))
         self.disable_zygisk_button.SetMinSize((button_width, -1))
@@ -178,6 +183,7 @@ class MagiskModules(wx.Dialog):
         v_buttons_sizer.Add(self.update_module_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.uninstall_module_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.pif_install_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.zygisk_next_install_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.systemless_hosts_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.enable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.disable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
@@ -212,6 +218,7 @@ class MagiskModules(wx.Dialog):
         self.update_module_button.Bind(wx.EVT_BUTTON, self.onUpdateModule)
         self.uninstall_module_button.Bind(wx.EVT_BUTTON, self.onUninstallModule)
         self.pif_install_button.Bind(wx.EVT_BUTTON, self.onInstallPif)
+        self.zygisk_next_install_button.Bind(wx.EVT_BUTTON, self.onInstallZygiskNext)
         self.systemless_hosts_button.Bind(wx.EVT_BUTTON, self.onSystemlessHosts)
         self.enable_zygisk_button.Bind(wx.EVT_BUTTON, self.onEnableZygisk)
         self.disable_zygisk_button.Bind(wx.EVT_BUTTON, self.onDisableZygisk)
@@ -279,7 +286,7 @@ class MagiskModules(wx.Dialog):
                     self.systemless_hosts_button.Enable(False)
 
                 # disable denylist if Magisk is delta
-                if get_magisk_package() == 'io.github.huskydg.magisk':
+                if get_magisk_package() == MAGISK_DELTA_PKG_NAME:
                     self.enable_denylist_button.Enable(False)
                     self.disable_denylist_button.Enable(False)
 
@@ -289,6 +296,7 @@ class MagiskModules(wx.Dialog):
                     self.update_module_button.Enable(False)
                     self.uninstall_module_button.Enable(False)
                     self.pif_install_button.Enable(False)
+                    self.zygisk_next_install_button.Enable(False)
                     self.enable_zygisk_button.Enable(False)
                     self.disable_zygisk_button.Enable(False)
                     self.systemless_hosts_button.Enable(False)
@@ -479,11 +487,31 @@ class MagiskModules(wx.Dialog):
             url = check_module_update(update_url)
             self._on_spin('start')
             downloaded_file_path = download_file(url.zipUrl)
-            print(f"Installing Play Integrity Fix module URL: {downloaded_file_path} ...")
+            print(f"Installing Play Integrity Fix module. URL: {downloaded_file_path} ...")
             device.install_magisk_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  onInstallZygiskNext
+    # -----------------------------------------------
+    def onInstallZygiskNext(self, e):
+        try:
+            device = get_phone()
+            if not device.rooted:
+                return
+            update_url = ZYGISK_NEXT_UPDATE_URL
+            url = check_module_update(update_url)
+            self._on_spin('start')
+            downloaded_file_path = download_file(url.zipUrl)
+            print(f"Installing ZygiskNext module. URL: {downloaded_file_path} ...")
+            device.install_magisk_module(downloaded_file_path)
+            self.refresh_modules()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during ZygiskNext module installation.")
             traceback.print_exc()
         self._on_spin('stop')
 

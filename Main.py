@@ -43,7 +43,7 @@ from message_box_ex import MessageBoxEx
 from modules import (adb_kill_server, auto_resize_boot_list,
     check_platform_tools, flash_phone, live_flash_boot_phone,
     patch_boot_img, populate_boot_list, process_file,
-    select_firmware, set_flash_button_state, patch_with_apatch)
+    select_firmware, set_flash_button_state)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
 from phone import get_connected_devices
@@ -67,7 +67,7 @@ class RedirectText():
     def __init__(self,aWxTextCtrl):
         self.out=aWxTextCtrl
         logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
-        self.logfile = open(logfile, "w", buffering=1, encoding="ISO-8859-1", errors="replace")
+        self.logfile = open(logfile, "w", buffering=1, encoding="utf-8", errors="replace")
         set_logfile(logfile)
 
     def write(self, string):
@@ -936,7 +936,7 @@ class PixelFlasher(wx.Frame):
 
             # Download and Install Magisk Manager
             if self.config.toolbar['visible']['install_magisk']:
-                tb.AddTool(toolId=210, label="Install Magisk", bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Download and Install Magisk Manager", longHelp="Download and Install Magisk Manager", clientData=None)
+                tb.AddTool(toolId=210, label="Install Root App", bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Download / Install rooting app like Magisk or KernelSU or APatch", longHelp="Download / Install rooting app like Magisk or KernelSU or APatch", clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=210)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=210)
 
@@ -1275,7 +1275,7 @@ class PixelFlasher(wx.Frame):
         self.magisk_menu.SetBitmap(images.magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk, self.magisk_menu)
         # Install Magisk
-        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, "Install Magisk", "Download and Install Magisk")
+        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, "Install Root App", "Download / Install rooting app like Magisk or KernelSU or APatch")
         self.install_magisk_menu.SetBitmap(images.install_magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk_install, self.install_magisk_menu)
         # Magisk Backup Manager
@@ -1364,7 +1364,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Append(150, "Reboot Download", "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
         tb_buttons_menu.Append(160, "Reboot Sideload", "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
         tb_buttons_menu.Append(200, "Magisk", "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
-        tb_buttons_menu.Append(210, "Install Magisk", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
+        tb_buttons_menu.Append(210, "Install Root App", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
         tb_buttons_menu.Append(220, "Magisk Backup Manager", "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
         tb_buttons_menu.Append(225, "Pif Manager", "", wx.ITEM_CHECK).SetBitmap(images.pif_24.GetBitmap())
         tb_buttons_menu.Append(230, "SOS", "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
@@ -2137,7 +2137,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             m_app_version = device.magisk_app_version
             message += f"    Magisk Manager Version:          {m_app_version}\n"
             if m_app_version:
-                message += f"    Magisk Path:                     {device.magisk_path}\n"
+                # message += f"    Magisk Path:                     {device.magisk_path}\n"
                 message += f"        Checked for Package:         {self.config.magisk}\n"
         elif device.mode == 'f.b':
             message += f"    Device Unlocked:                 {device.unlocked}\n"
@@ -2481,6 +2481,12 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     return False
                 return True
 
+            elif condition == 'boot_is_init_boot':
+                boot = get_boot()
+                if boot and boot.is_init_boot == 1:
+                    return True
+                return False
+
             elif condition == 'custom_image_selected':
                 image_path = get_image_path()
                 if image_path:
@@ -2577,7 +2583,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.patch_button:                      ['device_attached', 'device_mode_adb'],
                 self.patch_magisk_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 self.patch_kernelsu_button:             ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
-                # self.patch_apatch_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
+                self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'boot_is_init_boot'],
+                self.patch_apatch_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
                 'mode_radio_button.keepData':           ['firmware_selected', 'firmware_is_not_ota'],
@@ -4038,7 +4045,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             patch_boot_img(self, 'Magisk')
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching boot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while patching with Magisk")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -4053,7 +4060,37 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self._on_spin('start')
             patch_boot_img(self, 'KernelSU')
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching boot")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with KernelSU")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_kernelsu_lkm_patch_boot
+    # -----------------------------------------------
+    def _on_kernelsu_lkm_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated KernelSU LKM Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'KernelSU_LKM')
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching KernselSU LKM")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_kernelsu_lkm_patch_boot
+    # -----------------------------------------------
+    def _on_apatch_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated APatch Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'APatch')
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with APatch")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -4343,7 +4380,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.patch_button.SetToolTip(u"Patch the selected item")
         self.patch_magisk_button = self.patch_button.AddFunction("Patch with Magisk", lambda: self._on_magisk_patch_boot(None), images.magisk_24.GetBitmap())
         self.patch_kernelsu_button = self.patch_button.AddFunction("Patch with KernelSU", lambda: self._on_kernelsu_patch_boot(None), images.kernelsu_24.GetBitmap())
-        self.patch_apatch_button = self.patch_button.AddFunction("Patch with APtach", lambda: patch_with_apatch(self), images.apatch_24.GetBitmap(), False)
+        self.patch_kernelsu_lkm_button = self.patch_button.AddFunction("Patch with KernelSU LKM", lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
+        self.patch_apatch_button = self.patch_button.AddFunction("Patch with APatch", lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
         self.patch_custom_boot_button = self.patch_button.AddFunction("Patch with custom Magisk", lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
         #
         self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=u"Delete", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)

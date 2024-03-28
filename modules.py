@@ -2025,10 +2025,11 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 data += "chmod 755 *\n"
                 data += "PATCHING_APATCH_VERSION=$(/data/local/tmp/pf/assets/apd -V)\n"
                 data += "echo \"PATCHING_APATCH_VERSION: $PATCHING_APATCH_VERSION\"\n"
-                data += "echo \"Extracting ramdisk from init_boot ...\"\n"
-                data += f"cp {self.config.phone_path}/{init_boot_img} ./init_boot.img\n"
-                # unpack ramdisk.cpio from init_boot.img first and place it in the assets folder
-                data += "./magiskboot unpack init_boot.img\n"
+                if init_boot_path is not None:
+                    # unpack ramdisk.cpio from init_boot.img first and place it in the assets folder
+                    data += "echo \"Extracting ramdisk from init_boot ...\"\n"
+                    data += f"cp {self.config.phone_path}/{init_boot_img} ./init_boot.img\n"
+                    data += "./magiskboot unpack init_boot.img\n"
 
             data += "echo \"Creating a patch ...\"\n"
             data += f"./boot_patch.sh {superkey} {self.config.phone_path}/{boot_img} -K kpatch\n"
@@ -2320,7 +2321,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         puml("#red:Failed to transfer the boot file to the phone;\n")
         print("Aborting ...\n}\n")
         return
-    if patch_flavor == 'APatch':
+    if patch_flavor == 'APatch' and init_boot_path is not None:
         # transfer init_boot.img to the phone as the RAMDISK is in the init_boot.img and is needed for patching
         res = device.push_file(f"{init_boot_path}", f"{self.config.phone_path}/{init_boot_img}")
         if res != 0:

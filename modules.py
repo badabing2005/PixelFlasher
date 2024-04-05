@@ -481,12 +481,12 @@ def select_firmware(self):
                 if firmware_hash and firmware_hash[:8] in firmware:
                     print(f"Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
                     puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
-                    self.toast("Firmware SHA256 Match", f"SHA256 of {filename}.{extension} matches the segment in the filename.")
+                    self.toast("Firmware SHA256 Match", f"SHA256 of {filename}{extension} matches the segment in the filename.")
                     set_firmware_hash_validity(True)
                 else:
-                    print(f"WARNING: Expected to match {firmware_hash[:8]} in the {filename}.{extension} but didn't, please double check to make sure the checksum is good.")
+                    print(f"WARNING: Expected to match {firmware_hash[:8]} in the {filename}{extension} but didn't, please double check to make sure the checksum is good.")
                     puml("#orange:Unable to match the checksum in the filename;\n")
-                    self.toast("Firmware SHA256 Mismatch", f"WARNING! SHA256 of {filename}.{extension} does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                    self.toast("Firmware SHA256 Mismatch", f"WARNING! SHA256 of {filename}{extension} does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
                     set_firmware_hash_validity(False)
 
             firmware = filename.split("-")
@@ -1076,6 +1076,40 @@ def process_flash_all_file(filepath):
         puml("#red:Encountered an error while processing flash_all file;\n")
         traceback.print_exc()
 
+# ============================================================================
+#                               Function setup_for_downgrade (TODO)
+# ============================================================================
+def setup_for_downgrade(self, target_boot_file_path):
+    # TODO
+    #
+    # Show warnings and disclaimer
+    # Check if the device is rooted
+    # current_stock_boot_path = ''
+    # if the device is rooted extract the boot.img from device
+    #     If stock boot is present, extract it (probably from Magisk backup or from PixelFlasher)
+    #         current_stock_boot_path = <path to extracted boot.img>
+    # if current_stock_boot_path = ''
+    #     prompt the user to provide the stock boot.img  of the current firmware (with enough warnings)
+    #
+    # current_boot_info = avbtool_get_info(current_stock_boot_path) # returns an object with all the details
+    # target_boot_info = avbtool_get_info(target_boot_file_path) # returns an object with all the details
+    # Compare the two boot image info objects and do validations to make sure the target is a downgrade and the current matches current OS version
+    # if all validations pass, proceed
+    # else show errors and abort
+    #
+    # copy the current boot.img to a temp folder
+    # patch the current boot.img with the target boot.img patch_level
+    # if successful, proceed to flash the patched boot.img
+    # if not successful, show errors and abort
+    return
+
+# ============================================================================
+#                               Function avbtool_get_info (TODO)
+# ============================================================================
+def avbtool_get_info(self, boot_file_path):
+    # perform avbtool info on the boot_file_path
+    # convert to object and return object
+    return
 
 # ============================================================================
 #                               Function drive_magisk (TODO)
@@ -1879,7 +1913,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"PATCH_FILENAME={patch_name}_${{KSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
-            data += f"cp kernelsu_boot_* {self.config.phone_path}/${{PATCH_FILENAME}}\n"
+            data += f"if [ -f kernelsu_boot_* ]; then cp kernelsu_boot_* {self.config.phone_path}/${{PATCH_FILENAME}}; elif [ -f kernelsu_patched_* ]; then cp kernelsu_patched_* {self.config.phone_path}/${{PATCH_FILENAME}}; fi\n"
 
             data += f"if [[ -s {self.config.phone_path}/${{PATCH_FILENAME}} ]]; then\n"
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
@@ -2152,7 +2186,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         kmi = device.kmi
         anykernel = False
         pixel_devices = get_android_devices()
-        if kmi == '':
+        if not device.is_kmi:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incompatible Kernel KMI")
             print("Aborting ...\n")
             puml("#red:Incompatible Kernel KMI;\n}\n")
@@ -2359,7 +2393,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
         if not magiskboot_created:
             # Find latest Magisk to download
-            apk = device.get_magisk_apk_details('stable')
+            apk = device.get_magisk_apk_details('Magisk Stable')
             filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
             download_file(apk.link, filename)
             magisk_apk = os.path.join(tmp_path, filename)
@@ -3045,6 +3079,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             mode = "fastboot"
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+            bootloader_issue_message()
 
     done_flashing = False
     if mode == 'fastboot' and get_fastboot():
@@ -3839,6 +3874,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             print("Aborting ...\n")
             puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
             self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
+            bootloader_issue_message()
             return -1
         # Check for bootloader unlocked
         if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device_id):
@@ -4028,6 +4064,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                 print("Aborting ...\n")
                 puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
                 self.toast("Flash action", "Encountered an error while rebooting to bootloader.")
+                bootloader_issue_message()
                 refresh_and_done()
                 return -1
             image_mode = get_image_mode()

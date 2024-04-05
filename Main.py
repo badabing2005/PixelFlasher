@@ -318,6 +318,11 @@ class GoogleImagesBaseMenu(wx.Menu):
             download_thread = threading.Thread(target=download_file, args=(url, destination_path), kwargs={"callback": lambda: download_completed(destination_path)})
             download_thread.start()
 
+    def on_refresh_google_images(self, event):
+        self.parent.config.google_images_last_checked = False
+        # Refresh the Google Images menu
+        self.parent.update_google_images_menu()
+
 # ============================================================================
 #                               Class GoogleImagesMenu
 # ============================================================================
@@ -402,6 +407,9 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
             phone_menu_item.SetBitmap(phone_icon)
             watches_menu_item = self.AppendSubMenu(self.watches_menu, "Watches")
             watches_menu_item.SetBitmap(watch_icon)
+            # self.AppendSeparator()
+            # refresh_images_menu_item = self.Append(wx.ID_ANY, "Refresh images list")
+            # self.Bind(wx.EVT_MENU, self.on_refresh_google_images, refresh_images_menu_item)
 
             if download_available:
                 self.parent.toast("Updates are available", f"There are updates available for your device.\nCheck Google Images menu.")
@@ -686,6 +694,8 @@ class PixelFlasher(wx.Frame):
         self.temporary_root_checkBox.SetValue(self.config.temporary_root)
         self.no_reboot_checkBox.SetValue(self.config.no_reboot)
         self.wipe_checkBox.SetValue(self.wipe)
+        self.no_wipe_downgrade_checkbox.SetValue(False)
+        self.no_wipe_downgrade_checkbox.Enable(False)
 
         # get the image choice and update UI
         set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
@@ -1172,10 +1182,11 @@ class PixelFlasher(wx.Frame):
         # seperator
         file_menu.AppendSeparator()
         # Exit Menu
-        wx.App.SetMacExitMenuItemId(wx.ID_EXIT)
         exit_item = file_menu.Append(wx.ID_ANY, "E&xit\tCtrl-Q", "Exit PixelFlasher")
         exit_item.SetBitmap(images.exit_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_exit_app, exit_item)
+        # Set the ID of the "Exit" menu item on macOS
+        wx.App.SetMacExitMenuItemId(exit_item.GetId())
 
         # Device Menu Items
         # ----------------
@@ -1996,6 +2007,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self.fastboot_verbose_checkBox.Hide()
             self.temporary_root_checkBox.Hide()
             self.wipe_checkBox.Hide()
+            self.no_wipe_downgrade_checkbox.Hide()
             # ROM options
             self.custom_rom_checkbox.Hide()
             self.custom_rom.Hide()
@@ -2028,6 +2040,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             self.fastboot_verbose_checkBox.Show()
             self.temporary_root_checkBox.Show()
             self.wipe_checkBox.Show()
+            self.no_wipe_downgrade_checkbox.Show()
             # ROM options
             self.custom_rom_checkbox.Show()
             self.custom_rom.Show()
@@ -2516,9 +2529,20 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     return True
                 return False
 
+            elif condition == 'is_gki':
+                device = get_phone()
+                if device and device.is_gki:
+                    return True
+                return False
+
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown condition: {condition}")
+                return False
+
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while evaluating a rule")
             traceback.print_exc()
+            return False
 
     #-----------------------------------------------------------------------------
     #                                   update_widget_states
@@ -2579,11 +2603,12 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.flash_to_inactive_slot_checkBox:   ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.wipe_checkBox:                     ['device_attached', 'custom_flash'],
+                # self.no_wipe_downgrade_checkbox:        ['device_attached'],
                 self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
                 self.patch_button:                      ['device_attached', 'device_mode_adb'],
                 self.patch_magisk_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
-                self.patch_kernelsu_button:             ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
-                self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'boot_is_init_boot'],
+                self.patch_kernelsu_button:             ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_apatch_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
@@ -2864,6 +2889,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.mode_radio_button = event.GetEventObject()
         self.wipe = False
         self.wipe_checkBox.SetValue(False)
+        self.no_wipe_downgrade_checkbox.SetValue(False)
         if self.mode_radio_button.GetValue():
             self.config.flash_mode = self.mode_radio_button.mode
             print(f"Flash mode changed to: {self.config.flash_mode}")
@@ -3003,6 +3029,17 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         print(f"Flash Option: Wipe {status}")
         puml(":Flash Option change;\n", True)
         puml(f"note right:Wipe {status}\n")
+        self.wipe = status
+
+    # -----------------------------------------------
+    #                  _on_no_wipe_downgrade
+    # -----------------------------------------------
+    def _on_no_wipe_downgrade(self, event):
+        self._on_no_wipe_downgrade_checkbox = event.GetEventObject()
+        status = self._on_no_wipe_downgrade_checkbox.GetValue()
+        print(f"Flash Option: No Wipe Downgrade {status}")
+        puml(":Flash Option change;\n", True)
+        puml(f"note right:No Wipe Downgrade{status}\n")
         self.wipe = status
 
     # -----------------------------------------------
@@ -3177,6 +3214,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     res = device.reboot_bootloader(fastboot_included = True)
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                        bootloader_issue_message()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
             traceback.print_exc()
@@ -3968,6 +4006,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("==============================================================================")
             self._on_spin('start')
             live_flash_boot_phone(self, 'Live')
+            self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while live booting")
             traceback.print_exc()
@@ -3983,6 +4022,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("==============================================================================")
             self._on_spin('start')
             live_flash_boot_phone(self, 'Flash')
+            self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing boot")
             traceback.print_exc()
@@ -4044,6 +4084,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("==============================================================================")
             self._on_spin('start')
             patch_boot_img(self, 'Magisk')
+            self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while patching with Magisk")
             traceback.print_exc()
@@ -4059,6 +4100,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("==============================================================================")
             self._on_spin('start')
             patch_boot_img(self, 'KernelSU')
+            self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with KernelSU")
             traceback.print_exc()
@@ -4074,13 +4116,14 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("==============================================================================")
             self._on_spin('start')
             patch_boot_img(self, 'KernelSU_LKM')
+            self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching KernselSU LKM")
             traceback.print_exc()
         self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  _on_kernelsu_lkm_patch_boot
+    #                  _on_apatch_patch_boot
     # -----------------------------------------------
     def _on_apatch_patch_boot(self, event):
         try:
@@ -4089,6 +4132,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("==============================================================================")
             self._on_spin('start')
             patch_boot_img(self, 'APatch')
+            self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with APatch")
             traceback.print_exc()
@@ -4104,6 +4148,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print("==============================================================================")
             self._on_spin('start')
             patch_boot_img(self, 'Custom')
+            self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching custom boot")
             traceback.print_exc()
@@ -4464,6 +4509,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
         self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Wipe", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.wipe_checkBox.SetToolTip(u"This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.")
+        self.no_wipe_downgrade_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"No Wipe Downgrade", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.no_wipe_downgrade_checkbox.SetToolTip(u"WARNING!!! This is a highly experimental feature.\nThis will attempt to downgrade the device without needing a data wipe.\n")
         self.advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -4474,6 +4521,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.advanced_options_sizer.Add(window=self.temporary_root_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         self.advanced_options_sizer.Add(window=self.no_reboot_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         self.advanced_options_sizer.Add(window=self.wipe_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.no_wipe_downgrade_checkbox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
 
         # 11th row widgets, Flash button
         self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Pixel Phone", pos=wx.DefaultPosition, size=wx.Size(-1, 50))
@@ -4564,6 +4612,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.flash_to_inactive_slot_checkBox.Bind(wx.EVT_CHECKBOX, self._on_flash_to_inactive_slot)
         self.no_reboot_checkBox.Bind(wx.EVT_CHECKBOX, self._on_no_reboot)
         self.wipe_checkBox.Bind(wx.EVT_CHECKBOX, self._on_wipe)
+        self.no_wipe_downgrade_checkbox.Bind(wx.EVT_CHECKBOX, self._on_no_wipe_downgrade)
         self.disable_verity_checkBox.Bind(wx.EVT_CHECKBOX, self._on_disable_verity)
         self.fastboot_force_checkBox.Bind(wx.EVT_CHECKBOX, self._on_fastboot_force)
         self.fastboot_verbose_checkBox.Bind(wx.EVT_CHECKBOX, self._on_fastboot_verbose)

@@ -2,7 +2,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '6.9.0.2'
+VERSION = '6.9.1.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -31,6 +31,7 @@ BANNED_KERNELS = [
     '-AICP',
     '-arter97',
     '-blu_spark',
+    '-CAF',
     '-cm-',
     '-crDroid',
     '-crdroid',

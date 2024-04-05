@@ -7,6 +7,7 @@ import time
 import traceback
 from datetime import datetime
 from urllib.parse import urlparse
+from packaging.version import parse
 
 from constants import *
 from runtime import *
@@ -541,6 +542,20 @@ class Device():
                 return ''
         except Exception:
             return ''
+
+    # ----------------------------------------------------------------------------
+    #                               property is_gki
+    # ----------------------------------------------------------------------------
+    @property
+    def is_gki(self):
+        try:
+            ro_kernel_version = self.get_prop('ro.kernel.version')
+            if parse(ro_kernel_version) >= parse('5.4'):
+                return True
+            else:
+                return False
+        except Exception:
+            return False
 
     # ----------------------------------------------------------------------------
     #                               property magisk_path
@@ -2246,7 +2261,7 @@ add_hosts_module
         if self._magisk_apks is None:
             try:
                 apks = []
-                mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'Magisk Alpha', 'Magisk Delta Canary', 'Magisk Delta Debug', "KernelSU", 'APatch', "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
+                mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'Magisk Alpha', 'Magisk Delta Canary', 'Magisk Delta Debug', "KernelSU", 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
                 for i in mlist:
                     apk = self.get_magisk_apk_details(i)
                     if apk:
@@ -2372,7 +2387,8 @@ add_hosts_module
             url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/beta.json"
 
         elif channel == 'Magisk zygote64_32 canary':
-            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/canary.json"
+            # url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/canary.json"
+            url = "https://raw.githubusercontent.com/ActiveIce/Magisk_zygote64_32/master/canary.json"
 
         elif channel == 'Magisk zygote64_32 debug':
             url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/debug.json"
@@ -2513,6 +2529,7 @@ This is a special Magisk build\n\n
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
                 puml("#red:ERROR: adb command is not found;\n", True)
+                return False
         return self._rooted
 
     # ----------------------------------------------------------------------------
@@ -3094,6 +3111,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Setting active slot to slot [{slot}] for device: {self.id} ...")
@@ -3117,6 +3135,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    bootloader_issue_message()
                 # self.refresh_phone_mode()
                 update_phones(self.id)
             if mode == 'fastboot' and get_fastboot():
@@ -3152,6 +3171,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Erasing Partition [{partition}] for device: {self.id} ...")
@@ -3175,6 +3195,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 # add a popup warning before continuing.
@@ -3197,6 +3218,7 @@ This is a special Magisk build\n\n
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 print(f"Unlocking bootloader for device: {self.id} ...")

@@ -71,7 +71,7 @@ class MagiskDownloads(wx.Dialog):
         else:
             self.il = wx.ImageList(16, 16)
             self.idx1 = self.il.Add(images.official_16.GetBitmap())
-        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 16), style = wx.LC_REPORT)
+        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 17), style = wx.LC_REPORT)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         device = get_phone()
@@ -164,8 +164,8 @@ class MagiskDownloads(wx.Dialog):
         a = self.list.GetViewRect()
         self.SetSize(vSizer.MinSize.Width + 80, vSizer.MinSize.Height + 420)
 
-        print("\nOpening Magisk Downloader/Installer ...")
-        puml(f":Open Magisk Downloader/Installer;\n", True)
+        print("\nOpening Root App Installer / Downloader ...")
+        puml(f":Open Root App Installer / Downloader;\n", True)
 
 
     # -----------------------------------------------

@@ -12,6 +12,7 @@ import json5
 import math
 import ntpath
 import os
+import platform
 import re
 import shutil
 import signal
@@ -2313,7 +2314,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         with contextlib.suppress(Exception):
             module_flavor = pif_flavor.split('_')[0]
             module_versionCode = int(pif_flavor.split('_')[1])
-        if module_flavor == '':
+        if module_flavor is None or module_flavor == '':
             module_flavor = 'playintegrityfork'
         if module_versionCode == 0:
             module_versionCode = 9999999
@@ -3168,6 +3169,16 @@ def patch_binary_file(file_path, hex_offset, text, output_file_path=None):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in patch_binary_file function")
         traceback.print_exc()
+
+
+# ============================================================================
+#                 Function bootloader_issue_message
+# ============================================================================
+def bootloader_issue_message():
+    print("ℹ️ This issue is most likely related to communication between your device and your computer.")
+    print("Please ensure that you have installed the latest Google USB Drivers in both adb and bootloader (fastboot) modes.")
+    print("If the problem persists, try using a different USB cable or port.")
+    print("USB 2.0 ports are reportedly more stable than USB 3.0 ports.\n")
 
 
 # ============================================================================

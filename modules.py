@@ -1908,7 +1908,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "echo -------------------------\n"
             data += "echo \"Creating a patch ...\"\n"
             data += "rm -f kernelsu_boot_*\n"
-            data += f" ./ksud boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot\n"
+            if self.config.override_kmi:
+                kmi_override = f" --kmi {self.config.override_kmi}"
+                data += "echo \"Overriding KMI ...\"\n"
+            data += f" ./ksud boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot {kmi_override}\n"
             data += "PATCH_SHA1=$(./magiskboot sha1 kernelsu_boot_* | cut -c-8)\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"PATCH_FILENAME={patch_name}_${{KSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
@@ -2187,7 +2190,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         kmi = device.kmi
         anykernel = False
         pixel_devices = get_android_devices()
-        if not device.is_kmi:
+        if not device.is_gki:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incompatible Kernel KMI")
             print("Aborting ...\n")
             puml("#red:Incompatible Kernel KMI;\n}\n")

@@ -147,6 +147,15 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.delete_bundled_libs.SetDescriptiveText("Example: libreadline.so.8, libgdk*")
         self.delete_bundled_libs.ShowSearchButton(False)
 
+        # Override KMI
+        self.override_kmi_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=u"Override KMI")
+        self.override_kmi_label.SetToolTip(u"This will override the Kernel Module Interface (KMI) to the specified value.\nThis is useful for devices with custom kernels.\nThe value will be passed to KernelSU as the KMI value.")
+        self.override_kmi = wx.SearchCtrl(scrolled_panel, style=wx.TE_LEFT)
+        self.override_kmi.ShowCancelButton(True)
+        self.override_kmi.SetDescriptiveText("Example: 5.15.131-android14")
+        self.override_kmi.ShowSearchButton(False)
+        self.override_kmi.Disable()
+
         # Use Custom Font
         self.use_custom_font_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Use Custom Fontface", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.use_custom_font_checkbox.SetToolTip(u"Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window.")
@@ -214,6 +223,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_firmware_hash_validity_checkbox.SetValue(self.Parent.config.check_for_firmware_hash_validity)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
+        self.override_kmi.SetValue(self.Parent.config.override_kmi)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
         self.use_custom_font_checkbox.SetValue(self.Parent.config.customize_font)
         self.font.SetStringSelection(self.Parent.config.pf_font_face)
@@ -273,6 +283,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
         fgs1.Add(self.delete_bundled_libs_label, 0, wx.EXPAND)
         fgs1.Add(self.delete_bundled_libs, 1, wx.EXPAND)
+
+        fgs1.Add(self.override_kmi_label, 0, wx.EXPAND)
+        fgs1.Add(self.override_kmi, 1, wx.EXPAND)
 
         fgs1.Add(self.use_custom_font_checkbox, 0, wx.EXPAND)
         fgs1.Add(fonts_sizer, 1, wx.EXPAND)
@@ -478,6 +491,13 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if value != self.Parent.config.delete_bundled_libs:
             print(f"Setting Delete bundled libs to: {value}")
             self.Parent.config.delete_bundled_libs = value
+
+        value = self.override_kmi.GetValue()
+        if value is None:
+            value = ''
+        if value != self.Parent.config.override_kmi:
+            print(f"Setting Kernel KMI to: {value}")
+            self.Parent.config.override_kmi = value
 
         font_settings_changed = False
         if self.use_custom_font_checkbox.GetValue() != self.Parent.config.customize_font:

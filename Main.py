@@ -517,238 +517,284 @@ class PixelFlasher(wx.Frame):
     #                  initialize
     # -----------------------------------------------
     def initialize(self):
-        if do_profiling:
-            profiler = cProfile.Profile()
-            profiler.enable()
-        t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
-        print(f"PixelFlasher {VERSION} started on {t}")
-        puml(f"{t};\n")
-        puml(f"#palegreen:PixelFlasher {VERSION} started;\n")
-        start = time.time()
-
-        print(f"Platform: {sys.platform}")
-        puml(f"note left:Platform: {sys.platform}\n")
-        # check timezone
-        timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
-        print(f"System Timezone: {time.tzname} Offset: {timezone_offset / 60 / 60 * -1}")
-        print(f"Configuration Folder Path: {get_config_path()}")
-        print(f"Configuration File Path: {get_config_file_path()}")
-
-        puml(":Loading Configuration;\n")
-        puml(f"note left: {get_config_path()}\n")
-        # load verbose settings
-        if self.config.verbose:
-            self.verbose_checkBox.SetValue(self.config.verbose)
-            set_verbose(self.config.verbose)
-        if self.config.first_run:
-            print("First Run: No previous configuration file is found.")
-        else:
-            print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
-            puml("note right\n")
-            puml(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}\n")
-            puml("end note\n")
-
-        # enable / disable advanced_options
-        if self.config.advanced_options:
-            self._advanced_options_hide(False)
-        else:
-            self._advanced_options_hide(True)
-
-        # check codepage
-        print(f"System Default Encoding: {sys.getdefaultencoding()}")
-        print(f"File System Encoding:    {sys.getfilesystemencoding()}")
-        get_code_page()
-
-        # delete specified libraries from the bundle
-        print(f"Bundle Directory: {get_bundle_dir()}")
-        delete_bundled_library(self.config.delete_bundled_libs)
-
-        # Get Available Memory
-        free_memory, total_memory = get_free_memory()
-        formatted_free_memory = format_memory_size(free_memory)
-        formatted_total_memory = format_memory_size(total_memory)
-        print(f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}")
-
-        # Get available free disk on system drive
-        print(f"Available Free Disk on system drive: {str(get_free_space())} GB")
-        print(f"Available Free Disk on PixelFlasher data drive: {str(get_free_space(get_config_path()))} GB\n")
-
-        # load android_versions into a dict.
         try:
-            file_path = os.path.join(get_bundle_dir(), 'android_versions.json')
-            encoding = detect_encoding(file_path)
-            with open(file_path, 'r', encoding=encoding, errors="replace") as file:
-                android_versions = json.load(file)
-            set_android_versions(android_versions)
-        except Exception as e:
-            print(f"Error: Unable to load {file_path} {e}")
+            if do_profiling:
+                profiler = cProfile.Profile()
+                profiler.enable()
+            t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
+            print(f"PixelFlasher {VERSION} started on {t}")
+            puml(f"{t};\n")
+            puml(f"#palegreen:PixelFlasher {VERSION} started;\n")
+            start = time.time()
 
-        # load android_devices into a dict.
-        try:
-            file_path = os.path.join(get_bundle_dir(), 'android_devices.json')
-            encoding = detect_encoding(file_path)
-            with open(file_path, 'r', encoding=encoding, errors="replace") as file:
-                android_devices = json.load(file)
-            set_android_devices(android_devices)
-        except Exception as e:
-            print(f"Error: Unable to load {file_path} {e}")
+            print(f"Platform: {sys.platform}")
+            puml(f"note left:Platform: {sys.platform}\n")
+            # check timezone
+            timezone_offset = time.timezone if (time.localtime().tm_isdst == 0) else time.altzone
+            print(f"System Timezone: {time.tzname} Offset: {timezone_offset / 60 / 60 * -1}")
+            print(f"Configuration Folder Path: {get_config_path()}")
+            print(f"Configuration File Path: {get_config_file_path()}")
 
-        # clear file_path
-        file_path = None
-
-        # load Magisk Package Name
-        set_magisk_package(self.config.magisk)
-
-        # load the low_mem settings
-        set_low_memory(self.config.low_mem)
-
-        # load Linux Shell
-        set_linux_shell(self.config.linux_shell)
-
-        # load firmware_has_init_boot
-        set_firmware_has_init_boot(self.config.firmware_has_init_boot)
-
-        # load rom_has_init_boot
-        set_rom_has_init_boot(self.config.rom_has_init_boot)
-
-        # extract firmware info
-        if self.config.firmware_path and os.path.exists(self.config.firmware_path):
-            self.firmware_picker.SetPath(self.config.firmware_path)
-            firmware = ntpath.basename(self.config.firmware_path)
-            filename, extension = os.path.splitext(firmware)
-            extension = extension.lower()
-            firmware = filename.split("-")
-            if len(firmware) == 1:
-                set_firmware_model(None)
-                set_firmware_id(filename)
+            puml(":Loading Configuration;\n")
+            puml(f"note left: {get_config_path()}\n")
+            # load verbose settings
+            if self.config.verbose:
+                self.verbose_checkBox.SetValue(self.config.verbose)
+                set_verbose(self.config.verbose)
+            if self.config.first_run:
+                print("First Run: No previous configuration file is found.")
             else:
-                try:
-                    set_firmware_model(firmware[0])
-                    if firmware[1] == 'ota' or firmware[0] == 'crDroidAndroid':
-                        set_firmware_id(f"{firmware[0]}-{firmware[1]}-{firmware[2]}")
-                        self.config.firmware_is_ota = True
+                print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
+                puml("note right\n")
+                puml(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}\n")
+                puml("end note\n")
+
+            # enable / disable advanced_options
+            if self.config.advanced_options:
+                self._advanced_options_hide(False)
+            else:
+                self._advanced_options_hide(True)
+
+            # check codepage
+            print(f"System Default Encoding: {sys.getdefaultencoding()}")
+            print(f"File System Encoding:    {sys.getfilesystemencoding()}")
+            get_code_page()
+
+            # delete specified libraries from the bundle
+            print(f"Bundle Directory: {get_bundle_dir()}")
+            delete_bundled_library(self.config.delete_bundled_libs)
+
+            # Get Available Memory
+            free_memory, total_memory = get_free_memory()
+            formatted_free_memory = format_memory_size(free_memory)
+            formatted_total_memory = format_memory_size(total_memory)
+            print(f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}")
+
+            # Get available free disk on system drive
+            print(f"Available Free Disk on system drive: {str(get_free_space())} GB")
+            print(f"Available Free Disk on PixelFlasher data drive: {str(get_free_space(get_config_path()))} GB\n")
+
+            # load android_versions into a dict.
+            try:
+                file_path = os.path.join(get_bundle_dir(), 'android_versions.json')
+                encoding = detect_encoding(file_path)
+                with open(file_path, 'r', encoding=encoding, errors="replace") as file:
+                    android_versions = json.load(file)
+                set_android_versions(android_versions)
+            except Exception as e:
+                print(f"Error: Unable to load {file_path} {e}")
+
+            # load android_devices into a dict.
+            try:
+                file_path = os.path.join(get_bundle_dir(), 'android_devices.json')
+                encoding = detect_encoding(file_path)
+                with open(file_path, 'r', encoding=encoding, errors="replace") as file:
+                    android_devices = json.load(file)
+                set_android_devices(android_devices)
+            except Exception as e:
+                print(f"Error: Unable to load {file_path} {e}")
+
+            # clear file_path
+            file_path = None
+
+            # load Magisk Package Name
+            set_magisk_package(self.config.magisk)
+
+            # load the low_mem settings
+            set_low_memory(self.config.low_mem)
+
+            # load Linux Shell
+            set_linux_shell(self.config.linux_shell)
+
+            # load firmware_has_init_boot
+            set_firmware_has_init_boot(self.config.firmware_has_init_boot)
+
+            # load rom_has_init_boot
+            set_rom_has_init_boot(self.config.rom_has_init_boot)
+
+            # extract firmware info
+            try:
+                if self.config.firmware_path and os.path.exists(self.config.firmware_path):
+                    self.firmware_picker.SetPath(self.config.firmware_path)
+                    firmware = ntpath.basename(self.config.firmware_path)
+                    filename, extension = os.path.splitext(firmware)
+                    extension = extension.lower()
+                    firmware = filename.split("-")
+                    if len(firmware) == 1:
+                        set_firmware_model(None)
+                        set_firmware_id(filename)
                     else:
-                        set_firmware_id(f"{firmware[0]}-{firmware[1]}")
+                        try:
+                            set_firmware_model(firmware[0])
+                            if firmware[1] == 'ota' or firmware[0] == 'crDroidAndroid':
+                                set_firmware_id(f"{firmware[0]}-{firmware[1]}-{firmware[2]}")
+                                self.config.firmware_is_ota = True
+                            else:
+                                set_firmware_id(f"{firmware[0]}-{firmware[1]}")
+                        except Exception as e:
+                            set_firmware_model(None)
+                            set_firmware_id(filename)
+                    set_ota(self, self.config.firmware_is_ota)
+                    if self.config.check_for_firmware_hash_validity:
+                        if self.config.firmware_sha256:
+                            print("Using previously stored firmware SHA-256 ...")
+                            firmware_hash = self.config.firmware_sha256
+                        else:
+                            print("Computing firmware SHA-256 ...")
+                            firmware_hash = sha256(self.config.firmware_path)
+                            self.config.firmware_sha256 = firmware_hash
+                        print(f"Firmware SHA-256: {firmware_hash}")
+                        self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
+                        # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
+                        if firmware_hash[:8] in self.config.firmware_path:
+                            print(f"Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
+                            puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
+                            # self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
+                            set_firmware_hash_validity(True)
+                        else:
+                            print(f"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
+                            puml("#orange:Unable to match the checksum in the filename;\n")
+                            self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                            set_firmware_hash_validity(False)
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while extracting firmware info during initialization.")
+                traceback.print_exc()
+
+            # check platform tools
+            try:
+                res_sdk = check_platform_tools(self)
+                if res_sdk != -1:
+                    # load platform tools value
+                    if self.config.platform_tools_path and get_adb() and get_fastboot():
+                        self.platform_tools_picker.SetPath(self.config.platform_tools_path)
+
+                    # if adb is found, display the version
+                    if get_sdk_version():
+                        self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for platform tools during initialization.")
+                traceback.print_exc()
+
+            # load custom_rom settings
+            try:
+                self.custom_rom_checkbox.SetValue(self.config.custom_rom)
+                if self.config.custom_rom_path and os.path.exists(self.config.custom_rom_path):
+                    self.custom_rom.SetPath(self.config.custom_rom_path)
+                    set_custom_rom_id(os.path.splitext(ntpath.basename(self.config.custom_rom_path))[0])
+                    if self.config.rom_sha256:
+                        rom_hash = self.config.rom_sha256
+                    else:
+                        rom_hash = sha256(self.config.custom_rom_path)
+                        self.config.rom_sha256 = rom_hash
+                    self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for custom rom during initialization.")
+                traceback.print_exc()
+
+            # refresh boot.img list
+            try:
+                populate_boot_list(self)
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating boot list during initialization.")
+                traceback.print_exc()
+
+            # set the flash mode
+            mode = self.config.flash_mode
+
+            # set flash option
+            self.flash_both_slots_checkBox.SetValue(self.config.flash_both_slots)
+            self.flash_to_inactive_slot_checkBox.SetValue(self.config.flash_to_inactive_slot)
+            self.disable_verity_checkBox.SetValue(self.config.disable_verity)
+            self.disable_verification_checkBox.SetValue(self.config.disable_verification)
+            self.fastboot_force_checkBox.SetValue(self.config.fastboot_force)
+            self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
+            self.temporary_root_checkBox.SetValue(self.config.temporary_root)
+            self.no_reboot_checkBox.SetValue(self.config.no_reboot)
+            self.wipe_checkBox.SetValue(self.wipe)
+            self.no_wipe_downgrade_checkbox.SetValue(False)
+            self.no_wipe_downgrade_checkbox.Enable(False)
+
+            # get the image choice and update UI
+            set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
+
+            # set the state of flash button.
+            try:
+                set_flash_button_state(self)
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while setting flash button state during initialization.")
+                traceback.print_exc()
+
+            # update the custom flash options
+            try:
+                self._update_custom_flash_options()
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating custom flash options during initialization.")
+                traceback.print_exc()
+
+            # check for connected devices
+            try:
+                if res_sdk != -1:
+                    print("\nLoading Device list ...")
+                    puml(":Loading device list;\n", True)
+                    print("This could take a while, please be patient.\n")
+
+                    debug("Populate device list")
+                    connected_devices = get_connected_devices()
+                    print(f"Discovered {len(connected_devices)} device(s) connected.")
+                    self.device_choice.AppendItems(connected_devices)
+                    d_list_string = '\n'.join(connected_devices)
+                    puml(f"note right\n{d_list_string}\nend note\n")
+
+                    # select configured device
+                    debug("select configured device")
+                    self._select_configured_device()
+                    self._refresh_ui()
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for connected devices during initialization.")
+                traceback.print_exc()
+
+            # check version if we are running the latest
+            if self.config.update_check:
+                l_version = check_latest_version()
+                try:
+                    if parse(VERSION) < parse(l_version):
+                        print(f"\nA newer PixelFlasher v{l_version} can be downloaded from:")
+                        print("https://github.com/badabing2005/PixelFlasher/releases/latest")
+                        from About import AboutDlg
+                        about = AboutDlg(self)
+                        about.ShowModal()
+                        about.Destroy()
                 except Exception as e:
-                    set_firmware_model(None)
-                    set_firmware_id(filename)
-            set_ota(self, self.config.firmware_is_ota)
-            if self.config.check_for_firmware_hash_validity:
-                if self.config.firmware_sha256:
-                    print("Using previously stored firmware SHA-256 ...")
-                    firmware_hash = self.config.firmware_sha256
-                else:
-                    print("Computing firmware SHA-256 ...")
-                    firmware_hash = sha256(self.config.firmware_path)
-                    self.config.firmware_sha256 = firmware_hash
-                print(f"Firmware SHA-256: {firmware_hash}")
-                self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
-                # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
-                if firmware_hash[:8] in self.config.firmware_path:
-                    print(f"Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
-                    puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
-                    # self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
-                    set_firmware_hash_validity(True)
-                else:
-                    print(f"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
-                    puml("#orange:Unable to match the checksum in the filename;\n")
-                    self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
-                    set_firmware_hash_validity(False)
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for updates")
+                    traceback.print_exc()
+            end = time.time()
+            print(f"Load time: {math.ceil(end - start)} seconds")
 
-        # check platform tools
-        res_sdk = check_platform_tools(self)
-        if res_sdk != -1:
-            # load platform tools value
-            if self.config.platform_tools_path and get_adb() and get_fastboot():
-                self.platform_tools_picker.SetPath(self.config.platform_tools_path)
+            # set the ui fonts
+            try:
+                self.set_ui_fonts()
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while setting ui fonts.")
+                traceback.print_exc()
 
-            # if adb is found, display the version
-            if get_sdk_version():
-                self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+            # update widgets
+            try:
+                self.update_widget_states()
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking update_widget_states.")
+                traceback.print_exc()
 
-        # load custom_rom settings
-        self.custom_rom_checkbox.SetValue(self.config.custom_rom)
-        if self.config.custom_rom_path and os.path.exists(self.config.custom_rom_path):
-            self.custom_rom.SetPath(self.config.custom_rom_path)
-            set_custom_rom_id(os.path.splitext(ntpath.basename(self.config.custom_rom_path))[0])
-            if self.config.rom_sha256:
-                rom_hash = self.config.rom_sha256
-            else:
-                rom_hash = sha256(self.config.custom_rom_path)
-                self.config.rom_sha256 = rom_hash
-            self.custom_rom.SetToolTip(f"SHA-256: {rom_hash}")
+            self.spinner.Hide()
+            self.spinner_label.Hide()
+            self.init_complete = True
 
-        # refresh boot.img list
-        populate_boot_list(self)
-
-        # set the flash mode
-        mode = self.config.flash_mode
-
-        # set flash option
-        self.flash_both_slots_checkBox.SetValue(self.config.flash_both_slots)
-        self.flash_to_inactive_slot_checkBox.SetValue(self.config.flash_to_inactive_slot)
-        self.disable_verity_checkBox.SetValue(self.config.disable_verity)
-        self.disable_verification_checkBox.SetValue(self.config.disable_verification)
-        self.fastboot_force_checkBox.SetValue(self.config.fastboot_force)
-        self.fastboot_verbose_checkBox.SetValue(self.config.fastboot_verbose)
-        self.temporary_root_checkBox.SetValue(self.config.temporary_root)
-        self.no_reboot_checkBox.SetValue(self.config.no_reboot)
-        self.wipe_checkBox.SetValue(self.wipe)
-        self.no_wipe_downgrade_checkbox.SetValue(False)
-        self.no_wipe_downgrade_checkbox.Enable(False)
-
-        # get the image choice and update UI
-        set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
-
-        # set the state of flash button.
-        set_flash_button_state(self)
-
-        self._update_custom_flash_options()
-
-        if res_sdk != -1:
-            print("\nLoading Device list ...")
-            puml(":Loading device list;\n", True)
-            print("This could take a while, please be patient.\n")
-
-            debug("Populate device list")
-            connected_devices = get_connected_devices()
-            print(f"Discovered {len(connected_devices)} device(s) connected.")
-            self.device_choice.AppendItems(connected_devices)
-            d_list_string = '\n'.join(connected_devices)
-            puml(f"note right\n{d_list_string}\nend note\n")
-
-            # select configured device
-            debug("select configured device")
-            self._select_configured_device()
-            self._refresh_ui()
-
-        # check version if we are running the latest
-        if self.config.update_check:
-            l_version = check_latest_version()
-            if parse(VERSION) < parse(l_version):
-                print(f"\nA newer PixelFlasher v{l_version} can be downloaded from:")
-                print("https://github.com/badabing2005/PixelFlasher/releases/latest")
-                from About import AboutDlg
-                about = AboutDlg(self)
-                about.ShowModal()
-                about.Destroy()
-        end = time.time()
-        print(f"Load time: {math.ceil(end - start)} seconds")
-
-        # set the ui fonts
-        self.set_ui_fonts()
-
-        # update widgets
-        self.update_widget_states()
-
-        self.spinner.Hide()
-        self.spinner_label.Hide()
-        self.init_complete = True
-
-        if do_profiling:
-            profiler.disable()
-            stats = pstats.Stats(profiler).sort_stats('tottime')  # 'tottime' for total time
-            stats.print_stats()
+            if do_profiling:
+                profiler.disable()
+                stats = pstats.Stats(profiler).sort_stats('tottime')  # 'tottime' for total time
+                stats.print_stats()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error during initialization.")
+            traceback.print_exc()
 
     # -----------------------------------------------
     #           enable_disable_radio_buttons

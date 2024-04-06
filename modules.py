@@ -2182,6 +2182,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     else:
         print(f"Patching on hardware: {device.hardware}")
 
+    # If patch_flavor is KernelSU* check if the device is a Pixel device and if the kernel is KMI
     if patch_flavor in ['KernelSU', 'KernelSU_LKM']:
         kmi = device.kmi
         anykernel = False

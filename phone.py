@@ -3330,7 +3330,8 @@ This is a special Magisk build\n\n
                     script_file.write(f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'.encode('utf-8'))
                     script_file.close()
                     os.chmod(script_file.name, 0o755)
-                    subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())                return 0
+                    subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+                return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)

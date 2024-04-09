@@ -3181,29 +3181,52 @@ def bootloader_issue_message():
     print("USB 2.0 ports are reportedly more stable than USB 3.0 ports.\n")
 
 
+
 # ============================================================================
 #                 Function download_ksu_latest_release_asset
 # ============================================================================
 def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True):
     try:
+        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        response = request_with_fallback(method='GET', url=url)
+        assets = response.json().get('assets', [])
+
         if not asset_name:
-            url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
-            response = request_with_fallback(method='GET', url=url)
-            return response.json().get('assets', [])
+            return assets
 
         # Split the asset_name into parts
         parts = asset_name.split('-')
         base_name = parts[0]
+        base_name = f"{base_name}"
         version_parts = parts[1].split('.')
         fixed_version = '.'.join(version_parts[:-1])
+        variable_version = int(version_parts[-1])
 
         # Prepare the regular expression pattern
         if anykernel:
-            pattern = f"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\\.zip$"
+            pattern = re.compile(f"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\\.zip$")
         else:
-            pattern = f"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\\.img\\.gz$"
+            pattern = re.compile(f"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\\.img\\.gz$")
 
-        return download_gh_latest_release_asset_regex(user, repo, pattern)
+        # Find the best match
+        best_match = None
+        best_version = -1
+        for asset in assets:
+            match = pattern.match(asset['name'])
+            if match:
+                asset_version = int(match[1])
+                if asset_version <= variable_version and asset_version > best_version:
+                    best_match = asset
+                    best_version = asset_version
+                    if asset_version == variable_version:
+                        break
+        if best_match:
+            print(f"Found best match KernelSU: {best_match['name']}")
+            download_file(best_match['browser_download_url'])
+            print(f"Downloaded {best_match['name']}")
+            return best_match['name']
+        else:
+            print(f"Asset {asset_name} not found in the latest release of {user}/{repo}")
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_ksu_latest_release_asset function")
         traceback.print_exc()

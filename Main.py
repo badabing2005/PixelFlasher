@@ -1232,7 +1232,8 @@ class PixelFlasher(wx.Frame):
         exit_item.SetBitmap(images.exit_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_exit_app, exit_item)
         # Set the ID of the "Exit" menu item on macOS
-        wx.App.SetMacExitMenuItemId(exit_item.GetId())
+        # Don't do this, it conflicts with another menu id
+        # wx.App.SetMacExitMenuItemId(exit_item.GetId())
 
         # Device Menu Items
         # ----------------

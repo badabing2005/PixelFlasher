@@ -10,7 +10,7 @@ import wx.html
 from runtime import *
 
 class MessageBoxEx(wx.Dialog):
-    def __init__(self, *args, title=None, message=None, button_texts=None, default_button=None, disable_buttons=None, is_md=False, size=(800, 600), checkbox_labels=None, **kwargs):
+    def __init__(self, *args, title=None, message=None, button_texts=None, default_button=None, disable_buttons=None, is_md=False, size=(800, 600), checkbox_labels=None, checkbox_initial_values=None, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs)
         self.SetTitle(title)
         self.button_texts = button_texts
@@ -19,6 +19,10 @@ class MessageBoxEx(wx.Dialog):
         self.return_value = None
         self.checkboxes = []
         self.checkbox_labels = checkbox_labels
+        if checkbox_initial_values is not None:
+            self.checkbox_initial_values = checkbox_initial_values
+        else:
+            self.checkbox_initial_values = []
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         message_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -56,8 +60,11 @@ class MessageBoxEx(wx.Dialog):
 
         if checkbox_labels is not None:
             checkbox_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY), wx.HORIZONTAL)
-            for checkbox_label in checkbox_labels:
+            for i in range(len(checkbox_labels)):
+                checkbox_label = checkbox_labels[i]
                 checkbox = wx.CheckBox(self, wx.ID_ANY, checkbox_label, wx.DefaultPosition, wx.DefaultSize, 0)
+                if i < len(self.checkbox_initial_values):
+                    checkbox.SetValue(self.checkbox_initial_values[i])
                 self.checkboxes.append(checkbox)
                 checkbox_sizer.Add(checkbox, 0, wx.ALL, 5)
             vSizer.Add(checkbox_sizer, 0, wx.EXPAND | wx.ALL, 10)

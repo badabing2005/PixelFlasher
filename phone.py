@@ -3320,17 +3320,23 @@ This is a special Magisk build\n\n
                 print(f"Opening an adb shell command for device: {self.id} ...")
                 puml(":Opening an adb shell command;\n", True)
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell"
-                debug(theCmd)
                 if sys.platform.startswith("win"):
+                    debug(theCmd)
                     subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, start_new_session=True, env=get_env_variables())
                 elif sys.platform.startswith("linux") and config.linux_shell:
-                    subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
+                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    debug(theCmd)
+                    subprocess.Popen(theCmd, start_new_session=True)
                 elif sys.platform.startswith("darwin"):
                     script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
-                    script_file.write(f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'.encode('utf-8'))
+                    script_file_content = f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'
+                    debug(script_file_content)
+                    script_file.write(script_file_content.encode('utf-8'))
                     script_file.close()
                     os.chmod(script_file.name, 0o755)
-                    subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+                    theCmd = f"osascript -e 'tell application \"Terminal\" to do script \"{script_file.name}\"'"
+                    debug(theCmd)
+                    subprocess.Popen(theCmd, start_new_session=True, env=get_env_variables())
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
@@ -3358,18 +3364,26 @@ This is a special Magisk build\n\n
                 print(f"Launching scrcpy for device: {self.id} ...")
                 puml(":Launching scrcpy;\n", True)
                 theCmd = f"\"{scrcpy_path}\" -s {self.id} {flags}"
-                debug(theCmd)
                 if sys.platform.startswith("win"):
-                    subprocess.Popen(theCmd, cwd=scrcpy_folder, start_new_session=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    # subprocess.Popen(theCmd, cwd=scrcpy_folder, start_new_session=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    debug(theCmd)
+                    res = run_shell2(theCmd, directory=scrcpy_folder, detached=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
                 elif sys.platform.startswith("linux") and config.linux_shell:
-                    subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
+                    # subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
+                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    debug(theCmd)
+                    res = run_shell2(theCmd, detached=True)
                 elif sys.platform.startswith("darwin"):
                     script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
-                    script_file.write(f'#!/bin/bash\n{theCmd}'.encode('utf-8'))
+                    script_file_content = f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'
+                    debug(script_file_content)
+                    script_file.write(script_file_content.encode('utf-8'))
                     script_file.close()
                     os.chmod(script_file.name, 0o755)
-                    subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
-                    os.remove(script_file.name)
+                    theCmd = f"osascript -e 'tell application \"Terminal\" to do script \"{script_file.name}\"'"
+                    debug(theCmd)
+                    # subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+                    res = run_shell2(theCmd, detached=True, env=get_env_variables())
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")

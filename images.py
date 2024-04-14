@@ -6525,3 +6525,12 @@ cert_24 = PyEmbeddedImage(
     b'V02IDBE9aAJQopDBMQ7MQwXQVhZ5vWnQVJ1OB9v/A5rmYJASfdKvTj34KcATT0TYGZdaUUAA'
     b'AAAASUVORK5CYII=')
 
+#----------------------------------------------------------------------
+downgrade_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAA10lEQVRIS2NkoDFgpLH5DERb'
+    b'cL/BQECx4cIHUh1ElAW3arUTgAbXM/xlCFRru3qBFEsIWgAxnLEfaKgAEH9gZWZRJMUneC1A'
+    b'Mxxo/v9EtearC8j2AXI4E2P4rVqd/7gsU2u+AnY8ig+Aht5nZWY1/P33dwBSsOB0ORkWgF0E'
+    b'SymgMMcbLORagORr/GGObAEsSNCDDC2IkMP0/wNQcCGnGGJcTIIF4OBBsYRiCwglP7pagCvM'
+    b'8QYRuiQ5Lh7BFhAb5iQmU4TyUQsI5TGy5QnWaGSbDNVIcwsA0aiBGYyKH2AAAAAASUVORK5C'
+    b'YII=')
+

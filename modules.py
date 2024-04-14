@@ -397,7 +397,7 @@ def get_flash_settings(self):
             set_custom_rom_file(rom_file)
         message += f"\nBoot image:             {boot.boot_hash[:8]} / {boot.package_boot_hash[:8]} \n"
         message += f"                        From: {boot.package_path}\n"
-        if boot.is_patched:
+        if boot and boot.is_patched:
             if boot.patch_method:
                 message += f"                        Patched with {boot.magisk_version} on {boot.hardware} method:        {boot.patch_method}\n"
             else:
@@ -470,7 +470,7 @@ def select_firmware(self):
         filename, extension = os.path.splitext(firmware)
         extension = extension.lower()
         if extension in ['.zip', '.tgz', '.tar']:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} The following firmware is selected:\n{firmware}")
+            print(f"The following firmware is selected:\n{firmware}")
 
             if self.config.check_for_firmware_hash_validity:
                 firmware_hash = sha256(self.config.firmware_path)
@@ -1076,32 +1076,210 @@ def process_flash_all_file(filepath):
         puml("#red:Encountered an error while processing flash_all file;\n")
         traceback.print_exc()
 
+
 # ============================================================================
-#                               Function setup_for_downgrade (TODO)
+#                               Function setup_for_downgrade
 # ============================================================================
-def setup_for_downgrade(self, target_boot_file_path):
-    # TODO
-    #
-    # Show warnings and disclaimer
-    # Check if the device is rooted
-    # current_stock_boot_path = ''
-    # if the device is rooted extract the boot.img from device
-    #     If stock boot is present, extract it (probably from Magisk backup or from PixelFlasher)
-    #         current_stock_boot_path = <path to extracted boot.img>
-    # if current_stock_boot_path = ''
-    #     prompt the user to provide the stock boot.img  of the current firmware (with enough warnings)
-    #
-    # current_boot_info = avbtool_get_info(current_stock_boot_path) # returns an object with all the details
-    # target_boot_info = avbtool_get_info(target_boot_file_path) # returns an object with all the details
-    # Compare the two boot image info objects and do validations to make sure the target is a downgrade and the current matches current OS version
-    # if all validations pass, proceed
-    # else show errors and abort
-    #
-    # copy the current boot.img to a temp folder
-    # patch the current boot.img with the target boot.img patch_level
-    # if successful, proceed to flash the patched boot.img
-    # if not successful, show errors and abort
-    return
+def setup_for_downgrade(self):
+    try:
+        device = get_phone()
+        config_path = get_config_path()
+        tmp_dir_full = os.path.join(config_path, 'tmp')
+        current_boot_img = os.path.join(tmp_dir_full, 'current_boot.img')
+        boot = get_boot()
+        if not boot:
+            print("\nPlease select a boot image!")
+            return -1
+
+        boot_path = boot.boot_path
+        directory_path = os.path.dirname(boot_path)
+        target_boot_img = os.path.join(directory_path, 'boot.img')
+        puml("#cyan:Create Downgrade Patch;\n", True)
+        puml("partition \"**Create Downgrade Patch**\" {\n")
+
+        # Make sure platform-tools is set
+        if not self.config.platform_tools_path:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
+            print("Aborting ...\n")
+            puml("#red:Valid Anroid Platform Tools is not selected;\n}\n")
+            return
+
+        # Make sure boot image is selected
+        if not self.config.boot_id:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
+            print("Aborting ...\n")
+            puml("#red:Valid boot image is not selected;\n}\n")
+            return
+
+        # make sure the target_boot_img exists
+        if not os.path.exists(target_boot_img):
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image {target_boot_img} does not exist.")
+            print("Aborting ...\n")
+            puml("#red:Boot image does not exist;\n}\n")
+            self._on_spin('stop')
+            return
+
+        print(f"\n=== Getting AVB info for Target boot.img [{target_boot_img}] ...")
+        target_boot_info = get_boot_image_info(target_boot_img)
+
+        if device.rooted:
+            option_text = "Option 1"
+            option = 1
+            disabled_buttons = []
+        else:
+            option_text = "Option 2"
+            option = 2
+            disabled_buttons = [1]
+
+        title = "Downgrade Patch Creation"
+        buttons_text = ["Option 1", "Option 2", "Cancel"]
+        buttons_text[option -1] += " (Recommended)"
+        checkboxes=["Patch com.android.build.init_boot.security_patch", "Patch com.android.build.init_boot.fingerprint"]
+        checkbox_values=[True, False]
+
+        message = '''
+#                   WARNING! WARNING! WARNING! WARNING!
+**This is an experimental feature, do NOT proceed unless you know what you're doing and are willing to take your chances.**<br/>
+
+**PixelFlasher** can create a downgrade patch by utilizing AVBTool.<br/>
+
+Two files are required to prepare a patch.
+
+- **Current:** `boot.img` from currently installed / running OS.<br/>
+  If the device is already rooted, and root access is granted to adb, PixelFlasher can extract it from the device, otherwise one must be provided.<br/>
+  You can also choose to provide a file even if the device is rooted, in case you are preparing a downgrade patch for another device.
+
+- **Target:** the `boot.img` from the target firmware you're planning to downgrade to.<br/>
+  The target `boot.img` will automatically be selected from the currently processed and selected firmware / OTA image in PixelFlasher.
+
+Select the option of your choice.
+
+1. **Option 1** Extract boot.img from device and create patch.
+2. **Option 2** Select a boot.img from PC and create patch.
+
+Depending on the state of your phone (rooted)<br/>
+PixelFlasher will offer available choices and recommend the best option to utilize for patching.<br/>
+Unless you know what you're doing, it is recommended that you take the default suggested selection.
+'''
+        message += f"<pre>Rooted:                       {device.rooted}\n"
+        message += f"Target boot.security_patch:   {target_boot_info['com.android.build.boot.security_patch']}\n"
+        message += f"Recommended Patch option:     {option_text}</pre>\n"
+        clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
+        print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
+        puml(":Dialog;\n", True)
+        puml(f"note right\n{clean_message}\nend note\n")
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=option, disable_buttons=disabled_buttons, is_md=True, size=[915,740], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_values)
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+        puml(f":User Pressed {buttons_text[result - 1]};\n")
+
+        option = result
+        # option 1 - Patch com.android.build.init_boot.security_patch
+        if option == 1:
+            # Device is rooted, extract boot.img from device
+            partition = 'boot'
+            slot = device.active_slot
+            if slot != '':
+                partition = f"{partition}_{slot}"
+            res, file_path = device.dump_partition(file_path='/data/local/tmp/current_boot.img', partition=partition)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to dump partition on the phone;\n}\n")
+                return -1
+            # pull the boot.img from the device
+            res = device.pull_file('/data/local/tmp/current_boot.img', current_boot_img)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to pull boot.img from the phone;\n}\n")
+                return -1
+        # option 2 - Patch com.android.build.init_boot.fingerprint
+        elif option == 2:
+            with wx.FileDialog(self, "Select Boot Image", '', '', wildcard="All files (*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled file push.")
+                    return
+                # copy to tmp folder
+                print(f"Copying {fileDialog.GetPath()} to {current_boot_img}")
+                shutil.copy(fileDialog.GetPath(), current_boot_img, follow_symlinks=True)
+        # option 3 - Cancel
+        elif option == 3:
+            puml("}\n")
+            print("Aborting ...\n")
+            return
+
+        checkbox_values = get_dlg_checkbox_values()
+        # Perform the patching
+
+        start_1 = time.time()
+        print(f"\n=== Getting AVB info for Current boot.img [{current_boot_img}] ...")
+        current_boot_info = get_boot_image_info(current_boot_img)
+
+        # Compare the two boot image info objects and do validations to make sure the target is a downgrade and the current matches current OS version
+        print(f"\nChecking if the target boot.img is a downgrade ...")
+        current_patch = current_boot_info['com.android.build.boot.security_patch']
+        target_patch = target_boot_info['com.android.build.boot.security_patch']
+        print(f"Current Security Patch: {current_patch}")
+        print(f"Target Security Patch: {target_patch}")
+        if target_patch >= current_patch and not checkbox_values[1]:
+            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?")
+            dlg = wx.MessageDialog(None, "WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?",'Confirm',wx.YES_NO | wx.ICON_EXCLAMATION)
+            puml(f"note right\nDialog\n====\nWARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?\nend note\n")
+            result = dlg.ShowModal()
+            if result != wx.ID_YES:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled patching.")
+                puml("#pink:User cancelled patching;\n}\n")
+                return -1
+
+        print(f"The target boot.img is a downgrade.")
+        print("Proceeding with downgrade patching ...")
+        if checkbox_values[1]:
+            print(f"\n=== Patching fingerprint in Current boot.img [{current_boot_img}] ...")
+            fingerprint = target_boot_info['com.android.build.boot.fingerprint']
+        else:
+            fingerprint = current_boot_info['com.android.build.boot.fingerprint']
+        if checkbox_values[0]:
+            security = target_boot_info['com.android.build.boot.security_patch']
+        else:
+            security = current_boot_info['com.android.build.boot.security_patch']
+
+        add_hash_footer(boot_image_path=current_boot_img,
+                    partition_size=current_boot_info['Image Size'],
+                    partition_name=current_boot_info['Partition Name'],
+                    salt=current_boot_info['Salt'],
+                    rollback_index=current_boot_info['Rollback Index'],
+                    algorithm=current_boot_info['Algorithm'],
+                    hash_algorithm=current_boot_info['Hash Algorithm'],
+                    prop_com_android_build_boot_os_version=current_boot_info['com.android.build.boot.os_version'],
+                    prop_com_android_build_boot_fingerprint=fingerprint,
+                    prop_com_android_build_boot_security_patch_level=security
+                )
+
+        print(f"\n=== Getting AVB info for Patched Current boot.img [{current_boot_img}] ...")
+        current_boot_info = get_boot_image_info(current_boot_img)
+
+        # Save to file
+        with wx.FileDialog(self, "Save Downgrade Patch Image", '', f"Downgrade_boot_{current_boot_info['com.android.build.boot.security_patch']}_to_{target_boot_info['com.android.build.boot.security_patch']}.img", wildcard="Image files (*.img)|*.img",
+                        style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                print("User cancelled patch save.")
+                self._on_spin('stop')
+                return
+            pathname = fileDialog.GetPath()
+            shutil.copy(current_boot_img, pathname)
+
+        end_1 = time.time()
+        print(f"Downgrade Patch Creation time: {math.ceil(end_1 - start_1)} seconds")
+        print(f"You must flash the {pathname} before flashing the downgrade firmware.")
+
+        return 0
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while preparing a downgrade patch")
+        puml("#red:Encountered an error while preparing a downgrade patch;\n")
+        traceback.print_exc()
+
 
 # ============================================================================
 #                               Function avbtool_get_info (TODO)
@@ -1110,6 +1288,7 @@ def avbtool_get_info(self, boot_file_path):
     # perform avbtool info on the boot_file_path
     # convert to object and return object
     return
+
 
 # ============================================================================
 #                               Function drive_magisk (TODO)
@@ -2254,6 +2433,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         is_odin = 0
     else:
         boot = get_boot()
+        if not boot:
+            print("\nPlease select a boot image!")
+            return -1
+
         boot_path = boot.boot_path
         stock_sha1 = boot.boot_hash[:8]
         if patch_flavor == 'KernelSU' and "init_boot.img" in boot_path:
@@ -2976,9 +3159,9 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         return -1
 
     boot = get_boot()
-    print(f"Flashing / Live Booting\n     {boot.boot_path} ...")
-    puml(f"note right:File: {boot.boot_path};\n")
     if boot:
+        print(f"Flashing / Live Booting\n     {boot.boot_path} ...")
+        puml(f"note right:File: {boot.boot_path};\n")
         if boot.is_patched:
             firmware_model = boot.hardware
         else:
@@ -4063,7 +4246,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         # reboot to bootloader if flashing is necessary
         if self.config.disable_verity or self.config.disable_verification or not boot.is_stock_boot:
             res = device.reboot_bootloader(fastboot_included = True)
-            if res == -1:
+            if res is None or res == -1:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
                 print("Aborting ...\n")
                 puml("#red:Encountered an error while rebooting to bootloader;\n}\n")

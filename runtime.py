@@ -22,6 +22,7 @@ import sys
 import random
 import tarfile
 import tempfile
+import threading
 import time
 import traceback
 import zipfile
@@ -41,6 +42,7 @@ from packaging.version import parse
 from platformdirs import *
 from constants import *
 import cProfile, pstats, io
+import avbtool
 
 verbose = False
 adb = None
@@ -1942,6 +1944,7 @@ def sanitize_file(filename):
         data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(device\s+\')(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+        data = re.sub(r'(\(usb\)\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(superkey:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(./boot_patch.sh\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
@@ -1951,6 +1954,8 @@ def sanitize_file(filename):
         data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
         data = re.sub(r'(\S\  \((?:adb|f\.b|rec|sid)\)   )(.+?)(\s+.*)', r'\1REDACTED\3', data, flags=re.IGNORECASE)
+        data = re.sub(r'(?<=List of devices attached\n)((?:\S+\s+device\n)+)', lambda m: re.sub(r'(\S+)(\s+device)', r'REDACTED\2', m.group(0)), data, flags=re.MULTILINE)
+        data = re.sub(r'(?<=debug: fastboot devices:\n)((?:\S+\s+fastboot\n)+)', lambda m: re.sub(r'(\S+)(\s+fastboot)', r'REDACTED\2', m.group(0)), data, flags=re.MULTILINE)
         with open(filename, "wt", encoding='ISO-8859-1', errors="replace") as fin:
             fin.write(data)
 
@@ -2311,6 +2316,7 @@ def delete_keys_from_dict(dictionary, keys):
 def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=None, sort_data=False, keep_all=False):
     try:
         module_versionCode = 0
+        module_flavor = None
         with contextlib.suppress(Exception):
             module_flavor = pif_flavor.split('_')[0]
             module_versionCode = int(pif_flavor.split('_')[1])
@@ -3409,6 +3415,59 @@ def check_kb(filename):
 
 
 # ============================================================================
+#                               Function get_boot_image_info
+# ============================================================================
+def get_boot_image_info(boot_image_path):
+    try:
+        tool = avbtool.AvbTool()
+        info = tool.run(['avbtool.py','info_image', '--image', boot_image_path])
+        print('')
+        return info
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_boot_image_info function")
+        print(e)
+        traceback.print_exc()
+
+
+# ============================================================================
+#                               Function add_hash_footer
+# ============================================================================
+def add_hash_footer(boot_image_path,
+                    partition_size,
+                    partition_name,
+                    salt,
+                    rollback_index,
+                    algorithm,
+                    hash_algorithm,
+                    prop_com_android_build_boot_os_version,
+                    prop_com_android_build_boot_fingerprint,
+                    prop_com_android_build_boot_security_patch_level
+                ):
+
+    try:
+        tool = avbtool.AvbTool()
+        tool.run(['avbtool.py','add_hash_footer',
+                    '--image', boot_image_path,
+                    '--partition_size', partition_size,
+                    '--partition_name', partition_name,
+                    '--salt', salt,
+                    '--rollback_index', rollback_index,
+                    '--key', os.path.join(get_bundle_dir(), 'testkey_rsa4096.pem'),
+                    '--algorithm', algorithm,
+                    '--hash_algorithm', hash_algorithm,
+                    '--prop', f'com.android.build.boot.os_version:{prop_com_android_build_boot_os_version}',
+                    '--prop', f'com.android.build.boot.fingerprint:{prop_com_android_build_boot_fingerprint}',
+                    '--prop', f'com.android.build.boot.security_patch:{prop_com_android_build_boot_security_patch_level}'
+                ])
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in add_hash_footer function")
+        print(e)
+        traceback.print_exc()
+
+
+# ============================================================================
 #                               Function run_shell
 # ============================================================================
 # We use this when we want to capture the returncode and also selectively
@@ -3422,6 +3481,7 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
         stdout, stderr = process.communicate(timeout=timeout)
         # Return the response
         return subprocess.CompletedProcess(args=cmd, returncode=process.returncode, stdout=stdout, stderr=stderr)
+
     except subprocess.TimeoutExpired as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
         puml("#red:Command {cmd} timed out;\n", True)
@@ -3444,32 +3504,48 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
 #                               Function run_shell2
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
-def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-8859-1'):
+def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-8859-1', creationflags=0, env=None):
     try:
         flush_output()
-        if directory is None:
-            proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
-        else:
-            proc = subprocess.Popen(f"{cmd}", cwd=directory, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
+        proc_args = {
+            "args": f"{cmd}",
+            "shell": True,
+            "stdin": subprocess.PIPE,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "encoding": encoding,
+            "errors": "replace",
+            "cwd": directory,
+            "start_new_session": detached,
+            "creationflags": creationflags
+        }
+        if env is not None:
+            proc_args["env"] = env
 
-        print
-        while True:
-            line = proc.stdout.readline()
-            wx.YieldIfNeeded()
-            if line.strip() != "":
-                print(line.strip())
-            if not line:
-                break
-            if timeout is not None and time.time() > timeout:
-                proc.terminate()
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
-                puml("#red:Command timed out;\n", True)
-                puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
-                return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
-        proc.wait()
-        # Wait for the process to complete and capture the output
-        stdout, stderr = proc.communicate()
-        return subprocess.CompletedProcess(args=cmd, returncode=proc.returncode, stdout=stdout, stderr=stderr)
+        proc = subprocess.Popen(**proc_args)
+
+        def read_output():
+            start_time = time.time()
+            while True:
+                line = proc.stdout.readline()
+                wx.YieldIfNeeded()
+                if line.strip() != "":
+                    print(line.strip())
+                if not line:
+                    break
+                if timeout is not None and time.time() - start_time > timeout:
+                    proc.terminate()
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
+                    puml("#red:Command timed out;\n", True)
+                    puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
+                    return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
+
+        if detached:
+            threading.Thread(target=read_output, daemon=True).start()
+        else:
+            read_output()
+
+        return proc
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
         traceback.print_exc()
@@ -3477,7 +3553,6 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
         puml(f"note right\n{e}\nend note\n")
         raise e
         # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')
-
 
 
 # def run_shell(*args, **kwargs):

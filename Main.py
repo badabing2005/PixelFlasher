@@ -43,7 +43,7 @@ from message_box_ex import MessageBoxEx
 from modules import (adb_kill_server, auto_resize_boot_list,
     check_platform_tools, flash_phone, live_flash_boot_phone,
     patch_boot_img, populate_boot_list, process_file,
-    select_firmware, set_flash_button_state)
+    select_firmware, set_flash_button_state, setup_for_downgrade)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
 from phone import get_connected_devices
@@ -713,6 +713,7 @@ class PixelFlasher(wx.Frame):
             self.wipe_checkBox.SetValue(self.wipe)
             self.no_wipe_downgrade_checkbox.SetValue(False)
             self.no_wipe_downgrade_checkbox.Enable(False)
+            self.no_wipe_downgrade_checkbox.Hide()
 
             # get the image choice and update UI
             set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
@@ -1362,9 +1363,17 @@ class PixelFlasher(wx.Frame):
         # Tools Menu Items
         # ----------------
         # check keybox.xml
-        self.check_keybox = tools_menu.Append(wx.ID_ANY, "Check keybox.xml", "Check keybox.xml")
-        self.check_keybox.SetBitmap(images.cert_24.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_check_keybox, self.check_keybox)
+        self.check_keybox_menu = tools_menu.Append(wx.ID_ANY, "Check keybox.xml", "Check keybox.xml")
+        self.check_keybox_menu.SetBitmap(images.cert_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_check_keybox, self.check_keybox_menu)
+        # Get Image Info
+        self.get_image_info = tools_menu.Append(wx.ID_ANY, "AVB - Get Image Info", "Get Android Verified Boot Image Info")
+        self.get_image_info.SetBitmap(images.about_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_get_image_info, self.get_image_info)
+        # Prepare downgraded patch
+        self.prep_downgrade_patch_menu = tools_menu.Append(wx.ID_ANY, "AVB - Prepare Downgrade Patch", "Create Downgrade Patch")
+        self.prep_downgrade_patch_menu.SetBitmap(images.downgrade_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_prep_downgrade_patch, self.prep_downgrade_patch_menu)
 
         # Toolbar Menu Items
         # ------------------
@@ -2044,64 +2053,91 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _advanced_options_hide
     # -----------------------------------------------
     def _advanced_options_hide(self, value):
-        self.Freeze()
-        if value:
-            # flash options
-            self.flash_both_slots_checkBox.Hide()
-            self.disable_verity_checkBox.Hide()
-            self.disable_verification_checkBox.Hide()
-            self.fastboot_force_checkBox.Hide()
-            self.fastboot_verbose_checkBox.Hide()
-            self.temporary_root_checkBox.Hide()
-            self.wipe_checkBox.Hide()
-            self.no_wipe_downgrade_checkbox.Hide()
-            # ROM options
-            self.custom_rom_checkbox.Hide()
-            self.custom_rom.Hide()
-            self.process_rom.Hide()
-            # Custom Flash Radio Button
-            # if we're turning off advanced options, and the current mode is customFlash, hide, it
-            self.mode_radio_button.LastInGroup.Hide()
-            # Custom Flash Image options
-            self.live_boot_radio_button.Hide()
-            self.flash_radio_button.Hide()
-            self.image_choice.Hide()
-            self.image_file_picker.Hide()
-            self.paste_selection.Hide()
-            a = self.mode_radio_button.Name
-            # if we're turning off advanced options, and the current mode is customFlash, change it to dryRun
-            if self.mode_radio_button.Name == 'mode-customFlash' and self.mode_radio_button.GetValue():
-                if get_ota():
-                    self.enable_disable_radio_button('OTA', True, selected=True, just_select=True)
-                    self.config.flash_mode = 'OTA'
-                else:
-                    #self.mode_radio_button.PreviousInGroup.SetValue(True)
-                    self.enable_disable_radio_button('dryRun', True, selected=True, just_select=True)
-                    self.config.flash_mode = 'dryRun'
-        else:
-            # flash options
-            self.flash_both_slots_checkBox.Show()
-            self.disable_verity_checkBox.Show()
-            self.disable_verification_checkBox.Show()
-            self.fastboot_force_checkBox.Show()
-            self.fastboot_verbose_checkBox.Show()
-            self.temporary_root_checkBox.Show()
-            self.wipe_checkBox.Show()
-            self.no_wipe_downgrade_checkbox.Show()
-            # ROM options
-            self.custom_rom_checkbox.Show()
-            self.custom_rom.Show()
-            self.process_rom.Show()
-            # Custom Flash Radio Button
-            self.mode_radio_button.LastInGroup.Show()
-            # Custom Flash Image options
-            self.live_boot_radio_button.Show()
-            self.flash_radio_button.Show()
-            self.image_choice.Show()
-            self.image_file_picker.Show()
-            self.paste_selection.Show()
-        self.Thaw()
-        self._refresh_ui()
+        try:
+            self.Freeze()
+            if value:
+                # flash options
+                self.flash_both_slots_checkBox.Hide()
+                self.disable_verity_checkBox.Hide()
+                self.disable_verification_checkBox.Hide()
+                self.fastboot_force_checkBox.Hide()
+                self.fastboot_verbose_checkBox.Hide()
+                self.temporary_root_checkBox.Hide()
+                self.wipe_checkBox.Hide()
+                self.no_wipe_downgrade_checkbox.Hide()
+                # ROM options
+                self.custom_rom_checkbox.Hide()
+                self.custom_rom.Hide()
+                self.process_rom.Hide()
+                # Custom Flash Radio Button
+                # if we're turning off advanced options, and the current mode is customFlash, hide, it
+                self.mode_radio_button.LastInGroup.Hide()
+                # Custom Flash Image options
+                self.live_boot_radio_button.Hide()
+                self.flash_radio_button.Hide()
+                self.image_choice.Hide()
+                self.image_file_picker.Hide()
+                self.paste_selection.Hide()
+                # Menu items
+                self.partitions_menu.Enable(False)
+                self.switch_slot_menu.Enable(False)
+                self.reboot_fastbootd_menu.Enable(False)
+                self.reboot_recovery_menu.Enable(False)
+                self.reboot_safe_mode_menu.Enable(False)
+                self.reboot_download_menu.Enable(False)
+                self.reboot_sideload_menu.Enable(False)
+                self.bootloader_lock_menu.Enable(False)
+                self.bootloader_unlock_menu.Enable(False)
+                self.prep_downgrade_patch_menu.Enable(False)
+                #
+                a = self.mode_radio_button.Name
+                # if we're turning off advanced options, and the current mode is customFlash, change it to dryRun
+                if self.mode_radio_button.Name == 'mode-customFlash' and self.mode_radio_button.GetValue():
+                    if get_ota():
+                        self.enable_disable_radio_button('OTA', True, selected=True, just_select=True)
+                        self.config.flash_mode = 'OTA'
+                    else:
+                        #self.mode_radio_button.PreviousInGroup.SetValue(True)
+                        self.enable_disable_radio_button('dryRun', True, selected=True, just_select=True)
+                        self.config.flash_mode = 'dryRun'
+            else:
+                # flash options
+                self.flash_both_slots_checkBox.Show()
+                self.disable_verity_checkBox.Show()
+                self.disable_verification_checkBox.Show()
+                self.fastboot_force_checkBox.Show()
+                self.fastboot_verbose_checkBox.Show()
+                self.temporary_root_checkBox.Show()
+                self.wipe_checkBox.Show()
+                self.no_wipe_downgrade_checkbox.Show()
+                # ROM options
+                self.custom_rom_checkbox.Show()
+                self.custom_rom.Show()
+                self.process_rom.Show()
+                # Custom Flash Radio Button
+                self.mode_radio_button.LastInGroup.Show()
+                # Custom Flash Image options
+                self.live_boot_radio_button.Show()
+                self.flash_radio_button.Show()
+                self.image_choice.Show()
+                self.image_file_picker.Show()
+                self.paste_selection.Show()
+                # Menu items
+                self.partitions_menu.Enable(True)
+                self.switch_slot_menu.Enable(True)
+                self.reboot_fastbootd_menu.Enable(True)
+                self.reboot_recovery_menu.Enable(True)
+                self.reboot_safe_mode_menu.Enable(True)
+                self.reboot_download_menu.Enable(True)
+                self.reboot_sideload_menu.Enable(True)
+                self.bootloader_lock_menu.Enable(True)
+                self.bootloader_unlock_menu.Enable(True)
+                self.prep_downgrade_patch_menu.Enable(True)
+            self.Thaw()
+            self._refresh_ui()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while setting advanced options")
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  _on_spin
@@ -2199,6 +2235,12 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             if m_app_version:
                 # message += f"    Magisk Path:                     {device.magisk_path}\n"
                 message += f"        Checked for Package:         {self.config.magisk}\n"
+            k_app_version = device.ksu_app_version
+            if k_app_version:
+                message += f"    KernelSU App Version:            {k_app_version}\n"
+            a_app_version = device.apatch_app_version
+            if a_app_version:
+                message += f"    APatch App Version:              {a_app_version}\n"
         elif device.mode == 'f.b':
             message += f"    Device Unlocked:                 {device.unlocked}\n"
             if not device.unlocked:
@@ -2306,7 +2348,6 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _update_custom_flash_options
     # -----------------------------------------------
     def _update_custom_flash_options(self):
-        boot = get_boot()
         image_mode = get_image_mode()
         image_path = get_image_path()
         if self.config.flash_mode != 'customFlash':
@@ -2571,6 +2612,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             elif condition == 'no_rule':
                 return True
 
+            elif condition == 'advanced_options':
+                return self.config.advanced_options
+
             elif condition == 'scrcpy_path_is_set':
                 if self.config.scrcpy['path'] != '' and os.path.exists(self.config.scrcpy['path']):
                     return True
@@ -2599,9 +2643,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             widget_conditions = {
                 self.sos_menu:                          ['no_rule'],
                 self.reboot_menu:                       ['device_attached'],
-                self.reboot_recovery_menu:              ['device_attached'],
+                self.reboot_recovery_menu:              ['device_attached', 'advanced_options'],
                 self.reboot_bootloader_menu:            ['device_attached'],
-                self.reboot_fastbootd_menu:             ['device_attached'],
+                self.reboot_fastbootd_menu:             ['device_attached', 'advanced_options'],
                 self.reboot_system_menu:                ['device_attached'],
                 self.shell_menu_item:                   ['device_attached'],
                 self.scrcpy_menu_item:                  ['device_attached', 'scrcpy_path_is_set'],
@@ -2613,10 +2657,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.push_menu:                         ['device_attached'],
                 self.push_file_to_tmp_menu:             ['device_attached'],
                 self.push_file_to_download_menu:        ['device_attached'],
-                self.bootloader_unlock_menu:            ['device_attached'],
-                self.bootloader_lock_menu:              ['device_attached'],
+                self.bootloader_unlock_menu:            ['device_attached', 'advanced_options'],
+                self.bootloader_lock_menu:              ['device_attached', 'advanced_options'],
                 self.install_magisk_menu:               ['device_attached'],
-                self.partitions_menu:                   ['device_attached'],
+                self.partitions_menu:                   ['device_attached', 'advanced_options'],
                 self.install_apk:                       ['device_attached'],
                 self.package_manager:                   ['device_attached'],
                 self.no_reboot_checkBox:                ['device_attached'],
@@ -2628,6 +2672,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.device_choice:                     ['sdk_ok'],
                 self.process_firmware:                  ['firmware_selected'],
                 self.delete_boot_button:                ['boot_is_selected'],
+                self.get_boot_info_button:              ['boot_is_selected'],
                 self.boot_folder_button:                ['boot_is_selected'],
                 self.folders_button:                    ['boot_is_selected'],
                 self.firmware_folder_button:            ['boot_is_selected'],
@@ -2635,14 +2680,14 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.flash_boot_button:                 ['device_attached', 'boot_is_selected'],
                 self.paste_selection:                   ['device_attached','custom_flash', 'valid_paste'],
                 self.patch_custom_boot_button:          ['device_attached', 'device_mode_adb'],
-                self.reboot_download_menu:              ['device_attached', 'device_mode_adb'],
-                self.reboot_sideload_menu:              ['device_attached'],
-                self.switch_slot_menu:                  ['device_attached', 'dual_slot'],
+                self.reboot_download_menu:              ['device_attached', 'device_mode_adb', 'advanced_options'],
+                self.reboot_sideload_menu:              ['device_attached', 'advanced_options'],
+                self.switch_slot_menu:                  ['device_attached', 'dual_slot', 'advanced_options'],
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
                 self.magisk_menu:                       ['device_attached', 'device_mode_adb'],
                 self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 # self.pif_manager_menu:                  ['device_attached', 'device_mode_adb'],
-                self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted', 'advanced_options'],
                 # self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.disable_verity_checkBox:           ['device_attached'],
                 self.disable_verification_checkBox:     ['device_attached'],
@@ -2650,7 +2695,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.flash_to_inactive_slot_checkBox:   ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.wipe_checkBox:                     ['device_attached', 'custom_flash'],
-                # self.no_wipe_downgrade_checkbox:        ['device_attached'],
+                # self.no_wipe_downgrade_checkbox:        ['device_attached', 'not_custom_flash', 'boot_is_selected'],
                 self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
                 self.patch_button:                      ['device_attached', 'device_mode_adb'],
                 self.patch_magisk_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
@@ -2816,6 +2861,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _on_select_firmware
     # -----------------------------------------------
     def _on_select_firmware(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated firmware selection")
+        print("==============================================================================")
         # path = event.GetPath()
         path = self.firmware_picker.GetPath()
         if not path:
@@ -3084,6 +3132,38 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     def _on_no_wipe_downgrade(self, event):
         self._on_no_wipe_downgrade_checkbox = event.GetEventObject()
         status = self._on_no_wipe_downgrade_checkbox.GetValue()
+        if status:
+            title = "No Wipe Downgrade"
+            message = "                 WARNING!!! WARNING!!! WARNING!!!\n\n"
+            message += "THIS IS AN EXPERIMENTAL FEATURE, NO ASSURANCES THAT IT WOULD WORK\n"
+            message += "Do NOT enable this option if you are not downgrading!!!\n"
+            message += "Proceed only if your data is backed up.\n\n"
+            message += "Do you want to continue to select the No Wipe Downgrade option?\n"
+            message += "       Press OK to continue or CANCEL to abort.\n"
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            set_message_box_title(title)
+            set_message_box_message(message)
+            try:
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+            except Exception:
+                traceback.print_exc()
+                self.no_wipe_downgrade_checkbox.SetValue(False)
+                return
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+
+            if result == 1:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+                self.wipe_checkBox.SetValue(False)
+            else:
+                self.no_wipe_downgrade_checkbox.SetValue(False)
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting ...\n")
+                dlg.Destroy()
+                return
+            dlg.Destroy()
+
         print(f"Flash Option: No Wipe Downgrade {status}")
         puml(":Flash Option change;\n", True)
         puml(f"note right:No Wipe Downgrade{status}\n")
@@ -3742,6 +3822,42 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_get_image_info
+    # -----------------------------------------------
+    def _on_get_image_info(self, event):
+        try:
+            with wx.FileDialog(self, "Select Boot Image", '', '', wildcard="All files (*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled file push.")
+                    return
+                selected_file = fileDialog.GetPath()
+
+            self._on_spin('start')
+            print(f"\n=== Getting AVB image info for: [{selected_file}] ...")
+            res = get_boot_image_info(selected_file)
+            # for key, value in res.items():
+            #     print(f"Key: {key} - Value: {value}")
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_prep_downgrade_patch
+    # -----------------------------------------------
+    def _on_prep_downgrade_patch(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Prepare Downgrade Patch")
+            print("==============================================================================")
+            puml(":Prepare Downgrade Patch;\n", True)
+            setup_for_downgrade(self)
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_show_all_boot
     # -----------------------------------------------
     def _on_show_all_boot(self, event):
@@ -3833,47 +3949,53 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     package_boot_count += 1
             self.config.boot_id = boot.boot_id
             self.config.selected_boot_md5 = boot.boot_hash
+            print("==============")
             print("Selected Boot:")
+            print("==============")
             puml(":Select Boot;\n", True)
-            message = f"    File:                  {os.path.basename(urlparse(boot.boot_path).path)}\n"
-            message += f"    Path:                  {boot.boot_path}\n"
-            message += f"    SHA1:                  {boot.boot_hash}\n"
+            message = f"File:                     {os.path.basename(urlparse(boot.boot_path).path)}\n"
+            message += f"Path:                     {boot.boot_path}\n"
+            message += f"SHA1:                     {boot.boot_hash}\n"
             if boot.is_patched == 1:
                 patched = True
-                message += f"    Patched:               {patched}\n"
+                message += f"Patched:                  {patched}\n"
                 if boot.patch_method:
-                    message += f"    Patched Method:        {boot.patch_method}\n"
+                    message += f"Patched Method:           {boot.patch_method}\n"
                 if boot.patch_source_sha1:
-                    message += f"    Patch Source SHA1:     {boot.patch_source_sha1}\n"
+                    message += f"Patch Source SHA1:        {boot.patch_source_sha1}\n"
                 if boot.patch_method == "kernelsu":
-                    message += f"    Patched With KernelSU: {boot.magisk_version}\n"
+                    message += f"Patched With KernelSU:    {boot.magisk_version}\n"
                 elif boot.patch_method == "apatch":
-                    message += f"    Patched With Apatch:   {boot.magisk_version}\n"
+                    message += f"Patched With Apatch:      {boot.magisk_version}\n"
                 else:
-                    message += f"    Patched With Magisk:   {boot.magisk_version}\n"
-                message += f"    Patched on Device:     {boot.hardware}\n"
+                    message += f"Patched With Magisk:      {boot.magisk_version}\n"
+                message += f"Patched on Device:        {boot.hardware}\n"
             else:
                 patched = False
-                message += f"    Patched:               {patched}\n"
+                message += f"Patched:                  {patched}\n"
             ts = datetime.fromtimestamp(boot.boot_epoch)
             if boot.is_odin == 1:
-                message += f"    Samsung Boot:          True\n"
+                message += f"Samsung Boot:             True\n"
             if boot.is_stock_boot == 0:
-                message += f"    Stock Boot:            False\n"
+                message += f"Stock Boot:               False\n"
             elif boot.is_stock_boot == 1:
-                message += f"    Stock Boot:            True\n"
+                message += f"Stock Boot:               True\n"
             if boot.is_init_boot == 0:
-                message += f"    Init Boot:             False\n"
+                message += f"Init Boot:                False\n"
             elif boot.is_init_boot == 1:
-                message += f"    Init Boot:             True\n"
-            message += f"    Date:                  {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            message += f"    Firmware Fingerprint:  {boot.package_sig}\n"
-            message += f"    Firmware:              {boot.package_path}\n"
-            message += f"    Type:                  {boot.package_type}\n"
+                message += f"Init Boot:                True\n"
+            message += f"Date:                     {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            message += f"Firmware Fingerprint:     {boot.package_sig}\n"
+            message += f"Firmware:                 {boot.package_path}\n"
+            message += f"Type:                     {boot.package_type}\n"
+
             if package_boot_count > 1:
                 message += f"\nINFO: Multiple PACKAGE_BOOT records found for {boot.boot_hash}."
-            print(f"{message}\n")
+            print(f"{message}")
             puml(f"note right\n{message}\nend note\n")
+
+            # get boot image info
+            get_boot_image_info(boot.boot_path)
         else:
             self.config.boot_id = None
             self.config.selected_boot_md5 = None
@@ -3888,12 +4010,33 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.update_widget_states()
 
     # -----------------------------------------------
+    #                  _on_get_boot_info
+    # -----------------------------------------------
+    def _on_get_boot_info(self, event):
+        try:
+            boot = get_boot()
+            if boot:
+                info = get_boot_image_info(boot.boot_path)
+
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting boot info")
+            traceback.print_exc()
+        return
+
+    # -----------------------------------------------
+    #                  _on_add_boot
+    # -----------------------------------------------
+    def _on_add_boot(self, event):
+        # TODO
+        return
+
+    # -----------------------------------------------
     #                  _on_delete_boot
     # -----------------------------------------------
     def _on_delete_boot(self, event):
         self._on_spin('start')
         boot = get_boot()
-        if boot.boot_id and boot.package_id:
+        if boot and boot.boot_id and boot.package_id:
             print("Delete boot image button is pressed.")
             puml(":Delete boot image;\n", True)
             print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
@@ -4479,6 +4622,15 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=u"Delete", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
         self.delete_boot_button.SetToolTip(u"Delete the selected item")
         #
+        self.add_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.add_24.GetBitmap(), label=u"Add", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.add_boot_button.SetToolTip(u"Add a new boot item")
+        self.add_boot_button.Disable()
+        self.add_boot_button.Hide()
+        #
+        self.get_boot_info_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.about_24.GetBitmap(), label=u"Info", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.get_boot_info_button.SetToolTip(u"Get information about the selected item")
+        self.get_boot_info_button.Hide()
+        #
         self.live_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.boot_24.GetBitmap(), label=u"Live Boot", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
         self.live_boot_button.SetToolTip(u"Live boot to the selected item")
         #
@@ -4492,6 +4644,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         image_buttons_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         image_buttons_sizer.Add(self.patch_button, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(self.add_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(self.get_boot_info_button, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.folders_button, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT, border=5)
         image_buttons_sizer.Add(self.flash_boot_button, proportion=1, flag=wx.LEFT, border=5)
@@ -4671,6 +4825,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.image_choice.Bind(wx.EVT_CHOICE, self._on_image_choice)
         self.list.Bind(wx.EVT_LEFT_DOWN, self._on_boot_selected)
         self.delete_boot_button.Bind(wx.EVT_BUTTON, self._on_delete_boot)
+        self.add_boot_button.Bind(wx.EVT_BUTTON, self._on_add_boot)
+        self.get_boot_info_button.Bind(wx.EVT_BUTTON, self._on_get_boot_info)
         self.live_boot_button.Bind(wx.EVT_BUTTON, self._on_live_boot)
         self.flash_boot_button.Bind(wx.EVT_BUTTON, self._on_flash_boot)
         self.process_firmware.Bind(wx.EVT_BUTTON, self._on_process_firmware)

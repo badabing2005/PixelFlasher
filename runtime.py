@@ -3515,22 +3515,27 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
             "stderr": subprocess.STDOUT,
             "encoding": encoding,
             "errors": "replace",
-            "cwd": directory,
             "start_new_session": detached,
-            "creationflags": creationflags
         }
         if env is not None:
             proc_args["env"] = env
+        if creationflags is not None:
+            proc_args["creationflags"] = creationflags
+        if directory is not None:
+            proc_args["cwd"] = directory
 
         proc = subprocess.Popen(**proc_args)
 
         def read_output():
+            print
             start_time = time.time()
+            output = []
             while True:
                 line = proc.stdout.readline()
                 wx.YieldIfNeeded()
                 if line.strip() != "":
                     print(line.strip())
+                    output.append(line.strip())
                 if not line:
                     break
                 if timeout is not None and time.time() - start_time > timeout:
@@ -3538,14 +3543,13 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
                     puml("#red:Command timed out;\n", True)
                     puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
-                    return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
+                    return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='\n'.join(output), stderr='')
 
-        if detached:
-            threading.Thread(target=read_output, daemon=True).start()
-        else:
-            read_output()
-
+        threading.Thread(target=read_output, daemon=True).start()
+        if not detached:
+            proc.wait()
         return proc
+
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
         traceback.print_exc()

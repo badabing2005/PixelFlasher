@@ -2448,6 +2448,11 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             print(f"With APatch patching, the boot.img will be used, instead of init_boot.img, however we need ramdisk from init_boot.img")
             init_boot_path = boot_path
             boot_path = boot_path.replace("init_boot.img", "boot.img")
+            if not os.path.exists(boot_path):
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img file [{boot_path}] is not found.")
+                puml("#red:ERROR: boot.img file [{boot_path}] is not found;\n")
+                print("Aborting ...\n}\n")
+                return -1
             stock_init_sha1 = sha1(init_boot_path)[:8]
             stock_sha1 = sha1(boot_path)[:8]
             print(f"Using boot.img for APatch patching with SHA1 of {stock_sha1}")
@@ -4090,7 +4095,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     os.chdir(package_dir_full)
     theCmd = f"\"{theCmd}\""
     debug(theCmd)
-    res = run_shell2(theCmd)
+    res = run_shell2(theCmd, env=get_env_variables())
     if res.returncode != 0:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
         print(f"theCmd: {theCmd}")

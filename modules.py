@@ -828,8 +828,8 @@ def process_file(self, file_type):
                     self.toast("Process action", f"Nothing to extract from {file_type}")
                     return
 
-                print(f"Extracting {boot_file_name} from {image_file_path} ...")
-                puml(f":Extract {boot_file_name};\n")
+                print(f"Extracting {files_to_extract} from {image_file_path} ...")
+                puml(f":Extract {files_to_extract};\n")
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
                 debug(f"{theCmd}")
                 res = run_shell(theCmd)

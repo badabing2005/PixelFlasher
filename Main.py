@@ -259,6 +259,9 @@ class GoogleImagesBaseMenu(wx.Menu):
 
     def generate_unique_id(self):
         unique_id = self.current_menu_id
+        while unique_id == wx.ID_EXIT or unique_id == wx.ID_ABOUT:
+            self.current_menu_id += 1
+            unique_id = self.current_menu_id
         self.current_menu_id += 1
         return unique_id
 
@@ -1229,7 +1232,7 @@ class PixelFlasher(wx.Frame):
         # seperator
         file_menu.AppendSeparator()
         # Exit Menu
-        exit_item = file_menu.Append(wx.ID_ANY, "E&xit\tCtrl-Q", "Exit PixelFlasher")
+        exit_item = file_menu.Append(wx.ID_EXIT, "E&xit\tCtrl-Q", "Exit PixelFlasher")
         exit_item.SetBitmap(images.exit_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_exit_app, exit_item)
         # Set the ID of the "Exit" menu item on macOS
@@ -1560,7 +1563,7 @@ class PixelFlasher(wx.Frame):
         # seperator
         help_menu.AppendSeparator()
         # About
-        about_item = help_menu.Append(wx.ID_ANY, '&About PixelFlasher', 'About')
+        about_item = help_menu.Append(wx.ID_ABOUT, '&About PixelFlasher', 'About')
         about_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, about_item)
 

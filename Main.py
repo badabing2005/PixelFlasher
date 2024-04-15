@@ -259,7 +259,7 @@ class GoogleImagesBaseMenu(wx.Menu):
 
     def generate_unique_id(self):
         unique_id = self.current_menu_id
-        while unique_id == wx.ID_EXIT or unique_id == wx.ID_ABOUT:
+        while unique_id in[wx.ID_EXIT, wx.ID_ABOUT, wx.ID_PREFERENCES]:
             self.current_menu_id += 1
             unique_id = self.current_menu_id
         self.current_menu_id += 1
@@ -1226,7 +1226,7 @@ class PixelFlasher(wx.Frame):
         # File Menu Items
         # ---------------
         # Settings Menu
-        config_item = file_menu.Append(wx.ID_ANY, "Settings", "Settings")
+        config_item = file_menu.Append(wx.ID_PREFERENCES , "Settings", "Settings")
         config_item.SetBitmap(images.settings_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_advanced_config, config_item)
         # seperator

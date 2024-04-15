@@ -3329,14 +3329,10 @@ This is a special Magisk build\n\n
                     subprocess.Popen(theCmd, start_new_session=True)
                 elif sys.platform.startswith("darwin"):
                     script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
-                    script_file_content = f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'
-                    debug(script_file_content)
-                    script_file.write(script_file_content.encode('utf-8'))
+                    script_file.write(f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'.encode('utf-8'))
                     script_file.close()
                     os.chmod(script_file.name, 0o755)
-                    theCmd = f"osascript -e 'tell application \"Terminal\" to do script \"{script_file.name}\"'"
-                    debug(theCmd)
-                    subprocess.Popen(theCmd, start_new_session=True, env=get_env_variables())
+                    subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")

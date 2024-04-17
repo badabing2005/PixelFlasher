@@ -1787,6 +1787,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 magisk_path = f"{self.config.phone_path}/Magisk-Uploaded.apk"
             else:
                 magisk_path = device.magisk_path
+            if not magisk_path:
+                print("ERROR: Magisk path is empty!\nAborting ...")
+                puml("#red:Magisk path is empty;\n")
+                return -1
             data += f"MAGISK_PATH={magisk_path}\n"
 
             if patch_method in ["app", "other"]:
@@ -4095,7 +4099,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     os.chdir(package_dir_full)
     theCmd = f"\"{theCmd}\""
     debug(theCmd)
-    res = run_shell2(theCmd, env=get_env_variables())
+    res = run_shell2(theCmd)
     if res.returncode != 0:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
         print(f"theCmd: {theCmd}")

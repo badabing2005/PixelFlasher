@@ -3504,7 +3504,46 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
 #                               Function run_shell2
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
-def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-8859-1', creationflags=0, env=None):
+def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-8859-1'):
+    try:
+        flush_output()
+        if directory is None:
+            proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
+        else:
+            proc = subprocess.Popen(f"{cmd}", cwd=directory, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
+
+        print
+        while True:
+            line = proc.stdout.readline()
+            wx.YieldIfNeeded()
+            if line.strip() != "":
+                print(line.strip())
+            if not line:
+                break
+            if timeout is not None and time.time() > timeout:
+                proc.terminate()
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
+                puml("#red:Command timed out;\n", True)
+                puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
+                return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
+        proc.wait()
+        # Wait for the process to complete and capture the output
+        stdout, stderr = proc.communicate()
+        return subprocess.CompletedProcess(args=cmd, returncode=proc.returncode, stdout=stdout, stderr=stderr)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
+        traceback.print_exc()
+        puml("#red:Encountered an error;\n", True)
+        puml(f"note right\n{e}\nend note\n")
+        raise e
+        # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')
+
+
+# ============================================================================
+#                               Function run_shell3
+# ============================================================================
+# This one pipes the stdout and stderr to Console text widget in realtime,
+def run_shell3(cmd, timeout=None, detached=False, directory=None, encoding='ISO-8859-1', creationflags=0, env=None):
     try:
         flush_output()
         proc_args = {
@@ -3551,7 +3590,7 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
         return proc
 
     except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell3 {cmd}")
         traceback.print_exc()
         puml("#red:Encountered an error;\n", True)
         puml(f"note right\n{e}\nend note\n")

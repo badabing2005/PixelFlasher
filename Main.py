@@ -2184,9 +2184,11 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     def _print_device_details(self, device):
         m_version = 0
         m_app_version = 0
-        message = ''
+
         print('')
+        message = '=======================================\n'
         message += f"Selected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:\n"
+        message += '=======================================\n'
         message += f"    Device ID:                       {device.id}\n"
         message += f"    Device Model:                    {device.hardware}\n"
         message += f"    Device Active Slot:              {device.active_slot}\n"
@@ -2656,7 +2658,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.pif_info_menu_item:                ['device_attached'],
                 self.props_as_json_menu_item:           ['device_attached'],
                 self.xml_view_menu_item:                ['device_attached'],
-                self.cancel_ota_menu_item:              ['device_attached'],
+                self.cancel_ota_menu_item:              ['device_attached', 'device_mode_adb'],
                 self.push_menu:                         ['device_attached'],
                 self.push_file_to_tmp_menu:             ['device_attached'],
                 self.push_file_to_download_menu:        ['device_attached'],

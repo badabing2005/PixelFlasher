@@ -751,6 +751,7 @@ class Device():
     # ----------------------------------------------------------------------------
     def reset_ota_update(self):
         if self.mode != 'adb':
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: reset_ota_update function is only available in adb mode.\nAborting ...")
             return -1
         if not self.rooted:
             return -1
@@ -2476,7 +2477,7 @@ This is a special Magisk build\n\n
             note_link = data['magisk']['note']
             setattr(ma, 'note_link', note_link)
             setattr(ma, 'package', MAGISK_PKG_NAME)
-            if channel in ['delta canary', 'delta debug']:
+            if channel in ['Magisk Delta Canary', 'Magisk Delta Debug']:
                 setattr(ma, 'package', MAGISK_DELTA_PKG_NAME)
             # Get the note contents
             headers = {}
@@ -3363,12 +3364,12 @@ This is a special Magisk build\n\n
                 if sys.platform.startswith("win"):
                     # subprocess.Popen(theCmd, cwd=scrcpy_folder, start_new_session=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
                     debug(theCmd)
-                    res = run_shell2(theCmd, directory=scrcpy_folder, detached=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    res = run_shell3(theCmd, directory=scrcpy_folder, detached=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
                 elif sys.platform.startswith("linux") and config.linux_shell:
                     # subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
                     theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
                     debug(theCmd)
-                    res = run_shell2(theCmd, detached=True)
+                    res = run_shell3(theCmd, detached=True)
                 elif sys.platform.startswith("darwin"):
                     script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
                     script_file_content = f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'
@@ -3379,7 +3380,7 @@ This is a special Magisk build\n\n
                     theCmd = f"osascript -e 'tell application \"Terminal\" to do script \"{script_file.name}\"'"
                     debug(theCmd)
                     # subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
-                    res = run_shell2(theCmd, detached=True, env=get_env_variables())
+                    res = run_shell3(theCmd, detached=True, env=get_env_variables())
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")

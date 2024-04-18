@@ -464,7 +464,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):
-                if self.package_name.GetValue() != self.Parent.config.magisk and self.package_name.GetValue() in [MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME]:
+                if self.package_name.GetValue() != self.Parent.config.magisk:
                     print(f"Setting Magisk Package Name to: {self.package_name.GetValue()}")
                     set_magisk_package(self.package_name.GetValue())
                     self.Parent.config.magisk = self.package_name.GetValue()

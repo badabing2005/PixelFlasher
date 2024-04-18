@@ -1787,10 +1787,6 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 magisk_path = f"{self.config.phone_path}/Magisk-Uploaded.apk"
             else:
                 magisk_path = device.magisk_path
-            if not magisk_path:
-                print("ERROR: Magisk path is empty!\nAborting ...")
-                puml("#red:Magisk path is empty;\n")
-                return -1
             data += f"MAGISK_PATH={magisk_path}\n"
 
             if patch_method in ["app", "other"]:
@@ -2091,6 +2087,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "echo -------------------------\n"
             data += "echo \"Creating a patch ...\"\n"
             data += "rm -f kernelsu_boot_*\n"
+            kmi_override = ''
             if self.config.override_kmi:
                 kmi_override = f" --kmi {self.config.override_kmi}"
                 data += "echo \"Overriding KMI ...\"\n"

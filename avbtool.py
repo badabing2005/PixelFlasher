@@ -38,6 +38,7 @@ import tempfile
 import time
 import contextlib
 import traceback
+import rsa
 
 
 # Keep in sync with libavb/avb_version.h.
@@ -281,7 +282,7 @@ def egcd(a, b):
   """Calculate greatest common divisor of two numbers.
 
   This implementation uses a recursive version of the extended
-  Euclidian algorithm.
+  Euclidean algorithm.
 
   Arguments:
     a: First number.
@@ -350,6 +351,55 @@ class RSAPublicKey(object):
 
   MODULUS_PREFIX = b'modulus='
 
+  # def __init__(self, key_path):
+  #   """Loads and parses an RSA key from either a private or public key file.
+
+  #   Arguments:
+  #     key_path: The path to a key file.
+
+  #   Raises:
+  #     AvbError: If RSA key parameters could not be read from file.
+  #   """
+  #   # We used to have something as simple as this:
+  #   #
+  #   #  key = Crypto.PublicKey.RSA.importKey(open(key_path).read())
+  #   #  self.exponent = key.e
+  #   #  self.modulus = key.n
+  #   #  self.num_bits = key.size() + 1
+  #   #
+  #   # but unfortunately PyCrypto is not available in the builder. So
+  #   # instead just parse openssl(1) output to get this
+  #   # information. It's ugly but...
+  #   args = ['openssl', 'rsa', '-in', key_path, '-modulus', '-noout']
+  #   p = subprocess.Popen(args,
+  #                        stdin=subprocess.PIPE,
+  #                        stdout=subprocess.PIPE,
+  #                        stderr=subprocess.PIPE)
+  #   (pout, perr) = p.communicate()
+  #   if p.wait() != 0:
+  #     # Could be just a public key is passed, try that.
+  #     args.append('-pubin')
+  #     p = subprocess.Popen(args,
+  #                          stdin=subprocess.PIPE,
+  #                          stdout=subprocess.PIPE,
+  #                          stderr=subprocess.PIPE)
+  #     (pout, perr) = p.communicate()
+  #     if p.wait() != 0:
+  #       raise AvbError('Error getting public key: {}'.format(perr))
+
+  #   if not pout.lower().startswith(self.MODULUS_PREFIX):
+  #     raise AvbError('Unexpected modulus output')
+
+  #   modulus_hexstr = pout[len(self.MODULUS_PREFIX):]
+
+  #   # The exponent is assumed to always be 65537 and the number of
+  #   # bits can be derived from the modulus by rounding up to the
+  #   # nearest power of 2.
+  #   self.key_path = key_path
+  #   self.modulus = int(modulus_hexstr, 16)
+  #   self.num_bits = round_to_pow2(int(math.ceil(math.log(self.modulus, 2))))
+  #   self.exponent = 65537
+
   def __init__(self, key_path):
     """Loads and parses an RSA key from either a private or public key file.
 
@@ -359,45 +409,12 @@ class RSAPublicKey(object):
     Raises:
       AvbError: If RSA key parameters could not be read from file.
     """
-    # We used to have something as simple as this:
-    #
-    #  key = Crypto.PublicKey.RSA.importKey(open(key_path).read())
-    #  self.exponent = key.e
-    #  self.modulus = key.n
-    #  self.num_bits = key.size() + 1
-    #
-    # but unfortunately PyCrypto is not available in the builder. So
-    # instead just parse openssl(1) output to get this
-    # information. It's ugly but...
-    args = ['openssl', 'rsa', '-in', key_path, '-modulus', '-noout']
-    p = subprocess.Popen(args,
-                         stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    (pout, perr) = p.communicate()
-    if p.wait() != 0:
-      # Could be just a public key is passed, try that.
-      args.append('-pubin')
-      p = subprocess.Popen(args,
-                           stdin=subprocess.PIPE,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
-      (pout, perr) = p.communicate()
-      if p.wait() != 0:
-        raise AvbError('Error getting public key: {}'.format(perr))
-
-    if not pout.lower().startswith(self.MODULUS_PREFIX):
-      raise AvbError('Unexpected modulus output')
-
-    modulus_hexstr = pout[len(self.MODULUS_PREFIX):]
-
-    # The exponent is assumed to always be 65537 and the number of
-    # bits can be derived from the modulus by rounding up to the
-    # nearest power of 2.
+    # Load the private key.
+    key = rsa.PrivateKey.load_pkcs1(open(key_path).read())
+    self.exponent = key.e
+    self.modulus = key.n
+    self.num_bits = key.n.bit_length()
     self.key_path = key_path
-    self.modulus = int(modulus_hexstr, 16)
-    self.num_bits = round_to_pow2(int(math.ceil(math.log(self.modulus, 2))))
-    self.exponent = 65537
 
   def encode(self):
     """Encodes the public RSA key in |AvbRSAPublicKeyHeader| format.
@@ -425,11 +442,10 @@ class RSAPublicKey(object):
     ret.extend(encode_long(self.num_bits, rrmodn))
     return bytes(ret)
 
-  def sign(self, algorithm_name, data_to_sign, signing_helper=None,
-           signing_helper_with_files=None):
-    """Sign given data using |signing_helper| or openssl.
+  def sign(self, algorithm_name, data_to_sign, signing_helper=None, signing_helper_with_files=None):
+    """Sign given data using |signing_helper| or rsa (removed openssl).
 
-    openssl is used if neither the parameters signing_helper nor
+    rsa (removed openssl) is used if neither the parameters signing_helper nor
     signing_helper_with_files are given.
 
     Arguments:
@@ -448,13 +464,13 @@ class RSAPublicKey(object):
     algorithm = ALGORITHMS.get(algorithm_name)
     if not algorithm:
       raise AvbError('Algorithm with name {} is not supported.'
-                     .format(algorithm_name))
+                    .format(algorithm_name))
 
     if self.num_bits != (algorithm.signature_num_bytes * 8):
       raise AvbError('Key size of key ({} bits) does not match key size '
-                     '({} bits) of given algorithm {}.'
+                    '({} bits) of given algorithm {}.'
                      .format(self.num_bits, algorithm.signature_num_bytes * 8,
-                             algorithm_name))
+                            algorithm_name))
 
     # Hashes the data.
     hasher = hashlib.new(algorithm.hash_name)
@@ -483,20 +499,30 @@ class RSAPublicKey(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
       else:
-        p = subprocess.Popen(
-            ['openssl', 'rsautl', '-sign', '-inkey', self.key_path, '-raw'],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-      (pout, perr) = p.communicate(padding_and_hash)
-      retcode = p.wait()
-      if retcode != 0:
-        raise AvbError('Error signing: {}'.format(perr))
-      signature = pout
+        #   p = subprocess.Popen(
+        #       ['openssl', 'rsautl', '-sign', '-inkey', self.key_path, '-raw'],
+        #       stdin=subprocess.PIPE,
+        #       stdout=subprocess.PIPE,
+        #       stderr=subprocess.PIPE)
+        # (pout, perr) = p.communicate(padding_and_hash)
+        # retcode = p.wait()
+        # if retcode != 0:
+        #   raise AvbError('Error signing: {}'.format(perr))
+        # signature = pout
+
+        # Load the private key.
+        with open(self.key_path, 'r') as key_file:
+          key_data = key_file.read()
+          key = rsa.PrivateKey.load_pkcs1(key_data)
+        # Perform the raw RSA operation.
+        signature = rsa.transform.bytes2int(padding_and_hash)
+        signature = rsa.core.decrypt_int(signature, key.d, key.n)
+        signature = rsa.transform.int2bytes(signature)
+        return signature
+
     if len(signature) != algorithm.signature_num_bytes:
       raise AvbError('Error signing: Invalid length of signature')
     return signature
-
 
 def lookup_algorithm_by_type(alg_type):
   """Looks up algorithm by type.

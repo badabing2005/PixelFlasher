@@ -761,7 +761,7 @@ class Device():
             if res != 0:
                 return -1
 
-            print("Cancelling onging OTA update (if one is in progress, ignore errors) ...")
+            print("Cancelling ongoing OTA update (if one is in progress, ignore errors) ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --cancel\'\""
             res = run_shell2(theCmd)
             print("Resetting an already applied update (if one exists) ...")
@@ -1028,9 +1028,9 @@ class Device():
                 puml("note right:ERROR: during pfmagisk_settings script execution;\n")
                 return -1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during exec_magisk_settings opeation.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during exec_magisk_settings operation.")
             traceback.print_exc()
-            puml("#red:Exception during exec_magisk_settings opeation.;\n", True)
+            puml("#red:Exception during exec_magisk_settings operation.;\n", True)
             return -1
 
 
@@ -1074,9 +1074,9 @@ add_hosts_module
                     puml("note right:ERROR: Failed to add built-in systemless hosts module;\n")
                     return -1
             except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_add_systemless_hosts opeation.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_add_systemless_hosts operation.")
                 traceback.print_exc()
-                puml("#red:Exception during magisk_add_systemless_hosts opeation.;\n", True)
+                puml("#red:Exception during magisk_add_systemless_hosts operation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -1099,9 +1099,9 @@ add_hosts_module
                     puml("note right:ERROR: Updating Zygisk flag;\n")
                     return -1
             except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk opeation.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk operation.")
                 traceback.print_exc()
-                puml("#red:Exception during magisk_enable_zygisk opeation.;\n", True)
+                puml("#red:Exception during magisk_enable_zygisk operation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -1128,9 +1128,9 @@ add_hosts_module
                 puml("note right:ERROR: Updating Enforce denylist flag;\n")
                 return -1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist opeation.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_denylist operation.")
             traceback.print_exc()
-            puml("#red:Exception during magisk_enable_denylist opeation.;\n", True)
+            puml("#red:Exception during magisk_enable_denylist operation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -1162,9 +1162,9 @@ add_hosts_module
                     puml("note right:ERROR: Setting SU permissions flag;\n")
                     return -1
             except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_update_su opeation.")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_update_su operation.")
                 traceback.print_exc()
-                puml("#red:Exception during magisk_update_su opeation.;\n", True)
+                puml("#red:Exception during magisk_update_su operation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -1223,7 +1223,7 @@ add_hosts_module
                     print("Aborting backup ...\n")
                     return -1
                 # Transfer boot image to the device
-                print(f"Transfering {boot_img} to the device in /data/local/tmp/stock_boot.img ...")
+                print(f"Transferring {boot_img} to the device in /data/local/tmp/stock_boot.img ...")
 
                 res = self.push_file(f"{boot_img}", "/data/local/tmp/stock_boot.img")
                 if res != 0:
@@ -1365,7 +1365,7 @@ add_hosts_module
         Args:
             file_path:      Full file path (Default in: /data/local/tmp/ <boot | init_boot>)
             partition:      If specified, then the specified partition will be dumped, otherwise it will be boot on init_boot
-            slot:           If slot is specified, then it will dump the specificed slot instead of the active one. (Default: '')
+            slot:           If slot is specified, then it will dump the specified slot instead of the active one. (Default: '')
                             The active slot selection only applies if partition is not specified.
                             If partition is specified, then the dump will be without the _slot, unless slot is also specified.
 
@@ -1419,7 +1419,7 @@ add_hosts_module
             dest:       Destination file path
 
         Returns:
-            0           if copy is succesful.
+            0           if copy is successful.
             -1          if an exception is raised.
         """
         if self.mode != 'adb' or not self.rooted:
@@ -2748,7 +2748,7 @@ This is a special Magisk build\n\n
         try:
             mode = self.get_device_state()
             print(f"Rebooting device: {self.id} to fastbootd ...")
-            print("This process will wait for fastbootd indefinitly.")
+            print("This process will wait for fastbootd indefinitely.")
             print("WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you'd have to kill it.")
             puml(f":Rebooting device: {self.id} to fastbootd;\n", True)
             if mode in ['adb', 'recovery', 'sideload', 'rescue'] and get_adb():
@@ -3141,7 +3141,7 @@ This is a special Magisk build\n\n
                 update_phones(self.id)
             if mode == 'fastboot' and get_fastboot():
                 print(f"Switching to other slot. Current slot [{self.active_slot}] for device: {self.id} ...")
-                puml(f":Switching slot. Currernt Slot [{self.active_slot}];\n", True)
+                puml(f":Switching slot. Current Slot [{self.active_slot}];\n", True)
                 if self.active_slot == 'a':
                     switch_to_slot = 'b'
                 elif self.active_slot == 'b':

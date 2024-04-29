@@ -316,7 +316,7 @@ class MagiskDownloads(wx.Dialog):
             message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
             message += "Unless you know what you are doing, if you choose to continue\n"
             message += "you risk running into serious issues, proceed only if you are absolutely\n"
-            message += "certian that this is what you want, you have been warned.\n\n"
+            message += "certain that this is what you want, you have been warned.\n\n"
             message += "Click OK to accept and continue.\n"
             message += "or Hit CANCEL to abort."
             print(f"\n*** Dialog ***\n{message}\n______________\n")

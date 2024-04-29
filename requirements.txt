@@ -16,4 +16,5 @@ json5>=0.9.14
 bs4>=0.0.1
 chardet>=5.2.0
 cryptography>=42.0.5
+rsa>=4.9
 wxPython>=4.2.0

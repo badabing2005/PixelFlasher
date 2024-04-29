@@ -1229,7 +1229,7 @@ class PixelFlasher(wx.Frame):
         config_item = file_menu.Append(wx.ID_PREFERENCES , "Settings", "Settings")
         config_item.SetBitmap(images.settings_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_advanced_config, config_item)
-        # seperator
+        # separator
         file_menu.AppendSeparator()
         # Exit Menu
         exit_item = file_menu.Append(wx.ID_EXIT, "E&xit\tCtrl-Q", "Exit PixelFlasher")
@@ -1249,7 +1249,7 @@ class PixelFlasher(wx.Frame):
         self.package_manager = device_menu.Append(wx.ID_ANY, "Package Manager", "Package Manager")
         self.package_manager.SetBitmap(images.packages_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_package_manager, self.package_manager)
-        # seperator
+        # separator
         device_menu.AppendSeparator()
         # ADB Shell Menu
         self.shell_menu_item = device_menu.Append(wx.ID_ANY, "ADB Shell", "Open adb shell to the device")
@@ -1287,13 +1287,13 @@ class PixelFlasher(wx.Frame):
         self.partitions_menu = device_menu.Append(wx.ID_ANY, "Partitions Manager", "Backup / Erase Partitions")
         self.partitions_menu.SetBitmap(images.partition_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_partition_manager, self.partitions_menu)
-        # seperator
+        # separator
         device_menu.AppendSeparator()
         # Switch Slot
         self.switch_slot_menu = device_menu.Append(wx.ID_ANY, "Switch Slot", "Switch to the other slow")
         self.switch_slot_menu.SetBitmap(images.switch_slot_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_switch_slot, self.switch_slot_menu)
-        # seperator
+        # separator
         device_menu.AppendSeparator()
         # Reboot Submenu
         reboot = wx.Menu()
@@ -1330,7 +1330,7 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_push_to_download, self.push_file_to_download_menu)
         self.push_menu = device_menu.Append(wx.ID_ANY, 'Push file to', push_file)
         self.push_menu.SetBitmap(images.push_cart_24.GetBitmap())
-        # seperator
+        # separator
         device_menu.AppendSeparator()
         # Magisk Settings
         self.magisk_menu = device_menu.Append(wx.ID_ANY, "Magisk", "Manage Magisk modules and settings")
@@ -1352,7 +1352,7 @@ class PixelFlasher(wx.Frame):
         self.sos_menu = device_menu.Append(wx.ID_ANY, "SOS", "Disable Magisk Modules")
         self.sos_menu.SetBitmap(images.sos_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_sos, self.sos_menu)
-        # seperator
+        # separator
         device_menu.AppendSeparator()
         # Lock Bootloader
         self.bootloader_lock_menu = device_menu.Append(wx.ID_ANY, "Lock Bootloader", "Lock Bootloader")
@@ -1487,7 +1487,7 @@ class PixelFlasher(wx.Frame):
         self.forum_item = help_menu.Append(wx.ID_ANY, 'PixelFlasher Community (Forum)', 'PixelFlasher Community (Forum)')
         self.forum_item.SetBitmap(images.forum_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.forum_item)
-        # seperator
+        # separator
         help_menu.AppendSeparator()
         # Links Submenu
         links = wx.Menu()
@@ -1539,7 +1539,7 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem14)
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
-        # seperator
+        # separator
         help_menu.AppendSeparator()
         # Open configuration Folder
         config_folder_item = help_menu.Append(wx.ID_ANY, 'Open Configuration Folder', 'Open Configuration Folder')
@@ -1554,13 +1554,13 @@ class PixelFlasher(wx.Frame):
         support_zip_item = help_menu.Append(wx.ID_ANY, 'Create a Sanitized support.zip', 'Create a Sanitized support.zip')
         support_zip_item.SetBitmap(images.support_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_support_zip, support_zip_item)
-        # seperator
+        # separator
         help_menu.AppendSeparator()
         # update check
         update_item = help_menu.Append(wx.ID_ANY, 'Check for New Version', 'Check for New Version')
         update_item.SetBitmap(images.update_check_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, update_item)
-        # seperator
+        # separator
         help_menu.AppendSeparator()
         # About
         about_item = help_menu.Append(wx.ID_ABOUT, '&About PixelFlasher', 'About')
@@ -1795,7 +1795,7 @@ class PixelFlasher(wx.Frame):
             buttons_text = ["Install", "Cancel"]
             checkboxes=["Set ownership to Play Store Market", "Bypass low target sdk block"]
             message = '''
-**APK installtion options**<br/>
+**APK installation options**<br/>
 
 This is a summary of available options.<br/>
 
@@ -2043,7 +2043,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  Test
     # -----------------------------------------------
     def Test(self, event):
-        print("Entrering Test function (used during development only) ...")
+        print("Entering Test function (used during development only) ...")
         # print("Error: ❌ (U+274C, Cross Mark)")
         # print("Warning: ⚠️ (U+26A0, Warning)")
         # print("Info: ℹ️ (U+2139, Information Source)")
@@ -2200,7 +2200,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 message += f"    Device Name:                     {android_device['device']}\n"
                 message += f"    Device First API Level:          {android_device['first_api_level']}\n"
                 message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
-                message += f"    Device Secuity Update End Date:  {android_device['security_update_end_date']}\n"
+                message += f"    Device Security Update End Date: {android_device['security_update_end_date']}\n"
         message += f"    Has init_boot partition:         {device.has_init_boot}\n"
         message += f"    Device Bootloader Version:       {device.get_prop('version-bootloader', 'ro.bootloader')}\n"
         if device.mode == 'adb':
@@ -2734,7 +2734,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 # 225:                                    ['device_attached', 'device_mode_adb'],                         # Pif Manager
                 230:                                    ['no_rule'],                                                    # SOS
                 300:                                    ['device_attached'],                                            # Lock
-                310:                                    ['device_attached'],                                            # Unock
+                310:                                    ['device_attached'],                                            # Unlock
             }
 
             for widget, conditions in widget_conditions.items():
@@ -2872,7 +2872,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         # path = event.GetPath()
         path = self.firmware_picker.GetPath()
         if not path:
-            # User cancelled the selecteion
+            # User cancelled the selection
             return
         self._on_spin('start')
         self.update_firmware_selection(path)
@@ -3416,7 +3416,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         message += "Make sure you first read either of the guides linked in the help menu.\n"
         message += "Failing to follow the proper steps could potentially brick your phone.\n"
         message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-        message += "fastboot commands, if your PC fastboot drivers are not propely setup,\n"
+        message += "fastboot commands, if your PC fastboot drivers are not properly setup,\n"
         message += "fastboot will wait forever, and PixelFlasher will appear hung.\n"
         message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
         message += "      Do you want to continue to Lock the device bootloader?\n"
@@ -3472,7 +3472,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         message += "Make sure you first read either of the guides linked in the help menu.\n"
         message += "Failing to follow the proper steps could potentially brick your phone.\n"
         message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-        message += "fastboot commands, if your PC fastboot drivers are not propely setup,\n"
+        message += "fastboot commands, if your PC fastboot drivers are not properly setup,\n"
         message += "fastboot will wait forever, and PixelFlasher will appear hung.\n"
         message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
         message += "      Do you want to continue to Unlock the device bootloader?\n"
@@ -3877,142 +3877,150 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _on_boot_selected
     # -----------------------------------------------
     def _on_boot_selected(self, event):
-        x,y = event.GetPosition()
-        row,flags = self.list.HitTest((x,y))
-        boot = None
-        for i in range (0, self.list.ItemCount):
-            # deselect all items
-            self.list.Select(i, 0)
-            item = self.list.GetItem(i)
-            # reset colors
-            if sys.platform == "win32":
-                item.SetTextColour(wx.BLACK)
-            elif darkdetect.isDark():
-                item.SetTextColour(wx.WHITE)
-            self.list.SetItem(item)
-        if row != -1:
-            boot = Boot()
-            self.list.Select(row)
-            item = self.list.GetItem(row)
-            if sys.platform == "win32":
-                item.SetTextColour(wx.BLUE)
-            self.list.SetItem(item)
-            boot.boot_hash = self.list.GetItemText(row, col=0)
-            # get the raw data from db, listctrl is just a formatted display
-            con = get_db()
-            con.execute("PRAGMA foreign_keys = ON")
-            query = f"{boot.boot_hash}%"
-            sql = """
-                SELECT
-                    BOOT.id as boot_id,
-                    BOOT.boot_hash,
-                    BOOT.file_path as boot_path,
-                    BOOT.is_patched,
-                    BOOT.patch_method,
-                    BOOT.magisk_version,
-                    BOOT.hardware,
-                    BOOT.is_odin,
-                    BOOT.epoch as boot_date,
-                    PACKAGE.id as package_id,
-                    PACKAGE.boot_hash as package_boot_hash,
-                    PACKAGE.type as package_type,
-                    PACKAGE.package_sig,
-                    PACKAGE.file_path as package_path,
-                    PACKAGE.epoch as package_date,
-                    BOOT.is_stock_boot,
-                    BOOT.is_init_boot,
-                    BOOT.patch_source_sha1
-                FROM BOOT
-                JOIN PACKAGE_BOOT
-                    ON BOOT.id = PACKAGE_BOOT.boot_id
-                    AND BOOT.boot_hash LIKE ?
-                JOIN PACKAGE
-                    ON PACKAGE.id = PACKAGE_BOOT.package_id;
-            """
-            with con:
-                data = con.execute(sql, (query,))
-                package_boot_count = 0
-                for row in data:
-                    boot.boot_id = row[0]
-                    boot.boot_hash = row[1]
-                    boot.boot_path = row[2]
-                    boot.is_patched = row[3]
-                    boot.patch_method = row[4]
-                    boot.magisk_version = row[5]
-                    boot.hardware = row[6]
-                    boot.is_odin = row[7]
-                    boot.boot_epoch = row[8]
-                    boot.package_id = row[9]
-                    boot.package_boot_hash = row[10]
-                    boot.package_type = row[11]
-                    boot.package_sig = row[12]
-                    boot.package_path = row[13]
-                    boot.package_epoch = row[14]
-                    boot.is_stock_boot = row[15]
-                    boot.is_init_boot = row[16]
-                    boot.patch_source_sha1 = row[17]
-                    package_boot_count += 1
-            self.config.boot_id = boot.boot_id
-            self.config.selected_boot_md5 = boot.boot_hash
-            print("==============")
-            print("Selected Boot:")
-            print("==============")
-            puml(":Select Boot;\n", True)
-            message = f"File:                     {os.path.basename(urlparse(boot.boot_path).path)}\n"
-            message += f"Path:                     {boot.boot_path}\n"
-            message += f"SHA1:                     {boot.boot_hash}\n"
-            if boot.is_patched == 1:
-                patched = True
-                message += f"Patched:                  {patched}\n"
-                if boot.patch_method:
-                    message += f"Patched Method:           {boot.patch_method}\n"
-                if boot.patch_source_sha1:
-                    message += f"Patch Source SHA1:        {boot.patch_source_sha1}\n"
-                if boot.patch_method == "kernelsu":
-                    message += f"Patched With KernelSU:    {boot.magisk_version}\n"
-                elif boot.patch_method == "apatch":
-                    message += f"Patched With Apatch:      {boot.magisk_version}\n"
+        try:
+            x,y = event.GetPosition()
+            row,flags = self.list.HitTest((x,y))
+            boot = None
+            for i in range (0, self.list.ItemCount):
+                # deselect all items
+                self.list.Select(i, 0)
+                item = self.list.GetItem(i)
+                # reset colors
+                if sys.platform == "win32":
+                    item.SetTextColour(wx.BLACK)
+                elif darkdetect.isDark():
+                    item.SetTextColour(wx.WHITE)
+                self.list.SetItem(item)
+            if row != -1:
+                boot = Boot()
+                self.list.Select(row)
+                item = self.list.GetItem(row)
+                if sys.platform == "win32":
+                    item.SetTextColour(wx.BLUE)
+                self.list.SetItem(item)
+                boot.boot_hash = self.list.GetItemText(row, col=0)
+                # get the raw data from db, listctrl is just a formatted display
+                con = get_db()
+                con.execute("PRAGMA foreign_keys = ON")
+                query = f"{boot.boot_hash}%"
+                sql = """
+                    SELECT
+                        BOOT.id as boot_id,
+                        BOOT.boot_hash,
+                        BOOT.file_path as boot_path,
+                        BOOT.is_patched,
+                        BOOT.patch_method,
+                        BOOT.magisk_version,
+                        BOOT.hardware,
+                        BOOT.is_odin,
+                        BOOT.epoch as boot_date,
+                        PACKAGE.id as package_id,
+                        PACKAGE.boot_hash as package_boot_hash,
+                        PACKAGE.type as package_type,
+                        PACKAGE.package_sig,
+                        PACKAGE.file_path as package_path,
+                        PACKAGE.epoch as package_date,
+                        BOOT.is_stock_boot,
+                        BOOT.is_init_boot,
+                        BOOT.patch_source_sha1
+                    FROM BOOT
+                    JOIN PACKAGE_BOOT
+                        ON BOOT.id = PACKAGE_BOOT.boot_id
+                        AND BOOT.boot_hash LIKE ?
+                    JOIN PACKAGE
+                        ON PACKAGE.id = PACKAGE_BOOT.package_id;
+                """
+                with con:
+                    data = con.execute(sql, (query,))
+                    package_boot_count = 0
+                    for row in data:
+                        boot.boot_id = row[0]
+                        boot.boot_hash = row[1]
+                        boot.boot_path = row[2]
+                        boot.is_patched = row[3]
+                        boot.patch_method = row[4]
+                        boot.magisk_version = row[5]
+                        boot.hardware = row[6]
+                        boot.is_odin = row[7]
+                        boot.boot_epoch = row[8]
+                        boot.package_id = row[9]
+                        boot.package_boot_hash = row[10]
+                        boot.package_type = row[11]
+                        boot.package_sig = row[12]
+                        boot.package_path = row[13]
+                        boot.package_epoch = row[14]
+                        boot.is_stock_boot = row[15]
+                        boot.is_init_boot = row[16]
+                        boot.patch_source_sha1 = row[17]
+                        package_boot_count += 1
+                self.config.boot_id = boot.boot_id
+                self.config.selected_boot_md5 = boot.boot_hash
+                print("==============")
+                print("Selected Boot:")
+                print("==============")
+                puml(":Select Boot;\n", True)
+                message = f"File:                     {os.path.basename(urlparse(boot.boot_path).path)}\n"
+                message += f"Path:                     {boot.boot_path}\n"
+                message += f"SHA1:                     {boot.boot_hash}\n"
+                if boot.is_patched == 1:
+                    patched = True
+                    message += f"Patched:                  {patched}\n"
+                    if boot.patch_method:
+                        message += f"Patched Method:           {boot.patch_method}\n"
+                    if boot.patch_source_sha1:
+                        message += f"Patch Source SHA1:        {boot.patch_source_sha1}\n"
+                    if boot.patch_method == "kernelsu":
+                        message += f"Patched With KernelSU:    {boot.magisk_version}\n"
+                    elif boot.patch_method == "apatch":
+                        message += f"Patched With Apatch:      {boot.magisk_version}\n"
+                    else:
+                        message += f"Patched With Magisk:      {boot.magisk_version}\n"
+                    message += f"Patched on Device:        {boot.hardware}\n"
                 else:
-                    message += f"Patched With Magisk:      {boot.magisk_version}\n"
-                message += f"Patched on Device:        {boot.hardware}\n"
-            else:
-                patched = False
-                message += f"Patched:                  {patched}\n"
-            ts = datetime.fromtimestamp(boot.boot_epoch)
-            if boot.is_odin == 1:
-                message += f"Samsung Boot:             True\n"
-            if boot.is_stock_boot == 0:
-                message += f"Stock Boot:               False\n"
-            elif boot.is_stock_boot == 1:
-                message += f"Stock Boot:               True\n"
-            if boot.is_init_boot == 0:
-                message += f"Init Boot:                False\n"
-            elif boot.is_init_boot == 1:
-                message += f"Init Boot:                True\n"
-            message += f"Date:                     {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            message += f"Firmware Fingerprint:     {boot.package_sig}\n"
-            message += f"Firmware:                 {boot.package_path}\n"
-            message += f"Type:                     {boot.package_type}\n"
+                    patched = False
+                    message += f"Patched:                  {patched}\n"
+                ts = datetime.fromtimestamp(boot.boot_epoch)
+                if boot.is_odin == 1:
+                    message += f"Samsung Boot:             True\n"
+                if boot.is_stock_boot == 0:
+                    message += f"Stock Boot:               False\n"
+                elif boot.is_stock_boot == 1:
+                    message += f"Stock Boot:               True\n"
+                if boot.is_init_boot == 0:
+                    message += f"Init Boot:                False\n"
+                elif boot.is_init_boot == 1:
+                    message += f"Init Boot:                True\n"
+                message += f"Date:                     {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                message += f"Firmware Fingerprint:     {boot.package_sig}\n"
+                message += f"Firmware:                 {boot.package_path}\n"
+                message += f"Type:                     {boot.package_type}\n"
 
-            if package_boot_count > 1:
-                message += f"\nINFO: Multiple PACKAGE_BOOT records found for {boot.boot_hash}."
-            print(f"{message}")
-            puml(f"note right\n{message}\nend note\n")
+                if package_boot_count > 1:
+                    message += f"\nINFO: Multiple PACKAGE_BOOT records found for {boot.boot_hash}."
+                print(f"{message}")
+                puml(f"note right\n{message}\nend note\n")
 
-            # get boot image info
-            get_boot_image_info(boot.boot_path)
-        else:
-            self.config.boot_id = None
-            self.config.selected_boot_md5 = None
-            if self.list.ItemCount == 0 :
-                if self.config.firmware_path:
-                    print("\nPlease Process the firmware!")
+                # get boot image info
+                boot_img_info = get_boot_image_info(boot.boot_path)
+                if boot_img_info:
+                    boot.spl = boot_img_info['com.android.build.boot.security_patch']
+                    boot.fingerprint = boot_img_info['com.android.build.boot.fingerprint']
             else:
-                print("\nPlease select a boot/init_boot!")
-        set_boot(boot)
-        set_flash_button_state(self)
-        self._update_custom_flash_options()
-        self.update_widget_states()
+                self.config.boot_id = None
+                self.config.selected_boot_md5 = None
+                if self.list.ItemCount == 0 :
+                    if self.config.firmware_path:
+                        print("\nPlease Process the firmware!")
+                else:
+                    print("\nPlease select a boot/init_boot!")
+            set_boot(boot)
+            set_flash_button_state(self)
+            self._update_custom_flash_options()
+            self.update_widget_states()
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting boot.")
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  _on_get_boot_info
@@ -4313,7 +4321,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             patch_boot_img(self, 'KernelSU_LKM')
             self.update_widget_states()
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching KernselSU LKM")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching KernelSU LKM")
             traceback.print_exc()
         self._on_spin('stop')
 

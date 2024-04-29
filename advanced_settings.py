@@ -451,11 +451,11 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.Parent.config.update_check = self.check_for_update_checkbox.GetValue()
 
         if self.check_for_disk_space_checkbox.GetValue() != self.Parent.config.check_for_disk_space:
-            print(f"Setting Check for Miminum Disk Space to: {self.check_for_disk_space_checkbox.GetValue()}")
+            print(f"Setting Check for Minimum Disk Space to: {self.check_for_disk_space_checkbox.GetValue()}")
         self.Parent.config.check_for_disk_space = self.check_for_disk_space_checkbox.GetValue()
 
         if self.check_for_bootloader_unlocked_checkbox.GetValue() != self.Parent.config.check_for_bootloader_unlocked:
-            print(f"Setting Check for Miminum Disk Space to: {self.check_for_bootloader_unlocked_checkbox.GetValue()}")
+            print(f"Setting Check for Minimum Disk Space to: {self.check_for_bootloader_unlocked_checkbox.GetValue()}")
         self.Parent.config.check_for_bootloader_unlocked = self.check_for_bootloader_unlocked_checkbox.GetValue()
 
         if self.check_for_firmware_hash_validity_checkbox.GetValue() != self.Parent.config.check_for_firmware_hash_validity:

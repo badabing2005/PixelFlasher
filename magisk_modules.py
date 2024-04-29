@@ -108,11 +108,11 @@ class MagiskModules(wx.Dialog):
         self.uninstall_module_button.SetToolTip(u"Uninstall magisk module.")
         self.uninstall_module_button.Enable(False)
 
-        # Play Integrity Fix Installbutton
+        # Play Integrity Fix Install button
         self.pif_install_button = wx.Button(self, wx.ID_ANY, u"Install Pif Module", wx.DefaultPosition, wx.DefaultSize, 0)
         self.pif_install_button.SetToolTip(u"Install Play Integrity Fix module.")
 
-        # ZygiskNext Installbutton
+        # ZygiskNext Install button
         self.zygisk_next_install_button = wx.Button(self, wx.ID_ANY, u"Install ZygiskNext Module", wx.DefaultPosition, wx.DefaultSize, 0)
         self.zygisk_next_install_button.SetToolTip(u"Install ZygiskNext module.")
 
@@ -647,7 +647,7 @@ class MagiskModules(wx.Dialog):
                 print(f"Module: {modules[i].name:<36} state has changed,       DISABLING the module ...")
                 res = device.disable_magisk_module(modules[i].dirname)
                 if res == 0:
-                    modules[i].state = 'disbled'
+                    modules[i].state = 'disabled'
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to disable module: {modules[i].name}")
         print('')

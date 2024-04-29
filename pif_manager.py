@@ -218,7 +218,7 @@ class PifManager(wx.Dialog):
             with contextlib.suppress(KeyError):
                 self.auto_check_pi_checkbox.SetValue(self.config.pif['auto_check_play_integrity'])
 
-        # option button PI Selectedion
+        # option button PI Selection
         choices = ["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store", "YASNAC"]
         self.pi_option = wx.RadioBox(self, choices=choices, style=wx.RA_VERTICAL)
         if self.config.pif:
@@ -808,7 +808,7 @@ class PifManager(wx.Dialog):
                     # page scroll
                     coord_scroll = self.get_pi_app_coords(child='scroll')
                     if coord_scroll == -1:
-                        print(f"Error: during swipping {self.pi_app} [scroll] screen.")
+                        print(f"Error: during swiping {self.pi_app} [scroll] screen.")
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
@@ -1471,7 +1471,7 @@ class PifManager(wx.Dialog):
     def ReProcessJsonFile(self, event):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed ReProcess Json File(s)")
         wildcard = "Property files (*.json)|*.json|All files (*.*)|*.*"
-        dialog = wx.FileDialog(self, "Choose one or multipe json files to reprocess", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+        dialog = wx.FileDialog(self, "Choose one or multiple json files to reprocess", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
         if dialog.ShowModal() == wx.ID_CANCEL:
             print("User cancelled file selection.")

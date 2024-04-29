@@ -9,7 +9,7 @@ try:
     import lzma
 except ImportError as e:
     print(f"Error importing lzma: {e}")
-    from backports import lzma
+    from backports import lzma # type: ignore
 
 import update_metadata_pb2 as um
 

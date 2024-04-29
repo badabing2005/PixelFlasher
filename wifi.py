@@ -168,7 +168,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
             if self.history:
                 i = 0
                 items = self.history.items()
-                # date in epoc is the key
+                # date in epoch is the key
                 for key, data in items:
                     action = data["action"]
                     ip = data["ip"]
@@ -360,7 +360,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
                     self.Parent.device_choice.Popup()
                 self._on_spin('stop')
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while disconnecting a wireless devcice")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while disconnecting a wireless device")
             puml("#red:Encountered an error while disconnecting a wireless device;\n")
             self._on_spin('stop')
             traceback.print_exc()

@@ -439,7 +439,7 @@ def adb_kill_server(self):
             puml(f"#red:Missing Android platform tools;\n")
             return -1
     except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while killing adb servere")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while killing adb server.")
         puml("#red:Encountered an error while killing adb server;\n")
         traceback.print_exc()
 
@@ -792,7 +792,7 @@ def process_file(self, file_type):
                     debug(f"Copying {boot_img_file}")
                     shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'init_boot.img'), follow_symlinks=True)
                     boot_file_name = 'init_boot.img'
-                    found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evalute to False
+                    found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evaluate to False
                     is_init_boot = True
             finally:
                 temp_dir.cleanup()
@@ -1083,6 +1083,8 @@ def process_flash_all_file(filepath):
 def setup_for_downgrade(self):
     try:
         device = get_phone()
+        if not device:
+            print("\nNo device is selected!")
         config_path = get_config_path()
         tmp_dir_full = os.path.join(config_path, 'tmp')
         current_boot_img = os.path.join(tmp_dir_full, 'current_boot.img')
@@ -1101,7 +1103,7 @@ def setup_for_downgrade(self):
         if not self.config.platform_tools_path:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
             print("Aborting ...\n")
-            puml("#red:Valid Anroid Platform Tools is not selected;\n}\n")
+            puml("#red:Valid Android Platform Tools is not selected;\n}\n")
             return
 
         # Make sure boot image is selected
@@ -1122,14 +1124,16 @@ def setup_for_downgrade(self):
         print(f"\n=== Getting AVB info for Target boot.img [{target_boot_img}] ...")
         target_boot_info = get_boot_image_info(target_boot_img)
 
-        if device.rooted:
+        if device and device.rooted:
             option_text = "Option 1"
             option = 1
             disabled_buttons = []
+            device_is_rooted = True
         else:
             option_text = "Option 2"
             option = 2
             disabled_buttons = [1]
+            device_is_rooted = False
 
         title = "Downgrade Patch Creation"
         buttons_text = ["Option 1", "Option 2", "Cancel"]
@@ -1161,7 +1165,7 @@ Depending on the state of your phone (rooted)<br/>
 PixelFlasher will offer available choices and recommend the best option to utilize for patching.<br/>
 Unless you know what you're doing, it is recommended that you take the default suggested selection.
 '''
-        message += f"<pre>Rooted:                       {device.rooted}\n"
+        message += f"<pre>Rooted:                       {device_is_rooted}\n"
         message += f"Target boot.security_patch:   {target_boot_info['com.android.build.boot.security_patch']}\n"
         message += f"Recommended Patch option:     {option_text}</pre>\n"
         clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
@@ -1232,7 +1236,6 @@ Unless you know what you're doing, it is recommended that you take the default s
                 puml("#pink:User cancelled patching;\n}\n")
                 return -1
 
-        print(f"The target boot.img is a downgrade.")
         print("Proceeding with downgrade patching ...")
         if checkbox_values[1]:
             print(f"\n=== Patching fingerprint in Current boot.img [{current_boot_img}] ...")
@@ -1372,7 +1375,7 @@ def drive_magisk(self, boot_file_name):
     # #     return
 
     # # # get view1 bounds / click coordinates
-    # # coords = get_ui_cooridnates(view_file, "Install")
+    # # coords = get_ui_coordinates(view_file, "Install")
 
     # # # Check for Display being locked again
     # # if not device.is_display_unlocked():
@@ -1433,7 +1436,7 @@ def drive_magisk(self, boot_file_name):
     #     return -1
 
     # # get view2 bounds / click coordinates
-    # coords = get_ui_cooridnates(view2, "Select and Patch a File")
+    # coords = get_ui_coordinates(view2, "Select and Patch a File")
 
     # # Check for Display being locked again
     # if not device.is_display_unlocked():
@@ -1478,7 +1481,7 @@ def drive_magisk(self, boot_file_name):
     #     return -1
 
     # # get view3 bounds / click coordinates
-    # coords = get_ui_cooridnates(view3, "Search this phone")
+    # coords = get_ui_coordinates(view3, "Search this phone")
 
     # # Check for Display being locked again
     # if not device.is_display_unlocked():
@@ -1552,7 +1555,7 @@ def drive_magisk(self, boot_file_name):
     #     return -1
 
     # # get view4 bounds / click coordinates
-    # coords = get_ui_cooridnates(view4, "LET'S GO")
+    # coords = get_ui_coordinate(view4, "LET'S GO")
 
     # # Check for Display being locked again
     # if not device.is_display_unlocked():
@@ -1601,7 +1604,7 @@ def drive_magisk(self, boot_file_name):
     #     return -1
 
     # # get view5 bounds / click coordinates (Save button)
-    # coords = get_ui_cooridnates(view5, f"{MAGISK_PKG_NAME}:id/action_save")
+    # coords = get_ui_coordinates(view5, f"{MAGISK_PKG_NAME}:id/action_save")
 
     # # Check for Display being locked again
     # if not device.is_display_unlocked():
@@ -1616,11 +1619,11 @@ def drive_magisk(self, boot_file_name):
 
     # # get view5 bounds / click coordinates (All Done)
     # coords = None
-    # coords = get_ui_cooridnates(view5, "- All done!")
+    # coords = get_ui_coordinates(view5, "- All done!")
     # if coords:
-    #     print("\nIt looks liks Patching was successful.")
+    #     print("\nIt looks like Patching was successful.")
     # else:
-    #     print("\nIt looks liks Patching was not successful.")
+    #     print("\nIt looks like Patching was not successful.")
 
     # end = time.time()
     # print(f"Magisk Version: {device.magisk_version}")
@@ -2407,7 +2410,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     if not self.config.platform_tools_path:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
         print("Aborting ...\n")
-        puml("#red:Valid Anroid Platform Tools is not selected;\n}\n")
+        puml("#red:Valid Android Platform Tools is not selected;\n}\n")
         return
 
     # Make sure the phone is in adb mode.
@@ -2630,7 +2633,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     puml("#red:Failed to transfer magiskboot to the phone;\n")
                     return
 
-    # KerlnelSU_LKM
+    # KernelSU_LKM
     elif patch_flavor == 'KernelSU_LKM':
         method = 81
         # check if KernelSU app is installed
@@ -2657,7 +2660,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     b = int(parts[1])
                     c = int(parts[2])
                     kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
-            filename = f"KernerlSU_{kernelsu_version}_{kernelsu_versionCode}.apk"
+            filename = f"KernelSU_{kernelsu_version}_{kernelsu_versionCode}.apk"
             download_file(kernelsu_url, filename)
             # install the apk
             res = device.install_apk(os.path.join(tmp_path, filename))
@@ -2719,7 +2722,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             print("Patching can not be performed, to correct this, either grant root access to adb shell (recommended) or unhide Magisk Manager.")
             print("And try again.")
             print("Aborting ...\n")
-            puml("#red:Hidden Magisk and root isnot granted;\n}\n")
+            puml("#red:Hidden Magisk and root is not granted;\n}\n")
             return
 
         # -------------------------------
@@ -2830,7 +2833,7 @@ This is a summary of available methods.<br/>
 
 2. If Magisk application is not hidden, PixelFlasher can unpack it and utilize it to create a patch without user interaction.<br/>
 
-3. PixelFlasher can programatically control (using UIAutomator) the user interface of the installed Magisk and click on buttons to create a patch.
+3. PixelFlasher can programmatically control (using UIAutomator) the user interface of the installed Magisk and click on buttons to create a patch.
 This method is not supported on all phones, and is prone to problems due to timing issues, screen being locked, or user interacting with the screen while PixelFlasher is creating a patch.
 This method is usually not recommended.<br/>
 
@@ -2840,7 +2843,7 @@ This method involves user interaction hence it is also not recommended, and it i
 
 5. PixelFlasher can create a patch from a Magisk App (apk) that you select and provide without installing the app.
 This is handy when you want to create a patch using Magisk that is different than what is currently installed.
-One common usecase would be when you want to create a patch with an older version of Magisk.
+One common use case would be when you want to create a patch with an older version of Magisk.
 
 Depending on the state of your phone (root, Magisk versions, Magisk hidden ...)
 PixelFlasher will offer available choices and recommend the best method to utilize for patching.
@@ -2908,7 +2911,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         # set_patched_with(apatch_app_version)
         patched_img = patch_apatch_script("app")
     else:
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexepected patch method.")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected patch method.")
         puml("#red:Unexpected patch method;\nnote right:Abort\n}\n", True)
         print("Aborting ...\n")
         return
@@ -3041,10 +3044,10 @@ Unless you know what you're doing, it is recommended that you take the default s
                 puml(f"note right:SHA1 {patched_sha1} matches the expected value\n")
         else:
             print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} NOTICE: The patched image file does not contain source boot's SHA1")
-            print("                            This is normal for older devices, but newer deviced should have it.")
+            print("                            This is normal for older devices, but newer devices should have it.")
             print("                            If you have a newer device, please double check if everything is ok.\n ")
             puml("#orange:The patched image file does not contain source boot's SHA1;\n")
-            puml(f"note right\nThis is normal for older devices, but newer deviced should have it.\nend note\n")
+            puml(f"note right\nThis is normal for older devices, but newer devices should have it.\nend note\n")
 
     if patch_flavor == "Custom":
         # Display save as dialog to save the patched file
@@ -3150,7 +3153,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
     if not get_adb():
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
-        puml("#red:Valid Anroid Platform Tools is not selected;\n}\n")
+        puml("#red:Valid Android Platform Tools is not selected;\n}\n")
         return -1
 
     device = get_phone()
@@ -3185,7 +3188,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             message += f"The selected Boot is for: {boot.hardware}\n\n"
             message += "Unless you know what you are doing, if you continue flashing\n"
             message += "you risk bricking your device, proceed only if you are absolutely\n"
-            message += "certian that this is what you want, you have been warned.\n\n"
+            message += "certain that this is what you want, you have been warned.\n\n"
             message += "Click OK to accept and continue.\n"
             message += "or Hit CANCEL to abort."
             print(f"\n*** Dialog ***\n{message}\n______________\n")
@@ -3384,8 +3387,16 @@ def flash_phone(self):
         puml("#red:Valid device is not selected;\n}\n")
         self.toast("Flash Option", "Valid device is not selected.")
         return -1
-
     device_id = device.id
+
+    # check for boot selection except for custom flash
+    if self.config.flash_mode != 'customFlash':
+        boot = get_boot()
+        if not boot:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select boot file.")
+            puml("#red:boot is not selected;\n}\n")
+            self.toast("Flash Option", "boot is not selected.")
+            return -1
 
     # Check if we're flashing older OTA
     if self.config.flash_mode == 'OTA':
@@ -3401,11 +3412,21 @@ def flash_phone(self):
             number2 = int(match2.group(1))
             print(f"OTA date:                     {number1}")
             print(f"Current firmware date:        {number2}\n")
-            if number1 < number2:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You can only sidload OTA that is equal or higher than the currently installed version.")
-                puml("#red:You can only sidload OTA that is equal or higher than the currently installed version.;\n}\n")
-                self.toast("Flash Option", "You can only sidload OTA that is equal or higher than the currently installed version.")
-                return -1
+            print(f"Target SPL:                   {boot.spl}\n")
+            print(f"Target Fingerprint:           {boot.fingerprint}\n")
+            if number1 < number2 and boot.spl < number2:
+                message = "You can only sideload OTA that is equal or higher than the currently installed version.\n"
+                message += "Alternatively, you can flash the full firmware image (with wipe data) to downgrade or patch the current boot image to allow a downgrade without wipe.\n"
+                message += "See Menu item: Dev Tools | AVB Prepare Downgrade Patch for further details.\n\n"
+                message += "If you still want to proceed, Click YES to accept and continue. or NO to Abort.\n"
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {message}")
+                puml("#red:You can only sideload OTA that is equal or higher than the currently installed version.;\n}\n")
+                dlg = wx.MessageDialog(None, message,'Confirm',wx.YES_NO | wx.ICON_EXCLAMATION)
+                result = dlg.ShowModal()
+                if result != wx.ID_YES:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled patching.")
+                    puml("#pink:User cancelled patching;\n}\n")
+                    return -1
 
     # confirm for wipe data
     wipe_flag = False
@@ -3456,7 +3477,7 @@ def flash_phone(self):
     else:
         # check for free space >= 5G
         if self.config.check_for_disk_space and (get_free_space() < 5 or get_free_space(get_config_path()) < 5):
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Please check available disk space, you do not have safe levels of availabe storage to flash without risk.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Please check available disk space, you do not have safe levels of available storage to flash without risk.")
             print("Aborting ...\n")
             puml("#red:Not enough disk space;\n}\n")
             self.toast("Flash action", "Not enough disk space.")
@@ -3506,7 +3527,6 @@ def flash_phone(self):
                 return -1
 
         package_dir_full = os.path.join(factory_images, package_sig)
-        boot = get_boot()
 
     message = ''
 
@@ -3708,7 +3728,7 @@ def flash_phone(self):
             message += f"The selected firmware is for: {get_firmware_model()}\n\n"
             message += "Unless you know what you are doing, if you continue flashing\n"
             message += "you risk bricking your device, proceed only if you are absolutely\n"
-            message += "certian that this is what you want, you have been warned.\n\n"
+            message += "certain that this is what you want, you have been warned.\n\n"
             message += "Click OK to accept and continue.\n"
             message += "or Hit CANCEL to abort."
             print(f"\n*** Dialog ***\n{message}\n______________\n")
@@ -3769,7 +3789,7 @@ def flash_phone(self):
         # ----------
         else:
             indent = ""
-            # Check if the patch file is made by Magsik Zygote64_32
+            # Check if the patch file is made by Magisk Zygote64_32
             if "zygote64_32" in boot.magisk_version.lower():
                 # Check we have Magisk Zygote64_32 rooted system already
                 warn = False
@@ -3794,7 +3814,7 @@ You can learn about it [here](https://xdaforums.com/t/magisk-magisk-zygote64_32-
 
 You have not selected the **Wipe Data** option.<br/>
 
-It is strongly recomended that you Cancel and abort flashing, choose the **Wipe Data** option before continuing to flash.<br/>
+It is strongly recommended that you Cancel and abort flashing, choose the **Wipe Data** option before continuing to flash.<br/>
 
 If you insist to continue, you can press the **Continue** button, otherwise please press the **Cancel** button.<br/>
 '''
@@ -3920,7 +3940,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     sdk_major_version = int(sdk_version_components[0])
                     if self.config.flash_mode == 'dryRun' and sdk_major_version < 34:
                         data_tmp = "\necho This is a test for fastbootd mode ...\n"
-                        data_tmp += "echo This process will wait for fastbootd indefinitly until it responds ...\n"
+                        data_tmp += "echo This process will wait for fastbootd indefinitely until it responds ...\n"
                         data_tmp += "echo WARNING! if your device does not boot to fastbootd PixelFlasher will hang and you would have to kill it.. ...\n"
                         data_tmp += "echo rebooting to fastbootd ...\n"
                         data_tmp += f"\"{get_fastboot()}\" -s {device_id} reboot fastboot\n"
@@ -3970,7 +3990,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         message += "fastboot commands, this could possibly take a long time and PixelFlasher\n"
         message += "will appear frozen. PLEASE BE PATIENT. \n"
         message += "In case it takes excessively long, it could possibly be due to improper or\n"
-        message += "bad fasboot drivers.\n"
+        message += "bad fastboot drivers.\n"
         message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
     message += "Do you want to continue to flash with the above options?\n"
     message += "You can also choose to edit the script before continuing,\nin case you want to customize it.(Only choose this if you know what you are doing)\n\n"
@@ -4273,7 +4293,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     def get_device_mode(expect_bootloader=False):
         nonlocal device
         mode = device.get_device_state(device_id=device_id, timeout=60, retry=3)
-        if mode:
+        if mode and mode != "ERROR":
             print(f"Currently the device is in {mode} mode.")
             if expect_bootloader and mode != "fastboot":
                 print("ERROR: Expected the device to be in bootloader mode")
@@ -4284,6 +4304,8 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             device = get_phone()
             return 0
         else:
+            if mode and mode == "ERROR":
+                print(f"Currently the device is in {mode} mode.")
             print("ERROR: Device could not be detected")
             print("Aborting ...\n")
             return -1
@@ -4355,9 +4377,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         # if Device is a Phone
         elif device.hardware not in PIXEL_WATCHES:
             res = get_device_mode(expect_bootloader=False)
-            # if res == -1:
-            #     refresh_and_done()
-            #     return -1
+            if res == -1:
+                refresh_and_done()
+                return -1
 
             # reboot to bootloader if flashing is necessary
             res = reboot_device_to_bootloader()
@@ -4383,7 +4405,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
 _If it is not, please hit the cancel button._
 
-The watch is waiting for user intercation which can not be programatically invoked.
+The watch is waiting for user interaction which can not be programmatically invoked.
 
 - Using touch, scroll and select **Reboot to bootloader**
 - Press the side button to apply.
@@ -4412,7 +4434,7 @@ or hit the **Cancel** button to abort.
                 message = '''
 ## Your watch should now be in Android Recovery
 
-The watch is waiting for user intercation which can not be programatically invoked.
+The watch is waiting for user interaction which can not be programmatically invoked.
 
 - Using touch, scroll and select **Reboot to system now**
 - Press the side button to apply.

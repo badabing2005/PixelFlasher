@@ -101,6 +101,7 @@ config_file_path = ''
 unlocked_devices = []
 window_shown = False
 
+
 # ============================================================================
 #                               Class Boot
 # ============================================================================
@@ -124,6 +125,8 @@ class Boot():
         self.is_stock_boot = None
         self.is_init_boot = None
         self.patch_source_sha1 = None
+        self.spl = None
+        self.fingerprint = None
 
 
 # ============================================================================
@@ -1198,7 +1201,7 @@ def check_latest_version():
     try:
         url = 'https://github.com/badabing2005/PixelFlasher/releases/latest'
         response = request_with_fallback(method='GET', url=url)
-        # look in history to find the 302, and get the loaction header
+        # look in history to find the 302, and get the location header
         location = response.history[0].headers['Location']
         # split by '/' and get the last item
         l_version = location.split('/')[-1]
@@ -1303,7 +1306,7 @@ def check_archive_contains_file(archive_file_path, file_to_check, nested=False, 
 
 
 # ============================================================================
-#                               Function check_zip_conatins_file
+#                               Function check_zip_contains_file
 # ============================================================================
 def check_zip_contains_file(zip_file_path, file_to_check, low_mem, nested=False, is_recursive=False):
     if low_mem:
@@ -1314,7 +1317,7 @@ def check_zip_contains_file(zip_file_path, file_to_check, low_mem, nested=False,
 
 
 # ============================================================================
-#                               Function check_zip_conatins_file_fast
+#                               Function check_zip_contains_file_fast
 # ============================================================================
 def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_recursive=False):
     try:
@@ -1512,7 +1515,7 @@ def find_file_by_prefix(directory, prefix):
 
 
 # ============================================================================
-#                               Function get_ui_cooridnates
+#                               Function get_ui_coordinates
 # ============================================================================
 def get_ui_cooridnates(xmlfile, search):
     with open(xmlfile, "r", encoding='ISO-8859-1', errors="replace") as fin:
@@ -1833,7 +1836,7 @@ def create_support_zip():
         support_dir_full = os.path.join(config_path, 'support')
         support_zip = os.path.join(tmp_dir_full, 'support.zip')
 
-        # if a previous support dir exist delete it allong with support.zip
+        # if a previous support dir exist delete it along with support.zip
         if os.path.exists(support_dir_full):
             debug("Deleting old support files ...")
             delete_all(support_dir_full)
@@ -1934,7 +1937,7 @@ def create_support_zip():
 #                               Function sanitize_file
 # ============================================================================
 def sanitize_file(filename):
-    debug(f"Santizing {filename} ...")
+    debug(f"Sanitizing {filename} ...")
     with contextlib.suppress(Exception):
         with open(filename, "rt", encoding='ISO-8859-1', errors="replace") as fin:
             data = fin.read()
@@ -1964,7 +1967,7 @@ def sanitize_file(filename):
 #                               Function sanitize_db
 # ============================================================================
 def sanitize_db(filename):
-    debug(f"Santizing {filename} ...")
+    debug(f"Sanitizing {filename} ...")
     con = sl.connect(filename)
     con.execute("PRAGMA secure_delete = ON;")
     cursor = con.cursor()
@@ -2332,7 +2335,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
                 device_dict = device.props.property
                 autofill = True
             else:
-                print("ERROR: Device is unavilable to add missing fields from device.")
+                print("ERROR: Device is unavailable to add missing fields from device.")
 
         # FINGERPRINT
         fp_ro_product_brand = ''

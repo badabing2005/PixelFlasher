@@ -1,4 +1,4 @@
-<img src="/images/icon-dark-128.png" align="left" />
+<img src="/images/icon-dark-128.png" alt="PixelFlasher Icon" align="left" />
   <h1> PixelFlasher </h1>
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Github Releases](https://img.shields.io/github/downloads/badabing2005/PixelFlasher/total.svg?style=flat)](https://github.com/badabing2005/PixelFlasher/releases)
@@ -195,7 +195,7 @@ Run `build.bat` on Windows or `build.sh` on Linux / MacOS.
 
 1. First thing to do is select Android™ Platform Tools, if Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it.  
 Otherwise you'd have to select where it is installed.  
-You can download the lastest Android™ Platform Tools by clicking the ![Image of link](/images/open-link-16.png) next to it.  
+You can download the latest Android™ Platform Tools by clicking the ![Image of link](/images/open-link-16.png) next to it.  
 If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)  
 2. Hit the `Scan` button to detect connected devices, the application will detect all connected devices  
 (in adb, fastboot, sideload, recovery modes) and populate the combo box (2).
@@ -240,7 +240,7 @@ The following details are listed.
       Features of this mode:
         - This will always flash to **inactive slot only**, (hence why the option to flash to both slots is disabled) similar to how OTA updates happen on the phone.
         - It will always be **Keep Data**, there is no option for **Wipe**, hence why the option is disabled.
-        - If something goes wrong during flashing, the active flash is uneffected and the phone boots back to active functional slot.
+        - If something goes wrong during flashing, the active flash is unaffected and the phone boots back to active functional slot.
         - If you flash to both slots (ie flash twice in a row) then both slots would be bootable.
         - Your phone's bootloader does not have to be unlocked to be able to flash full OTA image (stock boot only).
         - You cannot downgrade with OTA, the version being installed has to be equal or higher.
@@ -256,7 +256,7 @@ The following details are listed.
 **Note**: Unlike the previous versions of the PixelFlasher, all the options are dynamic, i.e. depending on what you select before clicking the Flash button, there is no more concept of prepared package.
 PixelFlasher will first present you the selected options and ask for your confirmation if you want to proceed with flashing.
 12. Monitor the **console** output and observe the performed actions and their outcomes.
-13. In case of trouble, click on **Support** button to generate santized (redacted) support logs archive.
+13. In case of trouble, click on **Support** button to generate sanitized (redacted) support logs archive.
 
 ### Expert Mode
 
@@ -313,7 +313,7 @@ Select the appropriate flash options.
 This program could not have been possible without their easy to follow guides.  
 I strongly encourage all beginners to follow those guides rather than use this program, it is important to understand the basic steps involved before diving into one click tools or advanced tasks.
 - Marcel Stör's [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher) source code which jump started my introduction to [wxPython](https://www.wxpython.org/) and eventually this program.
-- [wxPython Team](https://wxpython.org/) for their corss-platform GUI toolkit for Python.
+- [wxPython Team](https://wxpython.org/) for their cross-platform GUI toolkit for Python.
 - [JackMcKew](https://github.com/JackMcKew) for pyinstaller Github Actions.
 - Endless counts of [xda](https://xdaforums.com/) members and their posts that tirelessly answer questions and share tools. Too many to enumerate.
 - Artwork / graphics / icons, designed and supplied by: [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://xdaforums.com/m/t-ryder.3705546/) based on [material-design-icons](https://github.com/google/material-design-icons/blob/master/LICENSE)

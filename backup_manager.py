@@ -369,7 +369,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
             with gzip.open(backup_file, 'wb', compresslevel=9) as f_out:
                 shutil.copyfileobj(f_in, f_out)
         if not os.path.exists(backup_file):
-            print(f"ERROR: Coud not create {backup_file}")
+            print(f"ERROR: Could not create {backup_file}")
             return -1
         # mkdir the directory with su
         res = self.device.create_dir(f"/data/magisk_backup_{file_sha1}", True)
@@ -455,7 +455,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 return
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The dumped partition does not contain source boot's SHA1")
-            print("This is normal for older devices, but newer deviced should have it.")
+            print("This is normal for older devices, but newer devices should have it.")
             print("Cannot create automatic backup file, you can still manually select and create one.")
             print("Aborting ...")
             return

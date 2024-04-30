@@ -3986,10 +3986,19 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     message += f"Stock Boot:               False\n"
                 elif boot.is_stock_boot == 1:
                     message += f"Stock Boot:               True\n"
+
+                # get boot image info
+                boot_img_info = get_boot_image_info(boot.boot_path)
                 if boot.is_init_boot == 0:
                     message += f"Init Boot:                False\n"
+                    if boot_img_info:
+                        boot.spl = boot_img_info['com.android.build.boot.security_patch']
+                        boot.fingerprint = boot_img_info['com.android.build.boot.fingerprint']
                 elif boot.is_init_boot == 1:
                     message += f"Init Boot:                True\n"
+                    if boot_img_info:
+                        boot.spl = boot_img_info['com.android.build.init_boot.security_patch']
+                        boot.fingerprint = boot_img_info['com.android.build.init_boot.fingerprint']
                 message += f"Date:                     {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 message += f"Firmware Fingerprint:     {boot.package_sig}\n"
                 message += f"Firmware:                 {boot.package_path}\n"
@@ -3999,12 +4008,6 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     message += f"\nINFO: Multiple PACKAGE_BOOT records found for {boot.boot_hash}."
                 print(f"{message}")
                 puml(f"note right\n{message}\nend note\n")
-
-                # get boot image info
-                boot_img_info = get_boot_image_info(boot.boot_path)
-                if boot_img_info:
-                    boot.spl = boot_img_info['com.android.build.boot.security_patch']
-                    boot.fingerprint = boot_img_info['com.android.build.boot.fingerprint']
             else:
                 self.config.boot_id = None
                 self.config.selected_boot_md5 = None

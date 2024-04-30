@@ -1166,7 +1166,8 @@ PixelFlasher will offer available choices and recommend the best option to utili
 Unless you know what you're doing, it is recommended that you take the default suggested selection.
 '''
         message += f"<pre>Rooted:                       {device_is_rooted}\n"
-        message += f"Target boot.security_patch:   {target_boot_info['com.android.build.boot.security_patch']}\n"
+        with contextlib.suppress(Exception):
+            message += f"Target boot.security_patch:   {target_boot_info['com.android.build.boot.security_patch']}\n"
         message += f"Recommended Patch option:     {option_text}</pre>\n"
         clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
         print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
@@ -1222,10 +1223,19 @@ Unless you know what you're doing, it is recommended that you take the default s
 
         # Compare the two boot image info objects and do validations to make sure the target is a downgrade and the current matches current OS version
         print(f"\nChecking if the target boot.img is a downgrade ...")
-        current_patch = current_boot_info['com.android.build.boot.security_patch']
-        target_patch = target_boot_info['com.android.build.boot.security_patch']
+        current_patch = '1970-01-01'
+        with contextlib.suppress(Exception):
+            current_patch = current_boot_info['com.android.build.boot.security_patch']
+        target_patch = '1970-01-01'
+        with contextlib.suppress(Exception):
+            target_patch = target_boot_info['com.android.build.boot.security_patch']
         print(f"Current Security Patch: {current_patch}")
         print(f"Target Security Patch: {target_patch}")
+        if current_patch == '1970-01-01' or target_patch == '1970-01-01':
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not determine the security patch level of the boot images.")
+            puml("#red:Could not determine the security patch level of the boot images;\n")
+            print("Aborting ...\n")
+            return -1
         if target_patch >= current_patch and not checkbox_values[1]:
             print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?")
             dlg = wx.MessageDialog(None, "WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?",'Confirm',wx.YES_NO | wx.ICON_EXCLAMATION)

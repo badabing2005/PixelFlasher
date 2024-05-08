@@ -4000,7 +4000,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         message += "fastboot commands, this could possibly take a long time and PixelFlasher\n"
         message += "will appear frozen. PLEASE BE PATIENT. \n"
         message += "In case it takes excessively long, it could possibly be due to improper or\n"
-        message += "bad fastboot drivers.\n"
+        message += "faulty fastboot drivers.\n"
         message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
     message += "Do you want to continue to flash with the above options?\n"
     message += "You can also choose to edit the script before continuing,\nin case you want to customize it.(Only choose this if you know what you are doing)\n\n"

@@ -2658,7 +2658,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.pif_info_menu_item:                ['device_attached'],
                 self.props_as_json_menu_item:           ['device_attached'],
                 self.xml_view_menu_item:                ['device_attached'],
-                self.cancel_ota_menu_item:              ['device_attached', 'device_mode_adb'],
+                self.cancel_ota_menu_item:              ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.push_menu:                         ['device_attached'],
                 self.push_file_to_tmp_menu:             ['device_attached'],
                 self.push_file_to_download_menu:        ['device_attached'],

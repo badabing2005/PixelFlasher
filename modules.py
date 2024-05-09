@@ -390,7 +390,7 @@ def get_flash_settings(self):
         message += f"Android SDK Version:    {get_sdk_version()}\n"
         message += f"Device:                 {self.config.device} {device.hardware} {device.build}\n"
         message += f"Factory Image:          {self.config.firmware_path}\n"
-        if p_custom_rom :
+        if p_custom_rom and p_custom_rom_path:
             message += f"Custom Rom:             {str(p_custom_rom)}\n"
             message += f"Custom Rom File:        {p_custom_rom_path}\n"
             rom_file = ntpath.basename(p_custom_rom_path)
@@ -4105,9 +4105,15 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             self.refresh_device(device_id)
             device = get_phone()
             if device is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
-                print("Aborting ...\n")
-                return -1
+                # sleep 5 seconds and try again for good measure
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.\n  Retrying in 5 seconds ...")
+                time.sleep(5)
+                self.refresh_device(device_id)
+                device = get_phone()
+                if device is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Still unable to detect the device.")
+                    print("Aborting ...\n")
+                    return -1
             print("Checking if the bootloader is unlocked ...")
             if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD') or self.config.flash_mode == 'OTA'):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")

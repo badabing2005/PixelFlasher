@@ -34,6 +34,11 @@ from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from cryptography import x509
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
 
 import lz4.frame
 import requests
@@ -1835,6 +1840,7 @@ def create_support_zip():
         tmp_dir_full = os.path.join(config_path, 'tmp')
         support_dir_full = os.path.join(config_path, 'support')
         support_zip = os.path.join(tmp_dir_full, 'support.zip')
+        temp_dir = tempfile.gettempdir()
 
         # if a previous support dir exist delete it along with support.zip
         if os.path.exists(support_dir_full):
@@ -1925,9 +1931,41 @@ def create_support_zip():
         if os.path.exists(file_path):
             sanitize_db(file_path)
 
+        # create symmetric key
+        session_key = Fernet.generate_key()
+
         # zip support folder
         debug(f"Zipping {support_dir_full} ...")
-        shutil.make_archive(support_dir_full, 'zip', support_dir_full)
+        zip_file_path = shutil.make_archive(support_dir_full, 'zip', support_dir_full)
+
+        # delete support folder
+        delete_all(support_dir_full)
+
+        # encrypt support.zip with session key
+        symmetric_cipher = Fernet(session_key)
+        with open(zip_file_path, 'rb') as f:
+            encrypted_data = symmetric_cipher.encrypt(f.read())
+        encrypted_zip_file_path = zip_file_path + '.pf'
+        with open(encrypted_zip_file_path, 'wb') as f:
+            f.write(encrypted_data)
+
+        # delete unencrypted support.zip
+        os.remove(zip_file_path)
+
+        # encrypt session key with RSA public key
+        encrypted_session_key_path = os.path.join(tmp_dir_full, 'pf.dat')
+        encrypt_sk(session_key=session_key, output_file_name=encrypted_session_key_path, public_key=None)
+
+        # zip encrypted support.zip and session key
+        final_zip_file_path = zip_file_path
+        with zipfile.ZipFile(final_zip_file_path, 'w') as final_zip:
+            final_zip.write(encrypted_zip_file_path, arcname='support.pf')
+            final_zip.write(encrypted_session_key_path, arcname='pf.dat')
+
+        # delete encrypted support.zip and session key
+        os.remove(encrypted_zip_file_path)
+        os.remove(encrypted_session_key_path)
+
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while creating support.zip.")
         traceback.print_exc()
@@ -1937,64 +1975,107 @@ def create_support_zip():
 #                               Function sanitize_file
 # ============================================================================
 def sanitize_file(filename):
-    debug(f"Sanitizing {filename} ...")
-    with contextlib.suppress(Exception):
-        with open(filename, "rt", encoding='ISO-8859-1', errors="replace") as fin:
-            data = fin.read()
-        data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
-        data = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
-        data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(device\s+\')(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(\(usb\)\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(superkey:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(./boot_patch.sh\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(Flashing device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(waiting for\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
-        data = re.sub(r'(\S\  \((?:adb|f\.b|rec|sid)\)   )(.+?)(\s+.*)', r'\1REDACTED\3', data, flags=re.IGNORECASE)
-        data = re.sub(r'(?<=List of devices attached\n)((?:\S+\s+device\n)+)', lambda m: re.sub(r'(\S+)(\s+device)', r'REDACTED\2', m.group(0)), data, flags=re.MULTILINE)
-        data = re.sub(r'(?<=debug: fastboot devices:\n)((?:\S+\s+fastboot\n)+)', lambda m: re.sub(r'(\S+)(\s+fastboot)', r'REDACTED\2', m.group(0)), data, flags=re.MULTILINE)
-        with open(filename, "wt", encoding='ISO-8859-1', errors="replace") as fin:
-            fin.write(data)
+    try:
+        debug(f"Sanitizing {filename} ...")
+        with contextlib.suppress(Exception):
+            with open(filename, "rt", encoding='ISO-8859-1', errors="replace") as fin:
+                data = fin.read()
+            data = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
+            data = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', data, flags=re.IGNORECASE)
+            data = re.sub(r'(\"device\":\s+)(\"\w+?\")', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(device\sid:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(device:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(device\s+\')(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(\(usb\)\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(superkey:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(./boot_patch.sh\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(Rebooting device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(Flashing device\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(waiting for\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(Serial\sNumber\.+\:\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(fastboot(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(adb(.exe)?\"? -s\s+)(\w+)', r'\1REDACTED', data, flags=re.IGNORECASE)
+            data = re.sub(r'(\S\  \((?:adb|f\.b|rec|sid)\)   )(.+?)(\s+.*)', r'\1REDACTED\3', data, flags=re.IGNORECASE)
+            data = re.sub(r'(?<=List of devices attached\n)((?:\S+\s+device\n)+)', lambda m: re.sub(r'(\S+)(\s+device)', r'REDACTED\2', m.group(0)), data, flags=re.MULTILINE)
+            data = re.sub(r'(?<=debug: fastboot devices:\n)((?:\S+\s+fastboot\n)+)', lambda m: re.sub(r'(\S+)(\s+fastboot)', r'REDACTED\2', m.group(0)), data, flags=re.MULTILINE)
+            with open(filename, "wt", encoding='ISO-8859-1', errors="replace") as fin:
+                fin.write(data)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while sanitizing {filename}")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function sanitize_db
 # ============================================================================
 def sanitize_db(filename):
-    debug(f"Sanitizing {filename} ...")
-    con = sl.connect(filename)
-    con.execute("PRAGMA secure_delete = ON;")
-    cursor = con.cursor()
-    with con:
-        data = con.execute("SELECT id, file_path FROM BOOT")
-        for row in data:
-            id = row[0]
-            file_path = row[1]
-            if sys.platform == "win32":
-                file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
-            else:
-                file_path_sanitized = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
-            cursor.execute("Update BOOT set file_path = ? where id = ?", (file_path_sanitized, id,))
-            con.commit()
-    with con:
-        data = con.execute("SELECT id, file_path FROM PACKAGE")
-        for row in data:
-            id = row[0]
-            file_path = row[1]
-            if sys.platform == "win32":
-                file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
-            else:
-                file_path_sanitized = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
-            cursor.execute("Update PACKAGE set file_path = ? where id = ?", (file_path_sanitized, id,))
-            con.commit()
-    # Wipe the Write-Ahead log data
-    con.execute("VACUUM;")
+    try:
+        debug(f"Sanitizing {filename} ...")
+        con = sl.connect(filename)
+        con.execute("PRAGMA secure_delete = ON;")
+        cursor = con.cursor()
+        with con:
+            data = con.execute("SELECT id, file_path FROM BOOT")
+            for row in data:
+                id = row[0]
+                file_path = row[1]
+                if sys.platform == "win32":
+                    file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
+                else:
+                    file_path_sanitized = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
+                cursor.execute("Update BOOT set file_path = ? where id = ?", (file_path_sanitized, id,))
+                con.commit()
+        with con:
+            data = con.execute("SELECT id, file_path FROM PACKAGE")
+            for row in data:
+                id = row[0]
+                file_path = row[1]
+                if sys.platform == "win32":
+                    file_path_sanitized = re.sub(r'(\\Users\\+)(?:.*?)(\\+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
+                else:
+                    file_path_sanitized = re.sub(r'(\/Users\/+)(?:.*?)(\/+)', r'\1REDACTED\2', file_path, flags=re.IGNORECASE)
+                cursor.execute("Update PACKAGE set file_path = ? where id = ?", (file_path_sanitized, id,))
+                con.commit()
+        # Wipe the Write-Ahead log data
+        con.execute("VACUUM;")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while sanitizing db {filename}.")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                               Function encrypt_file
+# ============================================================================
+def encrypt_sk(session_key, output_file_name, public_key=None):
+    try:
+        if public_key is None:
+            public_key = serialization.load_pem_public_key(
+                b"""-----BEGIN PUBLIC KEY-----
+                MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj/OLsTAnmLVDR0tpTCEF
+                TrEi0touCGRCRPmScmZpyY0+b+Iv52gFJMmYaqC+HUbd3F9tdLWFwWmRFSYXFXaV
+                STb1F8DbG+dqWMTG6HtilVl8yfX/ihftlfl/Zj6mtMj3BmMNe475GohwZTdfXXkF
+                hPRxrx2WIVlzrZAozVdfLCj6o7iCq27Wbsuis7x5LtlM5ojraK7lYPMlCXigR+2N
+                VDsaAzCaYZAxn2YXNrtLRcmwsRxEH1YnJgQiH7CqJz8w10ArkOxvZ/vbLq3Yrokd
+                JPcPqPWn9Zu0Rb9q3U42ghuO7f5Laqt0ANf4nHaMK+Q3sWZvf/rVpOIlrLVCaa/H
+                swIDAQAB
+                -----END PUBLIC KEY-----""",
+                backend=default_backend()
+            )
+
+        encrypted_session_key = public_key.encrypt(
+            session_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+        with open(output_file_name, 'wb') as f:
+            f.write(encrypted_session_key)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an in function encrypt_sk")
+        traceback.print_exc()
 
 
 # ============================================================================

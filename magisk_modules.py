@@ -136,6 +136,10 @@ class MagiskModules(wx.Dialog):
         self.disable_denylist_button = wx.Button(self, wx.ID_ANY, u"Disable Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_denylist_button.SetToolTip(u"Disable Magisk denylist")
 
+        # Refresh
+        self.refresh_button = wx.Button(self, wx.ID_ANY, u"Refresh", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.refresh_button.SetToolTip(u"Refresh Magisk modules list.")
+
         # static line
         self.staticline1 = wx.StaticLine(parent=self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LI_HORIZONTAL)
 
@@ -154,6 +158,7 @@ class MagiskModules(wx.Dialog):
         self.disable_zygisk_button.SetMinSize((button_width, -1))
         self.enable_denylist_button.SetMinSize((button_width, -1))
         self.disable_denylist_button.SetMinSize((button_width, -1))
+        self.refresh_button.SetMinSize((button_width, -1))
 
         # Label for managing denylist and SU Permissions
         management_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature.")
@@ -189,6 +194,7 @@ class MagiskModules(wx.Dialog):
         v_buttons_sizer.Add(self.disable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.enable_denylist_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.disable_denylist_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.refresh_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.staticline1, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.AddStretchSpacer()
 
@@ -224,6 +230,7 @@ class MagiskModules(wx.Dialog):
         self.disable_zygisk_button.Bind(wx.EVT_BUTTON, self.onDisableZygisk)
         self.enable_denylist_button.Bind(wx.EVT_BUTTON, self.onEnableDenylist)
         self.disable_denylist_button.Bind(wx.EVT_BUTTON, self.onDisableDenylist)
+        self.refresh_button.Bind(wx.EVT_BUTTON, self.onRefresh)
         self.cancel_button.Bind(wx.EVT_BUTTON, self.onCancel)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected, self.list)
         self.html.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
@@ -302,6 +309,7 @@ class MagiskModules(wx.Dialog):
                     self.systemless_hosts_button.Enable(False)
                     self.enable_denylist_button.Enable(False)
                     self.disable_denylist_button.Enable(False)
+                    self.refresh_button.Enable(False)
 
                 self.list.SetItemColumnImage(i, 0, -1)
                 with contextlib.suppress(Exception):
@@ -435,6 +443,12 @@ class MagiskModules(wx.Dialog):
         self._on_spin('start')
         device.magisk_enable_denylist(True)
         self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  onRefresh
+    # -----------------------------------------------
+    def onRefresh(self, e):
+        self.refresh_modules()
 
     # -----------------------------------------------
     #                  onDisableDenylist

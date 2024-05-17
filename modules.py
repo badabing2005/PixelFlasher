@@ -74,7 +74,7 @@ def check_platform_tools(self):
             adb = os.path.join(self.config.platform_tools_path, adb_binary)
             fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
             if os.path.exists(fastboot) and os.path.exists(adb):
-                print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Selected Platform Tools Path:\n{self.config.platform_tools_path}.")
+                print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Selected Platform Tools Path:\n{self.config.platform_tools_path}")
                 adb = os.path.join(self.config.platform_tools_path, adb_binary)
                 fastboot = os.path.join(self.config.platform_tools_path, fastboot_binary)
                 set_adb(adb)
@@ -3420,11 +3420,16 @@ def flash_phone(self):
         if match1 and match2:
             number1 = int(match1.group(1))
             number2 = int(match2.group(1))
+            if boot.spl:
+                boot_spl_date = datetime.strptime(boot.spl, "%Y-%m-%d")
+                boot_spl_formatted = int(boot_spl_date.strftime("%y%m%d"))
+            else:
+                boot_spl_formatted = 99999999
             print(f"OTA date:                     {number1}")
-            print(f"Current firmware date:        {number2}\n")
-            print(f"Target SPL:                   {boot.spl}\n")
+            print(f"Current firmware date:        {number2}")
+            print(f"Target SPL:                   {boot_spl_formatted}")
             print(f"Target Fingerprint:           {boot.fingerprint}\n")
-            if number1 < number2 and boot.spl < number2:
+            if number1 < number2 and boot_spl_formatted < number2:
                 message = "You can only sideload OTA that is equal or higher than the currently installed version.\n"
                 message += "Alternatively, you can flash the full firmware image (with wipe data) to downgrade or patch the current boot image to allow a downgrade without wipe.\n"
                 message += "See Menu item: Dev Tools | AVB Prepare Downgrade Patch for further details.\n\n"

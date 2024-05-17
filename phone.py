@@ -3788,6 +3788,7 @@ def get_connected_devices():
     try:
         if get_adb():
             theCmd = f"\"{get_adb()}\" devices"
+            debug(theCmd)
             response = run_shell(theCmd, timeout=60)
             if response.stdout:
                 debug(f"adb devices:\n{response.stdout}")
@@ -3821,6 +3822,7 @@ def get_connected_devices():
 
         if get_fastboot():
             theCmd = f"\"{get_fastboot()}\" devices"
+            debug(theCmd)
             response = run_shell(theCmd)
             for device in response.stdout.split('\n'):
                 debug(f"fastboot devices:\n{response.stdout}")

@@ -322,9 +322,13 @@ class GoogleImagesBaseMenu(wx.Menu):
             download_thread.start()
 
     def on_refresh_google_images(self, event):
+        print("Refreshing Google Images Menu ...")
+        self.parent._on_spin('start')
         self.parent.config.google_images_last_checked = False
         # Refresh the Google Images menu
         self.parent.update_google_images_menu()
+        print("Completed refreshing Google Images Menu.")
+        self.parent._on_spin('stop')
 
 # ============================================================================
 #                               Class GoogleImagesMenu
@@ -410,9 +414,9 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
             phone_menu_item.SetBitmap(phone_icon)
             watches_menu_item = self.AppendSubMenu(self.watches_menu, "Watches")
             watches_menu_item.SetBitmap(watch_icon)
-            # self.AppendSeparator()
-            # refresh_images_menu_item = self.Append(wx.ID_ANY, "Refresh images list")
-            # self.Bind(wx.EVT_MENU, self.on_refresh_google_images, refresh_images_menu_item)
+            self.AppendSeparator()
+            refresh_images_menu_item = self.Append(wx.ID_ANY, "Refresh images list")
+            self.Bind(wx.EVT_MENU, self.on_refresh_google_images, refresh_images_menu_item)
 
             if download_available:
                 self.parent.toast("Updates are available", f"There are updates available for your device.\nCheck Google Images menu.")
@@ -751,7 +755,7 @@ class PixelFlasher(wx.Frame):
 
                     # select configured device
                     debug("select configured device")
-                    self._select_configured_device()
+                    self._select_configured_device(is_init=True)
                     self._refresh_ui()
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for connected devices during initialization.")
@@ -2392,7 +2396,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     # -----------------------------------------------
     #                  _select_configured_device
     # -----------------------------------------------
-    def _select_configured_device(self):
+    def _select_configured_device(self, is_init=False):
         try:
             if self.config.device:
                 count = 0
@@ -2402,7 +2406,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                         set_phone_id(device.id)
                         puml(f":Select Device;\n", True)
                         self._print_device_details(device)
-                        self.update_google_images_menu()
+                        self.update_google_images_menu(update_icons_only=not is_init)
                     count += 1
             elif self.device_choice.StringSelection:
                 device = self.device_choice.StringSelection
@@ -2416,7 +2420,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                         set_phone_id(device.id)
                         puml(f":Select Device;\n", True)
                         self._print_device_details(device)
-                        self.update_google_images_menu()
+                        self.update_google_images_menu(update_icons_only=not is_init)
             else:
                 set_phone_id(None)
                 self.device_label.Label = "ADB Connected Devices"
@@ -2439,12 +2443,15 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         print("Updating connected devices ...")
         if look_for_device:
             selected_device_id = look_for_device
+            debug(f"Looking for requested device: {look_for_device}")
         else:
             selected_device = self.device_choice.StringSelection
+            debug(f"Checking a previous device choice: [{selected_device}]")
             selected_device_id = None
             if selected_device:
                 # selected_device_id = selected_device.split()[2]
                 selected_device_id = self.config.device
+                debug(f"Looking for previously selected device: {selected_device_id}")
         self.device_choice.Clear()
         phones = get_phones()
         for device in phones:
@@ -2452,6 +2459,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 device_details = device.get_device_details()
                 self.device_choice.Append(device_details)
                 if selected_device_id and device.id == selected_device_id:
+                    debug(f"Found device: {selected_device_id}, selecting it ...")
                     self.device_choice.SetStringSelection(device_details)  # Select the matching device ID
                     self._select_configured_device()
         self._reflect_slots()
@@ -2778,8 +2786,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     wx.YieldIfNeeded()
                     if device.id == d_id:
                         set_phone_id(device.id)
+                        self.config.device = device.id
                         self._print_device_details(device)
-                        self.update_google_images_menu()
+                        self.update_google_images_menu(update_icons_only=True)
                 self._reflect_slots()
             self.update_widget_states()
         except Exception as e:
@@ -2829,6 +2838,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     # -----------------------------------------------
     def _on_select_platform_tools(self, event):
         try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated select platform tools")
+            print("==============================================================================")
             self._on_spin('start')
             self.config.platform_tools_path = event.GetPath().replace("'", "")
             check_platform_tools(self)
@@ -2847,6 +2859,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     # -----------------------------------------------
     def update_firmware_selection(self, path):
         try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated update firmware selection")
+            print("==============================================================================")
             if not os.path.exists(path):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file {path} does not exist")
                 return -1
@@ -4863,14 +4878,37 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     # -----------------------------------------------
     #                  update_google_images_menu
     # -----------------------------------------------
-    def update_google_images_menu(self):
-        self.google_images_menu.reset_menu_id()
-        menu_index = self.menuBar.FindMenu("Google Images")
-        self.menuBar.Remove(menu_index)
-        self.google_images_menu = GoogleImagesMenu(self)
-        self.menuBar.Insert(menu_index, self.google_images_menu, "Google Images")
-        self.Refresh()
-        self.Update()
+    def update_google_images_menu(self, update_icons_only=False):
+        try:
+            if update_icons_only:
+                device = get_phone()
+                device_icon = images.star_green_24.GetBitmap()
+                empty_bitmap =wx.NullBitmap
+
+                if device:
+                    current_device = device.hardware
+                else:
+                    current_device = "UNKNOWN_DEVICE"
+
+                for menu in [self.google_images_menu.phones_menu, self.google_images_menu.watches_menu]:
+                    for item in menu.GetMenuItems():
+                        # Clear the icon
+                        item.SetBitmap(empty_bitmap)
+
+                        # If the item's label matches the current device, set the icon
+                        if current_device in item.GetItemLabelText():
+                            item.SetBitmap(device_icon)
+            else:
+                self.google_images_menu.reset_menu_id()
+                menu_index = self.menuBar.FindMenu("Google Images")
+                self.menuBar.Remove(menu_index)
+                self.google_images_menu = GoogleImagesMenu(self)
+                self.menuBar.Insert(menu_index, self.google_images_menu, "Google Images")
+            self.Refresh()
+            self.Update()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating Google Images Menu")
+            traceback.print_exc()
 
 
 # ============================================================================

@@ -1605,23 +1605,35 @@ class PifManager(wx.Dialog):
                 selected_folder = folderDialog.GetPath()
 
             self._on_spin('start')
-            pif_files = [file for file in os.listdir(selected_folder) if file.endswith(".json")]
-            for pif_file in pif_files:
-                with open(os.path.join(selected_folder, pif_file), 'r', encoding="ISO-8859-1", errors="replace") as f:
-                    data = json5.load(f)
-                with contextlib.suppress(KeyError):
-                    brand = data['BRAND']
-                with contextlib.suppress(KeyError):
-                    model = data['MODEL']
-                label = f"{brand} {model}"
-                pif_data = json.dumps(data, indent=4)
-                pif_hash = json_hexdigest(pif_data)
-                # Add to favorites
-                print(f"Importing: {label} ...")
-                self.favorite_pifs.setdefault(pif_hash, {})["label"] = label
-                self.favorite_pifs.setdefault(pif_hash, {})["date_added"] = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
-                self.favorite_pifs.setdefault(pif_hash, {})["pif"] = json.loads(pif_data)
-                wx.YieldIfNeeded()
+            count = 0
+            for dirpath, dirnames, filenames in os.walk(selected_folder):
+                pif_files = [file for file in filenames if file.endswith(".json")]
+                for pif_file in pif_files:
+                    with open(os.path.join(dirpath, pif_file), 'r', encoding="ISO-8859-1", errors="replace") as f:
+                        data = json5.load(f)
+                    with contextlib.suppress(KeyError):
+                        brand = data['BRAND']
+                    with contextlib.suppress(KeyError):
+                        model = data['MODEL']
+                    with contextlib.suppress(KeyError):
+                        id = data['ID']
+                    sp = ''
+                    with contextlib.suppress(KeyError):
+                        sp = data['SECURITY_PATCH']
+                    if sp != '':
+                        label = f"{brand} {model} {sp}"
+                    else:
+                        label = f"{brand} {model} {id}"
+                    pif_data = json.dumps(data, indent=4)
+                    pif_hash = json_hexdigest(pif_data)
+                    # Add to favorites
+                    print(f"Importing: {label} ...")
+                    count += 1
+                    self.favorite_pifs.setdefault(pif_hash, {})["label"] = label
+                    self.favorite_pifs.setdefault(pif_hash, {})["date_added"] = f"{datetime.now():%Y-%m-%d %H:%M:%S}"
+                    self.favorite_pifs.setdefault(pif_hash, {})["pif"] = json.loads(pif_data)
+                    wx.YieldIfNeeded()
+            print(f"Processed {count} pifs.")
 
             set_favorite_pifs(self.favorite_pifs)
             with open(get_favorite_pifs_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:

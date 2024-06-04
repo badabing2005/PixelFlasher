@@ -6534,3 +6534,17 @@ downgrade_24 = PyEmbeddedImage(
     b'8QYRuiQ5Lh7BFhAb5iQmU4TyUQsI5TGy5QnWaGSbDNVIcwsA0aiBGYyKH2AAAAAASUVORK5C'
     b'YII=')
 
+#----------------------------------------------------------------------
+check_otacerts_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAB6klEQVRIS+WVUU7CQBCGZ2hr'
+    b'fMQb4A3wBoULICcQTyAkYHwT3oyYgCcQT6An0PUE9gZyA/toKOn6z+Ji27QFjT4Ym/SB3dn/'
+    b'6/wzszD98sO/rE//AOB3qUque8LMPuysiaVMOog1BepqOdpkcalF/unOIWs9scI5YqHWug2Q'
+    b'KgIVAvyBV8fmIw5W8SoIjYg5JMcJKY7rAJ9jvS7C2GsUQXIBYgt73ouIM9M0XkQjNaUw+5XN'
+    b'U2+iNXWxHj6Oo728LPIBfa8LYbFG6Shq54lbscbAkyx9ZDHMq0kK4J/t1mi5PEJBO+K7Zm6r'
+    b'y8V9WSE/6nSHwt8/jJftbOwakPHcxGnH2VcXb/NSwMrO1yKbDCDpubGFqEdRNC+zJgmFTThi'
+    b'HgVrg4fLqGf3V4C+ew5bhtt4npdNAmC3AxT9QH4YwLpQW3heapfUEC1c0boVEz2pcTSzAGnJ'
+    b'Gjpmb1tbykDGFcCkfhbwjLU6jDwANdh0+Cv7BpAYGAXvGl8RyMaiGzsQPUnVIDW5RDP4d/2d'
+    b'TD7EZUDl+jB31Occ9F0fnSRTufGx8+GvJr4lWafEmY/tgKYnGUNT8XC/oEZS9CKSbYbmwLtB'
+    b'bAdxc7xyKRKmfy2+btONn1wSkICEWfEfAZgmGbh3MVdu8+6tv/+f/A4tw+YZxQyScgAAAABJ'
+    b'RU5ErkJggg==')
+

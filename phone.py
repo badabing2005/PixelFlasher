@@ -3541,6 +3541,34 @@ This is a special Magisk build\n\n
             traceback.print_exc()
 
     # ----------------------------------------------------------------------------
+    #                               method exec_cmd
+    # ----------------------------------------------------------------------------
+    def exec_cmd(self, cmd, with_su = False):
+        if self.mode != 'adb':
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not execute command: {cmd}. Device is not in ADB mode.")
+            return -1, None
+        if cmd and self.mode == 'adb':
+            try:
+                if with_su:
+                    if self.rooted:
+                        print(f"Executing command: {cmd} on the device as root ...")
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'{cmd}\'\""
+                    else:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not execute {cmd}. Device is not rooted.")
+                else:
+                    print(f"Executing command: {cmd} on the device ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell {cmd}"
+                res = run_shell(theCmd)
+                data = res.stdout
+                print(f"Return Code: {res.returncode}")
+                return data
+
+            except Exception:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing exec_cmd")
+                puml("#red:Encountered an error while performing exec_cmd;\n")
+                traceback.print_exc()
+
+    # ----------------------------------------------------------------------------
     #                               method perform_package_action
     # ----------------------------------------------------------------------------
     def perform_package_action(self, pkg, action, isSystem=False):

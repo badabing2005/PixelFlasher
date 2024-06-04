@@ -1328,26 +1328,30 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
     try:
         if not is_recursive:
             debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested}")
-        with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
-            for name in zip_file.namelist():
-                if name.endswith(f'/{file_to_check}') or name == file_to_check:
-                    if not is_recursive:
-                        debug(f"Found: {name}\n")
-                    return name
-                elif nested and name.endswith('.zip'):
-                    with zip_file.open(name, 'r') as nested_zip_file:
-                        nested_zip_data = nested_zip_file.read()
-                    with io.BytesIO(nested_zip_data) as nested_zip_stream:
-                        with zipfile.ZipFile(nested_zip_stream, 'r') as nested_zip:
-                            nested_file_path = check_zip_contains_file_fast(nested_zip_stream, file_to_check, nested=True, is_recursive=True)
-                            if nested_file_path:
-                                if not is_recursive:
-                                    debug(f"Found: {name}/{nested_file_path}\n")
-                                return f'{name}/{nested_file_path}'
-            debug(f"file: {file_to_check} was NOT found\n")
+        try:
+            with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+                for name in zip_file.namelist():
+                    if name.endswith(f'/{file_to_check}') or name == file_to_check:
+                        if not is_recursive:
+                            debug(f"Found: {name}\n")
+                        return name
+                    elif nested and name.endswith('.zip'):
+                        with zip_file.open(name, 'r') as nested_zip_file:
+                            nested_zip_data = nested_zip_file.read()
+                        with io.BytesIO(nested_zip_data) as nested_zip_stream:
+                            with zipfile.ZipFile(nested_zip_stream, 'r') as nested_zip:
+                                nested_file_path = check_zip_contains_file_fast(nested_zip_stream, file_to_check, nested=True, is_recursive=True)
+                                if nested_file_path:
+                                    if not is_recursive:
+                                        debug(f"Found: {name}/{nested_file_path}\n")
+                                    return f'{name}/{nested_file_path}'
+        except zipfile.BadZipFile:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {zip_file_path} is not a zip file or is corrupt, skipping this file ...")
             return ''
+        debug(f"file: {file_to_check} was NOT found\n")
+        return ''
     except Exception as e:
-        print(f"Failed to check_zip_contains_file_fast. Reason: {e}")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_zip_contains_file_fast. Reason: {e}")
         traceback.print_exc()
         return ''
 
@@ -1360,7 +1364,7 @@ def check_img_contains_file(img_file_path, file_to_check):
         result = subprocess.run([get_path_to_7z(), 'l', img_file_path], capture_output=True, text=True)
 
         if "Unexpected end of archive" in result.stderr:
-            print(f"Warning: Unexpected end of archive in {img_file_path}")
+            print(f"⚠️ Warning: Unexpected end of archive in {img_file_path}")
             return []
 
         file_list = result.stdout.split('\n')
@@ -1381,7 +1385,7 @@ def check_img_contains_file(img_file_path, file_to_check):
 
         return matches
     except Exception as e:
-        print(f"Failed to check_img_contains_file. Reason: {e}")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_img_contains_file. Reason: {e}")
         traceback.print_exc()
         return []
 
@@ -1395,41 +1399,55 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
             debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested} Low Memory version.")
 
         stack = [(zip_file_path, '')]
+        temp_files = []
 
         while stack:
             current_zip, current_path = stack.pop()
 
-            with zipfile.ZipFile(current_zip, 'r') as zip_file:
-                for name in zip_file.namelist():
-                    full_name = os.path.join(current_path, name)
-                    debug(f"Checking: {full_name}")
+            try:
+                with zipfile.ZipFile(current_zip, 'r') as zip_file:
+                    # Check for corrupted files
+                    corrupted_file = zip_file.testzip()
+                    if corrupted_file is not None:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Corrupted file found: {corrupted_file} in {current_zip} - skipping this zip file ...")
+                        continue
 
-                    # if full_name.endswith(f'/{file_to_check}') or full_name == file_to_check:
-                    if os.path.basename(full_name) == file_to_check:
-                        debug(f"Found: {full_name}")
-                        return full_name
-                    elif nested and name.endswith('.zip'):
-                        debug(f"Entering nested zip: {full_name}")
-                        with zip_file.open(name, 'r') as nested_zip_file:
-                            nested_zip_data = nested_zip_file.read()
+                    for name in zip_file.namelist():
+                        full_name = os.path.join(current_path, name)
+                        debug(f"Checking: {full_name}")
 
-                        with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
-                            temp_zip_file.write(nested_zip_data)
-                            temp_zip_path = temp_zip_file.name
+                        if os.path.basename(full_name) == file_to_check:
+                            debug(f"Found: {full_name}")
+                            return full_name
+                        elif nested and name.endswith('.zip'):
+                            debug(f"Entering nested zip: {full_name}")
+                            with zip_file.open(name, 'r') as nested_zip_file:
+                                nested_zip_data = nested_zip_file.read()
 
-                        # Close the temporary zip file
-                        temp_zip_file.close()
+                            with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
+                                temp_zip_file.write(nested_zip_data)
+                                temp_zip_path = temp_zip_file.name
 
-                        stack.append((temp_zip_path, full_name))
-                        if is_recursive:
-                            stack.append((temp_zip_path, full_name))  # Add the nested zip to be processed recursively
+                            # Close the temporary zip file
+                            temp_zip_file.close()
 
-                        # Clean up the temporary zip file
-                        os.remove(temp_zip_path)
+                            stack.append((temp_zip_path, full_name))
+                            temp_files.append(temp_zip_path)
+                            if is_recursive:
+                                stack.append((temp_zip_path, full_name))  # Add the nested zip to be processed recursively
+            except zipfile.BadZipFile:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {current_zip} is not a zip file or is corrupt, skipping this file ...")
+                continue
+
         debug(f"File {file_to_check} was NOT found")
+
+        # Clean up the temporary zip files
+        for temp_file in temp_files:
+            os.remove(temp_file)
+
         return ''
     except Exception as e:
-        print(f"Failed to check_zip_contains_file_lowmem. Reason: {e}")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_zip_contains_file_lowmem. Reason: {e}")
         traceback.print_exc()
         return ''
 
@@ -1599,7 +1617,7 @@ def extract_sha1(binfile, length=8):
 def compare_sha1(SHA1, Extracted_SHA1):
     try:
         if len(SHA1) != len(Extracted_SHA1):
-            print("Warning!: The SHA1 values have different lengths")
+            print("⚠️ Warning!: The SHA1 values have different lengths")
             return 0
         else:
             num_match = 0
@@ -3428,7 +3446,7 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False):
             response.raise_for_status()
     except requests.exceptions.SSLError:
         # Retry with SSL certificate verification disabled
-        print(f"WARNING! Encountered SSL certification error while connecting to: {url}")
+        print(f"⚠️ WARNING! Encountered SSL certification error while connecting to: {url}")
         print("Retrying with SSL certificate verification disabled. ...")
         print("For security, you should double check and make sure your system or communication is not compromised.")
         if check_internet():

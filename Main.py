@@ -659,7 +659,7 @@ class PixelFlasher(wx.Frame):
                             # self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
                             set_firmware_hash_validity(True)
                         else:
-                            print(f"WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
+                            print(f"⚠️ WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
                             puml("#orange:Unable to match the checksum in the filename;\n")
                             self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
                             set_firmware_hash_validity(False)
@@ -1283,6 +1283,10 @@ class PixelFlasher(wx.Frame):
         self.cancel_ota_menu_item = device_menu.Append(wx.ID_ANY, "Cancel OTA Update", "Cancels and Resets OTA updates by Google (Not PixelFlasher)")
         self.cancel_ota_menu_item.SetBitmap(images.cancel_ota_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_cancel_ota, self.cancel_ota_menu_item)
+        # Check otacerts  Menu
+        self.check_otacerts_menu_item = device_menu.Append(wx.ID_ANY, "Check otacerts", "Used to see if ROM is signed or not.")
+        self.check_otacerts_menu_item.SetBitmap(images.check_otacerts_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_check_otacerts, self.check_otacerts_menu_item)
         # # Verity / Verification Menu
         # self.verity_menu_item = device_menu.Append(wx.ID_ANY, "Verity / Verification Status", "Check Verity / Verification Status")
         # self.verity_menu_item.SetBitmap(images.shield_24.GetBitmap())
@@ -2036,11 +2040,29 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _on_cancel_ota
     # -----------------------------------------------
     def _on_cancel_ota(self, event):
-        self._on_spin('start')
-        timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel OTA Update")
-        device = get_phone()
-        device.reset_ota_update()
+        try:
+            self._on_spin('start')
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel OTA Update")
+            device = get_phone()
+            device.reset_ota_update()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while cancelling OTA Update")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_check_otacerts
+    # -----------------------------------------------
+    def _on_check_otacerts(self, event):
+        try:
+            self._on_spin('start')
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Check OTA Certs")
+            device = get_phone()
+            res = device.exec_cmd("unzip -l /system/etc/security/otacerts.zip")
+            print(res)
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking OTA Certs")
+            traceback.print_exc()
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -2292,15 +2314,15 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     message += f"    Slot B Verity:                   {enabled_disabled(device.vbmeta.verity_b)}\n"
                     message += f"    Slot B Verification:             {enabled_disabled(device.vbmeta.verification_b)}\n"
                     if ( device.vbmeta.verity_a != device.vbmeta.verity_b ) or ( device.vbmeta.verification_a != device.vbmeta.verification_b ):
-                        alert += "    WARNING! WARNING! WARNING!       Slot a verity / verification does not match slot b verity / verification"
+                        alert += "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
                 else:
                     message += f"    Verity:                          {enabled_disabled(device.vbmeta.verity_a)}\n"
                     message += f"    Verification:                    {enabled_disabled(device.vbmeta.verification_a)}\n"
                 # self.config.disable_verification is a disable flag, which is the inverse of device.vbmeta.verification
                 if ( device.vbmeta.verity_a == self.config.disable_verity ) or ( device.vbmeta.verity_b == self.config.disable_verity ):
-                    alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+                    alert += "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
                 if ( device.vbmeta.verification_a == self.config.disable_verification ) or ( device.vbmeta.verification_b == self.config.disable_verification ):
-                    alert += "    WARNING! WARNING! WARNING!       There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+                    alert += "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
                     alert += "                                     This has a device wipe implications, please double check.\n"
                 message += alert
                 if alert != '':
@@ -2318,7 +2340,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             return
         for bad_kernel in BANNED_KERNELS:
             if bad_kernel in kernel:
-                print(f"WARNING! Problematic Kernel: {kernel} is installed. Play Integrity would possibly fail.")
+                print(f"⚠️ WARNING! Problematic Kernel: {kernel} is installed. Play Integrity would possibly fail.")
                 print(f"Kernel string: {bad_kernel} is known to be banned.\n")
                 self.toast("WARNING! Banned Kernel", f"Kernel string: {bad_kernel} is known to be banned.\nPlay Integrity would possibly fail.")
                 puml(f"#red:Kernel: {kernel} is detected;\n")
@@ -2332,10 +2354,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             bad_m_app_version = False
             if m_version in KNOWN_BAD_MAGISKS:
                 bad_m_version = True
-                print(f"WARNING! Problematic Magisk Version:         {m_version} is installed. Advised not to use this version.")
+                print(f"⚠️ WARNING! Problematic Magisk Version:         {m_version} is installed. Advised not to use this version.")
             if m_app_version in KNOWN_BAD_MAGISKS:
                 bad_m_app_version = True
-                print(f"WARNING! Problematic Magisk Manager Version: {m_app_version} is installed. Advised not to use this version.")
+                print(f"⚠️ WARNING! Problematic Magisk Manager Version: {m_app_version} is installed. Advised not to use this version.")
 
             if bad_m_version and bad_m_app_version:
                 dlg = wx.MessageDialog(None, f"Magisk Version: {m_version} is detected.\nMagisk Manager Version: {m_app_version} is detected.\n\nThese versions of Magisk are known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Versions.',wx.OK | wx.ICON_EXCLAMATION)
@@ -2667,6 +2689,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.props_as_json_menu_item:           ['device_attached'],
                 self.xml_view_menu_item:                ['device_attached'],
                 self.cancel_ota_menu_item:              ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.check_otacerts_menu_item:          ['device_attached', 'device_mode_adb'],
                 self.push_menu:                         ['device_attached'],
                 self.push_file_to_tmp_menu:             ['device_attached'],
                 self.push_file_to_download_menu:        ['device_attached'],
@@ -4006,13 +4029,15 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 boot_img_info = get_boot_image_info(boot.boot_path)
                 if boot.is_init_boot == 0:
                     message += f"Init Boot:                False\n"
-                    if boot_img_info:
+                    if boot_img_info and boot_img_info['com.android.build.boot.security_patch']:
                         boot.spl = boot_img_info['com.android.build.boot.security_patch']
+                    if boot_img_info and boot_img_info['com.android.build.boot.fingerprint']:
                         boot.fingerprint = boot_img_info['com.android.build.boot.fingerprint']
                 elif boot.is_init_boot == 1:
                     message += f"Init Boot:                True\n"
-                    if boot_img_info:
+                    if boot_img_info and boot_img_info['com.android.build.init_boot.security_patch']:
                         boot.spl = boot_img_info['com.android.build.init_boot.security_patch']
+                    if boot_img_info and boot_img_info['com.android.build.init_boot.fingerprint']:
                         boot.fingerprint = boot_img_info['com.android.build.init_boot.fingerprint']
                 message += f"Date:                     {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 message += f"Firmware Fingerprint:     {boot.package_sig}\n"
@@ -4122,7 +4147,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                                 print(f"Deleting {boot_img_path} ...")
                                 os.remove(boot_img_path)
                         else:
-                            print(f"Warning: Boot file: {boot.boot_path} does not exist")
+                            print(f"⚠️ Warning: Boot file: {boot.boot_path} does not exist")
                     except Exception as e:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                         puml("#red:Encountered an error;\n", True)

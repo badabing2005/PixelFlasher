@@ -1318,6 +1318,16 @@ def drive_magisk(self, boot_file_name):
     # device = get_phone()
     # config_path = get_config_path()
 
+    # if not device:
+    #     print("\nNo device is selected!\n Aborting ...\n")
+    #     return -1
+
+    # # Wake up the touch screen
+    # print("Waking up the touch screen")
+    # theCmd = f"\"{get_adb()}\" -s {device.id} shell input keyevent 26"
+    # debug(theCmd)
+    # res = run_shell(theCmd)
+
     # if not device.is_display_unlocked():
     #     title = "Display is Locked!"
     #     message =  "ERROR: Your phone display is Locked.\n\n"

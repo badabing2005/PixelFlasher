@@ -22,7 +22,7 @@ jobs:
       - name: Calculate date threshold
         id: calculate_date
         run: |
-          date_threshold=$(date -u -d '15 days ago' +%s)
+          date_threshold=$(date -u -d '7 days ago' +%s)
           echo "date_threshold=$date_threshold" >> $GITHUB_ENV
           echo "Debug: Date threshold: $date_threshold"
         shell: bash

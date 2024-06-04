@@ -2,7 +2,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '6.9.5.0'
+VERSION = '6.9.6.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -27,6 +27,7 @@ XIAOMI_URL = "https://sourceforge.net/projects/xiaomi-eu-multilang-miui-roms/rss
 FREEMANURL = "https://codeload.github.com/TheFreeman193/PIFS/zip/refs/heads/main"
 SCRCPYURL = "https://github.com/Genymobile/scrcpy/releases/latest"
 PIXEL_WATCHES = ['eos', 'aurora', 'r11', 'r11btwifi']
+# https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/page-518#post-89308909
 BANNED_KERNELS = [
     '-AICP',
     '-arter97',
@@ -47,6 +48,7 @@ BANNED_KERNELS = [
     '-lineage-',
     '-LineageOS',
     '-lineageos',
+    '-mokee'
     '-MoRoKernel',
     '-Noble',
     '-Optimus',

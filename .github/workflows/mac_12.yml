@@ -1,4 +1,4 @@
-name: Build for MacOS 11
+name: Build for MacOS 12
 
 env:
   ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,8 +33,7 @@ jobs:
 
       - name: Uninstall Pythons other than 3.11
         run: |
-          brew uninstall --ignore-dependencies python@3.10
-          brew uninstall --ignore-dependencies python@3.12
+          brew uninstall --ignore-dependencies python@3.12 || true
           echo "doing brew list"
           brew list
           echo "getting directory list for /usr/local/Cellar"

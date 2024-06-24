@@ -134,6 +134,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_firmware_hash_validity_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check for firmware hash validity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.check_for_firmware_hash_validity_checkbox.SetToolTip(u"Checks for sha256 portion to be in the image filename to detect Pixel compatible image.")
 
+        # Keep temporary support files option
+        self.keep_temporary_support_files_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Keep temporary support files", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.keep_temporary_support_files_checkbox.SetToolTip(u"It keeps the temporary support files.\nUseful for inspecting what data is included in support.zip.")
+
         # Force codepage
         self.force_codepage_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Force codepage to", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
@@ -221,6 +225,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_disk_space_checkbox.SetValue(self.Parent.config.check_for_disk_space)
         self.check_for_bootloader_unlocked_checkbox.SetValue(self.Parent.config.check_for_bootloader_unlocked)
         self.check_for_firmware_hash_validity_checkbox.SetValue(self.Parent.config.check_for_firmware_hash_validity)
+        self.keep_temporary_support_files_checkbox.SetValue(self.Parent.config.keep_temporary_support_files)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.override_kmi.SetValue(self.Parent.config.override_kmi)
@@ -276,6 +281,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add((0, 0))
 
         fgs1.Add(self.check_for_firmware_hash_validity_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.keep_temporary_support_files_checkbox, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
@@ -461,6 +469,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if self.check_for_firmware_hash_validity_checkbox.GetValue() != self.Parent.config.check_for_firmware_hash_validity:
             print(f"Setting Check for Firmware Hash Validity to: {self.check_for_firmware_hash_validity_checkbox.GetValue()}")
         self.Parent.config.check_for_firmware_hash_validity = self.check_for_firmware_hash_validity_checkbox.GetValue()
+
+        if self.keep_temporary_support_files_checkbox.GetValue() != self.Parent.config.keep_temporary_support_files:
+            print(f"Setting Keep temporary support files to: {self.keep_temporary_support_files_checkbox.GetValue()}")
+        self.Parent.config.keep_temporary_support_files = self.keep_temporary_support_files_checkbox.GetValue()
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):

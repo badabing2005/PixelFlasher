@@ -195,12 +195,12 @@ class PifManager(wx.Dialog):
         if self.config.enable_bulk_prop:
             self.process_bulk_prop_button.Show()
 
-        # Process Google Factory Image
-        self.process_pixel_img_button = wx.Button(self, wx.ID_ANY, u"Process Pixel Image", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.process_pixel_img_button.SetToolTip(u"Process a Pixel Factory Image and get a print from it.")
-        self.process_pixel_img_button.Hide()
+        # Process Image
+        self.process_img_button = wx.Button(self, wx.ID_ANY, u"Process Image", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.process_img_button.SetToolTip(u"Process an image and get a print from it.")
+        self.process_img_button.Hide()
         if self.config.enable_pixel_img_process:
-            self.process_pixel_img_button.Show()
+            self.process_img_button.Show()
 
         # Check for Auto Push pif.json
         self.auto_update_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Update pif.json", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -253,7 +253,7 @@ class PifManager(wx.Dialog):
         self.cleanup_dg_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
         self.process_bulk_prop_button.SetMinSize((button_width, -1))
-        self.process_pixel_img_button.SetMinSize((button_width, -1))
+        self.process_img_button.SetMinSize((button_width, -1))
         self.auto_update_pif_checkbox.SetMinSize((button_width, -1))
         self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
         self.disable_uiautomator_checkbox.SetMinSize((button_width, -1))
@@ -273,7 +273,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.process_bulk_prop_button, 0, wx.TOP | wx.RIGHT, 10)
-        v_buttons_sizer.Add(self.process_pixel_img_button, 0, wx.TOP | wx.RIGHT, 10)
+        v_buttons_sizer.Add(self.process_img_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.auto_update_pif_checkbox, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.auto_check_pi_checkbox, 0, wx.ALL, 10)
         v_buttons_sizer.Add(self.pi_option, 0, wx.TOP, 10)
@@ -348,7 +348,7 @@ class PifManager(wx.Dialog):
         self.cleanup_dg_button.Bind(wx.EVT_BUTTON, self.CleanupDG)
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
         self.process_bulk_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildPropFolder)
-        self.process_pixel_img_button.Bind(wx.EVT_BUTTON, self.ProcessPixelImg)
+        self.process_img_button.Bind(wx.EVT_BUTTON, self.ProcessImg)
         self.pi_checker_button.Bind(wx.EVT_BUTTON, self.PlayIntegrityCheck)
         self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.XiaomiPif)
         self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.FreemanPif)
@@ -1071,21 +1071,23 @@ class PifManager(wx.Dialog):
 
 
     # -----------------------------------------------
-    #                  ProcessPixelImg
+    #                  ProcessImg
     # -----------------------------------------------
-    def ProcessPixelImg(self, e):
-        file_dialog = wx.FileDialog(self, "Select a Pixel Factory Image", wildcard="Pixel Factory files (*.zip)|*.zip")
+    def ProcessImg(self, e):
+        file_dialog = wx.FileDialog(self, "Select a Device Image", wildcard="Device image files (*.zip)|*.zip")
         if file_dialog.ShowModal() == wx.ID_OK:
             file_path = file_dialog.GetPath()
             self._on_spin('start')
-            self.console_stc.SetValue(f"Processing {file_path} ...\nPlease be patient this could take some time ...")
+            wx.CallAfter(self.console_stc.SetValue, f"Processing {file_path} ...\nPlease be patient this could take some time ...")
             props_dir = get_pif_from_image(file_path)
             # prop_files = get files from the props_dir (single level) and store them in a list
             if props_dir:
                 prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
                 self.process_props(prop_files)
             else:
-                print
+                wx.CallAfter(self.console_stc.SetValue, "Image format not supported")
+                self.console_stc.Refresh()
+                self.console_stc.Update()
             self._on_spin('stop')
 
     # -----------------------------------------------

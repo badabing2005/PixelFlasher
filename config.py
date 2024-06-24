@@ -81,6 +81,7 @@ class Config():
         self.enable_bulk_prop = False
         self.enable_pixel_img_process = False
         self.override_kmi = ''
+        self.keep_temporary_support_files = False
 
         self.toolbar = {
             'tb_position': 'top',
@@ -266,6 +267,8 @@ class Config():
                     conf.enable_pixel_img_process = data['enable_pixel_img_process']
                 with contextlib.suppress(KeyError):
                     conf.override_kmi = data['override_kmi']
+                with contextlib.suppress(KeyError):
+                    conf.keep_temporary_support_files = data['keep_temporary_support_files']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -443,7 +446,8 @@ class Config():
             'toolbar': self.toolbar,  # Save the toolbar settings as well
             'pif': self.pif,  # Save the pif settings as well
             'scrcpy': self.scrcpy,  # Save the scrcpy settings as well
-            'override_kmi': self.override_kmi
+            'override_kmi': self.override_kmi,
+            'keep_temporary_support_files': self.keep_temporary_support_files
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

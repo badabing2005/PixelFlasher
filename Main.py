@@ -48,6 +48,7 @@ from package_manager import PackageManager
 from partition_manager import PartitionManager
 from phone import get_connected_devices
 from runtime import *
+from my_tools import MyToolsDialog
 
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
@@ -449,7 +450,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                         menu_id = wx.NewId()
                         menu_item = submenu_ota.Append(menu_id, menu_label)
                         self.parent.Bind(wx.EVT_MENU, lambda event, u=download_entry['url']: self.on_download(u), menu_item)
-                        if int(download_entry['date']) != int(date_filter):
+                        if date_filter and int(download_entry['date']) != int(date_filter):
                             menu_item.SetBitmap(images.download_24.GetBitmap())
                             download_flag = True
 
@@ -460,7 +461,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                         menu_id = wx.NewId()
                         menu_item = submenu_factory.Append(menu_id, menu_label)
                         self.parent.Bind(wx.EVT_MENU, lambda event, u=download_entry['url']: self.on_download(u), menu_item)
-                        if int(download_entry['date']) != int(date_filter):
+                        if date_filter and int(download_entry['date']) != int(date_filter):
                             menu_item.SetBitmap(images.download_24.GetBitmap())
                             download_flag = True
 
@@ -478,6 +479,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while building Google Images Popup Menu.")
             traceback.print_exc()
 
+
 # ============================================================================
 #                               Class PixelFlasher
 # ============================================================================
@@ -487,6 +489,7 @@ class PixelFlasher(wx.Frame):
         self.config = Config.load(config_file)
         self.init_complete = False
         self.wipe = False
+        self.tools = []
         set_config(self.config)
         init_db()
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
@@ -1221,8 +1224,11 @@ class PixelFlasher(wx.Frame):
         # Create the Toolbar menu
         tb_menu = wx.Menu()
 
-        # Create the Tools menu
+        # Create the Dev Tools menu
         tools_menu = wx.Menu()
+
+        # Create the My Tools menu
+        my_tools_menu = wx.Menu()
 
         # Create the Help menu
         help_menu = wx.Menu()
@@ -1371,7 +1377,7 @@ class PixelFlasher(wx.Frame):
         self.bootloader_unlock_menu.SetBitmap(images.unlock_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_unlock_bootloader, self.bootloader_unlock_menu)
 
-        # Tools Menu Items
+        # Dev Tools Menu Items
         # ----------------
         # check keybox.xml
         self.check_keybox_menu = tools_menu.Append(wx.ID_ANY, "Check keybox.xml", "Check keybox.xml")
@@ -1385,6 +1391,14 @@ class PixelFlasher(wx.Frame):
         self.prep_downgrade_patch_menu = tools_menu.Append(wx.ID_ANY, "AVB - Prepare Downgrade Patch", "Create Downgrade Patch")
         self.prep_downgrade_patch_menu.SetBitmap(images.downgrade_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_prep_downgrade_patch, self.prep_downgrade_patch_menu)
+
+        # My Tools Menu Items
+        # ----------------
+        # Customize My Tools
+        self.customize_my_tools_menu = my_tools_menu.Append(wx.ID_ANY, "Customize My Tools", "Add / Edit / Delete Custom menu items")
+        self.customize_my_tools_menu.SetBitmap(images.wrench_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_customize_my_tools, self.customize_my_tools_menu)
+        self.customize_my_tools_menu.Enable(False)
 
         # Toolbar Menu Items
         # ------------------
@@ -1515,8 +1529,8 @@ class PixelFlasher(wx.Frame):
         self.linksMenuItem11 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Watches")
         self.linksMenuItem12 = links.Append(wx.ID_ANY, "Factory Images for Pixel Watches")
         links.AppendSeparator()
-        self.linksMenuItem13 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Beta 14")
-        self.linksMenuItem14 = links.Append(wx.ID_ANY, "Factory Images for Pixel Beta 14")
+        self.linksMenuItem13 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Beta 15")
+        self.linksMenuItem14 = links.Append(wx.ID_ANY, "Factory Images for Pixel Beta 15")
         self.linksMenuItem1.SetBitmap(images.guide_24.GetBitmap())
         self.linksMenuItem2.SetBitmap(images.guide_24.GetBitmap())
         self.linksMenuItem3.SetBitmap(images.guide_24.GetBitmap())
@@ -1579,8 +1593,10 @@ class PixelFlasher(wx.Frame):
         self.menuBar.Append(file_menu, "&File")
         # Add the Device menu to the menu bar
         self.menuBar.Append(device_menu, "&Device")
-        # Add the Tools menu to the menu bar
+        # Add the Dev Tools menu to the menu bar
         self.menuBar.Append(tools_menu, "Dev Tools")
+        # Add the My Tools menu to the menu bar
+        self.menuBar.Append(my_tools_menu, "My Tools")
         # Create an instance of GoogleImagesMenu
         self.google_images_menu = GoogleImagesMenu(self)
         # Append GoogleImagesMenu to the menu bar
@@ -1913,8 +1929,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.linksMenuItem10.GetId(): (FACTORY_IMAGES_FOR_PIXEL_DEVICES, "Factory Images for Pixel Phones, Tablets"),
                 self.linksMenuItem11.GetId(): (FULL_OTA_IMAGES_FOR_WATCH_DEVICES, "Full OTA Images for Pixel Watches"),
                 self.linksMenuItem12.GetId(): (FACTORY_IMAGES_FOR_WATCH_DEVICES, "Factory Images for Pixel Watches"),
-                self.linksMenuItem13.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 14"),
-                self.linksMenuItem14.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 14"),
+                self.linksMenuItem13.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 15"),
+                self.linksMenuItem14.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 15"),
             }
 
             if clicked_id in link_info:
@@ -3865,6 +3881,22 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_customize_my_tools
+    # -----------------------------------------------
+    def _on_customize_my_tools(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Customize My Tools")
+            print("==============================================================================")
+            puml(":Customize My Tools;\n", True)
+            dlg = MyToolsDialog(self, title='Customize My Tools')
+            dlg.ShowModal()
+            dlg.Destroy()
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+
+    # -----------------------------------------------
     #                  _on_get_image_info
     # -----------------------------------------------
     def _on_get_image_info(self, event):
@@ -4029,15 +4061,15 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 boot_img_info = get_boot_image_info(boot.boot_path)
                 if boot.is_init_boot == 0:
                     message += f"Init Boot:                False\n"
-                    if boot_img_info and boot_img_info['com.android.build.boot.security_patch']:
+                    if boot_img_info and 'com.android.build.boot.security_patch' in boot_img_info:
                         boot.spl = boot_img_info['com.android.build.boot.security_patch']
-                    if boot_img_info and boot_img_info['com.android.build.boot.fingerprint']:
+                    if boot_img_info and 'com.android.build.boot.fingerprint' in boot_img_info:
                         boot.fingerprint = boot_img_info['com.android.build.boot.fingerprint']
                 elif boot.is_init_boot == 1:
                     message += f"Init Boot:                True\n"
-                    if boot_img_info and boot_img_info['com.android.build.init_boot.security_patch']:
+                    if boot_img_info and 'com.android.build.init_boot.security_patch' in boot_img_info:
                         boot.spl = boot_img_info['com.android.build.init_boot.security_patch']
-                    if boot_img_info and boot_img_info['com.android.build.init_boot.fingerprint']:
+                    if boot_img_info and 'com.android.build.init_boot.fingerprint' in boot_img_info:
                         boot.fingerprint = boot_img_info['com.android.build.init_boot.fingerprint']
                 message += f"Date:                     {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 message += f"Firmware Fingerprint:     {boot.package_sig}\n"
@@ -4673,7 +4705,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         self.patch_kernelsu_button = self.patch_button.AddFunction("Patch with KernelSU", lambda: self._on_kernelsu_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_kernelsu_lkm_button = self.patch_button.AddFunction("Patch with KernelSU LKM", lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_apatch_button = self.patch_button.AddFunction("Patch with APatch", lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
-        self.patch_custom_boot_button = self.patch_button.AddFunction("Patch with custom Magisk", lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
+        self.patch_custom_boot_button = self.patch_button.AddFunction("Patch custom boot/init_boot", lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
         #
         self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=u"Delete", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
         self.delete_boot_button.SetToolTip(u"Delete the selected item")

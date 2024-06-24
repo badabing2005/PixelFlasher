@@ -6548,3 +6548,14 @@ check_otacerts_24 = PyEmbeddedImage(
     b'bAdxc7xyKRKmfy2+btONn1wSkICEWfEfAZgmGbh3MVdu8+6tv/+f/A4tw+YZxQyScgAAAABJ'
     b'RU5ErkJggg==')
 
+#----------------------------------------------------------------------
+wrench_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABWUlEQVRIS7WUT1bCMBDGOzkB'
+    b'3kB39rnBG+AN9AYFyho4Cexp+8IJ0BPgDexG2529gSxdJU5iw6ulfzJBWPWRyfeb+TIz4F34'
+    b'B3X9IBgOGPueA8BjeVZIKVMhvC3neUHN5wSgBMLQX0npLepi+N8ySbI1BdII+E+IBihbOE8P'
+    b'9czaKmGM3W8276lNJRownfo79PklSXJuBwEexx9jCuATg6+bPJ5M/AWAt6qJHeI4u6IAvjB4'
+    b'oC5UIS3iWhcBre9XBRuLdAXmQEHUd0PmJoRWQdtjdljwjBU8WVs0m90NhRBvNhdMDIB8iKL8'
+    b'te/O0UeHKtDCfsifh7oE5KQTfu2Sc+ynoCxfDaAaqlGbHV2V9LaamfIwvB1JCXsqpBdQFXSB'
+    b'kAAKRoWQAVSIE4ACcQZYQAqc9puzAF0Q3GPrKMqWZwOaIEZcL8y+XWJ7XnbXDsW5yvy4s2wF'
+    b'XON+ABl2zBkFef63AAAAAElFTkSuQmCC')
+

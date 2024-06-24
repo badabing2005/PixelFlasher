@@ -134,6 +134,7 @@ command_lines = [
     "-a -F -i -n cert-24 images/cert-24.png images.py",
     "-a -F -i -n downgrade-24 images/downgrade-24.png images.py",
     "-a -F -i -n check-otacerts-24 images/check-otacerts-24.png images.py",
+    "-a -F -i -n wrench-24 images/wrench-24.png images.py",
 ]
 
 if __name__ == "__main__":

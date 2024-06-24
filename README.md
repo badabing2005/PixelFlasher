@@ -194,8 +194,7 @@ Run `build.bat` on Windows or `build.sh` on Linux / MacOS.
 
 ![Image of PixelFlasher GUI](/images/basic-gui.png)
 
-1. First thing to do is select Android™ Platform Tools, if Android™ Platform Tools is already in your `PATH` environment, the application will detect it and pre-populate it.  
-Otherwise you'd have to select where it is installed.  
+1. First thing to do is select Android™ Platform Tools, you'd have to select where it is installed (unpacked).
 You can download the latest Android™ Platform Tools by clicking the ![Image of link](/images/open-link-16.png) next to it.  
 If you have multiple versions, you can select another version, although it is best to always use the most recent version (The selected version will be identified and displayed.)  
 2. Hit the `Scan` button to detect connected devices, the application will detect all connected devices  

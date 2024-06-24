@@ -2,7 +2,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '6.9.6.0'
+VERSION = '6.9.7.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -18,8 +18,8 @@ FACTORY_IMAGES_FOR_PIXEL_DEVICES = 'https://developers.google.com/android/images
 FULL_OTA_IMAGES_FOR_PIXEL_DEVICES = 'https://developers.google.com/android/ota'
 FACTORY_IMAGES_FOR_WATCH_DEVICES = 'https://developers.google.com/android/images-watch'
 FULL_OTA_IMAGES_FOR_WATCH_DEVICES = 'https://developers.google.com/android/ota-watch'
-FACTORY_IMAGES_FOR_BETA = 'https://developer.android.com/about/versions/14/download'
-FULL_OTA_IMAGES_FOR_BETA = 'https://developer.android.com/about/versions/14/download-ota'
+FACTORY_IMAGES_FOR_BETA = 'https://developer.android.com/about/versions/15/download'
+FULL_OTA_IMAGES_FOR_BETA = 'https://developer.android.com/about/versions/15/download-ota'
 PIF_UPDATE_URL = 'https://raw.githubusercontent.com/chiteroman/PlayIntegrityFix/main/update.json'
 OSM0SIS_PIF_UPDATE_URL = 'https://raw.githubusercontent.com/osm0sis/PlayIntegrityFork/main/update.json'
 PIF_JSON_PATH = '/data/adb/pif.json'

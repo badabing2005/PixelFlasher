@@ -46,6 +46,7 @@ import wx
 from packaging.version import parse
 from platformdirs import *
 from constants import *
+from payload_dumper import extract_payload
 import cProfile, pstats, io
 import avbtool
 
@@ -1320,7 +1321,6 @@ def check_zip_contains_file(zip_file_path, file_to_check, low_mem, nested=False,
         return check_zip_contains_file_fast(zip_file_path, file_to_check, nested, is_recursive)
 
 
-
 # ============================================================================
 #                               Function check_zip_contains_file_fast
 # ============================================================================
@@ -1354,6 +1354,32 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_zip_contains_file_fast. Reason: {e}")
         traceback.print_exc()
         return ''
+
+
+# ============================================================================
+#                               Function check_file_pattern_in_zip_file
+# ============================================================================
+def check_file_pattern_in_zip_file(zip_file_path, pattern, return_all_matches=False):
+    try:
+        with zipfile.ZipFile(zip_file_path, 'r') as myzip:
+            if return_all_matches:
+                matches = [file for file in myzip.namelist() if fnmatch.fnmatch(file, pattern)]
+                return matches
+            else:
+                for file in myzip.namelist():
+                    if fnmatch.fnmatch(file, pattern):
+                        return file
+        if return_all_matches:
+            return []
+        else:
+            return ''
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_file_pattern_in_zip_file. Reason: {e}")
+        traceback.print_exc()
+        if return_all_matches:
+            return []
+        else:
+            return ''
 
 
 # ============================================================================
@@ -1957,7 +1983,8 @@ def create_support_zip():
         zip_file_path = shutil.make_archive(support_dir_full, 'zip', support_dir_full)
 
         # delete support folder
-        delete_all(support_dir_full)
+        if not config.keep_temporary_support_files:
+            delete_all(support_dir_full)
 
         # encrypt support.zip with session key
         symmetric_cipher = Fernet(session_key)
@@ -3158,17 +3185,69 @@ def get_freeman_pif(abi_list=None):
 #                               Function get_pif_from_image
 # ============================================================================
 def get_pif_from_image(image_file):
-    try:
-        config_path = get_config_path()
-        path_to_7z = get_path_to_7z()
-        temp_dir = tempfile.TemporaryDirectory()
-        temp_dir_path = temp_dir.name
+    config_path = get_config_path()
+    # config = get_config()
+    path_to_7z = get_path_to_7z()
+    temp_dir = tempfile.TemporaryDirectory()
+    temp_dir_path = temp_dir.name
+    # create props folder
+    props_folder = os.path.join(config_path, "props")
+    package_sig = os.path.splitext(os.path.basename(image_file))[0]
+    props_path = os.path.join(props_folder, package_sig)
+    if os.path.exists(props_path):
+        shutil.rmtree(props_path)
+    os.makedirs(props_path, exist_ok=True)
 
-        file_to_process = image_file
+    file_to_process = image_file
+
+    # ==================================================
+    # Sub Function  process_system_vendor_product_images
+    # ==================================================
+    def process_system_vendor_product_images():
+        # process system.img
+        img_archive = os.path.join(temp_dir_path, "system.img")
+        if os.path.exists(img_archive):
+            found_system_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+            if found_system_build_prop:
+                print(f"Extracting build.prop from {img_archive} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_system_build_prop}"
+                debug(theCmd)
+                res = run_shell2(theCmd)
+            if os.path.exists(os.path.join(props_path, found_system_build_prop)):
+                os.rename(os.path.join(props_path, found_system_build_prop), os.path.join(props_path, "system-build.prop"))
+
+        # process vendor.img
+        img_archive = os.path.join(temp_dir_path, "vendor.img")
+        if os.path.exists(img_archive):
+            found_vendor_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+            if found_vendor_img_prop:
+                print(f"Extracting build.prop from {img_archive} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_vendor_img_prop}"
+                debug(theCmd)
+                res = run_shell2(theCmd)
+            if os.path.exists(os.path.join(props_path, found_vendor_img_prop)):
+                os.rename(os.path.join(props_path, found_vendor_img_prop), os.path.join(props_path, "vendor-build.prop"))
+
+        # process product.img
+        img_archive = os.path.join(temp_dir_path, "product.img")
+        if os.path.exists(img_archive):
+            found_product_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+            if found_product_img_prop:
+                print(f"Extracting build.prop from {img_archive} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_product_img_prop}"
+                debug(theCmd)
+                res = run_shell2(theCmd)
+            if os.path.exists(os.path.join(props_path, found_product_img_prop)):
+                os.rename(os.path.join(props_path, found_product_img_prop), os.path.join(props_path, "product-build.prop"))
+
+    try:
         found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
         found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
+
         if found_flash_all_bat and found_flash_all_sh:
-            # assume Pixel factory file
+            # -----------------------------
+            # Pixel factory file
+            # -----------------------------
             package_sig = found_flash_all_bat.split('/')[0]
             if not package_sig:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract package signature from {found_flash_all_bat}")
@@ -3188,73 +3267,213 @@ def get_pif_from_image(image_file):
                 print("Aborting ...\n")
                 return
 
-            # create props folder
-            props_folder = os.path.join(config_path, "props")
-            props_path = os.path.join(props_folder, package_sig)
-            if os.path.exists(props_path):
-                shutil.rmtree(props_path)
-            os.makedirs(props_path, exist_ok=True)
-
             # check if image file is included and contains what we need
             if os.path.exists(image_file_path):
-                # process system.img
+                # extract system.img
                 found_system_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="system.img", nested=False, is_recursive=False)
                 if found_system_img:
                     print(f"Extracting system.img from {image_file_path} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" system.img"
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" system.img"
                     debug(theCmd)
                     res = run_shell2(theCmd)
-                    img_archive = os.path.join(package_dir_full, "system.img")
-                    found_system_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                    if found_system_build_prop:
-                        print(f"Extracting build.prop from {img_archive} ...")
-                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_system_build_prop}"
-                        debug(theCmd)
-                        res = run_shell2(theCmd)
-                    if os.path.exists(os.path.join(props_path, found_system_build_prop)):
-                        os.rename(os.path.join(props_path, found_system_build_prop), os.path.join(props_path, "system-build.prop"))
 
-                # process vendor.img
+                # extract vendor.img
                 found_vendor_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="vendor.img", nested=False, is_recursive=False)
                 if found_vendor_img:
                     print(f"Extracting system.img from {image_file_path} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" vendor.img"
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" vendor.img"
                     debug(theCmd)
                     res = run_shell2(theCmd)
-                    img_archive = os.path.join(package_dir_full, "vendor.img")
-                    found_vendor_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                    if found_vendor_build_prop:
-                        print(f"Extracting build.prop from {img_archive} ...")
-                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_vendor_build_prop}"
-                        debug(theCmd)
-                        res = run_shell2(theCmd)
-                    if os.path.exists(os.path.join(props_path, found_vendor_build_prop)):
-                        os.rename(os.path.join(props_path, found_vendor_build_prop), os.path.join(props_path, "vendor-build.prop"))
 
-                # process product.img
+                # extract product.img
                 found_product_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="product.img", nested=False, is_recursive=False)
                 if found_product_img:
                     print(f"Extracting system.img from {image_file_path} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" product.img"
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" product.img"
                     debug(theCmd)
                     res = run_shell2(theCmd)
-                    img_archive = os.path.join(package_dir_full, "product.img")
-                    found_product_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                    if found_product_build_prop:
-                        print(f"Extracting build.prop from {img_archive} ...")
-                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_product_build_prop}"
-                        debug(theCmd)
-                        res = run_shell2(theCmd)
-                    if os.path.exists(os.path.join(props_path, found_product_build_prop)):
-                        os.rename(os.path.join(props_path, found_product_build_prop), os.path.join(props_path, "product-build.prop"))
 
-                # return path to props folder
+                process_system_vendor_product_images()
                 return props_path
+
+        elif check_zip_contains_file(file_to_process, "payload.bin", config.low_mem):
+            # -----------------------------
+            # Firmware with payload.bin
+            # -----------------------------
+            print("Detected a firmware, with payload.bin")
+            # extract the payload.bin into a temporary directory
+            print(f"Extracting payload.bin from {file_to_process} ...")
+            theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" payload.bin"
+            debug(f"{theCmd}")
+            res = run_shell(theCmd)
+            if res.returncode != 0:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
+                print("Aborting ...\n")
+                return
+
+            payload_file_path = os.path.join(temp_dir_path, "payload.bin")
+            if os.path.exists(payload_file_path):
+                extract_payload(payload_file_path, out=temp_dir_path, diff=False, old='old', images='system,vendor,product')
+                process_system_vendor_product_images()
+                return props_path
+            return
+
+        elif check_zip_contains_file(file_to_process, "servicefile.xml", config.low_mem):
+            # -----------------------------
+            # Motorola Firmware
+            # -----------------------------
+            sparse_chunk_pattern = "system.img_sparsechunk.*"
+            sparse_chunks = check_file_pattern_in_zip_file(file_to_process, sparse_chunk_pattern, return_all_matches=True)
+            if sparse_chunks:
+                print("Detected a Motorola firmware")
+                # # Extract sparse chunks
+                # for chunk in sparse_chunks:
+                #     print(f"Extracting {chunk} from {file_to_process} ...")
+                #     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" \"{chunk}\""
+                #     debug(theCmd)
+                #     res = run_shell2(theCmd)
+                #     if res.returncode != 0:
+                #         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {chunk}.")
+                #         print(f"Return Code: {res.returncode}.")
+                #         print(f"Stdout: {res.stdout}.")
+                #         print(f"Stderr: {res.stderr}.")
+                #         print("Aborting ...\n")
+                #         return
+                # # Combine sparse chunks
+                # combined_sparse_path = os.path.join(temp_dir_path, "combined_system.img")
+                # with open(combined_sparse_path, 'wb') as combined_file:
+                #     for chunk in sparse_chunks:
+                #         chunk_path = os.path.join(temp_dir_path, chunk)
+                #         with open(chunk_path, 'rb') as chunk_file:
+                #             combined_file.write(chunk_file.read())
+                # # converting to raw image
+                # raw_image_path = os.path.join(temp_dir_path, "system.img")
+                # subprocess.run(["simg2img", combined_sparse_path, raw_image_path], check=True)
+
+        else:
+            found_ap = check_file_pattern_in_zip_file(file_to_process, "AP_*.tar.md5")
+            if found_ap is not None and found_ap != "":
+                # -----------------------------
+                # Samsung firmware
+                # -----------------------------
+                print("Detected a Samsung firmware")
+
+                # extract AP file
+                print(f"Extracting {found_ap} from {image_file} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file}\" {found_ap}"
+                debug(theCmd)
+                res = run_shell2(theCmd)
+                if res.returncode != 0:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {found_ap}.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    print("Aborting ...\n")
+                    return
+                image_file_path = os.path.join(temp_dir_path, found_ap)
+                if not os.path.exists(image_file_path):
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {image_file_path}.")
+                    return
+                # extract image file
+                print(f"Extracting {image_file_path} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" \"meta-data\""
+                debug(theCmd)
+                res = run_shell2(theCmd)
+                if res.returncode != 0:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract meta-data.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}.")
+                    print(f"Stderr: {res.stderr}.")
+                    print("Aborting ...\n")
+                    return
+
+                # get a file listing
+                file_list = get_file_list_from_directory(temp_dir_path)
+                found_fota_zip = False
+                for file_path in file_list:
+                    if "fota.zip" in file_path:
+                        found_fota_zip = True
+                        break
+
+                if found_fota_zip:
+                    # extract fota.zip
+                    print(f"Extracting fota.zip from {image_file_path} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_path}\" \"SYSTEM\" \"VENDOR\""
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+
+                    source_path = os.path.join(temp_dir_path, "VENDOR", "build.prop")
+                    destination_path = os.path.join(props_path, "system-build.prop")
+                    if os.path.exists(source_path):
+                        shutil.copy(source_path, destination_path)
+
+                    source_path = os.path.join(temp_dir_path, "SYSTEM", "build.prop")
+                    destination_path = os.path.join(props_path, "vendor-build.prop")
+                    if os.path.exists(source_path):
+                        shutil.copy(source_path, destination_path)
+
+                    return props_path
+
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected image layout for {file_to_process}")
+                return
+
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing ota/firmware file:")
         traceback.print_exc()
     finally:
         temp_dir.cleanup()
+
+
+# ============================================================================
+#                               Function extract_motorola_image
+# ============================================================================
+def extract_motorola_image(moto_img_path, output_img_path):
+    """
+    Extracts a Motorola image file, skipping its custom header.
+
+    :param moto_img_path: Path to the Motorola image file.
+    :param output_img_path: Path where the extracted raw image will be saved.
+    """
+    # Motorola header signature for identification
+    moto_header_signature = b"MOTO\x13W\x9b\x00MOT_PIV_FULL256"
+    header_length = len(moto_header_signature)  # Adjust based on actual header length
+
+    try:
+        with open(moto_img_path, 'rb') as moto_file:
+            # check for the Motorola header
+            header = moto_file.read(header_length)
+            if header.startswith(moto_header_signature):
+                print("Motorola image detected, proceeding with extraction...")
+                # Skip the header to get to the actual image data
+                # moto_file.seek(header_length, os.SEEK_SET)  # Uncomment if additional bytes need to be skipped
+                # Read the rest of the file
+                image_data = moto_file.read()
+                # Save the extracted data to a new file
+                with open(output_img_path, 'wb') as output_file:
+                    output_file.write(image_data)
+                print(f"Motorola Extraction complete. Raw image saved to {output_img_path}")
+            else:
+                print("File does not have the expected Motorola header.")
+    except IOError as e:
+        print(f"Error opening or reading file: {e}")
+
+
+# ============================================================================
+#                               Function get_file_list_from_directory
+# ============================================================================
+def get_file_list_from_directory(directory):
+    try:
+        file_list = []
+        for dirpath, dirnames, filenames in os.walk(directory):
+            for filename in filenames:
+                file_list.append(os.path.join(dirpath, filename))
+        return file_list
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_file_list_from_directory function")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -3484,10 +3703,10 @@ def check_internet():
 # ============================================================================
 def check_kb(filename):
     url = "https://android.googleapis.com/attestation/status"
-    headers = {'Cache-Control':'max-age=0'}
+    headers = {'Cache-Control': 'max-age=0'}
     try:
         crl = request_with_fallback(method='GET', url=url, headers=headers)
-        if crl is not None or crl != 'ERROR':
+        if crl is not None and crl != 'ERROR':
             crl = crl.json()
         else:
             print(f"ERROR: Could not fetch CRL from {url}")
@@ -3497,19 +3716,37 @@ def check_kb(filename):
 
         def parse_cert(cert):
             cert = "\n".join(line.strip() for line in cert.strip().split("\n"))
-            parsed = x509.load_pem_x509_certificate(cert.encode())
-            return f'{parsed.serial_number:x}'
+            parsed = x509.load_pem_x509_certificate(cert.encode(), default_backend())
+            issuer = parsed.issuer.rfc4514_string()
+            serial_number = f'{parsed.serial_number:x}'
+            return serial_number, issuer
 
-        ec_cert_sn, rsa_cert_sn = parse_cert(certs[0]), parse_cert(certs[3])
+        is_sw_signed = False
+        i = 1
+        for cert in certs:
+            cert_sn, cert_issuer = parse_cert(cert)
+            print(f'\nCertificate {i} SN: {cert_sn}')
+            print(f'Certificate {i} Issuer: {cert_issuer}')
+            if "Software Attestation" in cert_issuer:
+                is_sw_signed = True
+            i += 1
 
-        print(f'\nEC Cert SN: {ec_cert_sn}\nRSA Cert SN: {rsa_cert_sn}')
+        revoked_certs = []
+        for cert in certs:
+            sn, _ = parse_cert(cert)
+            if sn in crl["entries"].keys():
+                revoked_certs.append(sn)
 
-        if any(sn in crl["entries"].keys() for sn in (ec_cert_sn, rsa_cert_sn)):
-            print('\nKeybox is revoked!')
-            return False
+        if revoked_certs:
+            print('\nKeybox contains revoked certificates!')
+            result = False
         else:
-            print('\nKeybox is still valid!')
-            return True
+            print('\nKeybox is clean from revoked certificates')
+            result = True
+        if is_sw_signed:
+            print('Keybox is software signed! This is not a hardware-backed keybox!')
+            result =  False
+        return result
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
         print(e)

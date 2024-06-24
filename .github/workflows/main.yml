@@ -271,12 +271,12 @@ jobs:
             dist/PixelFlasher_Ubuntu_22_04.sha256
 
   # ---------------------------------------------------------------------------
-  #                              build_mac_11
+  #                              build_mac_12
   # ---------------------------------------------------------------------------
-  build_mac_11:
+  build_mac_12:
     if: github.actor == 'badabing2005'
     # runs-on: macos-latest
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - name: Checkout code
@@ -288,8 +288,7 @@ jobs:
 
       - name: Uninstall Pythons other than 3.11
         run: |
-          brew uninstall --ignore-dependencies python@3.10
-          brew uninstall --ignore-dependencies python@3.12
+          brew uninstall --ignore-dependencies python@3.12 || true
           echo "doing brew list"
           brew list
           echo "getting directory list for /usr/local/Cellar"
@@ -304,8 +303,8 @@ jobs:
         # run: brew install wxpython
         run: pip install wxPython
 
-      - name: Install node
-        run: brew install node
+      # - name: Install node
+      #   run: brew install node
 
       - name: Install create-dmg
         run: |
@@ -360,10 +359,10 @@ jobs:
       - name: List contents of dist directory
         run: ls ./ dist/
 
-      # Upload artifacts Mac-OS 11
-      - name: Upload Mac-OS 11 Artifact
+      # Upload artifacts Mac-OS 12
+      - name: Upload Mac-OS 12 Artifact
         uses: actions/upload-artifact@v4
-        id: upload_artifact_macos_11
+        id: upload_artifact_macos_12
         with:
           name: PixelFlasher.dmg Artifacts
           path: |
@@ -375,7 +374,7 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_11]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_12]
 
     runs-on: ubuntu-latest
 
@@ -423,7 +422,7 @@ jobs:
           path: release
         continue-on-error: true
 
-      # Download the Mac-OS artifacts from the build_mac_13 job
+      # Download the Mac-OS artifacts from the build_mac_12 job
       - name: Download Mac-OS Artifacts
         uses: actions/download-artifact@v4
         with:

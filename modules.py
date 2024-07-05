@@ -4086,6 +4086,10 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
     # If we're doing OTA or Sideload image flashing, be in sideload mode
     if self.config.flash_mode == 'OTA' or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD'):
+        # Let's cancel previous OTA just to be safe.
+        if mode == 'adb' and device.rooted:
+            print("Cancelling a previous OTA update for good measure ...")
+            res = device.reset_ota_update()
         res = device.reboot_sideload(90)
         if res == -1:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")

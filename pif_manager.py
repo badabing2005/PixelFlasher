@@ -199,8 +199,8 @@ class PifManager(wx.Dialog):
         self.process_img_button = wx.Button(self, wx.ID_ANY, u"Process Image", wx.DefaultPosition, wx.DefaultSize, 0)
         self.process_img_button.SetToolTip(u"Process an image and get a print from it.")
         self.process_img_button.Hide()
-        if self.config.enable_pixel_img_process:
-            self.process_img_button.Show()
+        # if self.config.enable_pixel_img_process:
+        self.process_img_button.Show()
 
         # Check for Auto Push pif.json
         self.auto_update_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Update pif.json", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)

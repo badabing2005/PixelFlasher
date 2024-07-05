@@ -1228,7 +1228,7 @@ class PixelFlasher(wx.Frame):
         tools_menu = wx.Menu()
 
         # Create the My Tools menu
-        my_tools_menu = wx.Menu()
+        self.my_tools_menu = wx.Menu()
 
         # Create the Help menu
         help_menu = wx.Menu()
@@ -1395,10 +1395,7 @@ class PixelFlasher(wx.Frame):
         # My Tools Menu Items
         # ----------------
         # Customize My Tools
-        self.customize_my_tools_menu = my_tools_menu.Append(wx.ID_ANY, "Customize My Tools", "Add / Edit / Delete Custom menu items")
-        self.customize_my_tools_menu.SetBitmap(images.wrench_24.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_customize_my_tools, self.customize_my_tools_menu)
-        self.customize_my_tools_menu.Enable(False)
+        self.build_my_tools_menu()
 
         # Toolbar Menu Items
         # ------------------
@@ -1596,7 +1593,7 @@ class PixelFlasher(wx.Frame):
         # Add the Dev Tools menu to the menu bar
         self.menuBar.Append(tools_menu, "Dev Tools")
         # Add the My Tools menu to the menu bar
-        self.menuBar.Append(my_tools_menu, "My Tools")
+        self.menuBar.Append(self.my_tools_menu, "My Tools")
         # Create an instance of GoogleImagesMenu
         self.google_images_menu = GoogleImagesMenu(self)
         # Append GoogleImagesMenu to the menu bar
@@ -2261,6 +2258,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             message += f"    Device Kernel:                   {device.kernel}\n"
             message += f"    Device Kernel Version:           {device.get_prop('ro.kernel.version')}\n"
             message += f"    Device KMI:                      {device.kmi}\n"
+            message += f"    oem_unlock_supported:            {device.get_prop('sys.oem_unlock_supported')}\n"
             message += f"    sys_oem_unlock_allowed:          {device.get_prop('sys.oem_unlock_allowed')}\n"
             message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
             message += f"    ro.boot.vbmeta.device_state:     {device.get_prop('ro.boot.vbmeta.device_state')}\n"
@@ -3892,6 +3890,46 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             dlg = MyToolsDialog(self, title='Customize My Tools')
             dlg.ShowModal()
             dlg.Destroy()
+
+            # Rebuild the tools menu
+            self.build_my_tools_menu()
+
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
+
+    # -----------------------------------------------
+    #                  build_my_tools_menu
+    # -----------------------------------------------
+    def build_my_tools_menu(self):
+        try:
+            if os.path.exists(get_mytools_file_path()):
+                with open(get_mytools_file_path(), "r", encoding='ISO-8859-1', errors="replace") as file:
+                    tools_data = json.load(file)
+
+                # Clear the existing menu items
+                menu_item_ids = self.my_tools_menu.GetMenuItems()
+                for item in menu_item_ids:
+                    self.my_tools_menu.Remove(item.GetId())
+
+                tool_added = False
+                # Rebuild the menu with enabled items
+                for i in range(1, tools_data['count'] + 1):
+                    # Convert the current number to a string to match the keys in tools_data['tools']
+                    tool_key = str(i)
+                    tool = tools_data['tools'][tool_key]
+                    if tool['enabled']:
+                        menuItem = self.my_tools_menu.Append(wx.ID_ANY, tool['title'])
+                        self.Bind(wx.EVT_MENU, lambda evt, t=tool: run_tool(t), menuItem)
+                        tool_added = True
+                if tool_added:
+                    self.my_tools_menu.AppendSeparator()
+
+            # Ensure the "Customize My Tools" menu item is kept at the end
+            self.customize_my_tools_menu = self.my_tools_menu.Append(wx.ID_ANY, "Customize My Tools", "Add / Edit / Delete Custom menu items")
+            self.customize_my_tools_menu.SetBitmap(images.wrench_24.GetBitmap())
+            self.Bind(wx.EVT_MENU, self._on_customize_my_tools, self.customize_my_tools_menu)
+
         except Exception as e:
             print(f"Error: {e}")
             traceback.print_exc()

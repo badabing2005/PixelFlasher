@@ -761,9 +761,9 @@ class Device():
             if res != 0:
                 return -1
 
-            print("Cancelling ongoing OTA update (if one is in progress, ignore errors) ...")
+            print("Cancelling ongoing OTA update (if one is in progress) ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --cancel\'\""
-            res = run_shell2(theCmd)
+            res = run_shell(theCmd)
             print("Resetting an already applied update (if one exists) ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --reset_status\'\""
             res = run_shell2(theCmd)

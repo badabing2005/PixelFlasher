@@ -1146,6 +1146,13 @@ def get_wifi_history_file_path():
 
 
 # ============================================================================
+#                               Function get_mytools_file_path
+# ============================================================================
+def get_mytools_file_path():
+    return os.path.join(get_config_path(), "mytools.json").strip()
+
+
+# ============================================================================
 #                               Function get_path_to_7z
 # ============================================================================
 def get_path_to_7z():
@@ -3242,7 +3249,8 @@ def get_pif_from_image(image_file):
 
     try:
         found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
-        found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
+        if found_flash_all_bat:
+            found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
 
         if found_flash_all_bat and found_flash_all_sh:
             # -----------------------------
@@ -3759,6 +3767,9 @@ def check_kb(filename):
 def get_boot_image_info(boot_image_path):
     try:
         tool = avbtool.AvbTool()
+        if not os.path.exists(boot_image_path):
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image file not found: {boot_image_path}")
+            return
         info = tool.run(['avbtool.py','info_image', '--image', boot_image_path])
         print('')
         return info
@@ -3804,6 +3815,40 @@ def add_hash_footer(boot_image_path,
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in add_hash_footer function")
         print(e)
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function run_tool
+# ============================================================================
+def run_tool(tool_details):
+    try:
+        command = tool_details['command']
+        arguments = tool_details['arguments']
+        directory = tool_details['directory']
+
+        theCmd = f"\"{command}\" {arguments}"
+        if sys.platform.startswith("win"):
+            debug(theCmd)
+            res = run_shell3(theCmd, directory=directory, detached=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+        elif sys.platform.startswith("linux") and config.linux_shell:
+            theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+            debug(theCmd)
+            res = run_shell3(theCmd, detached=True)
+        elif sys.platform.startswith("darwin"):
+            script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
+            script_file_content = f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'
+            debug(script_file_content)
+            script_file.write(script_file_content.encode('utf-8'))
+            script_file.close()
+            os.chmod(script_file.name, 0o755)
+            theCmd = f"osascript -e 'tell application \"Terminal\" to do script \"{script_file.name}\"'"
+            debug(theCmd)
+            # subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+            res = run_shell3(theCmd, detached=True, env=get_env_variables())
+            
+        return 0
+    except Exception as e:
+        print(f"Failed to run tool: {e}")
 
 
 # ============================================================================

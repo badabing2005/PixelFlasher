@@ -1,5 +1,37 @@
 #!/usr/bin/env python
 
+# This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
+#
+# Copyright (C) 2024 Badabing2005
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+# for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Also add information on how to contact you by electronic and paper mail.
+#
+# If your software can interact with users remotely through a computer network,
+# you should also make sure that it provides a way for users to get its source.
+# For example, if your program is a web application, its interface could
+# display a "Source" link that leads users to an archive of the code. There are
+# many ways you could offer source, and different solutions will be better for
+# different programs; see section 13 for the specific requirements.
+#
+# You should also get your employer (if you work as a programmer) or school, if
+# any, to sign a "copyright disclaimer" for the program, if necessary. For more
+# information on this, and how to apply and follow the GNU AGPL, see
+# <https://www.gnu.org/licenses/>.
+
 import contextlib
 import copy
 import fnmatch
@@ -3147,8 +3179,16 @@ Unless you know what you're doing, it is recommended that you take the default s
             puml("#red:ERROR: Could not create boot.tar;\n")
 
     end = time.time()
-    print(f"\nMagisk Version: {get_patched_with()}")
-    print(f"Patch time: {math.ceil(end - start)} seconds")
+    if patch_flavor == "Magisk":
+        print(f"\nMagisk Version:   {get_patched_with()}")
+    elif patch_flavor in ["KernelSU", "KernelSU_LKM"]:
+        print(f"\nKernelSU Version: {get_patched_with()}")
+    elif patch_flavor == "APatch":
+        print(f"\nAPatch Version:   {get_patched_with()}")
+    else:
+        print(f"\nCustom Patch:     {get_patched_with()}")
+    print(f"Patched File:     {patched_img}")
+    print(f"Patch time:       {math.ceil(end - start)} seconds")
     print("------------------------------------------------------------------------------\n")
     puml(f"#cee7ee:End {custom_text}Patching;\n", True)
     puml(f"note right:Patch time: {math.ceil(end - start)} seconds\n")
@@ -3249,6 +3289,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         # don't allow inactive slot flashing
         message += "Flash To Inactive Slot: False\n"
         message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
+        message += f"Current Slot:           {device.active_slot}\n"
         message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
         message += "boot.img path:\n"
         message += f"  {boot.boot_path}\n"
@@ -3592,6 +3633,7 @@ def flash_phone(self):
             if self.config.flash_mode != 'OTA':
                 message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
                 message += f"Force:                  {self.config.fastboot_force}\n"
+            message += f"Current Slot:           {device.active_slot}\n"
             message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
             message += f"Temporary Root:         {self.config.temporary_root}\n"
             message += f"No Reboot:              {self.config.no_reboot}\n"
@@ -4090,6 +4132,11 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         if mode == 'adb' and device.rooted:
             print("Cancelling a previous OTA update for good measure ...")
             res = device.reset_ota_update()
+        else:
+            if mode != 'adb':
+                print("Skipping cancelling a previous OTA update because device is not in adb mode ...")
+            if not device.rooted:
+                print("Skipping cancelling a previous OTA update because device rooted is not detected ...")
         res = device.reboot_sideload(90)
         if res == -1:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")

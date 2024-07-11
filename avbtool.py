@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
+#
 # Copyright 2016, The Android Open Source Project
 #
 # Permission is hereby granted, free of charge, to any person

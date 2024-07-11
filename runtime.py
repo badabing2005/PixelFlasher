@@ -1,5 +1,37 @@
 #!/usr/bin/env python
 
+# This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
+#
+# Copyright (C) 2024 Badabing2005
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+# for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Also add information on how to contact you by electronic and paper mail.
+#
+# If your software can interact with users remotely through a computer network,
+# you should also make sure that it provides a way for users to get its source.
+# For example, if your program is a web application, its interface could
+# display a "Source" link that leads users to an archive of the code. There are
+# many ways you could offer source, and different solutions will be better for
+# different programs; see section 13 for the specific requirements.
+#
+# You should also get your employer (if you work as a programmer) or school, if
+# any, to sign a "copyright disclaimer" for the program, if necessary. For more
+# information on this, and how to apply and follow the GNU AGPL, see
+# <https://www.gnu.org/licenses/>.
+
 import apk
 import binascii
 import contextlib
@@ -28,12 +60,14 @@ import traceback
 import zipfile
 import psutil
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timezone
 from os import path
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from cryptography import x509
+from cryptography.x509.oid import ExtensionOID
+# from cryptography.x509 import ExtensionNotFound
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -3206,48 +3240,109 @@ def get_pif_from_image(image_file):
     os.makedirs(props_path, exist_ok=True)
 
     file_to_process = image_file
+    basename = ntpath.basename(image_file)
+    filename, extension = os.path.splitext(basename)
+    extension = extension.lower()
 
     # ==================================================
     # Sub Function  process_system_vendor_product_images
     # ==================================================
     def process_system_vendor_product_images():
         # process system.img
-        img_archive = os.path.join(temp_dir_path, "system.img")
-        if os.path.exists(img_archive):
-            found_system_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-            if found_system_build_prop:
-                print(f"Extracting build.prop from {img_archive} ...")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_system_build_prop}"
-                debug(theCmd)
-                res = run_shell2(theCmd)
-            if os.path.exists(os.path.join(props_path, found_system_build_prop)):
-                os.rename(os.path.join(props_path, found_system_build_prop), os.path.join(props_path, "system-build.prop"))
+        try:
+            img_archive = os.path.join(temp_dir_path, "system.img")
+            if os.path.exists(img_archive):
+                found_system_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+                if found_system_build_prop:
+                    print(f"Extracting build.prop from {img_archive} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_system_build_prop}"
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+                    if os.path.exists(os.path.join(props_path, found_system_build_prop)):
+                        os.rename(os.path.join(props_path, found_system_build_prop), os.path.join(props_path, "system-build.prop"))
+                else:
+                    print(f"build.prop not found in {img_archive}")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing system.img:")
+            traceback.print_exc()
 
         # process vendor.img
-        img_archive = os.path.join(temp_dir_path, "vendor.img")
-        if os.path.exists(img_archive):
-            found_vendor_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-            if found_vendor_img_prop:
-                print(f"Extracting build.prop from {img_archive} ...")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_vendor_img_prop}"
-                debug(theCmd)
-                res = run_shell2(theCmd)
-            if os.path.exists(os.path.join(props_path, found_vendor_img_prop)):
-                os.rename(os.path.join(props_path, found_vendor_img_prop), os.path.join(props_path, "vendor-build.prop"))
+        try:
+            img_archive = os.path.join(temp_dir_path, "vendor.img")
+            if os.path.exists(img_archive):
+                found_vendor_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+                if found_vendor_img_prop:
+                    print(f"Extracting build.prop from {img_archive} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_vendor_img_prop}"
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+                    if os.path.exists(os.path.join(props_path, found_vendor_img_prop)):
+                        os.rename(os.path.join(props_path, found_vendor_img_prop), os.path.join(props_path, "vendor-build.prop"))
+                else:
+                    print(f"build.prop not found in {img_archive}")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing vendor.img:")
+            traceback.print_exc()
 
         # process product.img
-        img_archive = os.path.join(temp_dir_path, "product.img")
-        if os.path.exists(img_archive):
-            found_product_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-            if found_product_img_prop:
-                print(f"Extracting build.prop from {img_archive} ...")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_product_img_prop}"
+        try:
+            img_archive = os.path.join(temp_dir_path, "product.img")
+            if os.path.exists(img_archive):
+                found_product_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
+                if found_product_img_prop:
+                    print(f"Extracting build.prop from {img_archive} ...")
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_product_img_prop}"
+                    debug(theCmd)
+                    res = run_shell2(theCmd)
+                    if os.path.exists(os.path.join(props_path, found_product_img_prop)):
+                        os.rename(os.path.join(props_path, found_product_img_prop), os.path.join(props_path, "product-build.prop"))
+                else:
+                    print(f"build.prop not found in {img_archive}")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing product.img:")
+            traceback.print_exc()
+
+    # ==================================================
+    # Sub Function  check_for_system_vendor_product_imgs
+    # ==================================================
+    def check_for_system_vendor_product_imgs(filename):
+        # check if image file is included and contains what we need
+        if os.path.exists(filename):
+            # extract system.img
+            found_system_img = check_archive_contains_file(archive_file_path=filename, file_to_check="system.img", nested=False, is_recursive=False)
+            if found_system_img:
+                print(f"Extracting system.img from {filename} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{filename}\" system.img"
                 debug(theCmd)
                 res = run_shell2(theCmd)
-            if os.path.exists(os.path.join(props_path, found_product_img_prop)):
-                os.rename(os.path.join(props_path, found_product_img_prop), os.path.join(props_path, "product-build.prop"))
+
+            # extract vendor.img
+            found_vendor_img = check_archive_contains_file(archive_file_path=filename, file_to_check="vendor.img", nested=False, is_recursive=False)
+            if found_vendor_img:
+                print(f"Extracting system.img from {filename} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{filename}\" vendor.img"
+                debug(theCmd)
+                res = run_shell2(theCmd)
+
+            # extract product.img
+            found_product_img = check_archive_contains_file(archive_file_path=filename, file_to_check="product.img", nested=False, is_recursive=False)
+            if found_product_img:
+                print(f"Extracting system.img from {filename} ...")
+                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{filename}\" product.img"
+                debug(theCmd)
+                res = run_shell2(theCmd)
 
     try:
+        # .img file
+        if extension == ".img":
+            if filename in ["system", "vendor", "product"]:
+                # copy the image file to the temp directory
+                shutil.copy2(file_to_process, temp_dir_path)
+            else:
+                shutil.copy2(file_to_process, os.path.join(temp_dir_path, "system.img"))
+            process_system_vendor_product_images()
+            return props_path
+
         found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
         if found_flash_all_bat:
             found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
@@ -3277,30 +3372,7 @@ def get_pif_from_image(image_file):
 
             # check if image file is included and contains what we need
             if os.path.exists(image_file_path):
-                # extract system.img
-                found_system_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="system.img", nested=False, is_recursive=False)
-                if found_system_img:
-                    print(f"Extracting system.img from {image_file_path} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" system.img"
-                    debug(theCmd)
-                    res = run_shell2(theCmd)
-
-                # extract vendor.img
-                found_vendor_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="vendor.img", nested=False, is_recursive=False)
-                if found_vendor_img:
-                    print(f"Extracting system.img from {image_file_path} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" vendor.img"
-                    debug(theCmd)
-                    res = run_shell2(theCmd)
-
-                # extract product.img
-                found_product_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="product.img", nested=False, is_recursive=False)
-                if found_product_img:
-                    print(f"Extracting system.img from {image_file_path} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" product.img"
-                    debug(theCmd)
-                    res = run_shell2(theCmd)
-
+                check_for_system_vendor_product_imgs(image_file_path)
                 process_system_vendor_product_images()
                 return props_path
 
@@ -3360,6 +3432,21 @@ def get_pif_from_image(image_file):
                 # # converting to raw image
                 # raw_image_path = os.path.join(temp_dir_path, "system.img")
                 # subprocess.run(["simg2img", combined_sparse_path, raw_image_path], check=True)
+
+        elif check_zip_contains_file(file_to_process, "system.img", config.low_mem):
+            check_for_system_vendor_product_imgs(file_to_process)
+            process_system_vendor_product_images()
+            return props_path
+
+        elif check_zip_contains_file(file_to_process, "vendor.img", config.low_mem):
+            check_for_system_vendor_product_imgs(file_to_process)
+            process_system_vendor_product_images()
+            return props_path
+
+        elif check_zip_contains_file(file_to_process, "product.img", config.low_mem):
+            check_for_system_vendor_product_imgs(file_to_process)
+            process_system_vendor_product_images()
+            return props_path
 
         else:
             found_ap = check_file_pattern_in_zip_file(file_to_process, "AP_*.tar.md5")
@@ -3722,30 +3809,86 @@ def check_kb(filename):
 
         certs = [elem.text for elem in ET.parse(filename).getroot().iter() if elem.tag == 'Certificate']
 
+        from cryptography.x509.oid import ExtensionOID
+        import logging
+
         def parse_cert(cert):
             cert = "\n".join(line.strip() for line in cert.strip().split("\n"))
             parsed = x509.load_pem_x509_certificate(cert.encode(), default_backend())
-            issuer = parsed.issuer.rfc4514_string()
-            serial_number = f'{parsed.serial_number:x}'
-            return serial_number, issuer
+            issuer = None
+            serial_number = None
+            sig_algo = None
+            expiry = None
+            key_usages = 'None'
+
+            try:
+                issuer = parsed.issuer.rfc4514_string()
+            except Exception as e:
+                logging.error(f"Issuer extraction failed: {e}")
+            try:
+                serial_number = f'{parsed.serial_number:x}'
+            except Exception as e:
+                logging.error(f"Serial number extraction failed: {e}")
+            try:
+                sig_algo = parsed.signature_algorithm_oid._name
+            except Exception as e:
+                logging.error(f"Signature algorithm extraction failed: {e}")
+            try:
+                expiry = parsed.not_valid_after_utc
+            except Exception as e:
+                logging.error(f"Expiry extraction failed: {e}")
+            try:
+                key_usage_ext = parsed.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE)
+                key_usage = key_usage_ext.value
+                allowed_usages = []
+                if key_usage.digital_signature:
+                    allowed_usages.append("Digital Signature")
+                if key_usage.content_commitment:
+                    allowed_usages.append("Content Commitment")
+                if key_usage.key_encipherment:
+                    allowed_usages.append("Key Encipherment")
+                if key_usage.data_encipherment:
+                    allowed_usages.append("Data Encipherment")
+                if key_usage.key_agreement:
+                    allowed_usages.append("Key Agreement")
+                    # Only check encipher_only and decipher_only if key_agreement is True
+                    if key_usage.encipher_only:
+                        allowed_usages.append("Encipher Only")
+                    if key_usage.decipher_only:
+                        allowed_usages.append("Decipher Only")
+                if key_usage.key_cert_sign:
+                    allowed_usages.append("Certificate Signing")
+                if key_usage.crl_sign:
+                    allowed_usages.append("CRL Signing")
+                if allowed_usages:
+                    key_usages = ", ".join(allowed_usages)
+            except Exception as e:
+                logging.error(f"Key usage extraction failed: {e}")
+
+            return serial_number, issuer, sig_algo, expiry, key_usages
 
         is_sw_signed = False
         i = 1
+        is_revoked = False
+        print(f"\nChecking keybox: {filename} ...")
         for cert in certs:
-            cert_sn, cert_issuer = parse_cert(cert)
-            print(f'\nCertificate {i} SN: {cert_sn}')
-            print(f'Certificate {i} Issuer: {cert_issuer}')
+            cert_sn, cert_issuer, sig_algo, expiry, key_usages = parse_cert(cert)
+            print(f'\nCertificate {i} SN:       {cert_sn}')
+            print(f'Certificate {i} Issuer:   {cert_issuer}')
+            print(f'Signature Algorithm:    {sig_algo}')
+            print(f'Key Usage:              {key_usages}')
+            expired_text = ""
+            if expiry < datetime.now(timezone.utc):
+                expired_text = " (EXPIRED)"
+            print(f"Certificate expires on: {expiry} {expired_text}")
             if "Software Attestation" in cert_issuer:
                 is_sw_signed = True
+            if cert_sn in crl["entries"].keys():
+                print(f"*** Certificate {i} is REVOKED ***")
+                is_revoked = True
             i += 1
 
-        revoked_certs = []
-        for cert in certs:
-            sn, _ = parse_cert(cert)
-            if sn in crl["entries"].keys():
-                revoked_certs.append(sn)
-
-        if revoked_certs:
+        if is_revoked:
             print('\nKeybox contains revoked certificates!')
             result = False
         else:
@@ -3754,6 +3897,7 @@ def check_kb(filename):
         if is_sw_signed:
             print('Keybox is software signed! This is not a hardware-backed keybox!')
             result =  False
+        print('')
         return result
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
@@ -3845,7 +3989,7 @@ def run_tool(tool_details):
             debug(theCmd)
             # subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
             res = run_shell3(theCmd, detached=True, env=get_env_variables())
-            
+
         return 0
     except Exception as e:
         print(f"Failed to run tool: {e}")

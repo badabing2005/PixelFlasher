@@ -1,3 +1,6 @@
+
+# Ref: https://github.com/vm03/payload_dumper/blob/35134a28d641deda899c30aed57aace21bfd4a3c/payload_dumper.py
+
 import struct
 import hashlib
 import bz2

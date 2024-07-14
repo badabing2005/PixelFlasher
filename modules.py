@@ -354,7 +354,7 @@ def identify_sdk_version(self):
                             if parse(sdkver) < parse(SDKVERSION) or (sdkver in ('34.0.0', '34.0.1', '34.0.2', '34.0.3', '34.0.4')):
                                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected old or problematic Android Platform Tools version {sdk_version}")
                                 # confirm if you want to use older version
-                                dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to update to the latest known good version to avoid any issues.\n(Android Platform-Tools version 33.0.3 is known to be good).\n\nAre you sure want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+                                dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to                if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch']:hod not in ['kernelsu', 'apatch']:hod not in ['kernelsu', 'apatch']:re want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
                                 result = dlg.ShowModal()
                                 puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
                                 if result == wx.ID_YES:
@@ -4231,7 +4231,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     # flash the patch
                     flash = "flash"
 
-                if (boot.is_init_boot or device.hardware in KNOWN_INIT_BOOT_DEVICES) and boot.patch_method not in ['kernelsu', 'apatch']:
+                if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch']:
                     print("Flashing patched init_boot ...")
                     theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
                     is_init_boot = True

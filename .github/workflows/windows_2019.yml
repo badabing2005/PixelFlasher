@@ -89,12 +89,27 @@ jobs:
       - name: Rename the file
         run: mv dist/PixelFlasher.exe dist/PixelFlasher_Win_2019.exe
 
+      - name: List contents of dist directory
+        run: ls dist
+
+      - name: Sign Windows Executable
+        uses: skymatic/code-sign-action@v1
+        with:
+          certificate: '${{ secrets.CERTIFICATE }}'
+          password: '${{ secrets.CERT_PASSWORD }}'
+          certificatesha1: '${{ secrets.CERTHASH }}'
+          certificatename: '${{ secrets.CERTNAME }}'
+          description: 'PixelFlasher'
+          timestampUrl: 'http://timestamp.digicert.com'
+          folder: 'dist'
+          recursive: false
+
       - name: Get sha256
         run: |
           certutil -hashfile dist/PixelFlasher_Win_2019.exe SHA256 > dist/PixelFlasher_Win_2019.exe.sha256
           cat dist/PixelFlasher_Win_2019.exe.sha256
 
-      - name: List contents of dist directory
+      - name: List contents of dist directory again
         run: ls dist
 
       # Upload artifacts Windows to Actions

@@ -3935,14 +3935,14 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     # -----------------------------------------------
     def build_my_tools_menu(self):
         try:
+            # Clear the existing menu items
+            menu_item_ids = self.my_tools_menu.GetMenuItems()
+            for item in menu_item_ids:
+                self.my_tools_menu.Remove(item.GetId())
+
             if os.path.exists(get_mytools_file_path()):
                 with open(get_mytools_file_path(), "r", encoding='ISO-8859-1', errors="replace") as file:
                     tools_data = json.load(file)
-
-                # Clear the existing menu items
-                menu_item_ids = self.my_tools_menu.GetMenuItems()
-                for item in menu_item_ids:
-                    self.my_tools_menu.Remove(item.GetId())
 
                 tool_added = False
                 # Rebuild the menu with enabled items

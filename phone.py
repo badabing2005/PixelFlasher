@@ -1240,6 +1240,91 @@ add_hosts_module
         return -1
 
     # ----------------------------------------------------------------------------
+    #                               Method data_adb_backup
+    # ----------------------------------------------------------------------------
+    def data_adb_backup(self, filename):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                print("Creating a backup of /data/adb ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/local/tmp/data_adb.tgz; tar cvfz /data/local/tmp/data_adb.tgz /data/adb/\'\""
+                res = run_shell(theCmd)
+                # expect 0
+                if res.returncode != 0:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
+                    print("Aborting ...\n")
+                    return -2
+
+                # check if backup got created.
+                print("\Checking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
+                res, patched_file = self.check_file("/data/local/tmp/data_adb.tgz")
+                if res != 1:
+                    print("Aborting ...\n")
+                    puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")
+                    return
+
+                print(f"Pulling /data/local/tmp/data_adb.tgz from the phone to: {filename} ...")
+                res = self.pull_file("/data/local/tmp/data_adb.tgz", f"\"{filename}\"")
+                if res != 0:
+                    print("Aborting ...\n")
+                    puml("#red:Failed to pull /data/local/tmp/data_adb.tgz from the phone;\n}\n")
+                    return
+            except Exception as e:
+                traceback.print_exc()
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_backup.")
+                return -1
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_backup function is only available in adb mode on rooted devices.")
+            return -1
+        print("Backup completed.")
+
+    # ----------------------------------------------------------------------------
+    #                               Method data_adb_restore
+    # ----------------------------------------------------------------------------
+    def data_adb_restore(self, filename):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                print(f"Pushing {filename} to /data/local/tmp/data_adb.tgz on the phone ...")
+                res = self.push_file(filename, "/data/local/tmp/data_adb.tgz", True)
+                if res != 0:
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
+                    print("Aborting ...\n")
+                    return -1
+
+                # check if backup got created.
+                print("\Checking to see if backup file [/data/local/tmp/data_adb.tgz] got pushed ...")
+                res, _ = self.check_file("/data/local/tmp/data_adb.tgz", True)
+                if res != 1:
+                    print("Aborting ...\n")
+                    puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")
+                    return -1
+
+                print("Restoring a backup of /data/adb ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /; tar xvfz /data/local/tmp/data_adb.tgz \'\""
+                res = run_shell(theCmd)
+                # expect 0
+                if res.returncode != 0:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to restore a backup of /data/adb.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
+                    print("Aborting ...\n")
+                    return -2
+
+            except Exception as e:
+                traceback.print_exc()
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_restore.")
+                return -1
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_restore function is only available in adb mode on rooted devices.")
+            return -1
+        print("Restore completed.")
+
+    # ----------------------------------------------------------------------------
     #                               Method create_magisk_backup
     # ----------------------------------------------------------------------------
     def create_magisk_backup(self, sha1 = None):

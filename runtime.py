@@ -2204,7 +2204,7 @@ def check_module_update(url):
         if response != 'ERROR':
             if response.status_code == 404:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update not found for URL: {url}")
-                return -1
+                return None
             with contextlib.suppress(Exception):
                 data = response.json()
                 mu = ModuleUpdate(url)
@@ -2217,11 +2217,11 @@ def check_module_update(url):
                 setattr(mu, 'changelog', response.text)
                 return mu
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
-            return -1
+            return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during getUpdateDetails url: {url} processing")
         traceback.print_exc()
-        return -1
+        return None
 
 # ============================================================================
 #                               Function get_free_space
@@ -2481,6 +2481,21 @@ def delete_keys_from_dict(dictionary, keys):
 
 
 # ============================================================================
+#                               Function is_valid_json
+# ============================================================================
+def is_valid_json(json_str):
+    try:
+        json.loads(json_str)
+        return True
+    except Exception:
+        try:
+            json5.loads(json_str)
+            return True
+        except Exception:
+            return False
+
+
+# ============================================================================
 #                               Function process_dict
 # ============================================================================
 def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=None, sort_data=False, keep_all=False):
@@ -2491,7 +2506,8 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
             module_flavor = pif_flavor.split('_')[0]
             module_versionCode = int(pif_flavor.split('_')[1])
         if module_flavor is None or module_flavor == '':
-            module_flavor = 'playintegrityfork'
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine module flavor.")
+            return ''
         if module_versionCode == 0:
             module_versionCode = 9999999
         android_devices = get_android_devices()
@@ -2685,33 +2701,41 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
 
         # Global Common
         donor_data = {
-            "PRODUCT": ro_product_name,
-            "DEVICE": ro_product_device,
             "MANUFACTURER": ro_product_manufacturer,
-            "BRAND": ro_product_brand,
             "MODEL": ro_product_model,
             "FINGERPRINT": ro_build_fingerprint,
-            "SECURITY_PATCH": ro_build_version_security_patch
+            "BRAND": ro_product_brand,
+            "PRODUCT": ro_product_name,
+            "DEVICE": ro_product_device,
+            "RELEASE": ro_build_version_release,
+            "ID": ro_build_id,
+            "INCREMENTAL": ro_build_version_incremental,
+            "TYPE": ro_build_type,
+            "TAGS": ro_build_tags,
+            "SECURITY_PATCH": ro_build_version_security_patch,
+            # "BOARD": ro_product_board,
+            # "HARDWARE": ro_product_hardware,
+            "DEVICE_INITIAL_SDK_INT": ro_product_first_api_level
         }
 
         # Play Integrity Fork
         if module_flavor == 'playintegrityfork':
             # Common in Play Integrity Fork (v4 and newer)
-            donor_data["INCREMENTAL"] = ro_build_version_incremental
-            donor_data["TYPE"] = ro_build_type
-            donor_data["TAGS"] = ro_build_tags
-            donor_data["RELEASE"] = ro_build_version_release
-            donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
-            donor_data["ID"] = ro_build_id
+            # donor_data["INCREMENTAL"] = ro_build_version_incremental
+            # donor_data["TYPE"] = ro_build_type
+            # donor_data["TAGS"] = ro_build_tags
+            # donor_data["RELEASE"] = ro_build_version_release
+            # donor_data["DEVICE_INITIAL_SDK_INT"] = ro_product_first_api_level
+            # donor_data["ID"] = ro_build_id
 
             # v5 or newer
-            if module_versionCode >= 5000:
+            if module_versionCode >= 5000 and module_flavor != 'trickystore':
                 donor_data["*api_level"] = ro_product_first_api_level
                 donor_data["*.security_patch"] = ro_build_version_security_patch
                 donor_data["*.build.id"] = ro_build_id
                 if module_versionCode <= 7000:
                     donor_data["VERBOSE_LOGS"] = "0"
-            if module_versionCode > 7000:
+            if module_versionCode > 7000 and module_flavor != 'trickystore':
                 donor_data["verboseLogs"] = "0"
             # donor_data["*.vndk_version"] = ro_vndk_version
 
@@ -2719,15 +2743,16 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
             modified_donor_data = {key: value for key, value in donor_data.items() if value != ""}
 
         # Chit's module and other forks
-        else:
+        elif module_flavor == 'playintegrityfix':
             donor_data["FIRST_API_LEVEL"] = ro_product_first_api_level
             donor_data["BUILD_ID"] = ro_build_id
-            donor_data["ID"] = ro_build_id
             donor_data["VNDK_VERSION"] = ro_vndk_version
             donor_data["FORCE_BASIC_ATTESTATION"] = "true"
             # donor_data["KERNEL"] = "Goolag-perf"
 
             # No discard keys with empty values on chit's module
+            modified_donor_data = donor_data
+        else:
             modified_donor_data = donor_data
 
         # Keep unknown props if the flag is set
@@ -2735,6 +2760,13 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
             for key, value in the_dict.items():
                 if key not in modified_donor_data:
                     modified_donor_data[key] = value
+
+        if not keep_all:
+            filtered_data = {}
+            for key, value in modified_donor_data.items():
+                if value:
+                    filtered_data[key] = value
+            modified_donor_data = filtered_data
 
         if not sort_data:
             return json.dumps(modified_donor_data, indent=4)
@@ -3969,15 +4001,34 @@ def run_tool(tool_details):
         command = tool_details['command']
         arguments = tool_details['arguments']
         directory = tool_details['directory']
+        method = tool_details.get('method', 'Method 3')
+        if method == 'Method 1':
+            shell_method = 'run_shell'
+        elif method == 'Method 2':
+            shell_method = 'run_shell2'
+        elif method == 'Method 3':
+            shell_method = 'run_shell3'
+        elif method == 'Method 4':
+            # this one is not a function
+            shell_method = 'run_shell4'
+        detached = tool_details.get('detached', True)
 
         theCmd = f"\"{command}\" {arguments}"
         if sys.platform.startswith("win"):
             debug(theCmd)
-            res = run_shell3(theCmd, directory=directory, detached=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+            if shell_method == 'run_shell4':
+                subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, start_new_session=detached, env=get_env_variables())
+            else:
+                # Dynamic function invocation
+                res = globals()[shell_method](theCmd, directory=directory, detached=detached, creationflags=subprocess.CREATE_NEW_CONSOLE)
         elif sys.platform.startswith("linux") and config.linux_shell:
             theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
             debug(theCmd)
-            res = run_shell3(theCmd, detached=True)
+            if shell_method == 'run_shell4':
+                subprocess.Popen(theCmd, start_new_session=detached)
+            else:
+                # Dynamic function invocation
+                res = globals()[shell_method](theCmd, detached=detached)
         elif sys.platform.startswith("darwin"):
             script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
             script_file_content = f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'
@@ -3987,8 +4038,11 @@ def run_tool(tool_details):
             os.chmod(script_file.name, 0o755)
             theCmd = f"osascript -e 'tell application \"Terminal\" to do script \"{script_file.name}\"'"
             debug(theCmd)
-            # subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
-            res = run_shell3(theCmd, detached=True, env=get_env_variables())
+            if shell_method == 'run_shell4':
+                subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=detached, env=get_env_variables())
+            else:
+                # Dynamic function invocation with additional environment variables
+                res = globals()[shell_method](theCmd, detached=detached, env=get_env_variables())
 
         return 0
     except Exception as e:

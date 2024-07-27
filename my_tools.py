@@ -63,29 +63,47 @@ class MyToolsDialog(wx.Dialog):
         title_ctrl_default_height = self.title_ctrl.GetSize().height
         self.title_ctrl.SetMinSize((500, title_ctrl_default_height))
         self.title_ctrl.ShowCancelButton(True)
-        self.title_ctrl.SetDescriptiveText("Search by Title")
+        self.title_ctrl.SetDescriptiveText("Title")
         self.title_ctrl.ShowSearchButton(False)
+        self.title_ctrl.SetToolTip("Title of the tool")
 
         self.command_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.command_ctrl.ShowCancelButton(True)
-        self.command_ctrl.SetDescriptiveText("Search by Command")
+        self.command_ctrl.SetDescriptiveText("Command")
         self.command_ctrl.ShowSearchButton(False)
+        self.command_ctrl.SetToolTip("Command to run")
 
         self.args_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.args_ctrl.ShowCancelButton(True)
-        self.args_ctrl.SetDescriptiveText("Search by Arguments")
+        self.args_ctrl.SetDescriptiveText("Arguments")
         self.args_ctrl.ShowSearchButton(False)
+        self.args_ctrl.SetToolTip("Arguments to pass to the command")
 
         self.directory_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.directory_ctrl.ShowCancelButton(True)
-        self.directory_ctrl.SetDescriptiveText("Search by Directory")
+        self.directory_ctrl.SetDescriptiveText("Directory")
         self.directory_ctrl.ShowSearchButton(False)
+        self.directory_ctrl.SetToolTip("Directory to run the command in")
+
+        shell_method_choices = ["Method 1", "Method 2", "Method 3", "Method 4"]
+        self.shell_method_choice = wx.Choice(self, choices=shell_method_choices)
+        self.shell_method_choice.SetSelection(2)
+        self.shell_method_choice.SetToolTip("Shell method to use\nMethod 3 is recommended.")
+
+        self.run_detached_checkbox = wx.CheckBox(self, label="Run Detached")
+        self.run_detached_checkbox.SetValue(True)
+        self.run_detached_checkbox.SetToolTip("Run the command detached")
 
         self.enabled_checkbox = wx.CheckBox(self, label="Enabled")
+        self.enabled_checkbox.SetToolTip("Enable the tool")
 
         self.add_button = wx.Button(self, label="Add")
         self.add_button.SetToolTip("Add a new tool")
         self.add_button.Disable()
+
+        self.add_separator = wx.Button(self, label="Add Separator")
+        self.add_separator.SetToolTip("Add a separator")
+        self.add_separator.Disable()
 
         self.remove_button = wx.Button(self, label="Remove")
         self.remove_button.SetToolTip("Remove the selected tool")
@@ -113,9 +131,12 @@ class MyToolsDialog(wx.Dialog):
         entry_vSizer.Add(self.command_ctrl, 0, wx.ALL|wx.EXPAND, 10)
         entry_vSizer.Add(self.args_ctrl, 0, wx.ALL|wx.EXPAND, 10)
         entry_vSizer.Add(self.directory_ctrl, 0, wx.ALL|wx.EXPAND, 10)
+        entry_vSizer.Add(self.shell_method_choice, 0, wx.ALL|wx.EXPAND, 10)
+        entry_vSizer.Add(self.run_detached_checkbox, 0, wx.ALL|wx.EXPAND, 10)
         entry_vSizer.Add(self.enabled_checkbox, 0, wx.ALL|wx.EXPAND, 10)
         entry_vSizer.AddSpacer(40)
         entry_vSizer.Add(self.add_button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        entry_vSizer.Add(self.add_separator, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
         entry_vSizer.Add(self.remove_button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
         entry_vSizer.Add(self.update_button, 0, wx.EXPAND | wx.ALL, 10)
         entry_vSizer.Add(self.up_button, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
@@ -138,6 +159,7 @@ class MyToolsDialog(wx.Dialog):
 
         # Connect Events
         self.add_button.Bind(wx.EVT_BUTTON, self.OnAdd)
+        self.add_separator.Bind(wx.EVT_BUTTON, self.OnAddSeparator)
         self.remove_button.Bind(wx.EVT_BUTTON, self.OnRemove)
         self.update_button.Bind(wx.EVT_BUTTON, self.OnUpdate)
         self.up_button.Bind(wx.EVT_BUTTON, self.OnMoveUp)
@@ -176,11 +198,10 @@ class MyToolsDialog(wx.Dialog):
                     max_text_width = text_width
 
         # Adjust column width based on text width, within min and max bounds
-        column_width = max(min_width, min(max_text_width + 20, max_width))
+        column_width = max(min_width, min(max_text_width + 30, max_width))
         self.list.SetColumnWidth(0, column_width)
 
-        self.list.SetSize(wx.Size(column_width, -1))
-        self.list.Refresh()
+        self.list.GetParent().Layout()
 
     # -----------------------------------------------
     #                  on_command_change
@@ -189,30 +210,24 @@ class MyToolsDialog(wx.Dialog):
         text = self.title_ctrl.GetValue()
         if text.strip():
             self.add_button.Enable()
+            self.add_separator.Enable()
             self.remove_button.Enable()
         else:
             self.add_button.Disable()
+            self.add_separator.Disable()
             self.remove_button.Disable()
 
     # -----------------------------------------------
     #                  on_args_change
     # -----------------------------------------------
     def on_args_change(self, event):
-        text = self.args_ctrl.GetValue()
-        if text.strip():
-            self.update_button.Enable()
-        else:
-            self.update_button.Disable()
+        self.update_button.Enable()
 
     # -----------------------------------------------
     #                  on_directory_change
     # -----------------------------------------------
     def on_directory_change(self, event):
-        text = self.directory_ctrl.GetValue()
-        if text.strip():
-            self.update_button.Enable()
-        else:
-            self.update_button.Disable()
+        self.update_button.Enable()
 
     # -----------------------------------------------
     #                  load_mytools
@@ -253,11 +268,25 @@ class MyToolsDialog(wx.Dialog):
     #                  OnAdd
     # -----------------------------------------------
     def OnAdd(self, e):
-        # return
         try:
             if self.title_ctrl.Value:
                 self._on_spin('start')
                 self.add_to_mytools()
+                self._on_spin('stop')
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while adding to mytools")
+            puml("#red:Encountered an error while adding to mytools;\n")
+            self._on_spin('stop')
+            traceback.print_exc()
+
+    # -----------------------------------------------
+    #                  OnAddSepartor
+    # -----------------------------------------------
+    def OnAddSeparator(self, e):
+        try:
+            if self.title_ctrl.Value:
+                self._on_spin('start')
+                self.add_to_mytools(separator=True)
                 self._on_spin('stop')
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while adding to mytools")
@@ -295,6 +324,7 @@ class MyToolsDialog(wx.Dialog):
             return
         item_id = str(selection + 1)
         self.add_to_mytools(update_index=item_id)
+        self.list.Select(selection)
 
     # -----------------------------------------------
     #                  OnMoveUp
@@ -360,6 +390,10 @@ class MyToolsDialog(wx.Dialog):
             self.args_ctrl.SetValue(tool_data.get("arguments", ""))
             self.directory_ctrl.SetValue(tool_data.get("directory", ""))
             self.enabled_checkbox.SetValue(tool_data.get("enabled", False))
+            self.shell_method_choice.SetStringSelection(tool_data.get("method", "Method 3"))
+            self.shell_method_choice.Enable()
+            self.run_detached_checkbox.SetValue(tool_data.get("detached", True))
+            self.run_detached_checkbox.Enable()
             self.update_button.Enable()
             self.remove_button.Enable()
 
@@ -380,17 +414,30 @@ class MyToolsDialog(wx.Dialog):
     # -----------------------------------------------
     #          Function add_to_mytools
     # -----------------------------------------------
-    def add_to_mytools(self, update_index=None):
-        title = self.title_ctrl.GetValue()
-        command = self.command_ctrl.GetValue()
-        arguments = self.args_ctrl.GetValue()
-        directory = self.directory_ctrl.GetValue()
-        enabled = self.enabled_checkbox.GetValue()
+    def add_to_mytools(self, update_index=None, separator=False):
+        if separator:
+            title = "---"
+            command = ""
+            arguments = ""
+            directory = ""
+            enabled = True
+            method = "Method 3"
+            detached = False
+        else:
+            title = self.title_ctrl.GetValue()
+            command = self.command_ctrl.GetValue()
+            arguments = self.args_ctrl.GetValue()
+            directory = self.directory_ctrl.GetValue()
+            enabled = self.enabled_checkbox.GetValue()
+            method = self.shell_method_choice.GetStringSelection()
+            detached = self.run_detached_checkbox.GetValue()
         record = {
             "title": title,
             "command": command,
             "arguments": arguments,
             "directory": directory,
+            "method": method,
+            "detached": detached,
             "enabled": enabled
         }
         if update_index is None:

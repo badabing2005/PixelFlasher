@@ -1190,7 +1190,8 @@ class PixelFlasher(wx.Frame):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device info")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_pif_info
@@ -1204,7 +1205,8 @@ class PixelFlasher(wx.Frame):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device print")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_props_as_json
@@ -1218,7 +1220,8 @@ class PixelFlasher(wx.Frame):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device properties as json")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_verity_check
@@ -1238,7 +1241,8 @@ class PixelFlasher(wx.Frame):
     #     except Exception as e:
     #         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking verity")
     #         traceback.print_exc()
-    #     self._on_spin('stop')
+    #     finally:
+    #         self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _build_menu_bar
@@ -1390,6 +1394,14 @@ class PixelFlasher(wx.Frame):
         self.magisk_backup_manager_menu = device_menu.Append(wx.ID_ANY, "Magisk Backup Manager", "Manage Magisk Backups")
         self.magisk_backup_manager_menu.SetBitmap(images.backup_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_backup_manager, self.magisk_backup_manager_menu)
+        # Data ADB Backup
+        self.data_adb_backup_menu = device_menu.Append(wx.ID_ANY, "Backup /data/adb", "Backs up /data/adb.\nThis is useful for backing up Magisk modules.\nNOTE: If a module writes to anywhere other than /data/adb, those paths will not be backed up.")
+        self.data_adb_backup_menu.SetBitmap(images.folder_zip_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_data_adb_backup, self.data_adb_backup_menu)
+        # Data ADB Restore
+        self.data_adb_restore_menu = device_menu.Append(wx.ID_ANY, "Restore /data/adb", "Restore /data/adb from a backup file.\nThis is useful for restoring Magisk modules.\nNOTE: If a module writes to anywhere other than /data/adb, those items will not be restored.")
+        self.data_adb_restore_menu.SetBitmap(images.restore_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_data_adb_restore, self.data_adb_restore_menu)
         # Pif Manager
         self.pif_manager_menu = device_menu.Append(wx.ID_ANY, "Pif Manager", "Pif Backups")
         self.pif_manager_menu.SetBitmap(images.pif_24.GetBitmap())
@@ -1900,7 +1912,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Cannot install file '{pathname}'")
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_move_end
@@ -1973,8 +1986,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
             traceback.print_exc()
-
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_open_config_folder
@@ -1986,7 +1999,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening configuration folder")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_open_pf_home
@@ -1998,7 +2012,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening PixelFlasher working directory")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_support_zip
@@ -2027,7 +2042,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             except IOError:
                 wx.LogError(f"Cannot save current data in file '{pathname}'.")
                 traceback.print_exc()
-            self._on_spin('stop')
+            finally:
+                self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_exit_app
@@ -2069,17 +2085,22 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _on_xml_view
     # -----------------------------------------------
     def _on_xml_view(self, event):
-        self._on_spin('start')
-        timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Dump Screen Xml")
-        with wx.FileDialog(self, "Dump Screen Xml", '', f"screen_dump_{timestr}.xml", wildcard="Screen Dump (*.xml)|*.xml",
-                        style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
-            if fileDialog.ShowModal() == wx.ID_CANCEL:
-                return     # the user changed their mind
-            pathname = fileDialog.GetPath()
-            device = get_phone()
-            device.ui_action(f"/data/local/tmp/screen_dump_{timestr}.xml", pathname)
-        self._on_spin('stop')
+        try:
+            self._on_spin('start')
+            timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Dump Screen Xml")
+            with wx.FileDialog(self, "Dump Screen Xml", '', f"screen_dump_{timestr}.xml", wildcard="Screen Dump (*.xml)|*.xml",
+                            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    return     # the user changed their mind
+                pathname = fileDialog.GetPath()
+                device = get_phone()
+                device.ui_action(f"/data/local/tmp/screen_dump_{timestr}.xml", pathname)
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered in function _on_xml_view")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_cancel_ota
@@ -2093,7 +2114,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while cancelling OTA Update")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_check_otacerts
@@ -2108,7 +2130,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking OTA Certs")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  Test
@@ -2768,6 +2791,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
                 self.magisk_menu:                       ['device_attached', 'device_mode_adb'],
                 self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.data_adb_backup_menu:              ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.data_adb_restore_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 # self.pif_manager_menu:                  ['device_attached', 'device_mode_adb'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted', 'advanced_options'],
                 # self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
@@ -2863,7 +2888,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting a device")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_scan
@@ -2900,7 +2926,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while scanning")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_select_platform_tools
@@ -2921,7 +2948,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting platform tools")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #            update_firmware_selection
@@ -2977,7 +3005,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing firmware")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_process_rom
@@ -3009,7 +3038,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while choosing an image")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_image_select
@@ -3030,7 +3060,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting an image")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_select_custom_rom
@@ -3064,7 +3095,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting rom")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_mode_changed
@@ -3288,8 +3320,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_reboot_download
@@ -3309,8 +3342,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to download")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_reboot_sideload
@@ -3330,8 +3364,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_reboot_safemode
@@ -3351,8 +3386,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to safe mode")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  select_file_and_push
@@ -3378,9 +3414,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
                     return -1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function select_file_and_push")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_push_to_tmp
@@ -3412,8 +3449,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_reboot_bootloader
@@ -3434,8 +3472,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_reboot_fastbootd
@@ -3455,8 +3494,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fatsbootd")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_lock_bootloader
@@ -3539,8 +3579,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_unlock_bootloader
@@ -3591,53 +3632,56 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     res = device.reboot_system()
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
-        except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
-            traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_sos
     # -----------------------------------------------
     def _on_sos(self, event):
-        print("\n==============================================================================")
-        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated SOS")
-        print("==============================================================================")
-        if not self.config.device:
-            return
-        title = "Disable Magisk Modules"
-        message = "WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n"
-        message += "You would only need to do this if your device is bootlooping due to\n"
-        message += "incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n"
-        message += "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n"
-        message += "If your device is not detected PixelFlasher will appear hung.\n"
-        message += "In such cases, killing the adb process will resume to normalcy.\n\n"
-        message += "                        Press OK to continue or CANCEL to abort.\n"
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
-        print(f"\n*** Dialog ***\n{message}\n______________\n")
-        set_message_box_title(title)
-        set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1)
-        dlg.CentreOnParent(wx.BOTH)
-        result = dlg.ShowModal()
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated SOS")
+            print("==============================================================================")
+            if not self.config.device:
+                return
+            title = "Disable Magisk Modules"
+            message = "WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n"
+            message += "You would only need to do this if your device is bootlooping due to\n"
+            message += "incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n"
+            message += "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n"
+            message += "If your device is not detected PixelFlasher will appear hung.\n"
+            message += "In such cases, killing the adb process will resume to normalcy.\n\n"
+            message += "                        Press OK to continue or CANCEL to abort.\n"
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            set_message_box_title(title)
+            set_message_box_message(message)
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1)
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
 
-        if result == 1:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
-        else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting ...\n")
+            if result == 1:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+            else:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting ...\n")
+                dlg.Destroy()
+                return
             dlg.Destroy()
-            return
-        dlg.Destroy()
 
-        self._on_spin('start')
-        device = get_phone()
-        device.disable_magisk_modules()
-        time.sleep(5)
-        self.device_choice.SetItems(get_connected_devices())
-        self._select_configured_device()
-        self._on_spin('stop')
+            self._on_spin('start')
+            device = get_phone()
+            device.disable_magisk_modules()
+            time.sleep(5)
+            self.device_choice.SetItems(get_connected_devices())
+            self._select_configured_device()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in SOS function")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_adb_shell
@@ -3654,7 +3698,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb shell")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_scrcpy
@@ -3672,7 +3717,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while launching scrcpy")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_magisk
@@ -3762,6 +3808,48 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             dlg.Destroy()
             return
         dlg.Destroy()
+
+    # -----------------------------------------------
+    #                  _on_data_adb_backup
+    # -----------------------------------------------
+    def _on_data_adb_backup(self, event):
+        try:
+            device = get_phone()
+            if device:
+                timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
+                with wx.FileDialog(self, "Save /data/adb backup file", '', f"{device.hardware}_data_adb_{timestr}.tgz", wildcard="Data adb backup (*.tgz)|*.tgz",
+                                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+                    if fileDialog.ShowModal() == wx.ID_CANCEL:
+                        return     # the user changed their mind
+                    pathname = fileDialog.GetPath()
+                self._on_spin('start')
+                device.data_adb_backup(pathname)
+        except Exception:
+            traceback.print_exc()
+            return
+        finally:
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_data_adb_restore
+    # -----------------------------------------------
+    def _on_data_adb_restore(self, event):
+        try:
+            device = get_phone()
+            if device:
+                with wx.FileDialog(self, "Select /data/adb backup file", '', '', wildcard="All files (*.tgz)|*.tgz", style=wx.FD_OPEN) as fileDialog:
+                    if fileDialog.ShowModal() == wx.ID_CANCEL:
+                        print("User cancelled file push.")
+                        return
+                    selected_file = fileDialog.GetPath()
+                self._on_spin('start')
+                device.data_adb_restore(selected_file)
+        except Exception:
+            traceback.print_exc()
+            self._on_spin('stop')
+            return
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_partition_manager
@@ -3950,7 +4038,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     # Convert the current number to a string to match the keys in tools_data['tools']
                     tool_key = str(i)
                     tool = tools_data['tools'][tool_key]
-                    if tool['enabled']:
+                    if tool['title'] == "---":
+                        self.my_tools_menu.AppendSeparator()
+                    elif tool['enabled']:
                         menuItem = self.my_tools_menu.Append(wx.ID_ANY, tool['title'])
                         self.Bind(wx.EVT_MENU, lambda evt, t=tool: run_tool(t), menuItem)
                         tool_added = True

@@ -34,7 +34,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '7.1.1.1'
+VERSION = '7.2.0.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -54,6 +54,7 @@ FACTORY_IMAGES_FOR_BETA = 'https://developer.android.com/about/versions/15/downl
 FULL_OTA_IMAGES_FOR_BETA = 'https://developer.android.com/about/versions/15/download-ota'
 PIF_UPDATE_URL = 'https://raw.githubusercontent.com/chiteroman/PlayIntegrityFix/main/update.json'
 OSM0SIS_PIF_UPDATE_URL = 'https://raw.githubusercontent.com/osm0sis/PlayIntegrityFork/main/update.json'
+TRICKYSTORE_UPDATE_URL = 'https://raw.githubusercontent.com/5ec1cff/TrickyStore/main/update.json' # non-existent, just a placeholder
 PIF_JSON_PATH = '/data/adb/pif.json'
 XIAOMI_URL = "https://sourceforge.net/projects/xiaomi-eu-multilang-miui-roms/rss?path=/xiaomi.eu/Xiaomi.eu-app"
 FREEMANURL = "https://codeload.github.com/TheFreeman193/PIFS/zip/refs/heads/main"

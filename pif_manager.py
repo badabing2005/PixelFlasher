@@ -43,6 +43,19 @@ from datetime import datetime
 from runtime import *
 
 # ============================================================================
+#                               Class PifModule
+# ============================================================================
+class PifModule:
+    def __init__(self, id, name, version, version_code, format, path, flavor):
+        self.id = id
+        self.name = name
+        self.version = version
+        self.version_code = version_code
+        self.format = format
+        self.path = path
+        self.flavor = flavor
+
+# ============================================================================
 #                               Class PifManager
 # ============================================================================
 class PifManager(wx.Dialog):
@@ -56,7 +69,7 @@ class PifManager(wx.Dialog):
 
         self.config = config
         self.SetTitle("Pif Manager")
-        self.pif_json_path = PIF_JSON_PATH
+        self.pif_path = None
         self.device_pif = ''
         self.pi_app = 'gr.nikolasspyr.integritycheck'
         # self.launch_method = 'launch-am'
@@ -64,9 +77,12 @@ class PifManager(wx.Dialog):
         self.coords = Coords()
         self.enable_buttons = False
         self.pif_exists = False
-        self.pif_flavor = 'playintegrityfork_9999999'
+        self.pif_flavor = ''
         self.favorite_pifs = get_favorite_pifs()
         self.insync = False
+        self.pif_format = None
+        self.keep_unknown = False
+        self.current_pif_module = {}
 
         # Active pif label
         self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Active Pif")
@@ -82,8 +98,8 @@ class PifManager(wx.Dialog):
         self.save_pif_button.SetBitmap(images.save_24.GetBitmap())
         self.save_pif_button.SetToolTip(u"Save Active pif content to a json file on disk.")
         # Module version label
-        self.pif_version_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"", style=wx.ST_ELLIPSIZE_END)
-        self.pif_version_label.SetToolTip(u"Pif Module")
+        self.pif_selection_combo = wx.ComboBox(self, choices=[], style=wx.CB_READONLY)
+        self.pif_selection_combo.SetToolTip(u"Pif Module")
         # Favorite button
         self.favorite_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
@@ -149,6 +165,14 @@ class PifManager(wx.Dialog):
         self.e2j = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.e2j.SetBitmap(images.e2j_24.GetBitmap())
         self.e2j.SetToolTip(u"Convert console content from env (key=value) format to json")
+        # Json to Env
+        self.j2e = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.j2e.SetBitmap(images.j2e_24.GetBitmap())
+        self.j2e.SetToolTip(u"Convert console content from json to env (key=value) format")
+        # Get FP Code
+        self.get_fp_code = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+        self.get_fp_code.SetBitmap(images.java_24.GetBitmap())
+        self.get_fp_code.SetToolTip(u"Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n")
         # Add missing keys checkbox
         self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Add missing Keys from device", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.add_missing_keys_checkbox.SetToolTip(u"When Processing or Reprocessing, add missing fields from device.")
@@ -201,15 +225,20 @@ class PifManager(wx.Dialog):
         # Close button
         self.close_button = wx.Button(self, wx.ID_ANY, u"Close", wx.DefaultPosition, wx.DefaultSize, 0)
 
-        # Create pif.json button
-        self.create_pif_button = wx.Button(self, wx.ID_ANY, u"Create pif.json", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.create_pif_button.SetToolTip(u"Create pif.json")
+        # Create print button
+        self.create_pif_button = wx.Button(self, wx.ID_ANY, u"Create print", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.create_pif_button.SetToolTip(u"Create pif.json / spoof_build_vars")
         self.create_pif_button.Enable(False)
 
-        # Reload pif.json button
-        self.reload_pif_button = wx.Button(self, wx.ID_ANY, u"Reload pif.json", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.reload_pif_button.SetToolTip(u"Reload pif.json from device.")
+        # Reload print button
+        self.reload_pif_button = wx.Button(self, wx.ID_ANY, u"Reload print", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.reload_pif_button.SetToolTip(u"Reload pif.json / spoof_build_vars from device.")
         self.reload_pif_button.Enable(False)
+
+        # Push keybox button
+        self.push_kb_button = wx.Button(self, wx.ID_ANY, u"Push keybox.xml", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.push_kb_button.SetToolTip(u"Push a valid keybox.xml to device.")
+        self.push_kb_button.Enable(False)
 
         # Clean DG button
         self.cleanup_dg_button = wx.Button(self, wx.ID_ANY, u"Cleanup DG", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -218,7 +247,7 @@ class PifManager(wx.Dialog):
 
         # Process build.prop button
         self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.process_build_prop_button.SetToolTip(u"Process build.prop to extract pif.json.")
+        self.process_build_prop_button.SetToolTip(u"Process build.prop to extract a compatible print.")
 
         # Process bulk prop
         self.process_bulk_prop_button = wx.Button(self, wx.ID_ANY, u"Process bulk props", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -234,9 +263,9 @@ class PifManager(wx.Dialog):
         # if self.config.enable_pixel_img_process:
         self.process_img_button.Show()
 
-        # Check for Auto Push pif.json
-        self.auto_update_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Update pif.json", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_update_pif_checkbox.SetToolTip(u"After Processing build.props, the pif.json is automatically pushed to the device and the GMS process is killed.")
+        # Check for Auto Push print
+        self.auto_update_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Update print", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_update_pif_checkbox.SetToolTip(u"After Processing build.props, the print is automatically pushed to the device and the GMS process is killed.")
         self.auto_update_pif_checkbox.Enable(False)
         if self.config.pif:
             with contextlib.suppress(KeyError):
@@ -244,7 +273,7 @@ class PifManager(wx.Dialog):
 
         # Check for Auto Check Play Integrity
         self.auto_check_pi_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Check Play Integrity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_check_pi_checkbox.SetToolTip(u"After saving (pushing) pif.json, automatically run Play Integrity Check.")
+        self.auto_check_pi_checkbox.SetToolTip(u"After saving (pushing) print, automatically run Play Integrity Check.")
         self.auto_check_pi_checkbox.Enable(False)
         if self.config.pif:
             with contextlib.suppress(KeyError):
@@ -282,6 +311,7 @@ class PifManager(wx.Dialog):
         button_width = self.pi_option.GetSize()[0] + 10
         self.create_pif_button.SetMinSize((button_width, -1))
         self.reload_pif_button.SetMinSize((button_width, -1))
+        self.push_kb_button.SetMinSize((button_width, -1))
         self.cleanup_dg_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
         self.process_bulk_prop_button.SetMinSize((button_width, -1))
@@ -301,6 +331,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         v_buttons_sizer.Add(self.create_pif_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.reload_pif_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
+        v_buttons_sizer.Add(self.push_kb_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
         v_buttons_sizer.Add(self.cleanup_dg_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.TOP | wx.RIGHT, 10)
@@ -330,6 +361,10 @@ class PifManager(wx.Dialog):
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.e2j, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.j2e, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
+        console_label_sizer.Add(self.get_fp_code, 0, wx.ALIGN_CENTER_VERTICAL)
+        console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.add_missing_keys_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
         console_label_sizer.AddSpacer(10)
         console_label_sizer.Add(self.force_first_api_checkbox, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -355,7 +390,7 @@ class PifManager(wx.Dialog):
         active_pif_label_sizer.AddSpacer(10)
         active_pif_label_sizer.Add(self.save_pif_button, 0, wx.ALIGN_CENTER_VERTICAL)
         active_pif_label_sizer.AddSpacer(100)
-        active_pif_label_sizer.Add(self.pif_version_label, 1, wx.EXPAND)
+        active_pif_label_sizer.Add(self.pif_selection_combo, 1, wx.EXPAND)
         active_pif_label_sizer.AddSpacer(100)
         active_pif_label_sizer.Add(self.favorite_pif_button, 0, wx.ALIGN_CENTER_VERTICAL)
         active_pif_label_sizer.AddSpacer(10)
@@ -377,6 +412,7 @@ class PifManager(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.onClose)
         self.create_pif_button.Bind(wx.EVT_BUTTON, self.CreatePifJson)
         self.reload_pif_button.Bind(wx.EVT_BUTTON, self.LoadReload)
+        self.push_kb_button.Bind(wx.EVT_BUTTON, self.select_file_and_push)
         self.cleanup_dg_button.Bind(wx.EVT_BUTTON, self.CleanupDG)
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
         self.process_bulk_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildPropFolder)
@@ -392,12 +428,15 @@ class PifManager(wx.Dialog):
         self.paste_down.Bind(wx.EVT_BUTTON, self.PasteDown)
         self.reprocess.Bind(wx.EVT_BUTTON, self.ReProcess)
         self.reprocess_json_file.Bind(wx.EVT_BUTTON, self.ReProcessJsonFile)
+        self.get_fp_code.Bind(wx.EVT_BUTTON, self.GetFPCode)
         self.e2j.Bind(wx.EVT_BUTTON, self.E2J)
+        self.j2e.Bind(wx.EVT_BUTTON, self.J2E)
         self.save_pif_button.Bind(wx.EVT_BUTTON, self.SavePif)
         self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.Favorite)
         self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
         self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
-        self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.PifComboBox)
+        self.pif_selection_combo.Bind(wx.EVT_COMBOBOX, self.onPifSelectionComboBox)
+        self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.onPifComboBox)
         self.import_pif_button.Bind(wx.EVT_BUTTON, self.ImportFavorites)
         self.add_missing_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoFill)
         self.force_first_api_checkbox.Bind(wx.EVT_CHECKBOX, self.onForceFirstAPI)
@@ -445,40 +484,69 @@ class PifManager(wx.Dialog):
             return
         modules = device.get_magisk_detailed_modules(refresh)
 
-        self.create_pif_button.Enable(True)
+        self.create_pif_button.Enable(False)
         self.reload_pif_button.Enable(False)
+        self.push_kb_button.Enable(False)
         self.cleanup_dg_button.Enable(False)
         self.auto_update_pif_checkbox.Enable(False)
         self.auto_check_pi_checkbox.Enable(False)
         self.pi_checker_button.Enable(False)
         self.enable_buttons = False
-        self.pif_version_label.SetLabel('')
+        self.pif_selection_combo.Clear()
+        self.pif_modules = []
 
         if modules:
             for module in modules:
-                if module.id == "playintegrityfix" and "Play Integrity" in module.name:
-                    if module.name == "Play Integrity Fork":
-                        self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
-                        if int(module.versionCode) > 4000:
-                            print("Advanced props support enabled.")
-                    elif module.name != "Play Integrity NEXT":
-                        self.pif_json_path = '/data/adb/pif.json'
-                    if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
-                        self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
+                if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store"):
+                    self.pif_format = None
+                    self.pif_path = None
+                    if module.id == "playintegrityfix":
+                        self.pif_format = 'json'
+                        if "Play Integrity Fork" in module.name:
+                            self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                            if int(module.versionCode) > 4000:
+                                print("Advanced props support enabled.")
+                        else:
+                            if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
+                                self.pif_path = '/data/adb/modules/playintegrityfix/pif.json'
+                            else:
+                                self.pif_path = '/data/adb/pif.json'
+
+                    if module.id == "tricky_store":
+                        self.pif_format = 'prop'
+                        self.pif_path = '/data/adb/tricky_store/spoof_build_vars'
+                        self.push_kb_button.Enable(True)
+
                     flavor = module.name.replace(" ", "").lower()
                     self.pif_flavor = f"{flavor}_{module.versionCode}"
-                    self.create_pif_button.Enable(False)
+                    self.pif_modules.append(PifModule(module.id, module.name, module.version, module.versionCode, self.pif_format, self.pif_path, self.pif_flavor))
+
+                    self.create_pif_button.Enable(True)
                     self.reload_pif_button.Enable(True)
                     self.cleanup_dg_button.Enable(True)
                     self.auto_update_pif_checkbox.Enable(True)
                     self.auto_check_pi_checkbox.Enable(True)
                     self.pi_checker_button.Enable(True)
                     self.enable_buttons = True
-                    self.pif_version_label.SetLabel(f"{module.name} {module.version} {module.versionCode}")
+                    module_label = f"{module.name} {module.version} {module.versionCode}"
+                    self.pif_selection_combo.Append(module_label)
                     self.check_pif_json()
                     if self.pif_exists:
                         self.LoadReload(None)
-                    break
+
+        # Make the selection in priority order: Trickystore, Play Integrity
+        for i in range(self.pif_selection_combo.GetCount()):
+            if "Tricky" in self.pif_selection_combo.GetString(i):
+                self.pif_selection_combo.SetSelection(i)
+                break
+            elif "Play Integrity" in self.pif_selection_combo.GetString(i):
+                self.pif_selection_combo.SetSelection(i)
+        # If nothing is selected and there are items, select the first item
+        if self.pif_selection_combo.GetSelection() == wx.NOT_FOUND and self.pif_selection_combo.GetCount() > 0:
+            self.pif_selection_combo.SetSelection(0)
+
+        # Manually trigger the combo box change event
+        self.onPifSelectionComboBox(None)
 
     # -----------------------------------------------
     #                  check_pif_json
@@ -488,32 +556,53 @@ class PifManager(wx.Dialog):
         if not device.rooted:
             return
         # check for presence of pif.json
-        res, tmp = device.check_file(self.pif_json_path, True)
+        res, tmp = device.check_file(self.pif_path, True)
         if res == 1:
             self.pif_exists = True
             self.reload_pif_button.Enable(True)
             self.cleanup_dg_button.Enable(True)
-            self.create_pif_button.SetLabel("Update pif.json")
-            self.create_pif_button.SetToolTip(u"Update pif.json.")
+            self.create_pif_button.SetLabel("Update print")
+            self.create_pif_button.SetToolTip(u"Update pif.json / spoof_build_vars.")
         else:
             self.pif_exists = False
             self.reload_pif_button.Enable(False)
+            self.push_kb_button.Enable(False)
             self.cleanup_dg_button.Enable(False)
-            self.create_pif_button.SetLabel("Create pif.json")
-            self.create_pif_button.SetToolTip(u"Create pif.json.")
+            self.create_pif_button.SetLabel("Create print")
+            self.create_pif_button.SetToolTip(u"Create pif.json / spoof_build_vars.")
         self.ActivePifStcChange(None)
 
     # -----------------------------------------------
-    #                  PifComboBox
+    #                  onPifComboBox
     # -----------------------------------------------
-    def PifComboBox(self, event):
+    def onPifComboBox(self, event):
         selected_label = event.GetString()
         selected_pif = next((pif for pif in self.favorite_pifs.values() if pif["label"] == selected_label), None)
         if selected_pif:
             pif_object = selected_pif["pif"]
-            self.active_pif_stc.SetText(json.dumps(pif_object, indent=4))
+            if self.pif_format == 'prop':
+                json_string = json.dumps(pif_object, indent=4, sort_keys=self.sort_keys)
+                self.active_pif_stc.SetText(self.J2P(json_string))
+            else:
+                self.active_pif_stc.SetText(json.dumps(pif_object, indent=4))
         else:
             print("Selected Pif not found")
+
+    # -----------------------------------------------
+    #                  onPifSelectionComboBox
+    # -----------------------------------------------
+    def onPifSelectionComboBox(self, event):
+        selection_index = self.pif_selection_combo.GetSelection()
+        if selection_index != wx.NOT_FOUND:
+            selected_module = self.pif_modules[selection_index]
+            self.current_pif_module = selected_module
+            self.pif_format = selected_module.format
+            self.pif_path = selected_module.path
+            self.pif_flavor = selected_module.flavor
+
+        selected_label = f"{selected_module.name} {selected_module.version}"
+        print(f"Selected Module: {selected_label}")
+        self.LoadReload(None)
 
     # -----------------------------------------------
     #                  TestSelection
@@ -555,7 +644,7 @@ class PifManager(wx.Dialog):
             # self.launch_method = 'launch-am-main'
             self.launch_method = 'launch'
 
-        print(f"Auto Update pif.json is set to: {selected_option}")
+        print(f"Auto Update print is set to: {selected_option}")
         self.config.pif['test_app_index'] = self.pi_option.Selection
 
     # -----------------------------------------------
@@ -590,7 +679,7 @@ class PifManager(wx.Dialog):
             pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
             if self.reload_pif_button.Enabled:
                 # pull the file
-                res = device.pull_file(self.pif_json_path, pif_prop, True)
+                res = device.pull_file(self.pif_path, pif_prop, True)
                 if res != 0:
                     print("Aborting ...\n")
                     # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
@@ -645,8 +734,13 @@ class PifManager(wx.Dialog):
         self._on_spin('start')
         config_path = get_config_path()
         pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
+        json_data = None
 
-        json_data = self.active_pif_stc.GetValue()
+        content = self.active_pif_stc.GetValue()
+        if self.pif_format == 'prop':
+            json_data = self.P2J(content)
+        else:
+            json_data = content
         if json_data:
             try:
                 data = json.loads(json_data)
@@ -655,17 +749,22 @@ class PifManager(wx.Dialog):
                     data = json5.loads(json_data)
                 except Exception:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+                    self._on_spin('stop')
                     return
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+            self._on_spin('stop')
             return
 
         # Save the data as normal JSON
         with open(pif_prop, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
-            json.dump(data, f, indent=4)
+            if self.pif_format == 'prop':
+                f.write(self.J2P(json.dumps(data, indent=4, sort_keys=self.sort_keys)))
+            else:
+                json.dump(data, f, indent=4, sort_keys=self.sort_keys)
 
         # push the file
-        res = device.push_file(pif_prop, self.pif_json_path, True)
+        res = device.push_file(pif_prop, self.pif_path, True)
         if res != 0:
             print("Aborting ...\n")
             # puml("#red:Failed to push pif.json from the phone;\n}\n")
@@ -1087,7 +1186,7 @@ class PifManager(wx.Dialog):
             self.console_stc.SetValue(donor_json_string)
             # print(donor_json_string)
 
-            # Auto Update pif.json
+            # Auto Update print
             if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 self.active_pif_stc.SetValue(self.console_stc.GetValue())
                 self.UpdatePifJson(None)
@@ -1165,8 +1264,8 @@ class PifManager(wx.Dialog):
                 json_dict = json5.loads(json_string)
                 keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
                 first_api = get_first_match(json_dict, keys)
-                json_string = json.dumps(json_dict, indent=4, sort_keys=True)
-                processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
+                json_string = json.dumps(json_dict, indent=4, sort_keys=self.sort_keys)
+                processed_dict = self.load_json_with_rules(json_string, self.keep_unknown)
                 if first_api == '':
                     donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api_value, sort_data=self.sort_keys)
                 else:
@@ -1187,7 +1286,13 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def ConsoleStcChange(self, event):
         try:
-            json_data = self.console_stc.GetValue()
+            console_data = self.console_stc.GetValue()
+            json_data = None
+            if console_data:
+                if self.pif_format == 'prop':
+                    json_data = self.P2J(console_data)
+                else:
+                    json_data = console_data
 
             if json_data:
                 try:
@@ -1216,7 +1321,13 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def ActivePifStcChange(self, event):
         try:
-            json_data = self.active_pif_stc.GetValue()
+            active_data = self.active_pif_stc.GetValue()
+            json_data = None
+            if active_data:
+                if self.pif_format == 'prop':
+                    json_data = self.P2J(active_data)
+                else:
+                    json_data = active_data
 
             if not self.enable_buttons:
                 self.create_pif_button.Enable(False)
@@ -1251,9 +1362,13 @@ class PifManager(wx.Dialog):
                 self.favorite_pif_button.Enable(False)
                 self.save_pif_button.Enable(False)
 
-            if json_data != self.device_pif:
+            if self.pif_format == 'prop':
+                compare_data = self.P2J(self.device_pif)
+            else:
+                compare_data = self.device_pif
+            if json_data != compare_data:
                 self.pif_modified_image.SetBitmap(images.alert_red_24.GetBitmap())
-                self.pif_modified_image.SetToolTip(u"The contents is different than what is currently on the device.\nUpdate pif.json before testing.")
+                self.pif_modified_image.SetToolTip(u"The contents is different than what is currently on the device.\nUpdate the print before testing.")
                 self.insync = False
             else:
                 self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
@@ -1261,7 +1376,8 @@ class PifManager(wx.Dialog):
                 self.insync = True
 
             if self.create_pif_button.Enabled and self.favorite_pif_button.Enabled:
-                pif_hash = json_hexdigest(json_data)
+                sorted_json_data = json.dumps(json5.loads(json_data), indent=4, sort_keys=True)
+                pif_hash = json_hexdigest(sorted_json_data)
                 if pif_hash in self.favorite_pifs:
                     self.favorite_pif_button.SetBitmap(images.heart_red_24.GetBitmap())
                     self.favorite_pif_button.SetToolTip(u"Active pif is saved in favorites.")
@@ -1308,19 +1424,29 @@ class PifManager(wx.Dialog):
         try:
             print("Smart pasting up the console content ...")
             self._on_spin('start')
-            json_string = self.console_stc.GetValue()
+            console_data = self.console_stc.GetValue()
+            json_string = None
+            if console_data:
+                if self.pif_format == 'prop':
+                    json_string = self.P2J(console_data)
+                else:
+                    json_string = console_data
+
             json_dict = json5.loads(json_string)
             keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
             first_api = get_first_match(json_dict, keys)
-            json_string = json.dumps(json_dict, indent=4, sort_keys=True)
+            json_string = json.dumps(json_dict, indent=4, sort_keys=self.sort_keys)
             processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
-            if first_api == '' or self.force_first_api_checkbox.IsChecked():
+            if self.force_first_api_checkbox.IsChecked():
                 donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api_value, sort_data=self.sort_keys, keep_all=self.keep_unknown)
             else:
                 donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=None, sort_data=self.sort_keys, keep_all=self.keep_unknown)
-            self.active_pif_stc.SetValue(donor_json_string)
+            if self.pif_format == 'prop':
+                self.active_pif_stc.SetValue(self.J2P(donor_json_string))
+            else:
+                self.active_pif_stc.SetValue(donor_json_string)
 
-            # Auto Update pif.json
+            # Auto Update print
             if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 self.UpdatePifJson(None)
 
@@ -1400,7 +1526,7 @@ class PifManager(wx.Dialog):
     def onAutoUpdatePif(self, event):
         self.auto_update_pif_checkbox = event.GetEventObject()
         status = self.auto_update_pif_checkbox.GetValue()
-        print(f"Auto Update pif.json is set to: {status}")
+        print(f"Auto Update print is set to: {status}")
         self.config.pif['auto_update_pif_json'] = status
 
 
@@ -1420,18 +1546,113 @@ class PifManager(wx.Dialog):
     def E2J(self, event):
         try:
             self._on_spin('start')
-            content = self.console_stc.GetValue()
-            contentList = [x.strip().split('#')[0].split('=', 1) for x in content.split('\r\n') if '=' in x.split('#')[0]]
+            self.console_stc.SetValue(self.P2J(self.console_stc.GetValue()))
+        except Exception:
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
+
+
+    # -----------------------------------------------
+    #                  J2E
+    # -----------------------------------------------
+    def J2E(self, event):
+        try:
+            self._on_spin('start')
+            self.console_stc.SetValue(self.J2P(self.console_stc.GetValue()))
+        except Exception:
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
+
+
+    # -----------------------------------------------
+    #                  P2J
+    # -----------------------------------------------
+    def P2J(self, prop_str, sort_keys=None):
+        try:
+            if prop_str == '':
+                return ''
+            if is_valid_json(prop_str):
+                debug(f"Contents is already in json format.")
+                return prop_str
+            if sort_keys is None:
+                sort_keys = self.sort_keys
+
+            contentList = []
+            # Split the input string into lines
+            lines = re.split(r'\r\n|\n', prop_str)
+            for line in lines:
+                # Strip whitespace and split by '#' to remove comments
+                stripped_line = line.strip().split('#')[0]
+                # Check if the line contains an '=' character split into key value pair
+                if '=' in stripped_line:
+                    key_value_pair = stripped_line.split('=', 1)
+                    contentList.append(key_value_pair)
+
             contentDict = dict(contentList)
             for k, v in contentList:
                 for x in v.split('$')[1:]:
                     key = re.findall(r'\w+', x)[0]
                     v = v.replace(f'${key}', contentDict[key])
                 contentDict[k] = v.strip()
-            self.console_stc.SetValue(json.dumps(contentDict, indent=4, sort_keys=True))
+            return json.dumps(contentDict, indent=4, sort_keys=sort_keys)
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
+
+
+    # -----------------------------------------------
+    #                  J2P
+    # -----------------------------------------------
+    def J2P(self, json_str):
+        try:
+            contentDict = json.loads(json_str)
+        except Exception:
+            try:
+                contentDict = json5.loads(json_str)
+            except Exception:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+                return json_str
+
+        try:
+            contentList = []
+            for k, v in contentDict.items():
+                if v:
+                    contentList.append(f"{k}={v}")
+            # Ensure Unix line endings
+            key_value_format = "\n".join(contentList) + "\n"
+            return key_value_format
+        except Exception:
+            traceback.print_exc()
+
+
+    # -----------------------------------------------
+    #                  select_file_and_push
+    # -----------------------------------------------
+    def select_file_and_push(self, event):
+        try:
+            with wx.FileDialog(self, "Select keybox to push", '', '', wildcard="Keybox files (*.xml)|*.xml", style=wx.FD_OPEN) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled keybox push.")
+                    return
+                selected_file = fileDialog.GetPath()
+
+            self._on_spin('start')
+            device = get_phone()
+            if device:
+                # push the file
+                res = device.push_file(selected_file, "/data/adb/tricky_store/keybox.xml", True)
+                if res != 0:
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
+                    print("Aborting ...\n")
+                    return -1
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function select_file_and_push.")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
 
     # -----------------------------------------------
@@ -1447,39 +1668,52 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     #                  load_json_with_rules
     # -----------------------------------------------
-    def load_json_with_rules(self, json_str, discard_empty_keys=False):
-        # Load JSON string into a dictionary
-        data = json5.loads(json_str)
+    def load_json_with_rules(self, json_str, keep_unknown=False):
+        try:
+            if self.pif_format == 'prop':
+                json_data = self.P2J(json_str)
+            else:
+                json_data = json_str
 
-        # Define the mapping rules
-        mapping_rules = {
-            "MANUFACTURER": "ro.product.manufacturer",
-            "MODEL": "ro.product.model",
-            "BRAND": "ro.product.brand",
-            "PRODUCT": "ro.product.name",
-            "DEVICE": "ro.product.device",
-            "FINGERPRINT": "ro.build.fingerprint",
-            "SECURITY_PATCH": "ro.build.version.security_patch",
-            "*.security_patch": "ro.build.version.security_patch",
-            "FIRST_API_LEVEL": "ro.product.first_api_level",
-            "*api_level": "ro.product.first_api_level",
-            "BUILD_ID": "ro.build.id",
-            "ID": "ro.build.id",
-            "VNDK_VERSION": "ro.vndk.version",
-            "*.vndk_version": "ro.vndk.version",
-            "INCREMENTAL": "ro.build.version.incremental",
-            "TYPE": "ro.build.type",
-            "TAGS": "ro.build.tags"
-        }
+            if json_str == '':
+                return ''
 
-        # Create a new dictionary with the modified keys
-        modified_data = {mapping_rules.get(key, key): value for key, value in data.items()}
+            # Load JSON string into a dictionary
+            data = json5.loads(json_data)
 
-        # Discard keys with empty values if the flag is set
-        if discard_empty_keys:
-            modified_data = {key: value for key, value in modified_data.items() if value != ""}
+            # Define the mapping rules
+            mapping_rules = {
+                "MANUFACTURER": "ro.product.manufacturer",
+                "MODEL": "ro.product.model",
+                "FINGERPRINT": "ro.build.fingerprint",
+                "BRAND": "ro.product.brand",
+                "PRODUCT": "ro.product.name",
+                "DEVICE": "ro.product.device",
+                "SECURITY_PATCH": "ro.build.version.security_patch",
+                "*.security_patch": "ro.build.version.security_patch",
+                "FIRST_API_LEVEL": "ro.product.first_api_level",
+                "*api_level": "ro.product.first_api_level",
+                "BUILD_ID": "ro.build.id",
+                "ID": "ro.build.id",
+                "VNDK_VERSION": "ro.vndk.version",
+                "*.vndk_version": "ro.vndk.version",
+                "INCREMENTAL": "ro.build.version.incremental",
+                "TYPE": "ro.build.type",
+                "TAGS": "ro.build.tags",
+                "RELEASE": "ro.build.version.release"
+            }
 
-        return modified_data
+            # Create a new dictionary with the modified keys
+            modified_data = {mapping_rules.get(key, key): value for key, value in data.items()}
+
+            # Discard keys with empty values if the keep_unknown is not set
+            if not keep_unknown:
+                modified_data = {key: value for key, value in modified_data.items() if value != ""}
+
+            return modified_data
+        except Exception:
+            traceback.print_exc()
+
 
     # -----------------------------------------------
     #                  ReProcess
@@ -1489,9 +1723,12 @@ class PifManager(wx.Dialog):
             print("Reprocessing Active Pif content ...")
             self._on_spin('start')
             active_pif = self.active_pif_stc.GetValue()
-            processed_dict = self.load_json_with_rules(active_pif, self.pif_flavor)
+            processed_dict = self.load_json_with_rules(active_pif, self.keep_unknown)
             donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, sort_data=self.sort_keys, keep_all=self.keep_unknown)
-            self.console_stc.SetValue(donor_json_string)
+            if self.pif_format == 'prop':
+                self.console_stc.SetValue(self.J2P(donor_json_string))
+            else:
+                self.console_stc.SetValue(donor_json_string)
 
         except Exception:
             traceback.print_exc()
@@ -1523,8 +1760,8 @@ class PifManager(wx.Dialog):
                 debug(f"Reprocessing {i}/{count} {pathname} ...")
                 with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
                     data = json5.load(f)
-                json_string = json.dumps(data, indent=4, sort_keys=True)
-                processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
+                json_string = json.dumps(data, indent=4, sort_keys=self.sort_keys)
+                processed_dict = self.load_json_with_rules(json_string, self.keep_unknown)
                 reprocessed_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, sort_data=self.sort_keys, keep_all=self.keep_unknown)
                 if count == 1:
                     self.console_stc.SetValue(reprocessed_json_string)
@@ -1539,10 +1776,66 @@ class PifManager(wx.Dialog):
             event.Skip()
 
     # -----------------------------------------------
+    #                  GetFPCode
+    # -----------------------------------------------
+    def GetFPCode(self, event):
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed GetFPCode Json File(s)")
+        wildcard = "Property files (*.json)|*.json|All files (*.*)|*.*"
+        dialog = wx.FileDialog(self, "Choose one or multiple json files to reprocess", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+
+        if dialog.ShowModal() == wx.ID_CANCEL:
+            print("User cancelled file selection.")
+            return
+        paths = dialog.GetPaths()
+        dialog.Destroy()
+
+        # debug(f"Selected files: {paths}")
+        try:
+            self._on_spin('start')
+            count = len(paths)
+            i = 0
+            all_output_lines = []
+            for pathname in paths:
+                i += 1
+                debug(f"Processing {i}/{count} {pathname} ...")
+                with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
+                    data = json5.load(f)
+
+                # Extract and format the relevant key values
+                keys_of_interest = ["MANUFACTURER", "MODEL", "FINGERPRINT", "BRAND", "PRODUCT", "DEVICE", "RELEASE", "ID", "INCREMENTAL", "TYPE", "TAGS", "SECURITY_PATCH"]
+                output_lines = [
+                    "// -------------------------------------------------------------------------------------------------------",
+                    f"// // {pathname}"
+                ]
+                for key in keys_of_interest:
+                    value = data.get(key, "")
+                    output_lines.append(f'// map.put("{key}", "{value}");')
+
+                all_output_lines.extend(output_lines)
+
+            all_output_lines.append("// -------------------------------------------------------------------------------------------------------")
+            final_output_text = "\n".join(all_output_lines)
+            self.console_stc.SetValue(final_output_text)
+
+        except Exception:
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
+            if event:
+                event.Skip()
+
+    # -----------------------------------------------
     #                  SavePif
     # -----------------------------------------------
     def SavePif(self, event):
-        pif_string = self.active_pif_stc.GetValue()
+        active_data = self.active_pif_stc.GetValue()
+        pif_string = None
+        if active_data:
+            if self.pif_format == 'prop':
+                pif_string = self.P2J(active_data)
+            else:
+                pif_string = active_data
+
         pif_json = json5.loads(pif_string)
         manufacturer = ''
         with contextlib.suppress(Exception):
@@ -1577,7 +1870,14 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def Favorite(self, event):
         try:
-            active_pif = self.active_pif_stc.GetValue()
+            active_data = self.active_pif_stc.GetValue()
+            active_pif = None
+            if active_data:
+                if self.pif_format == 'prop':
+                    active_pif = self.P2J(active_data)
+                else:
+                    active_pif = active_data
+
             pif_hash = json_hexdigest(active_pif)
             if pif_hash in self.favorite_pifs:
                 # Delete from favorites

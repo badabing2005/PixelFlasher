@@ -314,11 +314,12 @@ class MagiskModules(wx.Dialog):
                 if module.id == "playintegrityfix" and "Play Integrity" in module.name:
                     if module.name == "Play Integrity Fork":
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                    elif module.name == "tricky_store":
+                        self.pif_json_path = '/data/adb/tricky_store/spoof_build_vars'
                     elif module.name != "Play Integrity NEXT":
                         self.pif_json_path = '/data/adb/pif.json'
                     if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
                         self.pif_json_path = '/data/adb/modules/playintegrityfix/pif.json'
-                    self.pif_install_button.Enable(False)
 
                 # disable Systemless Hosts button if it is already installed.
                 if module.id == "hosts" and module.name == "Systemless Hosts":
@@ -444,37 +445,50 @@ class MagiskModules(wx.Dialog):
     #                  onEnableZygisk
     # -----------------------------------------------
     def onEnableZygisk(self, e):
-        device = get_phone()
-        if not device.rooted:
-            return
-        print("Enable Zygisk")
-        self._on_spin('start')
-        device.magisk_enable_zygisk(True)
-        self._on_spin('stop')
+        try:
+            device = get_phone()
+            if not device.rooted:
+                return
+            print("Enable Zygisk")
+            self._on_spin('start')
+            device.magisk_enable_zygisk(True)
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onEnableZygisk")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onDisableZygisk
     # -----------------------------------------------
     def onDisableZygisk(self, e):
-        device = get_phone()
-        if not device.rooted:
-            return
-        print("Disable Zygisk")
-        self._on_spin('start')
-        device.magisk_enable_zygisk(False)
-        self._on_spin('stop')
+        try:
+            device = get_phone()
+            if not device.rooted:
+                return
+            print("Disable Zygisk")
+            self._on_spin('start')
+            device.magisk_enable_zygisk(False)
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onDisableZygisk")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onEnableDenylist
     # -----------------------------------------------
     def onEnableDenylist(self, e):
-        device = get_phone()
-        if not device.rooted:
-            return
-        print("Enable Denylist")
-        self._on_spin('start')
-        device.magisk_enable_denylist(True)
-        self._on_spin('stop')
+        try:
+            device = get_phone()
+            if not device.rooted:
+                return
+            print("Enable Denylist")
+            self._on_spin('start')
+            device.magisk_enable_denylist(True)
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onEnableDenylist")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onRefresh
@@ -486,26 +500,34 @@ class MagiskModules(wx.Dialog):
     #                  onDisableDenylist
     # -----------------------------------------------
     def onDisableDenylist(self, e):
-        device = get_phone()
-        if not device.rooted:
-            return
-        print("Disable Denylist")
-        self._on_spin('start')
-        device.magisk_enable_denylist(False)
-        self._on_spin('stop')
+        try:
+            device = get_phone()
+            if not device.rooted:
+                return
+            print("Disable Denylist")
+            self._on_spin('start')
+            device.magisk_enable_denylist(False)
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onDisableDenylist")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onSystemlessHosts
     # -----------------------------------------------
     def onSystemlessHosts(self, e):
-        device = get_phone()
-        if not device.rooted:
-            return
-        print("Add Systemless Hosts")
-        self._on_spin('start')
-        device.magisk_add_systemless_hosts()
-        self.refresh_modules()
-        self._on_spin('stop')
+        try:
+            device = get_phone()
+            if not device.rooted:
+                return
+            print("Add Systemless Hosts")
+            self._on_spin('start')
+            device.magisk_add_systemless_hosts()
+            self.refresh_modules()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onSystemlessHosts")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onInstallPif
@@ -515,31 +537,46 @@ class MagiskModules(wx.Dialog):
             device = get_phone()
             if not device.rooted:
                 return
-            buttons_text = ["osm0sis PlayIntegrityFork", "chiteroman PlayIntegrityFix", "Cancel"]
-            dlg = MessageBoxEx(parent=self, title='PlayIntegrityFix Module', message="Select the module you want to install", button_texts=buttons_text, default_button=1)
+            buttons_text = ["osm0sis PlayIntegrityFork", "chiteroman PlayIntegrityFix", "TrickyStore", "Cancel"]
+            dlg = MessageBoxEx(parent=self, title='PIF Module', message="Select the module you want to install", button_texts=buttons_text, default_button=1)
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            module_update_url = None
+            gh_latest_url = None
             if result == 1:
-                update_url = OSM0SIS_PIF_UPDATE_URL
+                module_update_url = OSM0SIS_PIF_UPDATE_URL
             elif result == 2:
-                update_url = PIF_UPDATE_URL
+                module_update_url = PIF_UPDATE_URL
+            elif result == 3:
+                # module_update_url = TRICKYSTORE_UPDATE_URL
+                gh_latest_url = download_gh_latest_release_asset_regex('5ec1cff', 'TrickyStore', '^Tricky\-Store.*\-release\.zip$', True)
             else:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting ...\n")
                 return -1
 
-            url = check_module_update(update_url)
+            if gh_latest_url is not None:
+                url = gh_latest_url
+            else:
+                url_obj = check_module_update(module_update_url)
+                url = url_obj.zipUrl
+            if url is None or url == '':
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get module download link.")
+                print("Aborting ...\n")
+                return -1
+
             self._on_spin('start')
-            downloaded_file_path = download_file(url.zipUrl)
-            print(f"Installing Play Integrity Fix module. URL: {downloaded_file_path} ...")
+            downloaded_file_path = download_file(url)
+            print(f"Installing Play Integrity Fix (PIF) module. URL: {downloaded_file_path} ...")
             device.install_magisk_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onInstallZygiskNext
@@ -549,8 +586,13 @@ class MagiskModules(wx.Dialog):
             device = get_phone()
             if not device.rooted:
                 return
-            update_url = ZYGISK_NEXT_UPDATE_URL
-            url = check_module_update(update_url)
+            module_update_url = ZYGISK_NEXT_UPDATE_URL
+            url = check_module_update(module_update_url)
+            if url is None:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get module download link.")
+                print("Aborting ...\n")
+                return -1
+
             self._on_spin('start')
             downloaded_file_path = download_file(url.zipUrl)
             print(f"Installing ZygiskNext module. URL: {downloaded_file_path} ...")
@@ -559,7 +601,8 @@ class MagiskModules(wx.Dialog):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during ZygiskNext module installation.")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onUninstallModule
@@ -590,7 +633,8 @@ class MagiskModules(wx.Dialog):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules uninstall")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onUpdateModule
@@ -613,7 +657,8 @@ class MagiskModules(wx.Dialog):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onInstallModule
@@ -637,7 +682,8 @@ class MagiskModules(wx.Dialog):
             except IOError:
                 wx.LogError(f"Cannot install module file '{pathname}'.")
                 traceback.print_exc()
-        self._on_spin('stop')
+            finally:
+                self._on_spin('stop')
 
     # -----------------------------------------------
     #                  onContextMenu

@@ -77,7 +77,7 @@ class PifManager(wx.Dialog):
         self.coords = Coords()
         self.enable_buttons = False
         self.pif_exists = False
-        self.pif_flavor = ''
+        self.pif_flavor = 'playintegrityfork_9999999'
         self.favorite_pifs = get_favorite_pifs()
         self.insync = False
         self.pif_format = None
@@ -481,6 +481,7 @@ class PifManager(wx.Dialog):
 
         device = get_phone()
         if not device or not device.rooted:
+            self.console_stc.SetText("Device is not rooted or SU permissions to adb shell is not granted.\nPif Manager features are set to limited mode.")
             return
         modules = device.get_magisk_detailed_modules(refresh)
 
@@ -496,6 +497,7 @@ class PifManager(wx.Dialog):
         self.pif_modules = []
 
         if modules:
+            found_pif_module = False
             for module in modules:
                 if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store"):
                     self.pif_format = None
@@ -520,7 +522,7 @@ class PifManager(wx.Dialog):
                     flavor = module.name.replace(" ", "").lower()
                     self.pif_flavor = f"{flavor}_{module.versionCode}"
                     self.pif_modules.append(PifModule(module.id, module.name, module.version, module.versionCode, self.pif_format, self.pif_path, self.pif_flavor))
-
+                    found_pif_module = True
                     self.create_pif_button.Enable(True)
                     self.reload_pif_button.Enable(True)
                     self.cleanup_dg_button.Enable(True)
@@ -534,19 +536,20 @@ class PifManager(wx.Dialog):
                     if self.pif_exists:
                         self.LoadReload(None)
 
-        # Make the selection in priority order: Trickystore, Play Integrity
-        for i in range(self.pif_selection_combo.GetCount()):
-            if "Tricky" in self.pif_selection_combo.GetString(i):
-                self.pif_selection_combo.SetSelection(i)
-                break
-            elif "Play Integrity" in self.pif_selection_combo.GetString(i):
-                self.pif_selection_combo.SetSelection(i)
-        # If nothing is selected and there are items, select the first item
-        if self.pif_selection_combo.GetSelection() == wx.NOT_FOUND and self.pif_selection_combo.GetCount() > 0:
-            self.pif_selection_combo.SetSelection(0)
+        if found_pif_module:
+            # Make the selection in priority order: Trickystore, Play Integrity
+            for i in range(self.pif_selection_combo.GetCount()):
+                if "Tricky" in self.pif_selection_combo.GetString(i):
+                    self.pif_selection_combo.SetSelection(i)
+                    break
+                elif "Play Integrity" in self.pif_selection_combo.GetString(i):
+                    self.pif_selection_combo.SetSelection(i)
+            # If nothing is selected and there are items, select the first item
+            if self.pif_selection_combo.GetSelection() == wx.NOT_FOUND and self.pif_selection_combo.GetCount() > 0:
+                self.pif_selection_combo.SetSelection(0)
 
-        # Manually trigger the combo box change event
-        self.onPifSelectionComboBox(None)
+            # Manually trigger the combo box change event
+            self.onPifSelectionComboBox(None)
 
     # -----------------------------------------------
     #                  check_pif_json
@@ -593,7 +596,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def onPifSelectionComboBox(self, event):
         selection_index = self.pif_selection_combo.GetSelection()
-        if selection_index != wx.NOT_FOUND:
+        if selection_index != wx.NOT_FOUND and self.pif_modules and selection_index < len(self.pif_modules):
             selected_module = self.pif_modules[selection_index]
             self.current_pif_module = selected_module
             self.pif_format = selected_module.format

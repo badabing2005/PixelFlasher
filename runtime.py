@@ -3921,10 +3921,16 @@ def check_kb(filename):
         i = 1
         is_revoked = False
         print(f"\nChecking keybox: {filename} ...")
+        cert_sn_text = "REDACTED"
+        cert_issuer_test = "REDACTED"
+
         for cert in certs:
             cert_sn, cert_issuer, sig_algo, expiry, key_usages = parse_cert(cert)
-            print(f'\nCertificate {i} SN:       {cert_sn}')
-            print(f'Certificate {i} Issuer:   {cert_issuer}')
+            if get_verbose():
+                cert_sn_text = cert_sn
+                cert_issuer_test = cert_issuer
+            print(f'\nCertificate {i} SN:       {cert_sn_text}')
+            print(f'Certificate {i} Issuer:   {cert_issuer_test}')
             print(f'Signature Algorithm:    {sig_algo}')
             print(f'Key Usage:              {key_usages}')
             expired_text = ""

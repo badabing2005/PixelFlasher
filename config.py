@@ -126,6 +126,7 @@ class Config():
                 'scrcpy': True,
                 'device_info': True,
                 'partition_manager': True,
+                'pi_analysis_report': True,
                 'switch_slot': True,
                 'reboot_system': True,
                 'reboot_bootloader': True,
@@ -325,6 +326,8 @@ class Config():
                     #     conf.toolbar['visible']['check_verity'] = toolbar_data['visible']['check_verity']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['partition_manager'] = toolbar_data['visible']['partition_manager']
+                    with contextlib.suppress(KeyError):
+                        conf.toolbar['visible']['pi_analysis_report'] = toolbar_data['visible']['pi_analysis_report']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['switch_slot'] = toolbar_data['visible']['switch_slot']
                     with contextlib.suppress(KeyError):

@@ -998,9 +998,15 @@ class PixelFlasher(wx.Frame):
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=40)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=40)
 
+            # PI Analysis Report
+            if self.config.toolbar['visible']['pi_analysis_report'] and self.config.advanced_options:
+                tb.AddTool(toolId=50, label="PI Analysis", bitmap=images.analyze_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="PI Analysis Report", longHelp="PI Analysis Report", clientData=None)
+                self.Bind(wx.EVT_TOOL, self.OnToolClick, id=50)
+                self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=50)
+
             # separator
             with contextlib.suppress(Exception):
-                if self.config.toolbar['visible']['adb_shell'] or self.config.toolbar['visible']['scrcpy'] or self.config.toolbar['visible']['device_info'] or self.config.toolbar['visible']['check_verity'] or (self.config.toolbar['visible']['partition_manager'] and self.config.advanced_options):
+                if self.config.toolbar['visible']['adb_shell'] or self.config.toolbar['visible']['scrcpy'] or self.config.toolbar['visible']['device_info'] or self.config.toolbar['visible']['check_verity'] or self.config.toolbar['visible']['pi_analysis_report'] or (self.config.toolbar['visible']['partition_manager'] and self.config.advanced_options):
                     tb.AddSeparator()
 
             # Switch Slot
@@ -1164,6 +1170,8 @@ class PixelFlasher(wx.Frame):
         #     self._on_verity_check(event)
         elif id == 40:
             self._on_partition_manager(event)
+        elif id == 50:
+            self._on_pi_analysis_report(event)
         elif id == 100:
             self._on_switch_slot(event)
         elif id == 110:
@@ -1368,9 +1376,9 @@ class PixelFlasher(wx.Frame):
         self.partitions_menu.SetBitmap(images.partition_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_partition_manager, self.partitions_menu)
         # Pi Analysis Report
-        self.device_analysis_menu = device_menu.Append(wx.ID_ANY, "PI Analysis Report", "Generate a report of PI Analysis")
-        self.device_analysis_menu.SetBitmap(images.analyze_24.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_device_analysis, self.device_analysis_menu)
+        self.pi_analysis_report_menu = device_menu.Append(wx.ID_ANY, "PI Analysis Report", "Generate a report of PI Analysis")
+        self.pi_analysis_report_menu.SetBitmap(images.analyze_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_pi_analysis_report, self.pi_analysis_report_menu)
         # separator
         device_menu.AppendSeparator()
         # Switch Slot
@@ -1522,6 +1530,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Append(20, "Device Info", "", wx.ITEM_CHECK).SetBitmap(images.about_24.GetBitmap())
         # tb_buttons_menu.Append(30, "Verity Verification Status", "", wx.ITEM_CHECK).SetBitmap(images.shield_24.GetBitmap())
         tb_buttons_menu.Append(40, "Partitions Manager", "", wx.ITEM_CHECK).SetBitmap(images.partition_24.GetBitmap())
+        tb_buttons_menu.Append(50, "PI Analysis", "", wx.ITEM_CHECK).SetBitmap(images.analyze_24.GetBitmap())
         tb_buttons_menu.Append(100, "Switch Slot", "", wx.ITEM_CHECK).SetBitmap(images.switch_slot_24.GetBitmap())
         tb_buttons_menu.Append(110, "Reboot System", "", wx.ITEM_CHECK).SetBitmap(images.reboot_System_24.GetBitmap())
         tb_buttons_menu.Append(120, "Reboot Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.reboot_bootloader_24.GetBitmap())
@@ -1549,6 +1558,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Check(20, self.config.toolbar['visible']['device_info'])
         # tb_buttons_menu.Check(30, self.config.toolbar['visible']['check_verity'])
         tb_buttons_menu.Check(40, self.config.toolbar['visible']['partition_manager'])
+        tb_buttons_menu.Check(50, self.config.toolbar['visible']['pi_analysis_report'])
         tb_buttons_menu.Check(100, self.config.toolbar['visible']['switch_slot'])
         tb_buttons_menu.Check(110, self.config.toolbar['visible']['reboot_system'])
         tb_buttons_menu.Check(120, self.config.toolbar['visible']['reboot_bootloader'])
@@ -1748,6 +1758,8 @@ class PixelFlasher(wx.Frame):
         #     self.config.toolbar['visible']['check_verity'] = button_visible
         if button_id == 40:
             self.config.toolbar['visible']['partition_manager'] = button_visible
+        if button_id == 50:
+            self.config.toolbar['visible']['pi_analysis_report'] = button_visible
         if button_id == 100:
             self.config.toolbar['visible']['switch_slot'] = button_visible
         if button_id == 110:
@@ -2181,9 +2193,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         # device.dump_props()
 
     # -----------------------------------------------
-    #                  _on_device_analysis
+    #                  _on_pi_analysis_report
     # -----------------------------------------------
-    def _on_device_analysis(self, event):
+    def _on_pi_analysis_report(self, event):
         print("\n==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Device analysis for PIF")
         print("==============================================================================")
@@ -2209,7 +2221,7 @@ This report will inherently reveal sensitive information about your device such 
 	- denylist.
 - TrickyStore (if available):
 	- `/data/adb/tricky_store/spoof_build_vars`
-	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just the serial numbers of the certificates and if they are revoked or not)
+	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)
 	- `/data/adb/tricky_store/target.txt`
 - PlayIntegrity Fork (if available):
 	- `/data/adb/modules/playintegrityfix/custom.pif.json`
@@ -2220,6 +2232,12 @@ This report will inherently reveal sensitive information about your device such 
 	- `/data/adb/pif.json`
 - Whether a testkey ROM is used or not.
 - logcat for PlayIntegrity and TrickyStore related logs.
+- If any custom ROM injection apps are installed from:
+    - Xiaomi.eu
+    - EliteRoms
+    - hentaiOS
+    - Evolution X
+    - PixelOS
 
 **NOTE:**
 This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>
@@ -2229,7 +2247,7 @@ Before posting publicly please carefully inspect the contents.
 
 **Are you sure you want to continue?**<br/>
 '''
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['Yes', 'No'], default_button=1, is_md=True, size=[915,960])
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['Yes', 'No'], default_button=1, is_md=True, size=[915,700])
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -2384,6 +2402,35 @@ Before posting publicly please carefully inspect the contents.
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
+                # Check for conflicting custom ROM injection apps
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Check for custom ROM injection apps ...")
+                print("==============================================================================")
+                # # Xiaomi.eu
+                print("Checking for Xiaomi.eu ROM injection ...")
+                res = device.exec_cmd("ls -lR /product/app/XiaomiEUInject", True)
+                print(res)
+                res = device.exec_cmd("ls -lR /product/app/XiaomiEUInject-Stub", True)
+                print(res)
+                # # EliteRoms
+                print("Checking for EliteRoms ROM injection ...")
+                res = device.exec_cmd("ls -lR /system/app/EliteDevelopmentModule", True)
+                print(res)
+                res = device.exec_cmd("ls -lR /system/app/XInjectModule", True)
+                print(res)
+                # # hentaiOS
+                print("Checking for hentaiOS ROM injection ...")
+                res = device.exec_cmd("ls -lR /system_ext/app/hentaiLewdbSVTDummy", True)
+                print(res)
+                # # Evolution X
+                print("Checking for Evolution X ROM injection ...")
+                res = device.exec_cmd("ls -lR /system_ext/app/PifPrebuilt", True)
+                print(res)
+                # # PixelOS
+                print("Checking for PixelOS ROM injection ...")
+                res = device.exec_cmd("ls -lR /system_ext/overlay/CertifiedPropsOverlay.apk", True)
+                print(res)
+
                 # logcat for PlayIntegrity related logs
                 print("\n==============================================================================")
                 print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Getting pif logcat ...")
@@ -2441,7 +2488,7 @@ Before posting publicly please carefully inspect the contents.
                 self.paste_selection.Hide()
                 # Menu items
                 self.partitions_menu.Enable(False)
-                self.device_analysis_menu.Enable(False)
+                self.pi_analysis_report_menu.Enable(False)
                 self.switch_slot_menu.Enable(False)
                 self.reboot_fastbootd_menu.Enable(False)
                 self.reboot_recovery_menu.Enable(False)
@@ -2486,7 +2533,7 @@ Before posting publicly please carefully inspect the contents.
                 self.paste_selection.Show()
                 # Menu items
                 self.partitions_menu.Enable(True)
-                self.device_analysis_menu.Enable(True)
+                self.pi_analysis_report_menu.Enable(True)
                 self.switch_slot_menu.Enable(True)
                 self.reboot_fastbootd_menu.Enable(True)
                 self.reboot_recovery_menu.Enable(True)
@@ -3032,7 +3079,7 @@ Before posting publicly please carefully inspect the contents.
                 self.bootloader_lock_menu:              ['device_attached', 'advanced_options'],
                 self.install_magisk_menu:               ['device_attached'],
                 self.partitions_menu:                   ['device_attached', 'advanced_options'],
-                self.device_analysis_menu:              ['device_attached', 'device_is_rooted'],
+                self.pi_analysis_report_menu:           ['device_attached', 'device_is_rooted'],
                 self.install_apk:                       ['device_attached'],
                 self.package_manager:                   ['device_attached'],
                 self.no_reboot_checkBox:                ['device_attached'],
@@ -3089,6 +3136,7 @@ Before posting publicly please carefully inspect the contents.
                 20:                                     ['device_attached'],                                            # Device Info
                 # 30:                                     ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Check Verity Verification
                 40:                                     ['device_attached'],                                            # Partition Manager
+                50:                                     ['device_attached', 'device_is_rooted'],                        # PI Analysis Report
                 100:                                    ['device_attached', 'dual_slot'],                               # Switch Slot
                 110:                                    ['device_attached'],                                            # Reboot System
                 120:                                    ['device_attached'],                                            # Reboot Bootloader

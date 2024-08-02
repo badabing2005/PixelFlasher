@@ -709,7 +709,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def current_device_print(self):
-        return process_dict(the_dict=self.props.property, add_missing_keys=True, pif_flavor=True)
+        return process_dict(the_dict=self.props.property, add_missing_keys=True, pif_flavor='playintegrityfork_9999999')
 
     # ----------------------------------------------------------------------------
     #                               property current_device_props_in_json
@@ -997,7 +997,7 @@ class Device():
     # ----------------------------------------------------------------------------
     #                               method exec_magisk_settings
     # ----------------------------------------------------------------------------
-    def exec_magisk_settings(self, data):
+    def exec_magisk_settings(self, data, runshell_mode=2):
         if self.mode != 'adb' or not self.rooted:
             return
         try:
@@ -1019,9 +1019,10 @@ class Device():
                 # data += "\n"
                 f.write(data)
                 puml(f"note right\nMagisk update script\n====\n{data}\nend note\n")
-            print("PixelFlasher Magisk update script contents:")
-            print(f"___________________________________________________\n{data}")
-            print("___________________________________________________\n")
+            if runshell_mode == 2:
+                print("PixelFlasher Magisk update script contents:")
+                print(f"___________________________________________________\n{data}")
+                print("___________________________________________________\n")
 
             # Transfer Magisk update script to the phone
             res = self.push_file(f"{the_script}", script_path, with_su=False)
@@ -1040,18 +1041,23 @@ class Device():
             #------------------------------------
             # Execute the pfmagisk_settings.sh script
             #------------------------------------
-            print("Executing the pfmagisk_settings.sh script ...")
+            debug("Executing the pfmagisk_settings.sh script ...")
             puml(":Executing the pfmagisk_settings script;\n")
             debug(f"exec_cmd: {exec_cmd}")
-            res = run_shell2(exec_cmd)
-            if res.returncode == 0:
-                # delete existing pfmagisk_settings.sh from phone
-                res = self.delete("/data/local/tmp/pfmagisk_settings.sh")
-                if res != 0:
-                    print("Failed to delete temporary pfmagisk_settings.sh file\n")
-                    puml("#red:Failed to delete temporary pfmagisk_settings.sh file;\n")
-                    return -1
-                return 0
+            if runshell_mode == 1:
+                res = run_shell(exec_cmd)
+                return res
+            elif runshell_mode == 2:
+                res = run_shell2(exec_cmd)
+                if res.returncode == 0:
+                    # delete existing pfmagisk_settings.sh from phone
+                    res2 = self.delete("/data/local/tmp/pfmagisk_settings.sh")
+                    if res2 != 0:
+                        print("Failed to delete temporary pfmagisk_settings.sh file\n")
+                        puml("#red:Failed to delete temporary pfmagisk_settings.sh file;\n")
+                        return -1
+                    else:
+                        return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during pfmagisk_settings script execution")
                 print(f"Return Code: {res.returncode}.")
@@ -1134,6 +1140,44 @@ add_hosts_module
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk operation.")
                 traceback.print_exc()
                 puml("#red:Exception during magisk_enable_zygisk operation.;\n", True)
+
+
+    # ----------------------------------------------------------------------------
+    #                               method magisk_get_zygisk_status
+    # ----------------------------------------------------------------------------
+    def magisk_get_zygisk_status(self):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                debug("Getting Zygisk state...")
+                puml(":Getting Zygisk state;\n", True)
+
+                data = f"magisk --sqlite \"SELECT value FROM settings WHERE key='zygisk';\""
+                res = self.exec_magisk_settings(data, 1)
+                if res:
+                    print(f"{res.stdout} {res.stderr}" )
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk zygisk check operation.")
+                traceback.print_exc()
+                puml("#red:Exception during magisk zygisk status check operation.;\n", True)
+
+
+    # ----------------------------------------------------------------------------
+    #                               method magisk_get_denylist_status
+    # ----------------------------------------------------------------------------
+    def magisk_get_denylist_status(self):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                debug("Getting Magisk denylist state...")
+                puml(":Getting Magisk denylist state;\n", True)
+
+                data = f"magisk --denylist status"
+                res = self.exec_magisk_settings(data, 1)
+                if res:
+                    print(f"{res.stdout} {res.stderr}" )
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk Magisk denylist check operation.")
+                traceback.print_exc()
+                puml("#red:Exception during magisk Magisk denylist status check operation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -1259,7 +1303,7 @@ add_hosts_module
 
                 # check if backup got created.
                 print("\Checking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
-                res, patched_file = self.check_file("/data/local/tmp/data_adb.tgz")
+                res,_ = self.check_file("/data/local/tmp/data_adb.tgz")
                 if res != 1:
                     print("Aborting ...\n")
                     puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")
@@ -1451,16 +1495,16 @@ add_hosts_module
             file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
-                    print(f"Deleting {file_path} from the device as root ...")
+                    debug(f"Deleting {file_path} from the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -{flag}f \"{file_path}\"\'\""
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}. Device is not rooted.")
             else:
-                print(f"Deleting {file_path} from the device ...")
+                debug(f"Deleting {file_path} from the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell rm -{flag}f \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Return Code: 0")
+                debug("Return Code: 0")
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
@@ -1507,12 +1551,12 @@ add_hosts_module
             if not file_path:
                 file_path = f"/data/local/tmp/{partition}.img"
 
-            print(f"Dumping partition to file: {file_path} ...")
+            debug(f"Dumping partition to file: {file_path} ...")
             puml(f":Dump Partition;\nnote right:Partition: {partition};\n", True)
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/{partition} of={file_path}\'\""
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Return Code: 0")
+                debug("Return Code: 0")
                 return 0, file_path
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition.")
@@ -1545,11 +1589,11 @@ add_hosts_module
         try:
             source = remove_quotes(source)
             dest = remove_quotes(dest)
-            print(f"Copying {source} to {dest} ...")
+            debug(f"Copying {source} to {dest} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\";chmod 666 \"{dest}\"\'\""
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Return Code: 0")
+                debug("Return Code: 0")
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
@@ -1584,12 +1628,12 @@ add_hosts_module
             file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
-                    print(f"Checking for {file_path} on the device as root ...")
+                    debug(f"Checking for {file_path} on the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls \"{file_path}\"\'\""
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not rooted.")
             else:
-                print(f"Checking for {file_path} on the device ...")
+                debug(f"Checking for {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell ls \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
@@ -1624,16 +1668,16 @@ add_hosts_module
             dir_path = remove_quotes(dir_path)
             if with_su:
                 if self.rooted:
-                    print(f"Creating directory {dir_path} on the device as root ...")
+                    debug(f"Creating directory {dir_path} on the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'mkdir -p \"{dir_path}\"\'\""
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory {dir_path}. Device is not rooted.")
             else:
-                print(f"Creating directory {dir_path} on the device ...")
+                debug(f"Creating directory {dir_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell mkdir -p \"{dir_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Return Code: 0")
+                debug("Return Code: 0")
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
@@ -1641,6 +1685,34 @@ add_hosts_module
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_logcat
+    # ----------------------------------------------------------------------------
+    def get_logcat(self, filter: str, with_su = False) -> str:
+        if self.mode != 'adb':
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get_logcat. Device is not in ADB mode.")
+            return -1
+        try:
+            extra_options = ""
+            if filter:
+                extra_options = f" | grep -i {filter}"
+
+            debug(f"Getting device logcat with filter [{filter}] ...")
+            if with_su:
+                if self.rooted:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'logcat -d {extra_options} \'\""
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get logcat as root. Device is not rooted.")
+            else:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"logcat -d {extra_options} \""
+            res = run_shell(theCmd)
+            if isinstance(res, subprocess.CompletedProcess) and res:
+                return(f"{res.stdout}\n{res.stderr}")
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get logcat")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1664,16 +1736,16 @@ add_hosts_module
             file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
-                    print(f"Getting file content of {file_path} on the device as root ...")
+                    debug(f"Getting file content of {file_path} on the device as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat \"{file_path}\"\'\""
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content of {file_path}. Device is not rooted.")
             else:
-                print(f"Getting file content of {file_path} on the device ...")
+                debug(f"Getting file content of {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell cat \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Return Code: 0")
+                debug("Return Code: 0")
                 return res.stdout
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
@@ -1716,7 +1788,7 @@ add_hosts_module
             file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
-                    print(f"Pushing local file as root: {local_file} to the device: {file_path} ...")
+                    debug(f"Pushing local file as root: {local_file} to the device: {file_path} ...")
                     filename = os.path.basename(urlparse(local_file).path)
                     remote_file = f"\"/data/local/tmp/{filename}\""
                     res = self.push_file(local_file, remote_file, with_su=False)
@@ -1732,11 +1804,11 @@ add_hosts_module
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy to {file_path}. Device is not rooted.")
                     return -1
             else:
-                print(f"Pushing local file: {local_file} to the device: {file_path} ...")
+                debug(f"Pushing local file: {local_file} to the device: {file_path} ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} push \"{local_file}\" \"{file_path}\""
                 res = run_shell(theCmd)
                 if res.returncode == 0:
-                    print("Return Code: 0")
+                    debug("Return Code: 0")
                     return 0
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
@@ -1784,11 +1856,11 @@ add_hosts_module
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not rooted.")
                     return -1
 
-            print(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
+            debug(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} pull \"{remote_file}\" \"{local_file}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Return Code: 0")
+                debug("Return Code: 0")
                 return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
@@ -1823,19 +1895,19 @@ add_hosts_module
             file_path = remove_quotes(file_path)
             if with_su:
                 if self.rooted:
-                    print(f"Setting permissions {permissions} on {file_path} as root ...")
+                    debug(f"Setting permissions {permissions} on {file_path} as root ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'chmod {permissions} \"{file_path}\"\'\""
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permissions on {file_path}. Device is not rooted.")
             else:
-                print(f"Setting permissions {permissions} on {file_path} on the device ...")
+                debug(f"Setting permissions {permissions} on {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell chmod {permissions} \"{file_path}\""
             res = run_shell(theCmd)
             if res.returncode == 0:
-                print("Return Code: 0")
+                debug("Return Code: 0")
                 return 0
             else:
-                print(f"Return Code: {res.returncode}.")
+                debug(f"Return Code: {res.returncode}.")
                 return -1
         except Exception as e:
             traceback.print_exc()
@@ -3668,16 +3740,16 @@ This is a special Magisk build\n\n
             try:
                 if with_su:
                     if self.rooted:
-                        print(f"Executing command: {cmd} on the device as root ...")
+                        debug(f"Executing command: {cmd} on the device as root ...")
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'{cmd}\'\""
                     else:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not execute {cmd}. Device is not rooted.")
                 else:
-                    print(f"Executing command: {cmd} on the device ...")
+                    debug(f"Executing command: {cmd} on the device ...")
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell {cmd}"
                 res = run_shell(theCmd)
                 data = res.stdout
-                print(f"Return Code: {res.returncode}")
+                debug(f"Return Code: {res.returncode}")
                 return data
 
             except Exception:

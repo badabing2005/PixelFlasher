@@ -41,6 +41,8 @@ import json5
 import re
 from datetime import datetime
 from runtime import *
+from file_editor import FileEditor
+
 
 # ============================================================================
 #                               Class PifModule
@@ -235,15 +237,22 @@ class PifManager(wx.Dialog):
         self.reload_pif_button.SetToolTip(u"Reload pif.json / spoof_build_vars from device.")
         self.reload_pif_button.Enable(False)
 
-        # Push keybox button
-        self.push_kb_button = wx.Button(self, wx.ID_ANY, u"Push keybox.xml", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.push_kb_button.SetToolTip(u"Push a valid keybox.xml to device.")
-        self.push_kb_button.Enable(False)
-
         # Clean DG button
         self.cleanup_dg_button = wx.Button(self, wx.ID_ANY, u"Cleanup DG", wx.DefaultPosition, wx.DefaultSize, 0)
         self.cleanup_dg_button.SetToolTip(u"Cleanup Droidguard Cache")
         self.cleanup_dg_button.Enable(False)
+
+        # Push keybox button
+        self.push_kb_button = wx.Button(self, wx.ID_ANY, u"Push keybox.xml", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.push_kb_button.SetToolTip(u"Push a valid keybox.xml to device.")
+        self.push_kb_button.Enable(False)
+        self.push_kb_button.Show(False)
+
+        # Edit Tricky Store Target button
+        self.edit_ts_target_button = wx.Button(self, wx.ID_ANY, u"Edit TS Target", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.edit_ts_target_button.SetToolTip(u"Edit Tricky Store target.txt file.")
+        self.edit_ts_target_button.Enable(False)
+        self.edit_ts_target_button.Show(False)
 
         # Process build.prop button
         self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -311,8 +320,9 @@ class PifManager(wx.Dialog):
         button_width = self.pi_option.GetSize()[0] + 10
         self.create_pif_button.SetMinSize((button_width, -1))
         self.reload_pif_button.SetMinSize((button_width, -1))
-        self.push_kb_button.SetMinSize((button_width, -1))
         self.cleanup_dg_button.SetMinSize((button_width, -1))
+        self.push_kb_button.SetMinSize((button_width, -1))
+        self.edit_ts_target_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
         self.process_bulk_prop_button.SetMinSize((button_width, -1))
         self.process_img_button.SetMinSize((button_width, -1))
@@ -331,8 +341,9 @@ class PifManager(wx.Dialog):
         v_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         v_buttons_sizer.Add(self.create_pif_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.reload_pif_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
-        v_buttons_sizer.Add(self.push_kb_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
         v_buttons_sizer.Add(self.cleanup_dg_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
+        v_buttons_sizer.Add(self.push_kb_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
+        v_buttons_sizer.Add(self.edit_ts_target_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 10)
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.TOP | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.process_bulk_prop_button, 0, wx.TOP | wx.RIGHT, 10)
@@ -412,8 +423,9 @@ class PifManager(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.onClose)
         self.create_pif_button.Bind(wx.EVT_BUTTON, self.CreatePifJson)
         self.reload_pif_button.Bind(wx.EVT_BUTTON, self.LoadReload)
-        self.push_kb_button.Bind(wx.EVT_BUTTON, self.select_file_and_push)
         self.cleanup_dg_button.Bind(wx.EVT_BUTTON, self.CleanupDG)
+        self.push_kb_button.Bind(wx.EVT_BUTTON, self.select_file_and_push)
+        self.edit_ts_target_button.Bind(wx.EVT_BUTTON, self.edit_ts_target)
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
         self.process_bulk_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildPropFolder)
         self.process_img_button.Bind(wx.EVT_BUTTON, self.ProcessImg)
@@ -480,7 +492,10 @@ class PifManager(wx.Dialog):
             self.first_api = None
 
         device = get_phone()
-        if not device or not device.rooted:
+        if not device:
+            self.console_stc.SetText("No Device is selected.\nPif Manager features are set to limited mode.")
+            return
+        if not device.rooted:
             self.console_stc.SetText("Device is not rooted or SU permissions to adb shell is not granted.\nPif Manager features are set to limited mode.")
             return
         modules = device.get_magisk_detailed_modules(refresh)
@@ -489,6 +504,9 @@ class PifManager(wx.Dialog):
         self.reload_pif_button.Enable(False)
         self.push_kb_button.Enable(False)
         self.cleanup_dg_button.Enable(False)
+        self.push_kb_button.Show(False)
+        self.edit_ts_target_button.Enable(False)
+        self.edit_ts_target_button.Show(False)
         self.auto_update_pif_checkbox.Enable(False)
         self.auto_check_pi_checkbox.Enable(False)
         self.pi_checker_button.Enable(False)
@@ -518,6 +536,9 @@ class PifManager(wx.Dialog):
                         self.pif_format = 'prop'
                         self.pif_path = '/data/adb/tricky_store/spoof_build_vars'
                         self.push_kb_button.Enable(True)
+                        self.push_kb_button.Show(True)
+                        self.edit_ts_target_button.Enable(True)
+                        self.edit_ts_target_button.Show(True)
 
                     flavor = module.name.replace(" ", "").lower()
                     self.pif_flavor = f"{flavor}_{module.versionCode}"
@@ -559,7 +580,7 @@ class PifManager(wx.Dialog):
         if not device.rooted:
             return
         # check for presence of pif.json
-        res, tmp = device.check_file(self.pif_path, True)
+        res,_ = device.check_file(self.pif_path, True)
         if res == 1:
             self.pif_exists = True
             self.reload_pif_button.Enable(True)
@@ -570,6 +591,9 @@ class PifManager(wx.Dialog):
             self.pif_exists = False
             self.reload_pif_button.Enable(False)
             self.push_kb_button.Enable(False)
+            self.push_kb_button.Show(False)
+            self.edit_ts_target_button.Enable(False)
+            self.edit_ts_target_button.Show(False)
             self.cleanup_dg_button.Enable(False)
             self.create_pif_button.SetLabel("Create print")
             self.create_pif_button.SetToolTip(u"Create pif.json / spoof_build_vars.")
@@ -602,6 +626,17 @@ class PifManager(wx.Dialog):
             self.pif_format = selected_module.format
             self.pif_path = selected_module.path
             self.pif_flavor = selected_module.flavor
+
+        if selected_module.id == "tricky_store":
+            self.push_kb_button.Enable(True)
+            self.push_kb_button.Show(True)
+            self.edit_ts_target_button.Enable(True)
+            self.edit_ts_target_button.Show(True)
+        else:
+            self.push_kb_button.Enable(False)
+            self.push_kb_button.Show(False)
+            self.edit_ts_target_button.Enable(False)
+            self.edit_ts_target_button.Show(False)
 
         selected_label = f"{selected_module.name} {selected_module.version}"
         print(f"Selected Module: {selected_label}")
@@ -1627,6 +1662,53 @@ class PifManager(wx.Dialog):
             return key_value_format
         except Exception:
             traceback.print_exc()
+
+
+    # -----------------------------------------------
+    #                  edit_ts_target
+    # -----------------------------------------------
+    def edit_ts_target(self, event):
+        try:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Tricky Store target.")
+            device = get_phone()
+            if not device.rooted:
+                return
+            self._on_spin('start')
+            config_path = get_config_path()
+            ts_target_file = os.path.join(config_path, 'tmp', 'ts_target.txt')
+            # pull the file
+            res = device.pull_file("/data/adb/tricky_store/target.txt", ts_target_file, True)
+            if res != 0:
+                print("Aborting ...\n")
+                return
+            # get the contents of target.txt
+            encoding = detect_encoding(ts_target_file)
+            with open(ts_target_file, 'r', encoding=encoding, errors="replace") as f:
+                contents = f.read()
+                self.device_pif = contents
+
+            self._on_spin('stop')
+            # Show the file in the editor
+            dlg = FileEditor(self, ts_target_file, "text", width=1500, height=600)
+            dlg.CenterOnParent()
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_OK:
+                # get the contents of modified ts_target_file
+                with open(ts_target_file, 'r', encoding='ISO-8859-1', errors="replace") as f:
+                    contents = f.read()
+                print(f"\nTricky Store target.txt file has been modified!")
+                print(f"The updated target.txt:")
+                print(f"___________________________________________________\n{contents}")
+                print("___________________________________________________\n")
+            else:
+                print("User cancelled editing Tricky Store target.txt file.")
+                return -1
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function edit_ts_target.")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
 
     # -----------------------------------------------

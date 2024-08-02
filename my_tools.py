@@ -280,7 +280,7 @@ class MyToolsDialog(wx.Dialog):
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  OnAddSepartor
+    #                  OnAddSeparator
     # -----------------------------------------------
     def OnAddSeparator(self, e):
         try:

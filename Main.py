@@ -97,11 +97,13 @@ global_args = None
 #                               Class RedirectText
 # ============================================================================
 class RedirectText():
-    def __init__(self,aWxTextCtrl):
-        self.out=aWxTextCtrl
-        logfile = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
-        self.logfile = open(logfile, "w", buffering=1, encoding="utf-8", errors="replace")
-        set_logfile(logfile)
+    def __init__(self, aWxTextCtrl):
+        self.out = aWxTextCtrl
+        self.logfile_stack = []
+        self.original_logfile_path = os.path.join(get_config_path(), 'logs', f"PixelFlasher_{datetime.now():%Y-%m-%d_%Hh%Mm%Ss}.log")
+        self.logfile = open(self.original_logfile_path, "w", buffering=1, encoding="utf-8", errors="replace")
+        self.logfile_stack.append(self.original_logfile_path)
+        set_logfile(self.original_logfile_path)
 
     def write(self, string):
         global global_args
@@ -129,6 +131,25 @@ class RedirectText():
     def close(self):
         if not self.logfile.closed:
             self.logfile.close()
+
+    def set_logfile(self, new_logfile_path):
+        """Set a new logfile and close the current one if open."""
+        self.flush()
+        self.close()
+        self.logfile = open(new_logfile_path, "w", buffering=1, encoding="utf-8", errors="replace")
+        self.logfile_stack.append(new_logfile_path)
+        set_logfile(new_logfile_path)
+
+    def reset_logfile(self):
+        """Reset to the previous logfile."""
+        if len(self.logfile_stack) > 1:
+            self.flush()
+            self.close()
+            self.logfile_stack.pop()  # Remove the current logfile
+            previous_logfile_path = self.logfile_stack[-1]
+            self.logfile = open(previous_logfile_path, "a", buffering=1, encoding="utf-8", errors="replace")
+            set_logfile(previous_logfile_path)
+
 
 # ============================================================================
 #                               Class FilePickerComboBox
@@ -541,19 +562,28 @@ class PixelFlasher(wx.Frame):
         self._build_menu_bar()
         self._init_ui()
 
-        redirect_text = RedirectText(self.console_ctrl)
-        sys.stdout = redirect_text
-        sys.stderr = redirect_text
+        self.redirect_text = RedirectText(self.console_ctrl)
+        sys.stdout = self.redirect_text
+        sys.stderr = self.redirect_text
 
         # self.Centre(wx.BOTH)
         if self.config.pos_x and self.config.pos_y:
-            self.SetPosition((self.config.pos_x,self.config.pos_y))
+            self.SetPosition((self.config.pos_x, self.config.pos_y))
 
         self.resizing = False
         if not dont_initialize:
             self.initialize()
         set_window_shown(True)
         self.Show(True)
+
+    def change_logfile(self, new_logfile_path):
+        """Change the logfile to a new one."""
+        self.redirect_text.set_logfile(new_logfile_path)
+
+    def reset_logfile(self):
+        """Reset the logfile to the original one."""
+        self.redirect_text.reset_logfile()
+
 
     # -----------------------------------------------
     #                  initialize
@@ -1337,6 +1367,10 @@ class PixelFlasher(wx.Frame):
         self.partitions_menu = device_menu.Append(wx.ID_ANY, "Partitions Manager", "Backup / Erase Partitions")
         self.partitions_menu.SetBitmap(images.partition_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_partition_manager, self.partitions_menu)
+        # Pi Analysis Report
+        self.device_analysis_menu = device_menu.Append(wx.ID_ANY, "PI Analysis Report", "Generate a report of PI Analysis")
+        self.device_analysis_menu.SetBitmap(images.analyze_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_device_analysis, self.device_analysis_menu)
         # separator
         device_menu.AppendSeparator()
         # Switch Slot
@@ -2123,7 +2157,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     def _on_check_otacerts(self, event):
         try:
             self._on_spin('start')
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Check OTA Certs")
+            debug(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Check OTA Certs")
             device = get_phone()
             res = device.exec_cmd("unzip -l /system/etc/security/otacerts.zip")
             print(res)
@@ -2145,6 +2179,236 @@ _If you have selected multiple APKs to install, the options will apply to all AP
 
         # device = get_phone()
         # device.dump_props()
+
+    # -----------------------------------------------
+    #                  _on_device_analysis
+    # -----------------------------------------------
+    def _on_device_analysis(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Device analysis for PIF")
+        print("==============================================================================")
+        timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
+        device = get_phone()
+
+        if not device:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No device selected")
+            print("Please select a device and try again.")
+            print("Aborting ...")
+            return -1
+
+        title = "Device Analysis Report"
+        message = '''
+#                   WARNING! WARNING! WARNING! WARNING!
+**This feature will generate a device analysis report that you could post online to get assistance on Play Integrity related issues.**<br/>
+
+This report will inherently reveal sensitive information about your device such as:
+
+- Device id and other device related details.
+- Magisk (if available):
+	- modules list.
+	- denylist.
+- TrickyStore (if available):
+	- `/data/adb/tricky_store/spoof_build_vars`
+	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just the serial numbers of the certificates and if they are revoked or not)
+	- `/data/adb/tricky_store/target.txt`
+- PlayIntegrity Fork (if available):
+	- `/data/adb/modules/playintegrityfix/custom.pif.json`
+	- `/data/adb/modules/playintegrityfix/custom.app_replace.list`
+	- `/data/adb/modules/playintegrityfix/scripts-only-mode`
+- PlayIntegrityFix (if available):
+	- `/data/adb/modules/playintegrityfix/pif.json`
+	- `/data/adb/pif.json`
+- Whether a testkey ROM is used or not.
+- logcat for PlayIntegrity and TrickyStore related logs.
+
+**NOTE:**
+This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>
+Your privacy is yours to keep.<br/>
+
+Before posting publicly please carefully inspect the contents.
+
+**Are you sure you want to continue?**<br/>
+'''
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['Yes', 'No'], default_button=1, is_md=True, size=[915,960])
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+        option = result
+        # option 2 - No
+        if option == 2:
+            print("User canceled Device Analysis.")
+            print("Aborting ...\n")
+            return -1
+        # option 1 - Yes
+        elif option == 1:
+            set_puml_state(False)
+            if device and device.hardware:
+                hardware = device.hardware
+            else:
+                hardware = "unknown"
+            with wx.FileDialog(self, "Save device analysis", '', f"{hardware}_analysis_{timestr}.log", wildcard="log files (*.log)|*.log",
+                            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    return     # the user changed their mind
+
+                logfile = fileDialog.GetPath()
+            try:
+                self._on_spin('start')
+                config_path = get_config_path()
+                tmp_dir_full = os.path.join(config_path, 'tmp')
+
+                print(f"Logging to {logfile}")
+                self.change_logfile(logfile)
+                t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Starting Device analysis for PIF")
+                print("==============================================================================")
+                print(f"PixelFlasher version: {VERSION}")
+
+                # Device details
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Getting Device details ...")
+                print("==============================================================================")
+                self._print_device_details(device)
+                if not device.rooted:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: device is not rooted")
+                    print("Perhaps su permissions are not granted to shell process?")
+                    print("Please grant su permissions to shell process and try again.\nPixelFlasher should show that the device is rooted.")
+                    print("Aborting ...")
+                    return -1
+
+                # Testkey check
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking for testkey ...")
+                print("==============================================================================")
+                self._on_spin('start')
+                self._on_check_otacerts(None)
+
+                # Magisk Denylist / Enforced
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Magisk denylist ...")
+                print("==============================================================================")
+                self._on_spin('start')
+                cmd = "magisk --denylist ls"
+                res = device.exec_cmd(cmd, True)
+                print(res)
+
+                # Magisk Denylist / Enforced
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Magisk denylist enforced ...")
+                print("==============================================================================")
+                self._on_spin('start')
+                res = device.magisk_get_denylist_status()
+                if isinstance(res, subprocess.CompletedProcess) and res:
+                    print(f"{res.stdout} {res.stderr}" )
+
+                # Zygisk enabled
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Zygisk status ...")
+                print("==============================================================================")
+                self._on_spin('start')
+                res = device.magisk_get_zygisk_status()
+
+                # TrickyStore - spoof_build_vars
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store spoof_build_vars ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/tricky_store/spoof_build_vars", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # TrickyStore - target.txt
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store target.txt ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/tricky_store/target.txt", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # TrickyStore - keybox.xml
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store keybox status ...")
+                print("==============================================================================")
+                keybox_xml = '/data/adb/tricky_store/keybox.xml'
+                res,_ = device.check_file(keybox_xml, True)
+                if res == 1:
+                    keybox_file = os.path.join(tmp_dir_full, "keybox.xml")
+                    debug(f"Pulling {keybox_xml} from the phone to: {keybox_file} ...")
+                    res = device.pull_file(keybox_xml, f"\"{keybox_file}\"", with_su=True)
+                    if res != 0:
+                        print(f"Error: Failed to pull {keybox_xml} from the phone.")
+                    else:
+                        res = check_kb(keybox_file)
+                        print(f"Result: {res}")
+
+                # PlayIntegrity Fork - custom.pif.json
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.json ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.json", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # PlayIntegrity Fork - custom.app_replace.list
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace.list", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # PlayIntegrity Fork - scripts-only-mode
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
+                print("==============================================================================")
+                res,_ = device.check_file('/data/adb/modules/playintegrityfix/scripts-only-mode', True)
+                if res == 1:
+                    print("scripts-only-mode is enabled")
+                else:
+                    print("scripts-only-mode is disabled")
+
+                # PlayIntegrityFix - pif.json
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix pif.json ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/modules/playintegrityfix/pif.json", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # PlayIntegrityFix - older pif.json
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix older pif.json ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/pif.json", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # logcat for PlayIntegrity related logs
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Getting pif logcat ...")
+                print("==============================================================================")
+                res = device.get_logcat("pif", True)
+                if res:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # logcat for PlayIntegrity related logs
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} getting Tricky Store logcat ...")
+                print("==============================================================================")
+                res = device.get_logcat("tricky", True)
+                if res:
+                    print(f"--------------------\n{res}\n--------------------")
+
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while analyzing the device")
+                traceback.print_exc()
+            finally:
+                print(f"Device Analysis Complete, saved to {logfile}")
+                set_puml_state(True)
+                self.reset_logfile()
+                print(f"End Device Analysis.\n")
+                self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _advanced_options_hide
@@ -2177,6 +2441,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.paste_selection.Hide()
                 # Menu items
                 self.partitions_menu.Enable(False)
+                self.device_analysis_menu.Enable(False)
                 self.switch_slot_menu.Enable(False)
                 self.reboot_fastbootd_menu.Enable(False)
                 self.reboot_recovery_menu.Enable(False)
@@ -2221,6 +2486,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.paste_selection.Show()
                 # Menu items
                 self.partitions_menu.Enable(True)
+                self.device_analysis_menu.Enable(True)
                 self.switch_slot_menu.Enable(True)
                 self.reboot_fastbootd_menu.Enable(True)
                 self.reboot_recovery_menu.Enable(True)
@@ -2594,7 +2860,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
 
             elif condition == 'device_mode_adb':
                 device = get_phone()
-                if device and device.mode == 'adb':
+                if device and device.true_mode == 'adb':
                     return True
                 return False
 
@@ -2766,6 +3032,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.bootloader_lock_menu:              ['device_attached', 'advanced_options'],
                 self.install_magisk_menu:               ['device_attached'],
                 self.partitions_menu:                   ['device_attached', 'advanced_options'],
+                self.device_analysis_menu:              ['device_attached', 'device_is_rooted'],
                 self.install_apk:                       ['device_attached'],
                 self.package_manager:                   ['device_attached'],
                 self.no_reboot_checkBox:                ['device_attached'],

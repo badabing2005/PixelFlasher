@@ -6635,3 +6635,18 @@ restore_24 = PyEmbeddedImage(
     b'W7fp6jLeKTm/597XSeGDZoJWuNIrJU+vT9K45gSHvFMBAl1pXcNRhkzWnZX5j7bcmHhIC5C3'
     b'a4XZ8kvdMs6h6iaxNgllAvzEZFvM/wf4BKTuAihlxtTWAAAAAElFTkSuQmCC')
 
+#----------------------------------------------------------------------
+analyze_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACRUlEQVRIS7VVTZbSQBCuSubp'
+    b'Nh5AJCeQOcHgTnADN4AbJCfAGySeYPAE4kLG3TAnkBuA8QCyVqH9KnZlekgnoM/JezxC0v39'
+    b'VVXD9MgXn4P/Otv0g+DiyhjTZ+KIyHSJeMtkVsbs3y/TeN2E00owyjbRTw5nhmgCAAD7L4Dk'
+    b'n5JO6nvbSDDMNj3i8AM2QS3tiDk/HH7dBbg/4MMU9jjgl2TMWwu8O5j9+HMar1wiL4Eo/8EX'
+    b't4iiB/UrNvu0KQYRYjjMANQXIcuk8+wkwTAvRPlIwJ9C1SKNd7oJ7zbiCmpjqN3q80Fe3FqS'
+    b'BUjG+rzmwEbzpYzF7F+J8j+OwmvEtHYimWMzYqG7m7SzsGu+C7AxNJZncl8jGGRfE2YWy1Xh'
+    b'3uRFBjeJVbXFPTqojESuKpbhu28zK2AOF1M/gbXqqnBdPUE0EhmiugbAhAxNl2lnLmCDrBgx'
+    b'k8RbkT5wMMyKCTzJRumIS83Y6ahIi6gErhAnpjoBhqkbcCjZRxio9CZ9kWuhHkaEOpCR4kpE'
+    b'MhtbkMay1q0DnpXiKwfaOb6h8RW5bF+Aw8FHLeh9lLxeJs8vjwm87acu9BtCpFOi4zaV906R'
+    b'q1atOVAgtXhM0PTbupSIu942rWJAlALytwQaMVKv4vG2KRYi3vMJrLCsbFlnONVpfZIbjoKm'
+    b'aPToEHBEM9WCtxGUAyRdgrN+6p43PhJ17Cu6NyJrWTqqOv/b6nEqUu9xbYduZnNtLfg/ETg9'
+    b'f7Lg/4XgnFloirH1P1nVPRrBOcCn1vwG99tiKElOH7oAAAAASUVORK5CYII=')
+

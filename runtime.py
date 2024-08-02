@@ -140,6 +140,7 @@ config = {}
 config_file_path = ''
 unlocked_devices = []
 window_shown = False
+puml_enabled = True
 
 
 # ============================================================================
@@ -536,6 +537,22 @@ def get_adb():
 def set_adb(value):
     global adb
     adb = value
+
+
+# ============================================================================
+#                               Function get_puml_state
+# ============================================================================
+def get_puml_state():
+    global puml_enabled
+    return puml_enabled
+
+
+# ============================================================================
+#                               Function set_puml_state
+# ============================================================================
+def set_puml_state(value):
+    global puml_enabled
+    puml_enabled = value
 
 
 # ============================================================================
@@ -977,10 +994,11 @@ def set_message_box_message(value):
 #                               Function puml
 # ============================================================================
 def puml(message='', left_ts = False, mode='a'):
-    with open(get_pumlfile(), mode, encoding="ISO-8859-1", errors="replace") as puml_file:
-        puml_file.write(message)
-        if left_ts:
-            puml_file.write(f"note left:{datetime.now():%Y-%m-%d %H:%M:%S}\n")
+    if get_puml_state():
+        with open(get_pumlfile(), mode, encoding="ISO-8859-1", errors="replace") as puml_file:
+            puml_file.write(message)
+            if left_ts:
+                puml_file.write(f"note left:{datetime.now():%Y-%m-%d %H:%M:%S}\n")
 
 
 # ============================================================================

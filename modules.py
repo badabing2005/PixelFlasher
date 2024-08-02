@@ -2576,7 +2576,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
     # check if delete worked.
     print("Making sure file is not on the phone ...")
-    res, tmp = device.check_file(f"{self.config.phone_path}/{boot_img}")
+    res,_ = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print("Aborting ...\n")
         puml("#red:Failed to delete old boot image from the phone;\n}\n")
@@ -2591,7 +2591,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
     # check if delete worked.
     print("Making sure file is not on the phone ...")
-    res, tmp = device.check_file(f"{self.config.phone_path}/{patch_name}*.img")
+    res,_ = device.check_file(f"{self.config.phone_path}/{patch_name}*.img")
     if res != 0:
         puml(f"#red:Failed to delete old {patch_name}.img;\n")
         print("Aborting ...\n}\n")
@@ -2611,14 +2611,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             print("Aborting ...\n}\n")
             return
         # check if transfer worked.
-        res, tmp = device.check_file(f"{self.config.phone_path}/{init_boot_img}")
+        res,_ = device.check_file(f"{self.config.phone_path}/{init_boot_img}")
         if res != 1:
             print("Aborting ...\n")
             puml("#red:Failed to transfer the init_boot file to the phone;\n}\n")
             return
 
     # check if transfer worked.
-    res, tmp = device.check_file(f"{self.config.phone_path}/{boot_img}")
+    res,_ = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 1:
         print("Aborting ...\n")
         puml("#red:Failed to transfer the boot file to the phone;\n}\n")
@@ -2631,7 +2631,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         method = 80
         magiskboot_created = False
         if is_rooted:
-            res, tmp = device.check_file("/data/adb/magisk/magiskboot", True)
+            res,_ = device.check_file("/data/adb/magisk/magiskboot", True)
             if res == 1:
                 res = device.su_cp_on_device('/data/adb/magisk/magiskboot', '/data/local/tmp/magiskboot')
                 if res == 0:

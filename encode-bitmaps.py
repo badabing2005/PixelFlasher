@@ -171,6 +171,7 @@ command_lines = [
     "-a -F -i -n java-24 images/java-24.png images.py",
     "-a -F -i -n folder-zip-24 images/folder-zip-24.png images.py",
     "-a -F -i -n restore-24 images/restore-24.png images.py",
+    "-a -F -i -n analyze-24 images/analyze-24.png images.py",
 ]
 
 if __name__ == "__main__":

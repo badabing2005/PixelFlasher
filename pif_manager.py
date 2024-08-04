@@ -752,7 +752,7 @@ class PifManager(wx.Dialog):
         device = get_phone()
         if not device or not device.rooted:
             return
-        debug("Cleaning up DG Cache ...")
+        print("Cleaning up DG Cache ...")
         device.delete("/data/data/com.google.android.gms/app_dg_cache", with_su = True, dir = True)
 
     # -----------------------------------------------
@@ -809,7 +809,7 @@ class PifManager(wx.Dialog):
             self._on_spin('stop')
             return -1
 
-        self.device_pif = data
+        self.device_pif = json.dumps(data, indent=4, sort_keys=self.sort_keys)
 
         print("Killing Google GMS  ...")
         res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')

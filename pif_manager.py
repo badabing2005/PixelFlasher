@@ -85,6 +85,7 @@ class PifManager(wx.Dialog):
         self.pif_format = None
         self.keep_unknown = False
         self.current_pif_module = {}
+        self._last_call_was_on_spin = False
 
         # Active pif label
         self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Active Pif")
@@ -553,9 +554,6 @@ class PifManager(wx.Dialog):
                     self.enable_buttons = True
                     module_label = f"{module.name} {module.version} {module.versionCode}"
                     self.pif_selection_combo.Append(module_label)
-                    self.check_pif_json()
-                    if self.pif_exists:
-                        self.LoadReload(None)
 
         if found_pif_module:
             # Make the selection in priority order: Trickystore, Play Integrity
@@ -597,7 +595,6 @@ class PifManager(wx.Dialog):
             self.cleanup_dg_button.Enable(False)
             self.create_pif_button.SetLabel("Create print")
             self.create_pif_button.SetToolTip(u"Create pif.json / spoof_build_vars.")
-        self.ActivePifStcChange(None)
 
     # -----------------------------------------------
     #                  onPifComboBox
@@ -714,6 +711,7 @@ class PifManager(wx.Dialog):
                 return
             self._on_spin('start')
             config_path = get_config_path()
+            self.check_pif_json()
             pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
             if self.reload_pif_button.Enabled:
                 # pull the file
@@ -1359,9 +1357,19 @@ class PifManager(wx.Dialog):
     #                  ActivePifStcChange
     # -----------------------------------------------
     def ActivePifStcChange(self, event):
+        # Allow the default event handler to run first
+        event.Skip()
+
+        # defer the execution of the code that processes the updated value to make sure that the value is updated.
+        wx.CallAfter(self.process_active_pif_updated_value)
+
+    # -----------------------------------------------
+    #                  ActivePifStcChange
+    # -----------------------------------------------
+    def process_active_pif_updated_value(self):
         try:
             active_data = self.active_pif_stc.GetValue()
-            json_data = None
+            json_data = ''
             if active_data:
                 if self.pif_format == 'prop':
                     json_data = self.P2J(active_data)
@@ -1427,8 +1435,6 @@ class PifManager(wx.Dialog):
 
         except Exception:
             traceback.print_exc()
-        if event:
-            event.Skip()
 
     # -----------------------------------------------
     #                  update_combo_box
@@ -2070,6 +2076,7 @@ class PifManager(wx.Dialog):
     #                  _on_spin
     # -----------------------------------------------
     def _on_spin(self, state):
+        self._last_call_was_on_spin = True
         wx.YieldIfNeeded()
         if state == 'start':
             self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
@@ -2087,7 +2094,9 @@ class PifManager(wx.Dialog):
         self.resizing = True
         stc_size = self.active_pif_stc.GetSize()
         x = stc_size.GetWidth()
-        self.active_pif_stc.SetScrollWidth(x - 60)
+        if not self._last_call_was_on_spin:
+            self.active_pif_stc.SetScrollWidth(x - 60)
+        self._last_call_was_on_spin = False
         self.console_stc.SetScrollWidth(x - 60)
 
         self.Layout()

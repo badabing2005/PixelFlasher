@@ -126,7 +126,10 @@ Check the [releases section](https://github.com/badabing2005/PixelFlasher/releas
 ### Supported platforms  
 
 - Windows
-- MacOSX
+- macOS. Install via [Homebrew](https://brew.sh) by a single command:
+  ```
+  brew install yurikoles/yurikoles/pixelflasher
+  ```
 - Linux (See [this](https://github.com/badabing2005/PixelFlasher/issues/23) if you're having issues with a Linux build.)
 
 ## Status

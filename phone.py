@@ -1592,7 +1592,7 @@ add_hosts_module
             debug(f"Copying {source} to {dest} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\";chmod 666 \"{dest}\"\'\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res.returncode == 0 and res.stderr == '':
                 debug("Return Code: 0")
                 return 0
             else:
@@ -1846,6 +1846,11 @@ add_hosts_module
                 if self.rooted:
                     filename = os.path.basename(urlparse(remote_file).path)
                     temp_remote_file = f"/data/local/tmp/{filename}"
+                    # delete the remote target file first
+                    res = self.delete(temp_remote_file, with_su=True)
+                    if res != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {temp_remote_file}.")
+                        return -1
                     res = self.su_cp_on_device(remote_file, temp_remote_file)
                     if res != 0:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Perhaps the file does not exist.")
@@ -1856,6 +1861,10 @@ add_hosts_module
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not rooted.")
                     return -1
 
+            # delete local file if it exists
+            if os.path.exists(local_file):
+                debug(f"Deleting local file: {local_file} ...")
+                os.remove(local_file)
             debug(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} pull \"{remote_file}\" \"{local_file}\""
             res = run_shell(theCmd)

@@ -720,6 +720,7 @@ class PifManager(wx.Dialog):
                 res = device.pull_file(self.pif_path, pif_prop, True)
                 if res != 0:
                     print("Aborting ...\n")
+                    self.active_pif_stc.SetValue("")
                     # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
                     self._on_spin('stop')
                     return

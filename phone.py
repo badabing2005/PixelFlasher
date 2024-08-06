@@ -155,6 +155,8 @@ class Device():
         self._ksu_app_version_code = None
         self._has_init_boot = None
         self._kernel = None
+        self._magisk_denylist_enforced = None
+        self._magisk_zygisk_enabled = None
         self.packages = {}
         self.backups = {}
         self.vbmeta = {}
@@ -184,7 +186,7 @@ class Device():
         try:
             theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing get_unlock_ability"
             res = run_shell(theCmd)
-            if res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                 return 'UNKNOWN'
             lines = (f"{res.stderr}{res.stdout}").splitlines()
             for line in lines:
@@ -212,7 +214,7 @@ class Device():
         try:
             theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {package}"
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 path = self.get_path_from_details(res.stdout)
                 return res.stdout, path
             else:
@@ -232,7 +234,7 @@ class Device():
         try:
             theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys battery"
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 # path = self.get_path_from_details(res.stdout)
                 return res.stdout #, path
             else:
@@ -301,25 +303,25 @@ class Device():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/bin/getprop\'\""
                 else:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell /bin/getprop"
-                device_info = run_shell(theCmd)
-                if device_info.returncode == 127 or "/system/bin/sh: /bin/getprop: not found" in device_info.stdout:
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 127 or "/system/bin/sh: /bin/getprop: not found" in res.stdout:
                     if self.rooted:
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'getprop\'\""
                     else:
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell getprop"
-                    device_info = run_shell(theCmd)
-                return ''.join(device_info.stdout)
+                    res = run_shell(theCmd)
+                return ''.join(res.stdout)
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
                 puml("#red:ERROR: adb command is not found!;\n", True)
         elif self.mode == 'f.b':
             if get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar all"
-                device_info = run_shell(theCmd)
-                if (device_info.stdout == ''):
-                    return ''.join(device_info.stderr)
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess) and (res.stdout == ''):
+                    return ''.join(res.stderr)
                 else:
-                    return ''.join(device_info.stdout)
+                    return ''.join(res.stdout)
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
                 puml("#red:ERROR: fastboot command is not found!;\n", True)
@@ -548,7 +550,7 @@ class Device():
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell uname -a"
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     self._kernel = res.stdout.strip('\n')
                     match = re.search(r"\b(\d+\.\d+\.\d+-android\d+)\b", self._kernel)
                     if match:
@@ -559,6 +561,8 @@ class Device():
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get kernel information.")
                 traceback.print_exc()
                 self._rooted = None
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
         return self._kernel
 
     # ----------------------------------------------------------------------------
@@ -601,6 +605,8 @@ class Device():
                 if res != -1:
                     return res
                 self._rooted = None
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
                 return None
         except Exception:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk path")
@@ -618,6 +624,8 @@ class Device():
                 if res != -1:
                     return res
                 self._rooted = None
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
                 return None
         except Exception:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get KernelSU path")
@@ -635,6 +643,8 @@ class Device():
                 if res != -1:
                     return res
                 self._rooted = None
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
                 return None
         except Exception:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get APatch path")
@@ -650,7 +660,7 @@ class Device():
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk -c\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     regex = re.compile("(.*?):.*\((.*?)\)")
                     m = re.findall(regex, res.stdout)
                     if m:
@@ -665,13 +675,15 @@ class Device():
                 try:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/magisk/magisk32 -c\'\""
                     res = run_shell(theCmd)
-                    if res.returncode == 0:
+                    if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                         self._magisk_version = res.stdout.strip('\n')
                         self._magisk_version_code = self._magisk_version.strip(':')
                 except Exception:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
                     traceback.print_exc()
                     self._rooted = None
+                    self._magisk_denylist_enforced = None
+                    self._magisk_zygisk_enabled = None
         return self._magisk_version
 
     # ----------------------------------------------------------------------------
@@ -693,7 +705,7 @@ class Device():
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -1 $(magisk --path)/.magisk/config\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     self._magisk_config_path = res.stdout.strip('\n')
                 else:
                     self._magisk_config_path = None
@@ -731,7 +743,7 @@ class Device():
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell cd /dev/block/bootdevice/by-name/; ls -1 ."
             try:
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     list = res.stdout.split('\n')
                 else:
                     return -1
@@ -766,7 +778,7 @@ class Device():
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/avbctl get-{item}\'\""
             print(f"Checking {item} status: ...")
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}")
@@ -799,7 +811,7 @@ class Device():
             print("Resetting an already applied update (if one exists) ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --reset_status\'\""
             res = run_shell2(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}")
@@ -829,19 +841,19 @@ class Device():
             if "vbmeta_a" in partitions:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/vbmeta_a bs=1 skip=123 count=1 status=none | xxd -p\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     vbmeta.type = 'ab'
                     vbmeta_a = int(res.stdout.strip('\n'))
             if "vbmeta_b" in partitions:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/vbmeta_b bs=1 skip=123 count=1 status=none | xxd -p\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     vbmeta.type = 'ab'
                     vbmeta_b = int(res.stdout.strip('\n'))
             if "vbmeta_a" not in partitions and "vbmeta_b" not in partitions and "vbmeta" in partitions:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/vbmeta bs=1 skip=123 count=1 status=none | xxd -p\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     vbmeta.type = 'a_only'
                     vbmeta_a_only = int(res.stdout.strip('\n'))
 
@@ -903,7 +915,7 @@ class Device():
             self.backups.clear()
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l -d -1 /data/magisk_backup_*\'\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 list = res.stdout.split('\n')
             else:
                 return -1
@@ -957,7 +969,7 @@ class Device():
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -d -1 /data/magisk_backup_*\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     _magisk_backups = res.stdout.replace('/data/magisk_backup_', '').split('\n')
                 else:
                     _magisk_backups = None
@@ -980,7 +992,7 @@ class Device():
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat $(magisk --path)/.magisk/config | grep SHA1 | cut -d \'=\' -f 2\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     _magisk_sha1 = res.stdout.strip('\n')
                 else:
                     _magisk_sha1 = ''
@@ -1049,7 +1061,7 @@ class Device():
                 return res
             elif runshell_mode == 2:
                 res = run_shell2(exec_cmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     # delete existing pfmagisk_settings.sh from phone
                     res2 = self.delete("/data/local/tmp/pfmagisk_settings.sh")
                     if res2 != 0:
@@ -1143,44 +1155,6 @@ add_hosts_module
 
 
     # ----------------------------------------------------------------------------
-    #                               method magisk_get_zygisk_status
-    # ----------------------------------------------------------------------------
-    def magisk_get_zygisk_status(self):
-        if self.mode == 'adb' and self.rooted:
-            try:
-                debug("Getting Zygisk state...")
-                puml(":Getting Zygisk state;\n", True)
-
-                data = f"magisk --sqlite \"SELECT value FROM settings WHERE key='zygisk';\""
-                res = self.exec_magisk_settings(data, 1)
-                if res:
-                    print(f"{res.stdout} {res.stderr}" )
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk zygisk check operation.")
-                traceback.print_exc()
-                puml("#red:Exception during magisk zygisk status check operation.;\n", True)
-
-
-    # ----------------------------------------------------------------------------
-    #                               method magisk_get_denylist_status
-    # ----------------------------------------------------------------------------
-    def magisk_get_denylist_status(self):
-        if self.mode == 'adb' and self.rooted:
-            try:
-                debug("Getting Magisk denylist state...")
-                puml(":Getting Magisk denylist state;\n", True)
-
-                data = f"magisk --denylist status"
-                res = self.exec_magisk_settings(data, 1)
-                if res:
-                    print(f"{res.stdout} {res.stderr}" )
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk Magisk denylist check operation.")
-                traceback.print_exc()
-                puml("#red:Exception during magisk Magisk denylist status check operation.;\n", True)
-
-
-    # ----------------------------------------------------------------------------
     #                               method magisk_enable_denylist
     # ----------------------------------------------------------------------------
     def magisk_enable_denylist(self, enable):
@@ -1253,7 +1227,7 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/stock_boot.img\'\""
                 res = run_shell(theCmd)
                 # expect 0
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
@@ -1264,7 +1238,7 @@ add_hosts_module
                 print("Triggering Magisk run_migration to create a Backup of source boot.img")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /data/adb/magisk; ./magiskboot cleanup; . ./util_functions.sh; run_migrations\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     print("run_migration completed.")
                     if sha1:
                         magisk_backups = self.magisk_backups
@@ -1293,7 +1267,7 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/local/tmp/data_adb.tgz; tar cvfz /data/local/tmp/data_adb.tgz /data/adb/\'\""
                 res = run_shell(theCmd)
                 # expect 0
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
@@ -1351,7 +1325,7 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /; tar xvfz /data/local/tmp/data_adb.tgz \'\""
                 res = run_shell(theCmd)
                 # expect 0
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to restore a backup of /data/adb.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
@@ -1397,7 +1371,7 @@ add_hosts_module
                 debug(theCmd)
                 res = run_shell(theCmd)
                 # expect ret 0
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}")
@@ -1448,7 +1422,7 @@ add_hosts_module
                 print(f"Changing Magisk config SHA1 to: {sha1} ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd {magisk_config_path}; sed -i \"s/{magisk_sha1}/{sha1}/g\" config\'\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     # Read back to make sure it us updated
                     print("Getting back the SHA1 from Magisk config ...")
                     magisk_sha1 = self.magisk_sha1
@@ -1503,7 +1477,7 @@ add_hosts_module
                 debug(f"Deleting {file_path} from the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell rm -{flag}f \"{file_path}\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 debug("Return Code: 0")
                 return 0
             else:
@@ -1555,7 +1529,7 @@ add_hosts_module
             puml(f":Dump Partition;\nnote right:Partition: {partition};\n", True)
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/{partition} of={file_path}\'\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 debug("Return Code: 0")
                 return 0, file_path
             else:
@@ -1592,7 +1566,7 @@ add_hosts_module
             debug(f"Copying {source} to {dest} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\";chmod 666 \"{dest}\"\'\""
             res = run_shell(theCmd)
-            if res.returncode == 0 and res.stderr == '':
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and res.stderr == '':
                 debug("Return Code: 0")
                 return 0
             else:
@@ -1636,7 +1610,7 @@ add_hosts_module
                 debug(f"Checking for {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell ls \"{file_path}\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 print(f"File: {file_path} is found on the device.")
                 return 1, res.stdout.strip()
             else:
@@ -1676,7 +1650,7 @@ add_hosts_module
                 debug(f"Creating directory {dir_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell mkdir -p \"{dir_path}\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 debug("Return Code: 0")
                 return 0
             else:
@@ -1708,7 +1682,7 @@ add_hosts_module
             else:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"logcat -d {extra_options} \""
             res = run_shell(theCmd)
-            if isinstance(res, subprocess.CompletedProcess) and res:
+            if res and isinstance(res, subprocess.CompletedProcess):
                 return(f"{res.stdout}\n{res.stderr}")
         except Exception as e:
             traceback.print_exc()
@@ -1744,7 +1718,7 @@ add_hosts_module
                 debug(f"Getting file content of {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell cat \"{file_path}\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 debug("Return Code: 0")
                 return res.stdout
             else:
@@ -1807,7 +1781,7 @@ add_hosts_module
                 debug(f"Pushing local file: {local_file} to the device: {file_path} ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} push \"{local_file}\" \"{file_path}\""
                 res = run_shell(theCmd)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     debug("Return Code: 0")
                     return 0
                 else:
@@ -1868,7 +1842,7 @@ add_hosts_module
             debug(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} pull \"{remote_file}\" \"{local_file}\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 debug("Return Code: 0")
                 return 0
             else:
@@ -1912,7 +1886,7 @@ add_hosts_module
                 debug(f"Setting permissions {permissions} on {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell chmod {permissions} \"{file_path}\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 debug("Return Code: 0")
                 return 0
             else:
@@ -2035,7 +2009,7 @@ add_hosts_module
             print(f"Getting package {pkg} path on the device ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell pm path {pkg}"
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 pkg_path = ''
                 with contextlib.suppress(Exception):
                     pkg_path = res.stdout.split('\n')[0]
@@ -2084,7 +2058,7 @@ add_hosts_module
             print(f"Getting package {pkg} label from the device ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"/data/local/tmp/aapt2 d badging {pkg_path} | grep 'application: label='\""
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 # print(res.stdout)
                 regex = re.compile("application: label='(.*)' icon='(.*)'")
                 m = re.findall(regex, res.stdout)
@@ -2126,7 +2100,7 @@ add_hosts_module
             print(f"uiautomator dump {path} path on the device ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell uiautomator dump {path}"
             res = run_shell(theCmd)
-            if res.returncode == 0 and res.stderr == '':
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and res.stderr == '':
                 return path
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: uiautomator dump failed.")
             print(res.stderr)
@@ -2150,7 +2124,7 @@ add_hosts_module
             print(f"tap {coords} on the device ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell input tap {coords}"
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return 0
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: tap failed.")
             print(res.stderr)
@@ -2174,7 +2148,7 @@ add_hosts_module
             print(f"swipe {coords} on the device ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell input swipe {coords}"
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return 0
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: swipe failed.")
             print(res.stderr)
@@ -2298,7 +2272,7 @@ add_hosts_module
                 res = run_shell(theCmd)
                 mHoldingWakeLockSuspendBlocker = False
                 mHoldingDisplaySuspendBlocker = False
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     results = res.stdout.strip().split('\n')
                     for m in results:
                         s = False
@@ -2345,7 +2319,7 @@ add_hosts_module
                     if sys.platform == "win32":
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
                         res = run_shell(theCmd, encoding='utf-8')
-                        if res.returncode == 0:
+                        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                             modules = []
                             themodules = res.stdout.split('-----pf\n')
                             for item in themodules:
@@ -2391,7 +2365,7 @@ add_hosts_module
                     else:
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
                         res = run_shell(theCmd)
-                        if res.returncode == 0:
+                        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                             debug(res.stdout)
                             modules = []
                             self._get_magisk_detailed_modules = res.stdout.split('\n')
@@ -2402,19 +2376,19 @@ add_hosts_module
                                         # get the uninstall state by checking if there is a remove file in the module directory
                                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/remove\'\""
                                         res = run_shell(theCmd)
-                                        if res.returncode == 0:
+                                        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                                             m.state = 'remove'
                                         else:
                                             # get the state by checking if there is a disable file in the module directory
                                             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/disable\'\""
                                             res = run_shell(theCmd)
-                                            if res.returncode == 0:
+                                            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                                                 m.state = 'disabled'
                                             else:
                                                 m.state = 'enabled'
                                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
                                         res = run_shell(theCmd)
-                                        if res.returncode == 0:
+                                        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                                             module_prop = res.stdout.split('\n')
                                             setattr(m, 'id', '')
                                             setattr(m, 'version', '')
@@ -2717,12 +2691,12 @@ This is a special Magisk build\n\n
             if get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c 'ls -l /data/adb/'\""
                 res = run_shell(theCmd, timeout=8)
-                if res.returncode == 0 and '/system/bin/sh: su: not found' not in res.stdout:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and '/system/bin/sh: su: not found' not in res.stdout:
                     self._rooted = True
                 else:
                     # theCmd = f"\"{get_adb()}\" -s {self.id} shell busybox ls"
                     # res = run_shell(theCmd, 8)
-                    # if res.returncode == 0:
+                    # if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     #     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: appears to be rooted, however adb root access is not granted.\Please grant root access to adb and scan again.")
                     self._rooted = False
             else:
@@ -2730,6 +2704,56 @@ This is a special Magisk build\n\n
                 puml("#red:ERROR: adb command is not found;\n", True)
                 return False
         return self._rooted
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_denylist_enforced
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_denylist_enforced(self):
+        try:
+            if self._magisk_denylist_enforced is None and self.mode == 'adb':
+                if get_adb():
+                    data = f"magisk --denylist status"
+                    res = self.exec_magisk_settings(data, 1)
+                    if res and isinstance(res, subprocess.CompletedProcess):
+                        if res.stderr == "Denylist is enforced\n":
+                            self._magisk_denylist_enforced = True
+                        elif res.stderr == "Denylist is not enforced\n":
+                            self._magisk_denylist_enforced = False
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                    puml("#red:ERROR: adb command is not found;\n", True)
+                    return False
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting magisk denylist status.")
+            puml("#red:Encountered an error while getting magisk denylist status.;\n")
+            traceback.print_exc()
+        return self._magisk_denylist_enforced
+
+    # ----------------------------------------------------------------------------
+    #                               property magisk_zygisk_enabled
+    # ----------------------------------------------------------------------------
+    @property
+    def magisk_zygisk_enabled(self):
+        try:
+            if self._magisk_zygisk_enabled is None and self.mode == 'adb':
+                if get_adb():
+                    data = f"magisk --sqlite \"SELECT value FROM settings WHERE key='zygisk';\""
+                    res = self.exec_magisk_settings(data, 1)
+                    if res and isinstance(res, subprocess.CompletedProcess):
+                        if res.stdout == "value=1\n":
+                            self._magisk_zygisk_enabled = True
+                        elif res.stdout == "value=0\n":
+                            self._magisk_zygisk_enabled = False
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                    puml("#red:ERROR: adb command is not found;\n", True)
+                    return False
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting magisk zygisk status.")
+            puml("#red:Encountered an error while getting magisk zygisk status.;\n")
+            traceback.print_exc()
+        return self._magisk_zygisk_enabled
 
     # ----------------------------------------------------------------------------
     #                               Method get_details
@@ -2758,7 +2782,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='device')
                         if res == 1:
@@ -2777,7 +2801,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='device')
                         # puml(f"note right:Res [{res}];\n")
@@ -2806,7 +2830,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot recovery"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='recovery')
                         if res == 1:
@@ -2820,7 +2844,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot recovery"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     res = self.adb_wait_for(timeout=timeout, wait_for='recovery')
                     # puml(f"note right:Res [{res}];\n")
                     update_phones(self.id)
@@ -2848,7 +2872,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot download"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     time.sleep(5)
                     mode = self.get_device_state()
                     if mode and mode != 'ERROR':
@@ -2878,7 +2902,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'setprop persist.sys.safemode 1\'\""
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     res = self.reboot_system(timeout=timeout)
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while setting safemode prop")
@@ -2905,7 +2929,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot bootloader "
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     if timeout:
                         res = self.fastboot_wait_for_bootloader(timeout=timeout)
                         if res == 1:
@@ -2924,7 +2948,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot bootloader"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     res = self.fastboot_wait_for_bootloader(timeout=timeout)
                     update_phones(self.id)
                     return res
@@ -2957,7 +2981,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot fastboot"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     res = self.fastboot_wait_for_bootloader(timeout=timeout)
                     update_phones(self.id)
                     return res
@@ -2984,7 +3008,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} reboot sideload"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res.returncode == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     if timeout:
                         res = self.adb_wait_for(timeout=timeout, wait_for='sideload')
                         if res == 1:
@@ -3054,7 +3078,7 @@ This is a special Magisk build\n\n
                     theCmd = f"\"{get_adb()}\" -s {device_id} get-state"
                     debug(theCmd)
                     res = run_shell(theCmd, timeout=timeout)
-                    if res.returncode == 0:
+                    if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                         device_mode = res.stdout.strip('\n')
                         if device_mode == "device":
                             puml("note right:State ADB;\n")
@@ -3068,7 +3092,7 @@ This is a special Magisk build\n\n
                     debug(f":Getting device: {device_id} state [{i + 1}/{retry + 1}] using fastboot devices")
                     theCmd = f"\"{get_fastboot()}\" devices"
                     res = run_shell(theCmd, timeout=timeout)
-                    if res.returncode == 0 and device_id in res.stdout:
+                    if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and device_id in res.stdout:
                         puml("note right:State fastboot;\n")
                         return 'fastboot'
                 time.sleep(1)
@@ -3098,7 +3122,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {device_id} wait-for-{wait_for}"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res == 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     print(f"device: {device_id} is now in {wait_for} mode.")
                     puml(f":device: {device_id} is now in {wait_for} mode;\n", True)
                     return 0
@@ -3131,8 +3155,8 @@ This is a special Magisk build\n\n
             while time.time() - start_time < timeout:
                 with contextlib.suppress(Exception):
                     theCmd = f"\"{get_fastboot()}\" devices"
-                    output = run_shell(theCmd)
-                    if f"{device_id}\t" in output.stdout:
+                    res = run_shell(theCmd)
+                    if res and isinstance(res, subprocess.CompletedProcess) and f"{device_id}\t" in res.stdout:
                         print(f"device: {device_id} is now in bootloader mode.")
                         puml(f":device: {device_id} is now in bootloader mode;\n", True)
                         return 0
@@ -3161,7 +3185,7 @@ This is a special Magisk build\n\n
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist ls\'\""
             debug(theCmd)
             res = run_shell(theCmd)
-            if res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Magisk denylist")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
@@ -3201,7 +3225,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} install {playstore_flag} {sdk_flag} -r \"{app}\""
                 debug(theCmd)
                 res = run_shell(theCmd)
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing \"{app}\"")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
@@ -3238,7 +3262,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar current-slot"
                 debug(theCmd)
                 res = run_shell(theCmd)
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     return 'UNKNOWN'
                 lines = (f"{res.stderr}{res.stdout}").splitlines()
                 for line in lines:
@@ -3265,7 +3289,7 @@ This is a special Magisk build\n\n
             theCmd = f"\"{get_adb()}\" -s {self.id} shell wm size"
             debug(theCmd)
             res = run_shell(theCmd)
-            if res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                 return -1
             lines = (f"{res.stdout}").splitlines()
             for line in lines:
@@ -3351,7 +3375,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} --set-active={switch_to_slot}"
                 debug(theCmd)
                 res = run_shell(theCmd, timeout=timeout)
-                if res == 1:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during slot switch")
                     return -1
                 update_phones(self.id)
@@ -3448,7 +3472,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --install-module /sdcard/Download/{module_name}\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     puml("#red:Failed to transfer the install module;\n")
                     print("Aborting ...\n}\n")
                     return -1
@@ -3667,13 +3691,13 @@ This is a special Magisk build\n\n
         try:
             if self.mode == 'adb' and get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" devices"
-                response = run_shell(theCmd)
-                if self.id in response.stdout:
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess) and self.id in res.stdout:
                     self.mode = 'f.b'
             elif self.mode == 'f.b' and get_adb():
                 theCmd = f"\"{get_adb()}\" devices"
-                response = run_shell(theCmd)
-                if self.id in response.stdout:
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess) and self.id in res.stdout:
                     self.mode = 'adb'
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in refresh_phone_mode.")
@@ -3846,7 +3870,7 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -U"
 
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout.replace('package:','')
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
             print(f"Return Code: {res.returncode}.")
@@ -3966,9 +3990,9 @@ def update_phones(device_id):
                 break
         if get_adb():
             theCmd = f"\"{get_adb()}\" -s {device_id} get-state"
-            response = run_shell(theCmd, timeout=60)
-            if response.returncode == 0:
-                device_mode = response.stdout.strip('\n')
+            res = run_shell(theCmd, timeout=60)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                device_mode = res.stdout.strip('\n')
                 if device_mode == "device":
                     device = Device(device_id, 'adb')
                 else:
@@ -3977,8 +4001,8 @@ def update_phones(device_id):
                 device_details = device.get_device_details()
         if get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {device_id} devices"
-            response = run_shell(theCmd)
-            if response.returncode == 0 and 'fastboot' in response.stdout:
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and 'fastboot' in res.stdout:
                 device = Device(device_id, 'f.b')
                 device.init('f.b')
                 device_details = device.get_device_details()
@@ -4015,10 +4039,10 @@ def get_connected_devices():
         if get_adb():
             theCmd = f"\"{get_adb()}\" devices"
             debug(theCmd)
-            response = run_shell(theCmd, timeout=60)
-            if response.stdout:
-                debug(f"adb devices:\n{response.stdout}")
-                for device in response.stdout.split('\n'):
+            res = run_shell(theCmd, timeout=60)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
+                debug(f"adb devices:\n{res.stdout}")
+                for device in res.stdout.split('\n'):
                     if 'device' in device or 'recovery' in device or 'sideload' in device or 'rescue' in device:
                         if device == "List of devices attached":
                             continue
@@ -4049,17 +4073,18 @@ def get_connected_devices():
         if get_fastboot():
             theCmd = f"\"{get_fastboot()}\" devices"
             debug(theCmd)
-            response = run_shell(theCmd)
-            for device in response.stdout.split('\n'):
-                debug(f"fastboot devices:\n{response.stdout}")
-                if 'fastboot' in device:
-                    d_id = device.split("\t")
-                    d_id = d_id[0].strip()
-                    device = Device(d_id, 'f.b')
-                    device.init('f.b')
-                    device_details = device.get_device_details()
-                    devices.append(device_details)
-                    phones.append(device)
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
+                for device in res.stdout.split('\n'):
+                    debug(f"fastboot devices:\n{res.stdout}")
+                    if 'fastboot' in device:
+                        d_id = device.split("\t")
+                        d_id = d_id[0].strip()
+                        device = Device(d_id, 'f.b')
+                        device.init('f.b')
+                        device_details = device.get_device_details()
+                        devices.append(device_details)
+                        phones.append(device)
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
 

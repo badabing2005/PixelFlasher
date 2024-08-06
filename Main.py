@@ -2232,6 +2232,7 @@ This report will inherently reveal sensitive information about your device such 
 	- `/data/adb/pif.json`
 - Whether a testkey ROM is used or not.
 - logcat for PlayIntegrity and TrickyStore related logs.
+- Droidguard VM list.
 - If any custom ROM injection apps are installed from:
     - Xiaomi.eu
     - EliteRoms
@@ -2317,16 +2318,22 @@ Before posting publicly please carefully inspect the contents.
                 print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Magisk denylist enforced ...")
                 print("==============================================================================")
                 self._on_spin('start')
-                res = device.magisk_get_denylist_status()
-                if isinstance(res, subprocess.CompletedProcess) and res:
-                    print(f"{res.stdout} {res.stderr}" )
+                res = device.magisk_denylist_enforced
+                if res:
+                    print("Magisk denylist is enforced")
+                else:
+                    print("Magisk denylist is not enforced")
 
                 # Zygisk enabled
                 print("\n==============================================================================")
                 print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Zygisk status ...")
                 print("==============================================================================")
                 self._on_spin('start')
-                res = device.magisk_get_zygisk_status()
+                res = device.magisk_zygisk_enabled
+                if res:
+                    print("Magisk Zygisk is enabled")
+                else:
+                    print("Magisk Zygisk is disabled")
 
                 # TrickyStore - spoof_build_vars
                 print("\n==============================================================================")
@@ -2429,6 +2436,13 @@ Before posting publicly please carefully inspect the contents.
                 # # PixelOS
                 print("Checking for PixelOS ROM injection ...")
                 res = device.exec_cmd("ls -lR /system_ext/overlay/CertifiedPropsOverlay.apk", True)
+                print(res)
+
+                # Check for Droidguard VM list
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking for droidguard VM list ...")
+                print("==============================================================================")
+                res = device.exec_cmd("ls -lR /data/data/com.google.android.gms/app_dg_cache", True)
                 print(res)
 
                 # logcat for PlayIntegrity related logs
@@ -2668,6 +2682,8 @@ Before posting publicly please carefully inspect the contents.
             m_version = device.magisk_version
             message += f"    Magisk Version:                  {m_version}\n"
             message += f"    Magisk Config SHA1:              {device.magisk_sha1}\n"
+            message += f"    Magisk Denylist enforced:        {device.magisk_denylist_enforced}\n"
+            message += f"    Magisk Zygisk enabled:           {device.magisk_zygisk_enabled}\n"
             message += "    Magisk Modules:\n"
             message += f"{device.magisk_modules_summary}\n"
             message += f"{device.get_battery_details()}\n"

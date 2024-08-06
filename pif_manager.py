@@ -600,9 +600,11 @@ class PifManager(wx.Dialog):
     #                  onPifComboBox
     # -----------------------------------------------
     def onPifComboBox(self, event):
-        selected_label = event.GetString()
-        selected_pif = next((pif for pif in self.favorite_pifs.values() if pif["label"] == selected_label), None)
-        if selected_pif:
+        selected_index = event.GetSelection()
+        pif_list = list(self.favorite_pifs.values())
+
+        if 0 <= selected_index < len(pif_list):
+            selected_pif = pif_list[selected_index]
             pif_object = selected_pif["pif"]
             if self.pif_format == 'prop':
                 json_string = json.dumps(pif_object, indent=4, sort_keys=self.sort_keys)
@@ -610,7 +612,7 @@ class PifManager(wx.Dialog):
             else:
                 self.active_pif_stc.SetText(json.dumps(pif_object, indent=4))
         else:
-            print("Selected Pif not found")
+            print("Selected Pif not found, Index out of range")
 
     # -----------------------------------------------
     #                  onPifSelectionComboBox
@@ -1704,6 +1706,11 @@ class PifManager(wx.Dialog):
                 # get the contents of modified ts_target_file
                 with open(ts_target_file, 'r', encoding='ISO-8859-1', errors="replace") as f:
                     contents = f.read()
+                # push the file back to the device
+                res = device.push_file(ts_target_file, "/data/adb/tricky_store/target.txt", True)
+                if res != 0:
+                    print("\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing the updated target.txt file. ...\n")
+                    return
                 print(f"\nTricky Store target.txt file has been modified!")
                 print(f"The updated target.txt:")
                 print(f"___________________________________________________\n{contents}")

@@ -341,10 +341,10 @@ def identify_sdk_version(self):
         with contextlib.suppress(Exception):
             if get_adb():
                 theCmd = f"\"{get_adb()}\" --version"
-                response = run_shell(theCmd)
-                if response.stdout:
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
                     # Split lines based on mixed EOL formats
-                    lines = re.split(r'\r?\n', response.stdout)
+                    lines = re.split(r'\r?\n', res.stdout)
                     for line in lines:
                         if 'Version' in line:
                             sdk_version = line.split()[1]
@@ -382,8 +382,8 @@ def identify_sdk_version(self):
                             #     break
                             else:
                                 set_sdk_state(True)
-                elif response.stderr:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {response.stderr}")
+                elif res.stderr:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {res.stderr}")
 
         self.update_widget_states()
         if get_sdk_state():
@@ -453,7 +453,7 @@ def adb_kill_server(self):
             puml(":adb kill-server;\n", True)
             theCmd = f"\"{get_adb()}\" kill-server"
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 print("returncode: 0")
                 puml(f"#palegreen:Succeeded;\n")
                 self.device_choice.SetItems(get_connected_devices())
@@ -619,7 +619,7 @@ def process_file(self, file_type):
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
                 debug(theCmd)
                 res = run_shell2(theCmd)
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
@@ -712,7 +712,7 @@ def process_file(self, file_type):
                         debug(f"{theCmd}")
                         res = run_shell(theCmd)
                         # expect ret 0
-                        if res.returncode != 0:
+                        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.lz4")
                             print(f"Return Code: {res.returncode}.")
                             print(f"Stdout: {res.stdout}.")
@@ -779,7 +779,7 @@ def process_file(self, file_type):
                 debug(f"{theCmd}")
                 res = run_shell(theCmd)
                 # expect ret 0
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
@@ -866,7 +866,7 @@ def process_file(self, file_type):
                 debug(f"{theCmd}")
                 res = run_shell(theCmd)
                 # expect ret 0
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
@@ -1755,7 +1755,7 @@ or hit the **Cancel** button to abort.
         # find the newly created file and return
         theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -t {self.config.phone_path}/magisk_patched-* | head -1"
         res = run_shell(theCmd)
-        if res.returncode == 0 and res.stderr == '':
+        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and res.stderr == '':
             return os.path.basename(res.stdout.strip())
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {res.stdout}\n{res.stderr}\n")
         return -1
@@ -3383,7 +3383,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot \"{boot.boot_path}\""
         debug(theCmd)
         res = run_shell(theCmd)
-        if res.returncode != 0:
+        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {option} boot failed!")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
@@ -4037,7 +4037,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
         theCmd = f"chmod 755 \"{flash_pf_file_linux}\""
         debug(theCmd)
         res = run_shell(theCmd)
-        if res.returncode != 0:
+        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")
@@ -4199,7 +4199,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     theCmd = f"\"{theCmd}\""
     debug(theCmd)
     res = run_shell2(theCmd)
-    if res.returncode != 0:
+    if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
         print(f"theCmd: {theCmd}")
         print(f"Return Code: {res.returncode}.")
@@ -4241,7 +4241,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     is_init_boot = False
                 debug(theCmd)
                 res = run_shell(theCmd)
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing the patch.")
                     print(f"theCmd: {theCmd}")
                     print(f"Return Code: {res.returncode}.")
@@ -4270,7 +4270,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} flash vbmeta \"{vbmeta_file}\""
             debug(theCmd)
             res = run_shell(theCmd)
-            if res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vbmeta flashing did not return the expected result.")
                 print(f"theCmd: {theCmd}")
                 print(f"Return Code: {res.returncode}.")

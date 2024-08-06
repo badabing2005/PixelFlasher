@@ -1880,7 +1880,7 @@ def get_code_page():
         else:
             theCmd = "chcp"
             res = run_shell(theCmd)
-            if res.returncode == 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 # extract the code page portion
                 try:
                     debug(f"CP: {res.stdout}")
@@ -2753,6 +2753,11 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
                 donor_data["*.build.id"] = ro_build_id
                 if module_versionCode <= 7000:
                     donor_data["VERBOSE_LOGS"] = "0"
+            if module_versionCode > 9000 and module_flavor != 'trickystore':
+                donor_data["spoofBuild"] = "1"
+                donor_data["spoofProps"] = "0"
+                donor_data["spoofProvider"] = "0"
+                donor_data["spoofSignature"] = "0"
             if module_versionCode > 7000 and module_flavor != 'trickystore':
                 donor_data["verboseLogs"] = "0"
             # donor_data["*.vndk_version"] = ro_vndk_version
@@ -3412,7 +3417,7 @@ def get_pif_from_image(image_file):
             theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\""
             debug(theCmd)
             res = run_shell2(theCmd)
-            if res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
@@ -3436,7 +3441,7 @@ def get_pif_from_image(image_file):
             theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" payload.bin"
             debug(f"{theCmd}")
             res = run_shell(theCmd)
-            if res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
                 print(f"Return Code: {res.returncode}.")
                 print(f"Stdout: {res.stdout}.")
@@ -3511,7 +3516,7 @@ def get_pif_from_image(image_file):
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file}\" {found_ap}"
                 debug(theCmd)
                 res = run_shell2(theCmd)
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {found_ap}.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
@@ -3527,7 +3532,7 @@ def get_pif_from_image(image_file):
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" \"meta-data\""
                 debug(theCmd)
                 res = run_shell2(theCmd)
-                if res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract meta-data.")
                     print(f"Return Code: {res.returncode}.")
                     print(f"Stdout: {res.stdout}.")
@@ -3782,7 +3787,7 @@ def extract_magiskboot(apk_path, architecture, output_path):
         cmd = f"{path_to_7z} e {apk_path} -o{output_path} -r {file_path_in_apk} -y"
         debug(cmd)
         res = run_shell2(cmd)
-        if res.returncode != 0:
+        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
             print(f"Return Code: {res.returncode}.")
             print(f"Stdout: {res.stdout}.")

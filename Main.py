@@ -1604,6 +1604,7 @@ class PixelFlasher(wx.Frame):
         links.AppendSeparator()
         self.linksMenuItem4 = links.Append(wx.ID_ANY, "osm0sis\'s PlayIntegrityFork")
         self.linksMenuItem5 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
+        self.linksMenuItem15 = links.Append(wx.ID_ANY, "5ec1cff\'s TrickyStore")
         self.linksMenuItem8 = links.Append(wx.ID_ANY, "TheFreeman193\'s Play Integrity Fix Props Collection")
         links.AppendSeparator()
         self.linksMenuItem6 = links.Append(wx.ID_ANY, "Get the Google USB Driver")
@@ -1630,6 +1631,7 @@ class PixelFlasher(wx.Frame):
         self.linksMenuItem12.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem13.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem14.SetBitmap(images.open_link_24.GetBitmap())
+        self.linksMenuItem15.SetBitmap(images.open_link_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem1)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem2)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem3)
@@ -1644,6 +1646,7 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem12)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem13)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem14)
+        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem15)
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
         # separator
@@ -2019,6 +2022,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.linksMenuItem12.GetId(): (FACTORY_IMAGES_FOR_WATCH_DEVICES, "Factory Images for Pixel Watches"),
                 self.linksMenuItem13.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 15"),
                 self.linksMenuItem14.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 15"),
+                self.linksMenuItem15.GetId(): ('https://github.com/5ec1cff/TrickyStore', "5ec1cff's TrickyStore"),
             }
 
             if clicked_id in link_info:

@@ -2611,12 +2611,23 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         # MODEL
         keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
         ro_product_model = get_first_match(the_dict, keys)
+        if ro_product_model in ['mainline', 'generic']:
+            ro_product_model_bak = ro_product_model
+            # get it from vendor/build.prop (ro.product.vendor.model)
+            ro_product_vendor_model = get_first_match(the_dict, ['ro.product.vendor.model'])
+            if ro_product_vendor_model and ro_product_vendor_model != '':
+                ro_product_model = ro_product_vendor_model
+            else:
+                # If it is a Google device
+                if ro_product_manufacturer == 'Google':
+                # get model from android_devices if it is a Google device
+                    try:
+                        ro_product_model = android_devices[ro_product_device]['device']
+                    except KeyError:
+                        ro_product_model = ro_product_model_bak
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Key '{ro_product_device}' not found in android_devices.\nMODEL field could be wrong")
         if ro_product_model != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
-        if ro_product_model in ['mainline', 'generic'] and ro_product_manufacturer == 'Google':
-            # get model from android_devices if it is a Google device
-            # TODO: otherwise, or ideally from vendor/build.prop
-            ro_product_model = android_devices[ro_product_device]['device']
         if autofill and ro_product_model == '':
             ro_product_model = get_first_match(device_dict, keys)
 
@@ -2754,10 +2765,14 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
                 if module_versionCode <= 7000:
                     donor_data["VERBOSE_LOGS"] = "0"
             if module_versionCode > 9000 and module_flavor != 'trickystore':
-                donor_data["spoofBuild"] = "1"
-                donor_data["spoofProps"] = "0"
-                donor_data["spoofProvider"] = "0"
-                donor_data["spoofSignature"] = "0"
+                spoofBuild_value = config.pif.get('spoofBuild', True)
+                donor_data["spoofBuild"] = "1" if spoofBuild_value else "0"
+                spoofProps_value = config.pif.get('spoofProps', False)
+                donor_data["spoofProps"] = "1" if spoofProps_value else "0"
+                spoofProvider_value = config.pif.get('spoofProvider', False)
+                donor_data["spoofProvider"] = "1" if spoofProvider_value else "0"
+                spoofSignature_value = config.pif.get('spoofSignature', False)
+                donor_data["spoofSignature"] = "1" if spoofSignature_value else "0"
             if module_versionCode > 7000 and module_flavor != 'trickystore':
                 donor_data["verboseLogs"] = "0"
             # donor_data["*.vndk_version"] = ro_vndk_version

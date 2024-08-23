@@ -141,7 +141,7 @@ class MagiskModules(wx.Dialog):
         self.uninstall_module_button.Enable(False)
 
         # Play Integrity Fix Install button
-        self.pif_install_button = wx.Button(self, wx.ID_ANY, u"Install Pif Module", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pif_install_button = wx.Button(self, wx.ID_ANY, u"Install Pif / TS Module", wx.DefaultPosition, wx.DefaultSize, 0)
         self.pif_install_button.SetToolTip(u"Install Play Integrity Fix module.")
 
         # ZygiskNext Install button

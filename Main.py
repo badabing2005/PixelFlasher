@@ -1604,6 +1604,7 @@ class PixelFlasher(wx.Frame):
         links.AppendSeparator()
         self.linksMenuItem4 = links.Append(wx.ID_ANY, "osm0sis\'s PlayIntegrityFork")
         self.linksMenuItem5 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
+        self.linksMenuItem15 = links.Append(wx.ID_ANY, "5ec1cff\'s TrickyStore")
         self.linksMenuItem8 = links.Append(wx.ID_ANY, "TheFreeman193\'s Play Integrity Fix Props Collection")
         links.AppendSeparator()
         self.linksMenuItem6 = links.Append(wx.ID_ANY, "Get the Google USB Driver")
@@ -1630,6 +1631,7 @@ class PixelFlasher(wx.Frame):
         self.linksMenuItem12.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem13.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem14.SetBitmap(images.open_link_24.GetBitmap())
+        self.linksMenuItem15.SetBitmap(images.open_link_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem1)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem2)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem3)
@@ -1644,6 +1646,7 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem12)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem13)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem14)
+        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem15)
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
         # separator
@@ -2019,6 +2022,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.linksMenuItem12.GetId(): (FACTORY_IMAGES_FOR_WATCH_DEVICES, "Factory Images for Pixel Watches"),
                 self.linksMenuItem13.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 15"),
                 self.linksMenuItem14.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 15"),
+                self.linksMenuItem15.GetId(): ('https://github.com/5ec1cff/TrickyStore', "5ec1cff's TrickyStore"),
             }
 
             if clicked_id in link_info:
@@ -2239,6 +2243,7 @@ This report will inherently reveal sensitive information about your device such 
     - hentaiOS
     - Evolution X
     - PixelOS
+- Check overlays (if contents of /debug_ramdisk is visible without root)
 
 **NOTE:**
 This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>
@@ -2436,6 +2441,17 @@ Before posting publicly please carefully inspect the contents.
                 # # PixelOS
                 print("Checking for PixelOS ROM injection ...")
                 res = device.exec_cmd("ls -lR /system_ext/overlay/CertifiedPropsOverlay.apk", True)
+                print(res)
+
+                # Check for overlay detection
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Check for overlay detection ...")
+                print("==============================================================================")
+                print("Checking for /debug_ramdisk contents without root...")
+                res = device.exec_cmd("ls -lR /debug_ramdisk", False)
+                print(res)
+                print("Checking for /debug_ramdisk contents with root...")
+                res = device.exec_cmd("ls -lR /debug_ramdisk", True)
                 print(res)
 
                 # Check for Droidguard VM list
@@ -3227,6 +3243,7 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def _on_scan(self, event):
         try:
+            startScan = time.time()
             print("\n==============================================================================")
             print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scan")
             print("==============================================================================")
@@ -3259,6 +3276,9 @@ Before posting publicly please carefully inspect the contents.
             traceback.print_exc()
         finally:
             self._on_spin('stop')
+            endScan = time.time()
+            print(f"Device scan elapsed time: {math.ceil(endScan - startScan)} seconds")
+
 
     # -----------------------------------------------
     #                  _on_select_platform_tools
@@ -4315,19 +4335,23 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def _on_check_keybox(self, event):
         try:
-            with wx.FileDialog(self, "Select keybox to test", '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN) as fileDialog:
+            with wx.FileDialog(self, "Select keybox to test", '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled file push.")
                     return
-                selected_file = fileDialog.GetPath()
+                selected_files = fileDialog.GetPaths()
 
             self._on_spin('start')
-            res = check_kb(selected_file)
-            debug(f"Result: {res}")
+            wx.Yield
+            for selected_file in selected_files:
+                wx.Yield
+                res = check_kb(selected_file)
+                debug(f"Result: {res}")
         except Exception as e:
             print(f"Error: {e}")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_customize_my_tools

@@ -2315,6 +2315,7 @@ add_hosts_module
     def  get_magisk_detailed_modules(self, refresh=False):
         if self._get_magisk_detailed_modules is None or refresh == True:
             try:
+                config = get_config()
                 if self.mode == 'adb' and self.rooted:
                     if sys.platform == "win32":
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
@@ -2337,6 +2338,7 @@ add_hosts_module
                                     setattr(m, 'updateJson', '')
                                     setattr(m, 'updateDetails', {})
                                     setattr(m, 'updateAvailable', False)
+                                    setattr(m, 'updateIssue', False)
                                     for line in module_prop:
                                         # ignore empty lines
                                         if line == '':
@@ -2350,7 +2352,7 @@ add_hosts_module
                                         if line.strip() and '=' in line:
                                             key, value = line.split('=', 1)
                                             setattr(m, key, value)
-                                    if m.updateJson:
+                                    if m.updateJson and config.check_module_updates:
                                         setattr(m, 'updateDetails', check_module_update(m.updateJson))
                                     with contextlib.suppress(Exception):
                                         if m.versionCode and m.updateDetails and m.updateDetails.versionCode and int(m.updateDetails.versionCode) > int(m.versionCode):
@@ -2399,6 +2401,7 @@ add_hosts_module
                                             setattr(m, 'updateJson', '')
                                             setattr(m, 'updateDetails', {})
                                             setattr(m, 'updateAvailable', False)
+                                            setattr(m, 'updateIssue', False)
                                             for line in module_prop:
                                                 # ignore comment lines
                                                 if line[:1] == "#":
@@ -4043,7 +4046,7 @@ def get_connected_devices():
             if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
                 debug(f"adb devices:\n{res.stdout}")
                 for device in res.stdout.split('\n'):
-                    if 'device' in device or 'recovery' in device or 'sideload' in device or 'rescue' in device:
+                    if any(keyword in device for keyword in ['device', 'recovery', 'sideload', 'rescue']):
                         if device == "List of devices attached":
                             continue
                         # with contextlib.suppress(Exception):
@@ -4064,7 +4067,9 @@ def get_connected_devices():
                         except Exception as e:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
                             traceback.print_exc()
-
+                    else:
+                        if device.strip() != "":
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown device state: {device}\n")
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
         else:
@@ -4077,6 +4082,10 @@ def get_connected_devices():
             if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
                 for device in res.stdout.split('\n'):
                     debug(f"fastboot devices:\n{res.stdout}")
+                    if 'no permissions' in device:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
+                        puml("#red:No permissions to access fastboot device;\n", True)
+                        continue
                     if 'fastboot' in device:
                         d_id = device.split("\t")
                         d_id = d_id[0].strip()

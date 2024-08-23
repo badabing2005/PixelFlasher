@@ -1,4 +1,52 @@
 {
+    "sol": {
+        "device": "Google Pixel Watch 3 45mm (LTE)",
+        "android_version_end_date": "October 2027",
+        "security_update_end_date": "October 2029",
+        "first_api_level": "33"
+    },
+    "luna": {
+        "device": "Google Pixel Watch 3 45mm (Bluetooth/Wi-Fi)",
+        "android_version_end_date": "October 2027",
+        "security_update_end_date": "October 2029",
+        "first_api_level": "33"
+    },
+    "helios": {
+        "device": "Google Pixel Watch 3 41mm (LTE)",
+        "android_version_end_date": "October 2027",
+        "security_update_end_date": "October 2029",
+        "first_api_level": "33"
+    },
+    "selene": {
+        "device": "Google Pixel Watch 3 41mm (Bluetooth/Wi-Fi)",
+        "android_version_end_date": "October 2027",
+        "security_update_end_date": "October 2029",
+        "first_api_level": "33"
+    },
+    "comet": {
+        "device": "Google Pixel 9 Pro Fold",
+        "android_version_end_date": "September 2031",
+        "security_update_end_date": "September 2031",
+        "first_api_level": "34"
+    },
+    "komodo": {
+        "device": "Google Pixel 9 Pro XL",
+        "android_version_end_date": "September 2031",
+        "security_update_end_date": "September 2031",
+        "first_api_level": "34"
+    },
+    "caiman": {
+        "device": "Google Pixel 9 Pro",
+        "android_version_end_date": "September 2031",
+        "security_update_end_date": "September 2031",
+        "first_api_level": "34"
+    },
+    "tokay": {
+        "device": "Google Pixel 9",
+        "android_version_end_date": "September 2031",
+        "security_update_end_date": "September 2031",
+        "first_api_level": "34"
+    },
     "akita": {
         "device": "Google Pixel 8a",
         "android_version_end_date": "May 2031",

@@ -757,7 +757,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 name = self.list.GetItemText(i, 7)
                 content += f"{package},{type},{installed},{enabled},{user0},{denylist},{uid},{name}\n"
             with open(pathname, "w", newline="\n") as f:
-                f.write(content)
+                f.write(content, encoding="utf-8")
         end = time.time()
         print(f"Export Package List time: {math.ceil(end - start)} seconds")
         self._on_spin('stop')

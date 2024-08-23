@@ -114,6 +114,7 @@ class Config():
         self.enable_pixel_img_process = False
         self.override_kmi = ''
         self.keep_temporary_support_files = False
+        self.check_module_updates = True
 
         self.toolbar = {
             'tb_position': 'top',
@@ -155,7 +156,11 @@ class Config():
             'force_first_api': False,
             'first_api_value_when_forced': "25",
             'sort_keys': True,
-            'keep_unknown': True
+            'keep_unknown': True,
+            'spoofBuild': True,
+            'spoofProps': False,
+            'spoofProvider': False,
+            'spoofSignature': False,
         }
 
         self.scrcpy = {
@@ -302,6 +307,8 @@ class Config():
                     conf.override_kmi = data['override_kmi']
                 with contextlib.suppress(KeyError):
                     conf.keep_temporary_support_files = data['keep_temporary_support_files']
+                with contextlib.suppress(KeyError):
+                    conf.check_module_updates = data['check_module_updates']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -381,6 +388,14 @@ class Config():
                         conf.pif['sort_keys'] = pif_data['sort_keys']
                     with contextlib.suppress(KeyError):
                         conf.pif['keep_unknown'] = pif_data['keep_unknown']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['spoofBuild'] = pif_data['spoofBuild']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['spoofProps'] = pif_data['spoofProps']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['spoofProvider'] = pif_data['spoofProvider']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['spoofSignature'] = pif_data['spoofSignature']
 
                 # read the scrcpy section
                 scrcpy_folder = ''
@@ -482,7 +497,8 @@ class Config():
             'pif': self.pif,  # Save the pif settings as well
             'scrcpy': self.scrcpy,  # Save the scrcpy settings as well
             'override_kmi': self.override_kmi,
-            'keep_temporary_support_files': self.keep_temporary_support_files
+            'keep_temporary_support_files': self.keep_temporary_support_files,
+            'check_module_updates': self.check_module_updates
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

@@ -170,6 +170,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.keep_temporary_support_files_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Keep temporary support files", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.keep_temporary_support_files_checkbox.SetToolTip(u"It keeps the temporary support files.\nUseful for inspecting what data is included in support.zip.")
 
+        # Check if Magisk modules have updates
+        self.check_module_updates = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check Magisk modules for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_module_updates.SetToolTip(u"It checks if the module has updates.\nDisable this if you don't want to check for updates or\n if some module update server has issues and delays the process.")
+
         # Force codepage
         self.force_codepage_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Force codepage to", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
@@ -258,6 +262,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.check_for_bootloader_unlocked_checkbox.SetValue(self.Parent.config.check_for_bootloader_unlocked)
         self.check_for_firmware_hash_validity_checkbox.SetValue(self.Parent.config.check_for_firmware_hash_validity)
         self.keep_temporary_support_files_checkbox.SetValue(self.Parent.config.keep_temporary_support_files)
+        self.check_module_updates.SetValue(self.Parent.config.check_module_updates)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.override_kmi.SetValue(self.Parent.config.override_kmi)
@@ -316,6 +321,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.Add((0, 0))
 
         fgs1.Add(self.keep_temporary_support_files_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.check_module_updates, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
@@ -505,6 +513,10 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if self.keep_temporary_support_files_checkbox.GetValue() != self.Parent.config.keep_temporary_support_files:
             print(f"Setting Keep temporary support files to: {self.keep_temporary_support_files_checkbox.GetValue()}")
         self.Parent.config.keep_temporary_support_files = self.keep_temporary_support_files_checkbox.GetValue()
+
+        if self.check_module_updates.GetValue() != self.Parent.config.check_module_updates:
+            print(f"Setting Check Magisk modules for updates to: {self.check_module_updates.GetValue()}")
+        self.Parent.config.check_module_updates = self.check_module_updates.GetValue()
 
         if self.package_name.GetValue():
             with contextlib.suppress(Exception):

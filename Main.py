@@ -3983,6 +3983,9 @@ Before posting publicly please carefully inspect the contents.
                     res = device.reboot_system()
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+            traceback.print_exc()
         finally:
             self.refresh_device()
             self._on_spin('stop')

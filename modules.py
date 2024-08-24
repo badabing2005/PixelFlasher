@@ -826,6 +826,9 @@ def process_file(self, file_type):
                     boot_file_name = 'init_boot.img'
                     found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evaluate to False
                     is_init_boot = True
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while processing payload.bin")
+                traceback.print_exc()
             finally:
                 temp_dir.cleanup()
         else:

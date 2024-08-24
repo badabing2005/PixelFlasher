@@ -1863,6 +1863,9 @@ def create_boot_tar(dir, source='boot.img', dest='boot.tar'):
         os.chdir(dir)
         with tarfile.open(dest, 'w', format=tarfile.GNU_FORMAT) as tar:
             tar.add(source, arcname=source)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while creating boot.tar")
+        traceback.print_exc()
     finally:
         os.chdir(original_dir)
 

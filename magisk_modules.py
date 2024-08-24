@@ -469,6 +469,7 @@ class MagiskModules(wx.Dialog):
             print("Disable Zygisk")
             self._on_spin('start')
             device.magisk_enable_zygisk(False)
+        except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onDisableZygisk")
             traceback.print_exc()
         finally:
@@ -485,6 +486,7 @@ class MagiskModules(wx.Dialog):
             print("Enable Denylist")
             self._on_spin('start')
             device.magisk_enable_denylist(True)
+        except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onEnableDenylist")
             traceback.print_exc()
         finally:
@@ -507,6 +509,7 @@ class MagiskModules(wx.Dialog):
             print("Disable Denylist")
             self._on_spin('start')
             device.magisk_enable_denylist(False)
+        except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onDisableDenylist")
             traceback.print_exc()
         finally:
@@ -524,6 +527,7 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
             device.magisk_add_systemless_hosts()
             self.refresh_modules()
+        except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onSystemlessHosts")
             traceback.print_exc()
         finally:

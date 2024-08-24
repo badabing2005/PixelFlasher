@@ -72,11 +72,11 @@ jobs:
         fi
         NEW_SHA256=$(shasum -a 256 PixelFlasher.dmg | awk '{ print $1 }')
         echo "NEW_SHA256=$NEW_SHA256" >> $GITHUB_ENV
-        ls -l
+        ls -lR
 
     - name: Update Cask version
       run: |
-        cd homebrew-PixelFlasher
+        cd homebrew-PixelFlasher/Casks
         sed -i "s/version \".*\"/version \"${{ github.event.release.tag_name }}\"/g" pixelflasher.rb
         sed -i "s/sha256 \".*\"/sha256 \"${{ env.NEW_SHA256 }}\"/g" pixelflasher.rb
 

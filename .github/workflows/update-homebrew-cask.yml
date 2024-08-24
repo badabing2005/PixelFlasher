@@ -77,7 +77,7 @@ jobs:
     - name: Update Cask version
       run: |
         cd homebrew-PixelFlasher/Casks
-        sed -i "s/version \".*\"/version \"${{ github.event.release.tag_name }}\"/g" pixelflasher.rb
+        sed -i "s/version \".*\"/version \"${{ github.event.release.tag_name#v }}\"/g" pixelflasher.rb
         sed -i "s/sha256 \".*\"/sha256 \"${{ env.NEW_SHA256 }}\"/g" pixelflasher.rb
 
     - name: Commit and Push changes

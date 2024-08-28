@@ -1316,6 +1316,8 @@ def open_folder(self, path, isFile = False):
         # linux
         elif self.config.linux_file_explorer:
             subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())
+        elif subprocess.call(["which", "xdg-open"], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+            subprocess.Popen(["xdg-open", dir_path], env=get_env_variables())  # prefer xdg-open if available
         else:
             subprocess.Popen(["nautilus", dir_path], env=get_env_variables())
     except Exception as e:

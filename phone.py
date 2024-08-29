@@ -2224,11 +2224,15 @@ add_hosts_module
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout.strip('\n')
             else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: when getting config_kallsyms")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
                 return ''
         except Exception as e:
             traceback.print_exc()
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get page size")
-            puml("#red:ERROR: Could not get page size;\n", True)
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get config_kallsyms")
+            puml("#red:ERROR: Could not get config_kallsyms;\n", True)
             return ''
 
     # ----------------------------------------------------------------------------
@@ -2252,11 +2256,15 @@ add_hosts_module
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout.strip('\n')
             else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: when getting config_kallsyms")
+                print(f"Return Code: {res.returncode}.")
+                print(f"Stdout: {res.stdout}.")
+                print(f"Stderr: {res.stderr}.")
                 return ''
         except Exception as e:
             traceback.print_exc()
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get page size")
-            puml("#red:ERROR: Could not get page size;\n", True)
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get config_kallsyms_all")
+            puml("#red:ERROR: Could not get config_kallsyms_all;\n", True)
             return ''
 
     # ----------------------------------------------------------------------------

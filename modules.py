@@ -2807,26 +2807,46 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
     # APatch Alternate
     elif patch_flavor == 'APatch_manual':
+        compatible = True
         # Check for CONFIG_KALLSYMS=y in the kernel config
         if device.config_kallsyms != 'CONFIG_KALLSYMS=y':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch requires CONFIG_KALLSYMS=y in the kernel config.")
             puml("#red:APatch requires CONFIG_KALLSYMS=y in the kernel config;\n")
-            print("Aborting ...\n}\n")
-            return -1
+            compatible = False
         # Make sure kernel version is supported by APatch 3.18 - 6.1
         try:
             kernel_version = float(device.get_prop('ro.kernel.version'))
             if kernel_version < 3.18 or kernel_version > 6.1:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch only supports kernel versions 3.18 - 6.1")
                 puml("#red:APatch only supports kernel versions 3.18 - 6.1;\n")
-                print("Aborting ...\n}\n")
-                return -1
+                compatible = False
         except Exception as e:
             print(f"Error processing kernel version: {e}")
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch only supports kernel versions 3.18 - 6.1")
             puml("#red:APatch only supports kernel versions 3.18 - 6.1;\n")
-            print("Aborting ...\n}\n")
-            return -1
+            compatible = False
+
+        if not compatible:
+            # add a dialog to ask if the user wants to continue regardless of the kernel version or the CONFIG_KALLSYMS=y
+            title = "APatch Manual Patching"
+            message =  f"APatch Manual Patching requires CONFIG_KALLSYMS=y in the kernel config.\n"
+            message += f"APatch Manual Patching only supports kernel versions 3.18 - 6.1\n\n"
+            message += "Do you want to continue regardless of not meeting the pre-requisites?\n\n"
+            message += "Click Yes to continue with APatch Manual Patching\n"
+            message += "or Hit No to abort."
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            puml("#orange:APatch Manual Patching;\n", True)
+            puml(f"note right\n{message}\nend note\n")
+            dlg = wx.MessageDialog(None, message, title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_YES:
+                print(f"User chose to ignore missing requirements and continued with APatch Manual Patching")
+                puml(":User chose to ignore missing requirements and continued with APatch Manual Patching;\n")
+            else:
+                print(f"User chose to cancel APatch Manual Patching")
+                puml(":User chose to cancel APatch Manual Patching;\n")
+                print("Aborting ...\n")
+                return -1
 
         method = 91
         magiskboot_created = False

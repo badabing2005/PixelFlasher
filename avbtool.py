@@ -2453,7 +2453,11 @@ class Avb(object):
     """
     image = ImageHandler(image_filename, read_only=True)
     o = output
-    (footer, header, descriptors, image_size) = self._parse_image(image)
+    try:
+      (footer, header, descriptors, image_size) = self._parse_image(image)
+    except AvbError as e:
+      o.write('Error: {}\n'.format(e))
+      return
 
     # To show the SHA1 of the public key.
     vbmeta_blob = self._load_vbmeta_blob(image)

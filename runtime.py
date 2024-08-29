@@ -3732,11 +3732,24 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
 # ============================================================================
 #                 Function download_gh_latest_release_asset_regex
 # ============================================================================
-def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern, just_url_info=False):
+def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern, just_url_info=False, include_prerelease=False):
     try:
-        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        url = f"https://api.github.com/repos/{user}/{repo}/releases"
         response = request_with_fallback(method='GET', url=url)
-        assets = response.json().get('assets', [])
+        releases = response.json()
+
+        # Filter releases based on the include_prerelease flag
+        if not include_prerelease:
+            releases = [release for release in releases if not release['prerelease']]
+
+        # Get the latest release
+        latest_release = releases[0] if releases else None
+
+        if not latest_release:
+            print(f"No releases found for {user}/{repo}")
+            return
+
+        assets = latest_release.get('assets', [])
 
         # Prepare the regular expression pattern
         pattern = re.compile(asset_name_pattern)
@@ -3784,15 +3797,29 @@ def get_gh_latest_release_notes(owner, repo):
 # ============================================================================
 #                   Function get_gh_latest_release_version
 # ============================================================================
-def get_gh_latest_release_version(user, repo):
+def get_gh_latest_release_version(user, repo, include_prerelease=False):
     try:
-        # Get the latest release
-        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        # Get all releases
+        url = f"https://api.github.com/repos/{user}/{repo}/releases"
         response = request_with_fallback(method='GET', url=url)
-        return response.json().get('tag_name', '')
+        releases = response.json()
+
+        # Filter releases based on the include_prerelease flag
+        if not include_prerelease:
+            releases = [release for release in releases if not release['prerelease']]
+
+        # Get the latest release
+        latest_release = releases[0] if releases else None
+
+        if not latest_release:
+            print(f"No releases found for {user}/{repo}")
+            return ''
+
+        return latest_release.get('tag_name', '')
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_version function")
         traceback.print_exc()
+        return ''
 
 
 # ============================================================================

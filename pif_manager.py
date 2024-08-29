@@ -654,19 +654,11 @@ class PifManager(wx.Dialog):
             self.pif_flavor = selected_module.flavor
 
         if selected_module.id == "tricky_store":
-            self.push_kb_button.Enable(True)
-            self.push_kb_button.Show(True)
-            self.edit_ts_target_button.Enable(True)
-            self.edit_ts_target_button.Show(True)
             self.spoofBuild_checkbox.Enable(False)
             self.spoofProps_checkbox.Enable(False)
             self.spoofProvider_checkbox.Enable(False)
             self.spoofSignature_checkbox.Enable(False)
         else:
-            self.push_kb_button.Enable(False)
-            self.push_kb_button.Show(False)
-            self.edit_ts_target_button.Enable(False)
-            self.edit_ts_target_button.Show(False)
             self.spoofBuild_checkbox.Enable(True)
             self.spoofProps_checkbox.Enable(True)
             self.spoofProvider_checkbox.Enable(True)
@@ -675,9 +667,6 @@ class PifManager(wx.Dialog):
         selected_label = f"{selected_module.name} {selected_module.version}"
         print(f"Selected Module: {selected_label}")
         self.LoadReload(None)
-        # Refresh the parent sizer or window
-        self.push_kb_button.GetParent().Layout()
-        self.push_kb_button.GetParent().Refresh()
 
     # -----------------------------------------------
     #                  TestSelection

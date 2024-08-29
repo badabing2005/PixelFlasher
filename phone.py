@@ -145,9 +145,7 @@ class Device():
         self._magisk_modules_summary = None
         self._magisk_apks = None
         self._magisk_config_path = None
-        self._apatch_version = None
         self._apatch_app_version = None
-        self._apatch_version_code = None
         self._apatch_app_version_code = None
         self._ksu_version = None
         self._ksu_app_version = None
@@ -161,6 +159,8 @@ class Device():
         self.backups = {}
         self.vbmeta = {}
         self.props = {}
+        self._config_kallsyms = None
+        self._config_kallsyms_all = None
         # Get vbmeta details
         self.vbmeta = self.get_vbmeta_details()
 
@@ -235,8 +235,7 @@ class Device():
             theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys battery"
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                # path = self.get_path_from_details(res.stdout)
-                return res.stdout #, path
+                return res.stdout
             else:
                 return '', ''
         except Exception as e:
@@ -244,6 +243,25 @@ class Device():
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get battery details.")
             puml("#red:ERROR: Could not get battery details;\n", True)
             return '', ''
+
+    # ----------------------------------------------------------------------------
+    #                               method get_page_size
+    # ----------------------------------------------------------------------------
+    def get_page_size(self):
+        if self.mode != 'adb':
+            return
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell getconf PAGE_SIZE"
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                return res.stdout.strip('\n')
+            else:
+                return ''
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get page size")
+            puml("#red:ERROR: Could not get page size;\n", True)
+            return ''
 
     # -----------------------------------------------
     #    Function get_path_from_package_details
@@ -2186,6 +2204,62 @@ add_hosts_module
         return self._apatch_app_version
 
     # ----------------------------------------------------------------------------
+    #                               property config_kallsyms
+    # ----------------------------------------------------------------------------
+    @property
+    def config_kallsyms(self):
+        if self._config_kallsyms is None and self.mode == 'adb':
+            self._config_kallsyms = self.get_config_kallsyms()
+        return self._config_kallsyms
+
+    # ----------------------------------------------------------------------------
+    #                               method get_config_kallsyms
+    # ----------------------------------------------------------------------------
+    def get_config_kallsyms(self):
+        if self.mode != 'adb':
+            return
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell zcat /proc/config.gz | grep -w CONFIG_KALLSYMS"
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                return res.stdout.strip('\n')
+            else:
+                return ''
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get page size")
+            puml("#red:ERROR: Could not get page size;\n", True)
+            return ''
+
+    # ----------------------------------------------------------------------------
+    #                               property config_kallsyms_all
+    # ----------------------------------------------------------------------------
+    @property
+    def config_kallsyms_all(self):
+        if self._config_kallsyms_all is None and self.mode == 'adb':
+            self._config_kallsyms_all = self.get_config_kallsyms_all()
+        return self._config_kallsyms_all
+
+    # ----------------------------------------------------------------------------
+    #                               method get_config_kallsyms_all
+    # ----------------------------------------------------------------------------
+    def get_config_kallsyms_all(self):
+        if self.mode != 'adb':
+            return
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell zcat /proc/config.gz | grep -w CONFIG_KALLSYMS_ALL"
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                return res.stdout.strip('\n')
+            else:
+                return ''
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get page size")
+            puml("#red:ERROR: Could not get page size;\n", True)
+            return ''
+
+    # ----------------------------------------------------------------------------
     #                               method app_version
     # ----------------------------------------------------------------------------
     def get_app_version(self, pkg):
@@ -2328,6 +2402,8 @@ add_hosts_module
                                     module_prop = item.split('\n')
                                     filepath = module_prop[0]
                                     module = os.path.basename(urlparse(filepath).path)
+                                    if module == 'lost+found':
+                                        continue
                                     m = Magisk(module)
                                     setattr(m, 'id', '')
                                     setattr(m, 'version', '')

@@ -2656,6 +2656,9 @@ Before posting publicly please carefully inspect the contents.
             message += f"    Device Kernel:                   {device.kernel}\n"
             message += f"    Device Kernel Version:           {device.get_prop('ro.kernel.version')}\n"
             message += f"    Device KMI:                      {device.kmi}\n"
+            message += f"    CONFIG_KALLSYMS:                 {device.config_kallsyms}\n"
+            message += f"    CONFIG_KALLSYMS_ALL:             {device.config_kallsyms_all}\n"
+            message += f"    Page Size:                       {device.get_page_size()}\n"
             message += f"    oem_unlock_supported:            {device.get_prop('sys.oem_unlock_supported')}\n"
             message += f"    sys_oem_unlock_allowed:          {device.get_prop('sys.oem_unlock_allowed')}\n"
             message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
@@ -3155,6 +3158,7 @@ Before posting publicly please carefully inspect the contents.
                 self.patch_kernelsu_button:             ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_apatch_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
+                self.patch_apatch_manual_button:        ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
                 'mode_radio_button.keepData':           ['firmware_selected', 'firmware_is_not_ota'],
@@ -4935,6 +4939,22 @@ Before posting publicly please carefully inspect the contents.
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_apatch_manual_patch_boot
+    # -----------------------------------------------
+    def _on_apatch_manual_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated APatch Alternate Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'APatch_manual')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with APatch Alternate")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_patch_custom_boot
     # -----------------------------------------------
     def _on_patch_custom_boot(self, event):
@@ -5223,6 +5243,7 @@ Before posting publicly please carefully inspect the contents.
         self.patch_kernelsu_button = self.patch_button.AddFunction("Patch with KernelSU", lambda: self._on_kernelsu_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_kernelsu_lkm_button = self.patch_button.AddFunction("Patch with KernelSU LKM", lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_apatch_button = self.patch_button.AddFunction("Patch with APatch", lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
+        self.patch_apatch_manual_button = self.patch_button.AddFunction("Patch with APatch Alternate", lambda: self._on_apatch_manual_patch_boot(None), images.apatch_24.GetBitmap(), False)
         self.patch_custom_boot_button = self.patch_button.AddFunction("Patch custom boot/init_boot", lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
         #
         self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=u"Delete", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)

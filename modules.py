@@ -2236,16 +2236,22 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # ==========================================
     # Sub Function     patch_apatch_script
     # ==========================================
-    def patch_apatch_script(patch_method="app"):
+    def patch_apatch_script(patch_method="app", kernel_patch_version=""):
         dialog = wx.TextEntryDialog(None,
             "The SUPERKEY has higher privileges than root access.\n"
             "Weak or compromised keys can result in unauthorized control of your device.\n"
             "It is critical to use robust keys and safeguard them from exposure to maintain the security of your device.\n\n"
             "The length of superkey should be at least 8 characters and include both numbers and letters.",
-            "Please enter a Superkey", style=wx.OK)
+            "Please enter a Superkey", style=wx.OK | wx.CANCEL)
         if dialog.ShowModal() == wx.ID_OK:
             superkey = dialog.GetValue()
-        dialog.Destroy()
+            dialog.Destroy()
+        else:
+            print("User cancelled.")
+            print("Aborting ...\n")
+            dialog.Destroy()
+            return -1
+
         print("Creating pf_patch.sh script ...")
         if patch_method == "rooted":
             patch_label = "rooted APatch"
@@ -2264,6 +2270,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             exec_cmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
             with_version = device.get_uncached_apatch_app_version()
             with_version_code = device.apatch_app_version_code
+            perform_as_root = False
+        elif patch_method == "manual":
+            patch_label = "APatch Manual"
+            path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
+            script_path = "/data/local/tmp/pf_patch.sh"
+            exec_cmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
+            with_version = kernel_patch_version
+            with_version_code = kernel_patch_version
             perform_as_root = False
         else:
             print(f"ERROR: Unsupported patch method: {patch_method}")
@@ -2305,9 +2319,36 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     data += "echo \"Extracting ramdisk from init_boot ...\"\n"
                     data += f"cp {self.config.phone_path}/{init_boot_img} ./init_boot.img\n"
                     data += "./magiskboot unpack init_boot.img\n"
+            elif patch_method == "manual":
+                data += "ARCH=$(uname -m)\n"
+                data += "cd /data/local/tmp\n"
+                data += "rm -rf pf || { echo 'ERROR: Failed to remove directory pf'; exit 1; }\n"
+                data += "mkdir pf || { echo 'ERROR: Failed to create directory pf'; exit 1; }\n"
+                data += "cd pf\n"
+                data += "mv ../magiskboot .\n"
+                data += "mv ../kptools-android .\n"
+                data += "mv ../kpimg-android .\n"
+                data += "chmod 755 *\n"
+                if boot_path is not None:
+                    # unpack boot.img
+                    data += f"cp {self.config.phone_path}/{boot_img} ./boot.img\n"
+                    data += f"echo \"Unpacking boot.img [{boot_img}] ...\"\n"
+                    data += "./magiskboot unpack boot.img\n"
+                    data += "mv kernel kernel-b\n"
+                else:
+                    print("ERROR: boot.img not found")
+                    puml("#red:boot.img not found;\n")
+                    return -1
+                data += "echo \"Creating a patch ...\"\n"
+                data += f"./kptools-android -p --image kernel-b --skey {superkey} --kpimg kpimg-android --out kernel\n"
+                data += "echo \"Repacking boot.img ...\"\n"
+                data += "./magiskboot repack boot.img\n"
+                data += "PATCHING_APATCH_VERSION=$(/data/local/tmp/pf/./kptools-android -v)\n"
+                data += "echo \"PATCHING_APATCH_VERSION: $PATCHING_APATCH_VERSION\"\n"
 
-            data += "echo \"Creating a patch ...\"\n"
-            data += f"./boot_patch.sh {superkey} {self.config.phone_path}/{boot_img} -K kpatch\n"
+            if patch_method != "manual":
+                data += "echo \"Creating a patch ...\"\n"
+                data += f"./boot_patch.sh {superkey} {self.config.phone_path}/{boot_img} -K kpatch\n"
             data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"PATCH_FILENAME={patch_name}_${{APATCH_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
@@ -2330,6 +2371,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
             if patch_method in ["app"]:
                 data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
+                data += "rm -rf /data/local/tmp/pf\n"
+            elif patch_method == "manual":
                 data += "rm -rf /data/local/tmp/pf\n"
             data += "\n"
 
@@ -2408,7 +2451,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     tmp_path = os.path.join(get_config_path(), 'tmp')
     print("")
     print("==============================================================================")
-    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Patching {patch_flavor} boot")
+    print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}          Patching {patch_flavor} boot")
     print("==============================================================================")
     puml(f"#cyan:Create {custom_text}Patch;\n", True)
     puml("partition \"**Create Patch**\" {\n")
@@ -2503,8 +2546,9 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             boot_path = boot_path.replace("init_boot.img", "boot.img")
             stock_sha1 = sha1(boot_path)[:8]
             print(f"Using boot.img for KernelSU patching with SHA1 of {stock_sha1}")
-        if patch_flavor == 'APatch' and "init_boot.img" in boot_path:
-            print(f"With APatch patching, the boot.img will be used, instead of init_boot.img, however we need ramdisk from init_boot.img")
+
+        if patch_flavor in ['APatch', 'APatch_manual'] and "init_boot.img" in boot_path:
+            print(f"With APatch patching, the boot.img will be used, instead of init_boot.img, however we might need ramdisk from init_boot.img for APatch app patching")
             init_boot_path = boot_path
             boot_path = boot_path.replace("init_boot.img", "boot.img")
             if not os.path.exists(boot_path):
@@ -2514,14 +2558,15 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 return -1
             stock_init_sha1 = sha1(init_boot_path)[:8]
             stock_sha1 = sha1(boot_path)[:8]
-            print(f"Using boot.img for APatch patching with SHA1 of {stock_sha1}")
-            print(f"Also using init_boot.img for APatch patching (to extract Ramdisk) with SHA1 of {stock_init_sha1}")
+            print(f"Using boot.img for {patch_flavor} patching with SHA1 of {stock_sha1}")
+            if patch_flavor == 'APatch':
+                print(f"Also using init_boot.img for {patch_flavor} patching (to extract Ramdisk) with SHA1 of {stock_init_sha1}")
         boot_file_name = os.path.basename(boot_path)
-        filename, extension = os.path.splitext(boot_file_name)
+        filename, _ = os.path.splitext(boot_file_name)
         boot_img = f"{filename}_{stock_sha1}.img"
         if init_boot_path is not None:
             init_boot_file_name = os.path.basename(init_boot_path)
-            init_filename, init_extension = os.path.splitext(init_boot_file_name)
+            init_filename, _ = os.path.splitext(init_boot_file_name)
             init_boot_img = f"{init_filename}_{stock_init_sha1}.img"
         patch_name = f"{patch_flavor.lower()}_patched"
         patched_img = f"{patch_name}_{boot.boot_hash[:8]}.img"
@@ -2760,6 +2805,114 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not install APatch.\n Aborting ...")
                 return
 
+    # APatch Alternate
+    elif patch_flavor == 'APatch_manual':
+        # Check for CONFIG_KALLSYMS=y in the kernel config
+        if device.config_kallsyms != 'CONFIG_KALLSYMS=y':
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch requires CONFIG_KALLSYMS=y in the kernel config.")
+            puml("#red:APatch requires CONFIG_KALLSYMS=y in the kernel config;\n")
+            print("Aborting ...\n}\n")
+            return -1
+        # Make sure kernel version is supported by APatch 3.18 - 6.1
+        try:
+            kernel_version = float(device.get_prop('ro.kernel.version'))
+            if kernel_version < 3.18 or kernel_version > 6.1:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch only supports kernel versions 3.18 - 6.1")
+                puml("#red:APatch only supports kernel versions 3.18 - 6.1;\n")
+                print("Aborting ...\n}\n")
+                return -1
+        except Exception as e:
+            print(f"Error processing kernel version: {e}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch only supports kernel versions 3.18 - 6.1")
+            puml("#red:APatch only supports kernel versions 3.18 - 6.1;\n")
+            print("Aborting ...\n}\n")
+            return -1
+
+        method = 91
+        magiskboot_created = False
+        if is_rooted:
+            res,_ = device.check_file("/data/adb/magisk/magiskboot", True)
+            if res == 1:
+                res = device.su_cp_on_device('/data/adb/magisk/magiskboot', '/data/local/tmp/magiskboot')
+                if res == 0:
+                    magiskboot_created = True
+                theCmd = f"\"{get_adb()}\" -s {device.id} shell \"su -c \'chown shell:shell /data/local/tmp/magiskboot\'\""
+                res = run_shell(theCmd)
+
+        if not magiskboot_created:
+            # Find latest Magisk to download
+            apk = device.get_magisk_apk_details('Magisk Stable')
+            filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
+            download_file(apk.link, filename)
+            magisk_apk = os.path.join(tmp_path, filename)
+
+            # extract magiskboot
+            extract_magiskboot(magisk_apk, device.architecture, tmp_path)
+
+            # transfer magiskboot to the phone
+            res = device.push_file(os.path.join(tmp_path, 'magiskboot'), '/data/local/tmp/magiskboot', False)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to transfer magiskboot to the phone;\n")
+                return
+
+        kernel_patch_version_prerelease = get_gh_latest_release_version('bmax121', 'KernelPatch', True)
+        kernel_patch_version_release = get_gh_latest_release_version('bmax121', 'KernelPatch', False)
+        # Pop up a dialog to ask the user if they want to download the latest kptools-android and kpimg-android that includes pre-release versions
+        title = "Download Latest KernelPatch Tools"
+        message =  f"Latest KernelPatch Tools Pre-release Version: {kernel_patch_version_prerelease}\n"
+        message +=  f"Latest KernelPatch Tools Release Version: {kernel_patch_version_release}\n\n"
+        message += "Do you want to download the latest kptools-android and kpimg-android that includes pre-release versions?\n\n"
+        message += f"Click Yes to download the latest pre-release versions: {kernel_patch_version_prerelease}\n"
+        message += f"Click No to download the latest Release versions: {kernel_patch_version_release}\n"
+        message += "or Hit CANCEL to abort."
+        print(f"\n*** Dialog ***\n{message}\n______________\n")
+        puml("#orange:Download Latest KernelPatch Tools;\n", True)
+        puml(f"note right\n{message}\nend note\n")
+        dlg = wx.MessageDialog(None, message, title, wx.YES_NO| wx.CANCEL | wx.ICON_EXCLAMATION)
+        result = dlg.ShowModal()
+        if result == wx.ID_YES:
+            print(f"User chose to download pre-release version: {kernel_patch_version_prerelease}")
+            puml(":User chose to download pre-release version;\n")
+            include_prerelease = True
+            kernel_patch_version = kernel_patch_version_prerelease
+        elif result == wx.ID_NO:
+            print(f"User chose to download release version: {kernel_patch_version_release}")
+            puml(":User chose to download release version;\n")
+            include_prerelease = False
+            kernel_patch_version = kernel_patch_version_release
+        else:
+            print(f"User pressed Cancel")
+            puml(":User Pressed Cancel;\n")
+            print("Aborting ...\n")
+            return -1
+
+        # download the latest kptools-android
+        kptools_android_file = download_gh_latest_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kptools-android', just_url_info=False, include_prerelease=include_prerelease)
+        if not kptools_android_file:
+            print("ERROR: Could not find matching kptools-android file\nAborting ...\n")
+            return
+
+        # transfer kptools-android to the phone
+        res = device.push_file(os.path.join(tmp_path, 'kptools-android'), '/data/local/tmp/kptools-android', False)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to transfer kptools-android to the phone;\n")
+            return
+
+        # download the latest kpimg-android
+        kpimg_android_file = download_gh_latest_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kpimg-android', just_url_info=False, include_prerelease=include_prerelease)
+        if not kpimg_android_file:
+            print("ERROR: Could not find matching kpimg-android file\nAborting ...\n")
+            return
+
+        # transfer kpimg-android to the phone
+        res = device.push_file(os.path.join(tmp_path, 'kpimg-android'), '/data/local/tmp/kpimg-android', False)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to transfer kpimg-android to the phone;\n")
+            return
+
     # Magisk
     else:
         #------------------------------------
@@ -2965,6 +3118,10 @@ Unless you know what you're doing, it is recommended that you take the default s
         patch_method = 'apatch'
         # set_patched_with(apatch_app_version)
         patched_img = patch_apatch_script("app")
+    elif method == 91:
+        # APatch Alternate
+        patch_method = 'apatch_manual'
+        patched_img = patch_apatch_script("manual", kernel_patch_version)
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected patch method.")
         puml("#red:Unexpected patch method;\nnote right:Abort\n}\n", True)
@@ -4455,7 +4612,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
 
         # can't determine if device is a phone or a watch
         if device.hardware is None or device.hardware == "":
-            # TODO: ask if it the device is a phone or watch to continue accordingly.
+            # TODO: ask if the device is a phone or watch to continue accordingly.
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
             print("Aborting ...\n")
             return -1

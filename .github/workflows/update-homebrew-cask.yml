@@ -86,7 +86,9 @@ jobs:
         ls -lR
 
     - name: Strip leading 'v' from tag name
-      run: echo "TAG_NAME=${{ env.TAG_NAME }}" | sed 's/^v//g' >> $GITHUB_ENV
+      run: |
+        TAG_NAME_STRIPPED=$(echo "${{ env.TAG_NAME }}" | sed 's/^v//')
+        echo "TAG_NAME=$TAG_NAME_STRIPPED" >> $GITHUB_ENV
 
     - name: Update Cask version
       run: |

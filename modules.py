@@ -1756,7 +1756,7 @@ or hit the **Cancel** button to abort.
             print("Aborting ...")
             return -1
         # find the newly created file and return
-        theCmd = f"\"{get_adb()}\" -s {device.id} shell ls -t {self.config.phone_path}/magisk_patched-* | head -1"
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"ls -t {self.config.phone_path}/magisk_patched-* | head -1\""
         res = run_shell(theCmd)
         if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and res.stderr == '':
             return os.path.basename(res.stdout.strip())

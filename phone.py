@@ -2219,7 +2219,7 @@ add_hosts_module
         if self.mode != 'adb':
             return
         try:
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell zcat /proc/config.gz | grep -w CONFIG_KALLSYMS"
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"zcat /proc/config.gz | grep -w CONFIG_KALLSYMS\""
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout.strip('\n')
@@ -2251,7 +2251,7 @@ add_hosts_module
         if self.mode != 'adb':
             return
         try:
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell zcat /proc/config.gz | grep -w CONFIG_KALLSYMS_ALL"
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"zcat /proc/config.gz | grep -w CONFIG_KALLSYMS_ALL\""
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout.strip('\n')

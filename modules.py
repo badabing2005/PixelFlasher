@@ -354,7 +354,7 @@ def identify_sdk_version(self):
                             if parse(sdkver) < parse(SDKVERSION) or (sdkver in ('34.0.0', '34.0.1', '34.0.2', '34.0.3', '34.0.4')):
                                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected old or problematic Android Platform Tools version {sdk_version}")
                                 # confirm if you want to use older version
-                                dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to                if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch']:hod not in ['kernelsu', 'apatch']:hod not in ['kernelsu', 'apatch']:re want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+                                dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to                if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch', 'apatch_manual']:hod not in ['kernelsu', 'apatch', 'apatch_manual']:hod not in ['kernelsu', 'apatch', 'apatch_manual']:re want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
                                 result = dlg.ShowModal()
                                 puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
                                 if result == wx.ID_YES:
@@ -3306,7 +3306,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         con.commit()
         cursor = con.cursor()
         is_init_boot = 1 if boot.is_init_boot else 0
-        if patch_flavor in ['KernelSU', 'APatch']:
+        if patch_flavor in ['KernelSU', 'APatch', 'APatch_manual']:
             is_init_boot = 0
         sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
         data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False, False, is_init_boot, boot_sha1_long)
@@ -3405,7 +3405,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     if device.hardware in KNOWN_INIT_BOOT_DEVICES and option == 'Live':
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported yet.")
         puml("#red:Live booting Pixel 7 or newer are not supported yet;\n}\n")
-        return -1
+        # return -1
 
     boot = get_boot()
     if boot:
@@ -3557,7 +3557,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 if self.config.fastboot_verbose:
                     fastboot_options += '--verbose '
             fastboot_options += 'flash '
-        if (device.hardware in KNOWN_INIT_BOOT_DEVICES) and boot.patch_method not in ['kernelsu', 'apatch']:
+        if (device.hardware in KNOWN_INIT_BOOT_DEVICES) and boot.patch_method not in ['kernelsu', 'apatch', 'apatch_manual']:
             theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} init_boot \"{boot.boot_path}\""
         else:
             theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot \"{boot.boot_path}\""
@@ -3835,10 +3835,10 @@ def flash_phone(self):
         first_line_win = f"@ECHO OFF\n"
     first_line_linux = "#!/bin/sh\n"
     if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-        version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
+        version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
         version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
     else:
-        version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n\n"
+        version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
         version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
 
     # delete previous flash-pf.bat file if it exists
@@ -3895,7 +3895,7 @@ def flash_phone(self):
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported yet.")
                         puml("#orange:Live booting Pixel 7 or newer are not supported yet;\n}\n")
                         self.toast("Flash action", "Live booting Pixel 7 or newer devices is not supported.")
-                        return -1
+                        # return -1
                 else:
                     action = f"flash {image_mode}"
                     msg  = f"\nFlash {image_mode:<18}"
@@ -4004,7 +4004,8 @@ def flash_phone(self):
             data_win += f":: This is a generated file by PixelFlasher v{VERSION}\n"
             data_win += f":: cd {package_dir_full}\n"
             data_win += f":: pf_boot.img: {boot.boot_path}\n"
-            data_win += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
+            data_win += f":: Android Platform Tools Version: {get_sdk_version()}\n"
+            data_win += f":: Device is rooted: {device.rooted}\n\n"
             data_win += f"set \"ACTIVE_SLOT={device.active_slot}\"\n"
             data_win += f"set \"INACTIVE_SLOT={device.inactive_slot}\"\n"
             data_win += "echo Current active slot is:   [%ACTIVE_SLOT%]\n"
@@ -4125,7 +4126,9 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     data_win += f":: This is a generated file by PixelFlasher v{VERSION}\n"
                     data_win += f":: cd {package_dir_full}\n"
                     data_win += f":: pf_boot.img: {boot.boot_path}\n"
-                    data_win += f":: Android Platform Tools Version: {get_sdk_version()}\n\n"
+                    data_win += f":: Android Platform Tools Version: {get_sdk_version()}\n"
+                    data_win += f":: Device is rooted: {device.rooted}\n\n"
+
                     data_linux += f"# This is a generated file by PixelFlasher v{VERSION}\n"
                     data_linux += f"# cd {package_dir_full}\n"
                     data_linux += f"# pf_boot.img: {boot.boot_path}\n"
@@ -4411,7 +4414,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     # flash the patch
                     flash = "flash"
 
-                if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch']:
+                if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch', 'apatch_manual']:
                     print("Flashing patched init_boot ...")
                     theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
                     is_init_boot = True

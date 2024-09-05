@@ -143,7 +143,7 @@ class PifManager(wx.Dialog):
         # Smart Paste Up
         self.smart_paste_up = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.smart_paste_up.SetBitmap(images.smart_paste_up_24.GetBitmap())
-        self.smart_paste_up.SetToolTip(u"Smart Paste:\nSets First API to 25 if it is missing or forced.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif.")
+        self.smart_paste_up.SetToolTip(u"Smart Paste:\nSets First API to the set value if it is missing or forced.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif.")
         self.smart_paste_up.Enable(False)
         # Paste Up
         self.paste_up = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
@@ -180,10 +180,10 @@ class PifManager(wx.Dialog):
         self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Add missing Keys from device", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.add_missing_keys_checkbox.SetToolTip(u"When Processing or Reprocessing, add missing fields from device.")
         # Force First API
-        self.force_first_api_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force First API to 25", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.first_api_value = 25
-        self.force_first_api_checkbox.SetToolTip(f"Forces First API value(s) to {self.first_api_value}")
-        self.force_first_api_checkbox.SetLabel(f"Force First API to {self.first_api_value}")
+        self.force_first_api_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force First API to:", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.force_first_api_checkbox.SetToolTip(f"Forces First API value(s) to")
+        # Input box for the API value
+        self.api_value_input = wx.TextCtrl(parent=self, id=wx.ID_ANY, value="25", size=(40, -1))
         # sort_keys
         self.sort_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Sort Keys", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.sort_keys_checkbox.SetToolTip(f"Sorts json keys")
@@ -298,6 +298,11 @@ class PifManager(wx.Dialog):
         self.freeman_pif_button = wx.Button(self, wx.ID_ANY, u"Get TheFreeman193 Random Pif", wx.DefaultPosition, wx.DefaultSize, 0)
         self.freeman_pif_button.SetToolTip(u"Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work.")
 
+        # Get Beta Pif button
+        self.beta_pif_button = wx.Button(self, wx.ID_ANY, u"Get Pixel Beta Pif", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.beta_pif_button.SetToolTip(u"Get the latest Pixel beta pif.")
+        self.beta_pif_button.Enable(False)
+
         # Make the buttons the same size
         button_width = self.pi_option.GetSize()[0] + 10
         self.create_pif_button.SetMinSize((button_width, -1))
@@ -315,11 +320,17 @@ class PifManager(wx.Dialog):
         self.pi_checker_button.SetMinSize((button_width, -1))
         self.xiaomi_pif_button.SetMinSize((button_width, -1))
         self.freeman_pif_button.SetMinSize((button_width, -1))
+        self.beta_pif_button.SetMinSize((button_width, -1))
 
         h_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         h_buttons_sizer.Add((0, 0), 1, wx.EXPAND, 10)
         h_buttons_sizer.Add(self.close_button, 0, wx.ALL, 20)
         h_buttons_sizer.Add((0, 0), 1, wx.EXPAND, 10)
+
+        # h_api_sizer
+        h_api_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        h_api_sizer.Add(self.force_first_api_checkbox, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+        h_api_sizer.Add(self.api_value_input, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         v_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         v_buttons_sizer.Add(self.create_pif_button, 0, wx.TOP | wx.RIGHT, 10)
@@ -339,6 +350,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.pi_checker_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.xiaomi_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
         v_buttons_sizer.Add(self.freeman_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
+        v_buttons_sizer.Add(self.beta_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 10)
 
         self.vertical_btn_sizer1 = wx.BoxSizer(wx.VERTICAL)
         self.vertical_btn_sizer1.Add(self.paste_up, 0, wx.ALL, 0)
@@ -353,7 +365,7 @@ class PifManager(wx.Dialog):
 
         self.vertical_cb_sizer1 = wx.BoxSizer(wx.VERTICAL)
         self.vertical_cb_sizer1.Add(self.add_missing_keys_checkbox, 1, wx.ALL, 0)
-        self.vertical_cb_sizer1.Add(self.force_first_api_checkbox, 1, wx.ALL, 0)
+        self.vertical_cb_sizer1.Add(h_api_sizer, 1, wx.ALL, 0)
         self.vertical_cb_sizer1.Add(self.sort_keys_checkbox, 1, wx.ALL, 0)
         self.vertical_cb_sizer1.Add(self.keep_unknown_checkbox, 1, wx.ALL, 0)
 
@@ -428,6 +440,7 @@ class PifManager(wx.Dialog):
         self.pi_checker_button.Bind(wx.EVT_BUTTON, self.PlayIntegrityCheck)
         self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.XiaomiPif)
         self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.FreemanPif)
+        self.beta_pif_button.Bind(wx.EVT_BUTTON, self.BetaPif)
         self.pi_option.Bind(wx.EVT_RADIOBOX, self.TestSelection)
         self.Bind(wx.EVT_SIZE, self.onResize)
         self.Bind(wx.EVT_SHOW, self.onShow)
@@ -457,6 +470,7 @@ class PifManager(wx.Dialog):
         self.auto_update_pif_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoUpdatePif)
         self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
         self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
+        self.api_value_input.Bind(wx.EVT_TEXT, self.onApiValueChange)
 
         # init button states
         self.init()
@@ -490,6 +504,8 @@ class PifManager(wx.Dialog):
                 self.force_first_api_checkbox.SetValue(self.config.pif['force_first_api'])
             with contextlib.suppress(KeyError):
                 self.first_api_value = self.config.pif['first_api_value_when_forced']
+                self.force_first_api_checkbox.SetToolTip(f"Forces First API value(s) to {self.first_api_value}")
+                self.api_value_input.SetValue(str(self.first_api_value))
             with contextlib.suppress(KeyError):
                 self.sort_keys_checkbox.SetValue(self.config.pif['sort_keys'])
             with contextlib.suppress(KeyError):
@@ -765,7 +781,8 @@ class PifManager(wx.Dialog):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip Load process.")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  CreatePifJson
@@ -799,76 +816,81 @@ class PifManager(wx.Dialog):
     #                  create_update_pif
     # -----------------------------------------------
     def create_update_pif(self, just_push=False):
-        device = get_phone()
-        if not device.rooted:
-            return
-
-        self._on_spin('start')
-        config_path = get_config_path()
-        pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
-        json_data = None
-
-        content = self.active_pif_stc.GetValue()
-        if not just_push:
-            if self.pif_format == 'prop':
-                json_data = self.P2J(content)
-            else:
-                json_data = content
-            if json_data:
-                try:
-                    data = json.loads(json_data)
-                except Exception:
-                    try:
-                        data = json5.loads(json_data)
-                    except Exception:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
-                        self._on_spin('stop')
-                        return
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
-                self._on_spin('stop')
+        try:
+            device = get_phone()
+            if not device.rooted:
                 return
 
-        # Save the data as normal JSON
-        with open(pif_prop, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
-            if just_push:
-                with open(pif_prop, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
-                    f.write(content)
-            else:
+            self._on_spin('start')
+            config_path = get_config_path()
+            pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
+            json_data = None
+
+            content = self.active_pif_stc.GetValue()
+            if not just_push:
                 if self.pif_format == 'prop':
-                    f.write(self.J2P(json.dumps(data, indent=4, sort_keys=self.sort_keys)))
+                    json_data = self.P2J(content)
                 else:
-                    json.dump(data, f, indent=4, sort_keys=self.sort_keys)
+                    json_data = content
+                if json_data:
+                    try:
+                        data = json.loads(json_data)
+                    except Exception:
+                        try:
+                            data = json5.loads(json_data)
+                        except Exception:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+                            self._on_spin('stop')
+                            return
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+                    self._on_spin('stop')
+                    return
 
-        # push the file
-        res = device.push_file(pif_prop, self.pif_path, True)
-        if res != 0:
-            print("Aborting ...\n")
-            # puml("#red:Failed to push pif.json from the phone;\n}\n")
+            # Save the data as normal JSON
+            with open(pif_prop, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+                if just_push:
+                    with open(pif_prop, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+                        f.write(content)
+                else:
+                    if self.pif_format == 'prop':
+                        f.write(self.J2P(json.dumps(data, indent=4, sort_keys=self.sort_keys)))
+                    else:
+                        json.dump(data, f, indent=4, sort_keys=self.sort_keys)
+
+            # push the file
+            res = device.push_file(pif_prop, self.pif_path, True)
+            if res != 0:
+                print("Aborting ...\n")
+                # puml("#red:Failed to push pif.json from the phone;\n}\n")
+                self._on_spin('stop')
+                return -1
+
+            if just_push:
+                self.device_pif = content
+            else:
+                self.device_pif = json.dumps(data, indent=4, sort_keys=self.sort_keys)
+
+            print("Killing Google GMS  ...")
+            res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
+            if res.returncode != 0:
+                print("Error killing GMS.")
+            else:
+                print("Killing Google GMS succeeded.")
+
+            if not just_push:
+                self.check_pif_json()
+            self.LoadReload(None)
+
+            # Auto test Play Integrity
+            if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
+                print("Auto Testing Play Integrity ...")
+                self.PlayIntegrityCheck(None)
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip Create process.")
+            traceback.print_exc()
+        finally:
             self._on_spin('stop')
-            return -1
-
-        if just_push:
-            self.device_pif = content
-        else:
-            self.device_pif = json.dumps(data, indent=4, sort_keys=self.sort_keys)
-
-        print("Killing Google GMS  ...")
-        res = device.perform_package_action(pkg='com.google.android.gms.unstable', action='killall')
-        if res.returncode != 0:
-            print("Error killing GMS.")
-        else:
-            print("Killing Google GMS succeeded.")
-
-        if not just_push:
-            self.check_pif_json()
-        self.LoadReload(None)
-
-        # Auto test Play Integrity
-        if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
-            print("Auto Testing Play Integrity ...")
-            self.PlayIntegrityCheck(None)
-        self._on_spin('stop')
 
     # -----------------------------------------------
     #                  get_pi_app_coords
@@ -926,7 +948,8 @@ class PifManager(wx.Dialog):
             self.console_stc.SetValue(xiaomi_pif)
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  FreemanPif
@@ -947,7 +970,28 @@ class PifManager(wx.Dialog):
             self.console_stc.SetValue(freeman_pif)
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  BetaPif
+    # -----------------------------------------------
+    def BetaPif(self, e):
+        try:
+            self._on_spin('start')
+            wx.CallAfter(self.console_stc.SetValue, f"Getting Pixel beta print ...\nPlease be patient this could take some time ...")
+            wx.Yield()
+            device = get_phone()
+            if device:
+                device_model = device.hardware
+            else:
+                device_model = "Random"
+            beta_pif = get_beta_pif(device_model)
+            self.console_stc.SetValue(beta_pif)
+        except Exception:
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  PlayIntegrityCheck
@@ -971,7 +1015,6 @@ class PifManager(wx.Dialog):
             res = device.perform_package_action(self.pi_app, self.launch_method, False)
             if res == -1:
                 print(f"Error: during launching app {self.pi_app}.")
-                self._on_spin('stop')
                 return -1
 
             # See if we have coordinates saved
@@ -980,7 +1023,6 @@ class PifManager(wx.Dialog):
             if coords is None:
                 if self.disable_uiautomator_checkbox.IsChecked():
                     print(f"WARNING! You have disabled using UIAutomator.\nPlease uncheck Disable UIAutomator checkbox if you want to enable UIAutomator usage.")
-                    self._on_spin('stop')
                     return
                 # For Play Store, we need to save multiple coordinates
                 if self.pi_option.Selection == 3:
@@ -992,7 +1034,6 @@ class PifManager(wx.Dialog):
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
-                        self._on_spin('stop')
                         return -1
                     self.coords.update_nested_entry(device.id, self.pi_app, "user", coord_user)
 
@@ -1003,7 +1044,6 @@ class PifManager(wx.Dialog):
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
-                        self._on_spin('stop')
                         return -1
                     self.coords.update_nested_entry(device.id, self.pi_app, "settings", coord_settings)
 
@@ -1014,7 +1054,6 @@ class PifManager(wx.Dialog):
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
-                        self._on_spin('stop')
                         return -1
                     self.coords.update_nested_entry(device.id, self.pi_app, "general", coord_general)
                     # page scroll
@@ -1024,7 +1063,6 @@ class PifManager(wx.Dialog):
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
-                        self._on_spin('stop')
                         return -1
                     self.coords.update_nested_entry(device.id, self.pi_app, "scroll", coord_scroll)
                     # Developer Options
@@ -1034,7 +1072,6 @@ class PifManager(wx.Dialog):
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
-                        self._on_spin('stop')
                         return -1
                     self.coords.update_nested_entry(device.id, self.pi_app, "developer_options", coord_developer_options)
                     # Check Integrity
@@ -1044,7 +1081,6 @@ class PifManager(wx.Dialog):
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
-                        self._on_spin('stop')
                         return -1
                     self.coords.update_nested_entry(device.id, self.pi_app, "test", coord_test)
                     coords = coord_test
@@ -1059,7 +1095,6 @@ class PifManager(wx.Dialog):
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
-                        self._on_spin('stop')
                         return -1
             elif self.pi_option.Selection == 3:
                 coord_user = self.coords.query_nested_entry(device.id, self.pi_app, "user")
@@ -1074,7 +1109,6 @@ class PifManager(wx.Dialog):
                     if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                         del self.coords.data[device.id][self.pi_app]
                         self.coords.save_data()
-                    self._on_spin('stop')
                     return -1
 
                 # user
@@ -1084,7 +1118,6 @@ class PifManager(wx.Dialog):
                     if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                         del self.coords.data[device.id][self.pi_app]
                         self.coords.save_data()
-                    self._on_spin('stop')
                     return -1
                 time.sleep(1)
                 # settings
@@ -1094,7 +1127,6 @@ class PifManager(wx.Dialog):
                     if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                         del self.coords.data[device.id][self.pi_app]
                         self.coords.save_data()
-                    self._on_spin('stop')
                     return -1
                 time.sleep(1)
                 # general
@@ -1104,7 +1136,6 @@ class PifManager(wx.Dialog):
                     if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                         del self.coords.data[device.id][self.pi_app]
                         self.coords.save_data()
-                    self._on_spin('stop')
                     return -1
                 time.sleep(1)
                 res = device.swipe(coord_scroll)
@@ -1113,7 +1144,6 @@ class PifManager(wx.Dialog):
                     if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                         del self.coords.data[device.id][self.pi_app]
                         self.coords.save_data()
-                    self._on_spin('stop')
                     return -1
                 time.sleep(1)
                 # developer_options
@@ -1123,7 +1153,6 @@ class PifManager(wx.Dialog):
                     if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                         del self.coords.data[device.id][self.pi_app]
                         self.coords.save_data()
-                    self._on_spin('stop')
                     return -1
                 time.sleep(1)
                 # test
@@ -1136,7 +1165,6 @@ class PifManager(wx.Dialog):
                 if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                     del self.coords.data[device.id][self.pi_app]
                     self.coords.save_data()
-                self._on_spin('stop')
                 return -1
 
             # Skip Getting results if UIAutomator is disabled.
@@ -1148,7 +1176,6 @@ class PifManager(wx.Dialog):
                 res = device.ui_action('/data/local/tmp/pi.xml', pi_xml)
                 if res == -1:
                     print(f"Error: during uiautomator {self.pi_app}.")
-                    self._on_spin('stop')
                     return -1
 
                 # extract result
@@ -1168,14 +1195,12 @@ class PifManager(wx.Dialog):
                             if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                                 del self.coords.data[device.id][self.pi_app]['dismiss']
                                 self.coords.save_data()
-                            self._on_spin('stop')
                         self.coords.update_nested_entry(device.id, self.pi_app, "dismiss", coord_dismiss)
                 if self.pi_option.Selection == 4:
                     res = process_pi_xml_yasnac(pi_xml)
 
                 if res == -1:
                     print(f"Error: during processing the response from {self.pi_app}.")
-                    self._on_spin('stop')
                     return -1
 
                 self.console_stc.SetValue('')
@@ -1187,7 +1212,8 @@ class PifManager(wx.Dialog):
 
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
 
     # -----------------------------------------------
@@ -1217,24 +1243,27 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def ProcessBuildProp(self, e):
         # sourcery skip: dict-assign-update-to-union
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.prop")
-        wildcard = "Property files (*.prop)|*.prop|All files (*.*)|*.*"
-        dialog = wx.FileDialog(self, "Choose property files to open", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+        try:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.prop")
+            wildcard = "Property files (*.prop)|*.prop|All files (*.*)|*.*"
+            dialog = wx.FileDialog(self, "Choose property files to open", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
-        if dialog.ShowModal() == wx.ID_CANCEL:
-            print("User cancelled file selection.")
-            return
+            if dialog.ShowModal() == wx.ID_CANCEL:
+                print("User cancelled file selection.")
+                return
 
-        paths = dialog.GetPaths()
-        dialog.Destroy()
-        sorted_paths = sorted(paths, key=self.sort_prop)
+            paths = dialog.GetPaths()
+            dialog.Destroy()
+            sorted_paths = sorted(paths, key=self.sort_prop)
 
-        print(f"Selected files: {sorted_paths}")
+            print(f"Selected files: {sorted_paths}")
 
-        self._on_spin('start')
-        self.process_props(sorted_paths)
-        self._on_spin('stop')
-        # try:
+            self._on_spin('start')
+            self.process_props(sorted_paths)
+        except Exception:
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
 
     # -----------------------------------------------
@@ -1286,21 +1315,26 @@ class PifManager(wx.Dialog):
     #                  ProcessImg
     # -----------------------------------------------
     def ProcessImg(self, e):
-        file_dialog = wx.FileDialog(self, "Select a Device Image", wildcard="Device image files (*.img;*.zip)|*.img;*.zip")
-        if file_dialog.ShowModal() == wx.ID_OK:
-            file_path = file_dialog.GetPath()
-            self._on_spin('start')
-            wx.CallAfter(self.console_stc.SetValue, f"Processing {file_path} ...\nPlease be patient this could take some time ...")
-            props_dir = get_pif_from_image(file_path)
-            # prop_files = get files from the props_dir (single level) and store them in a list
-            if props_dir:
-                prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
-                self.process_props(prop_files)
-            else:
-                wx.CallAfter(self.console_stc.SetValue, "Image format not supported")
-                self.console_stc.Refresh()
-                self.console_stc.Update()
+        try:
+            file_dialog = wx.FileDialog(self, "Select a Device Image", wildcard="Device image files (*.img;*.zip)|*.img;*.zip")
+            if file_dialog.ShowModal() == wx.ID_OK:
+                file_path = file_dialog.GetPath()
+                self._on_spin('start')
+                wx.CallAfter(self.console_stc.SetValue, f"Processing {file_path} ...\nPlease be patient this could take some time ...")
+                props_dir = get_pif_from_image(file_path)
+                # prop_files = get files from the props_dir (single level) and store them in a list
+                if props_dir:
+                    prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
+                    self.process_props(prop_files)
+                else:
+                    wx.CallAfter(self.console_stc.SetValue, "Image format not supported")
+                    self.console_stc.Refresh()
+                    self.console_stc.Update()
+        except Exception:
+            traceback.print_exc()
+        finally:
             self._on_spin('stop')
+
 
     # -----------------------------------------------
     #                  ProcessBuildPropFolder
@@ -1360,7 +1394,8 @@ class PifManager(wx.Dialog):
         except Exception:
             print(f"Cannot process file: '{selected_folder}'.")
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  ConsoleStcChange
@@ -1533,9 +1568,9 @@ class PifManager(wx.Dialog):
             json_string = json.dumps(json_dict, indent=4, sort_keys=self.sort_keys)
             processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
             if self.force_first_api_checkbox.IsChecked():
-                donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api_value, sort_data=self.sort_keys, keep_all=self.keep_unknown)
+                donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=str(self.first_api_value), sort_data=self.sort_keys, keep_all=self.keep_unknown)
             else:
-                donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=None, sort_data=self.sort_keys, keep_all=self.keep_unknown)
+                donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=first_api, sort_data=self.sort_keys, keep_all=self.keep_unknown)
             if self.pif_format == 'prop':
                 self.active_pif_stc.SetValue(self.J2P(donor_json_string))
             else:
@@ -1552,9 +1587,10 @@ class PifManager(wx.Dialog):
 
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
-        if event:
-            event.Skip()
+        finally:
+            self._on_spin('stop')
+            if event:
+                event.Skip()
 
     # -----------------------------------------------
     #                  PasteUp
@@ -1619,6 +1655,19 @@ class PifManager(wx.Dialog):
         status = self.spoofProps_checkbox.GetValue()
         self.spoofProps = status
         self.config.pif['spoofProps'] = status
+
+
+    # -----------------------------------------------
+    #                  onApiValueChange
+    # -----------------------------------------------
+    def onApiValueChange(self, event):
+        try:
+            self.first_api_value = int(self.api_value_input.GetValue())
+            self.config.pif['first_api_value_when_forced'] = self.first_api_value
+            self.force_first_api_checkbox.SetToolTip(f"Forces First API value(s) to {self.first_api_value}")
+        except ValueError:
+            # Handle the case where the input is not a valid integer
+            pass
 
 
     # -----------------------------------------------
@@ -1919,9 +1968,10 @@ class PifManager(wx.Dialog):
 
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
-        if event:
-            event.Skip()
+        finally:
+            self._on_spin('stop')
+            if event:
+                event.Skip()
 
     # -----------------------------------------------
     #                  ReProcessJsonFile
@@ -1958,9 +2008,10 @@ class PifManager(wx.Dialog):
                         wx.YieldIfNeeded
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
-        if event:
-            event.Skip()
+        finally:
+            self._on_spin('stop')
+            if event:
+                event.Skip()
 
     # -----------------------------------------------
     #                  GetFPCode
@@ -2165,7 +2216,8 @@ class PifManager(wx.Dialog):
 
         except Exception:
             traceback.print_exc()
-        self._on_spin('stop')
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_spin

@@ -3678,7 +3678,6 @@ def bootloader_issue_message():
     print("USB 2.0 ports are reportedly more stable than USB 3.0 ports.\n")
 
 
-
 # ============================================================================
 #                 Function download_ksu_latest_release_asset
 # ============================================================================

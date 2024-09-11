@@ -3169,8 +3169,8 @@ Unless you know what you're doing, it is recommended that you take the default s
         return
 
     # Transfer back patched.img
-    print(f"Pulling {patched_file} from the phone to: {patched_img} ...")
     patched_img_file = os.path.join(tmp_dir_full, patched_img)
+    print(f"Pulling {patched_file} from the phone to: {patched_img_file} ...")
     res = device.pull_file(patched_file, f"\"{patched_img_file}\"")
     if res != 0:
         print("Aborting ...\n")
@@ -3178,7 +3178,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         return
 
     # get the checksum of the *_patched.img
-    print(f"Getting SHA1 of {patched_img_file} ...")
+    print(f"Getting SHA1 of {patched_img} ...")
     checksum = sha1(os.path.join(patched_img_file))
     print(f"SHA1 of {patched_img} file: {checksum}")
 
@@ -3246,7 +3246,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_sha1 = extract_sha1(patched_img_file, 40)
         if patched_sha1:
             print(f"SHA1 embedded in {patched_img_file} is: {patched_sha1}")
-            print(f"Comparing source {boot_file_name} SHA1 with SHA1 embedded in {patched_sha1} (they should match) ...")
+            print(f"Comparing source {boot_file_name} SHA1 with SHA1 embedded in {patched_img} (they should match) ...")
             if patched_sha1 != boot_sha1_long:
                 max_name_length = max(len(patched_img), len(boot_file_name))
                 # Left justify the filenames with spaces

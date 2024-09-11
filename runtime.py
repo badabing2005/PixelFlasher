@@ -1341,10 +1341,7 @@ def open_terminal(self, path, isFile=False):
             if sys.platform.startswith("win"):
                 subprocess.Popen(["start", "cmd.exe", "/k", "cd", "/d", dir_path], shell=True, env=get_env_variables())
             elif sys.platform.startswith("linux"):
-                if self.config.linux_shell:
-                    subprocess.Popen([self.config.linux_shell, "--working-directory", dir_path], env=get_env_variables())
-                else:
-                    subprocess.Popen(["gnome-terminal", "--working-directory", dir_path], env=get_env_variables())
+                subprocess.Popen(f"{get_linux_shell() or "gnome-terminal --"} '{os.environ.get("SHELL").replace("'", "'\\''")}'", shell=True, cwd=dir_path, env=get_env_variables())
             elif sys.platform.startswith("darwin"):
                 subprocess.Popen(["open", "-a", "Terminal", dir_path], env=get_env_variables())
     except Exception as e:
@@ -4100,7 +4097,7 @@ def run_tool(tool_details):
                 # Dynamic function invocation
                 res = globals()[shell_method](theCmd, directory=directory, detached=detached, creationflags=subprocess.CREATE_NEW_CONSOLE)
         elif sys.platform.startswith("linux") and config.linux_shell:
-            theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+            theCmd = f"{get_linux_shell()} /usr/bin/env bash -c {theCmd}"
             debug(theCmd)
             if shell_method == 'run_shell4':
                 subprocess.Popen(theCmd, start_new_session=detached)

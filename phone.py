@@ -3689,7 +3689,7 @@ This is a special Magisk build\n\n
                     debug(theCmd)
                     subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, start_new_session=True, env=get_env_variables())
                 elif sys.platform.startswith("linux") and config.linux_shell:
-                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    theCmd = f"{get_linux_shell()} /usr/bin/env bash -c {theCmd}"
                     debug(theCmd)
                     subprocess.Popen(theCmd, start_new_session=True)
                 elif sys.platform.startswith("darwin"):
@@ -3731,7 +3731,7 @@ This is a special Magisk build\n\n
                     res = run_shell3(theCmd, directory=scrcpy_folder, detached=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
                 elif sys.platform.startswith("linux") and config.linux_shell:
                     # subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
-                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    theCmd = f"{get_linux_shell()} /usr/bin/env bash -c {theCmd}"
                     debug(theCmd)
                     res = run_shell3(theCmd, detached=True)
                 elif sys.platform.startswith("darwin"):

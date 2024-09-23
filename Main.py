@@ -1223,7 +1223,7 @@ class PixelFlasher(wx.Frame):
         try:
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 print(f"Device Info:\n------------\n{device.device_info}")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device info")
@@ -1420,7 +1420,7 @@ class PixelFlasher(wx.Frame):
         self.push_file_to_download_menu.SetBitmap(images.push_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_push_to_tmp, self.push_file_to_tmp_menu)
         self.Bind(wx.EVT_MENU, self._on_push_to_download, self.push_file_to_download_menu)
-        self.push_menu = device_menu.Append(wx.ID_ANY, 'Push file to', push_file)
+        self.push_menu = device_menu.Append(wx.ID_ANY, 'Push file(s) to', push_file)
         self.push_menu.SetBitmap(images.push_cart_24.GetBitmap())
         # separator
         device_menu.AppendSeparator()
@@ -1890,7 +1890,7 @@ class PixelFlasher(wx.Frame):
     #                  _on_install_apk
     # -----------------------------------------------
     def _on_install_apk(self, event):
-        device = get_phone()
+        device = get_phone(True)
         if not device:
             print("ERROR: Please select a device before attempting APK Installation")
             self.toast("APK Install", "ERROR: Please select a device before attempting APK Installation.")
@@ -2144,7 +2144,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     return     # the user changed their mind
                 pathname = fileDialog.GetPath()
-                device = get_phone()
+                device = get_phone(True)
                 device.ui_action(f"/data/local/tmp/screen_dump_{timestr}.xml", pathname)
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered in function _on_xml_view")
@@ -2159,7 +2159,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         try:
             self._on_spin('start')
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel OTA Update")
-            device = get_phone()
+            device = get_phone(True)
             device.reset_ota_update()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while cancelling OTA Update")
@@ -2174,7 +2174,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         try:
             self._on_spin('start')
             debug(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Check OTA Certs")
-            device = get_phone()
+            device = get_phone(True)
             res = device.exec_cmd("unzip -l /system/etc/security/otacerts.zip")
             print(res)
         except Exception as e:
@@ -2193,7 +2193,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         # print("Info: ℹ️ (U+2139, Information Source)")
         # print("Fatal: ☠️ (U+2620, Skull and Crossbones)")
 
-        # device = get_phone()
+        # device = get_phone(True)
         # device.dump_props()
 
     # -----------------------------------------------
@@ -2204,7 +2204,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Device analysis for PIF")
         print("==============================================================================")
         timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-        device = get_phone()
+        device = get_phone(True)
 
         if not device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No device selected")
@@ -2643,50 +2643,55 @@ Before posting publicly please carefully inspect the contents.
         if device.mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
             message += f"    Device Build:                    {device.build}\n"
+            ro_product_first_api_level = device.get_prop('ro.product.first_api_level')
             message += f"    Device API Level:                {device.api_level}\n"
             with contextlib.suppress(Exception):
                 android_versions = get_android_versions()
-                android_version = android_versions[device.api_level]
-                message += f"    Android Version:                 {android_version['Version']}\n"
-                message += f"    Android Name:                    {android_version['Name']}\n"
-                message += f"    Android Codename:                {android_version['Codename']}\n"
-                message += f"    Android Release Date:            {android_version['Release date']}\n"
-                message += f"    Android Latest Update:           {android_version['Latest update']}\n"
-            message += f"    Device Architecture:             {device.architecture}\n"
-            message += f"    Device Kernel:                   {device.kernel}\n"
-            message += f"    Device Kernel Version:           {device.get_prop('ro.kernel.version')}\n"
-            message += f"    Device KMI:                      {device.kmi}\n"
-            message += f"    CONFIG_KALLSYMS:                 {device.config_kallsyms}\n"
-            message += f"    CONFIG_KALLSYMS_ALL:             {device.config_kallsyms_all}\n"
-            message += f"    Page Size:                       {device.get_page_size()}\n"
-            message += f"    oem_unlock_supported:            {device.get_prop('sys.oem_unlock_supported')}\n"
-            message += f"    sys_oem_unlock_allowed:          {device.get_prop('sys.oem_unlock_allowed')}\n"
-            message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
-            message += f"    ro.boot.vbmeta.device_state:     {device.get_prop('ro.boot.vbmeta.device_state')}\n"
-            # message += f"    vendor.boot.vbmeta.device_state: {device.get_prop('vendor.boot.vbmeta.device_state')}\n"
-            message += f"    ro.product.first_api_level:      {device.get_prop('ro.product.first_api_level')}\n"
-            # message += f"    ro.boot.warranty_bit:            {device.get_prop('ro.boot.warranty_bit')}\n"
-            message += f"    ro.boot.veritymode:              {device.get_prop('ro.boot.veritymode')}\n"
-            message += f"    ro.boot.verifiedbootstate:       {device.get_prop('ro.boot.verifiedbootstate')}\n"
-            # message += f"    vendor.boot.verifiedbootstate:   {device.get_prop('vendor.boot.verifiedbootstate')}\n"
-            # message += f"    ro.warranty_bit:                 {device.get_prop('ro.warranty_bit')}\n"
-            message += f"    ro.secure:                       {device.get_prop('ro.secure')}\n"
-            message += f"    ro.zygote:                       {device.get_prop('ro.zygote')}\n"
-            message += f"    ro.vendor.product.cpu.abilist:   {device.get_prop('ro.vendor.product.cpu.abilist')}\n"
-            message += f"    ro.vendor.product.cpu.abilist32: {device.get_prop('ro.vendor.product.cpu.abilist32')}\n"
+                launch_version = android_versions[ro_product_first_api_level]
+                message += f"    Launch Version:                  {launch_version['Name']}\n"
+                if device.api_level and device.api.level is not None:
+                    android_version = android_versions[device.api_level]
+                    message += f"    Android Version:                 {android_version['Version']}\n"
+                    message += f"    Android Name:                    {android_version['Name']}\n"
+                    message += f"    Android Codename:                {android_version['Codename']}\n"
+                    message += f"    Android Release Date:            {android_version['Release date']}\n"
+                    message += f"    Android Latest Update:           {android_version['Latest update']}\n"
             if device.rooted:
                 message += self.get_vbmeta(device)
-            m_app_version = device.magisk_app_version
-            message += f"    Magisk Manager Version:          {m_app_version}\n"
-            if m_app_version:
-                # message += f"    Magisk Path:                     {device.magisk_path}\n"
-                message += f"        Checked for Package:         {self.config.magisk}\n"
-            k_app_version = device.ksu_app_version
-            if k_app_version:
-                message += f"    KernelSU App Version:            {k_app_version}\n"
-            a_app_version = device.apatch_app_version
-            if a_app_version:
-                message += f"    APatch App Version:              {a_app_version}\n"
+            if device.true_mode != 'sideload':
+                message += f"    Device Architecture:             {device.architecture}\n"
+                message += f"    Device Kernel:                   {device.kernel}\n"
+                message += f"    Device Kernel Version:           {device.get_prop('ro.kernel.version')}\n"
+                message += f"    Device KMI:                      {device.kmi}\n"
+                message += f"    CONFIG_KALLSYMS:                 {device.config_kallsyms}\n"
+                message += f"    CONFIG_KALLSYMS_ALL:             {device.config_kallsyms_all}\n"
+                message += f"    Page Size:                       {device.get_page_size()}\n"
+                message += f"    oem_unlock_supported:            {device.get_prop('sys.oem_unlock_supported')}\n"
+                message += f"    sys_oem_unlock_allowed:          {device.get_prop('sys.oem_unlock_allowed')}\n"
+                message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
+                message += f"    ro.boot.vbmeta.device_state:     {device.get_prop('ro.boot.vbmeta.device_state')}\n"
+                # message += f"    vendor.boot.vbmeta.device_state: {device.get_prop('vendor.boot.vbmeta.device_state')}\n"
+                message += f"    ro.product.first_api_level:      {ro_product_first_api_level}\n"
+                # message += f"    ro.boot.warranty_bit:            {device.get_prop('ro.boot.warranty_bit')}\n"
+                message += f"    ro.boot.veritymode:              {device.get_prop('ro.boot.veritymode')}\n"
+                message += f"    ro.boot.verifiedbootstate:       {device.get_prop('ro.boot.verifiedbootstate')}\n"
+                # message += f"    vendor.boot.verifiedbootstate:   {device.get_prop('vendor.boot.verifiedbootstate')}\n"
+                # message += f"    ro.warranty_bit:                 {device.get_prop('ro.warranty_bit')}\n"
+                message += f"    ro.secure:                       {device.get_prop('ro.secure')}\n"
+                message += f"    ro.zygote:                       {device.get_prop('ro.zygote')}\n"
+                message += f"    ro.vendor.product.cpu.abilist:   {device.get_prop('ro.vendor.product.cpu.abilist')}\n"
+                message += f"    ro.vendor.product.cpu.abilist32: {device.get_prop('ro.vendor.product.cpu.abilist32')}\n"
+                m_app_version = device.magisk_app_version
+                message += f"    Magisk Manager Version:          {m_app_version}\n"
+                if m_app_version:
+                    # message += f"    Magisk Path:                     {device.magisk_path}\n"
+                    message += f"        Checked for Package:         {self.config.magisk}\n"
+                k_app_version = device.ksu_app_version
+                if k_app_version:
+                    message += f"    KernelSU App Version:            {k_app_version}\n"
+                a_app_version = device.apatch_app_version
+                if a_app_version:
+                    message += f"    APatch App Version:              {a_app_version}\n"
         elif device.mode == 'f.b':
             message += f"    Device Unlocked:                 {device.unlocked}\n"
             if not device.unlocked:
@@ -3667,7 +3672,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     res = device.reboot_recovery()
                     if res != 0:
@@ -3689,7 +3694,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     res = device.reboot_download()
                     if res == -1:
@@ -3711,7 +3716,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     res = device.reboot_sideload()
                     if res == -1:
@@ -3733,7 +3738,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     res = device.reboot_safemode()
                     if res == -1:
@@ -3750,24 +3755,32 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def select_file_and_push(self, destination):
         try:
-            with wx.FileDialog(self, "Select file to push", '', '', wildcard="All files (*.*)|*.*", style=wx.FD_OPEN) as fileDialog:
+            with wx.FileDialog(self, "Select files to push", '', '', wildcard="All files (*.*)|*.*", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled file push.")
                     return
-                selected_file = fileDialog.GetPath()
+                selected_files = fileDialog.GetPaths()
 
             self._on_spin('start')
-            device = get_phone()
+            device = get_phone(True)
+            got_errors = False
+            errored_files = []
             if device:
-                # push the file
-                res = device.push_file(selected_file, destination, False)
-                if res != 0:
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
-                    print("Aborting ...\n")
-                    self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
-                    return -1
+                for selected_file in selected_files:
+                    # push the file
+                    res = device.push_file(selected_file, destination, False)
+                    if res != 0:
+                        print(f"Return Code: {res.returncode}.")
+                        print(f"Stdout: {res.stdout}")
+                        print(f"Stderr: {res.stderr}")
+                        print(f"Aborting push for file: {selected_file}\n")
+                        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
+                        got_errors = True
+                        errored_files.append(selected_file)
+                        continue
+                if got_errors:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing the following files.")
+                    print(f"Error pushing files: {errored_files}")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function select_file_and_push")
             traceback.print_exc()
@@ -3796,7 +3809,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     res = device.reboot_system()
                     if res == -1:
@@ -3818,7 +3831,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     res = device.reboot_bootloader(fastboot_included = True)
                     if res == -1:
@@ -3841,7 +3854,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     res = device.reboot_fastboot()
                     if res == -1:
@@ -3919,7 +3932,7 @@ Before posting publicly please carefully inspect the contents.
 
         try:
             self._on_spin('start')
-            device = get_phone()
+            device = get_phone(True)
             if device:
                 res = device.lock_bootloader()
                 if res == -1:
@@ -3976,7 +3989,7 @@ Before posting publicly please carefully inspect the contents.
 
         try:
             self._on_spin('start')
-            device = get_phone()
+            device = get_phone(True)
             if device:
                 res = device.unlock_bootloader()
                 if res == -1:
@@ -4051,7 +4064,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 device.open_shell()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb shell")
@@ -4069,7 +4082,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if self.config.device:
                 self._on_spin('start')
-                device = get_phone()
+                device = get_phone(True)
                 if device:
                     device.scrcpy()
         except Exception as e:
@@ -4148,7 +4161,7 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_backup_manager
     # -----------------------------------------------
     def _on_backup_manager(self, event):
-        # device = get_phone()
+        # device = get_phone(True)
         # device.get_magisk_backups()
         self._on_spin('start')
         try:
@@ -4172,7 +4185,7 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def _on_data_adb_backup(self, event):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if device:
                 timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
                 with wx.FileDialog(self, "Save /data/adb backup file", '', f"{device.hardware}_data_adb_{timestr}.tgz", wildcard="Data adb backup (*.tgz)|*.tgz",
@@ -4193,7 +4206,7 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def _on_data_adb_restore(self, event):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if device:
                 with wx.FileDialog(self, "Select /data/adb backup file", '', '', wildcard="All files (*.tgz)|*.tgz", style=wx.FD_OPEN) as fileDialog:
                     if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -4239,7 +4252,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             if not self.config.device:
                 return
-            device = get_phone()
+            device = get_phone(True)
             self._on_spin('start')
             if device.active_slot not in ['a', 'b']:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown slot, is your device dual slot?")

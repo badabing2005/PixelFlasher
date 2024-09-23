@@ -1350,7 +1350,7 @@ def drive_magisk(self, boot_file_name):
     # print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Driving Magisk ")
     # print("==============================================================================")
 
-    # device = get_phone()
+    # device = get_phone(True)
     # config_path = get_config_path()
 
     # if not device:
@@ -1697,7 +1697,7 @@ def manual_magisk(self, boot_file_name):
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}              Manual Patching ")
         print("==============================================================================")
 
-        device = get_phone()
+        device = get_phone(True)
 
         if not device.is_display_unlocked():
             title = "Display is Locked!"
@@ -2457,7 +2457,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     puml("partition \"**Create Patch**\" {\n")
 
     # get device
-    device = get_phone()
+    device = get_phone(True)
     if not device:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
         print("Aborting ...\n")
@@ -3396,7 +3396,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         puml("#red:Valid Android Platform Tools is not selected;\n}\n")
         return -1
 
-    device = get_phone()
+    device = get_phone(True)
     if not device:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
         puml("#red:Valid device is not selected;\n}\n")
@@ -3511,12 +3511,20 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     device_id = device.id
     mode = device.get_device_state()
     if mode in ['adb', 'recovery', 'sideload'] and get_adb():
-        res = device.reboot_bootloader()
-        if res == 0:
-            mode = "fastboot"
+        self.refresh_device(device_id)
+        device = get_phone()
+        if device:
+            res = device.reboot_bootloader()
+            if res == 0:
+                mode = "fastboot"
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                bootloader_issue_message()
         else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-            bootloader_issue_message()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device, aborting ...\n")
+            puml(f"note right\nERROR: Unable to detect the device, aborting...\nend note\n")
+            puml("}\n")
+            return -1
 
     done_flashing = False
     if mode == 'fastboot' and get_fastboot():
@@ -3622,7 +3630,7 @@ def flash_phone(self):
         return -1
 
     # check for device
-    device = get_phone()
+    device = get_phone(True)
     if not device:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid adb device.")
         puml("#red:Valid device is not selected;\n}\n")
@@ -4024,7 +4032,7 @@ def flash_phone(self):
             data_linux += f"ACTIVE_SLOT=\"{device.active_slot}\"\n"
             data_linux += f"INACTIVE_SLOT=\"{device.inactive_slot}\"\n"
             data_linux += "echo Current active Slot is:   [$ACTIVE_SLOT]\n"
-            data_linux += "echo Current inactive Slot is: [$ACTIVE_SLOT]\n"
+            data_linux += "echo Current inactive Slot is: [$INACTIVE_SLOT]\n"
             data_linux += f"\"{get_adb()}\" -s {device_id} sideload \"{self.config.firmware_path}\"\n"
             data_linux += "if [ $? -ne 0 ]; then\n"
             data_linux += "    echo Error: The sideload command encountered an error, aborting ...\n"

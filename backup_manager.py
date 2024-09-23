@@ -64,7 +64,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.SetTitle("Magisk Backup Manager")
         self.backupCount = 0
         self.all_cb_clicked = False
-        self.device = get_phone()
+        self.device = get_phone(True)
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return -1

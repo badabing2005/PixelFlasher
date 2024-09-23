@@ -65,7 +65,7 @@ class PartitionManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.all_cb_clicked = False
         self.downloadFolder = None
         self.abort = False
-        self.device = get_phone()
+        self.device = get_phone(True)
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
             return -1

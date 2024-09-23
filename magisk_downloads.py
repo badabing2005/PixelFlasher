@@ -106,7 +106,7 @@ class MagiskDownloads(wx.Dialog):
         self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 17), style = wx.LC_REPORT)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
-        device = get_phone()
+        device = get_phone(True)
         apks = device.magisk_apks
 
         max_url_column_width = 600
@@ -336,7 +336,7 @@ class MagiskDownloads(wx.Dialog):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
         app = self.channel.replace(' ', '_')
         filename = f"{app}_{self.version}_{self.versionCode}.apk"
-        device = get_phone()
+        device = get_phone(True)
         if 'Namelesswonder' in self.url and not device.has_init_boot:
             print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
             print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.")

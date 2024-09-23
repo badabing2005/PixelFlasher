@@ -654,12 +654,15 @@ def set_phone_id(value):
 # ============================================================================
 #                               Function get_phone
 # ============================================================================
-def get_phone():
+def get_phone(make_sure_connected=False):
     devices = get_phones()
     phone_id = get_phone_id()
     if phone_id and devices:
         for phone in devices:
             if phone.id == phone_id:
+                if make_sure_connected and not phone.is_connected(phone_id):
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {phone_id} is not connected.")
+                    return None
                 return phone
 
 

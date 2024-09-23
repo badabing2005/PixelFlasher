@@ -1,24 +1,12 @@
 {
-    "sol": {
-        "device": "Google Pixel Watch 3 45mm (LTE)",
+    "seluna": {
+        "device": "Pixel Watch 3 (LTE)",
         "android_version_end_date": "October 2027",
         "security_update_end_date": "October 2029",
         "first_api_level": "33"
     },
-    "luna": {
-        "device": "Google Pixel Watch 3 45mm (Bluetooth/Wi-Fi)",
-        "android_version_end_date": "October 2027",
-        "security_update_end_date": "October 2029",
-        "first_api_level": "33"
-    },
-    "helios": {
-        "device": "Google Pixel Watch 3 41mm (LTE)",
-        "android_version_end_date": "October 2027",
-        "security_update_end_date": "October 2029",
-        "first_api_level": "33"
-    },
-    "selene": {
-        "device": "Google Pixel Watch 3 41mm (Bluetooth/Wi-Fi)",
+    "solios": {
+        "device": "Pixel Watch 3 (Bluetooth/Wi-Fi)",
         "android_version_end_date": "October 2027",
         "security_update_end_date": "October 2029",
         "first_api_level": "33"

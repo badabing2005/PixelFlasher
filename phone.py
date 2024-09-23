@@ -357,18 +357,20 @@ class Device():
 
             if device_info:
                 for line in device_info.split('\n'):
-                    if not line or ':' not in line:
+                    try:
+                        if not line or ':' not in line:
+                            continue
+
+                        line = line.strip()
+                        if mode == 'f.b':
+                            key, value = line.rsplit(':', 1)
+                            key = key.replace('(bootloader) ', 'bootloader_')
+                        else:
+                            key, value = line.rsplit(': ', 1)
+                            key = key.strip('[]')
+                            value = value.strip('[]')
+                    except Exception as e:
                         continue
-
-                    line = line.strip()
-                    if mode == 'f.b':
-                        key, value = line.split(':', 1)
-                        key = key.replace('(bootloader) ', 'bootloader_')
-                    else:
-                        key, value = line.split(': ', 1)
-                        key = key.strip('[]')
-                        value = value.strip('[]')
-
                     device_props.upsert(key, value)
                 self.props = device_props
 
@@ -819,13 +821,27 @@ class Device():
             return -1
 
         try:
-            res = self.push_update_engine_client()
+            res = self.push_update_engine_client(local_filename="update_engine_client_r72")
             if res != 0:
                 return -1
 
             print("Cancelling ongoing OTA update (if one is in progress) ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --cancel\'\""
             res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"{res.stdout} {res.stderr}")
+                if (res.returncode == 1 or "CANNOT LINK EXECUTABLE" in res.stderr):
+                    print("Trying again with an older binary to Cancel ongoing OTA update (if one is in progress) ...")
+                    res = self.push_update_engine_client(local_filename="update_engine_client_r28")
+                    if res != 0:
+                        return -1
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --cancel\'\""
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"{res.stdout} {res.stderr}")
+                    if not (res.returncode == 0 or res.returncode == 248):
+                        return -1
+
             print("Resetting an already applied update (if one exists) ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/local/tmp/update_engine_client --reset_status\'\""
             res = run_shell2(theCmd)
@@ -1564,7 +1580,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method su_cp_on_device
     # ----------------------------------------------------------------------------
-    def su_cp_on_device(self, source: str, dest) -> int:
+    def su_cp_on_device(self, source: str, dest, quiet = False) -> int:
         """Method copies file as su from device to device.
 
         Args:
@@ -1588,10 +1604,11 @@ add_hosts_module
                 debug("Return Code: 0")
                 return 0
             else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}")
-                print(f"Stderr: {res.stderr}")
+                if not quiet:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
+                    print(f"Return Code: {res.returncode}.")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
                 return -1
         except Exception as e:
             traceback.print_exc()
@@ -1816,7 +1833,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method pull_file
     # ----------------------------------------------------------------------------
-    def pull_file(self, remote_file: str, local_file: str, with_su = False) -> int:
+    def pull_file(self, remote_file: str, local_file: str, with_su = False, quiet = False) -> int:
         """Method pulls a file from the device.
 
         Args:
@@ -1843,9 +1860,10 @@ add_hosts_module
                     if res != 0:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {temp_remote_file}.")
                         return -1
-                    res = self.su_cp_on_device(remote_file, temp_remote_file)
+                    res = self.su_cp_on_device(source=remote_file, dest=temp_remote_file, quiet=quiet)
                     if res != 0:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Perhaps the file does not exist.")
+                        if not quiet:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Perhaps the file does not exist.")
                         return -1
                     else:
                         remote_file = temp_remote_file
@@ -1984,11 +2002,11 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method push_update_engine_client
     # ----------------------------------------------------------------------------
-    def push_update_engine_client(self, file_path = "/data/local/tmp/update_engine_client") -> int:
+    def push_update_engine_client(self, local_filename = 'update_engine_client_r72', file_path = "/data/local/tmp/update_engine_client") -> int:
         try:
             # Transfer extraction script to the phone
             if self.architecture in ['armeabi-v7a', 'arm64-v8a']:
-                path_to_update_engine_client = os.path.join(get_bundle_dir(),'bin', 'update_engine_client')
+                path_to_update_engine_client = os.path.join(get_bundle_dir(),'bin', local_filename)
                 res = self.push_file(f"{path_to_update_engine_client}", f"{file_path}")
                 if res != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
@@ -2400,7 +2418,7 @@ add_hosts_module
                 config = get_config()
                 if self.mode == 'adb' and self.rooted:
                     if sys.platform == "win32":
-                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf;done\'\""
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do if test -d \"$FILE\"; then echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf; fi; done\'\""
                         res = run_shell(theCmd, encoding='utf-8')
                         if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                             modules = []
@@ -3190,6 +3208,43 @@ This is a special Magisk build\n\n
             traceback.print_exc()
             puml(f"note right:ERROR: Exception during get_device_state for device;\n")
             return 'ERROR'
+
+    # ----------------------------------------------------------------------------
+    #                               Method is_device_connected
+    # ----------------------------------------------------------------------------
+    def is_connected(self, device_id):
+        try:
+            if not device_id:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device ID is not provided!")
+                puml("#red:ERROR: Device ID is not provided;\n", True)
+                return False
+
+            res = self.get_device_state(device_id)
+            if res == 'ERROR':
+                print(f"Device: {device_id} is not connected.")
+                puml(f":Device: {device_id} is not connected;\n", True)
+                return False
+            elif res == 'fastboot':
+                print(f"Device: {device_id} is in fastboot mode.")
+                puml(f":Device: {device_id} is in fastboot mode;\n", True)
+                self.mode = 'f.b'
+                return True
+            elif res == 'adb':
+                print(f"Device: {device_id} is in adb mode.")
+                puml(f":Device: {device_id} is in adb mode;\n", True)
+                self.mode = 'adb'
+                return True
+            else:
+                print(f"Device: {device_id} is in {res} mode.")
+                puml(f":Device: {device_id} is in {res} mode;\n", True)
+                self.mode = 'adb'
+                self.true_mode = res
+                return True
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during is_device_connected for device: {device_id}")
+            traceback.print_exc()
+            puml(f"note right:ERROR: Exception during is_device_connected for device: {device_id};\n")
+            return False
 
     # ----------------------------------------------------------------------------
     #                               Method adb_wait_for
@@ -4077,9 +4132,11 @@ def update_phones(device_id):
                 break
         if get_adb():
             theCmd = f"\"{get_adb()}\" -s {device_id} get-state"
+            debug(theCmd)
             res = run_shell(theCmd, timeout=60)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 device_mode = res.stdout.strip('\n')
+                debug(f"device_mode: {device_mode}")
                 if device_mode == "device":
                     device = Device(device_id, 'adb')
                 else:
@@ -4088,8 +4145,10 @@ def update_phones(device_id):
                 device_details = device.get_device_details()
         if get_fastboot():
             theCmd = f"\"{get_fastboot()}\" -s {device_id} devices"
+            debug(theCmd)
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and 'fastboot' in res.stdout:
+                debug("device_mode: f.b")
                 device = Device(device_id, 'f.b')
                 device.init('f.b')
                 device_details = device.get_device_details()
@@ -4098,9 +4157,11 @@ def update_phones(device_id):
             if device:
                 phones[index_to_replace] = device
                 devices[index_to_replace] = device_details
+                debug(f"Device found, updating device entry: {device_id}")
                 set_phone_id(device.id)
             else:
                 with contextlib.suppress(Exception):
+                    debug(f"Device not found, removing device details for entry: {device_id}")
                     del phones[index_to_replace]
                     del devices[index_to_replace]
                     set_phone_id(None)

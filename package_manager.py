@@ -179,11 +179,15 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.SetTitle("Manage Packages on the Device")
         self.package_count = 0
         self.all_cb_clicked = False
-        self.device = get_phone()
+        self.device = get_phone(True)
         self.download_folder = None
         self.abort = False
         self.show_system_apps = True
         self.show_user_apps = True
+
+        if not self.device:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            return -1
 
         res = self.device.get_detailed_packages()
         if res == 0:
@@ -193,10 +197,6 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         else:
             self.packages = {}
             self.package_count = 0
-
-        if not self.device:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-            return -1
 
         splitter = wx.SplitterWindow(self, -1)
         splitter.SetMinimumPaneSize(400)

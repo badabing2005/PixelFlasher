@@ -539,7 +539,7 @@ class PifManager(wx.Dialog):
         else:
             self.first_api = None
 
-        device = get_phone()
+        device = get_phone(True)
         if not device:
             self.console_stc.SetText("No Device is selected.\nPif Manager features are set to limited mode.")
             return
@@ -623,7 +623,7 @@ class PifManager(wx.Dialog):
     #                  check_pif_json
     # -----------------------------------------------
     def check_pif_json(self):
-        device = get_phone()
+        device = get_phone(True)
         if not device.rooted:
             return
         # check for presence of pif.json
@@ -751,7 +751,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def LoadReload(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             self._on_spin('start')
@@ -760,9 +760,9 @@ class PifManager(wx.Dialog):
             pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
             if self.reload_pif_button.Enabled:
                 # pull the file
-                res = device.pull_file(self.pif_path, pif_prop, True)
+                res = device.pull_file(remote_file=self.pif_path, local_file=pif_prop, with_su=True, quiet=True)
                 if res != 0:
-                    print("Aborting ...\n")
+                    print(f"File: {self.pif_path} not found.")
                     self.active_pif_stc.SetValue("")
                     # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
                     self._on_spin('stop')
@@ -817,7 +817,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def create_update_pif(self, just_push=False):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
 
@@ -998,7 +998,9 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def PlayIntegrityCheck(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Play Integrity API Checker.")
@@ -1816,7 +1818,7 @@ class PifManager(wx.Dialog):
     def edit_ts_target(self, event):
         try:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Tricky Store target.")
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             self._on_spin('start')
@@ -1825,7 +1827,7 @@ class PifManager(wx.Dialog):
             # pull the file
             res = device.pull_file("/data/adb/tricky_store/target.txt", ts_target_file, True)
             if res != 0:
-                print("Aborting ...\n")
+                debug("file: /data/adb/tricky_store/target.txt not found,\n")
                 return
             # get the contents of target.txt
             encoding = detect_encoding(ts_target_file)

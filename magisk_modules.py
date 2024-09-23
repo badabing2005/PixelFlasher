@@ -281,7 +281,7 @@ class MagiskModules(wx.Dialog):
     #              Function PopulateList
     # -----------------------------------------------
     def PopulateList(self, refresh=False):
-        device = get_phone()
+        device = get_phone(True)
         if not device.rooted:
             return
         modules = device.get_magisk_detailed_modules(refresh)
@@ -446,7 +446,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onEnableZygisk(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             print("Enable Zygisk")
@@ -463,7 +463,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onDisableZygisk(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             print("Disable Zygisk")
@@ -480,7 +480,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onEnableDenylist(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             print("Enable Denylist")
@@ -503,7 +503,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onDisableDenylist(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             print("Disable Denylist")
@@ -520,7 +520,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onSystemlessHosts(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             print("Add Systemless Hosts")
@@ -538,7 +538,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onInstallPif(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             buttons_text = ["osm0sis PlayIntegrityFork", "chiteroman PlayIntegrityFix", "TrickyStore", "Cancel"]
@@ -587,7 +587,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onInstallZygiskNext(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             module_update_url = ZYGISK_NEXT_UPDATE_URL
@@ -613,7 +613,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onUninstallModule(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             id = self.list.GetItem(self.currentItem, 0).Text
@@ -645,7 +645,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onUpdateModule(self, e):
         try:
-            device = get_phone()
+            device = get_phone(True)
             if not device.rooted:
                 return
             id = self.list.GetItem(self.currentItem, 0).Text
@@ -668,7 +668,7 @@ class MagiskModules(wx.Dialog):
     #                  onInstallModule
     # -----------------------------------------------
     def onInstallModule(self, e):
-        device = get_phone()
+        device = get_phone(True)
         if not device.rooted:
             return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Install Module.")
@@ -718,7 +718,7 @@ class MagiskModules(wx.Dialog):
     #                  onOk
     # -----------------------------------------------
     def onOk(self, e):
-        device = get_phone()
+        device = get_phone(True)
         if not device.rooted:
             self.EndModal(wx.ID_OK)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")

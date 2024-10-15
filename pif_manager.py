@@ -301,7 +301,6 @@ class PifManager(wx.Dialog):
         # Get Beta Pif button
         self.beta_pif_button = wx.Button(self, wx.ID_ANY, u"Get Pixel Beta Pif", wx.DefaultPosition, wx.DefaultSize, 0)
         self.beta_pif_button.SetToolTip(u"Get the latest Pixel beta pif.")
-        self.beta_pif_button.Enable(False)
 
         # Make the buttons the same size
         button_width = self.pi_option.GetSize()[0] + 10
@@ -982,7 +981,9 @@ class PifManager(wx.Dialog):
             wx.CallAfter(self.console_stc.SetValue, f"Getting Pixel beta print ...\nPlease be patient this could take some time ...")
             wx.Yield()
             device = get_phone()
-            if device:
+            if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):
+                device_model = "all"
+            elif device:
                 device_model = device.hardware
             else:
                 device_model = "Random"

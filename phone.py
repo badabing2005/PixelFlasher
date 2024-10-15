@@ -3383,7 +3383,9 @@ This is a special Magisk build\n\n
                 if self.mode == 'adb' and get_adb():
                     res = self.install_apk(app)
                 else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device could not reboot to adb mode.\n Aborting install ...")
                     print("Please perform the install again when the device is in adb mode.")
+                    return -1
                 return res
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in install_apk")
@@ -4225,8 +4227,8 @@ def get_connected_devices():
             debug(theCmd)
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
+                debug(f"fastboot devices:\n{res.stdout}")
                 for device in res.stdout.split('\n'):
-                    debug(f"fastboot devices:\n{res.stdout}")
                     if 'no permissions' in device:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
                         puml("#red:No permissions to access fastboot device;\n", True)

@@ -2192,6 +2192,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         # print("Warning: ⚠️ (U+26A0, Warning)")
         # print("Info: ℹ️ (U+2139, Information Source)")
         # print("Fatal: ☠️ (U+2620, Skull and Crossbones)")
+        # print("Checkmark: ✅")
 
         # device = get_phone(True)
         # device.dump_props()

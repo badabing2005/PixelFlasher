@@ -1756,7 +1756,7 @@ or hit the **Cancel** button to abort.
             print("Aborting ...")
             return -1
         # find the newly created file and return
-        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"ls -t {self.config.phone_path}/magisk_patched-* | head -1\""
+        theCmd = f"\"{get_adb()}\" -s {device.id} shell \"ls -t {self.config.phone_path}/magisk_patched* | head -1\""
         res = run_shell(theCmd)
         if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and res.stderr == '':
             return os.path.basename(res.stdout.strip())
@@ -3246,7 +3246,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_sha1 = extract_sha1(patched_img_file, 40)
         if patched_sha1:
             print(f"SHA1 embedded in {patched_img_file} is: {patched_sha1}")
-            print(f"Comparing source {boot_file_name} SHA1 with SHA1 embedded in {patched_sha1} (they should match) ...")
+            print(f"Comparing source {boot_file_name} SHA1 with SHA1 embedded in {patched_img} (they should match) ...")
             if patched_sha1 != boot_sha1_long:
                 max_name_length = max(len(patched_img), len(boot_file_name))
                 # Left justify the filenames with spaces
@@ -3681,6 +3681,8 @@ def flash_phone(self):
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled patching.")
                     puml("#pink:User cancelled patching;\n}\n")
                     return -1
+                else:
+                    print("User accepted to proceed.")
 
     # confirm for wipe data
     wipe_flag = False

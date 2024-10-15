@@ -44,7 +44,6 @@ import json5
 import math
 import ntpath
 import os
-import platform
 import re
 import shutil
 import signal
@@ -60,17 +59,15 @@ import traceback
 import zipfile
 import psutil
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from os import path
 from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from cryptography import x509
-from cryptography.x509.oid import ExtensionOID
-# from cryptography.x509 import ExtensionNotFound
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
@@ -2288,6 +2285,220 @@ def format_memory_size(size_bytes):
 
 
 # ============================================================================
+#                 Function get_beta_pif
+# ============================================================================
+def get_beta_pif(device_model='random'):
+    try:
+        # URLs
+        gsi_url = "https://developer.android.com/topic/generic-system-image/releases"
+        secbull_url = "https://source.android.com/docs/security/bulletin/pixel"
+
+        # Fetch GSI HTML
+        response = request_with_fallback('GET', gsi_url)
+        if response == 'ERROR' or response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch GSI HTML")
+            return -1
+        gsi_html = response.text
+
+        # Parse GSI HTML
+        soup = BeautifulSoup(gsi_html, 'html.parser')
+
+        # Find the list item containing 'Beta'
+        beta_li = None
+        for li in soup.find_all('li'):
+            if 'Beta' in li.get_text():
+                beta_li = li
+                break
+        if beta_li:
+            beta_text = beta_li.get_text()
+            debug(f"Beta Text: {beta_text}")
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Beta list item not found")
+            return -1
+
+        # Find the anchor tag with the text 'corresponding Google Pixel builds'
+        release = soup.find('a', text=lambda x: x and 'corresponding Google Pixel builds' in x)
+        if release:
+            href = release['href']
+            release_version = href.split('/')[3]
+            debug(f"Release Version: {release_version}")
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Release version not found")
+            return -1
+
+        # Find the build ID inside <code> blocks
+        build_id_text = None
+        security_patch_level_text = None
+        for code in soup.find_all('code'):
+            code_text = code.get_text()
+            if 'Build:' in code_text:
+                build_id_text = code.get_text()
+                if 'Security patch level:' in code_text:
+                    security_patch_level_text = code_text
+                break
+        if build_id_text:
+            build_id = build_id_text.split('Build: ')[1].split()[0]
+            debug(f"Build ID: {build_id}")
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build ID not found")
+            return -1
+        if security_patch_level_text:
+            security_patch_level_date = security_patch_level_text.split('Security patch level: ')[1].split('\n')[0]
+            debug(f"Security Patch Level Date: {security_patch_level_date}")
+            date_text = security_patch_level_text.split('Date: ')[1].split('\n')[0]
+            beta_release_date = datetime.strptime(date_text, '%B %d, %Y').strftime('%Y-%m-%d')
+            debug(f"Beta Release Date: {beta_release_date}")
+            beta_expiry_date = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
+            debug(f"Beta Expiry Date: {beta_expiry_date.strftime('%Y-%m-%d')}")
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level date not found")
+            return -1
+
+        # Find the incremental value using a regular expression
+        incremental = None
+        match = re.search(rf'{build_id}-(\d+)-', gsi_html)
+        if match:
+            incremental = match.group(1)
+            debug(f"Incremental: {incremental}")
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incremental not found")
+            return -1
+
+        # Fetch Pixel GET HTML
+        pixel_get_url = "https://developer.android.com" + release['href']
+        response = request_with_fallback('GET', pixel_get_url)
+        if response == 'ERROR' or response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel GET HTML")
+            return
+        pixel_get_html = response.text
+
+        # Fetch Pixel Beta HTML
+        soup = BeautifulSoup(pixel_get_html, 'html.parser')
+        beta_link = soup.find('a', text=lambda x: x and 'Factory images for Google Pixel' in x)
+        pixel_beta_url = "https://developer.android.com" + beta_link['href']
+        response = request_with_fallback('GET', pixel_beta_url)
+        if response == 'ERROR' or response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel Beta HTML")
+            return -1
+        pixel_beta_html = response.text
+
+        # Parse Pixel Beta HTML
+        soup = BeautifulSoup(pixel_beta_html, 'html.parser')
+        pixel_data = []
+
+        # Iterate over each <tr> element
+        for tr in soup.find('table', id='images').find_all('tr'):
+            # Skip the header row
+            if tr.find('th'):
+                continue
+
+            model_td = tr.find('td')
+            button = tr.find('button')
+            code = tr.find('code')
+
+            if model_td and button and code:
+                model = model_td.get_text().strip()
+                release = button['data-category']
+                filename = button.get_text().strip()
+                ltr = code.get_text().strip()
+                product = filename.split('-')[0]
+
+                # Create the object and add it to the list
+                pixel_data.append({
+                    'model': model,
+                    'release': release,
+                    'filename': filename,
+                    'ltr': ltr,
+                    'product': product
+                })
+
+        model_list = [item['model'] for item in pixel_data]
+        product_list = [item['product'] for item in pixel_data]
+
+        # Fetch Security Bulletin HTML
+        response = request_with_fallback('GET', secbull_url)
+        if response == 'ERROR' or response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Security Bulletin HTML")
+            return -1
+        secbull_html = response.text
+
+        # Find the corresponding table row in the html
+        soup = BeautifulSoup(secbull_html, 'html.parser')
+        security_patch_row = soup.find(text=lambda x: x and security_patch_level_date in x)
+        if security_patch_row:
+            # Find the <tr> element containing the security patch level (the parent)
+            tr_element = security_patch_row.find_parent('tr')
+            if tr_element:
+                # Find all <td> elements within the <tr>
+                td_elements = tr_element.find_all('td')
+                if td_elements:
+                    # Get the last <td> element
+                    security_patch_level = td_elements[-1].get_text().strip()
+                    debug(f"Security Patch Level: {security_patch_level}")
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
+                    return -1
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
+                return -1
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
+            return -1
+
+        # Select random Pixel Beta device
+        def set_random_beta():
+            list_count = len(model_list)
+            list_rand = random.randint(0, list_count - 1)
+            model = model_list[list_rand]
+            product = product_list[list_rand]
+            device = product.replace('_beta', '')
+            return model, product, device
+
+        if device_model != '' and f"{device_model}_beta" in product_list:
+            product = f"{device_model}_beta"
+            model = model_list[product_list.index(product)]
+            device = device_model
+        elif device_model == 'all':
+            json_string = ""
+            for item in pixel_data:
+                model = item['model']
+                product = item['product']
+                device = product.replace('_beta', '')
+                pif_data = {
+                    "MANUFACTURER": "Google",
+                    "MODEL": model,
+                    "FINGERPRINT": f"google/{product}/{device}:{release_version}/{build_id}/{incremental}:user/release-keys",
+                    "PRODUCT": product,
+                    "DEVICE": device,
+                    "SECURITY_PATCH": security_patch_level,
+                    "DEVICE_INITIAL_SDK_INT": "32"
+                }
+                json_string += json.dumps(pif_data, indent=4) + "\n"
+            print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
+            return json_string
+        else:
+            model, product, device = set_random_beta()
+
+        # Dump values to pif.json
+        pif_data = {
+            "MANUFACTURER": "Google",
+            "MODEL": model,
+            "FINGERPRINT": f"google/{product}/{device}:{release_version}/{build_id}/{incremental}:user/release-keys",
+            "PRODUCT": product,
+            "DEVICE": device,
+            "SECURITY_PATCH": security_patch_level,
+            "DEVICE_INITIAL_SDK_INT": "32"
+        }
+
+        random_print_json = json.dumps(pif_data, indent=4)
+        print(f"Random Beta Profile/Fingerprint:\n{random_print_json}\n")
+        return random_print_json
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_beta_pif function")
+        traceback.print_exc()
+
+
+# ============================================================================
 #                               Function format_memory_size
 # ============================================================================
 def get_printable_memory():
@@ -3913,99 +4124,76 @@ def check_kb(filename):
 
         certs = [elem.text for elem in ET.parse(filename).getroot().iter() if elem.tag == 'Certificate']
 
-        from cryptography.x509.oid import ExtensionOID
-        import logging
-
-        def parse_cert(cert):
-            cert = "\n".join(line.strip() for line in cert.strip().split("\n"))
-            parsed = x509.load_pem_x509_certificate(cert.encode(), default_backend())
-            issuer = None
-            serial_number = None
-            sig_algo = None
-            expiry = None
-            key_usages = 'None'
-
-            try:
-                issuer = parsed.issuer.rfc4514_string()
-            except Exception as e:
-                logging.error(f"Issuer extraction failed: {e}")
-            try:
-                serial_number = f'{parsed.serial_number:x}'
-            except Exception as e:
-                logging.error(f"Serial number extraction failed: {e}")
-            try:
-                sig_algo = parsed.signature_algorithm_oid._name
-            except Exception as e:
-                logging.error(f"Signature algorithm extraction failed: {e}")
-            try:
-                expiry = parsed.not_valid_after_utc
-            except Exception as e:
-                logging.error(f"Expiry extraction failed: {e}")
-            try:
-                key_usage_ext = parsed.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE)
-                key_usage = key_usage_ext.value
-                allowed_usages = []
-                if key_usage.digital_signature:
-                    allowed_usages.append("Digital Signature")
-                if key_usage.content_commitment:
-                    allowed_usages.append("Content Commitment")
-                if key_usage.key_encipherment:
-                    allowed_usages.append("Key Encipherment")
-                if key_usage.data_encipherment:
-                    allowed_usages.append("Data Encipherment")
-                if key_usage.key_agreement:
-                    allowed_usages.append("Key Agreement")
-                    # Only check encipher_only and decipher_only if key_agreement is True
-                    if key_usage.encipher_only:
-                        allowed_usages.append("Encipher Only")
-                    if key_usage.decipher_only:
-                        allowed_usages.append("Decipher Only")
-                if key_usage.key_cert_sign:
-                    allowed_usages.append("Certificate Signing")
-                if key_usage.crl_sign:
-                    allowed_usages.append("CRL Signing")
-                if allowed_usages:
-                    key_usages = ", ".join(allowed_usages)
-            except Exception as e:
-                logging.error(f"Key usage extraction failed: {e}")
-
-            return serial_number, issuer, sig_algo, expiry, key_usages
-
         is_sw_signed = False
         i = 1
         is_revoked = False
         print(f"\nChecking keybox: {filename} ...")
-        cert_sn_text = "REDACTED"
-        cert_issuer_test = "REDACTED"
 
+        last_issuer = ""
+        cert_counter = 0
+        tab_text = ""
         for cert in certs:
-            cert_sn, cert_issuer, sig_algo, expiry, key_usages = parse_cert(cert)
+            cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed = parse_cert(cert)
+
+            # Format the issuer field
+            formatted_issuer, issuer_sn = format_dn(cert_issuer)
+
+            # Format the issued to field
+            formatted_issued_to, issued_to_sn = format_dn(cert_subject)
+
+            # indent the chain
+            if last_issuer == issued_to_sn or last_issuer == cert_subject:
+                tab_text += "    "
+                cert_counter_text = " "
+            else:
+                tab_text = ""
+                cert_counter += 1
+                cert_counter_text = f"{cert_counter}"
+
+            # handle no sn case
+            if issuer_sn == "":
+                last_issuer = cert_issuer
+                if cert_counter == 0:
+                    cert_counter = 1
+                cert_counter_text = f"{cert_counter}"
+            else:
+                last_issuer = issuer_sn
+
+            # redact if verbose is not set
             if get_verbose():
                 cert_sn_text = cert_sn
-                cert_issuer_test = cert_issuer
-            print(f'\nCertificate {i} SN:       {cert_sn_text}')
-            print(f'Certificate {i} Issuer:   {cert_issuer_test}')
-            print(f'Signature Algorithm:    {sig_algo}')
-            print(f'Key Usage:              {key_usages}')
+                formatted_issued_to_text = formatted_issued_to
+                formatted_issuer_text = formatted_issuer
+            else:
+                cert_sn_text = "REDACTED"
+                formatted_issued_to_text = "REDACTED"
+                formatted_issuer_text = "REDACTED"
+
+            print(f'\n{tab_text}Certificate {cert_counter_text} SN:       {cert_sn_text}')
+            print(f'{tab_text}Issued to:              {formatted_issued_to_text}')
+            print(f'{tab_text}Issuer:                 {formatted_issuer_text}')
+            print(f'{tab_text}Signature Algorithm:    {sig_algo}')
+            print(f'{tab_text}Key Usage:              {key_usages}')
             expired_text = ""
             if expiry < datetime.now(timezone.utc):
                 expired_text = " (EXPIRED)"
-            print(f"Certificate expires on: {expiry} {expired_text}")
+            print(f"{tab_text}Validity:               {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}")
             if "Software Attestation" in cert_issuer:
                 is_sw_signed = True
             if cert_sn in crl["entries"].keys():
-                print(f"*** Certificate {i} is REVOKED ***")
+                print(f"{tab_text}❌❌❌ Certificate {i} is REVOKED")
+                print(f"{tab_text}❌❌❌ Reason: {crl['entries'][cert_sn]['reason']} ***")
                 is_revoked = True
             i += 1
 
         if is_revoked:
-            print('\nKeybox contains revoked certificates!')
+            print('\n❌❌❌ Keybox contains revoked certificates!')
             result = False
         else:
-            print('\nKeybox is clean from revoked certificates')
+            print('\n✅ Keybox is clean from revoked certificates')
             result = True
         if is_sw_signed:
-            print('Keybox is software signed! This is not a hardware-backed keybox!')
+            print('⚠️ Keybox is software signed! This is not a hardware-backed keybox!')
             result =  False
         print('')
         return result
@@ -4013,6 +4201,102 @@ def check_kb(filename):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
         print(e)
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function to parse the certificate
+# ============================================================================
+def parse_cert(cert):
+    import logging
+    from cryptography.x509.oid import ExtensionOID
+
+    cert = "\n".join(line.strip() for line in cert.strip().split("\n"))
+    parsed = x509.load_pem_x509_certificate(cert.encode(), default_backend())
+    issuer = None
+    subject = None
+    serial_number = None
+    sig_algo = None
+    expiry = None
+    key_usages = 'None'
+
+    try:
+        issuer = parsed.issuer.rfc4514_string()
+    except Exception as e:
+        logging.error(f"Issuer extraction failed: {e}")
+    try:
+        subject = parsed.subject.rfc4514_string()
+    except Exception as e:
+        logging.error(f"Subject extraction failed: {e}")
+    try:
+        serial_number = f'{parsed.serial_number:x}'
+    except Exception as e:
+        logging.error(f"Serial number extraction failed: {e}")
+    try:
+        sig_algo = parsed.signature_algorithm_oid._name
+    except Exception as e:
+        logging.error(f"Signature algorithm extraction failed: {e}")
+    try:
+        expiry = parsed.not_valid_after_utc
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+    except Exception as e:
+        logging.error(f"Expiry extraction failed: {e}")
+    try:
+        key_usage_ext = parsed.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE)
+        key_usage = key_usage_ext.value
+        allowed_usages = []
+        if key_usage.digital_signature:
+            allowed_usages.append("Digital Signature")
+        if key_usage.content_commitment:
+            allowed_usages.append("Content Commitment")
+        if key_usage.key_encipherment:
+            allowed_usages.append("Key Encipherment")
+        if key_usage.data_encipherment:
+            allowed_usages.append("Data Encipherment")
+        if key_usage.key_agreement:
+            allowed_usages.append("Key Agreement")
+            # Only check encipher_only and decipher_only if key_agreement is True
+            if key_usage.encipher_only:
+                allowed_usages.append("Encipher Only")
+            if key_usage.decipher_only:
+                allowed_usages.append("Decipher Only")
+        if key_usage.key_cert_sign:
+            allowed_usages.append("Certificate Signing")
+        if key_usage.crl_sign:
+            allowed_usages.append("CRL Signing")
+        if allowed_usages:
+            key_usages = ", ".join(allowed_usages)
+    except Exception as e:
+        logging.error(f"Key usage extraction failed: {e}")
+
+    return serial_number, issuer, subject, sig_algo, expiry, key_usages, parsed
+
+
+# ============================================================================
+#                               Function to format the DN string
+# ============================================================================
+def format_dn(dn):
+    try:
+        formatted = []
+        sn = ""
+        # Split the DN string by commas not preceded by a backslash (escape character)
+        parts = re.split(r'(?<!\\),', dn)
+        for part in parts:
+            part = part.replace("\\,", ",")  # Replace escaped commas with actual commas
+            if part.startswith("2.5.4.5="):
+                sn = part.split("=")[1]
+                formatted.insert(0, sn)
+            else:
+                formatted.append(part.split("=")[1])
+        if formatted:
+            return ", ".join(formatted), sn
+        else:
+            return "UNKNOWN", sn
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in format_dn function")
+        print(e)
+        traceback.print_exc()
+        return "UNKNOWN", sn
 
 
 # ============================================================================

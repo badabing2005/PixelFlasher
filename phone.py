@@ -3691,7 +3691,7 @@ This is a special Magisk build\n\n
                     debug(theCmd)
                     subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, start_new_session=True, env=get_env_variables())
                 elif sys.platform.startswith("linux") and config.linux_shell:
-                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    theCmd = f"{get_linux_shell()} /usr/bin/env bash -c {theCmd}"
                     debug(theCmd)
                     subprocess.Popen(theCmd, start_new_session=True)
                 elif sys.platform.startswith("darwin"):
@@ -3733,7 +3733,7 @@ This is a special Magisk build\n\n
                     res = run_shell3(theCmd, directory=scrcpy_folder, detached=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
                 elif sys.platform.startswith("linux") and config.linux_shell:
                     # subprocess.Popen([get_linux_shell(), "--", "/bin/bash", "-c", theCmd], start_new_session=True)
-                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    theCmd = f"{get_linux_shell()} /usr/bin/env bash -c {theCmd}"
                     debug(theCmd)
                     res = run_shell3(theCmd, detached=True)
                 elif sys.platform.startswith("darwin"):
@@ -4146,10 +4146,10 @@ def update_phones(device_id):
                 device.init('adb')
                 device_details = device.get_device_details()
         if get_fastboot():
-            theCmd = f"\"{get_fastboot()}\" -s {device_id} devices"
+            theCmd = f"\"{get_fastboot()}\" devices"
             debug(theCmd)
             res = run_shell(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and 'fastboot' in res.stdout:
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and device_id in res.stdout:
                 debug("device_mode: f.b")
                 device = Device(device_id, 'f.b')
                 device.init('f.b')
@@ -4233,14 +4233,19 @@ def get_connected_devices():
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
                         puml("#red:No permissions to access fastboot device;\n", True)
                         continue
-                    if 'fastboot' in device:
+                    try:
                         d_id = device.split("\t")
+                        if len(d_id) != 2:
+                            continue
                         d_id = d_id[0].strip()
                         device = Device(d_id, 'f.b')
                         device.init('f.b')
                         device_details = device.get_device_details()
                         devices.append(device_details)
                         phones.append(device)
+                    except Exception as e:
+                        print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
+                        traceback.print_exc()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
 

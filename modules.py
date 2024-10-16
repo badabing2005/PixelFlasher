@@ -3169,8 +3169,8 @@ Unless you know what you're doing, it is recommended that you take the default s
         return
 
     # Transfer back patched.img
-    print(f"Pulling {patched_file} from the phone to: {patched_img} ...")
     patched_img_file = os.path.join(tmp_dir_full, patched_img)
+    print(f"Pulling {patched_file} from the phone to: {patched_img_file} ...")
     res = device.pull_file(patched_file, f"\"{patched_img_file}\"")
     if res != 0:
         print("Aborting ...\n")
@@ -3178,7 +3178,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         return
 
     # get the checksum of the *_patched.img
-    print(f"Getting SHA1 of {patched_img_file} ...")
+    print(f"Getting SHA1 of {patched_img} ...")
     checksum = sha1(os.path.join(patched_img_file))
     print(f"SHA1 of {patched_img} file: {checksum}")
 

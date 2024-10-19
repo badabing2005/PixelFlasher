@@ -1646,8 +1646,15 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell ls \"{file_path}\""
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                print(f"File: {file_path} is found on the device.")
-                return 1, res.stdout.strip()
+                debug(f"Return Code: {res.returncode}.")
+                debug(f"Stdout: {res.stdout}.")
+                debug(f"Stderr: {res.stderr}.")
+                if "No such file or directory" not in f"{res.stdout} {res.stderr}":
+                    print(f"File: {file_path} is found on the device.")
+                    return 1, res.stdout.strip()
+                else:
+                    print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Got returncode 0 but also file not found message.")
+                    return 0, None
             else:
                 print(f"File: {file_path} is not found on the device.")
                 return 0, None

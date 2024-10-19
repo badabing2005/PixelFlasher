@@ -706,40 +706,48 @@ def process_file(self, file_type):
                     # see if there is boot.img.lz4 in AP file
                     found_boot_img_lz4 = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="boot.img.lz4", nested=False)
                     if found_boot_img_lz4:
-                        print(f"Extracting boot.img.lz4 from {found_ap} ...")
-                        puml(f":Extract boot.img.lz4;\n")
-                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" boot.img.lz4"
+                        boot_image_file = "boot.img.lz4"
+                    else:
+                        # if not look for boot.img (some Samsung devices don't have boot.img.lz4)
+                        found_boot_img = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="boot.img", nested=False)
+                        if found_boot_img:
+                            boot_image_file = "boot.img"
+                    if boot_image_file:
+                        print(f"Extracting {boot_image_file} from {found_ap} ...")
+                        puml(f":Extract {boot_image_file};\n")
+                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" {boot_image_file}"
                         debug(f"{theCmd}")
                         res = run_shell(theCmd)
                         # expect ret 0
                         if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
-                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract boot.img.lz4")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_image_file}")
                             print(f"Return Code: {res.returncode}.")
                             print(f"Stdout: {res.stdout}.")
                             print(f"Stderr: {res.stderr}.")
-                            puml("#red:ERROR: Could not extract boot.img.lz4;\n")
+                            puml(f"#red:ERROR: Could not extract {boot_image_file};\n")
                             print("Aborting ...\n")
-                            self.toast("Process action", "Could not extract boot.img.lz4.")
+                            self.toast(f"Process action", "Could not extract {boot_image_file}.")
                             return
                         else:
-                            # unpack boot.img.lz4
-                            print("Unpacking boot.img.lz4 ...")
-                            puml(f":Unpack boot.img.lz4;\n")
-                            unpack_lz4(os.path.join(package_dir_full, 'boot.img.lz4'), os.path.join(package_dir_full, 'boot.img'))
+                            if boot_image_file == "boot.img.lz4":
+                                # unpack boot.img.lz4
+                                print(f"Unpacking {boot_image_file} ...")
+                                puml(f":Unpack {boot_image_file};\n")
+                                unpack_lz4(os.path.join(package_dir_full, 'boot.img.lz4'), os.path.join(package_dir_full, 'boot.img'))
                             # Check if it exists
                             if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
                                 found_boot_img = 'boot.img'
                             else:
-                                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not unpack boot.img.lz4")
-                                puml("#red:ERROR: Could not unpack boot.img.lz4;\n")
+                                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not unpack {boot_image_file}")
+                                puml("#red:ERROR: Could not unpack {boot_image_file};\n")
                                 print("Aborting ...\n")
-                                self.toast("Process action", "Could not unpack boot.img.lz4.")
+                                self.toast("Process action", f"Could not unpack {boot_image_file}.")
                                 return
                     else:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find boot.img.lz4")
-                        puml("#red:ERROR: Could not find boot.img.lz4;\n")
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {boot_image_file}")
+                        puml(f"#red:ERROR: Could not find {boot_image_file};\n")
                         print("Aborting ...\n")
-                        self.toast("Process action", "Could not find boot.img.lz4.")
+                        self.toast("Process action", f"Could not find {boot_image_file}.")
                         return
                 else:
                     print("Detected Unsupported firmware file.")
@@ -1865,7 +1873,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 elif device.architecture == "arm64-v8a" and (device.get_prop('ro.zygote') != "zygote64" or "zygote64_32" in with_version.lower()):
                     data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
                 data += "chmod 755 *\n"
-                data += "if [[ -f \"/data/local/tmp/pf/assets/magisk32\" ]]; then\n"
+                data += "if [[ -f \"/data/local/tmp/pf/assets/magisk\" ]]; then\n"
+                data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk -c)\n"
+                data += "    echo \"PATCHING_MAGISK_VERSION: $PATCHING_MAGISK_VERSION\"\n"
+                data += "elif [[ -f \"/data/local/tmp/pf/assets/magisk32\" ]]; then\n"
                 data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk32 -c)\n"
                 data += "    echo \"PATCHING_MAGISK_VERSION: $PATCHING_MAGISK_VERSION\"\n"
                 data += "elif [[ -f \"/data/local/tmp/pf/assets.magisk64\" ]]; then\n"
@@ -1914,14 +1925,15 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "else\n"
             data += "	echo \"ERROR: Patching failed!\"\n"
             data += "fi\n\n"
-            data += "echo \"Cleaning up ...\"\n"
-            # intentionally not including \n
-            data += "rm -f /data/local/tmp/pf_patch.sh"
+            if delete_temp_files:
+                data += "echo \"Cleaning up ...\"\n"
+                # intentionally not including \n
+                data += "rm -f /data/local/tmp/pf_patch.sh"
 
-            if patch_method in ["app", "other"]:
-                data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
-                data += "rm -rf /data/local/tmp/pf\n"
-            data += "\n"
+                if patch_method in ["app", "other"]:
+                    data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
+                    data += "rm -rf /data/local/tmp/pf\n"
+                data += "\n"
 
             f.write(data)
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
@@ -1982,11 +1994,12 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 set_patched_with(lines[1]) if len(lines) > 1 else ""
 
         # delete pf_patch.log from phone
-        res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
-        if res != 0:
-            print("Aborting ...\n")
-            puml("#red:Failed to delete pf_patch.log from the phone;\n")
-            return -1
+        if delete_temp_files:
+            res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                return -1
 
         return patched_img
 
@@ -2044,11 +2057,12 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "else\n"
             data += "	echo \"ERROR: Patching failed!\"\n"
             data += "fi\n\n"
-            data += "echo \"Cleaning up ...\"\n"
-            # intentionally not including \n
-            data += "rm -rf /data/local/tmp/pf\n"
-            data += "rm -f /data/local/tmp/pf_patch.sh\n"
-            data += "\n"
+            if delete_temp_files:
+                data += "echo \"Cleaning up ...\"\n"
+                # intentionally not including \n
+                data += "rm -rf /data/local/tmp/pf\n"
+                data += "rm -f /data/local/tmp/pf_patch.sh\n"
+                data += "\n"
 
             f.write(data)
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
@@ -2162,10 +2176,11 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "else\n"
             data += "	echo \"ERROR: Patching failed!\"\n"
             data += "fi\n\n"
-            data += "echo \"Cleaning up ...\"\n"
-            data += "rm -f /data/local/tmp/pf_patch.sh /data/local/tmp/pf.zip /data/local/tmp/busybox\n"
-            data += "rm -rf /data/local/tmp/pf\n"
-            data += "\n"
+            if delete_temp_files:
+                data += "echo \"Cleaning up ...\"\n"
+                data += "rm -f /data/local/tmp/pf_patch.sh /data/local/tmp/pf.zip /data/local/tmp/busybox\n"
+                data += "rm -rf /data/local/tmp/pf\n"
+                data += "\n"
 
             f.write(data)
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
@@ -2365,16 +2380,17 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "else\n"
             data += "	echo \"ERROR: Patching failed!\"\n"
             data += "fi\n\n"
-            data += "echo \"Cleaning up ...\"\n"
-            # intentionally not including \n
-            data += "rm -f /data/local/tmp/pf_patch.sh"
+            if delete_temp_files:
+                data += "echo \"Cleaning up ...\"\n"
+                # intentionally not including \n
+                data += "rm -f /data/local/tmp/pf_patch.sh"
 
-            if patch_method in ["app"]:
-                data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
-                data += "rm -rf /data/local/tmp/pf\n"
-            elif patch_method == "manual":
-                data += "rm -rf /data/local/tmp/pf\n"
-            data += "\n"
+                if patch_method in ["app"]:
+                    data += " /data/local/tmp/pf.zip /data/local/tmp/new-boot.img /data/local/tmp/busybox\n"
+                    data += "rm -rf /data/local/tmp/pf\n"
+                elif patch_method == "manual":
+                    data += "rm -rf /data/local/tmp/pf\n"
+                data += "\n"
 
             f.write(data)
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
@@ -2446,6 +2462,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     #------------------
     # Start of function
     #------------------
+    delete_temp_files = True
     recovery = 'false'
     custom_text = ""
     tmp_path = os.path.join(get_config_path(), 'tmp')
@@ -2626,7 +2643,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     print("Making sure file is not on the phone ...")
     res,_ = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
-        print("Aborting ...\n")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to delete old boot image from the phone\nAborting ...\n")
         puml("#red:Failed to delete old boot image from the phone;\n}\n")
         return
 
@@ -3048,9 +3065,11 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             buttons_text = ["Use Rooted Magisk", "Use Magisk Application", "Use UIAutomator", "Manual", "Other Magisk", "Cancel"]
             buttons_text[method -1] += " (Recommended)"
             if self.config.show_recovery_patching_option:
-                checkboxes=["Recovery"]
+                checkboxes=["Delete temporary files", "Recovery" ]
+                checkbox_initial_values=[True, False]
             else:
-                checkboxes=None
+                checkboxes=["Delete temporary files"]
+                checkbox_initial_values=[True]
 
             message = '''
 **PixelFlasher** can create a patch by utilizing different methods.<br/>
@@ -3084,7 +3103,7 @@ Unless you know what you're doing, it is recommended that you take the default s
             print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
             puml(":Dialog;\n", True)
             puml(f"note right\n{clean_message}\nend note\n")
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=method, disable_buttons=disabled_buttons, is_md=True, size=[800,660], checkbox_labels=checkboxes)
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=method, disable_buttons=disabled_buttons, is_md=True, size=[800,660], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_initial_values)
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -3099,6 +3118,10 @@ Unless you know what you're doing, it is recommended that you take the default s
             checkbox_values = get_dlg_checkbox_values()
             if checkbox_values is not None:
                 if checkbox_values[0]:
+                    delete_temp_files = True
+                else:
+                    delete_temp_files = False
+                if len(checkbox_values) > 1 and checkbox_values[1]:
                     recovery = 'true'
                 else:
                     recovery = 'false'

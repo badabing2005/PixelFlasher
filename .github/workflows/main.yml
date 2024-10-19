@@ -77,7 +77,7 @@ jobs:
         run: |
           python --version
           pip install -U six wheel setuptools
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.1 wxPython
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.2 wxPython
         shell: powershell
 
       - name: Install requirements
@@ -151,7 +151,7 @@ jobs:
         run: |
           python --version
           pip install -U six wheel setuptools
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.1 wxPython
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.2 wxPython
         shell: powershell
 
       - name: Install requirements
@@ -334,108 +334,128 @@ jobs:
   # ---------------------------------------------------------------------------
   #                              build_mac_12
   # ---------------------------------------------------------------------------
-  build_mac_12:
-    if: github.actor == 'badabing2005'
-    # runs-on: macos-latest
-    runs-on: macos-12
+  build_mac_13:
+      if: github.actor == 'badabing2005'
+      # runs-on: macos-latest
+      runs-on: macos-13
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
 
-      - name: List Cellar directory
-        run: |
-          ls /usr/local/Cellar
+        - name: List Cellar directory
+          run: |
+            ls /usr/local/Cellar
 
-      - name: Uninstall Pythons other than 3.11
-        run: |
-          brew uninstall --ignore-dependencies python@3.12 || true
-          echo "doing brew list"
-          brew list
-          echo "getting directory list for /usr/local/Cellar"
-          ls /usr/local/Cellar
+        - name: Set up Python 3.12
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.12'
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+        - name: Install wxPython
+          # run: brew install wxpython
+          run: pip install wxPython
 
-      - name: Install wxPython
-        # run: brew install wxpython
-        run: pip install wxPython
+        - name: Install node
+          run: |
+            brew install node
 
-      # - name: Install node
-      #   run: brew install node
+        - name: Install GraphicsMagick
+          run: |
+            curl -L -O https://newcontinuum.dl.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.xz
+            xz -d GraphicsMagick-1.3.42.tar.xz
+            tar -xf GraphicsMagick-1.3.42.tar
+            cd GraphicsMagick-1.3.42
+            ./configure
+            make
+            sudo make install
+            cd ..
 
-      - name: Install create-dmg
-        run: |
-          npm cache clean --force
-          npm install --global create-dmg
+        - name: Install ImageMagick
+          run: |
+            curl -O https://imagemagick.org/archive/binaries/ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
+            tar -xzf ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
+            echo "MAGICK_HOME=$(pwd)/ImageMagick-7.0.10" >> $GITHUB_ENV
+            echo "DYLD_LIBRARY_PATH=$(pwd)/ImageMagick-7.0.10/lib/" >> $GITHUB_ENV
+            echo "PATH=$(pwd)/ImageMagick-7.0.10/bin:$PATH" >> $GITHUB_ENV
+            echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
+            echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
+            echo "PATH = ${{env.PATH}}"
+            ls -l ${{env.MAGICK_HOME}}/bin/
 
-      - name: Add Python 3.11 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
+        - name: Install wxPython
+          # run: brew install wxpython
+          run: pip install wxPython
 
-      - name: Create virtual environment
-        run: python3.11 -m venv myenv
-        shell: bash
+        - name: Install create-dmg
+          run: |
+            npm cache clean --force
+            npm install --global create-dmg
 
-      - name: Activate virtual environment
-        run: source myenv/bin/activate
-        shell: bash
+        - name: Add Python 3.12 to PATH
+          run: export PATH=/usr/local/Cellar/python@3.12/bin:$PATH
 
-      - name: Install requirements
-        run: python3.11 -m pip install -r requirements.txt
+        - name: Create virtual environment
+          run: python3.12 -m venv myenv
+          shell: bash
 
-      - name: List modules and their versions
-        run: python3.11 -m pip freeze
+        - name: Activate virtual environment
+          run: source myenv/bin/activate
+          shell: bash
 
-      - name: Build application
-        id: build_app
-        run: ./build.sh
+        - name: Install requirements
+          run: python3.12 -m pip install -r requirements.txt
 
-      - name: Upload PixelFlasher.app as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: PixelFlasher.app
-          path: dist/PixelFlasher.app
+        - name: List modules and their versions
+          run: python3.12 -m pip freeze
 
-      # - name: Create DMG
-      #   id: create_dmg
-      #   run: |
-      #     create-dmg dist/PixelFlasher.app dist
-      #     ls -l ./ dist/
-      #   if: ${{ steps.build_app.outcome == 'success' }}
-      #   continue-on-error: true
+        - name: Build application
+          id: build_app
+          run: ./build.sh
 
-      # - name: Rename the file
-      #   id: rename_dmg
-      #   run: mv dist/PixelFlasher*.dmg dist/PixelFlasher.dmg
+        - name: Upload PixelFlasher.app as artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: PixelFlasher.app
+            path: dist/PixelFlasher.app
 
-      - name: Get sha256
-        run: |
-          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
-          cat dist/PixelFlasher.dmg.sha256
-        if: ${{ steps.build_app.outcome == 'success' }}
+        # - name: Create DMG
+        #   id: create_dmg
+        #   run: |
+        #     create-dmg dist/PixelFlasher.app dist
+        #     ls -l ./ dist/
+        #   if: ${{ steps.build_app.outcome == 'success' }}
+        #   continue-on-error: true
 
-      - name: List contents of dist directory
-        run: ls ./ dist/
+        # - name: Rename the file
+        #   id: rename_dmg
+        #   run: mv dist/PixelFlasher*.dmg dist/PixelFlasher.dmg
 
-      # Upload artifacts Mac-OS 12
-      - name: Upload Mac-OS 12 Artifact
-        uses: actions/upload-artifact@v4
-        id: upload_artifact_macos_12
-        with:
-          name: PixelFlasher.dmg Artifacts
-          path: |
-            dist/PixelFlasher.dmg
-            dist/PixelFlasher.dmg.sha256
+        - name: Get sha256
+          run: |
+            shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+            cat dist/PixelFlasher.dmg.sha256
+          if: ${{ steps.build_app.outcome == 'success' }}
+
+        - name: List contents of dist directory
+          run: ls ./ dist/
+
+        # Upload artifacts Mac-OS 13
+        - name: Upload Mac-OS 13 Artifact
+          uses: actions/upload-artifact@v4
+          id: upload_artifact_macos_13
+          with:
+            name: PixelFlasher.dmg Artifacts
+            path: |
+              dist/PixelFlasher.dmg
+              dist/PixelFlasher.dmg.sha256
 
   # ---------------------------------------------------------------------------
   #                              deploy
   # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_12]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_13]
 
     runs-on: ubuntu-latest
 

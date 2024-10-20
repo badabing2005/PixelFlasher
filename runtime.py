@@ -2292,6 +2292,7 @@ def get_beta_pif(device_model='random'):
         # URLs
         gsi_url = "https://developer.android.com/topic/generic-system-image/releases"
         secbull_url = "https://source.android.com/docs/security/bulletin/pixel"
+        versions_url = "https://developer.android.com/about/versions"
 
         # Fetch GSI HTML
         response = request_with_fallback('GET', gsi_url)

@@ -1866,12 +1866,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 data += "cd assets\n"
                 data += "for FILE in ../lib/$ARCH/lib*.so; do\n"
                 data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
+                data += "    echo \"Copying [$FILE] to [$NEWNAME]\"\n"
                 data += "    cp $FILE $NEWNAME\n"
                 data += "done\n"
                 if device.architecture == "x86_64":
-                    data += "cp ../lib/x86/libmagisk32.so magisk32\n"
+                    data += "[ -f ../lib/x86/libmagisk32.so ] && cp ../lib/x86/libmagisk32.so magisk32\n"
                 elif device.architecture == "arm64-v8a" and (device.get_prop('ro.zygote') != "zygote64" or "zygote64_32" in with_version.lower()):
-                    data += "cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
+                    data += "[ -f ../lib/armeabi-v7a/libmagisk32.so ] && cp ../lib/armeabi-v7a/libmagisk32.so magisk32\n"
                 data += "chmod 755 *\n"
                 data += "if [[ -f \"/data/local/tmp/pf/assets/magisk\" ]]; then\n"
                 data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk -c)\n"
@@ -1974,14 +1975,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         #------------------------------------
         # Execute the pf_patch.sh script
         #------------------------------------
-        print("Executing the pf_patch.sh script ...")
+        print("\nExecuting the pf_patch.sh script ...")
         print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
         puml(":Executing the patch script;\n")
         debug(f"exec_cmd: {exec_cmd}")
         res = run_shell2(exec_cmd)
 
         # get the patched_filename
-        print("Checking patch log: /data/local/tmp/pf_patch.log ...")
+        print("\nChecking patch log: /data/local/tmp/pf_patch.log ...")
         res = device.file_content("/data/local/tmp/pf_patch.log")
         if res == -1:
             print("Aborting ...\n")
@@ -1995,6 +1996,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
         # delete pf_patch.log from phone
         if delete_temp_files:
+            print("\nDeleting /data/local/tmp/pf_patch.log from the phone ...")
             res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
             if res != 0:
                 print("Aborting ...\n")
@@ -2106,11 +2108,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             patched_img = lines[0] if len(lines) > 0 else ""
 
         # delete pf_patch.log from phone
-        res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
-        if res != 0:
-            print("Aborting ...\n")
-            puml("#red:Failed to delete pf_patch.log from the phone;\n")
-            return -1
+        if delete_temp_files:
+            print("\nDeleting /data/local/tmp/pf_patch.log from the phone ...")
+            res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                return -1
 
         return patched_img
 
@@ -2150,6 +2154,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "cd assets\n"
             data += "for FILE in ../lib/$ARCH/lib*.so; do\n"
             data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
+            data += "    echo \"Copying [$FILE] to [$NEWNAME]\"\n"
             data += "    cp $FILE $NEWNAME\n"
             data += "done\n"
             data += "chmod 755 *\n"
@@ -2240,11 +2245,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 set_patched_with(lines[1]) if len(lines) > 1 else ""
 
         # delete pf_patch.log from phone
-        res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
-        if res != 0:
-            print("Aborting ...\n")
-            puml("#red:Failed to delete pf_patch.log from the phone;\n")
-            return -1
+        if delete_temp_files:
+            print("\nDeleting /data/local/tmp/pf_patch.log from the phone ...")
+            res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                return -1
 
         return patched_img
 
@@ -2324,6 +2331,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 data += "cd assets\n"
                 data += "for FILE in ../lib/$ARCH/lib*.so; do\n"
                 data += "    NEWNAME=$(echo $FILE | sed -En 's/.*\/lib(.*)\.so/\\1/p')\n"
+                data += "    echo \"Copying [$FILE] to [$NEWNAME]\"\n"
                 data += "    cp $FILE $NEWNAME\n"
                 data += "done\n"
                 data += "chmod 755 *\n"
@@ -2451,11 +2459,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 set_patched_with(lines[1]) if len(lines) > 1 else ""
 
         # delete pf_patch.log from phone
-        res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
-        if res != 0:
-            print("Aborting ...\n")
-            puml("#red:Failed to delete pf_patch.log from the phone;\n")
-            return -1
+        if delete_temp_files:
+            print("\nDeleting /data/local/tmp/pf_patch.log from the phone ...")
+            res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
+            if res != 0:
+                print("Aborting ...\n")
+                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                return -1
 
         return patched_img
 
@@ -2633,6 +2643,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 return
 
     # delete existing boot_img from phone
+    file = f"{self.config.phone_path}/{boot_img}"
+    print(f"\nDeleting {file} from the phone ...")
     res = device.delete(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print("Aborting ...\n")
@@ -2640,7 +2652,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         return
 
     # check if delete worked.
-    print("Making sure file is not on the phone ...")
+    print(f"\nMaking sure {file} is not on the phone ...")
     res,_ = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to delete old boot image from the phone\nAborting ...\n")
@@ -2648,6 +2660,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         return
 
     # delete existing {patch_name} from phone
+    file = f"{self.config.phone_path}/{patch_name}*.img"
+    print(f"\nDeleting {patch_name} from the phone ...")
     res = device.delete(f"{self.config.phone_path}/{patch_name}*.img")
     if res != 0:
         puml(f"#red:Failed to delete old {patch_name}.img;\n")
@@ -2655,7 +2669,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         return
 
     # check if delete worked.
-    print("Making sure file is not on the phone ...")
+    print(f"\nMaking sure {file} is not on the phone ...")
     res,_ = device.check_file(f"{self.config.phone_path}/{patch_name}*.img")
     if res != 0:
         puml(f"#red:Failed to delete old {patch_name}.img;\n")
@@ -2663,6 +2677,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         return
 
     # Transfer boot image to the phone
+    print(f"\nTransferring {boot_img} to the phone ...")
     res = device.push_file(f"{boot_path}", f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         puml("#red:Failed to transfer the boot file to the phone;\n")
@@ -2683,6 +2698,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             return
 
     # check if transfer worked.
+    print(f"\nMaking sure {boot_img} is on the phone ...")
     res,_ = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 1:
         print("Aborting ...\n")
@@ -2955,7 +2971,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         #------------------------------------
         # Check to see if Magisk is installed
         #------------------------------------
-        print("Looking for Magisk Manager app ...")
+        print("\nLooking for Magisk Manager app ...")
         puml(":Checking Magisk Manager;\n")
         magisk_app_version = device.get_uncached_magisk_app_version()
         magisk_version = device.magisk_version
@@ -3192,7 +3208,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         return
 
     # Transfer back patched.img
-    print(f"Pulling {patched_file} from the phone to: {patched_img} ...")
+    print(f"\nPulling {patched_file} from the phone to: {patched_img} ...")
     patched_img_file = os.path.join(tmp_dir_full, patched_img)
     res = device.pull_file(patched_file, f"\"{patched_img_file}\"")
     if res != 0:
@@ -3201,7 +3217,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         return
 
     # get the checksum of the *_patched.img
-    print(f"Getting SHA1 of {patched_img_file} ...")
+    print(f"\nGetting SHA1 of {patched_img_file} ...")
     checksum = sha1(os.path.join(patched_img_file))
     print(f"SHA1 of {patched_img} file: {checksum}")
 

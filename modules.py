@@ -191,7 +191,7 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
         if not self.config.show_all_boot:
             rom_path = ''
             firmware_path = ''
-            if self.config.custom_rom and self.config.advanced_options:
+            if self.config.show_custom_rom_options and self.config.custom_rom and self.config.advanced_options:
                 rom_path = self.config.custom_rom_path
             if self.config.firmware_path:
                 firmware_path = self.config.firmware_path
@@ -411,7 +411,7 @@ def get_flash_settings(self):
         message = ''
         isPatched = ''
 
-        p_custom_rom = self.config.custom_rom and self.config.advanced_options
+        p_custom_rom = self.config.show_custom_rom_options and self.config.custom_rom and self.config.advanced_options
         p_custom_rom_path = self.config.custom_rom_path
         boot = get_boot()
         device = get_phone()
@@ -3990,7 +3990,7 @@ def flash_phone(self):
             return -1
 
         # check for rom file (if not OTA)
-        if self.config.custom_rom and self.config.advanced_options and self.config.flash_mode != 'OTA':
+        if self.config.show_custom_rom_options and self.config.custom_rom and self.config.advanced_options and self.config.flash_mode != 'OTA':
             if not os.path.exists(self.config.custom_rom_path):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: ROM file: {self.config.custom_rom_path} is not found.")
                 print("Aborting ...\n")
@@ -4213,7 +4213,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                     arg1 = f.arg1
                     if self.config.flash_mode == 'wipeData':
                         action = '--skip-reboot -w update'
-                    if self.config.custom_rom and self.config.advanced_options:
+                    if self.config.show_custom_rom_options and self.config.custom_rom and self.config.advanced_options:
                         arg1 = f"\"{get_custom_rom_file()}\""
                     data_tmp = f"{add_echo}\"{get_fastboot()}\" -s {device_id} {fastboot_options2} {action} {arg1}\n"
                     data_win += data_tmp

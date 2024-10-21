@@ -2574,6 +2574,16 @@ Before posting publicly please carefully inspect the contents.
                 self.bootloader_lock_menu.Enable(True)
                 self.bootloader_unlock_menu.Enable(True)
                 self.prep_downgrade_patch_menu.Enable(True)
+
+            if self.config.show_custom_rom_options:
+                self.custom_rom_checkbox.Show()
+                self.custom_rom.Show()
+                self.process_rom.Show()
+            else:
+                self.custom_rom_checkbox.Hide()
+                self.custom_rom.Hide()
+                self.process_rom.Hide()
+
             self.Thaw()
             self._refresh_ui()
         except Exception as e:
@@ -2969,7 +2979,7 @@ Before posting publicly please carefully inspect the contents.
                 return False
 
             elif condition == 'custom_rom':
-                if self.config.custom_rom:
+                if self.config.show_custom_rom_options and self.config.custom_rom:
                     return True
                 return False
 
@@ -5120,7 +5130,7 @@ Before posting publicly please carefully inspect the contents.
         self.platform_tools_picker = wx.DirPickerCtrl(parent=panel, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
         self.platform_tools_picker.SetToolTip("Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
         platform_tools_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        platform_tools_label_sizer.Add(window=self.platform_tools_label, proportion=0, flag=wx.ALL, border=5)
+        platform_tools_label_sizer.Add(window=self.platform_tools_label, proportion=0, flag=wx.ALL, border=0)
         platform_tools_label_sizer.AddStretchSpacer()
         platform_tools_label_sizer.Add(window=self.sdk_link, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.sdk_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
@@ -5133,7 +5143,7 @@ Before posting publicly please carefully inspect the contents.
         self.wifi_adb.SetBitmap(images.wifi_adb_24.GetBitmap())
         self.wifi_adb.SetToolTip(u"Open wireless manager dialog.")
         adb_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        adb_label_sizer.Add(window=self.device_label, proportion=0, flag=wx.ALL, border=5)
+        adb_label_sizer.Add(window=self.device_label, proportion=0, flag=wx.ALL, border=0)
         adb_label_sizer.AddStretchSpacer()
         adb_label_sizer.Add(window=self.wifi_adb, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.device_choice = wx.ComboBox(parent=panel, id=wx.ID_ANY, value=wx.EmptyString, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=[], style=wx.CB_DROPDOWN | wx.CB_READONLY)
@@ -5153,19 +5163,12 @@ Before posting publicly please carefully inspect the contents.
         self.scan_button.SetBitmap(images.scan_24.GetBitmap())
         device_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         device_sizer.Add(window=self.device_choice, proportion=1, flag=wx.EXPAND)
-        device_sizer.Add(window=self.scan_button, flag=wx.LEFT, border=5)
+        device_sizer.Add(window=self.scan_button, flag=wx.LEFT, border=2)
 
         # 3rd row Reboot buttons, device related buttons
         # removed
 
         # 4th row, empty row, static line
-        self.slot_image = wx.StaticBitmap(panel, pos=(0, 0))
-        self.slot_image.SetBitmap(wx.NullBitmap)
-        self.rooted_image = wx.StaticBitmap(panel, pos=(0, 0))
-        self.rooted_image.SetBitmap(wx.NullBitmap)
-        slot_root_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        slot_root_sizer.Add(window=self.slot_image, proportion=0, flag=wx.ALL, border=0)
-        slot_root_sizer.Add(window=self.rooted_image, proportion=0, flag=wx.ALL, border=0)
         self.staticline1 = wx.StaticLine(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LI_HORIZONTAL)
         self.staticline1.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT))
 
@@ -5181,12 +5184,12 @@ Before posting publicly please carefully inspect the contents.
         self.process_firmware.SetBitmap(images.process_file_24.GetBitmap())
         self.process_firmware.SetToolTip(u"Process the firmware file and extract the boot.img")
         firmware_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        firmware_label_sizer.Add(window=firmware_label, proportion=0, flag=wx.ALL, border=5)
+        firmware_label_sizer.Add(window=firmware_label, proportion=0, flag=wx.ALL, border=2)
         firmware_label_sizer.AddStretchSpacer(1)
         firmware_label_sizer.Add(window=self.firmware_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.firmware_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.firmware_sizer.Add(window=self.firmware_picker, proportion=1, flag=wx.EXPAND)
-        self.firmware_sizer.Add(window=self.process_firmware, flag=wx.LEFT, border=5)
+        self.firmware_sizer.Add(window=self.process_firmware, flag=wx.LEFT, border=2)
 
         # 6th row widgets, custom_rom
         self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Apply Custom ROM", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -5198,12 +5201,17 @@ Before posting publicly please carefully inspect the contents.
         self.process_rom.SetToolTip(u"Process the ROM file and extract the boot.img")
         custom_rom_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_rom_sizer.Add(window=self.custom_rom, proportion=1, flag=wx.EXPAND)
-        custom_rom_sizer.Add(window=self.process_rom, flag=wx.LEFT, border=5)
+        custom_rom_sizer.Add(window=self.process_rom, flag=wx.LEFT, border=2)
 
         # 7th row widgets, boot.img related widgets
         self.select_boot_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Select a boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Show All boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.show_all_boot_checkBox.SetToolTip(u"Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM")
+        #
+        self.slot_image = wx.StaticBitmap(panel, pos=(0, 0))
+        self.slot_image.SetBitmap(wx.NullBitmap)
+        self.rooted_image = wx.StaticBitmap(panel, pos=(0, 0))
+        self.rooted_image.SetBitmap(wx.NullBitmap)
         # list control
         if self.CharHeight > 20:
             self.il = wx.ImageList(24, 24)
@@ -5282,14 +5290,19 @@ Before posting publicly please carefully inspect the contents.
         boot_label_v_sizer.Add(window=self.select_boot_label, flag=wx.ALL, border=0)
         boot_label_v_sizer.AddSpacer(10)
         boot_label_v_sizer.Add(window=self.show_all_boot_checkBox, flag=wx.ALL, border=0)
+        boot_label_v_sizer.AddStretchSpacer(1)
+        slot_root_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+        slot_root_sizer.Add(window=self.slot_image, proportion=0, flag=wx.ALL, border=0)
+        slot_root_sizer.Add(window=self.rooted_image, proportion=0, flag=wx.ALL, border=0)
+        boot_label_v_sizer.Add(slot_root_sizer, proportion=0, flag=wx.ALL, border=0)
         image_buttons_sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        image_buttons_sizer.Add(self.patch_button, proportion=1, flag=wx.LEFT, border=5)
-        image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT, border=5)
-        image_buttons_sizer.Add(self.add_boot_button, proportion=1, flag=wx.LEFT, border=5)
-        image_buttons_sizer.Add(self.get_boot_info_button, proportion=1, flag=wx.LEFT, border=5)
-        image_buttons_sizer.Add(self.folders_button, proportion=1, flag=wx.LEFT, border=5)
-        image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT, border=5)
-        image_buttons_sizer.Add(self.flash_boot_button, proportion=1, flag=wx.LEFT, border=5)
+        image_buttons_sizer.Add(self.patch_button, proportion=1, flag=wx.LEFT, border=2)
+        image_buttons_sizer.Add(self.delete_boot_button, proportion=1, flag=wx.LEFT, border=2)
+        image_buttons_sizer.Add(self.add_boot_button, proportion=1, flag=wx.LEFT, border=2)
+        image_buttons_sizer.Add(self.get_boot_info_button, proportion=1, flag=wx.LEFT, border=2)
+        image_buttons_sizer.Add(self.folders_button, proportion=1, flag=wx.LEFT, border=2)
+        image_buttons_sizer.Add(self.live_boot_button, proportion=1, flag=wx.LEFT, border=2)
+        image_buttons_sizer.Add(self.flash_boot_button, proportion=1, flag=wx.LEFT, border=2)
         list_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         list_sizer.Add(self.list, proportion=1, flag=wx.ALL|wx.EXPAND)
         list_sizer.Add(image_buttons_sizer, proportion=0, flag=wx.ALL|wx.EXPAND)
@@ -5326,8 +5339,8 @@ Before posting publicly please carefully inspect the contents.
         self.paste_selection.SetBitmap(images.paste_24.GetBitmap())
         self.paste_selection.SetToolTip(u"Depending on the flash selection, paste the appropriate path as custom image.")
         custom_flash_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        custom_flash_sizer.Add(window=self.image_choice, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        custom_flash_sizer.Add(window=self.paste_selection, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+        custom_flash_sizer.Add(window=self.image_choice, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        custom_flash_sizer.Add(window=self.paste_selection, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=2)
         custom_flash_sizer.Add(window=self.image_file_picker, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
 
 
@@ -5355,37 +5368,37 @@ Before posting publicly please carefully inspect the contents.
         self.no_wipe_downgrade_checkbox.SetToolTip(u"WARNING!!! This is a highly experimental feature.\nThis will attempt to downgrade the device without needing a data wipe.\n")
         self.advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
-        self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.disable_verity_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.disable_verification_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.fastboot_force_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.fastboot_verbose_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.temporary_root_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.no_reboot_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.wipe_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.advanced_options_sizer.Add(window=self.no_wipe_downgrade_checkbox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.disable_verity_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.disable_verification_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.fastboot_force_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.fastboot_verbose_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.temporary_root_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.no_reboot_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.wipe_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
+        self.advanced_options_sizer.Add(window=self.no_wipe_downgrade_checkbox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
 
         # 11th row widgets, Flash button
-        self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Device", pos=wx.DefaultPosition, size=wx.Size(-1, 50))
+        self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Device", pos=wx.DefaultPosition, size=wx.Size(-1, 48))
         self.flash_button.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
         self.flash_button.SetToolTip(u"Flashes the selected device with chosen flash options.")
         self.flash_button.SetBitmap(images.flash_32.GetBitmap())
 
         # 12th row widgets, console
         console_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Console", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.spinner = wx.ActivityIndicator(panel, -1, size=(100, 100), style=0)
+        self.spinner = wx.ActivityIndicator(panel, -1, size=(80, 80), style=0)
         self.spinner_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Please be patient ...", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spinner_label.SetForegroundColour((255,0,0))
         self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Support", size=wx.Size(-1, 50), style=0)
+        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Support", size=wx.Size(-1, 32), style=0)
         self.support_button.SetBitmap(images.support_24.GetBitmap())
         self.support_button.SetBitmapMargins(wx.Size(10, -1))
         self.support_button.SetToolTip(u"Create sanitized support.zip file\nAll sensitive data is redacted.\n\nThis if absolutely required when asking for help.")
         console_v_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL, border=0)
-        console_v_sizer.AddSpacer(40)
-        console_v_sizer.Add(self.spinner, flag=wx.LEFT, border=50)
-        console_v_sizer.AddSpacer(20)
+        console_v_sizer.AddSpacer(10)
+        console_v_sizer.Add(self.spinner, flag=wx.LEFT, border=10)
+        console_v_sizer.AddSpacer(10)
         console_v_sizer.Add(self.spinner_label, flag=wx.ALL, border=0)
         console_v_sizer.Add((0, 0), proportion=1, flag=wx.EXPAND, border=0)
         console_v_sizer.Add(self.support_button, proportion=0, flag=wx.ALL|wx.EXPAND, border=0)
@@ -5409,11 +5422,10 @@ Before posting publicly please carefully inspect the contents.
 
         # add the rows to flexgrid
         fgs1.AddMany([
-                    (platform_tools_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (self.sdk_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
-                    (adb_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (platform_tools_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 0), (self.sdk_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
+                    (adb_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 0), (device_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     # removed
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
-                    slot_root_sizer, (self.staticline1, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 5),
                     (firmware_label_sizer, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (self.firmware_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (self.custom_rom_checkbox, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5), (custom_rom_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
                     (boot_label_v_sizer, 0, wx.EXPAND), (list_sizer, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL),
@@ -5424,7 +5436,8 @@ Before posting publicly please carefully inspect the contents.
                     (wx.StaticText(panel, label="")), (self.flash_button, 1, wx.EXPAND),
                     # (wx.StaticText(panel, label="")), (wx.StaticText(panel, label="")),
                     (console_v_sizer, 0, wx.EXPAND), (self.console_ctrl, 1, wx.EXPAND),
-                    (self.verbose_checkBox), (clear_button, 1, wx.EXPAND)])
+                    (self.verbose_checkBox), (clear_button, 1, wx.EXPAND)
+        ])
 
         # this makes the second column expandable (index starts at 0)
         fgs1.AddGrowableCol(1, 1)

@@ -1511,18 +1511,14 @@ add_hosts_module
                 debug(f"Deleting {file_path} from the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell rm -{flag}f \"{file_path}\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                # debug("Returning: 0")
-                return 0
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}")
-                print(f"Stderr: {res.stderr}")
-                return -1
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Returncode: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode == 0:
+                    return 0
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
+            return -1
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {file_path}")
@@ -1566,18 +1562,14 @@ add_hosts_module
             puml(f":Dump Partition;\nnote right:Partition: {partition};\n", True)
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/{partition} of={file_path}\'\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                # debug("Returning: 0")
-                return 0, file_path
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition.")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}")
-                print(f"Stderr: {res.stderr}")
-                return -1, ''
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Returncode: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode == 0:
+                    return 0, file_path
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition")
+            return -1, ''
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not dump the partition")
@@ -1606,22 +1598,19 @@ add_hosts_module
             debug(f"Copying {source} to {dest} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cp \"{source}\" \"{dest}\";chmod 666 \"{dest}\"\'\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and res.stderr == '':
-                # debug("Returning: 0")
-                return 0
-            else:
-                if not quiet:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
-                return -1
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Returncode: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode == 0 and res.stderr == '':
+                    return 0
+            if not quiet:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
+            return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Copy failed")
+            if not quiet:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not su cp.")
             return -1
 
     # ----------------------------------------------------------------------------
@@ -1654,19 +1643,19 @@ add_hosts_module
                 debug(f"Checking for {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell ls \"{file_path}\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                if "No such file or directory" not in f"{res.stdout} {res.stderr}":
-                    print(f"File: {file_path} is found on the device.")
-                    return 1, res.stdout.strip()
-                else:
-                    print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Got returncode 0 but also file not found message.")
-                    return 0, None
-            else:
-                print(f"File: {file_path} is not found on the device.")
-                return 0, None
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Returncode: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if  res.returncode == 0:
+                    if "No such file or directory" not in f"{res.stdout} {res.stderr}":
+                        print(f"File: {file_path} is found on the device.")
+                        return 1, res.stdout.strip()
+                    else:
+                        print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Got returncode 0 but also file not found message.")
+                        return 0, None
+            print(f"File: {file_path} is not found on the device.")
+            return 0, None
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}")
@@ -1701,15 +1690,14 @@ add_hosts_module
                 debug(f"Creating directory {dir_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell mkdir -p \"{dir_path}\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                # debug("Returning: 0")
-                return 0
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
-                return -1
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Returncode: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode == 0:
+                    return 0
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
+            return -1
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create directory: {dir_path}")
@@ -1772,14 +1760,14 @@ add_hosts_module
                 debug(f"Getting file content of {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell cat \"{file_path}\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                return res.stdout
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
-                return -1
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Returncode: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode == 0:
+                    return res.stdout
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
+            return -1
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
@@ -1826,9 +1814,6 @@ add_hosts_module
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {local_file}")
                         return -1
                     res = self.su_cp_on_device(remote_file, file_path)
-                    debug(f"Returncode: {res.returncode}")
-                    debug(f"Stdout: {res.stdout}")
-                    debug(f"Stderr: {res.stderr}")
                     if res != 0:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file}")
                         return -1
@@ -1840,18 +1825,14 @@ add_hosts_module
                 debug(f"Pushing local file: {local_file} to the device: {file_path} ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} push \"{local_file}\" \"{file_path}\""
                 res = run_shell(theCmd)
-                debug(f"Returncode: {res.returncode}")
-                debug(f"Stdout: {res.stdout}")
-                debug(f"Stderr: {res.stderr}")
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                    # debug("Returning: 0")
-                    return 0
-                else:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
-                    return -1
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Returncode: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        return 0
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+            return -1
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
@@ -1888,9 +1869,6 @@ add_hosts_module
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not delete {temp_remote_file}.")
                         return -1
                     res = self.su_cp_on_device(source=remote_file, dest=temp_remote_file, quiet=quiet)
-                    debug(f"Returncode: {res.returncode}")
-                    debug(f"Stdout: {res.stdout}")
-                    debug(f"Stderr: {res.stderr}")
                     if res != 0:
                         if not quiet:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not copy {remote_file} to {temp_remote_file}. Perhaps the file does not exist.")
@@ -1908,18 +1886,14 @@ add_hosts_module
             debug(f"Pulling remote file: {remote_file} from the device to: {local_file} ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} pull \"{remote_file}\" \"{local_file}\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                # debug("Returning: 0")
-                return 0
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}")
-                print(f"Stderr: {res.stderr}")
-                return -1
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Returncode: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode == 0:
+                    return 0
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
+            return -1
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
@@ -1955,15 +1929,14 @@ add_hosts_module
                 debug(f"Setting permissions {permissions} on {file_path} on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell chmod {permissions} \"{file_path}\""
             res = run_shell(theCmd)
-            debug(f"Returncode: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                # debug("Returning: 0")
-                return 0
-            else:
+            if res and isinstance(res, subprocess.CompletedProcess):
                 debug(f"Returncode: {res.returncode}")
-                return -1
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode == 0:
+                    return 0
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+            return -1
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")

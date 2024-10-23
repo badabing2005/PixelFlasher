@@ -3947,14 +3947,17 @@ Before posting publicly please carefully inspect the contents.
             if device:
                 res = device.lock_bootloader()
                 if res == -1:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
-            # only reboot if no_reboot is not selected
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device not found.")
             if not self.config.no_reboot:
                 print("echo rebooting to system ...\n")
                 if device:
                     res = device.reboot_system()
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device not found.")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
             traceback.print_exc()
@@ -4005,12 +4008,16 @@ Before posting publicly please carefully inspect the contents.
                 res = device.unlock_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device not found.")
             if not self.config.no_reboot:
                 print("echo rebooting to system ...\n")
                 if device:
                     res = device.reboot_system()
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device not found.")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
             traceback.print_exc()
@@ -5393,7 +5400,7 @@ Before posting publicly please carefully inspect the contents.
         self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Support", size=wx.Size(-1, 32), style=0)
         self.support_button.SetBitmap(images.support_24.GetBitmap())
         self.support_button.SetBitmapMargins(wx.Size(10, -1))
-        self.support_button.SetToolTip(u"Create sanitized support.zip file\nAll sensitive data is redacted.\n\nThis if absolutely required when asking for help.")
+        self.support_button.SetToolTip(u"Create encrypted and optionally sanitized support.zip file\nWhen sanitized all sensitive data is redacted.\n\nThis file is absolutely required when asking for help.")
         console_v_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL, border=0)
         console_v_sizer.AddSpacer(10)

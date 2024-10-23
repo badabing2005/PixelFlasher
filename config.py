@@ -116,6 +116,7 @@ class Config():
         self.keep_temporary_support_files = False
         self.check_module_updates = True
         self.show_custom_rom_options = False
+        self.sanitize_support_files = False
 
         self.toolbar = {
             'tb_position': 'top',
@@ -312,6 +313,8 @@ class Config():
                     conf.check_module_updates = data['check_module_updates']
                 with contextlib.suppress(KeyError):
                     conf.show_custom_rom_options = data['show_custom_rom_options']
+                with contextlib.suppress(KeyError):
+                    conf.sanitize_support_files = data['sanitize_support_files']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -502,7 +505,8 @@ class Config():
             'override_kmi': self.override_kmi,
             'keep_temporary_support_files': self.keep_temporary_support_files,
             'check_module_updates': self.check_module_updates,
-            'show_custom_rom_options': self.show_custom_rom_options
+            'show_custom_rom_options': self.show_custom_rom_options,
+            'sanitize_support_files': self.sanitize_support_files
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

@@ -261,7 +261,7 @@ The following details are listed.
 **Note**: Unlike the previous versions of the PixelFlasher, all the options are dynamic, i.e. depending on what you select before clicking the Flash button, there is no more concept of prepared package.
 PixelFlasher will first present you the selected options and ask for your confirmation if you want to proceed with flashing.
 12. Monitor the **console** output and observe the performed actions and their outcomes.
-13. In case of trouble, click on **Support** button to generate sanitized (redacted) support logs archive.
+13. In case of trouble, click on **Support** button to generate encrypted and optionally sanitized (redacted) support logs archive.
 
 ### Expert Mode
 
@@ -328,7 +328,7 @@ I strongly encourage all beginners to follow those guides rather than use this p
 
 If you need support or assistance, please **generate and provide a support file** from within PixelFlasher.
 You can hit that big Support button on the main screen, or select it from the Help menu.
-The generated support.zip file is sanitized (redacted) to keep your sensitive information (username device id ...) private.
+The generated support.zip file is encrypted and optionally sanitized (redacted) to keep your sensitive information (username device id ...) private.
 
 - If your anti-virus program is telling you that PixelFlasher is a malware, or you are concerned in any way, please check [this post](https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/post-89090938) about false positives.
 

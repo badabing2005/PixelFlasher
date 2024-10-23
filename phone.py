@@ -3578,7 +3578,16 @@ This is a special Magisk build\n\n
                 print(f"Unlocking bootloader for device: {self.id} ...")
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing lock"
                 debug(theCmd)
-                return run_shell(theCmd)
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Returncode: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        return 0
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during lock_bootloader")
+                    return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in lock_bootloader.")
             puml("#red:Encountered an error in lock_bootloader.;\n")
@@ -3600,7 +3609,16 @@ This is a special Magisk build\n\n
                 print(f"Unlocking bootloader for device: {self.id} ...")
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing unlock"
                 debug(theCmd)
-                return run_shell(theCmd)
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Returncode: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        return 0
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during unlock_bootloader")
+                    return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in unlock_bootloader.")
             puml("#red:Encountered an error in unlock_bootloader.;\n")

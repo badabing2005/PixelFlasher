@@ -2015,28 +2015,29 @@ def create_support_zip():
 
         # sanitize json
         file_path = os.path.join(support_dir_full, 'PixelFlasher.json')
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and config.sanitize_support_files:
             sanitize_file(file_path)
         # sanitize files.txt
         file_path = os.path.join(support_dir_full, 'files.txt')
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and config.sanitize_support_files:
             sanitize_file(file_path)
 
         # for each file in logs, sanitize
-        for filename in os.listdir(logs_dir):
-            file_path = os.path.join(logs_dir, filename)
-            if os.path.exists(file_path):
-                sanitize_file(file_path)
+        if config.sanitize_support_files:
+            for filename in os.listdir(logs_dir):
+                file_path = os.path.join(logs_dir, filename)
+                if os.path.exists(file_path):
+                    sanitize_file(file_path)
 
-        # for each file in logs, sanitize
-        for filename in os.listdir(puml_dir):
-            file_path = os.path.join(puml_dir, filename)
-            if os.path.exists(file_path):
-                sanitize_file(file_path)
+            # for each file in logs, sanitize
+            for filename in os.listdir(puml_dir):
+                file_path = os.path.join(puml_dir, filename)
+                if os.path.exists(file_path):
+                    sanitize_file(file_path)
 
         # sanitize db
         file_path = os.path.join(support_dir_full, get_pf_db())
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and config.sanitize_support_files:
             sanitize_db(file_path)
 
         # create symmetric key

@@ -59,6 +59,8 @@ import traceback
 import zipfile
 import psutil
 import xml.etree.ElementTree as ET
+import urllib3
+import warnings
 from datetime import datetime, timezone, timedelta
 from os import path
 from urllib.parse import urlparse
@@ -165,6 +167,22 @@ class Boot():
         self.patch_source_sha1 = None
         self.spl = None
         self.fingerprint = None
+
+
+# ============================================================================
+#                               Class BetaData
+# ============================================================================
+class BetaData:
+    def __init__(self, release_date, build, emulator_support, security_patch_level, google_play_services, beta_expiry_date, incremental, security_patch, devices):
+        self.release_date = release_date
+        self.build = build
+        self.emulator_support = emulator_support
+        self.security_patch_level = security_patch_level
+        self.google_play_services = google_play_services
+        self.beta_expiry_date = beta_expiry_date
+        self.incremental = incremental
+        self.security_patch = security_patch
+        self.devices = devices
 
 
 # ============================================================================
@@ -1115,6 +1133,7 @@ def init_db():
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_db")
         traceback.print_exc()
 
+
 # ============================================================================
 #                               Function get_config_file_path
 # ============================================================================
@@ -1243,6 +1262,7 @@ def delete_bundled_library(library_names):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while deleting bundled library")
         traceback.print_exc()
+
 
 # ============================================================================
 #                               Function get_bundle_dir
@@ -1630,7 +1650,8 @@ def find_file_by_prefix(directory, prefix):
 def get_ui_cooridnates(xmlfile, search):
     with open(xmlfile, "r", encoding='ISO-8859-1', errors="replace") as fin:
         data = fin.read()
-    regex = re.compile(f"{search}.*?bounds\=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\".+")
+    regex = re.compile(rf'{search}.*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]".+')
+
     m = re.findall(regex, data)
     if m:
         debug(f"Found Bounds: {m[0][0]} {m[0][1]} {m[0][2]} {m[0][3]}")
@@ -1647,12 +1668,16 @@ def get_playstore_user_coords(xmlfile):
     with open(xmlfile, "r", encoding='ISO-8859-1', errors="replace") as fin:
         xml_content = fin.read()
 
-    # Find the position of "Show notifications and offers"
-    show_notifications_position = xml_content.find('Show notifications and offers')
+    # Find the position of "Voice Search"
+    user_search_position = xml_content.find('Voice Search')
 
-    # Check if "Show notifications and offers" is found
-    if show_notifications_position != -1:
-        node = xml_content.find('/node', show_notifications_position)
+    # Check if "Voice Search" is found
+    if user_search_position == -1:
+        # Fallback to old version.
+        user_search_position = xml_content.find('Show notifications and offers')
+
+    if user_search_position != -1:
+        node = xml_content.find('/node', user_search_position)
 
         if node != -1:
             bounds_pos = xml_content.find('bounds=', node)
@@ -2247,6 +2272,7 @@ def check_module_update(url):
         traceback.print_exc()
         return None
 
+
 # ============================================================================
 #                               Function get_free_space
 # ============================================================================
@@ -2286,14 +2312,12 @@ def format_memory_size(size_bytes):
 
 
 # ============================================================================
-#                 Function get_beta_pif
+#                 Function get_partial_gsi_data
 # ============================================================================
-def get_beta_pif(device_model='random'):
+def get_partial_gsi_data():
     try:
         # URLs
         gsi_url = "https://developer.android.com/topic/generic-system-image/releases"
-        secbull_url = "https://source.android.com/docs/security/bulletin/pixel"
-        versions_url = "https://developer.android.com/about/versions"
 
         # Fetch GSI HTML
         response = request_with_fallback('GET', gsi_url)
@@ -2313,17 +2337,15 @@ def get_beta_pif(device_model='random'):
                 break
         if beta_li:
             beta_text = beta_li.get_text()
-            debug(f"Beta Text: {beta_text}")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Beta list item not found")
             return -1
 
         # Find the anchor tag with the text 'corresponding Google Pixel builds'
-        release = soup.find('a', text=lambda x: x and 'corresponding Google Pixel builds' in x)
+        release = soup.find('a', string=lambda x: x and 'corresponding Google Pixel builds' in x)
         if release:
             href = release['href']
             release_version = href.split('/')[3]
-            debug(f"Release Version: {release_version}")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Release version not found")
             return -1
@@ -2337,51 +2359,93 @@ def get_beta_pif(device_model='random'):
                 build_id_text = code.get_text()
                 if 'Security patch level:' in code_text:
                     security_patch_level_text = code_text
+                if 'Google Play Services:' in code_text:
+                    google_play_services = code_text.split('Google Play Services: ')[1].split('\n')[0]
                 break
         if build_id_text:
             build_id = build_id_text.split('Build: ')[1].split()[0]
-            debug(f"Build ID: {build_id}")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build ID not found")
             return -1
+
         if security_patch_level_text:
             security_patch_level_date = security_patch_level_text.split('Security patch level: ')[1].split('\n')[0]
-            debug(f"Security Patch Level Date: {security_patch_level_date}")
-            date_text = security_patch_level_text.split('Date: ')[1].split('\n')[0]
-            beta_release_date = datetime.strptime(date_text, '%B %d, %Y').strftime('%Y-%m-%d')
-            debug(f"Beta Release Date: {beta_release_date}")
-            beta_expiry_date = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
-            debug(f"Beta Expiry Date: {beta_expiry_date.strftime('%Y-%m-%d')}")
+            release_date = security_patch_level_text.split('Date: ')[1].split('\n')[0]
+            beta_release_date = datetime.strptime(release_date, '%B %d, %Y').strftime('%Y-%m-%d')
+            beta_expiry = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
+            beta_expiry_date = beta_expiry.strftime('%Y-%m-%d')
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level date not found")
             return -1
 
-        # Find the incremental value using a regular expression
+        # Find the incremental value
         incremental = None
         match = re.search(rf'{build_id}-(\d+)-', gsi_html)
         if match:
             incremental = match.group(1)
-            debug(f"Incremental: {incremental}")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incremental not found")
             return -1
 
+
+        devices = []
+        table = soup.find('table')
+        rows = table.find_all('tr')[1:]  # Skip the header row
+        for row in rows:
+            cols = row.find_all('td')
+            device = cols[0].text.strip()
+            button = cols[1].find('button')
+            category = button['data-category']
+            zip_filename = button.text.strip()
+            hashcode = cols[1].find('code').text.strip()
+            devices.append({
+                'device': device,
+                'category': category,
+                'zip_filename': zip_filename,
+                'hash': hashcode,
+                'url': None  # Placeholder for URL
+            })
+
+        # Find all hrefs and match with zip_filename
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag['href']
+            for device in devices:
+                if device['zip_filename'] in href:
+                    device['url'] = href
+                    break
+
+        emulator_support = ""
+        security_patch = ""
+        gsi_data = BetaData(release_date, build_id, emulator_support, security_patch_level_date, google_play_services, beta_expiry_date, incremental, security_patch, devices)
+        return gsi_data, release['href']
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting partial GSI data.")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                 Function get_partial_gsi_data2
+# ============================================================================
+def get_partial_gsi_data2(release_href, security_patch_level_date):
+    try:
+        secbull_url = "https://source.android.com/docs/security/bulletin/pixel"
         # Fetch Pixel GET HTML
-        pixel_get_url = "https://developer.android.com" + release['href']
+        pixel_get_url = "https://developer.android.com" + release_href
         response = request_with_fallback('GET', pixel_get_url)
         if response == 'ERROR' or response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel GET HTML")
-            return
+            return None, None
         pixel_get_html = response.text
 
         # Fetch Pixel Beta HTML
         soup = BeautifulSoup(pixel_get_html, 'html.parser')
-        beta_link = soup.find('a', text=lambda x: x and 'Factory images for Google Pixel' in x)
+        beta_link = soup.find('a', string=lambda x: x and 'Factory images for Google Pixel' in x)
         pixel_beta_url = "https://developer.android.com" + beta_link['href']
         response = request_with_fallback('GET', pixel_beta_url)
         if response == 'ERROR' or response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel Beta HTML")
-            return -1
+            return None, None
         pixel_beta_html = response.text
 
         # Parse Pixel Beta HTML
@@ -2421,12 +2485,12 @@ def get_beta_pif(device_model='random'):
         response = request_with_fallback('GET', secbull_url)
         if response == 'ERROR' or response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Security Bulletin HTML")
-            return -1
+            return None, None
         secbull_html = response.text
 
         # Find the corresponding table row in the html
         soup = BeautifulSoup(secbull_html, 'html.parser')
-        security_patch_row = soup.find(text=lambda x: x and security_patch_level_date in x)
+        security_patch_row = soup.find(string=lambda x: x and security_patch_level_date in x)
         if security_patch_row:
             # Find the <tr> element containing the security patch level (the parent)
             tr_element = security_patch_row.find_parent('tr')
@@ -2439,226 +2503,533 @@ def get_beta_pif(device_model='random'):
                     debug(f"Security Patch Level: {security_patch_level}")
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-                    return -1
+                    return None, None
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-                return -1
+                return None, None
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-            return -1
+            return None, None
 
-        # Select random Pixel Beta device
-        def set_random_beta():
-            list_count = len(model_list)
-            list_rand = random.randint(0, list_count - 1)
-            model = model_list[list_rand]
-            product = product_list[list_rand]
-            device = product.replace('_beta', '')
-            return model, product, device
+        return model_list, product_list, security_patch_level
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting partial GSI data.")
+        traceback.print_exc()
 
-        if device_model != '' and f"{device_model}_beta" in product_list:
-            product = f"{device_model}_beta"
-            model = model_list[product_list.index(product)]
-            device = device_model
-        elif device_model == 'all':
-            json_string = ""
-            for item in pixel_data:
-                model = item['model']
-                product = item['product']
-                device = product.replace('_beta', '')
-                pif_data = {
-                    "MANUFACTURER": "Google",
-                    "MODEL": model,
-                    "FINGERPRINT": f"google/{product}/{device}:{release_version}/{build_id}/{incremental}:user/release-keys",
-                    "PRODUCT": product,
-                    "DEVICE": device,
-                    "SECURITY_PATCH": security_patch_level,
-                    "DEVICE_INITIAL_SDK_INT": "32"
-                }
-                json_string += json.dumps(pif_data, indent=4) + "\n"
-            print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
-            return json_string
-        else:
-            model, product, device = set_random_beta()
 
-        # Dump values to pif.json
+# ============================================================================
+#                 Function get_beta_pif
+# ============================================================================
+def get_beta_pif(device_model='random'):
+    # Get the latest Android version
+    latest_version, latest_version_url = get_latest_android_version()
+    if latest_version == -1:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get the latest Android version")
+        return -1
+
+    # set the url to the latest version
+    ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
+    factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
+
+    # Fetch OTA HTML
+    ota_data = get_beta_data(ota_url)
+    # print(ota_data.__dict__)
+
+    # Fetch Factory HTML
+    factory_data = get_beta_data(factory_url)
+    # print(factory_data.__dict__)
+
+    # Fetch GSI HTML
+    partial_gsi_data, release_href = get_partial_gsi_data()
+    # print(partial_gsi_data.__dict__)
+
+    ota_date = ota_data.__dict__['release_date']
+    debug(f"Beta OTA Date:     {ota_date}")
+    gsi_date = partial_gsi_data.__dict__['release_date']
+    debug(f"Beta GSI Date:     {gsi_date}")
+    factory_date = factory_data.__dict__['release_date']
+    debug(f"Beta Factory Date: {factory_date}")
+
+    # Parse the date strings into datetime objects
+    ota_date_object = datetime.strptime(ota_date, "%B %d, %Y")
+    gsi_date_object = datetime.strptime(gsi_date, "%B %d, %Y")
+    factory_date_object = datetime.strptime(factory_date, "%B %d, %Y")
+
+    # Determine the latest date(s)
+    newest_data = []
+    latest_date = max(ota_date_object, factory_date_object, gsi_date_object)
+
+    if ota_date_object == latest_date:
+        newest_data.append('ota')
+    if factory_date_object == latest_date:
+        newest_data.append('factory')
+    if gsi_date_object == latest_date:
+        newest_data.append('gsi')
+
+    def get_model_and_prod_list(data):
+        for device in data.__dict__['devices']:
+            model_list.append(device['device'])
+            zip_filename = device['zip_filename']
+            product = zip_filename.split('-')[0]
+            product_list.append(product)
+        return model_list, product_list
+
+    for data in newest_data:
+        if data == 'ota' and ota_data:
+            debug("Extracting PIF from Beta OTA ...")
+            # Grab fp and sp from OTA zip
+            fingerprint, security_patch = url2fpsp(ota_data.__dict__['devices'][0]['url'], "ota")
+            if fingerprint and security_patch:
+                model_list = []
+                product_list = []
+                model_list, product_list = get_model_and_prod_list(ota_data)
+                expiry_date = ota_data.__dict__['beta_expiry_date']
+                break
+        elif data == 'factory' and factory_data:
+            debug("Extracting PIF from Beta Factory ...")
+            # Grab fp and sp from Factory zip
+            fingerprint, security_patch = url2fpsp(factory_data.__dict__['devices'][0]['url'], "factory")
+            if fingerprint and security_patch:
+                model_list = []
+                product_list = []
+                model_list, product_list = get_model_and_prod_list(factory_data)
+                expiry_date = factory_data.__dict__['beta_expiry_date']
+                break
+        elif data == 'gsi' and partial_gsi_data:
+            debug("Extracting PIF from Beta GSI ...")
+            # Grab fp and sp from GSI zip
+            fingerprint, security_patch = url2fpsp(partial_gsi_data.__dict__['devices'][0]['url'], "gsi")
+            incremental = partial_gsi_data.__dict__['incremental']
+            expiry_date = partial_gsi_data.__dict__['beta_expiry_date']
+            # Get the latest GSI part2 data
+            model_list, product_list, security_patch_level = get_partial_gsi_data2(release_href, partial_gsi_data.__dict__['security_patch_level'])
+            if model_list and product_list:
+                if not security_patch:
+                    security_patch = security_patch_level
+                if not fingerprint:
+                    build_id = partial_gsi_data.__dict__['build']
+                    fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{latest_version}/{build_id}/{incremental}:user/release-keys"
+                break
+
+    if fingerprint and security_patch:
+        debug(f"Security Patch: {security_patch}")
+        # Extract props from fingerprint
+        pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
+        match = re.search(pattern, fingerprint)
+        if match and match.lastindex == 8:
+            # product_brand = match[1]
+            # product_name = match[2]
+            # product_device = match[3]
+            # build_version_release = match[4]
+            build_id = match[5]
+            incremental = match[6]
+            # build_type = match[7]
+            # build_tags = match[8]
+
+    def set_random_beta():
+        list_count = len(model_list)
+        list_rand = random.randint(0, list_count - 1)
+        model = model_list[list_rand]
+        product = product_list[list_rand]
+        device = product.replace('_beta', '')
+        return model, product, device
+
+    def get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch):
         pif_data = {
             "MANUFACTURER": "Google",
             "MODEL": model,
-            "FINGERPRINT": f"google/{product}/{device}:{release_version}/{build_id}/{incremental}:user/release-keys",
+            "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:user/release-keys",
             "PRODUCT": product,
             "DEVICE": device,
-            "SECURITY_PATCH": security_patch_level,
+            "SECURITY_PATCH": security_patch,
             "DEVICE_INITIAL_SDK_INT": "32"
         }
+        return pif_data
 
-        random_print_json = json.dumps(pif_data, indent=4)
-        print(f"Random Beta Profile/Fingerprint:\n{random_print_json}\n")
-        return random_print_json
+    if device_model != '' and f"{device_model}_beta" in product_list:
+        product = f"{device_model}_beta"
+        model = model_list[product_list.index(product)]
+        device = device_model
+    elif device_model == 'all':
+        json_string = ""
+        i = 0
+        for item in model_list:
+            model = item
+            product = product_list[i]
+            device = product.replace('_beta', '')
+            pif_data = get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch)
+            # {
+            #     "MANUFACTURER": "Google",
+            #     "MODEL": model,
+            #     "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:user/release-keys",
+            #     "PRODUCT": product,
+            #     "DEVICE": device,
+            #     "SECURITY_PATCH": security_patch,
+            #     "DEVICE_INITIAL_SDK_INT": "32"
+            # }
+            json_string += json.dumps(pif_data, indent=4) + "\n"
+            i = i + 1
+        print(f"Beta Print Expiry Date: {expiry_date}")
+        print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
+        return json_string
+    else:
+        model, product, device = set_random_beta()
+
+    # Dump values to pif.json
+    pif_data = get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch)
+    # pif_data = {
+    #     "MANUFACTURER": "Google",
+    #     "MODEL": model,
+    #     "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:user/release-keys",
+    #     "PRODUCT": product,
+    #     "DEVICE": device,
+    #     "SECURITY_PATCH": security_patch,
+    #     "DEVICE_INITIAL_SDK_INT": "32"
+    # }
+
+    random_print_json = json.dumps(pif_data, indent=4)
+    print(f"Beta Print Expiry Date: {expiry_date}")
+    print(f"Random Beta Profile/Fingerprint:\n{random_print_json}\n")
+    return random_print_json
+
+
+# ============================================================================
+#                               Function get_beta_data
+# ============================================================================
+def get_beta_data(url):
+    try:
+        response = requests.get(url)
+        if response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch OTA HTML")
+            return -1
+        ota_html = response.text
+
+        soup = BeautifulSoup(ota_html, 'html.parser')
+
+        # Extract information from the first table
+        table = soup.find('table', class_='responsive fixed')
+        rows = table.find_all('tr')
+        data = {}
+        for row in rows:
+            cols = row.find_all('td')
+            key = cols[0].text.strip().lower().replace(' ', '_')
+            value = cols[1].text.strip()
+            data[key] = value
+
+        release_date = data.get('release_date')
+        build = data.get('build')
+        emulator_support = data.get('emulator_support')
+        security_patch_level = data.get('security_patch_level')
+        google_play_services = data.get('google_play_services')
+        beta_release_date = datetime.strptime(release_date, '%B %d, %Y').strftime('%Y-%m-%d')
+        beta_expiry = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
+        beta_expiry_date = beta_expiry.strftime('%Y-%m-%d')
+
+        # Extract information from the second table
+        devices = []
+        table = soup.find('table', id='images')
+        rows = table.find_all('tr')[1:]  # Skip the header row
+        for row in rows:
+            cols = row.find_all('td')
+            device = cols[0].text.strip()
+            button = cols[1].find('button')
+            category = button['data-category']
+            zip_filename = button.text.strip()
+            hashcode = cols[1].find('code').text.strip()
+            devices.append({
+                'device': device,
+                'category': category,
+                'zip_filename': zip_filename,
+                'hash': hashcode,
+                'url': None  # Placeholder for URL
+            })
+
+        # Find all hrefs and match with zip_filename
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag['href']
+            for device in devices:
+                if device['zip_filename'] in href:
+                    device['url'] = href
+                    break
+        incremental = ""
+        security_patch = ""
+        beta_data = BetaData(release_date, build, emulator_support, security_patch_level, google_play_services, beta_expiry_date, incremental, security_patch, devices)
+        return beta_data
     except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_beta_pif function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_beta_data function")
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function get_latest_android_version
+# ============================================================================
+def get_latest_android_version():
+    versions_url = "https://developer.android.com/about/versions"
+    response = request_with_fallback('GET', versions_url)
+    if response == 'ERROR' or response.status_code != 200:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch VERSIONS HTML")
+        return -1
+    versions_html = response.text
+
+    soup = BeautifulSoup(versions_html, 'html.parser')
+    version = 0
+    link_url = ''
+    for link in soup.find_all('a'):
+        href = link.get('href')
+        if href and re.match(r'https:\/\/developer\.android\.com\/about\/versions\/\d+', href):
+            # capture the d+ part
+            link_version = int(re.search(r'\d+', href).group())
+            if link_version > version:
+                version = link_version
+                link_url = href
+    return version, link_url
+
+
+# ============================================================================
+#                               Function url2fpsp
+# ============================================================================
+def url2fpsp(url, image_type):
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+
+            fingerprint = None
+            security_patch = None
+            response = requests.get(url, stream=True, verify=False)
+            response.raise_for_status()
+
+            if image_type == 'ota':
+                size_limit = 2 * 1024
+                content = response.raw.read(size_limit).decode('utf-8', errors='ignore')
+                fingerprint_match = re.search(r"post-build=(.+)", content)
+                security_patch_match = re.search(r"security-patch-level=(.+)", content)
+            elif image_type == 'factory':
+                size_limit = 30000000
+                content = response.raw.read(size_limit).decode('utf-8', errors='ignore')
+                fingerprint_match = re.search(r"com.android.build.boot.fingerprint(.+?)\x00", content)
+                security_patch_match = re.search(r"com.android.build.boot.security_patch(.+?)\x00", content)
+            elif image_type == 'gsi':
+                response = requests.head(url)
+                file_size = int(response.headers["Content-Length"])
+                start_byte = max(0, file_size - 8192)
+                headers = {"Range": f"bytes={start_byte}-{file_size - 1}"}
+                response = requests.get(url, headers=headers, stream=True, verify=False)
+                end_content = response.content
+                content = partial_extract(end_content, "build.prop")
+                content_str = content.decode('utf-8', errors='ignore')
+                fingerprint_match = re.search(r"ro\.system\.build\.fingerprint=(.+)", content_str)
+                security_patch_match = re.search(r"ro\.build\.version\.security_patch=(.+)", content_str)
+            else:
+                print(f"Invalid image type: {image_type}")
+                return -1
+
+            fingerprint = fingerprint_match.group(1).strip('\x00') if fingerprint_match else None
+            security_patch = security_patch_match.group(1).strip('\x00') if security_patch_match else None
+
+            # debug("FINGERPRINT:", fingerprint)
+            # debug("SECURITY_PATCH:", security_patch)
+            return fingerprint, security_patch
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in url2fpsp function")
+        traceback.print_exc()
+        return -1
+
+
+# ============================================================================
+#                               Function partial_extract
+# ============================================================================
+def partial_extract(content, extract_file):
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
+            debug(f"Files in the partial ZIP content:")
+            debug(zip_file.namelist())
+            # Extracting a specific file by name
+            with zip_file.open(extract_file) as file:
+                content = file.read()
+                return content
+    except zipfile.BadZipFile as e:
+        print("Unable to read ZIP file:", e)
+    except KeyError:
+        print("Target file not found in ZIP content.")
+    except Exception as e:
+        print("An error occurred:", e)
 
 
 # ============================================================================
 #                               Function format_memory_size
 # ============================================================================
 def get_printable_memory():
-    free_memory, total_memory = get_free_memory()
-    formatted_free_memory = format_memory_size(free_memory)
-    formatted_total_memory = format_memory_size(total_memory)
-    return f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}"
+    try:
+        free_memory, total_memory = get_free_memory()
+        formatted_free_memory = format_memory_size(free_memory)
+        formatted_total_memory = format_memory_size(total_memory)
+        return f"Available Free Memory: {formatted_free_memory} / {formatted_total_memory}"
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_printable_memory function")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function device_has_update
 # ============================================================================
 def device_has_update(data, device_id, target_date):
-    if not data:
-        return False
-    if device_id in data:
-        device_data = data[device_id]
+    try:
+        if not data:
+            return False
+        if device_id in data:
+            device_data = data[device_id]
 
-        for download_type in ['ota', 'factory']:
-            for download_entry in device_data[download_type]:
-                download_date = download_entry['date']
-                # Compare the download date with the target date
-                if download_date > target_date:
-                    return True
-    return False
+            for download_type in ['ota', 'factory']:
+                for download_entry in device_data[download_type]:
+                    download_date = download_entry['date']
+                    # Compare the download date with the target date
+                    if download_date > target_date:
+                        return True
+        return False
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in device_has_update function")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function get_google_images
 # ============================================================================
 def get_google_images(save_to=None):
-    COOKIE = {'Cookie': 'devsite_wall_acks=nexus-ota-tos,nexus-image-tos,watch-image-tos,watch-ota-tos'}
-    data = {}
+    try:
+        COOKIE = {'Cookie': 'devsite_wall_acks=nexus-ota-tos,nexus-image-tos,watch-image-tos,watch-ota-tos'}
+        data = {}
 
-    if save_to is None:
-        save_to = os.path.join(get_config_path(), "google_images.json").strip()
+        if save_to is None:
+            save_to = os.path.join(get_config_path(), "google_images.json").strip()
 
-    for image_type in ['ota', 'factory', 'ota-watch', 'factory-watch']:
-        if image_type == 'ota':
-            url = "https://developers.google.com/android/ota"
-            download_type = "ota"
-            device_type = "phone"
-        elif image_type == 'factory':
-            url = "https://developers.google.com/android/images"
-            download_type = "factory"
-            device_type = "phone"
-        elif image_type == 'ota-watch':
-            url = "https://developers.google.com/android/ota-watch"
-            download_type = "ota"
-            device_type = "watch"
-        elif image_type == 'factory-watch':
-            url = "https://developers.google.com/android/images-watch"
-            download_type = "factory"
-            device_type = "watch"
+        for image_type in ['ota', 'factory', 'ota-watch', 'factory-watch']:
+            if image_type == 'ota':
+                url = "https://developers.google.com/android/ota"
+                download_type = "ota"
+                device_type = "phone"
+            elif image_type == 'factory':
+                url = "https://developers.google.com/android/images"
+                download_type = "factory"
+                device_type = "phone"
+            elif image_type == 'ota-watch':
+                url = "https://developers.google.com/android/ota-watch"
+                download_type = "ota"
+                device_type = "watch"
+            elif image_type == 'factory-watch':
+                url = "https://developers.google.com/android/images-watch"
+                download_type = "factory"
+                device_type = "watch"
 
-        response = request_with_fallback(method='GET', url=url, headers=COOKIE)
-        if response != 'ERROR':
-            html = response.content
-            soup = BeautifulSoup(html, 'html.parser')
-            marlin_flag = False
+            response = request_with_fallback(method='GET', url=url, headers=COOKIE)
+            if response != 'ERROR':
+                html = response.content
+                soup = BeautifulSoup(html, 'html.parser')
+                marlin_flag = False
 
-            # Find all the <h2> elements containing device names
-            device_elements = soup.find_all('h2')
-        else:
-            device_elements = []
+                # Find all the <h2> elements containing device names
+                device_elements = soup.find_all('h2')
+            else:
+                device_elements = []
 
-        # Iterate through the device elements
-        for device_element in device_elements:
-            # Check if the text of the <h2> element should be skipped
-            if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions"]:
-                continue
+            # Iterate through the device elements
+            for device_element in device_elements:
+                # Check if the text of the <h2> element should be skipped
+                if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions"]:
+                    continue
 
-            # Extract the device name from the 'id' attribute
-            device_id = device_element.get('id')
+                # Extract the device name from the 'id' attribute
+                device_id = device_element.get('id')
 
-            # Extract the device label from the text and strip "id"
-            device_label = device_element.get('data-text').strip('"').split('" for ')[1]
+                # Extract the device label from the text and strip "id"
+                device_label = device_element.get('data-text').strip('"').split('" for ')[1]
 
-            # Initialize a dictionary to store the device's downloads for both OTA and Factory
-            downloads_dict = {'ota': [], 'factory': []}
+                # Initialize a dictionary to store the device's downloads for both OTA and Factory
+                downloads_dict = {'ota': [], 'factory': []}
 
-            # Find the <table> element following the <h2> for each device
-            table = device_element.find_next('table')
+                # Find the <table> element following the <h2> for each device
+                table = device_element.find_next('table')
 
-            # Find all <tr> elements in the table
-            rows = table.find_all('tr')
+                # Find all <tr> elements in the table
+                rows = table.find_all('tr')
 
-            # For factory images, the table format changes from Marlin onwards
-            if device_id == 'marlin':
-                marlin_flag = True
+                # For factory images, the table format changes from Marlin onwards
+                if device_id == 'marlin':
+                    marlin_flag = True
 
-            for row in rows:
-                # Extract the fields from each <tr> element
-                columns = row.find_all('td')
-                version = columns[0].text.strip()
+                for row in rows:
+                    # Extract the fields from each <tr> element
+                    columns = row.find_all('td')
+                    version = columns[0].text.strip()
 
-                # Different extraction is necessary per type
-                if image_type in ['ota', 'ota-watch'] or (marlin_flag and image_type == "factory"):
-                    sha256_checksum = columns[2].text.strip()
-                    download_url = columns[1].find('a')['href']
-                elif image_type in ['factory', 'factory-watch']:
-                    download_url = columns[2].find('a')['href']
-                    sha256_checksum = columns[3].text.strip()
+                    # Different extraction is necessary per type
+                    if image_type in ['ota', 'ota-watch'] or (marlin_flag and image_type == "factory"):
+                        sha256_checksum = columns[2].text.strip()
+                        download_url = columns[1].find('a')['href']
+                    elif image_type in ['factory', 'factory-watch']:
+                        download_url = columns[2].find('a')['href']
+                        sha256_checksum = columns[3].text.strip()
 
-                date_match = re.search(r'\b(\d{6})\b', version)
-                date = None
-                if date_match:
-                    date = date_match[1]
-                else:
-                    date = extract_date_from_google_version(version)
+                    date_match = re.search(r'\b(\d{6})\b', version)
+                    date = None
+                    if date_match:
+                        date = date_match[1]
+                    else:
+                        date = extract_date_from_google_version(version)
 
-                # Create a dictionary for each download
-                download_info = {
-                    'version': version,
-                    'url': download_url,
-                    'sha256': sha256_checksum,
-                    'date': date
-                }
+                    # Create a dictionary for each download
+                    download_info = {
+                        'version': version,
+                        'url': download_url,
+                        'sha256': sha256_checksum,
+                        'date': date
+                    }
 
-                # Check if the download entry already exists, and only add it if it's a new entry
-                if download_info not in downloads_dict[download_type]:
-                    downloads_dict[download_type].append(download_info)
+                    # Check if the download entry already exists, and only add it if it's a new entry
+                    if download_info not in downloads_dict[download_type]:
+                        downloads_dict[download_type].append(download_info)
 
-            # Add the device name (using 'device_id') and device label (using 'device_label') to the data dictionary
-            if device_id not in data:
-                data[device_id] = {
-                    'label': device_label,
-                    'type': device_type,
-                    'ota': [],
-                    'factory': []
-                }
+                # Add the device name (using 'device_id') and device label (using 'device_label') to the data dictionary
+                if device_id not in data:
+                    data[device_id] = {
+                        'label': device_label,
+                        'type': device_type,
+                        'ota': [],
+                        'factory': []
+                    }
 
-            # Append the downloads to the corresponding list based on download_type
-            data[device_id]['ota'].extend(downloads_dict['ota'])
-            data[device_id]['factory'].extend(downloads_dict['factory'])
+                # Append the downloads to the corresponding list based on download_type
+                data[device_id]['ota'].extend(downloads_dict['ota'])
+                data[device_id]['factory'].extend(downloads_dict['factory'])
 
-    # Convert to JSON
-    json_data = json.dumps(data, indent=2)
+        # Convert to JSON
+        json_data = json.dumps(data, indent=2)
 
-    # Save
-    with open(save_to, 'w', encoding='utf-8') as json_file:
-        json_file.write(json_data)
+        # Save
+        with open(save_to, 'w', encoding='utf-8') as json_file:
+            json_file.write(json_data)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_google_images function")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                         extract_date_from_google_version
 # ============================================================================
 def extract_date_from_google_version(version_string):
-    # pattern to find a 3-letter month followed by a year
-    pattern = re.compile(r'(\b[A-Za-z]{3}\s\d{4}\b)')
-    match = pattern.search(version_string)
+    try:
+        # pattern to find a 3-letter month followed by a year
+        pattern = re.compile(r'(\b[A-Za-z]{3}\s\d{4}\b)')
+        match = pattern.search(version_string)
 
-    if match:
-        date_str = match.group()
-        date_obj = datetime.strptime(date_str, '%b %Y')
-        # convert to yymm01
-        return date_obj.strftime('%y%m01')
-    return None
+        if match:
+            date_str = match.group()
+            date_obj = datetime.strptime(date_str, '%b %Y')
+            # convert to yymm01
+            return date_obj.strftime('%y%m01')
+        return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_date_from_google_version function")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -2700,23 +3071,31 @@ def download_file(url, filename=None, callback=None, stream=True):
 #                               Function get_first_match
 # ============================================================================
 def get_first_match(dictionary, keys):
-    for key in keys:
-        if key in dictionary:
-            value = dictionary[key]
-            break
-    else:
-        value = ''
-    return value
+    try:
+        for key in keys:
+            if key in dictionary:
+                value = dictionary[key]
+                break
+        else:
+            value = ''
+        return value
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_first_match function")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function delete_keys_from_dict
 # ============================================================================
 def delete_keys_from_dict(dictionary, keys):
-    for key in keys:
-        if key in dictionary:
-            del dictionary[key]
-    return dictionary
+    try:
+        for key in keys:
+            if key in dictionary:
+                del dictionary[key]
+        return dictionary
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in delete_keys_from_dict function")
+        traceback.print_exc()
 
 
 # ============================================================================
@@ -3041,90 +3420,104 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
 #                               Function detect_encoding
 # ============================================================================
 def detect_encoding(filename):
-    with open(filename, 'rb') as file:
-        result = chardet.detect(file.read())
-    return result['encoding']
+    try:
+        with open(filename, 'rb') as file:
+            result = chardet.detect(file.read())
+        return result['encoding']
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in detect_encoding function")
+        traceback.print_exc()
 
 
 # ============================================================================
 #                               Function process_pi_xml_piac
 # ============================================================================
 def process_pi_xml_piac(filename):
-    encoding = detect_encoding(filename)
-    with open(filename, 'r', encoding=encoding, errors="replace") as file:
-        xml_string = file.read()
+    try:
+        encoding = detect_encoding(filename)
+        with open(filename, 'r', encoding=encoding, errors="replace") as file:
+            xml_string = file.read()
 
-    # Parse the XML string
-    root = ET.fromstring(xml_string)
+        # Parse the XML string
+        root = ET.fromstring(xml_string)
 
-    # Specify the resource-ids to identify the nodes of interest
-    resource_ids_list = [
-        'gr.nikolasspyr.integritycheck:id/device_integrity_icon',
-        'gr.nikolasspyr.integritycheck:id/basic_integrity_icon',
-        'gr.nikolasspyr.integritycheck:id/strong_integrity_icon'
-    ]
+        # Specify the resource-ids to identify the nodes of interest
+        resource_ids_list = [
+            'gr.nikolasspyr.integritycheck:id/device_integrity_icon',
+            'gr.nikolasspyr.integritycheck:id/basic_integrity_icon',
+            'gr.nikolasspyr.integritycheck:id/strong_integrity_icon'
+        ]
 
-    # Check if the XML contains the specific string
-    if 'The calling app is making too many requests to the API' in xml_string:
-        return "Quota Reached.\nPlay Integrity API Checker\nis making too many requests to the Google API."
+        # Check if the XML contains the specific string
+        if 'The calling app is making too many requests to the API' in xml_string:
+            return "Quota Reached.\nPlay Integrity API Checker\nis making too many requests to the Google API."
 
-    # Print the 'content-desc' values along with a modified version of the resource-id
-    result = ''
-    for resource_id in resource_ids_list:
-        nodes = root.findall(f'.//node[@resource-id="{resource_id}"]')
-        for node in nodes:
-            value = node.get('content-desc', '')
-            modified_resource_id = resource_id.replace('gr.nikolasspyr.integritycheck:id/', '').replace('_icon', '')
-            result += f"{modified_resource_id}:\t{value}\n"
-    if result == '':
+        # Print the 'content-desc' values along with a modified version of the resource-id
+        result = ''
+        for resource_id in resource_ids_list:
+            nodes = root.findall(f'.//node[@resource-id="{resource_id}"]')
+            for node in nodes:
+                value = node.get('content-desc', '')
+                modified_resource_id = resource_id.replace('gr.nikolasspyr.integritycheck:id/', '').replace('_icon', '')
+                result += f"{modified_resource_id}:\t{value}\n"
+        if result == '':
+            return -1
+        debug(result)
+        return result
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in process_pi_xml_piac function")
+        traceback.print_exc()
         return -1
-    debug(result)
-    return result
 
 
 # ============================================================================
 #                               Function process_pi_xml_spic
 # ============================================================================
 def process_pi_xml_spic(filename):
-    encoding = detect_encoding(filename)
-    with open(filename, 'r', encoding=encoding, errors="replace") as file:
-        xml_content = file.read()
+    try:
+        encoding = detect_encoding(filename)
+        with open(filename, 'r', encoding=encoding, errors="replace") as file:
+            xml_content = file.read()
 
-    # Check if the XML contains the specific string
-    if 'Integrity API error (-8)' in xml_content:
-        return "Quota Reached.\nSimple Play Integrity Checker\nis making too many requests to the Google API."
+        # Check if the XML contains the specific string
+        if 'Integrity API error (-8)' in xml_content:
+            return "Quota Reached.\nSimple Play Integrity Checker\nis making too many requests to the Google API."
 
-    # Find the position of "Play Integrity Result:"
-    play_integrity_result_pos = xml_content.find("Play Integrity Result:")
+        # Find the position of "Play Integrity Result:"
+        play_integrity_result_pos = xml_content.find("Play Integrity Result:")
 
-    # If "Play Integrity Result:" is found, continue searching for index="3"
-    if play_integrity_result_pos != -1:
-        index_3_pos = xml_content.find('index="3"', play_integrity_result_pos)
+        # If "Play Integrity Result:" is found, continue searching for index="3"
+        if play_integrity_result_pos != -1:
+            index_3_pos = xml_content.find('index="3"', play_integrity_result_pos)
 
-        # If index="3" is found, extract the value after it
-        if index_3_pos != -1:
-            # Adjust the position to point at the end of 'index="3"' and then get the next value between double quotes.
-            index_3_pos += len('index="3"')
-            value_start_pos = xml_content.find('"', index_3_pos) + 1
-            value_end_pos = xml_content.find('"', value_start_pos)
-            value_after_index_3 = xml_content[value_start_pos:value_end_pos]
-            debug(value_after_index_3)
-            if value_after_index_3 == "NO_INTEGRITY":
-                result = "[✗] [✗] [✗]"
-            elif value_after_index_3 == "MEETS_BASIC_INTEGRITY":
-                result = "[✓] [✗] [✗]"
-            elif value_after_index_3 == "MEETS_DEVICE_INTEGRITY":
-                result = "[✓] [✓] [✗]"
-            elif value_after_index_3 == "MEETS_STRONG_INTEGRITY":
-                result = "[✓] [✓] [✓]"
-            elif value_after_index_3 == "MEETS_VIRTUAL_INTEGRITY":
-                result = "[o] [o] [o]"
-            return f"{result} {value_after_index_3}"
+            # If index="3" is found, extract the value after it
+            if index_3_pos != -1:
+                # Adjust the position to point at the end of 'index="3"' and then get the next value between double quotes.
+                index_3_pos += len('index="3"')
+                value_start_pos = xml_content.find('"', index_3_pos) + 1
+                value_end_pos = xml_content.find('"', value_start_pos)
+                value_after_index_3 = xml_content[value_start_pos:value_end_pos]
+                debug(value_after_index_3)
+                if value_after_index_3 == "NO_INTEGRITY":
+                    result = "[✗] [✗] [✗]"
+                elif value_after_index_3 == "MEETS_BASIC_INTEGRITY":
+                    result = "[✓] [✗] [✗]"
+                elif value_after_index_3 == "MEETS_DEVICE_INTEGRITY":
+                    result = "[✓] [✓] [✗]"
+                elif value_after_index_3 == "MEETS_STRONG_INTEGRITY":
+                    result = "[✓] [✓] [✓]"
+                elif value_after_index_3 == "MEETS_VIRTUAL_INTEGRITY":
+                    result = "[o] [o] [o]"
+                return f"{result} {value_after_index_3}"
+            else:
+                print("Error")
+                return -1
         else:
-            print("Error")
+            print("'Play Integrity Result:' not found")
             return -1
-    else:
-        print("'Play Integrity Result:' not found")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in process_pi_xml_spic function")
+        traceback.print_exc()
         return -1
 
 
@@ -3132,67 +3525,72 @@ def process_pi_xml_spic(filename):
 #                               Function process_pi_xml_tb
 # ============================================================================
 def process_pi_xml_tb(filename):
-    encoding = detect_encoding(filename)
-    with open(filename, 'r', encoding=encoding, errors="replace") as file:
-        xml_content = file.read()
+    try:
+        encoding = detect_encoding(filename)
+        with open(filename, 'r', encoding=encoding, errors="replace") as file:
+            xml_content = file.read()
 
-    # Find the position of "Play Integrity Result:"
-    play_integrity_result_pos = xml_content.find("Result Play integrity")
+        # Find the position of "Play Integrity Result:"
+        play_integrity_result_pos = xml_content.find("Result Play integrity")
 
-    # If "Result Play integrity" is found, continue searching for index="3"
-    if play_integrity_result_pos != -1:
-        basic_integrity_pos = xml_content.find('"Basic integrity"', play_integrity_result_pos)
+        # If "Result Play integrity" is found, continue searching for index="3"
+        if play_integrity_result_pos != -1:
+            basic_integrity_pos = xml_content.find('"Basic integrity"', play_integrity_result_pos)
 
-        # If "Basic integrity" is found, continue looking for text=
-        if basic_integrity_pos != -1:
-            # find next text= position
-            basic_integrity_result_pos = xml_content.find('text=', basic_integrity_pos)
-
-            # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
-            basic_integrity_result_pos += len('text=')
-
-            value_start_pos = xml_content.find('"', basic_integrity_result_pos) + 1
-            value_end_pos = xml_content.find('"', value_start_pos)
-            basic_integrity = xml_content[value_start_pos:value_end_pos]
-
-            device_integrity_pos = xml_content.find('"Device integrity"', value_end_pos)
-            # If "Device integrity" is found, continue looking for text=
-            if device_integrity_pos != -1:
+            # If "Basic integrity" is found, continue looking for text=
+            if basic_integrity_pos != -1:
                 # find next text= position
-                device_integrity_result_pos = xml_content.find('text=', device_integrity_pos)
+                basic_integrity_result_pos = xml_content.find('text=', basic_integrity_pos)
 
                 # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
-                device_integrity_result_pos += len('text=')
+                basic_integrity_result_pos += len('text=')
 
-                value_start_pos = xml_content.find('"', device_integrity_result_pos) + 1
+                value_start_pos = xml_content.find('"', basic_integrity_result_pos) + 1
                 value_end_pos = xml_content.find('"', value_start_pos)
-                device_integrity = xml_content[value_start_pos:value_end_pos]
+                basic_integrity = xml_content[value_start_pos:value_end_pos]
 
-
-                strong_integrity_pos = xml_content.find('"Strong integrity"', value_end_pos)
+                device_integrity_pos = xml_content.find('"Device integrity"', value_end_pos)
                 # If "Device integrity" is found, continue looking for text=
-                if strong_integrity_pos != -1:
+                if device_integrity_pos != -1:
                     # find next text= position
-                    strong_integrity_result_pos = xml_content.find('text=', strong_integrity_pos)
+                    device_integrity_result_pos = xml_content.find('text=', device_integrity_pos)
 
                     # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
-                    strong_integrity_result_pos += len('text=')
+                    device_integrity_result_pos += len('text=')
 
-                    value_start_pos = xml_content.find('"', strong_integrity_result_pos) + 1
+                    value_start_pos = xml_content.find('"', device_integrity_result_pos) + 1
                     value_end_pos = xml_content.find('"', value_start_pos)
-                    strong_integrity = xml_content[value_start_pos:value_end_pos]
+                    device_integrity = xml_content[value_start_pos:value_end_pos]
 
-                result = f"Basic integrity:  {basic_integrity}\n"
-                result += f"Device integrity: {device_integrity}\n"
-                result += f"Strong integrity: {strong_integrity}\n"
 
-                debug(result)
-                return result
+                    strong_integrity_pos = xml_content.find('"Strong integrity"', value_end_pos)
+                    # If "Device integrity" is found, continue looking for text=
+                    if strong_integrity_pos != -1:
+                        # find next text= position
+                        strong_integrity_result_pos = xml_content.find('text=', strong_integrity_pos)
+
+                        # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+                        strong_integrity_result_pos += len('text=')
+
+                        value_start_pos = xml_content.find('"', strong_integrity_result_pos) + 1
+                        value_end_pos = xml_content.find('"', value_start_pos)
+                        strong_integrity = xml_content[value_start_pos:value_end_pos]
+
+                    result = f"Basic integrity:  {basic_integrity}\n"
+                    result += f"Device integrity: {device_integrity}\n"
+                    result += f"Strong integrity: {strong_integrity}\n"
+
+                    debug(result)
+                    return result
+            else:
+                print("Error")
+                return -1
         else:
-            print("Error")
+            print("'Result Play integrity' not found")
             return -1
-    else:
-        print("'Result Play integrity' not found")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in process_pi_xml_tb function")
+        traceback.print_exc()
         return -1
 
 
@@ -3200,92 +3598,103 @@ def process_pi_xml_tb(filename):
 #                               Function process_pi_xml_ps
 # ============================================================================
 def process_pi_xml_ps(filename):
-    encoding = detect_encoding(filename)
-    with open(filename, 'r', encoding=encoding, errors="replace") as file:
-        xml_content = file.read()
+    try:
+        encoding = detect_encoding(filename)
+        with open(filename, 'r', encoding=encoding, errors="replace") as file:
+            xml_content = file.read()
 
-    # Find the position of text="Labels:
-    labels_pos = xml_content.find('text="Labels:')
+        # Find the position of text="Labels:
+        labels_pos = xml_content.find('text="Labels:')
 
-    # If found
-    if labels_pos != -1:
+        # If found
+        if labels_pos != -1:
 
-        # Adjust the position to point at the end of 'text=' and then get the next value between [ ].
-        labels_pos += len('text="Labels:')
+            # Adjust the position to point at the end of 'text=' and then get the next value between [ ].
+            labels_pos += len('text="Labels:')
 
-        value_start_pos = xml_content.find('[', labels_pos) + 1
-        value_end_pos = xml_content.find(']', value_start_pos)
-        result = xml_content[value_start_pos:value_end_pos]
-        debug(result)
-        return result
+            value_start_pos = xml_content.find('[', labels_pos) + 1
+            value_end_pos = xml_content.find(']', value_start_pos)
+            result = xml_content[value_start_pos:value_end_pos]
+            debug(result)
+            return result
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in process_pi_xml_ps function")
+        traceback.print_exc()
+        return -1
 
 
 # ============================================================================
 #                               Function process_pi_xml_yasnac
 # ============================================================================
 def process_pi_xml_yasnac(filename):
-    encoding = detect_encoding(filename)
-    with open(filename, 'r', encoding=encoding, errors="replace") as file:
-        xml_content = file.read()
+    try:
+        encoding = detect_encoding(filename)
+        with open(filename, 'r', encoding=encoding, errors="replace") as file:
+            xml_content = file.read()
 
-    # Find the position of text="Result"
-    yasnac_result_pos = xml_content.find('text="Result"')
+        # Find the position of text="Result"
+        yasnac_result_pos = xml_content.find('text="Result"')
 
-    # If found, continue searching for text="Basic integrity"
-    if yasnac_result_pos != -1:
-        basic_integrity_pos = xml_content.find('"Basic integrity"', yasnac_result_pos)
+        # If found, continue searching for text="Basic integrity"
+        if yasnac_result_pos != -1:
+            basic_integrity_pos = xml_content.find('"Basic integrity"', yasnac_result_pos)
 
-        # If "Basic integrity" is found, continue looking for text=
-        if basic_integrity_pos != -1:
-            # find next text= position
-            basic_integrity_result_pos = xml_content.find('text=', basic_integrity_pos)
-
-            # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
-            basic_integrity_result_pos += len('text=')
-
-            value_start_pos = xml_content.find('"', basic_integrity_result_pos) + 1
-            value_end_pos = xml_content.find('"', value_start_pos)
-            basic_integrity = xml_content[value_start_pos:value_end_pos]
-
-            cts_profile_match_pos = xml_content.find('"CTS profile match"', value_end_pos)
-            # If "CTS profile match" is found, continue looking for text=
-            if cts_profile_match_pos != -1:
+            # If "Basic integrity" is found, continue looking for text=
+            if basic_integrity_pos != -1:
                 # find next text= position
-                cts_profile_match_result_pos = xml_content.find('text=', cts_profile_match_pos)
+                basic_integrity_result_pos = xml_content.find('text=', basic_integrity_pos)
 
                 # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
-                cts_profile_match_result_pos += len('text=')
+                basic_integrity_result_pos += len('text=')
 
-                value_start_pos = xml_content.find('"', cts_profile_match_result_pos) + 1
+                value_start_pos = xml_content.find('"', basic_integrity_result_pos) + 1
                 value_end_pos = xml_content.find('"', value_start_pos)
-                cts_profile_match = xml_content[value_start_pos:value_end_pos]
+                basic_integrity = xml_content[value_start_pos:value_end_pos]
 
-
-                evaluation_type_pos = xml_content.find('"Evaluation type"', value_end_pos)
-                # If "Evaluation type" is found, continue looking for text=
-                if evaluation_type_pos != -1:
+                cts_profile_match_pos = xml_content.find('"CTS profile match"', value_end_pos)
+                # If "CTS profile match" is found, continue looking for text=
+                if cts_profile_match_pos != -1:
                     # find next text= position
-                    evaluation_type_result_pos = xml_content.find('text=', evaluation_type_pos)
+                    cts_profile_match_result_pos = xml_content.find('text=', cts_profile_match_pos)
 
                     # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
-                    evaluation_type_result_pos += len('text=')
+                    cts_profile_match_result_pos += len('text=')
 
-                    value_start_pos = xml_content.find('"', evaluation_type_result_pos) + 1
+                    value_start_pos = xml_content.find('"', cts_profile_match_result_pos) + 1
                     value_end_pos = xml_content.find('"', value_start_pos)
-                    evaluation_type = xml_content[value_start_pos:value_end_pos]
+                    cts_profile_match = xml_content[value_start_pos:value_end_pos]
 
-                result = f"Basic integrity:   {basic_integrity}\n"
-                result += f"CTS profile match: {cts_profile_match}\n"
-                result += f"Evaluation type:   {evaluation_type}\n"
 
-                debug(result)
-                return result
+                    evaluation_type_pos = xml_content.find('"Evaluation type"', value_end_pos)
+                    # If "Evaluation type" is found, continue looking for text=
+                    if evaluation_type_pos != -1:
+                        # find next text= position
+                        evaluation_type_result_pos = xml_content.find('text=', evaluation_type_pos)
+
+                        # Adjust the position to point at the end of 'text=' and then get the next value between double quotes.
+                        evaluation_type_result_pos += len('text=')
+
+                        value_start_pos = xml_content.find('"', evaluation_type_result_pos) + 1
+                        value_end_pos = xml_content.find('"', value_start_pos)
+                        evaluation_type = xml_content[value_start_pos:value_end_pos]
+
+                    result = f"Basic integrity:   {basic_integrity}\n"
+                    result += f"CTS profile match: {cts_profile_match}\n"
+                    result += f"Evaluation type:   {evaluation_type}\n"
+
+                    debug(result)
+                    return result
+            else:
+                print("Error")
+                return -1
         else:
-            print("Error")
+            print("'Result' not found")
             return -1
-    else:
-        print("'Result' not found")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in process_pi_xml_yasnac function")
+        traceback.print_exc()
         return -1
+
 
 # ============================================================================
 #                               Function get_xiaomi_apk
@@ -3653,11 +4062,16 @@ def get_pif_from_image(image_file):
             theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\""
             debug(theCmd)
             res = run_shell2(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Return Code: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode != 0:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
+                    print("Aborting ...\n")
+                    return
+            else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
                 print("Aborting ...\n")
                 return
 
@@ -3708,9 +4122,9 @@ def get_pif_from_image(image_file):
                 #     res = run_shell2(theCmd)
                 #     if res.returncode != 0:
                 #         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {chunk}.")
-                #         print(f"Return Code: {res.returncode}.")
-                #         print(f"Stdout: {res.stdout}.")
-                #         print(f"Stderr: {res.stderr}.")
+                #         print(f"Return Code: {res.returncode}")
+                #         print(f"Stdout: {res.stdout}")
+                #         print(f"Stderr: {res.stderr}")
                 #         print("Aborting ...\n")
                 #         return
                 # # Combine sparse chunks
@@ -3752,11 +4166,16 @@ def get_pif_from_image(image_file):
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file}\" {found_ap}"
                 debug(theCmd)
                 res = run_shell2(theCmd)
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {found_ap}.")
+                        print("Aborting ...\n")
+                        return
+                else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {found_ap}.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
                     print("Aborting ...\n")
                     return
                 image_file_path = os.path.join(temp_dir_path, found_ap)
@@ -3768,11 +4187,16 @@ def get_pif_from_image(image_file):
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{image_file_path}\" \"meta-data\""
                 debug(theCmd)
                 res = run_shell2(theCmd)
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract meta-data.")
+                        print("Aborting ...\n")
+                        return
+                else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract meta-data.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
                     print("Aborting ...\n")
                     return
 
@@ -3916,9 +4340,9 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
 
         # Prepare the regular expression pattern
         if anykernel:
-            pattern = re.compile(f"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\\.zip$")
+            pattern = re.compile(rf"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\.zip$")
         else:
-            pattern = re.compile(f"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\\.img\\.gz$")
+            pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\.img\.gz$")
 
         # Find the best match
         best_match = None
@@ -4049,11 +4473,17 @@ def extract_magiskboot(apk_path, architecture, output_path):
         cmd = f"{path_to_7z} e {apk_path} -o{output_path} -r {file_path_in_apk} -y"
         debug(cmd)
         res = run_shell2(cmd)
-        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+        if res and isinstance(res, subprocess.CompletedProcess):
+            debug(f"Return Code: {res.returncode}")
+            debug(f"Stdout: {res.stdout}")
+            debug(f"Stderr: {res.stderr}")
+            if res.returncode != 0:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
+                puml("#red:ERROR: Could not extract image;\n")
+                print("Aborting ...\n")
+                return
+        else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
             puml("#red:ERROR: Could not extract image;\n")
             print("Aborting ...\n")
             return
@@ -4111,7 +4541,8 @@ def check_internet():
 
 # ============================================================================
 #                               Function check_kb
-# Credit to hldr4 https://gist.github.com/hldr4/b933f584b2e2c3088bcd56eb056587f8
+# Credit to hldr4  for the original idea
+# https://gist.github.com/hldr4/b933f584b2e2c3088bcd56eb056587f8
 # ============================================================================
 def check_kb(filename):
     url = "https://android.googleapis.com/attestation/status"
@@ -4121,10 +4552,19 @@ def check_kb(filename):
         if crl is not None and crl != 'ERROR':
             crl = crl.json()
         else:
-            print(f"ERROR: Could not fetch CRL from {url}")
-            return False
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not fetch CRL from {url}")
+            return -2
 
-        certs = [elem.text for elem in ET.parse(filename).getroot().iter() if elem.tag == 'Certificate']
+        # Extract certificates from keybox
+        certs = []
+        try:
+            for elem in ET.parse(filename).getroot().iter():
+                if elem.tag == 'Certificate':
+                    certs.append(elem.text.strip())
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract certificates from {filename}")
+            print(e)
+            return -2
 
         is_sw_signed = False
         i = 1
@@ -4134,6 +4574,7 @@ def check_kb(filename):
         last_issuer = ""
         cert_counter = 0
         tab_text = ""
+
         for cert in certs:
             cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed = parse_cert(cert)
 
@@ -4182,21 +4623,22 @@ def check_kb(filename):
             print(f"{tab_text}Validity:               {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}")
             if "Software Attestation" in cert_issuer:
                 is_sw_signed = True
-            if cert_sn in crl["entries"].keys():
+
+            if cert_sn.strip().lower() in (sn.strip().lower() for sn in crl["entries"].keys()):
                 print(f"{tab_text}❌❌❌ Certificate {i} is REVOKED")
                 print(f"{tab_text}❌❌❌ Reason: {crl['entries'][cert_sn]['reason']} ***")
                 is_revoked = True
             i += 1
 
         if is_revoked:
-            print('\n❌❌❌ Keybox contains revoked certificates!')
-            result = False
+            print(f"\n❌❌❌ Keybox {filename} contains revoked certificates!")
+            result = -1
         else:
-            print('\n✅ Keybox is clean from revoked certificates')
-            result = True
+            print(f"\n✅ Keybox {filename} is clean from revoked certificates")
+            result = 1
         if is_sw_signed:
-            print('⚠️ Keybox is software signed! This is not a hardware-backed keybox!')
-            result =  False
+            print(f"⚠️ Keybox {filename} is software signed! This is not a hardware-backed keybox!")
+            result =  0
         print('')
         return result
     except Exception as e:

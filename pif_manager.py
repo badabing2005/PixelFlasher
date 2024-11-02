@@ -137,7 +137,7 @@ class PifManager(wx.Dialog):
 
         # Console label
         self.console_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Output")
-        self.console_label.SetToolTip(u"Console Output:\nIt could be the json output of processed prop\or it could be the Play Integrity Check result.\n\nThis is not what currently is on the device.")
+        self.console_label.SetToolTip(u"Console Output:\nIt could be the json output of processed prop\nor it could be the Play Integrity Check result.\n\nThis is not what currently is on the device.")
         font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.console_label.SetFont(font)
         # Smart Paste Up
@@ -804,6 +804,7 @@ class PifManager(wx.Dialog):
             return
         print("Cleaning up DG Cache ...")
         device.delete("/data/data/com.google.android.gms/app_dg_cache", with_su = True, dir = True)
+        device.delete("/data/data/com.google.android.gms/databases/dg.db*", with_su = True, dir = False)
 
     # -----------------------------------------------
     #                  UpdatePifJson
@@ -1004,7 +1005,12 @@ class PifManager(wx.Dialog):
                 return
             if not device.rooted:
                 return
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Play Integrity API Checker.")
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Play Integrity API Checker with clear option.")
+                clear_first = True
+            else:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Play Integrity API Checker.")
+                clear_first = False
             self._on_spin('start')
 
             if not self.insync:
@@ -1023,7 +1029,7 @@ class PifManager(wx.Dialog):
             # See if we have coordinates saved
             coords = self.coords.query_entry(device.id, self.pi_app)
             coord_dismiss = None
-            if coords is None:
+            if coords is None or clear_first:
                 if self.disable_uiautomator_checkbox.IsChecked():
                     print(f"WARNING! You have disabled using UIAutomator.\nPlease uncheck Disable UIAutomator checkbox if you want to enable UIAutomator usage.")
                     return
@@ -1071,7 +1077,7 @@ class PifManager(wx.Dialog):
                     # Developer Options
                     coord_developer_options = self.get_pi_app_coords(child='developer_options')
                     if coord_developer_options == -1:
-                        print(f"Error: during tapping {self.pi_app} [developer_options] screen.")
+                        print(f"Error: during tapping {self.pi_app} [developer_options] screen.\nPossibly swipe failed.")
                         if device.id in self.coords.data and self.pi_app in self.coords.data[device.id]:
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
@@ -1882,7 +1888,7 @@ class PifManager(wx.Dialog):
                 # push the file
                 res = device.push_file(selected_file, "/data/adb/tricky_store/keybox.xml", True)
                 if res != 0:
-                    print(f"Return Code: {res.returncode}.")
+                    print(f"Return Code: {res.returncode}")
                     print(f"Stdout: {res.stdout}")
                     print(f"Stderr: {res.stderr}")
                     print("Aborting ...\n")

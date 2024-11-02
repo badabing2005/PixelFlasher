@@ -172,6 +172,7 @@ class FilePickerComboBox(wx.Panel):
         self.SetSizer(sizer)
 
         self.browse_button.Bind(wx.EVT_BUTTON, self.on_browse)
+        self.combo_box.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
 
         if os.path.exists(self.history_file):
             try:
@@ -241,6 +242,37 @@ class FilePickerComboBox(wx.Panel):
 
     def SetToolTip(self, tooltip_text):
         self.combo_box.SetToolTip(tooltip_text)
+
+    def on_mousewheel(self, event):
+        # Stop the event propagation to disable mouse wheel scrolling
+        event.StopPropagation()
+
+
+# ============================================================================
+#                               Class NoScrollComboBox
+# ============================================================================
+class NoScrollComboBox(wx.ComboBox):
+    def __init__(self, *args, **kwargs):
+        super(NoScrollComboBox, self).__init__(*args, **kwargs)
+        self.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+
+    def on_mousewheel(self, event):
+        # Stop the event propagation to disable mouse wheel scrolling
+        event.StopPropagation()
+
+
+# ============================================================================
+#                               Class NoScrollChoice
+# ============================================================================
+class NoScrollChoice(wx.Choice):
+    def __init__(self, *args, **kwargs):
+        super(NoScrollChoice, self).__init__(*args, **kwargs)
+        self.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
+
+    def on_mousewheel(self, event):
+        # Stop the event propagation to disable mouse wheel scrolling
+        event.StopPropagation()
+
 
 # ============================================================================
 #                               Class DropDownLink
@@ -1444,6 +1476,10 @@ class PixelFlasher(wx.Frame):
         self.data_adb_restore_menu = device_menu.Append(wx.ID_ANY, "Restore /data/adb", "Restore /data/adb from a backup file.\nThis is useful for restoring Magisk modules.\nNOTE: If a module writes to anywhere other than /data/adb, those items will not be restored.")
         self.data_adb_restore_menu.SetBitmap(images.restore_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_data_adb_restore, self.data_adb_restore_menu)
+        # Clear Data ADB
+        self.data_adb_clear_menu = device_menu.Append(wx.ID_ANY, "Clear /data/adb/*", "Clear up /data/adb/ content (not the directory).\nThis is useful when switching to different root flavor.")
+        self.data_adb_clear_menu.SetBitmap(images.delete_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_data_adb_clear, self.data_adb_clear_menu)
         # Pif Manager
         self.pif_manager_menu = device_menu.Append(wx.ID_ANY, "Pif Manager", "Pif Backups")
         self.pif_manager_menu.SetBitmap(images.pif_24.GetBitmap())
@@ -2241,6 +2277,7 @@ This report will inherently reveal sensitive information about your device such 
 - If any custom ROM injection apps are installed from:
     - Xiaomi.eu
     - EliteRoms
+    - helluvaOS
     - hentaiOS
     - Evolution X
     - PixelOS
@@ -2430,6 +2467,12 @@ Before posting publicly please carefully inspect the contents.
                 res = device.exec_cmd("ls -lR /system/app/EliteDevelopmentModule", True)
                 print(res)
                 res = device.exec_cmd("ls -lR /system/app/XInjectModule", True)
+                print(res)
+                # # helluvaOS
+                print("Checking for helluvaOS ROM injection ...")
+                res = device.exec_cmd("ls -lR /system_ext/app/helluvaProductDevice*", True)
+                print(res)
+                res = device.exec_cmd("ls -lR /system_ext/app/helluvaProductSecretStub", True)
                 print(res)
                 # # hentaiOS
                 print("Checking for hentaiOS ROM injection ...")
@@ -3158,6 +3201,7 @@ Before posting publicly please carefully inspect the contents.
                 self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.data_adb_backup_menu:              ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 self.data_adb_restore_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                self.data_adb_clear_menu:               ['device_attached', 'device_mode_adb', 'device_is_rooted'],
                 # self.pif_manager_menu:                  ['device_attached', 'device_mode_adb'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted', 'advanced_options'],
                 # self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
@@ -3781,7 +3825,7 @@ Before posting publicly please carefully inspect the contents.
                     # push the file
                     res = device.push_file(selected_file, destination, False)
                     if res != 0:
-                        print(f"Return Code: {res.returncode}.")
+                        print(f"Return Code: {res.returncode}")
                         print(f"Stdout: {res.stdout}")
                         print(f"Stderr: {res.stderr}")
                         print(f"Aborting push for file: {selected_file}\n")
@@ -4241,6 +4285,41 @@ Before posting publicly please carefully inspect the contents.
             self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_data_adb_clear
+    # -----------------------------------------------
+    def _on_data_adb_clear(self, event):
+        try:
+            device = get_phone(True)
+            if device:
+                title = "Clear /data/adb/ contents"
+                message = "WARNING!!! This will the clear contents of /data/adb\n\n"
+                message += "Do you want to continue to clear /data/adb/ contents?\n"
+                message += "      Press OK to continue or CANCEL to abort.\n"
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
+                print(f"\n*** Dialog ***\n{message}\n______________\n")
+                set_message_box_title(title)
+                set_message_box_message(message)
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+                dlg.CentreOnParent(wx.BOTH)
+                result = dlg.ShowModal()
+                if result == 1:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+                    self._on_spin('start')
+                    device.data_adb_clear()
+                else:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                    print("Aborting ...\n")
+                    dlg.Destroy()
+                    return
+                dlg.Destroy()
+        except Exception:
+            traceback.print_exc()
+            self._on_spin('stop')
+            return
+        finally:
+            self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_partition_manager
     # -----------------------------------------------
     def _on_partition_manager(self, event):
@@ -4379,17 +4458,64 @@ Before posting publicly please carefully inspect the contents.
                     return
                 selected_files = fileDialog.GetPaths()
 
+            total_keyboxes = len(selected_files)
+            revoked_count = 0
+            good_count = 0
+            aosp_count = 0
+            invalid_count = 0
+            revoked_keyboxes = []
+            aosp_keyboxes = []
+            invalid_keyboxes = []
+            good_keyboxes = []
+
             self._on_spin('start')
-            wx.Yield
+            wx.Yield()
             for selected_file in selected_files:
-                wx.Yield
+                wx.Yield()
                 res = check_kb(selected_file)
-                debug(f"Result: {res}")
+                # debug(f"Result: {res}")
+                if res == 1:
+                    good_count += 1
+                    good_keyboxes.append(selected_file)
+                elif res == -1:
+                    revoked_count += 1
+                    revoked_keyboxes.append(selected_file)
+                elif res == 0:
+                    aosp_count += 1
+                    aosp_keyboxes.append(selected_file)
+                elif res == -2:
+                    invalid_count += 1
+                    invalid_keyboxes.append(selected_file)
         except Exception as e:
             print(f"Error: {e}")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
+
+            if total_keyboxes > 1:
+                print(f"Total keyboxes checked: {total_keyboxes}")
+                if invalid_count > 0:
+                    print(f"Invalid keyboxes count: {invalid_count} / {total_keyboxes}")
+                print(f"Revoked keyboxes count: {revoked_count} / {total_keyboxes}")
+                print(f"AOSP keyboxes count:    {aosp_count} / {total_keyboxes}")
+                print(f"Good keyboxes count:    {good_count} / {total_keyboxes}")
+                if invalid_count > 0:
+                    print("\nList of invalid keyboxes:")
+                    for keybox in invalid_keyboxes:
+                        print(f"    {keybox}")
+                if revoked_count > 0:
+                    print("\nList of revoked keyboxes:")
+                    for keybox in revoked_keyboxes:
+                        print(f"    {keybox}")
+                if aosp_count > 0:
+                    print("\nList of AOSP keyboxes:")
+                    for keybox in aosp_keyboxes:
+                        print(f"    {keybox}")
+                if good_count > 0:
+                    print("\nList of good keyboxes:")
+                    for keybox in good_keyboxes:
+                        print(f"    {keybox}")
+                print("\n")
 
     # -----------------------------------------------
     #                  _on_customize_my_tools
@@ -5153,7 +5279,7 @@ Before posting publicly please carefully inspect the contents.
         adb_label_sizer.Add(window=self.device_label, proportion=0, flag=wx.ALL, border=0)
         adb_label_sizer.AddStretchSpacer()
         adb_label_sizer.Add(window=self.wifi_adb, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
-        self.device_choice = wx.ComboBox(parent=panel, id=wx.ID_ANY, value=wx.EmptyString, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=[], style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        self.device_choice = NoScrollComboBox(parent=panel, id=wx.ID_ANY, value=wx.EmptyString, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=[], style=wx.CB_DROPDOWN | wx.CB_READONLY)
         self.device_choice.SetSelection(-1)
         self.device_choice.SetFont(font=wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
         device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
@@ -5322,7 +5448,7 @@ Before posting publicly please carefully inspect the contents.
         _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label="WIPE all data", tooltip="CAUTION: This will wipe your data")
         _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label="Dry Run", tooltip="Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
         _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label="Full OTA", tooltip="Flash full OTA, and have the choice of flashing patched image(s).")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label="Custom Flash", tooltip="Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\It will flash the single selected file.")
+        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label="Custom Flash", tooltip="Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\nIt will flash the single selected file.")
 
 
         # 9th row widgets (custom flash)
@@ -5339,7 +5465,7 @@ Before posting publicly please carefully inspect the contents.
         # 2nd column
         # https://android.googlesource.com/platform/system/core/+/refs/heads/master/fastboot/fastboot.cpp#144
         image_choices = [ u"boot", u"init_boot", u"bootloader", u"cache", u"dtbo", u"dts", u"odm", u"odm_dlkm", u"product", u"pvmfw", u"radio", u"recovery", u"super", u"super_empty", u"system", u"system_dlkm", u"system_ext", u"system_other", u"userdata", u"vbmeta", u"vbmeta_system", u"vbmeta_vendor", u"vendor", u"vendor_boot", u"vendor_dlkm", u"vendor_kernel_boot", u"vendor_other", u"image", u"SIDELOAD" ]
-        self.image_choice = wx.Choice(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=image_choices, style=0)
+        self.image_choice = NoScrollChoice(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=image_choices, style=0)
         self.image_choice.SetSelection(-1)
         self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Flashable files (*.img;*.zip)|*.img;*.zip", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
         self.paste_selection = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)

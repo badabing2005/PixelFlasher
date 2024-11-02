@@ -186,7 +186,10 @@ class Device():
         try:
             theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing get_unlock_ability"
             res = run_shell(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess):
+                if res.returncode != 0:
+                    return 'UNKNOWN'
+            else:
                 return 'UNKNOWN'
             lines = (f"{res.stderr}{res.stdout}").splitlines()
             for line in lines:
@@ -681,7 +684,7 @@ class Device():
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk -c\'\""
                 res = run_shell(theCmd)
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                    regex = re.compile("(.*?):.*\((.*?)\)")
+                    regex = re.compile(r"(.*?):.*\((.*?)\)")
                     m = re.findall(regex, res.stdout)
                     if m:
                         self._magisk_version = f"{m[0][0]}:{m[0][1]}"
@@ -800,7 +803,7 @@ class Device():
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout
-            print(f"Return Code: {res.returncode}.")
+            print(f"Return Code: {res.returncode}")
             print(f"Stdout: {res.stdout}")
             print(f"Stderr: {res.stderr}")
             return -1
@@ -847,7 +850,7 @@ class Device():
             res = run_shell2(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout
-            print(f"Return Code: {res.returncode}.")
+            print(f"Return Code: {res.returncode}")
             print(f"Stdout: {res.stdout}")
             print(f"Stderr: {res.stderr}")
             return -1
@@ -957,7 +960,7 @@ class Device():
                 return -1
             for item in list:
                 if item:
-                    regex = re.compile("d.+root\sroot\s\w+\s(.*)\s\/data\/magisk_backup_(.*)")
+                    regex = re.compile(r"d.+root\sroot\s\w+\s(.*)\s\/data\/magisk_backup_(.*)")
                     m = re.findall(regex, item)
                     if m:
                         backup_date = f"{m[0][0]}"
@@ -1106,9 +1109,9 @@ class Device():
                         return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during pfmagisk_settings script execution")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 puml("note right:ERROR: during pfmagisk_settings script execution;\n")
                 return -1
         except Exception as e:
@@ -1261,35 +1264,42 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/stock_boot.img\'\""
                 res = run_shell(theCmd)
                 # expect 0
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
-                    print("Aborting run_migration ...\n")
-                    return -2
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
+                        print("Aborting run_migration ...\n")
+                        return -2
+                else:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/adb/magisk/stock_boot.img is not found!")
+                        print("Aborting run_migration ...\n")
+                        return -2
 
                 print("Triggering Magisk run_migration to create a Backup of source boot.img")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /data/adb/magisk; ./magiskboot cleanup; . ./util_functions.sh; run_migrations\'\""
                 res = run_shell(theCmd)
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                    print("run_migration completed.")
-                    if sha1:
-                        magisk_backups = self.magisk_backups
-                        if self.magisk_backups and sha1 in magisk_backups:
-                            print(f"Magisk backup for {sha1} was successful")
-                            return 0
-                        else:
-                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
-                            return -1
-                else:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
-                    return -1
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        print("run_migration completed.")
+                        if sha1:
+                            magisk_backups = self.magisk_backups
+                            if self.magisk_backups and sha1 in magisk_backups:
+                                print(f"Magisk backup for {sha1} was successful")
+                                return 0
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
+                return -1
             except Exception as e:
                 traceback.print_exc()
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                 return -1
-        return -1
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: run_migration function is only available in adb mode on rooted devices.")
+            return -1
 
     # ----------------------------------------------------------------------------
     #                               Method data_adb_backup
@@ -1301,28 +1311,33 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/local/tmp/data_adb.tgz; tar cvfz /data/local/tmp/data_adb.tgz /data/adb/\'\""
                 res = run_shell(theCmd)
                 # expect 0
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb")
+                        print("Aborting ...\n")
+                        return -2
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb")
                     print("Aborting ...\n")
                     return -2
 
                 # check if backup got created.
-                print("\Checking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
+                print("\nChecking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
                 res,_ = self.check_file("/data/local/tmp/data_adb.tgz")
                 if res != 1:
                     print("Aborting ...\n")
                     puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")
-                    return
+                    return -2
 
                 print(f"Pulling /data/local/tmp/data_adb.tgz from the phone to: {filename} ...")
                 res = self.pull_file("/data/local/tmp/data_adb.tgz", f"\"{filename}\"")
                 if res != 0:
                     print("Aborting ...\n")
                     puml("#red:Failed to pull /data/local/tmp/data_adb.tgz from the phone;\n}\n")
-                    return
+                    return -2
             except Exception as e:
                 traceback.print_exc()
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_backup.")
@@ -1331,6 +1346,7 @@ add_hosts_module
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_backup function is only available in adb mode on rooted devices.")
             return -1
         print("Backup completed.")
+        return 0
 
     # ----------------------------------------------------------------------------
     #                               Method data_adb_restore
@@ -1341,14 +1357,14 @@ add_hosts_module
                 print(f"Pushing {filename} to /data/local/tmp/data_adb.tgz on the phone ...")
                 res = self.push_file(filename, "/data/local/tmp/data_adb.tgz", True)
                 if res != 0:
-                    print(f"Return Code: {res.returncode}.")
+                    print(f"Return Code: {res.returncode}")
                     print(f"Stdout: {res.stdout}")
                     print(f"Stderr: {res.stderr}")
                     print("Aborting ...\n")
                     return -1
 
                 # check if backup got created.
-                print("\Checking to see if backup file [/data/local/tmp/data_adb.tgz] got pushed ...")
+                print("\nChecking to see if backup file [/data/local/tmp/data_adb.tgz] got pushed ...")
                 res, _ = self.check_file("/data/local/tmp/data_adb.tgz", True)
                 if res != 1:
                     print("Aborting ...\n")
@@ -1359,22 +1375,52 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /; tar xvfz /data/local/tmp/data_adb.tgz \'\""
                 res = run_shell(theCmd)
                 # expect 0
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to restore a backup of /data/adb.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
-                    print("Aborting ...\n")
-                    return -2
-
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        print("Restore completed.")
+                        return 0
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to restore a backup of /data/adb.")
+                print("Aborting ...\n")
+                return -2
             except Exception as e:
                 traceback.print_exc()
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_restore.")
+                print("Aborting ...\n")
                 return -1
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_restore function is only available in adb mode on rooted devices.")
             return -1
-        print("Restore completed.")
+
+    # ----------------------------------------------------------------------------
+    #                               Method data_adb_clear
+    # ----------------------------------------------------------------------------
+    def data_adb_clear(self):
+        if self.mode == 'adb' and self.rooted:
+            try:
+                print("Clearing the contents of /data/adb/ ...")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -rf /data/adb/*\'\""
+                res = run_shell(theCmd)
+                # expect 0
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        print("Clearing completed.")
+                        return 0
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to clear the contents of /data/adb/")
+                print("Aborting ...\n")
+                return -2
+            except Exception as e:
+                traceback.print_exc()
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_clear.")
+                return -1
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_clear function is only available in adb mode on rooted devices.")
+            return -1
 
     # ----------------------------------------------------------------------------
     #                               Method create_magisk_backup
@@ -1405,14 +1451,18 @@ add_hosts_module
                 debug(theCmd)
                 res = run_shell(theCmd)
                 # expect ret 0
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
-                    print("Aborting Backup...\n")
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                        print("Aborting Backup...\n")
+                        return -1
                 else:
-                    print(res.stdout)
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    print("Aborting Backup...\n")
+                    return -1
 
                 # trigger run migration
                 print("Triggering Magisk run_migration to create a Backup ...")
@@ -2125,7 +2175,7 @@ add_hosts_module
                 return pkg_label, ''
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
-                print(f"Return Code: {res.returncode}.")
+                print(f"Return Code: {res.returncode}")
                 print(f"Stdout: {res.stdout}")
                 print(f"Stderr: {res.stderr}")
                 return -1, -1
@@ -2190,8 +2240,10 @@ add_hosts_module
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not swipe. Coordinates are [{coords}]")
             return -1
         try:
-            print(f"swipe {coords} on the device ...")
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell input swipe {coords}"
+            # Convert coordinates to integers
+            int_coords = ' '.join(map(lambda x: str(int(float(x))), coords.split()))
+            print(f"swipe {int_coords} on the device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell input swipe {int_coords}"
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return 0
@@ -2252,9 +2304,9 @@ add_hosts_module
                 return res.stdout.strip('\n')
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: when getting config_kallsyms")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 return ''
         except Exception as e:
             traceback.print_exc()
@@ -2284,9 +2336,9 @@ add_hosts_module
                 return res.stdout.strip('\n')
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: when getting config_kallsyms")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 return ''
         except Exception as e:
             traceback.print_exc()
@@ -2472,9 +2524,9 @@ add_hosts_module
                             self._get_magisk_detailed_modules = modules
                         else:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
-                            print(f"Return Code: {res.returncode}.")
-                            print(f"Stdout: {res.stdout}.")
-                            print(f"Stderr: {res.stderr}.")
+                            print(f"Return Code: {res.returncode}")
+                            print(f"Stdout: {res.stdout}")
+                            print(f"Stderr: {res.stderr}")
                     else:
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules\'\""
                         res = run_shell(theCmd)
@@ -2529,9 +2581,9 @@ add_hosts_module
                             self._get_magisk_detailed_modules = modules
                         else:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing Magisk Modules.")
-                            print(f"Return Code: {res.returncode}.")
-                            print(f"Stdout: {res.stdout}.")
-                            print(f"Stderr: {res.stderr}.")
+                            print(f"Return Code: {res.returncode}")
+                            print(f"Stdout: {res.stdout}")
+                            print(f"Stderr: {res.stderr}")
             except Exception as e:
                 self._get_magisk_detailed_modules is None
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing")
@@ -2608,7 +2660,7 @@ add_hosts_module
                 # https://github.com/tiann/KernelSU/releases
                 kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
                 kernelsu_release_notes = get_gh_latest_release_notes('tiann', 'KernelSU')
-                kernelsu_url = download_gh_latest_release_asset_regex('tiann', 'KernelSU', '^KernelSU.*\.apk$', True)
+                kernelsu_url = download_gh_latest_release_asset_regex('tiann', 'KernelSU', r'^KernelSU.*\.apk$', True)
                 if kernelsu_url is None:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU APK")
                     return
@@ -2640,7 +2692,7 @@ add_hosts_module
                 # https://github.com/bmax121/APatch/releases
                 apatch_version = get_gh_latest_release_version('bmax121', 'APatch')
                 apatch_release_notes = get_gh_latest_release_notes('bmax121', 'APatch')
-                apatch_url = download_gh_latest_release_asset_regex('bmax121', 'APatch', '^APatch_.*\.apk$', True)
+                apatch_url = download_gh_latest_release_asset_regex('bmax121', 'APatch', r'^APatch_.*\.apk$', True)
                 if apatch_url is None:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch APK")
                     return
@@ -2907,9 +2959,9 @@ This is a special Magisk build\n\n
                     puml("note right:State ADB;\n")
                     return res
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 puml(f"note right:ERROR: during reboot_system;\n")
             elif mode == 'fastboot' and get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} reboot"
@@ -2922,9 +2974,9 @@ This is a special Magisk build\n\n
                     update_phones(self.id)
                     return 0
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_system")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_system")
@@ -2964,9 +3016,9 @@ This is a special Magisk build\n\n
                     update_phones(self.id)
                     return res
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_recovery")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_recovery;\n")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_recovery")
@@ -3020,9 +3072,9 @@ This is a special Magisk build\n\n
                     res = self.reboot_system(timeout=timeout)
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while setting safemode prop")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
+                    print(f"Return Code: {res.returncode}")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
                     puml(f"note right:ERROR: during reboot_safemode;\n")
                     res = res.returncode
                 return res
@@ -3067,9 +3119,9 @@ This is a special Magisk build\n\n
                     update_phones(self.id)
                     return res
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 puml(f"note right:ERROR: during reboot_bootloader;\n")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_bootloader")
@@ -3100,9 +3152,9 @@ This is a special Magisk build\n\n
                     update_phones(self.id)
                     return res
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_fastboot")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_fastboot;\n")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_fastbootd")
@@ -3133,9 +3185,9 @@ This is a special Magisk build\n\n
                         puml("note right:State sideload;\n")
                         return res
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
+                    print(f"Return Code: {res.returncode}")
+                    print(f"Stdout: {res.stdout}")
+                    print(f"Stderr: {res.stderr}")
                     puml(f"note right:ERROR: during reboot_sideload;\n")
             elif mode == 'fastboot' and get_fastboot():
                 print("Device is in bootloader mode, first rebooting to system (this could take some time) ...")
@@ -3148,9 +3200,9 @@ This is a special Magisk build\n\n
                     res = self.reboot_sideload(timeout=timeout)
                     return res
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_sideload")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
                 puml(f"note right:ERROR: during adb_wait_for in reboot_system;\n")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during reboot_sideload")
@@ -3336,11 +3388,16 @@ This is a special Magisk build\n\n
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist ls\'\""
             debug(theCmd)
             res = run_shell(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Return Code: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode != 0:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Magisk denylist")
+                    return []
+            else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Magisk denylist")
-                print(f"Return Code: {res.returncode}.")
-                print(f"Stdout: {res.stdout}.")
-                print(f"Stderr: {res.stderr}.")
+                return []
 
             lines = res.stdout.split('\n')
             unique_packages = set()
@@ -3376,14 +3433,15 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} install {playstore_flag} {sdk_flag} -r \"{app}\""
                 debug(theCmd)
                 res = run_shell(theCmd)
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing \"{app}\"")
-                    print(f"Return Code: {res.returncode}.")
-                    print(f"Stdout: {res.stdout}.")
-                    print(f"Stderr: {res.stderr}.")
-                else:
-                    print(f"{res.stdout}")
-                return res
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        print(f"{res.stdout}")
+                        return 0
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while installing \"{app}\"")
+                return -1
             if self.mode == 'f.b' and fastboot_included and get_fastboot():
                 print("Device is in fastboot mode, will reboot to system and wait 60 seconds for system to load before installing ...")
                 self.reboot_system()
@@ -3415,7 +3473,13 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} getvar current-slot"
                 debug(theCmd)
                 res = run_shell(theCmd)
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode != 0:
+                        return 'UNKNOWN'
+                else:
                     return 'UNKNOWN'
                 lines = (f"{res.stderr}{res.stdout}").splitlines()
                 for line in lines:
@@ -3442,7 +3506,13 @@ This is a special Magisk build\n\n
             theCmd = f"\"{get_adb()}\" -s {self.id} shell wm size"
             debug(theCmd)
             res = run_shell(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Return Code: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.returncode != 0:
+                    return -1
+            else:
                 return -1
             lines = (f"{res.stdout}").splitlines()
             for line in lines:
@@ -3643,11 +3713,15 @@ This is a special Magisk build\n\n
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --install-module /sdcard/Download/{module_name}\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
-                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode != 0:
-                    puml("#red:Failed to transfer the install module;\n")
-                    print("Aborting ...\n}\n")
-                    return -1
-                return 0
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode == 0:
+                        return 0
+                puml("#red:Failed to transfer the install module;\n")
+                print("Aborting ...\n}\n")
+                return -1
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
@@ -4044,9 +4118,9 @@ This is a special Magisk build\n\n
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 return res.stdout.replace('package:','')
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package list of {state}.")
-            print(f"Return Code: {res.returncode}.")
-            print(f"Stdout: {res.stdout}.")
-            print(f"Stderr: {res.stderr}.")
+            print(f"Return Code: {res.returncode}")
+            print(f"Stdout: {res.stdout}")
+            print(f"Stderr: {res.stderr}")
             return None
         except Exception as e:
             traceback.print_exc()

@@ -96,9 +96,9 @@ jobs:
       #     sudo make install
       #     cd ..
 
-      - name: Install GraphicsMagick
-        run: |
-          brew install graphicsmagick
+      # - name: Install GraphicsMagick
+      #   run: |
+      #     brew install graphicsmagick
 
       - name: Install ImageMagick
         run: |

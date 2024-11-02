@@ -90,7 +90,7 @@ jobs:
         run: ls dist
 
       - name: Sign Windows Executable
-        uses: skymatic/code-sign-action@v1
+        uses: skymatic/code-sign-action@v3
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.CERT_PASSWORD }}'

@@ -93,7 +93,7 @@ jobs:
         run: ls dist
 
       - name: Sign Windows Executable
-        uses: skymatic/code-sign-action@v1
+        uses: skymatic/code-sign-action@v3
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.CERT_PASSWORD }}'
@@ -170,7 +170,7 @@ jobs:
         run: ls dist
 
       - name: Sign Windows Executable
-        uses: skymatic/code-sign-action@v1
+        uses: skymatic/code-sign-action@v3
         with:
           certificate: '${{ secrets.CERTIFICATE }}'
           password: '${{ secrets.CERT_PASSWORD }}'
@@ -366,9 +366,9 @@ jobs:
           run: |
             brew install node
 
-        - name: Install GraphicsMagick
-          run: |
-            brew install graphicsmagick
+        # - name: Install GraphicsMagick
+        #   run: |
+        #     brew install graphicsmagick
 
         - name: Install ImageMagick
           run: |

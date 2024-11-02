@@ -85,16 +85,20 @@ jobs:
       #   with:
       #     node-version: '21'
 
+      # - name: Install GraphicsMagick
+      #   run: |
+      #     curl -L -O https://newcontinuum.dl.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.xz
+      #     xz -d GraphicsMagick-1.3.42.tar.xz
+      #     tar -xf GraphicsMagick-1.3.42.tar
+      #     cd GraphicsMagick-1.3.42
+      #     ./configure
+      #     make
+      #     sudo make install
+      #     cd ..
+
       - name: Install GraphicsMagick
         run: |
-          curl -L -O https://newcontinuum.dl.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.xz
-          xz -d GraphicsMagick-1.3.42.tar.xz
-          tar -xf GraphicsMagick-1.3.42.tar
-          cd GraphicsMagick-1.3.42
-          ./configure
-          make
-          sudo make install
-          cd ..
+          brew install graphicsmagick
 
       - name: Install ImageMagick
         run: |

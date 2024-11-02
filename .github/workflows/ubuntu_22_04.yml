@@ -92,6 +92,9 @@ jobs:
           python --version
           pip install -U pip
           pip install -U six wheel setuptools
+          # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.2 || \
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.1 || \
           pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
           pip install -r requirements.txt
           python --version && pip freeze

@@ -1504,7 +1504,7 @@ add_hosts_module
                 magisk_sha1 = self.magisk_sha1
                 print(f"The Current SHA1 in Magisk config is: {magisk_sha1}")
                 print(f"Changing Magisk config SHA1 to: {sha1} ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd {magisk_config_path}; sed -i \"s/{magisk_sha1}/{sha1}/g\" config\'\""
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd {magisk_config_path}; toybox sed -i \"s/{magisk_sha1}/{sha1}/g\" config\'\""
                 res = run_shell(theCmd)
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     # Read back to make sure it us updated

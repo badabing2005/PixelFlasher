@@ -4499,19 +4499,30 @@ def extract_magiskboot(apk_path, architecture, output_path):
 # ============================================================================
 #                               Function request_with_fallback
 # ============================================================================
-def request_with_fallback(method, url, headers=None, data=None, stream=False):
+def request_with_fallback(method, url, headers=None, data=None, stream=False, nocache=False):
     response = 'ERROR'
+    # Initialize headers if None
+    headers = headers or {}
+
+    # Add nocache headers only when requested
+    if nocache:
+        headers.update({
+            'Cache-Control': 'no-cache, max-age=0',
+            'Pragma': 'no-cache'
+        })
+
     try:
         if check_internet():
-            response = requests.request(method, url, headers=headers, data=data, stream=stream)
-            response.raise_for_status()
+            with requests.Session() as session:
+                response = session.request(method, url, headers=headers, data=data, stream=stream)
+                response.raise_for_status()
     except requests.exceptions.SSLError:
-        # Retry with SSL certificate verification disabled
         print(f"⚠️ WARNING! Encountered SSL certification error while connecting to: {url}")
         print("Retrying with SSL certificate verification disabled. ...")
         print("For security, you should double check and make sure your system or communication is not compromised.")
         if check_internet():
-            response = requests.request(method, url, headers=headers, data=data, verify=False, stream=stream)
+            with requests.Session() as session:
+                response = session.request(method, url, headers=headers, data=data, verify=False, stream=stream)
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
     except requests.exceptions.Timeout:
@@ -4523,7 +4534,6 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
     return response
-
 
 # ============================================================================
 #                               Function check_internet
@@ -4546,10 +4556,17 @@ def check_internet():
 # ============================================================================
 def check_kb(filename):
     url = "https://android.googleapis.com/attestation/status"
-    headers = {'Cache-Control': 'max-age=0'}
+    headers = {
+        'Cache-Control': 'no-cache, max-age=0',
+        'Pragma': 'no-cache'
+    }
     try:
-        crl = request_with_fallback(method='GET', url=url, headers=headers)
+        crl = request_with_fallback(method='GET', url=url, headers=headers, nocache=True)
         if crl is not None and crl != 'ERROR':
+            last_modified = crl.headers.get('last-modified', 'Unknown')
+            content_date = crl.headers.get('date', 'Unknown')
+            print(f"CRL Last Modified:     {last_modified}")
+            print(f"Server Response Date:  {content_date}")
             crl = crl.json()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not fetch CRL from {url}")

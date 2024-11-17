@@ -137,6 +137,7 @@ class Device():
         self._adb_device_info = None
         self._fastboot_device_info = None
         self._rooted = None
+        self._su_version = ''
         self._magisk_version = None
         self._magisk_app_version = None
         self._magisk_version_code = None
@@ -584,6 +585,7 @@ class Device():
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get kernel information.")
                 traceback.print_exc()
                 self._rooted = None
+                self._su_version = ''
                 self._magisk_denylist_enforced = None
                 self._magisk_zygisk_enabled = None
         return self._kernel
@@ -647,6 +649,7 @@ class Device():
                 if res != -1:
                     return res
                 self._rooted = None
+                self._su_version = ''
                 self._magisk_denylist_enforced = None
                 self._magisk_zygisk_enabled = None
                 return None
@@ -666,6 +669,7 @@ class Device():
                 if res != -1:
                     return res
                 self._rooted = None
+                self._su_version = ''
                 self._magisk_denylist_enforced = None
                 self._magisk_zygisk_enabled = None
                 return None
@@ -705,6 +709,7 @@ class Device():
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get magisk version, assuming that it is not rooted.")
                     traceback.print_exc()
                     self._rooted = None
+                    self._su_version = ''
                     self._magisk_denylist_enforced = None
                     self._magisk_zygisk_enabled = None
         return self._magisk_version
@@ -2849,6 +2854,13 @@ This is a special Magisk build\n\n
         return self._magisk_modules_summary
 
     # ----------------------------------------------------------------------------
+    #                               property su_version
+    # ----------------------------------------------------------------------------
+    @property
+    def su_version(self):
+        return self._su_version.strip('\n')
+
+    # ----------------------------------------------------------------------------
     #                               property rooted
     # ----------------------------------------------------------------------------
     @property
@@ -2859,12 +2871,17 @@ This is a special Magisk build\n\n
                 res = run_shell(theCmd, timeout=8)
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and '/system/bin/sh: su: not found' not in res.stdout:
                     self._rooted = True
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell su --version"
+                    res = run_shell(theCmd, timeout=8)
+                    if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                        self._su_version = res.stdout
                 else:
                     # theCmd = f"\"{get_adb()}\" -s {self.id} shell busybox ls"
                     # res = run_shell(theCmd, 8)
                     # if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     #     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: appears to be rooted, however adb root access is not granted.\Please grant root access to adb and scan again.")
                     self._rooted = False
+                    self._su_version = ''
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
                 puml("#red:ERROR: adb command is not found;\n", True)

@@ -2295,14 +2295,30 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             "It is critical to use robust keys and safeguard them from exposure to maintain the security of your device.\n\n"
             "The length of superkey should be at least 8 characters and include both numbers and letters.",
             "Please enter a Superkey", style=wx.OK | wx.CANCEL)
-        if dialog.ShowModal() == wx.ID_OK:
-            superkey = dialog.GetValue()
-            dialog.Destroy()
-        else:
-            print("User cancelled.")
-            print("Aborting ...\n")
-            dialog.Destroy()
-            return -1
+
+        while True:
+            if dialog.ShowModal() == wx.ID_OK:
+                superkey = dialog.GetValue()
+                if len(superkey) < 8:
+                    print("Superkey is too short. It should be at least 8 characters.")
+                    puml("#red:Superkey is too short. It should be at least 8 characters.;\n")
+                    continue
+                if not any(char.isdigit() for char in superkey):
+                    print("Superkey should include at least one number.")
+                    puml("#red:Superkey should include at least one number.;\n")
+                    continue
+                if not any(char.isalpha() for char in superkey):
+                    print("Superkey should include at least one letter.")
+                    puml("#red:Superkey should include at least one letter.;\n")
+                    continue
+                break  # Valid input received
+            else:
+                print("User cancelled.")
+                print("Aborting ...\n")
+                dialog.Destroy()
+                return -1
+
+        dialog.Destroy()
 
         print("Creating pf_patch.sh script ...")
         if patch_method == "rooted":
@@ -2394,7 +2410,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     puml("#red:boot.img not found;\n")
                     return -1
                 data += "echo \"Creating a patch ...\"\n"
-                data += f"./kptools-android -p --image kernel-b --skey {superkey} --kpimg kpimg-android --out kernel\n"
+                data += f"./kptools-android -p --image kernel-b --skey \'{superkey}\' --kpimg kpimg-android --out kernel\n"
                 data += "echo \"Repacking boot.img ...\"\n"
                 data += "./magiskboot repack boot.img\n"
                 data += "PATCHING_APATCH_VERSION=$(/data/local/tmp/pf/./kptools-android -v)\n"

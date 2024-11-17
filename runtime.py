@@ -738,7 +738,7 @@ def get_ota():
 
 
 # ============================================================================
-#                               Function set_is_ota
+#                               Function set_ota
 # ============================================================================
 def set_ota(self, value):
     global is_ota
@@ -2441,12 +2441,16 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
         # Fetch Pixel Beta HTML
         soup = BeautifulSoup(pixel_get_html, 'html.parser')
         beta_link = soup.find('a', string=lambda x: x and 'Factory images for Google Pixel' in x)
-        pixel_beta_url = "https://developer.android.com" + beta_link['href']
-        response = request_with_fallback('GET', pixel_beta_url)
-        if response == 'ERROR' or response.status_code != 200:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel Beta HTML")
+        if beta_link:
+            pixel_beta_url = "https://developer.android.com" + beta_link['href']
+            response = request_with_fallback('GET', pixel_beta_url)
+            if response == 'ERROR' or response.status_code != 200:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel Beta HTML")
+                return None, None
+            pixel_beta_html = response.text
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Beta link not found")
             return None, None
-        pixel_beta_html = response.text
 
         # Parse Pixel Beta HTML
         soup = BeautifulSoup(pixel_beta_html, 'html.parser')
@@ -5019,3 +5023,4 @@ def run_shell3(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
 
 #     print(s.getvalue())
 #     return result
+

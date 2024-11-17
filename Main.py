@@ -331,6 +331,62 @@ class DropDownButton(buttons.GenBitmapTextButton):
         function()
 
 # ============================================================================
+#                               Class DownloadProgressWindow
+# ============================================================================
+class DownloadProgressWindow(wx.Frame):
+    def __init__(self, parent=None):
+        super().__init__(parent, title="Downloads Progress", size=(800, 300))
+        self.downloads = {}  # {url: (gauge, cancel_button, panel)}
+        self.main_panel = wx.Panel(self)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.main_panel.SetSizer(self.sizer)
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+
+        if parent:
+            self.CenterOnParent()
+        else:
+            self.Center()
+
+    def add_download(self, url, filename):
+        download_panel = wx.Panel(self.main_panel)
+        download_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # File name label
+        name_label = wx.StaticText(download_panel, label=filename)
+        download_sizer.Add(name_label, 0, wx.ALL | wx.CENTER, 5)
+
+        # Progress bar
+        gauge = wx.Gauge(download_panel, range=100, size=(200, 25))
+        download_sizer.Add(gauge, 1, wx.ALL | wx.EXPAND, 5)
+
+        # Cancel button
+        cancel_button = wx.Button(download_panel, label="Cancel", size=(70, 25))
+        download_sizer.Add(cancel_button, 0, wx.ALL, 5)
+
+        download_panel.SetSizer(download_sizer)
+        self.sizer.Add(download_panel, 0, wx.ALL | wx.EXPAND, 5)
+
+        self.downloads[url] = (gauge, cancel_button, download_panel)
+        self.sizer.Layout()
+        self.Show()
+
+        return gauge, cancel_button
+
+    def remove_download(self, url):
+        if url in self.downloads:
+            gauge, cancel_button, panel = self.downloads[url]
+            panel.Destroy()
+            del self.downloads[url]
+            self.sizer.Layout()
+
+            # Hide window if no downloads
+            if not self.downloads:
+                self.Hide()
+
+    def on_close(self, event):
+        self.Hide()
+
+# ============================================================================
 #                               Class GoogleImagesBaseMenu
 # ============================================================================
 class GoogleImagesBaseMenu(wx.Menu):
@@ -342,6 +398,7 @@ class GoogleImagesBaseMenu(wx.Menu):
         self.parent = parent
         self.load_data()
         self.current_menu_id = self.BASE_MENU_ID_START
+        self.progress_window = None
 
     def generate_unique_id(self):
         unique_id = self.current_menu_id
@@ -391,6 +448,110 @@ class GoogleImagesBaseMenu(wx.Menu):
         update_threshold = current_time - (update_frequency * 24 * 60 * 60)
         return last_checked < update_threshold
 
+    def get_progress_window(self):
+        if self.progress_window is None:
+            self.progress_window = DownloadProgressWindow(self.parent)
+        return self.progress_window
+
+    def download_with_progress(self, url, destination_path, callback):
+        progress_window = self.get_progress_window()
+        filename = os.path.basename(destination_path)
+        gauge, cancel_button = progress_window.add_download(url, filename)
+
+        cancel_flag = {'cancelled': False}
+        # Store file handle to ensure proper cleanup
+        file_handle = {'f': None}
+
+        def on_cancel(event):
+            cancel_flag['cancelled'] = True
+            print(f"Download cancelled for: {url}")
+            try:
+                # Close file handle if it exists
+                if file_handle['f']:
+                    file_handle['f'].close()
+                    file_handle['f'] = None
+
+                # Small delay to ensure file operations complete
+                time.sleep(0.1)
+
+                if os.path.exists(destination_path):
+                    try:
+                        # Close any remaining handles
+                        os.close(os.open(destination_path, os.O_RDONLY))
+                    except:
+                        pass
+                    try:
+                        print(f"Deleting partial download: {destination_path}")
+                        os.remove(destination_path)
+                    except Exception as e:
+                        print(f"Error deleting partial download: {e}")
+            except Exception as e:
+                print(f"Error in cleanup: {e}")
+            try:
+                wx.CallAfter(progress_window.remove_download, url)
+            except Exception as e:
+                print(f"Error removing download from UI: {e}")
+
+        cancel_button.Bind(wx.EVT_BUTTON, on_cancel)
+
+        def update_gauge(value):
+            try:
+                if not cancel_flag['cancelled'] and gauge:
+                    gauge.SetValue(value)
+            except Exception:
+                pass
+
+        def download_thread():
+            try:
+                response = requests.get(url, stream=True)
+                total_length = int(response.headers.get('content-length', 0))
+                downloaded = 0
+
+                with open(destination_path, 'wb') as f:
+                    # Store file handle for cleanup
+                    file_handle['f'] = f
+                    for chunk in response.iter_content(chunk_size=4096):
+                        if cancel_flag['cancelled']:
+                            f.close()
+                            return
+                        if chunk:
+                            downloaded += len(chunk)
+                            f.write(chunk)
+                            if total_length:
+                                try:
+                                    wx.CallAfter(update_gauge, int(100 * downloaded / total_length))
+                                except Exception:
+                                    pass
+                    # Clear file handle reference
+                    file_handle['f'] = None
+
+                if not cancel_flag['cancelled']:
+                    try:
+                        wx.CallAfter(progress_window.remove_download, url)
+                        wx.CallAfter(callback)
+                    except Exception as e:
+                        print(f"Error in download completion: {e}")
+            except Exception as e:
+                print(f"Download error: {e}")
+                try:
+                    wx.CallAfter(progress_window.remove_download, url)
+                except Exception:
+                    pass
+                # Ensure file handle is closed
+                if file_handle['f']:
+                    file_handle['f'].close()
+                    file_handle['f'] = None
+                # Small delay before deletion
+                time.sleep(0.1)
+                if os.path.exists(destination_path):
+                    try:
+                        os.close(os.open(destination_path, os.O_RDONLY))
+                        os.remove(destination_path)
+                    except Exception as e:
+                        print(f"Error cleaning up failed download: {e}")
+
+        threading.Thread(target=download_thread).start()
+
     def on_download(self, url, event=None, unique_id=any):
         # debug(f"Download triggered for URL: {url}, Menu ID: {unique_id}")
         def download_completed(destination_path):
@@ -404,8 +565,7 @@ class GoogleImagesBaseMenu(wx.Menu):
         if dialog.ShowModal() == wx.ID_OK:
             destination_path = dialog.GetPath()
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Starting background download for: {url} to be saved to {destination_path}\nplease be patient ...")
-            download_thread = threading.Thread(target=download_file, args=(url, destination_path), kwargs={"callback": lambda: download_completed(destination_path)})
-            download_thread.start()
+            self.download_with_progress(url, destination_path, lambda: download_completed(destination_path))
 
     def on_refresh_google_images(self, event):
         print("Refreshing Google Images Menu ...")
@@ -415,6 +575,12 @@ class GoogleImagesBaseMenu(wx.Menu):
         self.parent.update_google_images_menu()
         print("Completed refreshing Google Images Menu.")
         self.parent._on_spin('stop')
+
+    def on_show_progress_window(self, event):
+        if self.progress_window:
+            self.progress_window.Show()
+        else:
+            self.parent.toast("No Downloads", "No downloads in progress.")
 
 # ============================================================================
 #                               Class GoogleImagesMenu
@@ -503,6 +669,9 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
             self.AppendSeparator()
             refresh_images_menu_item = self.Append(wx.ID_ANY, "Refresh images list")
             self.Bind(wx.EVT_MENU, self.on_refresh_google_images, refresh_images_menu_item)
+            self.AppendSeparator()
+            show_progress_menu_item = self.Append(wx.ID_ANY, "Show Progress Window")
+            self.Bind(wx.EVT_MENU, self.on_show_progress_window, show_progress_menu_item)
 
             if download_available:
                 self.parent.toast("Updates are available", f"There are updates available for your device.\nCheck Google Images menu.")
@@ -2757,6 +2926,7 @@ Before posting publicly please carefully inspect the contents.
             message += f"    slot-unbootable:b:               {device.get_prop('slot-unbootable:b')}\n"
             message += f"    slot-successful:b:               {device.get_prop('slot-successful:b')}\n"
         if device.rooted:
+            message += f"    Device Rooted with:              {device.su_version}\n"
             m_version = device.magisk_version
             message += f"    Magisk Version:                  {m_version}\n"
             message += f"    Magisk Config SHA1:              {device.magisk_sha1}\n"
@@ -4127,7 +4297,11 @@ Before posting publicly please carefully inspect the contents.
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone(True)
-                device.open_shell()
+                if device:
+                    device.open_shell()
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device not found.")
+                    self.refresh_device()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb shell")
             traceback.print_exc()

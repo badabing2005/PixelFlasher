@@ -80,10 +80,10 @@ jobs:
         run: |
           brew install node
 
-      # - name: Set up Node.js
-      #   uses: actions/setup-node@v2
-      #   with:
-      #     node-version: '21'
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
 
       # - name: Install GraphicsMagick
       #   run: |
@@ -117,7 +117,14 @@ jobs:
         run: pip install wxPython
 
       - name: Install create-dmg
-        run: npm install --global create-dmg
+        run: |
+          npm install --global create-dmg
+          # Check if 'util.isDate' is patched
+          if grep -q "util.isDate" "$(npm root -g)/create-dmg/node_modules/macos-alias/lib/encode.js"; then
+            echo "Patching util.isDate..."
+            sed -i.bak "s/util.isDate/((val) => Object.prototype.toString.call(val) === '[object Date]')/g" \
+              "$(npm root -g)/create-dmg/node_modules/macos-alias/lib/encode.js"
+          fi
 
       - name: Add Python 3.13 to PATH
         run: export PATH=/usr/local/Cellar/python@3.13/bin:$PATH

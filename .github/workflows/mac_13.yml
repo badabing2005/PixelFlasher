@@ -58,7 +58,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: List Cellar directory Again
+      - name: List Cellar directory
         run: |
           ls /usr/local/Cellar
 
@@ -75,6 +75,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+
+      - name: Install wxPython
+        # run: brew install wxpython
+        run: pip install wxPython
 
       - name: Install node
         run: |
@@ -118,6 +122,7 @@ jobs:
 
       - name: Install create-dmg
         run: |
+          npm cache clean --force
           npm install --global create-dmg
           # Check if 'util.isDate' is patched
           if grep -q "util.isDate" "$(npm root -g)/create-dmg/node_modules/macos-alias/lib/encode.js"; then
@@ -143,14 +148,16 @@ jobs:
       - name: List modules and their versions
         run: python3.13 -m pip freeze
 
+      # Build application
       - name: Build application
         id: build_app
         run: |
-          echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
-          echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
-          echo "PATH = ${{env.PATH}}"
-          ls -l ${{env.MAGICK_HOME}}/bin/
-          ./build.sh || echo "Build failed, creating artifacts from PixelFlasher.app" && exit 1
+          ./build.sh
+          # echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
+          # echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
+          # echo "PATH = ${{env.PATH}}"
+          # ls -l ${{env.MAGICK_HOME}}/bin/
+          # ./build.sh || echo "Build failed, creating artifacts from PixelFlasher.app" && exit 1
         continue-on-error: true
 
       # if the previous step fails, rename the app file and upload it as an artifact
@@ -160,11 +167,19 @@ jobs:
         run: mv dist/PixelFlasher.app dist/PixelFlasher_MacOS_13.app
         if: ${{ steps.build_app.outcome == 'failure' }}
 
+      - name: Get sha256
+        run: |
+          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+          cat dist/PixelFlasher.dmg.sha256
+        if: ${{ steps.build_app.outcome == 'success' }}
+        continue-on-error: true
+
       - name: Get sha256 of the app
         run: |
           shasum -a 256 dist/PixelFlasher_MacOS_13.app > dist/PixelFlasher_MacOS_13.app.sha256
           cat dist/PixelFlasher_MacOS_13.app.sha256
           if: ${{ steps.build_app.outcome == 'failure' }}
+        continue-on-error: true
 
       # Upload app artifacts Mac-OS 13 to Actions
       - name: Upload Mac-OS 13 app Artifacts
@@ -208,4 +223,3 @@ jobs:
           path: |
             dist/PixelFlasher_MacOS_13.dmg
             dist/PixelFlasher_MacOS_13.dmg.sha256
-

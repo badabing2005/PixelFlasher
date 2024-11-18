@@ -1813,7 +1813,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # ==========================================
     def patch_magisk_script(patch_method):
         print("Creating pf_patch.sh script ...")
-        if self.config.use_busybox_shell:
+        if self.config.use_busybox_shell and patch_method == "rooted":
             # busybox_shell_cmd = "export ASH_STANDALONE=1; /data/adb/magisk/busybox ash"
             busybox_shell_cmd = "/data/adb/magisk/busybox ash"
         else:

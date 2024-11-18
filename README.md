@@ -326,7 +326,7 @@ I strongly encourage all beginners to follow those guides rather than use this p
 
 ## Troubleshooting
 
-If you need support or assistance, please **generate and provide a support file** from within PixelFlasher.
+If you need support or assistance, please first [search Github issues](https://github.com/badabing2005/PixelFlasher/issues?q=) and [XDA Forums](https://xdaforums.com/search/) to see if it is already reported / resolved, if not, please **generate and provide a support file** from within PixelFlasher.
 You can hit that big Support button on the main screen, or select it from the Help menu.
 The generated support.zip file is encrypted and optionally sanitized (redacted) to keep your sensitive information (username device id ...) private.
 

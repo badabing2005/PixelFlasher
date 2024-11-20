@@ -2615,6 +2615,8 @@ def get_beta_pif(device_model='random'):
                     fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{latest_version}/{build_id}/{incremental}:user/release-keys"
                 break
 
+    build_type = 'user'
+    build_tags = 'release-keys'
     if fingerprint and security_patch:
         debug(f"Security Patch: {security_patch}")
         # Extract props from fingerprint
@@ -2624,11 +2626,11 @@ def get_beta_pif(device_model='random'):
             # product_brand = match[1]
             # product_name = match[2]
             # product_device = match[3]
-            # build_version_release = match[4]
+            latest_version = match[4]
             build_id = match[5]
             incremental = match[6]
-            # build_type = match[7]
-            # build_tags = match[8]
+            build_type = match[7]
+            build_tags = match[8]
 
     def set_random_beta():
         list_count = len(model_list)
@@ -2638,11 +2640,11 @@ def get_beta_pif(device_model='random'):
         device = product.replace('_beta', '')
         return model, product, device
 
-    def get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch):
+    def get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch, build_type='user', build_tags='release-keys'):
         pif_data = {
             "MANUFACTURER": "Google",
             "MODEL": model,
-            "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:user/release-keys",
+            "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
             "PRODUCT": product,
             "DEVICE": device,
             "SECURITY_PATCH": security_patch,
@@ -2661,11 +2663,11 @@ def get_beta_pif(device_model='random'):
             model = item
             product = product_list[i]
             device = product.replace('_beta', '')
-            pif_data = get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch)
+            pif_data = get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch, build_type, build_tags)
             # {
             #     "MANUFACTURER": "Google",
             #     "MODEL": model,
-            #     "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:user/release-keys",
+            #     "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
             #     "PRODUCT": product,
             #     "DEVICE": device,
             #     "SECURITY_PATCH": security_patch,
@@ -2680,11 +2682,11 @@ def get_beta_pif(device_model='random'):
         model, product, device = set_random_beta()
 
     # Dump values to pif.json
-    pif_data = get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch)
+    pif_data = get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch, build_type, build_tags)
     # pif_data = {
     #     "MANUFACTURER": "Google",
     #     "MODEL": model,
-    #     "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:user/release-keys",
+    #     "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
     #     "PRODUCT": product,
     #     "DEVICE": device,
     #     "SECURITY_PATCH": security_patch,
@@ -3513,6 +3515,63 @@ def process_pi_xml_spic(filename):
                 elif value_after_index_3 == "MEETS_VIRTUAL_INTEGRITY":
                     result = "[o] [o] [o]"
                 return f"{result} {value_after_index_3}"
+            else:
+                print("Error")
+                return -1
+        else:
+            print("'Play Integrity Result:' not found")
+            return -1
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in process_pi_xml_spic function")
+        traceback.print_exc()
+        return -1
+
+
+# ============================================================================
+#                               Function process_pi_xml_aic
+# ============================================================================
+def process_pi_xml_aic(filename):
+    try:
+        encoding = detect_encoding(filename)
+        with open(filename, 'r', encoding=encoding, errors="replace") as file:
+            xml_content = file.read()
+
+        # Check if the XML contains the specific string
+        if 'Integrity API error' in xml_content:
+            return "Quota Reached.\nAndroid Integrity Checker\nis making too many requests to the Google API."
+
+        # Find the position of "Play Integrity Result:"
+        device_recognition_verdict_pos = xml_content.find("Device recognition verdict")
+
+        # If "Device recognition verdict" is found, continue searching for index="3"
+        if device_recognition_verdict_pos != -1:
+            index_6_pos = xml_content.find('index="6"', device_recognition_verdict_pos)
+
+            # If index="6" is found, extract the value after it
+            if index_6_pos != -1:
+                # Adjust the position to point at the end of 'index="3"' and then get the next value between double quotes.
+                index_6_pos += len('index="6"')
+                value_start_pos = xml_content.find('"', index_6_pos) + 1
+                value_end_pos = xml_content.find('"', value_start_pos)
+                value_after_index_6 = xml_content[value_start_pos:value_end_pos]
+                debug(value_after_index_6)
+                result = ''
+                if 'MEETS_BASIC_INTEGRITY' in value_after_index_6:
+                    result += '[✓]'
+                else:
+                    result += '[✗]'
+
+                if 'MEETS_DEVICE_INTEGRITY' in value_after_index_6:
+                    result += ' [✓]'
+                else:
+                    result += ' [✗]'
+
+                if 'MEETS_STRONG_INTEGRITY' in value_after_index_6:
+                    result += ' [✓]'
+                else:
+                    result += ' [✗]'
+
+                return f"{result}\n{value_after_index_6}"
             else:
                 print("Error")
                 return -1

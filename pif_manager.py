@@ -279,7 +279,7 @@ class PifManager(wx.Dialog):
         self.auto_check_pi_checkbox.Enable(False)
 
         # option button PI Selection
-        self.pi_choices = ["Play Integrity API Checker", "Simple Play Integrity Checker", "TB Checker", "Play Store", "YASNAC"]
+        self.pi_choices = ["Play Integrity API Checker", "Simple Play Integrity Checker", "Android Integrity Checker", "Play Store", "YASNAC"]
         self.pi_option = wx.RadioBox(self, choices=self.pi_choices, style=wx.RA_VERTICAL)
 
         # Disable UIAutomator
@@ -712,6 +712,12 @@ class PifManager(wx.Dialog):
             # self.launch_method = 'launch-am-main'
             self.launch_method = 'launch'
 
+        elif selected_option == "Android Integrity Checker":
+            print("Android Integrity Checker option selected")
+            self.pi_app = 'com.thend.integritychecker'
+            # self.launch_method = 'launch-am-main'
+            self.launch_method = 'launch'
+
         elif selected_option == "Play Store":
             print("Play Store option selected")
             self.pi_app = 'com.android.vending'
@@ -915,6 +921,9 @@ class PifManager(wx.Dialog):
             elif self.pi_app == 'krypton.tbsafetychecker':
                 return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Run Play Integrity Check", False)
 
+            elif self.pi_app == 'com.thend.integritychecker':
+                return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "android.widget.Button", False)
+
             elif self.pi_app == 'rikka.safetynetchecker':
                 return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Run SafetyNet Attestation", False)
 
@@ -1017,7 +1026,7 @@ class PifManager(wx.Dialog):
                 self.toast("Active pif not in sync", "WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing.")
 
             # We need to kill TB Checker , Play Store and YASNAC to make sure we read fresh values
-            if self.pi_option.Selection in [2, 3, 4]:
+            if self.pi_option.StringSelection in ['Android Integrity Checker', 'TB Checker', 'Play Store', 'YASNAC']:
                 res = device.perform_package_action(self.pi_app, 'kill', False)
 
             # launch the app
@@ -1034,7 +1043,7 @@ class PifManager(wx.Dialog):
                     print(f"WARNING! You have disabled using UIAutomator.\nPlease uncheck Disable UIAutomator checkbox if you want to enable UIAutomator usage.")
                     return
                 # For Play Store, we need to save multiple coordinates
-                if self.pi_option.Selection == 3:
+                if self.pi_option.StringSelection == 'Play Store':
                     # Get coordinates for the first time
                     # user
                     coord_user = self.get_pi_app_coords(child='user')
@@ -1105,7 +1114,7 @@ class PifManager(wx.Dialog):
                             del self.coords.data[device.id][self.pi_app]
                             self.coords.save_data()
                         return -1
-            elif self.pi_option.Selection == 3:
+            elif self.pi_option.StringSelection == 'Play Store':
                 coord_user = self.coords.query_nested_entry(device.id, self.pi_app, "user")
                 coord_settings = self.coords.query_nested_entry(device.id, self.pi_app, "settings")
                 coord_general = self.coords.query_nested_entry(device.id, self.pi_app, "general")
@@ -1181,20 +1190,27 @@ class PifManager(wx.Dialog):
                 # pull view
                 config_path = get_config_path()
                 pi_xml = os.path.join(config_path, 'tmp', 'pi.xml')
+                print("Sleeping 10 seconds to get the results ...")
                 time.sleep(5)
+
+                if self.pi_option.StringSelection == 'Android Integrity Checker':
+                    device.swipe_up(percentage=20)
+
                 res = device.ui_action('/data/local/tmp/pi.xml', pi_xml)
                 if res == -1:
                     print(f"Error: during uiautomator {self.pi_app}.")
                     return -1
 
                 # extract result
-                if self.pi_option.Selection == 0:
+                if self.pi_option.StringSelection == 'Play Integrity API Checker':
                     res = process_pi_xml_piac(pi_xml)
-                if self.pi_option.Selection == 1:
+                if self.pi_option.StringSelection == 'Simple Play Integrity Checker':
                     res = process_pi_xml_spic(pi_xml)
-                if self.pi_option.Selection == 2:
+                if self.pi_option.StringSelection == 'TB Checker':
                     res = process_pi_xml_tb(pi_xml)
-                if self.pi_option.Selection == 3:
+                if self.pi_option.StringSelection == 'Android Integrity Checker':
+                    res = process_pi_xml_aic(pi_xml)
+                if self.pi_option.StringSelection == 'Play Store':
                     res = process_pi_xml_ps(pi_xml)
                     # dismiss
                     if coord_dismiss is None or coord_dismiss == '' or coord_dismiss == -1:
@@ -1205,7 +1221,7 @@ class PifManager(wx.Dialog):
                                 del self.coords.data[device.id][self.pi_app]['dismiss']
                                 self.coords.save_data()
                         self.coords.update_nested_entry(device.id, self.pi_app, "dismiss", coord_dismiss)
-                if self.pi_option.Selection == 4:
+                if self.pi_option.StringSelection == 'YASNAC':
                     res = process_pi_xml_yasnac(pi_xml)
 
                 if res == -1:

@@ -4626,6 +4626,7 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def _on_check_keybox(self, event):
         try:
+            total_keyboxes = None
             with wx.FileDialog(self, "Select keybox to test", '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled file push.")
@@ -4666,7 +4667,7 @@ Before posting publicly please carefully inspect the contents.
         finally:
             self._on_spin('stop')
 
-            if total_keyboxes > 1:
+            if total_keyboxes is not None and total_keyboxes > 1:
                 print(f"Total keyboxes checked: {total_keyboxes}")
                 if invalid_count > 0:
                     print(f"Invalid keyboxes count: {invalid_count} / {total_keyboxes}")

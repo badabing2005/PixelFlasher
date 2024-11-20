@@ -354,7 +354,17 @@ def identify_sdk_version(self):
                             if parse(sdkver) < parse(SDKVERSION) or (sdkver in ('34.0.0', '34.0.1', '34.0.2', '34.0.3', '34.0.4')):
                                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Detected old or problematic Android Platform Tools version {sdk_version}")
                                 # confirm if you want to use older version
-                                dlg = wx.MessageDialog(None, f"You have an old or problematic Android platform Tools version {sdk_version}\nYou are strongly advised to                if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch', 'apatch_manual']:hod not in ['kernelsu', 'apatch', 'apatch_manual']:hod not in ['kernelsu', 'apatch', 'apatch_manual']:re want to continue?",'Bad Android Platform Tools',wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
+                                message = (
+                                    f"You have an old or problematic Android platform Tools version {sdk_version}\n"
+                                    "You are strongly advised to update before continuing.\n"
+                                    "Are you sure you want to continue?"
+                                )
+                                dlg = wx.MessageDialog(
+                                    parent=None,
+                                    message=message,
+                                    caption='Bad Android Platform Tools',
+                                    style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION
+                                )
                                 result = dlg.ShowModal()
                                 puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
                                 if result == wx.ID_YES:
@@ -3981,7 +3991,7 @@ def flash_phone(self):
             f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
             data_win = first_line_win
             data_linux = first_line_linux
-            data_win += 'PATH=%PATH%;"%SYSTEMROOT%\System32"\n'
+            data_win += r'PATH=%PATH%;"%SYSTEMROOT%\System32"\n'
             # Sideload
             if image_mode == 'SIDELOAD':
                 msg  = "\nADB Sideload:           "

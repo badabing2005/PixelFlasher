@@ -57,6 +57,10 @@ class MyToolsDialog(wx.Dialog):
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(colText=wx.Colour('BLACK'), colBack=wx.Colour('DARK GREY'), font=wx.Font(wx.FontInfo(10).Bold())))
 
+        # Enable checkboxes
+        if hasattr(self.list, 'EnableCheckBoxes'):
+            self.list.EnableCheckBoxes()
+
         self.Refresh()
 
         self.title_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
@@ -176,32 +180,36 @@ class MyToolsDialog(wx.Dialog):
     #              Function PopulateList
     # -----------------------------------------------
     def PopulateList(self):
-        self.list.ClearAll()  # Clear existing items and columns
-        self.list.InsertColumn(0, "Tools", width=wx.LIST_AUTOSIZE_USEHEADER)
+        try:
+            self.list.ClearAll()  # Clear existing items and columns
+            self.list.InsertColumn(0, "Tools", width=wx.LIST_AUTOSIZE_USEHEADER)
 
-        min_width = 250  # Minimum column width
-        max_width = 500  # Maximum column width
-        max_text_width = 0  # Track the maximum text width
+            min_width = 250  # Minimum column width
+            max_width = 500  # Maximum column width
+            max_text_width = 0  # Track the maximum text width
 
-        if self.mytools:
-            for key, data in self.mytools.items():
-                index = self.list.InsertItem(self.list.GetItemCount(), data["title"])
-                if data["enabled"]:
-                    self.list.CheckItem(index, check=True)
-                else:
-                    self.list.SetItemTextColour(index, wx.Colour(128, 128, 128))
-                    self.list.CheckItem(index, check=False)
+            if self.mytools:
+                for key, data in self.mytools.items():
+                    index = self.list.InsertItem(self.list.GetItemCount(), data["title"])
+                    if data["enabled"]:
+                        self.list.CheckItem(index, check=True)
+                    else:
+                        self.list.SetItemTextColour(index, wx.Colour(128, 128, 128))
+                        self.list.CheckItem(index, check=False)
 
-                # Measure text width of the current item
-                text_width = self.list.GetTextExtent(data["title"])[0]
-                if text_width > max_text_width:
-                    max_text_width = text_width
+                    # Measure text width of the current item
+                    text_width = self.list.GetTextExtent(data["title"])[0]
+                    if text_width > max_text_width:
+                        max_text_width = text_width
 
-        # Adjust column width based on text width, within min and max bounds
-        column_width = max(min_width, min(max_text_width + 30, max_width))
-        self.list.SetColumnWidth(0, column_width)
+            # Adjust column width based on text width, within min and max bounds
+            column_width = max(min_width, min(max_text_width + 30, max_width))
+            self.list.SetColumnWidth(0, column_width)
 
-        self.list.GetParent().Layout()
+            self.list.GetParent().Layout()
+        except Exception as e:
+            print(f"Error: {e}")
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  on_command_change

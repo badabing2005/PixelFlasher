@@ -78,7 +78,7 @@ from modules import (adb_kill_server, auto_resize_boot_list,
     select_firmware, set_flash_button_state, setup_for_downgrade)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
-from phone import get_connected_devices
+from phone import get_connected_devices, update_phones
 from runtime import *
 from my_tools import MyToolsDialog
 
@@ -754,6 +754,15 @@ class PixelFlasher(wx.Frame):
             x = int((self.CharWidth * self.config.width) / 11)
             y = int((self.CharHeight * self.config.height) / 25)
             self.SetSize(x, y)
+        self.SetMinSize((600, 400))
+
+        # Make sure position is not -32000, -32000 (minimized)
+        if self.config.pos_x == -32000 or self.config.pos_y == -32000:
+            self.Center()
+            # Update config with centered position
+            pos = self.GetPosition()
+            self.config.pos_x = pos.x
+            self.config.pos_y = pos.y
 
         self.toolbar_flags = self.get_toolbar_config()
 
@@ -1242,6 +1251,12 @@ class PixelFlasher(wx.Frame):
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=130)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=130)
 
+            # Reboot to Interactive Recovery
+            if self.config.toolbar['visible']['reboot_recovery_interactive'] and self.config.advanced_options:
+                tb.AddTool(toolId=135, label="iRecovery", bitmap=images.reboot_irecovery_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Interactive Recovery", longHelp="Reboot to Interactive Recovery", clientData=None)
+                self.Bind(wx.EVT_TOOL, self.OnToolClick, id=135)
+                self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=135)
+
             # Reboot to Safe Mode
             if self.config.toolbar['visible']['reboot_safe_mode'] and self.config.advanced_options:
                 tb.AddTool(toolId=140, label="Safe Mode", bitmap=images.reboot_safe_mode_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Safe Mode", longHelp="Reboot to Safe Mode", clientData=None)
@@ -1261,7 +1276,7 @@ class PixelFlasher(wx.Frame):
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=160)
 
             # separator
-            if self.config.toolbar['visible']['reboot_system'] or self.config.toolbar['visible']['reboot_bootloader'] or (self.config.toolbar['visible']['reboot_recovery'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_safe_mode'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_download'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_sideload'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_fastbootd'] and self.config.advanced_options):
+            if self.config.toolbar['visible']['reboot_system'] or self.config.toolbar['visible']['reboot_bootloader'] or (self.config.toolbar['visible']['reboot_recovery'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_recovery_interactive'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_safe_mode'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_download'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_sideload'] and self.config.advanced_options) or (self.config.toolbar['visible']['reboot_fastbootd'] and self.config.advanced_options):
                 tb.AddSeparator()
 
             # Manage Magisk Settings (json file knows this and magisk_modules)
@@ -1383,6 +1398,8 @@ class PixelFlasher(wx.Frame):
             self._on_reboot_fastbootd(event)
         elif id == 130:
             self._on_reboot_recovery(event)
+        elif id == 135:
+            self._on_reboot_recovery_interactive(event)
         elif id == 140:
             self._on_reboot_safemode(event)
         elif id == 150:
@@ -1594,6 +1611,7 @@ class PixelFlasher(wx.Frame):
         self.reboot_bootloader_menu = reboot.Append(wx.ID_ANY, "Bootloader")
         self.reboot_fastbootd_menu = reboot.Append(wx.ID_ANY, "Fastbootd")
         self.reboot_recovery_menu = reboot.Append(wx.ID_ANY, "Recovery")
+        self.reboot_recovery_interactive_menu = reboot.Append(wx.ID_ANY, "Interactive Recovery")
         self.reboot_safe_mode_menu = reboot.Append(wx.ID_ANY, "Safe Mode")
         self.reboot_download_menu = reboot.Append(wx.ID_ANY, "Download")
         self.reboot_sideload_menu = reboot.Append(wx.ID_ANY, "Sideload")
@@ -1601,6 +1619,7 @@ class PixelFlasher(wx.Frame):
         self.reboot_bootloader_menu.SetBitmap(images.reboot_bootloader_24.GetBitmap())
         self.reboot_fastbootd_menu.SetBitmap(images.reboot_fastbootd_24.GetBitmap())
         self.reboot_recovery_menu.SetBitmap(images.reboot_recovery_24.GetBitmap())
+        self.reboot_recovery_interactive_menu.SetBitmap(images.reboot_irecovery_24.GetBitmap())
         self.reboot_safe_mode_menu.SetBitmap(images.reboot_safe_mode_24.GetBitmap())
         self.reboot_download_menu.SetBitmap(images.reboot_download_24.GetBitmap())
         self.reboot_sideload_menu.SetBitmap(images.reboot_sideload_24.GetBitmap())
@@ -1608,6 +1627,7 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_reboot_bootloader, self.reboot_bootloader_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_fastbootd, self.reboot_fastbootd_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_recovery, self.reboot_recovery_menu)
+        self.Bind(wx.EVT_MENU, self._on_reboot_recovery_interactive, self.reboot_recovery_interactive_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_safemode, self.reboot_safe_mode_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_download, self.reboot_download_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_sideload, self.reboot_sideload_menu)
@@ -1741,6 +1761,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Append(120, "Reboot Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.reboot_bootloader_24.GetBitmap())
         tb_buttons_menu.Append(125, "Reboot Fastbootd", "", wx.ITEM_CHECK).SetBitmap(images.reboot_fastbootd_24.GetBitmap())
         tb_buttons_menu.Append(130, "Reboot Recovery", "", wx.ITEM_CHECK).SetBitmap(images.reboot_recovery_24.GetBitmap())
+        tb_buttons_menu.Append(135, "Reboot Interactive Recovery", "", wx.ITEM_CHECK).SetBitmap(images.reboot_irecovery_24.GetBitmap())
         tb_buttons_menu.Append(140, "Reboot Safe Mode", "", wx.ITEM_CHECK).SetBitmap(images.reboot_safe_mode_24.GetBitmap())
         tb_buttons_menu.Append(150, "Reboot Download", "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
         tb_buttons_menu.Append(160, "Reboot Sideload", "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
@@ -1769,6 +1790,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Check(120, self.config.toolbar['visible']['reboot_bootloader'])
         tb_buttons_menu.Check(125, self.config.toolbar['visible']['reboot_fastbootd'])
         tb_buttons_menu.Check(130, self.config.toolbar['visible']['reboot_recovery'])
+        tb_buttons_menu.Check(135, self.config.toolbar['visible']['reboot_recovery_interactive'])
         tb_buttons_menu.Check(140, self.config.toolbar['visible']['reboot_safe_mode'])
         tb_buttons_menu.Check(150, self.config.toolbar['visible']['reboot_download'])
         tb_buttons_menu.Check(160, self.config.toolbar['visible']['reboot_sideload'])
@@ -1978,6 +2000,8 @@ class PixelFlasher(wx.Frame):
             self.config.toolbar['visible']['reboot_fastbootd'] = button_visible
         if button_id == 130:
             self.config.toolbar['visible']['reboot_recovery'] = button_visible
+        if button_id == 135:
+            self.config.toolbar['visible']['reboot_recovery_interactive'] = button_visible
         if button_id == 140:
             self.config.toolbar['visible']['reboot_safe_mode'] = button_visible
         if button_id == 150:
@@ -2400,7 +2424,8 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         # print("Checkmark: ✅")
 
         # device = get_phone(True)
-        # device.dump_props()
+        # if device:
+        #     update_phones(device.id)
 
     # -----------------------------------------------
     #                  _on_pi_analysis_report
@@ -2735,6 +2760,7 @@ Before posting publicly please carefully inspect the contents.
                 self.switch_slot_menu.Enable(False)
                 self.reboot_fastbootd_menu.Enable(False)
                 self.reboot_recovery_menu.Enable(False)
+                self.reboot_recovery_interactive_menu.Enable(False)
                 self.reboot_safe_mode_menu.Enable(False)
                 self.reboot_download_menu.Enable(False)
                 self.reboot_sideload_menu.Enable(False)
@@ -2780,6 +2806,7 @@ Before posting publicly please carefully inspect the contents.
                 self.switch_slot_menu.Enable(True)
                 self.reboot_fastbootd_menu.Enable(True)
                 self.reboot_recovery_menu.Enable(True)
+                self.reboot_recovery_interactive_menu.Enable(True)
                 self.reboot_safe_mode_menu.Enable(True)
                 self.reboot_download_menu.Enable(True)
                 self.reboot_sideload_menu.Enable(True)
@@ -2850,20 +2877,21 @@ Before posting publicly please carefully inspect the contents.
         message += f"Selected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:\n"
         message += '=======================================\n'
         message += f"    Device ID:                       {device.id}\n"
-        message += f"    Device Model:                    {device.hardware}\n"
-        message += f"    Device Active Slot:              {device.active_slot}\n"
         message += f"    Device Mode:                     {device.true_mode}\n"
-        with contextlib.suppress(Exception):
-            android_devices = get_android_devices()
-            android_device = android_devices[device.hardware]
-            if android_device:
-                message += f"    Device Name:                     {android_device['device']}\n"
-                message += f"    Device First API Level:          {android_device['first_api_level']}\n"
-                message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
-                message += f"    Device Security Update End Date: {android_device['security_update_end_date']}\n"
-        message += f"    Has init_boot partition:         {device.has_init_boot}\n"
-        message += f"    Device Bootloader Version:       {device.get_prop('version-bootloader', 'ro.bootloader')}\n"
-        if device.mode == 'adb':
+        if device.mode == 'f.b' or device.true_mode == 'adb':
+            message += f"    Device Model:                    {device.hardware}\n"
+            message += f"    Device Active Slot:              {device.active_slot}\n"
+            with contextlib.suppress(Exception):
+                android_devices = get_android_devices()
+                android_device = android_devices[device.hardware]
+                if android_device:
+                    message += f"    Device Name:                     {android_device['device']}\n"
+                    message += f"    Device First API Level:          {android_device['first_api_level']}\n"
+                    message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
+                    message += f"    Device Security Update End Date: {android_device['security_update_end_date']}\n"
+            message += f"    Has init_boot partition:         {device.has_init_boot}\n"
+            message += f"    Device Bootloader Version:       {device.get_prop('version-bootloader', 'ro.bootloader')}\n"
+        if device.true_mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
             message += f"    Device Build:                    {device.build}\n"
             ro_product_first_api_level = device.get_prop('ro.product.first_api_level')
@@ -3325,6 +3353,7 @@ Before posting publicly please carefully inspect the contents.
                 self.sos_menu:                          ['no_rule'],
                 self.reboot_menu:                       ['device_attached'],
                 self.reboot_recovery_menu:              ['device_attached', 'advanced_options'],
+                self.reboot_recovery_interactive_menu:  ['device_attached', 'advanced_options'],
                 self.reboot_bootloader_menu:            ['device_attached'],
                 self.reboot_fastbootd_menu:             ['device_attached', 'advanced_options'],
                 self.reboot_system_menu:                ['device_attached'],
@@ -3408,6 +3437,7 @@ Before posting publicly please carefully inspect the contents.
                 120:                                    ['device_attached'],                                            # Reboot Bootloader
                 125:                                    ['device_attached'],                                            # Reboot Fastbootd
                 130:                                    ['device_attached'],                                            # Reboot Recovery
+                135:                                    ['device_attached'],                                            # Reboot Interactive Recovery
                 140:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Reboot Safe Mode
                 150:                                    ['device_attached', 'device_mode_adb'],                         # Reboot Download
                 160:                                    ['device_attached'],                                            # Reboot Sideload
@@ -3902,8 +3932,31 @@ Before posting publicly please carefully inspect the contents.
                     res = device.reboot_recovery()
                     if res != 0:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
+                    # Note, if the device ends up in interactive recovery, the user can still reboot to recovery to get the upside down android screen
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to recovery")
+            traceback.print_exc()
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #         _on_reboot_recovery_interactive
+    # -----------------------------------------------
+    def _on_reboot_recovery_interactive(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Reboot Interactive Recovery")
+            print("==============================================================================")
+            if self.config.device:
+                self._on_spin('start')
+                device = get_phone(True)
+                if device:
+                    res = device.reboot_recovery_interactive()
+                    if res != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to interactive recovery")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to interactive recovery")
             traceback.print_exc()
         finally:
             self.refresh_device()

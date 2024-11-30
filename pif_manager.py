@@ -86,6 +86,7 @@ class PifManager(wx.Dialog):
         self.keep_unknown = False
         self.current_pif_module = {}
         self._last_call_was_on_spin = False
+        self.beta_pif_version = 'latest'
 
         # Active pif label
         self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Active Pif")
@@ -290,6 +291,21 @@ class PifManager(wx.Dialog):
         self.pi_checker_button = wx.Button(self, wx.ID_ANY, u"Play Integrity Check", wx.DefaultPosition, wx.DefaultSize, 0)
         self.pi_checker_button.SetToolTip(u"Play Integrity API Checker\nNote: Need to install app from Play store.")
 
+        # Beta Pif version selection
+        self.rb_latest = wx.RadioButton(self, wx.ID_ANY, "Latest", style=wx.RB_GROUP)
+        self.rb_custom = wx.RadioButton(self, wx.ID_ANY, "Custom")
+        self.rb_custom.SetToolTip(u"Select 'Latest' to get the latest Pixel beta pif (Includes Developer Preview).\nSelect 'Custom' to set a custom Android version code.")
+        self.rb_latest.SetValue(True)
+
+        # Custom version input
+        self.custom_version = wx.TextCtrl(self, wx.ID_ANY, "15", size=(40, -1))
+        self.custom_version.SetToolTip(u"Set a valid Android version code.")
+        self.custom_version.Enable(False)
+
+        # Get Beta Pif button
+        self.beta_pif_button = wx.Button(self, wx.ID_ANY, u"Get Pixel Beta Pif", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.beta_pif_button.SetToolTip(u"Get the latest Pixel beta pif.")
+
         # Get Xiaomi Pif button
         self.xiaomi_pif_button = wx.Button(self, wx.ID_ANY, u"Get Xiaomi Pif", wx.DefaultPosition, wx.DefaultSize, 0)
         self.xiaomi_pif_button.SetToolTip(u"Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own.")
@@ -297,10 +313,6 @@ class PifManager(wx.Dialog):
         # Get TheFreeman193 Pif button
         self.freeman_pif_button = wx.Button(self, wx.ID_ANY, u"Get TheFreeman193 Random Pif", wx.DefaultPosition, wx.DefaultSize, 0)
         self.freeman_pif_button.SetToolTip(u"Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work.")
-
-        # Get Beta Pif button
-        self.beta_pif_button = wx.Button(self, wx.ID_ANY, u"Get Pixel Beta Pif", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.beta_pif_button.SetToolTip(u"Get the latest Pixel beta pif.")
 
         # Make the buttons the same size
         button_width = self.pi_option.GetSize()[0] + 10
@@ -331,6 +343,11 @@ class PifManager(wx.Dialog):
         h_api_sizer.Add(self.force_first_api_checkbox, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
         h_api_sizer.Add(self.api_value_input, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
+        self.beta_pif_hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.beta_pif_hsizer.Add(self.rb_latest, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.beta_pif_hsizer.Add(self.rb_custom, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.beta_pif_hsizer.Add(self.custom_version, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+
         v_buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         v_buttons_sizer.Add(self.create_pif_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.push_pif_button, 0, wx.TOP | wx.RIGHT, 5)
@@ -347,9 +364,10 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.pi_option, 0, wx.TOP, 5)
         v_buttons_sizer.Add(self.disable_uiautomator_checkbox, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.pi_checker_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.beta_pif_hsizer, 0, wx.EXPAND | wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.beta_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.xiaomi_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.freeman_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
-        v_buttons_sizer.Add(self.beta_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
 
         self.vertical_btn_sizer1 = wx.BoxSizer(wx.VERTICAL)
         self.vertical_btn_sizer1.Add(self.paste_up, 0, wx.ALL, 0)
@@ -470,6 +488,9 @@ class PifManager(wx.Dialog):
         self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
         self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
         self.api_value_input.Bind(wx.EVT_TEXT, self.onApiValueChange)
+        self.rb_latest.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
+        self.rb_custom.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
+        self.custom_version.Bind(wx.EVT_TEXT, self.onBetaVersionChange)
 
         # init button states
         self.init()
@@ -983,6 +1004,49 @@ class PifManager(wx.Dialog):
             self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  onBetaRadioSelect
+    # -----------------------------------------------
+    def onBetaRadioSelect(self, event):
+        self.custom_version.Enable(self.rb_custom.GetValue())
+        if self.rb_latest.GetValue():
+            self.beta_pif_version = 'latest'
+        else:
+            # When switching to custom, validate existing text
+            try:
+                value = int(self.custom_version.GetValue())
+                self.beta_pif_version = str(value)
+            except ValueError:
+                self.beta_pif_version = 'latest'
+
+    # -----------------------------------------------
+    #                  onBetaVersionChange
+    # -----------------------------------------------
+    def onBetaVersionChange(self, event):
+        text = self.custom_version.GetValue()
+
+        # Only allow 2 digits
+        if len(text) > 2:
+            self.custom_version.SetValue(text[:2])
+            self.custom_version.SetInsertionPointEnd()
+            event.Skip(False)  # Prevent further processing
+            return
+
+        try:
+            if text:
+                value = int(text)
+                self.beta_pif_version = str(value)
+            else:
+                self.beta_pif_version = 'latest'
+        except ValueError:
+            print(f"ERROR: Invalid Android version number: {text}")
+            self.custom_version.SetValue('')  # Clear invalid input
+            event.Skip(False)  # Prevent invalid input
+            return
+
+        # Allow valid changes
+        event.Skip()
+
+    # -----------------------------------------------
     #                  BetaPif
     # -----------------------------------------------
     def BetaPif(self, e):
@@ -990,6 +1054,7 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
             wx.CallAfter(self.console_stc.SetValue, f"Getting Pixel beta print ...\nPlease be patient this could take some time ...")
             wx.Yield()
+            force_version = None
             device = get_phone()
             if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):
                 device_model = "all"
@@ -997,7 +1062,13 @@ class PifManager(wx.Dialog):
                 device_model = device.hardware
             else:
                 device_model = "Random"
-            beta_pif = get_beta_pif(device_model)
+            # Check if self.beta_pif_version is a two digit number then set force_version to that (int)
+            if self.beta_pif_version.isdigit() and len(self.beta_pif_version) == 2:
+                force_version = int(self.beta_pif_version)
+            beta_pif = get_beta_pif(device_model, force_version)
+            if beta_pif == -1:
+                wx.CallAfter(self.console_stc.SetValue, "Failed to get beta print.")
+                return
             self.console_stc.SetValue(beta_pif)
         except Exception:
             traceback.print_exc()

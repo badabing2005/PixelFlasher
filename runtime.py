@@ -1802,6 +1802,26 @@ def debug(message):
 
 
 # ============================================================================
+#                               Function print_user_interaction_message
+# ============================================================================
+def print_user_interaction_message(mode):
+    message = f'''
+\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Programmatic reboot to mode {mode} is failing.
+There could be several reasons for this.
+- Your device bootloader is locked.
+- The device / platform tools does not support this option.
+- Your phone is not connected / detected.
+
+Is your device is waiting for interaction? if so perform the actions manually.
+- Using volume keys, scroll up and down and select the proper option.
+- Press the power button to apply.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n
+'''
+    print(message)
+
+
+# ============================================================================
 #                               Function md5
 # ============================================================================
 def md5(fname):
@@ -2524,9 +2544,10 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
 # ============================================================================
 #                 Function get_beta_pif
 # ============================================================================
-def get_beta_pif(device_model='random'):
+def get_beta_pif(device_model='random', force_version=None):
     # Get the latest Android version
-    latest_version, latest_version_url = get_latest_android_version()
+    latest_version, latest_version_url = get_latest_android_version(force_version)
+    debug(f"Selected Version:  {latest_version}")
     if latest_version == -1:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get the latest Android version")
         return -1
@@ -2537,31 +2558,58 @@ def get_beta_pif(device_model='random'):
 
     # Fetch OTA HTML
     ota_data = get_beta_data(ota_url)
+    if not ota_data:
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or DP OTA data for Android {latest_version}")
     # print(ota_data.__dict__)
 
     # Fetch Factory HTML
     factory_data = get_beta_data(factory_url)
+    if not factory_data:
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or DP Factory data for Android {latest_version}")
     # print(factory_data.__dict__)
 
     # Fetch GSI HTML
     partial_gsi_data, release_href = get_partial_gsi_data()
+    if not partial_gsi_data:
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or DP GSI data for Android {latest_version}")
     # print(partial_gsi_data.__dict__)
 
-    ota_date = ota_data.__dict__['release_date']
-    debug(f"Beta OTA Date:     {ota_date}")
-    gsi_date = partial_gsi_data.__dict__['release_date']
-    debug(f"Beta GSI Date:     {gsi_date}")
-    factory_date = factory_data.__dict__['release_date']
-    debug(f"Beta Factory Date: {factory_date}")
+    if not ota_data and not factory_data and not partial_gsi_data:
+        return -1
+    if not ota_data and not factory_data:
+        print(f"Getting beta print from latest GSI data, which will not necessarily match the requested Android version {latest_version} ...")
 
-    # Parse the date strings into datetime objects
-    ota_date_object = datetime.strptime(ota_date, "%B %d, %Y")
-    gsi_date_object = datetime.strptime(gsi_date, "%B %d, %Y")
-    factory_date_object = datetime.strptime(factory_date, "%B %d, %Y")
+    ota_date_object = None
+    factory_date_object = None
+    gsi_date_object = None
+    if ota_data:
+        ota_date = ota_data.__dict__['release_date']
+        ota_date_object = datetime.strptime(ota_date, "%B %d, %Y")
+        debug(f"Beta OTA Date:     {ota_date}")
+    else:
+        debug(f"Beta OTA:          Unavailable")
+
+    if partial_gsi_data:
+        gsi_date = partial_gsi_data.__dict__['release_date']
+        gsi_date_object = datetime.strptime(gsi_date, "%B %d, %Y")
+        debug(f"Beta GSI Date:     {gsi_date}")
+    else:
+        debug(f"Beta GSI:          Unavailable")
+
+    if factory_data:
+        factory_date = factory_data.__dict__['release_date']
+        factory_date_object = datetime.strptime(factory_date, "%B %d, %Y")
+        debug(f"Beta Factory Date: {factory_date}")
+    else:
+        debug(f"Beta Factory:      Unavailable")
 
     # Determine the latest date(s)
     newest_data = []
-    latest_date = max(ota_date_object, factory_date_object, gsi_date_object)
+    latest_date = max(filter(None, (ota_date_object, factory_date_object, gsi_date_object)), default=None)
+
+    if latest_date is None:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to determine the latest date")
+        return -1
 
     if ota_date_object == latest_date:
         newest_data.append('ota')
@@ -2618,7 +2666,7 @@ def get_beta_pif(device_model='random'):
     build_type = 'user'
     build_tags = 'release-keys'
     if fingerprint and security_patch:
-        debug(f"Security Patch: {security_patch}")
+        debug(f"Security Patch:    {security_patch}")
         # Extract props from fingerprint
         pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
         match = re.search(pattern, fingerprint)
@@ -2675,7 +2723,7 @@ def get_beta_pif(device_model='random'):
             # }
             json_string += json.dumps(pif_data, indent=4) + "\n"
             i = i + 1
-        print(f"Beta Print Expiry Date: {expiry_date}")
+        print(f"Beta Print Expiry Date:   {expiry_date}")
         print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
         return json_string
     else:
@@ -2694,7 +2742,7 @@ def get_beta_pif(device_model='random'):
     # }
 
     random_print_json = json.dumps(pif_data, indent=4)
-    print(f"Beta Print Expiry Date: {expiry_date}")
+    print(f"Beta Print Expiry Date:   {expiry_date}")
     print(f"Random Beta Profile/Fingerprint:\n{random_print_json}\n")
     return random_print_json
 
@@ -2706,14 +2754,23 @@ def get_beta_data(url):
     try:
         response = requests.get(url)
         if response.status_code != 200:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch OTA HTML")
-            return -1
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {url}")
+            return None
         ota_html = response.text
 
         soup = BeautifulSoup(ota_html, 'html.parser')
 
+        # check if the page has beta in it.
+        if 'beta' not in soup.get_text().lower():
+            # print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: 'Beta' not found For URL: {url}")
+            return None
+
         # Extract information from the first table
         table = soup.find('table', class_='responsive fixed')
+        if not table:
+            # print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Required table is not found on the page.")
+            return None
+
         rows = table.find_all('tr')
         data = {}
         for row in rows:
@@ -2769,7 +2826,7 @@ def get_beta_data(url):
 # ============================================================================
 #                               Function get_latest_android_version
 # ============================================================================
-def get_latest_android_version():
+def get_latest_android_version(force_version=None):
     versions_url = "https://developer.android.com/about/versions"
     response = request_with_fallback('GET', versions_url)
     if response == 'ERROR' or response.status_code != 200:
@@ -2785,6 +2842,11 @@ def get_latest_android_version():
         if href and re.match(r'https:\/\/developer\.android\.com\/about\/versions\/\d+', href):
             # capture the d+ part
             link_version = int(re.search(r'\d+', href).group())
+            if force_version:
+                if link_version == force_version:
+                    version = link_version
+                    link_url = href
+                    break
             if link_version > version:
                 version = link_version
                 link_url = href
@@ -4647,8 +4709,10 @@ def check_kb(filename):
             return -2
 
         is_sw_signed = False
-        i = 1
+        is_expired = False
+        expiring_soon = False
         is_revoked = False
+        i = 1
         print(f"\nChecking keybox: {filename} ...")
 
         last_issuer = ""
@@ -4701,8 +4765,17 @@ def check_kb(filename):
             if expiry < datetime.now(timezone.utc):
                 expired_text = " (EXPIRED)"
             print(f"{tab_text}Validity:               {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}")
+
             if "Software Attestation" in cert_issuer:
                 is_sw_signed = True
+
+            if expiry < datetime.now(timezone.utc):
+                is_expired = True
+                print(f"{tab_text}❌❌❌ Certificate is EXPIRED")
+
+            if expiry < datetime.now(timezone.utc) + timedelta(days=30):
+                expiring_soon = True
+                print(f"{tab_text}⚠️ Certificate is EXPIRING SOON")
 
             if cert_sn.strip().lower() in (sn.strip().lower() for sn in crl["entries"].keys()):
                 print(f"{tab_text}❌❌❌ Certificate {i} is REVOKED")
@@ -4713,12 +4786,18 @@ def check_kb(filename):
         if is_revoked:
             print(f"\n❌❌❌ Keybox {filename} contains revoked certificates!")
             result = -1
+        if is_expired:
+            print(f"\n❌❌❌ Keybox {filename} contains expired certificates!")
+            result = -1
         else:
             print(f"\n✅ Keybox {filename} is clean from revoked certificates")
             result = 1
         if is_sw_signed:
             print(f"⚠️ Keybox {filename} is software signed! This is not a hardware-backed keybox!")
-            result =  0
+            result = 0
+        if expiring_soon:
+            print(f"⚠️ Keybox {filename} contains certificates that are expiring soon!")
+            result = 1
         print('')
         return result
     except Exception as e:

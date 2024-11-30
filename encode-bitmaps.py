@@ -101,6 +101,8 @@ command_lines = [
     "-a -F -i -n reboot-download-64 images/reboot-download-64.png images.py",
     "-a -F -i -n reboot-recovery-24 images/reboot-recovery-24.png images.py",
     "-a -F -i -n reboot-recovery-64 images/reboot-recovery-64.png images.py",
+    "-a -F -i -n reboot-irecovery-24 images/reboot-irecovery-24.png images.py",
+    "-a -F -i -n reboot-irecovery-64 images/reboot-irecovery-64.png images.py",
     "-a -F -i -n reboot-safe-mode-24 images/reboot-safe-mode-24.png images.py",
     "-a -F -i -n reboot-safe-mode-64 images/reboot-safe-mode-64.png images.py",
     "-a -F -i -n reboot-sideload-24 images/reboot-sideload-24.png images.py",

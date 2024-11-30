@@ -134,7 +134,8 @@ class Config():
                 'reboot_system': True,
                 'reboot_bootloader': True,
                 'reboot_fastbootd': True,
-                'reboot_recovery': True,
+                'reboot_recovery': False,
+                'reboot_recovery_interactive': True,
                 'reboot_safe_mode': True,
                 'reboot_download': True,
                 'reboot_sideload': True,
@@ -351,6 +352,8 @@ class Config():
                         conf.toolbar['visible']['reboot_fastbootd'] = toolbar_data['visible']['reboot_fastbootd']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['reboot_recovery'] = toolbar_data['visible']['reboot_recovery']
+                    with contextlib.suppress(KeyError):
+                        conf.toolbar['visible']['reboot_recovery_interactive'] = toolbar_data['visible']['reboot_recovery_interactive']
                     with contextlib.suppress(KeyError):
                         conf.toolbar['visible']['reboot_safe_mode'] = toolbar_data['visible']['reboot_safe_mode']
                     with contextlib.suppress(KeyError):

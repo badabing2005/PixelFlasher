@@ -4091,7 +4091,7 @@ def flash_phone(self):
                 return -1
 
         # Make sure Phone model matches firmware model
-        if (get_firmware_model() is None or get_firmware_model() == '') or not (len(device.hardware) >= 3 and device.hardware in get_firmware_model()):
+        if device.mode in ['adb', 'f.b'] and ((get_firmware_model() is None or get_firmware_model() == '') or not (len(device.hardware) >= 3 and device.hardware in get_firmware_model())):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware Model {get_firmware_model()}")
             puml(f"#orange:Hardware does not match firmware;\n")
             puml(f"note right\nAndroid device model {device.hardware}\nfirmware Model {get_firmware_model()}\nend note\n")
@@ -4444,11 +4444,11 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     # If we're doing OTA or Sideload image flashing, be in sideload mode
     if self.config.flash_mode == 'OTA' or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD'):
         # Let's cancel previous OTA just to be safe.
-        if mode == 'adb' and device.rooted:
+        if device.true_mode == 'adb' and device.rooted:
             print("Cancelling a previous OTA update for good measure ...")
             res = device.reset_ota_update()
         else:
-            if mode != 'adb':
+            if device.true_mode != 'adb':
                 print("Skipping cancelling a previous OTA update because device is not in adb mode ...")
             if not device.rooted:
                 print("Skipping cancelling a previous OTA update because device rooted is not detected ...")
@@ -4790,19 +4790,23 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
                 # Ask the user if the device is waiting for user interaction to continue / reboot
                 title = "Device is not detected."
                 buttons_text = ["Done rebooting to bootloader, continue", "Cancel"]
-                message = '''
+                action_text = 'bootloader'
+                if boot.is_stock_boot:
+                    buttons_text = ["Done rebooting to system, continue", "Cancel"]
+                    action_text = 'system'
+                message = f'''
 ## Is your device waiting for interaction?
 
 _If it is not, please hit the cancel button._
 
 If your device is waiting for user interaction which can not be programmatically invoked.
 
-- Using volume keys, scroll up and down and select **Reboot to bootloader**
+- Using volume keys, scroll up and down and select **Reboot {action_text}**
 - Press the power button to apply.
 
-When done, the device should reboot to bootloader mode <br/>
-Wait for the device to indicate that it is in bootloader mode <br/>
-Click on **Done rebooting to bootloader, continue** button <br/>
+When done, the device should reboot to {action_text} <br/>
+Wait for the device to fully boot to {action_text} <br/>
+Click on **Done rebooting to {action_text}, continue** button <br/>
 or hit the **Cancel** button to abort.
 
 '''

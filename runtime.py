@@ -4786,7 +4786,7 @@ def check_kb(filename):
         if is_revoked:
             print(f"\n❌❌❌ Keybox {filename} contains revoked certificates!")
             result = -1
-        if is_expired:
+        elif is_expired:
             print(f"\n❌❌❌ Keybox {filename} contains expired certificates!")
             result = -1
         else:

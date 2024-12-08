@@ -112,8 +112,10 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
 ## Prerequisites
 
 - [Android SDK Platform-Tools](https://developer.android.com/studio/releases/platform-tools.html).
+- USB Debug turned on in Developer Options and authorized for your computer. (see excellent guide links in credits section below).
 - Android Pixel phone [factory image](https://developers.google.com/android/images) or Android Pixel phone [full OTA image](https://developers.google.com/android/ota).
-- Bootloader unlocked phone (see excellent guide links in credits section below).
+- Bootloader unlocked phone if you want to root or flash Factory image (see excellent guide links in credits section below).
+  **Note:** Stock OTA sideloading does not require an unlocked bootloader.
 - On Windows: The latest [Google USB drivers](https://developer.android.com/studio/run/win-usb?authuser=1%2F) installed in adb and fastboot modes.
 - On MacOS: [Allow USB Accessory to connect](https://support.apple.com/en-us/102282) (very important!).
 - On Linux: [User needs to be added](https://developer.android.com/studio/run/device#setting-up) to `plugdev` group.
@@ -167,6 +169,8 @@ pip install -U \
     -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 \
     wxPython
 ```
+
+If you're building on Fedora, take a look at [this](https://github.com/badabing2005/PixelFlasher/issues/262) (Credit to @xChAmeLIoNz).
 
 **A note on Windows**
 If you run into troubles installing wxPython on Windows, you can download wxPython wheel file matching your version of Python™ from [here](https://wxpython.org/Phoenix/snapshot-builds/?C=M;O=D)
@@ -314,7 +318,7 @@ Select the appropriate flash options.
 
 - First and foremost [Magisk](https://github.com/topjohnwu/Magisk/releases) by [John Wu](https://github.com/topjohnwu) which made rooting Pixel™ phones possible, without it none of this would have mattered.
 - Big thanks to [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://xdaforums.com/m/t-ryder.3705546/) for his valuable ideas, feedback and testing. Your contributions are very much appreciated.
-- [[Homeboy76]](https://xdaforums.com/m/homeboy76.4810220/), [[v0latyle]](https://xdaforums.com/m/v0latyle.3690504/) and [[roirraW-edor-ehT]](https://xdaforums.com/m/roirraw-edor-eht.2560614/) at [xda](https://xdaforums.com/) for their excellent guides [[here](https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/), [here](https://xdaforums.com/t/guide-pixel-6-oriole-unlock-bootloader-update-root-pass-safetynet.4356233/) and [here](https://xdaforums.com/t/november-6-2023-ud1a-231105-004-magisk-stable-v26-4-released-unlock-bootloader-root-pixel-8-pro-husky-safetynet.4633839/)] on Pixel™ series phones.
+- [[Homeboy76]](https://xdaforums.com/m/homeboy76.4810220/), [[v0latyle]](https://xdaforums.com/m/v0latyle.3690504/) and [[roirraW-edor-ehT]](https://xdaforums.com/m/roirraw-edor-eht.2560614/) at [xda](https://xdaforums.com/) for their excellent guides [[here](https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/), [here](https://xdaforums.com/t/guide-pixel-6-oriole-unlock-bootloader-update-root-pass-safetynet.4356233/) and [here](https://xdaforums.com/t/november-6-2023-ud1a-231105-004-magisk-stable-v26-4-released-unlock-bootloader-root-pixel-8-pro-husky-safetynet.4633839/)] on Pixel™ series phones (The guide concepts are generic and can be applied to any Pixel devices).
 This program could not have been possible without their easy to follow guides.  
 I strongly encourage all beginners to follow those guides rather than use this program, it is important to understand the basic steps involved before diving into one click tools or advanced tasks.
 - Marcel Stör's [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher) source code which jump started my introduction to [wxPython](https://www.wxpython.org/) and eventually this program.

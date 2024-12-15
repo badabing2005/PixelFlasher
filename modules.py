@@ -2835,6 +2835,11 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         if not magiskboot_created:
             # Find latest Magisk to download
             apk = device.get_magisk_apk_details('Magisk Stable')
+            if apk is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Stable version.")
+                puml("#red:Could not find Magisk Stable version;\n")
+                print("Aborting ...\n}\n")
+                return
             filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
             download_file(apk.link, filename)
             magisk_apk = os.path.join(tmp_path, filename)
@@ -3949,12 +3954,15 @@ def flash_phone(self):
 
     flash_pf_file_win = os.path.join(package_dir_full, "flash-pf.bat")
     flash_pf_file_linux = os.path.join(package_dir_full, "flash-pf.sh")
+    cp = None
     if self.config.force_codepage:
         cp = str(self.config.custom_codepage)
         if cp == '':
             cp = None
     else:
-        cp = get_system_codepage()
+        # don't use system codepage, use UTF-8 if not set
+        # cp = get_system_codepage()
+        cp = "65001"
     if cp:
         first_line_win = f"chcp {cp}\n@ECHO OFF\n"
     else:
@@ -4091,7 +4099,7 @@ def flash_phone(self):
                 return -1
 
         # Make sure Phone model matches firmware model
-        if device.mode in ['adb', 'f.b'] and ((get_firmware_model() is None or get_firmware_model() == '') or not (len(device.hardware) >= 3 and device.hardware in get_firmware_model())):
+        if device.true_mode in ['adb', 'f.b'] and ((get_firmware_model() is None or get_firmware_model() == '') or not (len(device.hardware) >= 3 and device.hardware in get_firmware_model())):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware Model {get_firmware_model()}")
             puml(f"#orange:Hardware does not match firmware;\n")
             puml(f"note right\nAndroid device model {device.hardware}\nfirmware Model {get_firmware_model()}\nend note\n")
@@ -4448,10 +4456,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
             print("Cancelling a previous OTA update for good measure ...")
             res = device.reset_ota_update()
         else:
-            if device.true_mode != 'adb':
-                print("Skipping cancelling a previous OTA update because device is not in adb mode ...")
-            if not device.rooted:
-                print("Skipping cancelling a previous OTA update because device rooted is not detected ...")
+            print("Skipping cancelling a previous OTA update. Device needs to be rooted and in adb mode ...")
         res = device.reboot_sideload(90)
         if res == -1:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
@@ -4513,7 +4518,7 @@ If you insist to continue, you can press the **Continue** button, otherwise plea
     os.chdir(package_dir_full)
     theCmd = f"\"{theCmd}\""
     debug(theCmd)
-    res = run_shell2(theCmd)
+    res = run_shell2(theCmd, chcp=cp)
     if res and isinstance(res, subprocess.CompletedProcess):
         debug(f"Return Code: {res.returncode}")
         debug(f"Stdout: {res.stdout}")

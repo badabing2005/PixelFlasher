@@ -43,6 +43,7 @@ import wx
 import wx.html
 import wx.lib.mixins.listctrl as listmix
 import wx.lib.wxpTag
+import contextlib
 
 import images as images
 from runtime import *
@@ -747,17 +748,26 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             pathname = fileDialog.GetPath()
             content = "package,type,installed,enabled,user0,denylist,uid,name\n"
             for i in range(self.list.GetItemCount()):
-                package = self.list.GetItemText(i)
-                type = self.list.GetItemText(i, 1)
-                installed = self.list.GetItemText(i, 2)
-                enabled = self.list.GetItemText(i, 3)
-                user0 = self.list.GetItemText(i, 4)
-                denylist = self.list.GetItemText(i, 5)
-                uid = self.list.GetItemText(i, 6)
-                name = self.list.GetItemText(i, 7)
+                package = type = installed = enabled = user0 = denylist = uid = name = ''
+                with contextlib.suppress(Exception):
+                    package = self.list.GetItemText(i)
+                with contextlib.suppress(Exception):
+                    type = self.list.GetItemText(i, 1)
+                with contextlib.suppress(Exception):
+                    installed = self.list.GetItemText(i, 2)
+                with contextlib.suppress(Exception):
+                    enabled = self.list.GetItemText(i, 3)
+                with contextlib.suppress(Exception):
+                    user0 = self.list.GetItemText(i, 4)
+                with contextlib.suppress(Exception):
+                    denylist = self.list.GetItemText(i, 5)
+                with contextlib.suppress(Exception):
+                    uid = self.list.GetItemText(i, 6)
+                with contextlib.suppress(Exception):
+                    name = self.list.GetItemText(i, 7)
                 content += f"{package},{type},{installed},{enabled},{user0},{denylist},{uid},{name}\n"
-            with open(pathname, "w", newline="\n") as f:
-                f.write(content, encoding="utf-8")
+            with open(pathname, "w", encoding="utf-8", newline="\n") as f:
+                f.write(content)
         end = time.time()
         print(f"Export Package List time: {math.ceil(end - start)} seconds")
         self._on_spin('stop')

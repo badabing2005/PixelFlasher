@@ -1210,6 +1210,13 @@ def get_coords_file_path():
 
 
 # ============================================================================
+#                               Function get_skip_urls_file_path
+# ============================================================================
+def get_skip_urls_file_path():
+    return os.path.join(get_config_path(), "skip_urls.txt").strip()
+
+
+# ============================================================================
 #                               Function get_wifi_history_file_path
 # ============================================================================
 def get_wifi_history_file_path():
@@ -2265,6 +2272,13 @@ def delete_all(dir):
 # ============================================================================
 def check_module_update(url):
     try:
+        skiplist = get_skip_urls_file_path()
+        if os.path.exists(skiplist):
+            with open(skiplist, 'r') as f:
+                skiplist_urls = f.read().splitlines()
+                if url in skiplist_urls:
+                    print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Skipping update check for {url}")
+                    return None
         payload={}
         headers = {
             'Content-Type': "application/json"
@@ -2286,7 +2300,16 @@ def check_module_update(url):
                 setattr(mu, 'changelog', response.text)
                 return mu
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
-            return None
+            dlg = wx.MessageDialog(None, f"Module update URL has issues, inform the module author: {url}\nDo you want to skip checking updates for this module?", "Error", wx.YES_NO | wx.ICON_ERROR)
+            result = dlg.ShowModal()
+            if result == wx.ID_YES:
+                # add url to a list of failed urls
+                with open(skiplist, 'a') as f:
+                    f.write(url + '\n')
+                print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Added {url} to update check skip list.")
+                return None
+            else:
+                return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during getUpdateDetails url: {url} processing")
         traceback.print_exc()
@@ -4772,8 +4795,7 @@ def check_kb(filename):
             if expiry < datetime.now(timezone.utc):
                 is_expired = True
                 print(f"{tab_text}❌❌❌ Certificate is EXPIRED")
-
-            if expiry < datetime.now(timezone.utc) + timedelta(days=30):
+            elif expiry < datetime.now(timezone.utc) + timedelta(days=30):
                 expiring_soon = True
                 print(f"{tab_text}⚠️ Certificate is EXPIRING SOON")
 
@@ -5051,13 +5073,40 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
 #                               Function run_shell2
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
-def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='ISO-8859-1'):
+def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='utf-8', chcp=None):
     try:
         flush_output()
+
+        env = get_env_variables()
+        env["PYTHONIOENCODING"] = encoding
+        if chcp is not None:
+            env["CHCP"] = chcp
+
         if directory is None:
-            proc = subprocess.Popen(f"{cmd}", shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
+            proc = subprocess.Popen(
+                f"{cmd}",
+                shell=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                encoding=encoding,
+                errors="replace",
+                start_new_session=detached,
+                env=env
+            )
         else:
-            proc = subprocess.Popen(f"{cmd}", cwd=directory, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding=encoding, errors="replace", start_new_session=detached, env=get_env_variables())
+            proc = subprocess.Popen(
+                f"{cmd}",
+                cwd=directory,
+                shell=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                encoding=encoding,
+                errors="replace",
+                start_new_session=detached,
+                env=env
+            )
 
         print
         while True:

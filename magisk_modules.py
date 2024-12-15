@@ -282,7 +282,7 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def PopulateList(self, refresh=False):
         device = get_phone(True)
-        if not device.rooted:
+        if device is None or not device.rooted:
             return
         modules = device.get_magisk_detailed_modules(refresh)
 

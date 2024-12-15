@@ -1669,6 +1669,10 @@ class PixelFlasher(wx.Frame):
         self.data_adb_clear_menu = device_menu.Append(wx.ID_ANY, "Clear /data/adb/*", "Clear up /data/adb/ content (not the directory).\nThis is useful when switching to different root flavor.")
         self.data_adb_clear_menu.SetBitmap(images.delete_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_data_adb_clear, self.data_adb_clear_menu)
+        # Start Shizuku
+        self.start_shizuku_menu = device_menu.Append(wx.ID_ANY, "Start Shizuku", "Starts Shizuku service on the device.")
+        self.start_shizuku_menu.SetBitmap(images.shizuku_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_start_shizuku, self.start_shizuku_menu)
         # Pif Manager
         self.pif_manager_menu = device_menu.Append(wx.ID_ANY, "Pif Manager", "Pif Backups")
         self.pif_manager_menu.SetBitmap(images.pif_24.GetBitmap())
@@ -2256,9 +2260,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
 
             if clicked_id in link_info:
                 url, description = link_info[clicked_id]
-                webbrowser.open_new(url)
                 print(f"Open Link {description} {url}")
                 puml(f":Open Link;\nnote right\n=== {description}\n[[{url}]]\nend note\n", True)
+                res = webbrowser.open_new(url)
+                debug(f"Open Link {description} {url} {res}")
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown menu item clicked")
 
@@ -3203,6 +3208,12 @@ Before posting publicly please carefully inspect the contents.
                     return True
                 return False
 
+            elif condition == 'device_mode_true_adb':
+                device = get_phone()
+                if device and device.mode == 'adb':
+                    return True
+                return False
+
             elif condition == 'device_is_rooted':
                 device = get_phone()
                 if device and device.rooted:
@@ -3363,8 +3374,8 @@ Before posting publicly please carefully inspect the contents.
                 self.pif_info_menu_item:                ['device_attached'],
                 self.props_as_json_menu_item:           ['device_attached'],
                 self.xml_view_menu_item:                ['device_attached'],
-                self.cancel_ota_menu_item:              ['device_attached', 'device_mode_adb', 'device_is_rooted'],
-                self.check_otacerts_menu_item:          ['device_attached', 'device_mode_adb'],
+                self.cancel_ota_menu_item:              ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
+                self.check_otacerts_menu_item:          ['device_attached', 'device_mode_true_adb'],
                 self.push_menu:                         ['device_attached'],
                 self.push_file_to_tmp_menu:             ['device_attached'],
                 self.push_file_to_download_menu:        ['device_attached'],
@@ -3391,19 +3402,20 @@ Before posting publicly please carefully inspect the contents.
                 self.live_boot_button:                  ['device_attached', 'boot_is_selected'],
                 self.flash_boot_button:                 ['device_attached', 'boot_is_selected'],
                 self.paste_selection:                   ['device_attached','custom_flash', 'valid_paste'],
-                self.patch_custom_boot_button:          ['device_attached', 'device_mode_adb'],
+                self.patch_custom_boot_button:          ['device_attached', 'device_mode_true_adb'],
                 self.reboot_download_menu:              ['device_attached', 'device_mode_adb', 'advanced_options'],
                 self.reboot_sideload_menu:              ['device_attached', 'advanced_options'],
                 self.switch_slot_menu:                  ['device_attached', 'dual_slot', 'advanced_options'],
                 self.process_rom:                       ['custom_rom', 'custom_rom_selected'],
-                self.magisk_menu:                       ['device_attached', 'device_mode_adb'],
-                self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_adb', 'device_is_rooted'],
-                self.data_adb_backup_menu:              ['device_attached', 'device_mode_adb', 'device_is_rooted'],
-                self.data_adb_restore_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted'],
-                self.data_adb_clear_menu:               ['device_attached', 'device_mode_adb', 'device_is_rooted'],
-                # self.pif_manager_menu:                  ['device_attached', 'device_mode_adb'],
+                self.magisk_menu:                       ['device_attached', 'device_mode_true_adb'],
+                self.magisk_backup_manager_menu:        ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
+                self.data_adb_backup_menu:              ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
+                self.data_adb_restore_menu:             ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
+                self.data_adb_clear_menu:               ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
+                self.start_shizuku_menu:                ['device_attached', 'device_mode_true_adb'],
+                # self.pif_manager_menu:                  ['device_attached', 'device_mode_true_adb'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted', 'advanced_options'],
-                # self.verity_menu_item:                  ['device_attached', 'device_mode_adb', 'device_is_rooted'],
+                # self.verity_menu_item:                  ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
                 self.disable_verity_checkBox:           ['device_attached'],
                 self.disable_verification_checkBox:     ['device_attached'],
                 self.flash_both_slots_checkBox:         ['device_attached', 'mode_is_not_ota', 'dual_slot'],
@@ -3412,42 +3424,42 @@ Before posting publicly please carefully inspect the contents.
                 self.wipe_checkBox:                     ['device_attached', 'custom_flash'],
                 # self.no_wipe_downgrade_checkbox:        ['device_attached', 'not_custom_flash', 'boot_is_selected'],
                 self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
-                self.patch_button:                      ['device_attached', 'device_mode_adb'],
-                self.patch_magisk_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
-                self.patch_kernelsu_button:             ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
-                self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
-                self.patch_apatch_button:               ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
-                self.patch_apatch_manual_button:        ['device_attached', 'device_mode_adb', 'boot_is_selected', 'boot_is_not_patched'],
+                self.patch_button:                      ['device_attached', 'device_mode_true_adb'],
+                self.patch_magisk_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
+                self.patch_kernelsu_button:             ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_apatch_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
+                self.patch_apatch_manual_button:        ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
                 'mode_radio_button.keepData':           ['firmware_selected', 'firmware_is_not_ota'],
                 'mode_radio_button.wipeData':           ['firmware_selected', 'firmware_is_not_ota'],
                 'mode_radio_button.dryRun':             ['firmware_selected', 'firmware_is_not_ota'],
                 # Toolbar tools handling by ID
-                5:                                      ['device_attached'],                                            # Install APK
-                8:                                      ['device_attached'],                                            # Package Manager
-                10:                                     ['device_attached'],                                            # Shell
-                15:                                     ['device_attached', 'scrcpy_path_is_set'],                      # Scrcpy
-                20:                                     ['device_attached'],                                            # Device Info
-                # 30:                                     ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Check Verity Verification
-                40:                                     ['device_attached'],                                            # Partition Manager
-                50:                                     ['device_attached', 'device_is_rooted'],                        # PI Analysis Report
-                100:                                    ['device_attached', 'dual_slot'],                               # Switch Slot
-                110:                                    ['device_attached'],                                            # Reboot System
-                120:                                    ['device_attached'],                                            # Reboot Bootloader
-                125:                                    ['device_attached'],                                            # Reboot Fastbootd
-                130:                                    ['device_attached'],                                            # Reboot Recovery
-                135:                                    ['device_attached'],                                            # Reboot Interactive Recovery
-                140:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Reboot Safe Mode
-                150:                                    ['device_attached', 'device_mode_adb'],                         # Reboot Download
-                160:                                    ['device_attached'],                                            # Reboot Sideload
-                200:                                    ['device_attached', 'device_mode_adb'],                         # Magisk Modules
-                210:                                    ['device_attached'],                                            # Magisk Install
-                220:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],     # Magisk Backup Manager
-                # 225:                                    ['device_attached', 'device_mode_adb'],                         # Pif Manager
-                230:                                    ['no_rule'],                                                    # SOS
-                300:                                    ['device_attached'],                                            # Lock
-                310:                                    ['device_attached'],                                            # Unlock
+                5:                                      ['device_attached'],                                                # Install APK
+                8:                                      ['device_attached'],                                                # Package Manager
+                10:                                     ['device_attached'],                                                # Shell
+                15:                                     ['device_attached', 'scrcpy_path_is_set'],                          # Scrcpy
+                20:                                     ['device_attached'],                                                # Device Info
+                # 30:                                     ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],  # Check Verity Verification
+                40:                                     ['device_attached'],                                                # Partition Manager
+                50:                                     ['device_attached', 'device_is_rooted'],                            # PI Analysis Report
+                100:                                    ['device_attached', 'dual_slot'],                                   # Switch Slot
+                110:                                    ['device_attached'],                                                # Reboot System
+                120:                                    ['device_attached'],                                                # Reboot Bootloader
+                125:                                    ['device_attached'],                                                # Reboot Fastbootd
+                130:                                    ['device_attached'],                                                # Reboot Recovery
+                135:                                    ['device_attached'],                                                # Reboot Interactive Recovery
+                140:                                    ['device_attached', 'device_mode_adb', 'device_is_rooted'],         # Reboot Safe Mode
+                150:                                    ['device_attached', 'device_mode_adb'],                             # Reboot Download
+                160:                                    ['device_attached'],                                                # Reboot Sideload
+                200:                                    ['device_attached', 'device_mode_true_adb'],                        # Magisk Modules
+                210:                                    ['device_attached'],                                                # Magisk Install
+                220:                                    ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],    # Magisk Backup Manager
+                # 225:                                    ['device_attached', 'device_mode_adb'],                           # Pif Manager
+                230:                                    ['no_rule'],                                                        # SOS
+                300:                                    ['device_attached'],                                                # Lock
+                310:                                    ['device_attached'],                                                # Unlock
             }
 
             for widget, conditions in widget_conditions.items():
@@ -4545,6 +4557,20 @@ Before posting publicly please carefully inspect the contents.
             return
         finally:
             self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_start_shizuku
+    # -----------------------------------------------
+    def _on_start_shizuku(self, event):
+        try:
+            device = get_phone(True)
+            if device:
+                res = device.exec_cmd('sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh')
+                if res:
+                    print(res)
+        except Exception:
+            traceback.print_exc()
+            return
 
     # -----------------------------------------------
     #                  _on_partition_manager

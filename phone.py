@@ -2813,6 +2813,9 @@ This is a special Magisk build\n\n
                 'Content-Type': "application/json"
             }
             response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
+            if response.status_code != 200:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk downloads links: {url}")
+                return
             data = response.json()
             setattr(ma, 'version', data['magisk']['version'])
             setattr(ma, 'versionCode', data['magisk']['versionCode'])
@@ -2827,6 +2830,9 @@ This is a special Magisk build\n\n
             with contextlib.suppress(Exception):
                 setattr(ma, 'release_notes', '')
                 response = request_with_fallback(method='GET', url=ma.note_link, headers=headers, data=payload)
+                if response.status_code != 200:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk download release_notes: {url}")
+                    return
                 setattr(ma, 'release_notes', response.text)
             return ma
         except Exception as e:
@@ -2947,7 +2953,10 @@ This is a special Magisk build\n\n
                 mode = self.true_mode[:3]
             else:
                 mode = self.mode
-            return f"{self.root_symbol:<3}({mode:<3})   {self.id:<25}{self.hardware:<12}{self.build:<25}"
+            if mode is not None:
+                return f"{self.root_symbol:<3}({mode:<3})   {self.id:<25}{self.hardware:<12}{self.build:<25}"
+            else:
+                return "ERROR"
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device details.")
             puml("#red:Encountered an error while getting device details.;\n")
@@ -3316,6 +3325,9 @@ This is a special Magisk build\n\n
     def reboot_sideload(self, timeout=60, hint='None'):
         try:
             mode = self.get_device_state()
+            if mode == 'sideload':
+                print(f"\nDevice is already in sideload mode, not rebooting ...")
+                return 0
             print(f"\nRebooting device: {self.id} to sideload ...")
             puml(f":Rebooting device: {self.id} to sideload;\n", True)
 
@@ -4454,7 +4466,7 @@ def update_phones(device_id, mode=None):
 
         # Replace the entry at the found index with the new device_details or remove if it does not exist
         if index_to_replace is not None:
-            if device:
+            if device_details != "ERROR" and device:
                 phones[index_to_replace] = device
                 devices[index_to_replace] = device_details
                 debug(f"Device found, updating device entry: {device_id}")

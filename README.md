@@ -3,7 +3,23 @@
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Github Releases](https://img.shields.io/github/downloads/badabing2005/PixelFlasher/total.svg?style=flat)](https://github.com/badabing2005/PixelFlasher/releases)
 
-## DESCRIPTION
+## Table of contents
+
+- [Table of contents](#table-of-contents)
+- [Description / Features](#description--features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+  - [Supported platforms](#supported-platforms)
+- [Status](#status)
+- [Build it yourself](#build-it-yourself)
+- [Usage](#usage)
+  - [Basic Mode](#basic-mode)
+  - [Expert Mode](#expert-mode)
+- [Credits](#credits)
+- [Troubleshooting](#troubleshooting)
+- [Disclaimer](#disclaimer)
+
+## Description / Features
 
 As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)  
 PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence **many of its features can be used on non Pixel devices as well.** (YMMV).  

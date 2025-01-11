@@ -103,11 +103,16 @@ class MagiskDownloads(wx.Dialog):
         else:
             self.il = wx.ImageList(16, 16)
             self.idx1 = self.il.Add(images.official_16.GetBitmap())
-        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 17), style = wx.LC_REPORT)
+        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 18), style = wx.LC_REPORT)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         device = get_phone(True)
-        apks = device.magisk_apks
+        if not device:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device to be able to install.")
+            print("You can still download the rooting app, but you will not be able to install it.")
+            self.Parent.clear_device_selection()
+
+        apks = get_magisk_apks()
 
         max_url_column_width = 600
         self.list.InsertColumn(0, 'Root App', width = -1)
@@ -164,10 +169,17 @@ class MagiskDownloads(wx.Dialog):
 
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
+
         self.install_button = wx.Button(self, wx.ID_ANY, u"Install", wx.DefaultPosition, wx.DefaultSize, 0)
         self.install_button.SetToolTip(u"WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install.")
         self.install_button.Enable(False)
         buttons_sizer.Add(self.install_button, 0, wx.ALL, 20)
+
+        self.download_button = wx.Button(self, wx.ID_ANY, u"Download", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.download_button.SetToolTip(u"Download the rooting app.")
+        self.download_button.Enable(False)
+        buttons_sizer.Add(self.download_button, 0, wx.ALL, 20)
+
         self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
         buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 20)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
@@ -180,6 +192,7 @@ class MagiskDownloads(wx.Dialog):
 
         # Connect Events
         self.install_button.Bind(wx.EVT_BUTTON, self._onOk)
+        self.download_button.Bind(wx.EVT_BUTTON, self._OnDownloadMagisk)
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
         self.list.Bind(wx.EVT_LEFT_DOWN, self._on_apk_selected)
         self.list.Bind(wx.EVT_RIGHT_DOWN, self._onRightDown)
@@ -319,14 +332,17 @@ class MagiskDownloads(wx.Dialog):
             self.filename = os.path.basename(urlparse(self.url).path)
             self.package = self.list.GetItemText(row, col=4)
             device = get_phone()
-            apks = device.magisk_apks
+            apks = get_magisk_apks()
+            self.download_button.Enable(True)
             release_notes = apks[row].release_notes
             # convert markdown to html
             self.release_notes = markdown.markdown(release_notes)
             self.html.SetPage(self.release_notes)
-            self.install_button.Enable(True)
+            if device:
+                self.install_button.Enable(True)
         else:
             self.install_button.Enable(False)
+            self.download_button.Enable(False)
 
     # -----------------------------------------------
     #                  _onOk
@@ -337,6 +353,10 @@ class MagiskDownloads(wx.Dialog):
         app = self.channel.replace(' ', '_')
         filename = f"{app}_{self.version}_{self.versionCode}.apk"
         device = get_phone(True)
+        if not device:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device to be able to install.")
+            return
+
         if 'Namelesswonder' in self.url and not device.has_init_boot:
             print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
             print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.")

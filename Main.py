@@ -555,7 +555,7 @@ class GoogleImagesBaseMenu(wx.Menu):
     def on_download(self, url, event=None, unique_id=any):
         # debug(f"Download triggered for URL: {url}, Menu ID: {unique_id}")
         def download_completed(destination_path):
-            self.parent.toast("Download Successful", f"File downloaded successfully: {url} and saved to {destination_path}")
+            self.parent.toast("Download Successful", f"✅ File downloaded successfully: {url} and saved to {destination_path}")
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Download Successful", f"File downloaded successfully: {url} and saved to {destination_path}")
             # self.parent.firmware_picker.SetPath(destination_path)
             # self.parent.update_firmware_selection(destination_path)
@@ -580,7 +580,7 @@ class GoogleImagesBaseMenu(wx.Menu):
         if self.progress_window:
             self.progress_window.Show()
         else:
-            self.parent.toast("No Downloads", "No downloads in progress.")
+            self.parent.toast("No Downloads", "ℹ️ No downloads are in progress.")
 
 # ============================================================================
 #                               Class GoogleImagesMenu
@@ -674,7 +674,7 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
             self.Bind(wx.EVT_MENU, self.on_show_progress_window, show_progress_menu_item)
 
             if download_available:
-                self.parent.toast("Updates are available", f"There are updates available for your device.\nCheck Google Images menu.")
+                self.parent.toast("Updates are available", f"ℹ️ There are updates available for your device.\nCheck Google Images menu.")
                 if hasattr(self.parent, 'firmware_button') and self.parent.firmware_button:
                     self.parent.firmware_button.SetBitmap(images.open_link_red_24.GetBitmap())
 
@@ -743,6 +743,7 @@ class PixelFlasher(wx.Frame):
         self.config = Config.load(config_file)
         self.init_complete = False
         self.wipe = False
+        self.downgrade = False
         self.tools = []
         set_config(self.config)
         init_db()
@@ -929,14 +930,14 @@ class PixelFlasher(wx.Frame):
                         self.firmware_picker.SetToolTip(f"SHA-256: {firmware_hash}")
                         # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
                         if firmware_hash[:8] in self.config.firmware_path:
-                            print(f"Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
+                            print(f"✅ Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
                             puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
-                            # self.toast("Firmware SHA256", "SHA256 of the selected file matches the segment in the filename.")
+                            # self.toast("Firmware SHA256", "✅ SHA256 of the selected file matches the segment in the filename.")
                             set_firmware_hash_validity(True)
                         else:
                             print(f"⚠️ WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
                             puml("#orange:Unable to match the checksum in the filename;\n")
-                            self.toast("Firmware SHA256", "WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                            self.toast("Firmware SHA256", "⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
                             set_firmware_hash_validity(False)
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while extracting firmware info during initialization.")
@@ -993,9 +994,9 @@ class PixelFlasher(wx.Frame):
             self.temporary_root_checkBox.SetValue(self.config.temporary_root)
             self.no_reboot_checkBox.SetValue(self.config.no_reboot)
             self.wipe_checkBox.SetValue(self.wipe)
-            self.no_wipe_downgrade_checkbox.SetValue(False)
-            self.no_wipe_downgrade_checkbox.Enable(False)
-            self.no_wipe_downgrade_checkbox.Hide()
+            self.no_wipe_downgrade_checkbox.SetValue(self.downgrade)
+            # self.no_wipe_downgrade_checkbox.Enable(False)
+            # self.no_wipe_downgrade_checkbox.Hide()
 
             # get the image choice and update UI
             set_image_mode(self.image_choice.Items[self.image_choice.GetSelection()])
@@ -1287,7 +1288,7 @@ class PixelFlasher(wx.Frame):
 
             # Download and Install Magisk Manager
             if self.config.toolbar['visible']['install_magisk']:
-                tb.AddTool(toolId=210, label="Install Root App", bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Download / Install rooting app like Magisk or KernelSU or APatch", longHelp="Download / Install rooting app like Magisk or KernelSU or APatch", clientData=None)
+                tb.AddTool(toolId=210, label="Rooting App", bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Download / Install rooting app like Magisk or KernelSU or APatch", longHelp="Download / Install rooting app like Magisk or KernelSU or APatch", clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=210)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=210)
 
@@ -1409,7 +1410,7 @@ class PixelFlasher(wx.Frame):
         elif id == 200:
             self._on_magisk(event)
         elif id == 210:
-            self._on_magisk_install(event)
+            self._on_rooting_app(event)
         elif id == 220:
             self._on_backup_manager(event)
         elif id == 225:
@@ -1442,7 +1443,10 @@ class PixelFlasher(wx.Frame):
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone(True)
-                print(f"Device Info:\n------------\n{device.device_info}")
+                if device:
+                    print(f"Device Info:\n------------\n{device.device_info}")
+                else:
+                    self.clear_device_selection()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting device info")
             traceback.print_exc()
@@ -1457,7 +1461,10 @@ class PixelFlasher(wx.Frame):
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
-                print(f"Current device's Print:\n------------\n{device.current_device_print}\n------------\n")
+                if device:
+                    print(f"Current device's Print:\n------------\n{device.current_device_print}\n------------\n")
+                else:
+                    self.clear_device_selection()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device print")
             traceback.print_exc()
@@ -1472,7 +1479,10 @@ class PixelFlasher(wx.Frame):
             if self.config.device:
                 self._on_spin('start')
                 device = get_phone()
-                print(f"Current device's properties as json :\n------------\n{device.current_device_props_as_json}\n------------\n")
+                if device:
+                    print(f"Current device's properties as json :\n------------\n{device.current_device_props_as_json}\n------------\n")
+                else:
+                    self.clear_device_selection()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting current device properties as json")
             traceback.print_exc()
@@ -1488,12 +1498,15 @@ class PixelFlasher(wx.Frame):
     #             self._on_spin('start')
     #             with contextlib.suppress(Exception):
     #                 device = get_phone()
-    #                 verity = device.get_verity_verification('verity')
-    #                 if verity != -1:
-    #                     print(f"\n{verity}")
-    #                 verification = device.get_verity_verification('verification')
-    #                 if verification != -1:
-    #                     print(f"\n{verification}")
+    #                 if device:
+    #                     verity = device.get_verity_verification('verity')
+    #                     if verity != -1:
+    #                         print(f"\n{verity}")
+    #                     verification = device.get_verity_verification('verification')
+    #                     if verification != -1:
+    #                         print(f"\n{verification}")
+    #                 else:
+    #                     self.clear_device_selection()
     #     except Exception as e:
     #         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking verity")
     #         traceback.print_exc()
@@ -1650,9 +1663,9 @@ class PixelFlasher(wx.Frame):
         self.magisk_menu.SetBitmap(images.magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk, self.magisk_menu)
         # Install Magisk
-        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, "Install Root App", "Download / Install rooting app like Magisk or KernelSU or APatch")
+        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, "Rooting App", "Download / Install rooting app like Magisk or KernelSU or APatch")
         self.install_magisk_menu.SetBitmap(images.install_magisk_24.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_magisk_install, self.install_magisk_menu)
+        self.Bind(wx.EVT_MENU, self._on_rooting_app, self.install_magisk_menu)
         # Magisk Backup Manager
         self.magisk_backup_manager_menu = device_menu.Append(wx.ID_ANY, "Magisk Backup Manager", "Manage Magisk Backups")
         self.magisk_backup_manager_menu.SetBitmap(images.backup_24.GetBitmap())
@@ -1770,7 +1783,7 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Append(150, "Reboot Download", "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
         tb_buttons_menu.Append(160, "Reboot Sideload", "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
         tb_buttons_menu.Append(200, "Magisk", "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
-        tb_buttons_menu.Append(210, "Install Root App", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
+        tb_buttons_menu.Append(210, "Rooting App", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
         tb_buttons_menu.Append(220, "Magisk Backup Manager", "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
         tb_buttons_menu.Append(225, "Pif Manager", "", wx.ITEM_CHECK).SetBitmap(images.pif_24.GetBitmap())
         tb_buttons_menu.Append(230, "SOS", "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
@@ -2078,6 +2091,9 @@ class PixelFlasher(wx.Frame):
     #                  _on_advanced_config
     # -----------------------------------------------
     def _on_advanced_config(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Settings")
+        print("==============================================================================")
         advanced_setting_dialog = AdvancedSettings(parent=self)
         advanced_setting_dialog.CentreOnParent(wx.BOTH)
         print("Entering Advanced Configuration ...")
@@ -2099,34 +2115,49 @@ class PixelFlasher(wx.Frame):
     #                  _on_package_manager
     # -----------------------------------------------
     def _on_package_manager(self, event):
-        # load labels if not already loaded
-        if not get_labels() and os.path.exists(get_labels_file_path()):
-            with open(get_labels_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
-                set_labels(json.load(f))
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated App Manager")
+        print("==============================================================================")
         self._on_spin('start')
-        print("Launching Package Manager ...\n")
+        dlg = None
         try:
-            dlg = PackageManager(self)
-        except Exception:
+            # load labels if not already loaded
+            if not get_labels() and os.path.exists(get_labels_file_path()):
+                with open(get_labels_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
+                    set_labels(json.load(f))
+            try:
+                dlg = PackageManager(self)
+            except Exception:
+                traceback.print_exc()
+                return
+            if dlg is None or dlg.device is None:
+                self.clear_device_selection()
+                return
+            dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
-            return
-        dlg.CentreOnParent(wx.BOTH)
-        self._on_spin('stop')
-        result = dlg.ShowModal()
-        if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Closing Package Manager ...\n")
-            dlg.Destroy()
-            return
-        dlg.Destroy()
+            try:
+                result = dlg.ShowModal()
+                if result != wx.ID_OK:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Closing App Manager ...\n")
+            except Exception:
+                traceback.print_exc()
+        finally:
+            if dlg is not None:
+                dlg.Destroy()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_install_apk
     # -----------------------------------------------
     def _on_install_apk(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Install APK")
+        print("==============================================================================")
         device = get_phone(True)
         if not device:
             print("ERROR: Please select a device before attempting APK Installation")
-            self.toast("APK Install", "ERROR: Please select a device before attempting APK Installation.")
+            self.toast("APK Install", "❌ ERROR: Please select a device before attempting APK Installation.")
+            self.clear_device_selection()
             return
 
         wildcard = "Android Applications (*.*.apk)|*.apk"
@@ -2369,16 +2400,23 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _on_xml_view
     # -----------------------------------------------
     def _on_xml_view(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Dump Screen Xml")
+        print("==============================================================================")
         try:
             self._on_spin('start')
+            device = get_phone(True)
+            if not device:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+                self.toast("Dump Screen Xml", "❌ ERROR: No device selected")
+                self.clear_device_selection()
+                return
             timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Dump Screen Xml")
             with wx.FileDialog(self, "Dump Screen Xml", '', f"screen_dump_{timestr}.xml", wildcard="Screen Dump (*.xml)|*.xml",
                             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     return     # the user changed their mind
                 pathname = fileDialog.GetPath()
-                device = get_phone(True)
                 device.ui_action(f"/data/local/tmp/screen_dump_{timestr}.xml", pathname)
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered in function _on_xml_view")
@@ -2390,11 +2428,20 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _on_cancel_ota
     # -----------------------------------------------
     def _on_cancel_ota(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Cancel OTA Update")
+        print("==============================================================================")
         try:
             self._on_spin('start')
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel OTA Update")
             device = get_phone(True)
-            device.reset_ota_update()
+            if device:
+                device.reset_ota_update()
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+                self.toast("Cancel OTA Update", "❌ ERROR: No device selected")
+                self.clear_device_selection()
+                return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while cancelling OTA Update")
             traceback.print_exc()
@@ -2405,12 +2452,21 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  _on_check_otacerts
     # -----------------------------------------------
     def _on_check_otacerts(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Check OTA Certs")
+        print("==============================================================================")
         try:
             self._on_spin('start')
             debug(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Check OTA Certs")
             device = get_phone(True)
-            res = device.exec_cmd("unzip -l /system/etc/security/otacerts.zip")
-            print(res)
+            if device:
+                res = device.exec_cmd("unzip -l /system/etc/security/otacerts.zip")
+                print(res)
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+                self.toast("Check OTA Certs", "❌ ERROR: No device selected")
+                self.clear_device_selection()
+                return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking OTA Certs")
             traceback.print_exc()
@@ -2421,6 +2477,9 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     #                  Test
     # -----------------------------------------------
     def Test(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Test Function")
+        print("==============================================================================")
         print("Entering Test function (used during development only) ...")
         # print("Error: ❌ (U+274C, Cross Mark)")
         # print("Warning: ⚠️ (U+26A0, Warning)")
@@ -2446,6 +2505,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No device selected")
             print("Please select a device and try again.")
             print("Aborting ...")
+            self.clear_device_selection()
             return -1
 
         title = "Device Analysis Report"
@@ -2938,16 +2998,22 @@ Before posting publicly please carefully inspect the contents.
                 message += f"    ro.vendor.product.cpu.abilist:   {device.get_prop('ro.vendor.product.cpu.abilist')}\n"
                 message += f"    ro.vendor.product.cpu.abilist32: {device.get_prop('ro.vendor.product.cpu.abilist32')}\n"
                 m_app_version = device.magisk_app_version
-                message += f"    Magisk Manager Version:          {m_app_version}\n"
                 if m_app_version:
+                    message += f"    Magisk Manager Version:          {m_app_version}\n"
                     # message += f"    Magisk Path:                     {device.magisk_path}\n"
                     message += f"        Checked for Package:         {self.config.magisk}\n"
                 k_app_version = device.ksu_app_version
                 if k_app_version:
                     message += f"    KernelSU App Version:            {k_app_version}\n"
+                k_next_app_version = device.ksu_next_app_version
+                if k_next_app_version:
+                    message += f"    KernelSU Next App Version:       {k_next_app_version}\n"
                 a_app_version = device.apatch_app_version
                 if a_app_version:
                     message += f"    APatch App Version:              {a_app_version}\n"
+                a_next_app_version = device.apatch_next_app_version
+                if a_next_app_version:
+                    message += f"    APatch Next App Version:         {a_next_app_version}\n"
         elif device.mode == 'f.b':
             message += f"    Device Unlocked:                 {device.unlocked}\n"
             if not device.unlocked:
@@ -3021,7 +3087,7 @@ Before posting publicly please carefully inspect the contents.
             if bad_kernel in kernel:
                 print(f"⚠️ WARNING! Problematic Kernel: {kernel} is installed. Play Integrity would possibly fail.")
                 print(f"Kernel string: {bad_kernel} is known to be banned.\n")
-                self.toast("WARNING! Banned Kernel", f"Kernel string: {bad_kernel} is known to be banned.\nPlay Integrity would possibly fail.")
+                self.toast("WARNING! Banned Kernel", f"⚠️ Kernel string: {bad_kernel} is known to be banned.\nPlay Integrity would possibly fail.")
                 puml(f"#red:Kernel: {kernel} is detected;\n")
                 puml("note right:This kernel is known to be banned")
 
@@ -3155,14 +3221,35 @@ Before posting publicly please carefully inspect the contents.
                 debug(f"Looking for previously selected device: {selected_device_id}")
         self.device_choice.Clear()
         phones = get_phones()
+        found_device = False
         for device in phones:
             if device:
                 device_details = device.get_device_details()
                 self.device_choice.Append(device_details)
                 if selected_device_id and device.id == selected_device_id:
                     debug(f"Found device: {selected_device_id}, selecting it ...")
+                    found_device = True
                     self.device_choice.SetStringSelection(device_details)  # Select the matching device ID
                     self._select_configured_device()
+        if not found_device:
+            self.clear_device_selection()
+        else:
+            self._reflect_slots()
+            self.update_widget_states()
+
+    # -----------------------------------------------
+    #                  clear_device_selection
+    # -----------------------------------------------
+    def clear_device_selection(self):
+        self.config.device = None
+        selected_index = self.device_choice.GetSelection()
+        print(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Cleared device selection {self.device_choice.GetStringSelection()}")
+        if selected_index != wx.NOT_FOUND:
+            items = self.device_choice.GetItems()
+            del items[selected_index]
+            self.device_choice.SetItems(items)
+            self.device_choice.Select(-1)
+            set_phone_id(None)
         self._reflect_slots()
         self.update_widget_states()
 
@@ -3302,6 +3389,12 @@ Before posting publicly please carefully inspect the contents.
                     return False
                 return True
 
+            elif condition == 'boot_is_not_downgrade_patched':
+                boot = get_boot()
+                if boot and 'downgrade_boot' not in boot.boot_path:
+                    return True
+                return False
+
             elif condition == 'boot_is_init_boot':
                 boot = get_boot()
                 if boot and boot.is_init_boot == 1:
@@ -3384,6 +3477,7 @@ Before posting publicly please carefully inspect the contents.
                 self.install_magisk_menu:               ['device_attached'],
                 self.partitions_menu:                   ['device_attached', 'advanced_options'],
                 self.pi_analysis_report_menu:           ['device_attached', 'device_is_rooted'],
+                self.prep_downgrade_patch_menu:         ['boot_is_selected', 'boot_is_not_patched', 'boot_is_not_downgrade_patched'],
                 self.install_apk:                       ['device_attached'],
                 self.package_manager:                   ['device_attached'],
                 self.no_reboot_checkBox:                ['device_attached'],
@@ -3422,14 +3516,17 @@ Before posting publicly please carefully inspect the contents.
                 self.flash_to_inactive_slot_checkBox:   ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.wipe_checkBox:                     ['device_attached', 'custom_flash'],
-                # self.no_wipe_downgrade_checkbox:        ['device_attached', 'not_custom_flash', 'boot_is_selected'],
+                self.no_wipe_downgrade_checkbox:        ['device_attached', 'not_custom_flash', 'boot_is_selected', 'firmware_selected', 'firmware_is_not_ota'],
                 self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
                 self.patch_button:                      ['device_attached', 'device_mode_true_adb'],
                 self.patch_magisk_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 self.patch_kernelsu_button:             ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_kernelsu_next_button:        ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_kernelsu_next_lkm_button:    ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_apatch_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 self.patch_apatch_manual_button:        ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
+                self.patch_downgrade_button:            ['boot_is_selected', 'boot_is_not_patched', 'boot_is_not_downgrade_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
                 'mode_radio_button.keepData':           ['firmware_selected', 'firmware_is_not_ota'],
@@ -3454,7 +3551,7 @@ Before posting publicly please carefully inspect the contents.
                 150:                                    ['device_attached', 'device_mode_adb'],                             # Reboot Download
                 160:                                    ['device_attached'],                                                # Reboot Sideload
                 200:                                    ['device_attached', 'device_mode_true_adb'],                        # Magisk Modules
-                210:                                    ['device_attached'],                                                # Magisk Install
+                # 210:                                    ['device_attached'],                                                # Magisk Install
                 220:                                    ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],    # Magisk Backup Manager
                 # 225:                                    ['device_attached', 'device_mode_adb'],                           # Pif Manager
                 230:                                    ['no_rule'],                                                        # SOS
@@ -3533,9 +3630,9 @@ Before posting publicly please carefully inspect the contents.
                 puml(f"note right\n{d_list_string}\nend note\n")
                 if self.device_choice.Count == 0:
                     self.device_choice.SetSelection(-1)
-                    print("No Devices found.")
+                    print("⚠️ No Devices found.")
                     puml(f"note right:No Devices are found\n")
-                    self.toast("Scan", "No devices are found..")
+                    self.toast("Scan", "⚠️ No devices are found..")
                     self._on_spin('stop')
                     return
                 print(f"{self.device_choice.Count} Device(s) are found.")
@@ -3544,7 +3641,7 @@ Before posting publicly please carefully inspect the contents.
                 if self.device_choice.StringSelection == '':
                     # Popup the devices dropdown
                     self.device_choice.Popup()
-                    self.toast("Scan", f"Select your device from the list of {self.device_choice.Count} found devices.")
+                    self.toast("Scan", f"✅ Select your device from the list of {self.device_choice.Count} found devices.")
             else:
                 print("Please set Android Platform Tools Path first.")
         except Exception as e:
@@ -3731,6 +3828,7 @@ Before posting publicly please carefully inspect the contents.
     def _on_mode_changed(self, event):
         self.mode_radio_button = event.GetEventObject()
         self.wipe = False
+        self.downgrade = False
         self.wipe_checkBox.SetValue(False)
         self.no_wipe_downgrade_checkbox.SetValue(False)
         if self.mode_radio_button.GetValue():
@@ -3804,20 +3902,23 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def vbmeta_alert(self, show_alert=False):
         device = get_phone()
-        if self.init_complete:
-            device.get_vbmeta_details()
-        alert = self.get_vbmeta(device)
-        if show_alert and "WARNING!" in alert:
-            try:
-                dlg = MessageBoxEx(parent=None, title="vbmeta issue.", message=f"Warning!\n{alert}", button_texts=["OK"], default_button=1)
-                puml(f"note right\nDialog\n====\nWarning!\n{alert}\nend note\n")
-                dlg.CentreOnParent(wx.BOTH)
-                result = dlg.ShowModal()
-                dlg.Destroy()
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                traceback.print_exc()
-        print(alert)
+        if device:
+            if self.init_complete:
+                device.get_vbmeta_details()
+            alert = self.get_vbmeta(device)
+            if show_alert and "WARNING!" in alert:
+                try:
+                    dlg = MessageBoxEx(parent=None, title="vbmeta issue.", message=f"Warning!\n{alert}", button_texts=["OK"], default_button=1)
+                    puml(f"note right\nDialog\n====\nWarning!\n{alert}\nend note\n")
+                    dlg.CentreOnParent(wx.BOTH)
+                    result = dlg.ShowModal()
+                    dlg.Destroy()
+                except Exception as e:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+                    traceback.print_exc()
+            print(alert)
+        else:
+            self.clear_device_selection()
 
     # -----------------------------------------------
     #                  _on_fastboot_force
@@ -3878,14 +3979,41 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_no_wipe_downgrade
     # -----------------------------------------------
     def _on_no_wipe_downgrade(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User selected option no wipe downgrade")
+        print("==============================================================================")
         self._on_no_wipe_downgrade_checkbox = event.GetEventObject()
         status = self._on_no_wipe_downgrade_checkbox.GetValue()
         if status:
+            # check to see if there id a downgrade patch
+            boot = get_boot()
+            if not boot:
+                wx.MessageBox(f"❌ ERROR: You must first select a boot image", "Error", wx.OK | wx.ICON_ERROR)
+                print("\nPlease select a boot image!")
+                self.no_wipe_downgrade_checkbox.SetValue(False)
+                return -1
+
+            boot_path = boot.boot_path
+            directory_path = os.path.dirname(boot_path)
+            downgrade_file_name = "downgrade_boot.img"
+            downgrade_file_path = os.path.join(directory_path, downgrade_file_name)
+            if not os.path.exists(downgrade_file_path):
+                wx.MessageBox(f"❌ ERROR: Downgrade patch file not found\nYou must first create a downgrade patch to enable this option.", "Error", wx.OK | wx.ICON_ERROR)
+                print(f"\nDowngrade patch file {downgrade_file_path} not found!")
+                self.no_wipe_downgrade_checkbox.SetValue(False)
+                return
+
+            if self.config.flash_mode == 'wipeData':
+                wx.MessageBox(f"❌ ERROR: Wipe All Data is selected\nYou must first select another mode to enable this option.", "Error", wx.OK | wx.ICON_ERROR)
+                print("\nWipe Data is enabled!")
+                self.no_wipe_downgrade_checkbox.SetValue(False)
+                return
+
             title = "No Wipe Downgrade"
             message = "                 WARNING!!! WARNING!!! WARNING!!!\n\n"
             message += "THIS IS AN EXPERIMENTAL FEATURE, NO ASSURANCES THAT IT WOULD WORK\n"
             message += "Do NOT enable this option if you are not downgrading!!!\n"
-            message += "Proceed only if your data is backed up.\n\n"
+            message += "Proceed only if you know what you're doing.\n\n"
             message += "Do you want to continue to select the No Wipe Downgrade option?\n"
             message += "       Press OK to continue or CANCEL to abort.\n"
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
@@ -3904,6 +4032,7 @@ Before posting publicly please carefully inspect the contents.
             if result == 1:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
                 self.wipe_checkBox.SetValue(False)
+                # self.no_wipe_downgrade_checkbox.SetValue(True)
             else:
                 self.no_wipe_downgrade_checkbox.SetValue(False)
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
@@ -3915,7 +4044,7 @@ Before posting publicly please carefully inspect the contents.
         print(f"Flash Option: No Wipe Downgrade {status}")
         puml(":Flash Option change;\n", True)
         puml(f"note right:No Wipe Downgrade{status}\n")
-        self.wipe = status
+        self.downgrade = status
 
     # -----------------------------------------------
     #                  _on_verbose
@@ -4081,12 +4210,18 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_push_to_tmp
     # -----------------------------------------------
     def _on_push_to_tmp(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Push to /data/local/tmp/")
+        print("==============================================================================")
         self.select_file_and_push('/data/local/tmp/')
 
     # -----------------------------------------------
     #                  _on_push_to_download
     # -----------------------------------------------
     def _on_push_to_download(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Push to Download")
+        print("==============================================================================")
         self.select_file_and_push('/sdcard/Download')
 
     # -----------------------------------------------
@@ -4366,7 +4501,7 @@ Before posting publicly please carefully inspect the contents.
                     device.open_shell()
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device not found.")
-                    self.refresh_device()
+                    self.clear_device_selection()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb shell")
             traceback.print_exc()
@@ -4396,27 +4531,41 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_magisk
     # -----------------------------------------------
     def _on_magisk(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Magisk Manager")
+        print("==============================================================================")
         self._on_spin('start')
+        dlg = None
         try:
-            dlg = MagiskModules(parent=self, config=self.config)
-        except Exception:
-            traceback.print_exc()
+            try:
+                dlg = MagiskModules(parent=self, config=self.config)
+            except Exception:
+                traceback.print_exc()
+                return
+            if dlg is None or dlg.device is None:
+                self.clear_device_selection()
+                return
+            dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
-            return
-        dlg.CentreOnParent(wx.BOTH)
-        self._on_spin('stop')
-        result = dlg.ShowModal()
-        if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting Magisk Modules Management ...\n")
-            dlg.Destroy()
-            return
-        dlg.Destroy()
+            try:
+                result = dlg.ShowModal()
+                if result != wx.ID_OK:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                    print("Aborting Magisk Modules Management ...\n")
+            except Exception:
+                traceback.print_exc()
+        finally:
+            if dlg is not None:
+                dlg.Destroy()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_pif_manager
     # -----------------------------------------------
     def _on_pif_manager(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated PIF Manager")
+        print("==============================================================================")
         # load xiaomi if not already loaded
         if not get_xiaomi() and os.path.exists(get_xiaomi_file_path()):
             with open(get_xiaomi_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
@@ -4438,53 +4587,77 @@ Before posting publicly please carefully inspect the contents.
         result = dlg.Show()
 
     # -----------------------------------------------
-    #                  _on_magisk_install
+    #                  _on_rooting_app
     # -----------------------------------------------
-    def _on_magisk_install(self, event):
+    def _on_rooting_app(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Rooting App")
+        print("==============================================================================")
         self._on_spin('start')
+        dlg = None
         try:
-            dlg = MagiskDownloads(self)
-        except Exception:
-            traceback.print_exc()
+            try:
+                dlg = MagiskDownloads(self)
+            except Exception:
+                traceback.print_exc()
+                return
+            if dlg is None:
+                return
+            dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
-            return
-        dlg.CentreOnParent(wx.BOTH)
-        self._on_spin('stop')
-        result = dlg.ShowModal()
-        if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Aborting Magisk Installation ...\n")
-            dlg.Destroy()
-            return
-        dlg.Destroy()
+            try:
+                result = dlg.ShowModal()
+                if result != wx.ID_OK:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                    print("Closing Magisk Downloads ...\n")
+            except Exception:
+                traceback.print_exc()
+        finally:
+            if dlg is not None:
+                dlg.Destroy()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_backup_manager
     # -----------------------------------------------
     def _on_backup_manager(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Backup Manager")
+        print("==============================================================================")
         # device = get_phone(True)
         # device.get_magisk_backups()
         self._on_spin('start')
+        dlg = None
         try:
-            dlg = BackupManager(self)
-        except Exception:
-            traceback.print_exc()
+            try:
+                dlg = BackupManager(self)
+            except Exception:
+                traceback.print_exc()
+                return
+            if dlg is None or dlg.device is None:
+                self.clear_device_selection()
+                return
+            dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
-            return
-        dlg.CentreOnParent(wx.BOTH)
-        self._on_spin('stop')
-        result = dlg.ShowModal()
-        if result != wx.ID_OK:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            print("Closing Backup Manager ...\n")
-            dlg.Destroy()
-            return
-        dlg.Destroy()
+            try:
+                result = dlg.ShowModal()
+                if result != wx.ID_OK:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                    print("Closing Backup Manager ...\n")
+            except Exception:
+                traceback.print_exc()
+        finally:
+            if dlg is not None:
+                dlg.Destroy()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_data_adb_backup
     # -----------------------------------------------
     def _on_data_adb_backup(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Data ADB Backup")
+        print("==============================================================================")
         try:
             device = get_phone(True)
             if device:
@@ -4496,6 +4669,8 @@ Before posting publicly please carefully inspect the contents.
                     pathname = fileDialog.GetPath()
                 self._on_spin('start')
                 device.data_adb_backup(pathname)
+            else:
+                self.clear_device_selection()
         except Exception:
             traceback.print_exc()
             return
@@ -4506,6 +4681,9 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_data_adb_restore
     # -----------------------------------------------
     def _on_data_adb_restore(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Data ADB restore")
+        print("==============================================================================")
         try:
             device = get_phone(True)
             if device:
@@ -4516,6 +4694,8 @@ Before posting publicly please carefully inspect the contents.
                     selected_file = fileDialog.GetPath()
                 self._on_spin('start')
                 device.data_adb_restore(selected_file)
+            else:
+                self.clear_device_selection()
         except Exception:
             traceback.print_exc()
             self._on_spin('stop')
@@ -4527,6 +4707,9 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_data_adb_clear
     # -----------------------------------------------
     def _on_data_adb_clear(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Data ADB Clear")
+        print("==============================================================================")
         try:
             device = get_phone(True)
             if device:
@@ -4548,26 +4731,31 @@ Before posting publicly please carefully inspect the contents.
                 else:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                     print("Aborting ...\n")
-                    dlg.Destroy()
-                    return
-                dlg.Destroy()
+            else:
+                self.clear_device_selection()
         except Exception:
             traceback.print_exc()
             self._on_spin('stop')
-            return
         finally:
+            if dlg is not None:
+                dlg.Destroy()
             self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_start_shizuku
     # -----------------------------------------------
     def _on_start_shizuku(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Start Shizuku")
+        print("==============================================================================")
         try:
             device = get_phone(True)
             if device:
                 res = device.exec_cmd('sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh')
                 if res:
                     print(res)
+            else:
+                self.clear_device_selection()
         except Exception:
             traceback.print_exc()
             return
@@ -4576,21 +4764,32 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_partition_manager
     # -----------------------------------------------
     def _on_partition_manager(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Partition Manager")
+        print("==============================================================================")
         self._on_spin('start')
+        dlg = None
         try:
-            dlg = PartitionManager(self)
-        except Exception:
-            traceback.print_exc()
+            try:
+                dlg = PartitionManager(self)
+            except Exception:
+                traceback.print_exc()
+                return
+            if dlg is None or dlg.device is None:
+                self.clear_device_selection()
+                return
+            dlg.CentreOnParent(wx.BOTH)
             self._on_spin('stop')
-            return
-        dlg.CentreOnParent(wx.BOTH)
-        self._on_spin('stop')
-        result = dlg.ShowModal()
-        if result != wx.ID_OK:
-            print("Closing Partition Manager ...\n")
-            dlg.Destroy()
-            return
-        dlg.Destroy()
+            try:
+                result = dlg.ShowModal()
+                if result != wx.ID_OK:
+                    print("Closing Partition Manager ...\n")
+            except Exception:
+                traceback.print_exc()
+        finally:
+            if dlg is not None:
+                dlg.Destroy()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_switch_slot
@@ -4643,6 +4842,9 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_wifi_manager
     # -----------------------------------------------
     def _on_wifi_manager(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Wifi Manager")
+        print("==============================================================================")
         self._on_spin('start')
         try:
             print("Opening Wireless Manager ...\n")
@@ -4714,30 +4916,39 @@ Before posting publicly please carefully inspect the contents.
 
             total_keyboxes = len(selected_files)
             revoked_count = 0
-            good_count = 0
+            not_revoked = 0
             aosp_count = 0
             invalid_count = 0
+            long_chain_count = 0
+            shadow_banned_count = 0
             revoked_keyboxes = []
             aosp_keyboxes = []
             invalid_keyboxes = []
             good_keyboxes = []
+            long_chain_keyboxes = []
+            shadow_banned_keyboxes = []
 
             self._on_spin('start')
             wx.Yield()
             for selected_file in selected_files:
                 wx.Yield()
                 res = check_kb(selected_file)
-                # debug(f"Result: {res}")
-                if res == 1:
-                    good_count += 1
+                if 'valid' in res:
+                    not_revoked += 1
                     good_keyboxes.append(selected_file)
-                elif res == -1:
+                if 'revoked' in res:
                     revoked_count += 1
                     revoked_keyboxes.append(selected_file)
-                elif res == 0:
+                if 'aosp' in res:
                     aosp_count += 1
                     aosp_keyboxes.append(selected_file)
-                elif res == -2:
+                if 'long_chain' in res:
+                    long_chain_count += 1
+                    long_chain_keyboxes.append(selected_file)
+                if 'shadow_banned' in res:
+                    shadow_banned_count += 1
+                    shadow_banned_keyboxes.append(selected_file)
+                if 'invalid' in res:
                     invalid_count += 1
                     invalid_keyboxes.append(selected_file)
         except Exception as e:
@@ -4747,12 +4958,15 @@ Before posting publicly please carefully inspect the contents.
             self._on_spin('stop')
 
             if total_keyboxes is not None and total_keyboxes > 1:
-                print(f"Total keyboxes checked: {total_keyboxes}")
+                print("========================================================================")
+                print(f"Total keyboxes checked:       {total_keyboxes}")
                 if invalid_count > 0:
-                    print(f"Invalid keyboxes count: {invalid_count} / {total_keyboxes}")
-                print(f"Revoked keyboxes count: {revoked_count} / {total_keyboxes}")
-                print(f"AOSP keyboxes count:    {aosp_count} / {total_keyboxes}")
-                print(f"Good keyboxes count:    {good_count} / {total_keyboxes}")
+                    print(f"Invalid keyboxes count:       {invalid_count} / {total_keyboxes}")
+                print(f"Revoked keyboxes count:       {revoked_count} / {total_keyboxes}")
+                print(f"Long chain keyboxes count:    {long_chain_count} / {total_keyboxes}")
+                print(f"Shadow banned keyboxes count: {shadow_banned_count} / {total_keyboxes}")
+                print(f"AOSP keyboxes count:          {aosp_count} / {total_keyboxes}")
+                print(f"Not Revoked keyboxes count:   {not_revoked} / {total_keyboxes}")
                 if invalid_count > 0:
                     print("\nList of invalid keyboxes:")
                     for keybox in invalid_keyboxes:
@@ -4761,11 +4975,19 @@ Before posting publicly please carefully inspect the contents.
                     print("\nList of revoked keyboxes:")
                     for keybox in revoked_keyboxes:
                         print(f"    {keybox}")
+                if long_chain_count > 0:
+                    print("\nList of long chain keyboxes:")
+                    for keybox in long_chain_keyboxes:
+                        print(f"    {keybox}")
+                if shadow_banned_count > 0:
+                    print("\nList of shadow banned keyboxes:")
+                    for keybox in shadow_banned_keyboxes:
+                        print(f"    {keybox}")
                 if aosp_count > 0:
                     print("\nList of AOSP keyboxes:")
                     for keybox in aosp_keyboxes:
                         print(f"    {keybox}")
-                if good_count > 0:
+                if not_revoked > 0:
                     print("\nList of good keyboxes:")
                     for keybox in good_keyboxes:
                         print(f"    {keybox}")
@@ -4860,6 +5082,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             puml(":Prepare Downgrade Patch;\n", True)
             setup_for_downgrade(self)
+            self.update_widget_states()
         except Exception as e:
             print(f"Error: {e}")
             traceback.print_exc()
@@ -4903,8 +5126,10 @@ Before posting publicly please carefully inspect the contents.
                 self.list.SetItem(item)
                 boot.boot_hash = self.list.GetItemText(row, col=0)
                 # get the raw data from db, listctrl is just a formatted display
-                con = get_db()
-                con.execute("PRAGMA foreign_keys = ON")
+                con = get_db_con()
+                if con is None:
+                    return None
+
                 query = f"{boot.boot_hash}%"
                 sql = """
                     SELECT
@@ -4972,9 +5197,11 @@ Before posting publicly please carefully inspect the contents.
                         message += f"Patched Method:           {boot.patch_method}\n"
                     if boot.patch_source_sha1:
                         message += f"Patch Source SHA1:        {boot.patch_source_sha1}\n"
-                    if boot.patch_method == "kernelsu":
+                    if boot.patch_method in ["kernelsu", "kernelsu_lkm"]:
                         message += f"Patched With KernelSU:    {boot.magisk_version}\n"
-                    elif boot.patch_method == "apatch":
+                    if "kernelsu-next" in boot.patch_method:
+                        message += f"Patched With KSU-Next:    {boot.magisk_version}\n"
+                    elif "apatch" in boot.patch_method:
                         message += f"Patched With Apatch:      {boot.magisk_version}\n"
                     else:
                         message += f"Patched With Magisk:      {boot.magisk_version}\n"
@@ -5055,127 +5282,39 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_delete_boot
     # -----------------------------------------------
     def _on_delete_boot(self, event):
-        self._on_spin('start')
-        boot = get_boot()
-        if boot and boot.boot_id and boot.package_id:
-            print("Delete boot image button is pressed.")
-            puml(":Delete boot image;\n", True)
-            print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
-            puml(f"note right\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8]}\nend note\n")
-            con = get_db()
-            con.execute("PRAGMA foreign_keys = ON")
-            con.commit()
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Delete Boot Image")
+        print("==============================================================================")
+        try:
+            self._on_spin('start')
+            boot = get_boot()
+            if boot and boot.boot_id and boot.package_id:
+                print("Delete boot image button is pressed.")
+                puml(":Delete boot image;\n", True)
+                print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
+                puml(f"note right\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8]}\nend note\n")
 
-            # Delete PACKAGE_BOOT record
-            sql = """
-                DELETE FROM PACKAGE_BOOT
-                WHERE boot_id = ? AND package_id = ?;
-            """
-            try:
-                with con:
-                    data = con.execute(sql, (boot.boot_id, boot.package_id))
-                con.commit()
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                puml("#red:Encountered an error;\n", True)
-                traceback.print_exc()
-                print("Aborting ...")
-                set_boot(None)
-                populate_boot_list(self)
-                self._on_spin('stop')
-                return
+                # from PACKAGE, find all other package ids that have the same boot_hash
+                package_ids = find_package_ids_with_same_package_boot_hash(boot.package_boot_hash)
 
-            # Check to see if this is the last entry for the boot_id, if it is,
-            try:
-                cursor = con.cursor()
-                cursor.execute("SELECT * FROM PACKAGE_BOOT WHERE boot_id = ?", (boot.boot_id,))
-                data = cursor.fetchall()
-                if len(data) == 0:
-                    # delete the boot from db
-                    sql = """
-                        DELETE FROM BOOT
-                        WHERE id = ?;
-                    """
-                    try:
-                        with con:
-                            data = con.execute(sql, (boot.boot_id,))
-                        con.commit()
-                        print(f"Cleared db entry for BOOT: {boot.boot_id}")
-                        # delete the boot file
-                        print(f"Deleting Boot file: {boot.boot_path} ...")
-                        if os.path.exists(boot.boot_path):
-                            os.remove(boot.boot_path)
-                            boot_dir = os.path.dirname(boot.boot_path)
-                            # if deleting init_boot.img and boot.img exists, delete that as well
-                            boot_img_path = os.path.join(boot_dir, 'boot.img')
-                            if boot.is_init_boot and os.path.exists(boot_img_path):
-                                print(f"Deleting {boot_img_path} ...")
-                                os.remove(boot_img_path)
-                        else:
-                            print(f"⚠️ Warning: Boot file: {boot.boot_path} does not exist")
-                    except Exception as e:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                        puml("#red:Encountered an error;\n", True)
-                        traceback.print_exc()
-                        print("Aborting ...")
-                        set_boot(None)
-                        populate_boot_list(self)
-                        self._on_spin('stop')
-                        return
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                puml("#red:Encountered an error;\n", True)
-                traceback.print_exc()
-                print("Aborting ...")
-                set_boot(None)
-                populate_boot_list(self)
-                self._on_spin('stop')
-                return
+                # if the array has at least one entry, delete all package_boot records with this boot_id
+                if len(package_ids) > 0  :
+                    for package_id in package_ids:
+                        # Delete PACKAGE_BOOT record
+                        delete_package_boot_record(boot.boot_id, package_id)
 
-            # Check to see if this is the last entry for the package_id, if it is,
-            # delete the package from db and output a message that a firmware should be selected.
-            # Also delete unpacked files from factory_images cache
-            try:
-                cursor = con.cursor()
-                cursor.execute("SELECT * FROM PACKAGE_BOOT WHERE package_id = ?", (boot.package_id,))
-                data = cursor.fetchall()
-                if len(data) == 0:
-                    delete_package = True
-                    # see if there are magisk_patched* files in the directory
-                    boot_dir = os.path.dirname(boot.boot_path)
-                    files = get_filenames_in_dir(boot_dir)
-                    for file in files:
-                        # if magisk* exists, we shouldn't delete the package
-                        if file.startswith('magisk_patched'):
-                            delete_package = False
-                            break
-                    if delete_package:
-                        sql = """
-                            DELETE FROM PACKAGE
-                            WHERE id = ?;
-                        """
-                        with con:
-                            data = con.execute(sql, (boot.package_id,))
-                        con.commit()
-                        print(f"Cleared db entry for PACKAGE: {boot.package_path}")
-                        config_path = get_config_path()
-                        package_path = os.path.join(config_path, 'factory_images', boot.package_sig)
-                        with contextlib.suppress(Exception):
-                            print(f"Deleting Firmware cache for: {package_path} ...")
-                            delete_all(package_path)
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
-                puml("#red:Encountered an error;\n", True)
-                traceback.print_exc()
-                print("Aborting ...")
-                set_boot(None)
-                populate_boot_list(self)
-                self._on_spin('stop')
-                return
+                # Check to see if this is the last entry for the boot_id, if it is delete it,
+                delete_last_boot_record(boot.boot_id, boot.boot_path)
 
+                # Check to see if this is the last entry for the package_id, if it is,
+                # delete the package from db and also delete unpacked files from factory_images cache
+                boot_dir = os.path.dirname(boot.boot_path)
+                delete_last_package_record(package_ids, boot_dir)
+
+        finally:
             set_boot(None)
             populate_boot_list(self)
-        self._on_spin('stop')
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _on_boot_folder
@@ -5330,6 +5469,38 @@ Before posting publicly please carefully inspect the contents.
             self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching KernelSU LKM")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #          _on_kernelsu_next_patch_boot
+    # -----------------------------------------------
+    def _on_kernelsu_next_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated KernelSU-Next Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'KernelSU-Next')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with KernelSU-Next")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #          _on_kernelsu_next_lkm_patch_boot
+    # -----------------------------------------------
+    def _on_kernelsu_next_lkm_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated KernelSU-Next LKM Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'KernelSU-Next_LKM')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching KernelSU-Next LKM")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -5651,9 +5822,12 @@ Before posting publicly please carefully inspect the contents.
         self.patch_magisk_button = self.patch_button.AddFunction("Patch with Magisk", lambda: self._on_magisk_patch_boot(None), images.magisk_24.GetBitmap())
         self.patch_kernelsu_button = self.patch_button.AddFunction("Patch with KernelSU", lambda: self._on_kernelsu_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_kernelsu_lkm_button = self.patch_button.AddFunction("Patch with KernelSU LKM", lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
+        self.patch_kernelsu_next_button = self.patch_button.AddFunction("Patch with KernelSU-Next", lambda: self._on_kernelsu_next_patch_boot(None), images.kernelsu_next_24.GetBitmap())
+        self.patch_kernelsu_next_lkm_button = self.patch_button.AddFunction("Patch with KernelSU-Next LKM", lambda: self._on_kernelsu_next_lkm_patch_boot(None), images.kernelsu_next_24.GetBitmap())
         self.patch_apatch_button = self.patch_button.AddFunction("Patch with APatch", lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
         self.patch_apatch_manual_button = self.patch_button.AddFunction("Patch with APatch Alternate", lambda: self._on_apatch_manual_patch_boot(None), images.apatch_24.GetBitmap(), False)
         self.patch_custom_boot_button = self.patch_button.AddFunction("Patch custom boot/init_boot", lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
+        self.patch_downgrade_button = self.patch_button.AddFunction("Create Downgrade Patch", lambda: self._on_prep_downgrade_patch(None), images.downgrade_24.GetBitmap(), False)
         #
         self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=u"Delete", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
         self.delete_boot_button.SetToolTip(u"Delete the selected item")

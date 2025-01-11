@@ -6,8 +6,8 @@
 ## DESCRIPTION
 
 As the name suggests this is an application to flash (update) Pixel™ phones (possibly all Google™ made phones/tablets, YMMV.)  
-PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence many of its features can be used on non Pixel devices as well. (YMMV).  
-The executable which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained and does not require Python™ to be installed on the system.
+PixelFlasher at its core is a UI layer (with bells and whistles) on top of adb / fastboot commands, hence **many of its features can be used on non Pixel devices as well.** (YMMV).  
+The executable which can be found in [releases section](https://github.com/badabing2005/PixelFlasher/releases) is self contained single file and does not require Python™ to be installed on the system.
 
 The application has two modes, normal mode (basic) and advanced mode (expert).
 
@@ -36,9 +36,8 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - Hardware model.
   - Device architecture.
   - Current installed firmware (build).
-  - If it is rooted with Magisk.
-  - Magisk version (Magisk Tools).
-  - Magisk Manager version (the app).
+  - If it is rooted and with which tool and version.
+  - Which of the supported rooting applications are installed and their respective versions.
   - List installed Magisk modules.
   - Connection mode (Adb | Fastboot | Sideload | Recovery).
   - Bootloader version.
@@ -46,13 +45,23 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - Android OS API version.
   - Convenient quick links to download Android platform tools or device firmware.
   - And a lot more...
-- Magisk Manager installation UI, [screenshot](images/Magisk-Installer.png). Supported versions:
+- In app download of all Pixel phone / watch firmware images and full OTA images (past an present).
+- Rooting Application installation UI, [screenshot](images/Magisk-Installer.png). Supported versions:
   - stable (official)
   - beta (official)
   - canary (official)
   - debug (official)
-  - delta
-  - special builds that disable modules (used to recover from bootloops due to bad module(s) when safe mode does not work).
+  - alpha
+  - delta canary (Kitsune)
+  - delta debug (Kitsune)
+  - KernelSU
+  - KernelSU-Next
+  - Apatch
+  - Magisk zygote64_32 canary
+  - Special builds that disable modules (used to recover from bootloops due to bad modules).
+    - Magisk special v27001
+    - Magisk special v26401
+    - Magisk special v25203
 - Magisk Backup Manager, [screenshot](images/Magisk-Backup-Manager.png).
   - List all Magisk backups currently on the device.
   - Highlight the one that is backup of the current installed version.
@@ -61,7 +70,12 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - Auto Backup: PixelFlasher figures out what needs to be backed up, and if it finds it on the PC, it creates the backup.
 - Magisk settings management, [screenshot](images/magisk-settings.png):
   - Enable / disable Magisk modules, this comes in handy to disable suspect modules before an upgrade.
-  - Install Magisk module.
+  - Install Magisk module (zip selection).
+  - Direct install common Magisk modules:
+    - Chiteroman [PlayIntegrityFix](https://github.com/chiteroman/PlayIntegrityFix)
+    - osm0sis [PlayintegrityFork](https://github.com/osm0sis/PlayIntegrityFork)
+    - [TrickyStore](https://github.com/5ec1cff/TrickyStore)
+    - [ZygiskNext](https://github.com/Dr-TSNG/ZygiskNext)
   - Enable / disable Zygisk.
   - Enable / disable Magisk denylist.
   - Add / remove application to Magisk denylist (through PixelFlasher's App Manger).
@@ -77,22 +91,85 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
 - Easily open ADB shell to the device.
 - Support for Genymotion Scrcpy to mirror Android devices (video and audio) via USB or over TCP/IP, and allows to control the device with the keyboard and the mouse of the computer.
 - A lot of checks and validations for smooth operation with quite verbose console output to inform about every step of the operation.
-- Automatic check for program updates.
-- Package (Application) Manager, [screenshot](images/Package-Manager.png):
+- Automatic check for program and Magisk module updates.
+- App Manager, [screenshot](images/Package-Manager.png):
   - Disable (Freeze)
   - Enable
   - Uninstall
   - Install APK
   - Download APK
+  - Launch
+  - Kill
+  - Clear Application Data
   - Multi-Select
   - Show Package Details.
-  - Add app to Magisk denylist.
+  - Add / remove app to Magisk denylist.
   - Control app's superuser permissions, [screenshot](images/su-permissions.png).
+  - Export Application list
+  - Filtering
+- Configurable Toolbar
+- Pif Manager (see a bit outdated but still valid [UI Workflow](https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/post-87412305))
+  - Automatically detect Pif related installed modules and manage.
+    - Pull / Modify / Push Pif prints to device
+    - Cleanup DroidGuard
+    - Push keybox.xml
+    - Edit TrickyStore Target
+    - Process an image file to extract Pif print
+    - Process build prop(s) to extract Pif Print
+    - Check / Auto-check Play Integrity.
+      - Play Integrity API Checker
+      - Simple Play Integrity Checker
+      - Android Integrity Checker
+      - TB Checker
+      - Play Store
+      - YASNAC
+    - Automatically get Pixel Beta Pif ()
+    - Get Xiaomi Pif
+    - Get TheFreeman193 random Pif
+    - Conversion tools
+    - Built in json validation
+- PI (Play Integrity) Analysis Report to troubleshoot PI related issues.
+  - Magisk (if available):
+    - modules list.
+    - denylist.
+  - TrickyStore (if available):
+    - `/data/adb/tricky_store/spoof_build_vars`
+    - `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)
+    - `/data/adb/tricky_store/target.txt`
+  - PlayIntegrity Fork (if available):
+    - `/data/adb/modules/playintegrityfix/custom.pif.json`
+    - `/data/adb/modules/playintegrityfix/custom.app_replace.list`
+    - `/data/adb/modules/playintegrityfix/scripts-only-mode`
+  - PlayIntegrityFix (if available):
+    - `/data/adb/modules/playintegrityfix/pif.json`
+    - `/data/adb/pif.json`
+  - Whether a testkey ROM is used or not.
+  - logcat for PlayIntegrity and TrickyStore related logs.
+  - Droidguard VM list.
+  - If any custom ROM injection apps are installed from:
+    - Xiaomi.eu
+    - EliteRoms
+    - helluvaOS
+    - hentaiOS
+    - Evolution X
+    - PixelOS
+  - Check overlays (if contents of /debug_ramdisk is visible without root)
+- My Tools, add / remove and manage personal tools to be launched from within the app.
+- Dev Tools
+  - Check keybox validity (one or many)
+    - If the certificates in the keybox are on revocation list.
+    - If they are AOSP certificates
+    - If they are expired or expiring soon.
+    - If they are long chained.
+    - If any of the certificate issuers are on shadow banned list.
+  - AVB Image info tool
+  - AVB downgrade preparation tool.
 
 **Expert mode:** (should only be turned on by experienced users). In addition to the basic features, you get:
 
 - The ability to flash custom ROM (with or without patching `boot` / `init_boot`)
 - Option to flash to both slots.
+- Option to flash to inactive slot.
 - Options to disable verity and or verification.
 - Ability to change the active slot.
 - Ability to live boot to custom `boot` / `init_boot` (temporary root).
@@ -101,7 +178,7 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
 - Ability to sideload an image.
 - Lock / Unlock bootloader.
 - Option to gain temporary root (good for testing or checking things out).
-- SOS Disable Magisk modules to get out of bootloop (experimental).
+- SOS Disable Magisk modules to get out of bootloop.
 - Force option when flashing.
 - Option to skip rebooting.
 - Option to wipe.
@@ -220,14 +297,13 @@ The following information about the connected device is displayed.
     - (4th field) Device hardware.
     - (5th field) Current running firmware (in fastboot mode current firmware cannot be determined).
 4. Next select the full OTA (recommended) or factory zip file (don't unzip), the application will recognize the phone model from the image name and validate the SHA-256 checksum.  
-You can download [factory images](https://developers.google.com/android/images) by clicking the ![Image of link](/images/open-link-16.png) next to it.
-You can download full OTA images from [here](https://developers.google.com/android/ota).
+You can download both OTA and factory images by clicking the ![Image of link](/images/open-link-16.png) next to it.
 **Note:** Because both firmware package and full OTA are complete images, you can upgrade to any newer version without worrying about jumping versions (downgrades with factory image are possible only with wipe data).
 ⚠️ Do not rename the downloaded file or extract parts of it, just point to the downloaded zip. PixelFlasher does validations to ensure you don't accidentally flash the wrong image to your device.
 5. Process the full OTA or factory image.
 PixelFlasher will extract `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) file from the image and populate it in the list below (5).  
 6. Select `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) from the list, the selected file can be patched (6), or flashed (10).
-7. Optional: Select this option if you want to patch the `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) with Magisk. If Magisk is not already installed on your phone, PixelFlasher will install it for you.
+7. Optional: Select this option if you want to patch the `boot.img` (or `init_boot.img` for Pixel 7 or newer devices) with Magisk, Apatch, KernelSU or KernelSU-Next. If rooting application is not already installed on your phone, PixelFlasher will install it for you.
 Your phone does not need to be rooted to create a patched file.
 This would be the typical choice for monthly updates.  
 This option will allow updating the phone without losing root (not even temporarily).  
@@ -250,7 +326,7 @@ The following details are listed.
       Features of this mode:
         - This will always flash to **inactive slot only**, (hence why the option to flash to both slots is disabled) similar to how OTA updates happen on the phone.
         - It will always be **Keep Data**, there is no option for **Wipe**, hence why the option is disabled.
-        - If something goes wrong during flashing, the active flash is unaffected and the phone boots back to active functional slot.
+        - If something goes wrong during flashing, the active slot is unaffected and the phone boots back to active functional slot.
         - If you flash to both slots (ie flash twice in a row) then both slots would be bootable.
         - Your phone's bootloader does not have to be unlocked to be able to flash full OTA image (stock boot only).
         - You cannot downgrade with OTA, the version being installed has to be equal or higher.
@@ -319,7 +395,7 @@ Select the appropriate flash options.
 
 - First and foremost [Magisk](https://github.com/topjohnwu/Magisk/releases) by [John Wu](https://github.com/topjohnwu) which made rooting Pixel™ phones possible, without it none of this would have mattered.
 - Big thanks to [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://xdaforums.com/m/t-ryder.3705546/) for his valuable ideas, feedback and testing. Your contributions are very much appreciated.
-- [[Homeboy76]](https://xdaforums.com/m/homeboy76.4810220/), [[v0latyle]](https://xdaforums.com/m/v0latyle.3690504/) and [[roirraW-edor-ehT]](https://xdaforums.com/m/roirraw-edor-eht.2560614/) at [xda](https://xdaforums.com/) for their excellent guides [[here](https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/), [here](https://xdaforums.com/t/guide-pixel-6-oriole-unlock-bootloader-update-root-pass-safetynet.4356233/) and [here](https://xdaforums.com/t/november-6-2023-ud1a-231105-004-magisk-stable-v26-4-released-unlock-bootloader-root-pixel-8-pro-husky-safetynet.4633839/)] on Pixel™ series phones (The guide concepts are generic and can be applied to any Pixel devices).
+- [[Homeboy76]](https://xdaforums.com/m/homeboy76.4810220/), [[v0latyle]](https://xdaforums.com/m/v0latyle.3690504/) and [[roirraW-edor-ehT]](https://xdaforums.com/m/roirraw-edor-eht.2560614/) at [xda](https://xdaforums.com/) for their excellent guides [[here](https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/), [here](https://xdaforums.com/t/guide-pixel-6-oriole-unlock-bootloader-update-root-pass-safetynet.4356233/) and [here](https://xdaforums.com/t/november-6-2023-ud1a-231105-004-magisk-stable-v26-4-released-unlock-bootloader-root-pixel-8-pro-husky-safetynet.4633839/) and many more] on Pixel™ series phones (The guide concepts are generic and can be applied to any Pixel devices).
 This program could not have been possible without their easy to follow guides.  
 I strongly encourage all beginners to follow those guides rather than use this program, it is important to understand the basic steps involved before diving into one click tools or advanced tasks.
 - Marcel Stör's [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher) source code which jump started my introduction to [wxPython](https://www.wxpython.org/) and eventually this program.
@@ -328,6 +404,8 @@ I strongly encourage all beginners to follow those guides rather than use this p
 - Endless counts of [xda](https://xdaforums.com/) members and their posts that tirelessly answer questions and share tools. Too many to enumerate.
 - Artwork / graphics / icons, designed and supplied by: [[ryder203]](https://www.t-ryder.de/), [[t-ryder]](https://xdaforums.com/m/t-ryder.3705546/) based on [material-design-icons](https://github.com/google/material-design-icons/blob/master/LICENSE)
 - vm03's [payload_dumper](https://github.com/vm03/payload_dumper) source code to extract images from payload.bin files.
+- [osm0sis](https://github.com/osm0sis) for the creative and pioneer approach to beta pif print extraction, [banned kernel list](https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/page-518#post-89308909) and endless other contributions that are too many to enumerate.
+- [capntrips](https://github.com/capntrips) for code / tools and mentoring provided to create features like `Downgrade Patch` and `Cancel OTA Update`.
 
 ## Troubleshooting
 

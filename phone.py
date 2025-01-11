@@ -97,14 +97,6 @@ class Magisk():
 
 
 # ============================================================================
-#                               Class MagiskApk
-# ============================================================================
-class MagiskApk():
-    def __init__(self, type):
-        self.type = type
-
-
-# ============================================================================
 #                               Class DeviceProps
 # ============================================================================
 class DeviceProps:
@@ -144,14 +136,19 @@ class Device():
         self._magisk_app_version_code = None
         self._get_magisk_detailed_modules = None
         self._magisk_modules_summary = None
-        self._magisk_apks = None
         self._magisk_config_path = None
         self._apatch_app_version = None
         self._apatch_app_version_code = None
+        self._apatch_next_app_version = None
+        self._apatch_next_app_version_code = None
         self._ksu_version = None
         self._ksu_app_version = None
         self._ksu_version_code = None
         self._ksu_app_version_code = None
+        self._ksu_next_version = None
+        self._ksu_next_app_version = None
+        self._ksu_next_version_code = None
+        self._ksu_next_app_version_code = None
         self._has_init_boot = None
         self._kernel = None
         self._magisk_denylist_enforced = None
@@ -659,6 +656,26 @@ class Device():
         return None
 
     # ----------------------------------------------------------------------------
+    #                               property ksu_next_path
+    # ----------------------------------------------------------------------------
+    @property
+    def ksu_next_path(self):
+        try:
+            if self.true_mode == 'adb':
+                res = self.get_package_path(KSU_NEXT_PKG_NAME, True)
+                if res != -1:
+                    return res
+                self._rooted = None
+                self._su_version = ''
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
+                return None
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get KernelSU Next path")
+            traceback.print_exc()
+        return None
+
+    # ----------------------------------------------------------------------------
     #                               property apatch_path
     # ----------------------------------------------------------------------------
     @property
@@ -987,9 +1004,9 @@ class Device():
     # ----------------------------------------------------------------------------
     def get_firmware_from_boot(self, sha1):
         try:
-            con = get_db()
-            con.execute("PRAGMA foreign_keys = ON")
-            con.commit()
+            con = get_db_con()
+            if con is None:
+                return None
             cursor = con.cursor()
             cursor.execute(f"SELECT package_sig FROM PACKAGE WHERE boot_hash = '{sha1}'")
             data = cursor.fetchall()
@@ -2279,6 +2296,15 @@ add_hosts_module
         return self._ksu_app_version
 
     # ----------------------------------------------------------------------------
+    #                               property ksu_next_app_version
+    # ----------------------------------------------------------------------------
+    @property
+    def ksu_next_app_version(self):
+        if self._ksu_next_app_version is None and self.mode == 'adb':
+            self._ksu_next_app_version, self._ksu_next_app_version_code = self.get_app_version(KSU_NEXT_PKG_NAME)
+        return self._ksu_next_app_version
+
+    # ----------------------------------------------------------------------------
     #                               property apatch_app_version
     # ----------------------------------------------------------------------------
     @property
@@ -2286,6 +2312,15 @@ add_hosts_module
         if self._apatch_app_version is None and self.mode == 'adb':
             self._apatch_app_version, self._apatch_app_version_code = self.get_app_version(APATCH_PKG_NAME)
         return self._apatch_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               property apatch_next_app_version
+    # ----------------------------------------------------------------------------
+    @property
+    def apatch_next_app_version(self):
+        if self._apatch_next_app_version is None and self.mode == 'adb':
+            self._apatch_next_app_version, self._apatch_next_app_version_code = self.get_app_version(APATCH_NEXT_PKG_NAME)
+        return self._apatch_next_app_version
 
     # ----------------------------------------------------------------------------
     #                               property config_kallsyms
@@ -2374,6 +2409,8 @@ add_hosts_module
             except Exception:
                 return '', ''
         # return version, versionCode
+        if version == '' and versionCode == '':
+            return '', ''
         return f"{str(version)}:{str(versionCode)}", versionCode
 
     # ----------------------------------------------------------------------------
@@ -2397,6 +2434,16 @@ add_hosts_module
             return self._apatch_app_version_code
 
     # ----------------------------------------------------------------------------
+    #                               property apatch_next_app_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def apatch_next_app_version_code(self):
+        if self._apatch_next_app_version_code is None:
+            return ''
+        else:
+            return self._apatch_next_app_version_code
+
+    # ----------------------------------------------------------------------------
     #                               property ksu_app_version_code
     # ----------------------------------------------------------------------------
     @property
@@ -2405,6 +2452,16 @@ add_hosts_module
             return ''
         else:
             return self._ksu_app_version_code
+
+    # ----------------------------------------------------------------------------
+    #                               property ksu_next_app_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def ksu_next_app_version_code(self):
+        if self._ksu_next_app_version_code is None:
+            return ''
+        else:
+            return self._ksu_next_app_version_code
 
     # ----------------------------------------------------------------------------
     #                               Method get_uncached_magisk_app_version
@@ -2421,11 +2478,25 @@ add_hosts_module
         return self.ksu_app_version
 
     # ----------------------------------------------------------------------------
+    #                               Method get_uncached_ksu_next_app_version
+    # ----------------------------------------------------------------------------
+    def get_uncached_ksu_next_app_version(self):
+        self._ksu_next_app_version = None
+        return self.ksu_next_app_version
+
+    # ----------------------------------------------------------------------------
     #                               Method get_uncached_apatch_app_version
     # ----------------------------------------------------------------------------
     def get_uncached_apatch_app_version(self):
         self._apatch_app_version = None
         return self.apatch_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_uncached_apatch_next_app_version
+    # ----------------------------------------------------------------------------
+    def get_uncached_apatch_next_app_version(self):
+        self._apatch_next_app_version = None
+        return self.apatch_next_app_version
 
     # ----------------------------------------------------------------------------
     #                               Method is_display_unlocked
@@ -2596,249 +2667,6 @@ add_hosts_module
                 print(f"    Module: {module}\n    Line: {line}")
                 print(f"    module.prop:\n-----\n{res.stdout}-----\n")
         return self._get_magisk_detailed_modules
-
-    # ----------------------------------------------------------------------------
-    #                               property magisk_apks
-    # ----------------------------------------------------------------------------
-    @property
-    def magisk_apks(self):
-        if self._magisk_apks is None:
-            try:
-                apks = []
-                mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'Magisk Alpha', 'Magisk Delta Canary', 'Magisk Delta Debug', "KernelSU", 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
-                for i in mlist:
-                    apk = self.get_magisk_apk_details(i)
-                    if apk:
-                        apks.append(apk)
-                self._magisk_apks = apks
-            except Exception as e:
-                self._magisk_apks is None
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads link: {i} processing")
-                traceback.print_exc()
-        return self._magisk_apks
-
-    # ----------------------------------------------------------------------------
-    #                               Function get_magisk_apk_details
-    # ----------------------------------------------------------------------------
-    def get_magisk_apk_details(self, channel):
-        ma = MagiskApk(channel)
-        if channel == 'Magisk Stable':
-            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/stable.json"
-
-        elif channel == 'Magisk Beta':
-            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/beta.json"
-
-        elif channel == 'Magisk Canary':
-            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/canary.json"
-
-        elif channel == 'Magisk Debug':
-            url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/debug.json"
-
-        elif channel == 'Magisk Alpha':
-            try:
-                # Now published at appcenter: https://install.appcenter.ms/users/vvb2060/apps/magisk/distribution_groups/public
-                info_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/public_releases?scope=tester"
-                release_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/releases/{}"
-                res = request_with_fallback(method='GET', url=info_endpoint)
-                latest_id = res.json()[0]['id']
-                res = request_with_fallback(method='GET', url=release_endpoint.format(latest_id))
-                latest_release = res.json()
-                setattr(ma, 'version', latest_release['short_version'])
-                setattr(ma, 'versionCode', latest_release['version'])
-                setattr(ma, 'link', latest_release['download_url'])
-                setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', latest_release['bundle_identifier'])
-                setattr(ma, 'release_notes', latest_release['release_notes'])
-                return ma
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Alpha processing")
-                traceback.print_exc()
-                return
-        elif channel == 'Magisk Delta Canary':
-            url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
-
-        elif channel == 'Magisk Delta Debug':
-            url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/debug.json"
-
-        elif channel == 'KernelSU':
-            try:
-                # https://github.com/tiann/KernelSU/releases
-                kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
-                kernelsu_release_notes = get_gh_latest_release_notes('tiann', 'KernelSU')
-                kernelsu_url = download_gh_latest_release_asset_regex('tiann', 'KernelSU', r'^KernelSU.*\.apk$', True)
-                if kernelsu_url is None:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU APK")
-                    return
-                match = re.search(r'_([0-9]+)-', kernelsu_url)
-                if match:
-                    kernelsu_versionCode =  match.group(1)
-                else:
-                    if kernelsu_version:
-                        kernelsu_versionCode = kernelsu_version
-                    else:
-                        parts = version.split('.')
-                        a = int(parts[0])
-                        b = int(parts[1])
-                        c = int(parts[2])
-                        kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
-                setattr(ma, 'version', kernelsu_version)
-                setattr(ma, 'versionCode', kernelsu_versionCode)
-                setattr(ma, 'link', kernelsu_url)
-                setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', KERNEL_SU_PKG_NAME)
-                setattr(ma, 'release_notes', kernelsu_release_notes)
-                return ma
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU processing")
-                traceback.print_exc()
-                return
-        elif channel == 'APatch':
-            try:
-                # https://github.com/bmax121/APatch/releases
-                apatch_version = get_gh_latest_release_version('bmax121', 'APatch')
-                apatch_release_notes = get_gh_latest_release_notes('bmax121', 'APatch')
-                apatch_url = download_gh_latest_release_asset_regex('bmax121', 'APatch', r'^APatch_.*\.apk$', True)
-                if apatch_url is None:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch APK")
-                    return
-                match = re.search(r'_([0-9]+)-', apatch_url)
-                if match:
-                    apatch_versionCode =  match.group(1)
-                else:
-                    if apatch_version:
-                        apatch_versionCode = apatch_version
-                    else:
-                        parts = version.split('.')
-                        a = int(parts[0])
-                        b = int(parts[1])
-                        c = int(parts[2])
-                        apatch_versionCode = (a * 256 * 256) + (b * 256) + c
-                setattr(ma, 'version', apatch_version)
-                setattr(ma, 'versionCode', apatch_versionCode)
-                setattr(ma, 'link', apatch_url)
-                setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', APATCH_PKG_NAME)
-                setattr(ma, 'release_notes', apatch_release_notes)
-                return ma
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during APatch processing")
-                traceback.print_exc()
-                return
-        elif channel == 'Magisk zygote64_32 stable':
-            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/stable.json"
-
-        elif channel == 'Magisk zygote64_32 beta':
-            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/beta.json"
-
-        elif channel == 'Magisk zygote64_32 canary':
-            # url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/canary.json"
-            url = "https://raw.githubusercontent.com/ActiveIce/Magisk_zygote64_32/master/canary.json"
-
-        elif channel == 'Magisk zygote64_32 debug':
-            url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/debug.json"
-
-        elif channel == 'Magisk special 25203':
-            url = ""
-            setattr(ma, 'version', "f9e82c9e")
-            setattr(ma, 'versionCode', "25203")
-            setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_25203/app-release.apk")
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', MAGISK_PKG_NAME)
-            release_notes = """
-## 2022.10.03 Special Magisk v25.2 Build\n\n
-This is a special Magisk build by XDA Member [gecowa6967](https://xdaforums.com/m/gecowa6967.11238881/)\n\n
-- Based on build versionCode: 25203 versionName: f9e82c9e\n
-- Modified to disable loading modules.\n
-- Made to recover from bootloops due to bad / incompatible Modules.\n\n
-### Steps to follow
-If your are bootlooping due to bad modules, and if you load stock boot image, it works fine but you're not rooted to removed modules, then follow these steps.\n\n
-- Uninstall the currently installed Magisk Manager.\n
-- Install this special version.\n
-- Create a patched boot / init_boot using this Magisk Manager version.\n
-- Flash the patched image.\n
-- You should now be able to get root access, and your modules will not load.\n
-- Delete / Disable suspect modules.\n
-- Uninstall this Magisk Manager.\n
-- Install your Magisk Manager of choice.\n
-- Create patched boot / init_boot image.\n
-- Flash the patched image.\n
-- You should be good to go.\n\n
-### Full Details: [here](https://xdaforums.com/t/magisk-general-support-discussion.3432382/page-2667#post-87520397)\n
-            """
-            setattr(ma, 'release_notes', release_notes)
-            return ma
-
-        elif channel == 'Magisk special 26401':
-            url = ""
-            setattr(ma, 'version', "76aef836")
-            setattr(ma, 'versionCode', "26401")
-            setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_26401/app-release.apk")
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', MAGISK_PKG_NAME)
-            release_notes = """
-## 2023.11.12 Special Magisk v26.4 Build\n\n
-This is a special Magisk build\n\n
-- Based on build versionCode: 26401 versionName: 76aef836\n
-- Modified to disable loading modules while keep root.\n
-- Made to recover from bootloops due to bad / incompatible Modules.\n\n
-### Steps to follow [here](https://github.com/badabing2005/Magisk)\n
-            """
-            setattr(ma, 'release_notes', release_notes)
-            return ma
-        elif channel == 'Magisk special 27001':
-            url = ""
-            setattr(ma, 'version', "79fd3e40")
-            setattr(ma, 'versionCode', "27001")
-            setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_27001/app-release.apk")
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', MAGISK_PKG_NAME)
-            release_notes = """
-## 2024.02.12 Special Magisk v27.0 Build\n\n
-This is a special Magisk build\n\n
-- Based on build versionCode: 27001 versionName: 79fd3e40\n
-- Modified to disable loading modules while keep root.\n
-- Made to recover from bootloops due to bad / incompatible Modules.\n\n
-### Steps to follow [here](https://github.com/badabing2005/Magisk)\n
-            """
-            setattr(ma, 'release_notes', release_notes)
-            return ma
-
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
-            return
-
-        try:
-            payload={}
-            headers = {
-                'Content-Type': "application/json"
-            }
-            response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
-            if response.status_code != 200:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk downloads links: {url}")
-                return
-            data = response.json()
-            setattr(ma, 'version', data['magisk']['version'])
-            setattr(ma, 'versionCode', data['magisk']['versionCode'])
-            setattr(ma, 'link', data['magisk']['link'])
-            note_link = data['magisk']['note']
-            setattr(ma, 'note_link', note_link)
-            setattr(ma, 'package', MAGISK_PKG_NAME)
-            if channel in ['Magisk Delta Canary', 'Magisk Delta Debug']:
-                setattr(ma, 'package', MAGISK_DELTA_PKG_NAME)
-            # Get the note contents
-            headers = {}
-            with contextlib.suppress(Exception):
-                setattr(ma, 'release_notes', '')
-                response = request_with_fallback(method='GET', url=ma.note_link, headers=headers, data=payload)
-                if response.status_code != 200:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk download release_notes: {url}")
-                    return
-                setattr(ma, 'release_notes', response.text)
-            return ma
-        except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links: {url} processing")
-            traceback.print_exc()
-            return
 
     # ----------------------------------------------------------------------------
     #                               property magisk_modules_summary

@@ -67,7 +67,9 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.device = get_phone(True)
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-            return -1
+            wx.MessageBox(f"❌ ERROR: You must first select a valid device.", "Error", wx.OK | wx.ICON_ERROR)
+            self.Close()
+            return
 
         self.sha1 = self.device.magisk_sha1
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
@@ -373,7 +375,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 print("Checking to see if Magisk made a backup.")
                 magisk_backups = self.device.magisk_backups
                 if magisk_backups and file_sha1 in magisk_backups:
-                    print("Good: Magisk has made a backup")
+                    print("✅ Good: Magisk has made a backup")
                 else:
                     print("It looks like Magisk did not make a backup.\nTrying an alternate approach ...")
                     self.ZipAndPush(file_to_backup, file_sha1)
@@ -467,7 +469,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
                 print("Checking to see if Magisk made a backup.")
                 magisk_backups = self.device.magisk_backups
                 if magisk_backups and patched_sha1 in magisk_backups:
-                    print("Good: Magisk has made a backup")
+                    print("✅ Good: Magisk has made a backup")
                 else:
                     print("It looks like Magisk did not make a backup.\nTrying an alternate approach ...")
                     self.ZipAndPush(file_to_backup, patched_sha1)

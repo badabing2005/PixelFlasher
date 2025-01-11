@@ -82,6 +82,13 @@ class MagiskModules(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=size)
 
+        self.device = get_phone(True)
+        if not self.device:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            wx.MessageBox(f"❌ ERROR: You must first select a valid device.", "Error", wx.OK | wx.ICON_ERROR)
+            self.Close()
+            return
+
         self.config = config
         self.SetTitle("Manage Magisk")
         self.pif_json_path = PIF_JSON_PATH
@@ -200,7 +207,10 @@ class MagiskModules(wx.Dialog):
         management_label.SetFont(font)
 
         # populate the list
-        self.PopulateList()
+        res = self.PopulateList()
+        if res == -1:
+            self.Close()
+            return
         self.add_magisk_details()
 
         # Sizers
@@ -281,10 +291,7 @@ class MagiskModules(wx.Dialog):
     #              Function PopulateList
     # -----------------------------------------------
     def PopulateList(self, refresh=False):
-        device = get_phone(True)
-        if device is None or not device.rooted:
-            return
-        modules = device.get_magisk_detailed_modules(refresh)
+        modules = self.device.get_magisk_detailed_modules(refresh)
 
         self.pif_install_button.Enable(True)
 
@@ -330,8 +337,8 @@ class MagiskModules(wx.Dialog):
                     self.enable_denylist_button.Enable(False)
                     self.disable_denylist_button.Enable(False)
 
-                # disable button if device is not rooted.
-                if not device.rooted:
+                # disable button if self.device is not rooted.
+                if not self.device.rooted:
                     self.install_module_button.Enable(False)
                     self.update_module_button.Enable(False)
                     self.uninstall_module_button.Enable(False)

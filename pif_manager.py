@@ -1094,7 +1094,7 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
 
             if not self.insync:
-                self.toast("Active pif not in sync", "WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing.")
+                self.toast("Active pif not in sync", "⚠️ WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing.")
 
             # We need to kill TB Checker , Play Store and YASNAC to make sure we read fresh values
             if self.pi_option.StringSelection in ['Android Integrity Checker', 'TB Checker', 'Play Store', 'YASNAC']:

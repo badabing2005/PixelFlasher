@@ -68,7 +68,9 @@ class PartitionManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.device = get_phone(True)
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-            return -1
+            wx.MessageBox(f"❌ ERROR: You must first select a valid device.", "Error", wx.OK | wx.ICON_ERROR)
+            self.Close()
+            return
 
         warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
         warning_text = '''WARNING!

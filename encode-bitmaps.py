@@ -165,6 +165,7 @@ command_lines = [
     "-a -F -i -n j2e-24 images/j2e-24.png images.py",
     "-a -F -i -n save-24 images/save-24.png images.py",
     "-a -F -i -n kernelsu-24 images/kernelsu-24.png images.py",
+    "-a -F -i -n kernelsu-next-24 images/kernelsu-next-24.png images.py",
     "-a -F -i -n apatch-24 images/apatch-24.png images.py",
     "-a -F -i -n cert-24 images/cert-24.png images.py",
     "-a -F -i -n downgrade-24 images/downgrade-24.png images.py",

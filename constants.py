@@ -34,7 +34,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '7.8.1.0'
+VERSION = '7.9.0.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -93,5 +93,8 @@ MAGISK_PKG_NAME = 'com.topjohnwu.magisk'
 MAGISK_ALPHA_PKG_NAME = 'io.github.vvb2060.magisk'
 MAGISK_DELTA_PKG_NAME = 'io.github.huskydg.magisk'
 KERNEL_SU_PKG_NAME = 'me.weishu.kernelsu'
+KSU_NEXT_PKG_NAME = 'com.rifsxd.ksunext'
 APATCH_PKG_NAME = 'me.bmax.apatch'
+APATCH_NEXT_PKG_NAME = 'me.garfieldhan.apatch.next'
 ZYGISK_NEXT_UPDATE_URL = 'https://api.nullptr.icu/android/zygisk-next/static/update.json'
+SHADOW_BANNED_ISSUERS = ['13fd9052d73ab08658c44740d915f693']

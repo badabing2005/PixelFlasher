@@ -140,6 +140,7 @@ config_file_path = ''
 unlocked_devices = []
 window_shown = False
 puml_enabled = True
+magisk_apks = None
 
 
 # ============================================================================
@@ -235,6 +236,14 @@ class Coords:
 class ModuleUpdate():
     def __init__(self, url):
         self.url = url
+
+
+# ============================================================================
+#                               Class MagiskApk
+# ============================================================================
+class MagiskApk():
+    def __init__(self, type):
+        self.type = type
 
 
 # ============================================================================
@@ -1009,6 +1018,24 @@ def set_message_box_message(value):
 
 
 # ============================================================================
+#                               Function get_downgrade_boot_path
+# ============================================================================
+def get_downgrade_boot_path():
+    boot = get_boot()
+    if not boot:
+        return None, False
+
+    boot_path = boot.boot_path
+    directory_path = os.path.dirname(boot_path)
+    downgrade_file_name = "downgrade_boot.img"
+    downgrade_file_path = os.path.join(directory_path, downgrade_file_name)
+    if os.path.exists(downgrade_file_path):
+        return downgrade_file_path, True
+    else:
+        return downgrade_file_path, False
+
+
+# ============================================================================
 #                               Function puml
 # ============================================================================
 def puml(message='', left_ts = False, mode='a'):
@@ -1374,6 +1401,59 @@ def open_terminal(self, path, isFile=False):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a terminal.")
         traceback.print_exc()
+
+
+# ============================================================================
+#                      Function get_compression_method
+# ============================================================================
+def get_compression_method(zip_path, file_to_replace):
+    try:
+        path_to_7z = get_path_to_7z()
+        theCmd = f"\"{path_to_7z}\" l -slt \"{zip_path}\""
+        result = subprocess.run(theCmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output = result.stdout.decode()
+
+        # Parse the output to find the compression method
+        in_file_section = False
+        for line in output.splitlines():
+            if line.startswith("Path = "):
+                in_file_section = file_to_replace in line
+            if in_file_section and line.startswith("Method = "):
+                return line.split(" = ")[1]
+        return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function get_compression_method.")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#                   Function replace_file_in_zip_with_7zip
+# ============================================================================
+def replace_file_in_zip_with_7zip(zip_path, file_to_replace, new_file_path):
+    try:
+        path_to_7z = get_path_to_7z()
+
+        # Delete the existing file
+        theCmd = f"\"{path_to_7z}\" d \"{zip_path}\" \"{file_to_replace}\""
+        debug(theCmd)
+        res = run_shell2(theCmd)
+
+        # add the replacement file
+        theCmd = f"\"{path_to_7z}\" a \"{zip_path}\" \"{new_file_path}\" -m0=Deflate -mx=0"
+        debug(theCmd)
+        res = run_shell2(theCmd)
+        if res.returncode == 0:
+            debug(f"Successfully replaced {file_to_replace} in {zip_path}")
+            return True
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to replace {file_to_replace} in {zip_path}")
+            print(res.stderr.decode())
+            return False
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function replace_file_in_zip_with_7zip.")
+        traceback.print_exc()
+        return False
 
 
 # ============================================================================
@@ -4713,12 +4793,13 @@ def check_kb(filename):
         if crl is not None and crl != 'ERROR':
             last_modified = crl.headers.get('last-modified', 'Unknown')
             content_date = crl.headers.get('date', 'Unknown')
+            print("------------------------------------------------------------------------")
             print(f"CRL Last Modified:     {last_modified}")
             print(f"Server Response Date:  {content_date}")
             crl = crl.json()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not fetch CRL from {url}")
-            return -2
+            return ['invalid']
 
         # Extract certificates from keybox
         certs = []
@@ -4729,24 +4810,30 @@ def check_kb(filename):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract certificates from {filename}")
             print(e)
-            return -2
+            return ['invalid']
 
+        shadow_banned_list = SHADOW_BANNED_ISSUERS
         is_sw_signed = False
         is_expired = False
         expiring_soon = False
         is_revoked = False
+        is_shadow_banned = False
         i = 1
         print(f"\nChecking keybox: {filename} ...")
 
         last_issuer = ""
         cert_counter = 0
         tab_text = ""
+        chain_counter = 0
 
         for cert in certs:
             cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed = parse_cert(cert)
 
             # Format the issuer field
             formatted_issuer, issuer_sn = format_dn(cert_issuer)
+
+            if issuer_sn in shadow_banned_list:
+                is_shadow_banned = True
 
             # Format the issued to field
             formatted_issued_to, issued_to_sn = format_dn(cert_subject)
@@ -4755,6 +4842,7 @@ def check_kb(filename):
             if last_issuer == issued_to_sn or last_issuer == cert_subject:
                 tab_text += "    "
                 cert_counter_text = " "
+                chain_counter += 1
             else:
                 tab_text = ""
                 cert_counter += 1
@@ -4803,25 +4891,33 @@ def check_kb(filename):
                 print(f"{tab_text}❌❌❌ Certificate {i} is REVOKED")
                 print(f"{tab_text}❌❌❌ Reason: {crl['entries'][cert_sn]['reason']} ***")
                 is_revoked = True
+
             i += 1
 
+        results = []
         if is_revoked:
             print(f"\n❌❌❌ Keybox {filename} contains revoked certificates!")
-            result = -1
-        elif is_expired:
-            print(f"\n❌❌❌ Keybox {filename} contains expired certificates!")
-            result = -1
+            results.append('revoked')
         else:
-            print(f"\n✅ Keybox {filename} is clean from revoked certificates")
-            result = 1
+            print(f"\n✅ certificates in Keybox {filename} are not on the revocation list")
+            results.append('valid')
+        if is_expired:
+            print(f"\n❌❌❌ Keybox {filename} contains expired certificates!")
+            results.append('expired')
         if is_sw_signed:
             print(f"⚠️ Keybox {filename} is software signed! This is not a hardware-backed keybox!")
-            result = 0
+            results.append('aosp')
         if expiring_soon:
             print(f"⚠️ Keybox {filename} contains certificates that are expiring soon!")
-            result = 1
+            results.append('expiring_soon')
+        if chain_counter > 4:
+            print(f"⚠️ Keybox {filename} contains certificates longer chain than normal, this may no work.")
+            results.append('long_chain')
+        if is_shadow_banned:
+            print(f"\n❌❌❌ Keybox {filename} has certificate(s) issued by an authority in shadow banned list!")
+            results.append('shadow_banned')
         print('')
-        return result
+        return results
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
         print(e)
@@ -5034,6 +5130,595 @@ def run_tool(tool_details):
         return 0
     except Exception as e:
         print(f"Failed to run tool: {e}")
+
+
+# ============================================================================
+#                           Function get_db_con
+# ============================================================================
+def get_db_con():
+    try:
+        con = get_db()
+        if con is None:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get database connection.")
+            return None
+        con.execute("PRAGMA foreign_keys = ON")
+        con.commit()
+        return con
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_db_con function")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#               Function find_package_ids_with_same_package_boot_hash
+# ============================================================================
+def find_package_ids_with_same_package_boot_hash(boot_hash):
+    con = get_db_con()
+    if con is None:
+        return []
+
+    sql = """
+        SELECT p.id
+        FROM PACKAGE p
+        WHERE p.boot_hash = ?;
+    """
+    try:
+        with con:
+            data = con.execute(sql, (boot_hash,))
+            package_ids = [row[0] for row in data.fetchall()]
+        return package_ids
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while fetching package IDs.")
+        puml("#red:Encountered an error while fetching package IDs;\n", True)
+        traceback.print_exc()
+        return []
+
+
+# ============================================================================
+#               Function get_package_sig
+# ============================================================================
+def get_package_sig(package_id):
+    con = get_db_con()
+    if con is None:
+        return None
+
+    sql = """
+        SELECT p.package_sig
+        FROM PACKAGE p
+        WHERE p.id = ?;
+    """
+    try:
+        with con:
+            data = con.execute(sql, (package_id,))
+            row = data.fetchone()
+            if row:
+                return row[0]
+            else:
+                return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while fetching package_sig.")
+        puml("#red:Encountered an error while fetching package_sig;\n", True)
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#               Function get_boot_id_by_file_path
+# ============================================================================
+def get_boot_id_by_file_path(file_path):
+    con = get_db_con()
+    if con is None:
+        return None
+
+    sql = """
+        SELECT b.id
+        FROM boot b
+        WHERE b.file_path = ?;
+    """
+    try:
+        with con:
+            data = con.execute(sql, (file_path,))
+            row = data.fetchone()
+            if row:
+                return row[0]
+            else:
+                return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function get_boot_id_by_file_path.")
+        puml("#red:Encountered an error in function get_boot_id_by_file_path;\n", True)
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#               Function delete_package_boot_record
+# ============================================================================
+def delete_package_boot_record(boot_id, package_id):
+    con = get_db_con()
+    if con is None or boot_id is None or package_id is None or boot_id == 0 or package_id == 0 or boot_id == '' or package_id == '':
+        return False
+
+    sql = """
+        DELETE FROM PACKAGE_BOOT
+        WHERE boot_id = ? AND package_id = ?;
+    """
+    try:
+        with con:
+            con.execute(sql, (boot_id, package_id))
+        con.commit()
+        return True
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_package_boot_record.")
+        puml("#red:Encountered an error in function delete_package_boot_record;\n", True)
+        traceback.print_exc()
+        return False
+
+
+# ============================================================================
+#               Function delete_boot_record
+# ============================================================================
+def delete_boot_record(boot_id, delete_file=''):
+    con = get_db_con()
+    if con is None or boot_id is None or boot_id == 0 or boot_id == '':
+        return None
+
+    sql = """
+        DELETE FROM BOOT
+        WHERE id = ?;
+    """
+    try:
+        with con:
+            data = con.execute(sql, (boot_id,))
+        con.commit()
+        print(f"Cleared db entry for BOOT: {boot_id}")
+        # delete the boot file
+        if delete_file != '':
+            print(f"Deleting Boot file: {delete_file} ...")
+            if os.path.exists(delete_file):
+                os.remove(delete_file)
+                boot_dir = os.path.dirname(delete_file)
+                # if deleting init_boot.img and boot.img exists, delete that as well
+                boot_img_path = os.path.join(boot_dir, 'boot.img')
+                if os.path.exists(boot_img_path) and delete_file.endswith('init_boot.img'):
+                    print(f"Deleting {boot_img_path} ...")
+                    os.remove(boot_img_path)
+            else:
+                print(f"⚠️ Warning: Boot file: {delete_file} does not exist")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_boot_record.")
+        puml("#red:Encountered an error in function delete_boot_record;\n", True)
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#               Function delete_last_boot_record
+# ============================================================================
+def delete_last_boot_record(boot_id, boot_path=''):
+    con = get_db_con()
+    if con is None or boot_id is None or boot_id == 0 or boot_id == '':
+        return False
+
+    # Check to see if this is the last entry for the boot_id, if it is delete it,
+    try:
+        cursor = con.cursor()
+        cursor.execute("SELECT * FROM PACKAGE_BOOT WHERE boot_id = ?", (boot_id,))
+        data = cursor.fetchall()
+        if len(data) == 0:
+            # delete the boot from db
+            delete_boot_record(boot_id, boot_path)
+        return True
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_last_boot_record.")
+        puml("#red:Encountered an error in function delete_last_boot_record;\n", True)
+        traceback.print_exc()
+        print("Aborting ...")
+        return False
+
+# ============================================================================
+#               Function delete_last_package_record
+# ============================================================================
+# Check to see if this is the last entry for the package_id, if it is,
+# delete the package from db and output a message that a firmware should be selected.
+# Also delete unpacked files from factory_images cache
+def delete_last_package_record(package_ids, boot_dir):
+    con = get_db_con()
+    if con is None:
+        return False
+
+    try:
+        cursor = con.cursor()
+        package_ids_tuple = tuple(package_ids)
+        placeholders = []
+        for _ in package_ids_tuple:
+            placeholders.append('?')
+        placeholders = ','.join(placeholders)
+        query = f"SELECT * FROM PACKAGE_BOOT WHERE package_id IN ({placeholders})"
+        cursor.execute(query, package_ids_tuple)
+        data = cursor.fetchall()
+        if len(data) == 0:
+            delete_package = True
+            # see if there are any other files in the directory
+            files = get_filenames_in_dir(boot_dir)
+            if files:
+                delete_package = False
+
+            if delete_package:
+                config_path = get_config_path()
+                for package_id in package_ids:
+                    package_sig = get_package_sig(package_id)
+                    sql = """
+                        DELETE FROM PACKAGE
+                        WHERE id = ?;
+                    """
+                    with con:
+                        con.execute(sql, (package_id,))
+                    con.commit()
+                    if package_sig:
+                        print(f"Cleared db entry for PACKAGE: {package_sig}")
+                        package_path = os.path.join(config_path, 'factory_images', package_sig)
+                        with contextlib.suppress(Exception):
+                            print(f"Deleting Firmware cache for: {package_path} ...")
+                            delete_all(package_path)
+                    else:
+                        print(f"⚠️ Warning: Package Signature for package_id: {package_id} does not exist")
+        return True
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_last_package_record.")
+        puml("#red:Encountered an error in function delete_last_package_record;\n", True)
+        traceback.print_exc()
+        print("Aborting ...")
+        return False
+
+
+# ============================================================================
+#               Function insert_boot_record
+# ============================================================================
+def insert_boot_record(boot_hash, file_path, is_patched, magisk_version, hardware, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1):
+    con = get_db_con()
+    if con is None:
+        return None
+
+    try:
+        cursor = con.cursor()
+        sql = """
+            INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (boot_hash) DO NOTHING
+        """
+        data = (boot_hash, file_path, is_patched, magisk_version, hardware, time.time(), patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1)
+        debug(f"Creating BOOT record, boot_hash: {boot_hash}")
+        try:
+            cursor.execute(sql, data)
+            con.commit()
+            boot_id = cursor.lastrowid
+            debug(f"DB BOOT record ID: {boot_id}")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while inserting BOOT record.")
+            puml("#red:Encountered an error while inserting BOOT record;\n", True)
+            traceback.print_exc()
+            boot_id = 0
+        return boot_id
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function insert_boot_record.")
+        puml("#red:Encountered an error in function insert_boot_record;\n", True)
+        traceback.print_exc()
+        return 0
+
+
+# ============================================================================
+#               Function insert_package_boot_record
+# ============================================================================
+def insert_package_boot_record(package_id, boot_id):
+    con = get_db_con()
+    if con is None:
+        return None
+
+    try:
+        cursor = con.cursor()
+
+        sql = """
+            INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch)
+            VALUES (?, ?, ?)
+            ON CONFLICT (package_id, boot_id) DO NOTHING
+        """
+        data = (package_id, boot_id, time.time())
+        try:
+            cursor.execute(sql, data)
+            con.commit()
+            package_boot_id = cursor.lastrowid
+            debug(f"DB Package_Boot record ID: {package_boot_id}\n")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while inserting PACKAGE_BOOT record.")
+            puml("#red:Encountered an error while inserting PACKAGE_BOOT record;\n", True)
+            traceback.print_exc()
+            package_boot_id = 0
+        return package_boot_id
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function insert_package_boot_record.")
+        puml("#red:Encountered an error in function insert_package_boot_record;\n", True)
+        traceback.print_exc()
+        return 0
+
+
+# ============================================================================
+#                               Function magisk_apks
+# ============================================================================
+def get_magisk_apks():
+    global magisk_apks
+    if magisk_apks is None:
+        try:
+            apks = []
+            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'Magisk Alpha', 'Magisk Delta Canary', 'Magisk Delta Debug', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
+            for i in mlist:
+                apk = get_magisk_apk_details(i)
+                if apk:
+                    apks.append(apk)
+            magisk_apks = apks
+        except Exception as e:
+            magisk_apks is None
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads link: {i} processing")
+            traceback.print_exc()
+    return magisk_apks
+
+
+# ============================================================================
+#                               Function get_magisk_apk_details
+# ============================================================================
+def get_magisk_apk_details(channel):
+    ma = MagiskApk(channel)
+    if channel == 'Magisk Stable':
+        url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/stable.json"
+
+    elif channel == 'Magisk Beta':
+        url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/beta.json"
+
+    elif channel == 'Magisk Canary':
+        url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/canary.json"
+
+    elif channel == 'Magisk Debug':
+        url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/debug.json"
+
+    elif channel == 'Magisk Alpha':
+        try:
+            # Now published at appcenter: https://install.appcenter.ms/users/vvb2060/apps/magisk/distribution_groups/public
+            info_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/public_releases?scope=tester"
+            release_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/releases/{}"
+            res = request_with_fallback(method='GET', url=info_endpoint)
+            latest_id = res.json()[0]['id']
+            res = request_with_fallback(method='GET', url=release_endpoint.format(latest_id))
+            latest_release = res.json()
+            setattr(ma, 'version', latest_release['short_version'])
+            setattr(ma, 'versionCode', latest_release['version'])
+            setattr(ma, 'link', latest_release['download_url'])
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', latest_release['bundle_identifier'])
+            setattr(ma, 'release_notes', latest_release['release_notes'])
+            return ma
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Alpha processing")
+            traceback.print_exc()
+            return
+    elif channel == 'Magisk Delta Canary':
+        url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
+
+    elif channel == 'Magisk Delta Debug':
+        url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/debug.json"
+
+    elif channel == 'KernelSU':
+        try:
+            # https://github.com/tiann/KernelSU/releases
+            kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
+            kernelsu_release_notes = get_gh_latest_release_notes('tiann', 'KernelSU')
+            kernelsu_url = download_gh_latest_release_asset_regex('tiann', 'KernelSU', r'^KernelSU.*\.apk$', True)
+            if kernelsu_url is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU APK")
+                return
+            match = re.search(r'_([0-9]+)-', kernelsu_url)
+            if match:
+                kernelsu_versionCode =  match.group(1)
+            else:
+                if kernelsu_version:
+                    kernelsu_versionCode = kernelsu_version
+                else:
+                    parts = version.split('.')
+                    a = int(parts[0])
+                    b = int(parts[1])
+                    c = int(parts[2])
+                    kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+            setattr(ma, 'version', kernelsu_version)
+            setattr(ma, 'versionCode', kernelsu_versionCode)
+            setattr(ma, 'link', kernelsu_url)
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', KERNEL_SU_PKG_NAME)
+            setattr(ma, 'release_notes', kernelsu_release_notes)
+            return ma
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU processing")
+            traceback.print_exc()
+            return
+
+    elif channel == 'KernelSU-Next':
+        try:
+            # https://github.com/rifsxd/KernelSU-Next/releases
+            kernelsu_next_version = get_gh_latest_release_version('rifsxd', 'KernelSU-Next')
+            kernelsu_next_release_notes = get_gh_latest_release_notes('rifsxd', 'KernelSU-Next')
+            kernelsu_next_url = download_gh_latest_release_asset_regex('rifsxd', 'KernelSU-Next', r'^KernelSU_Next.*\.apk$', True)
+            if kernelsu_next_url is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU-Next APK")
+                return
+            match = re.search(r'_([0-9]+)-', kernelsu_next_url)
+            if match:
+                kernelsu_next_versionCode =  match.group(1)
+            else:
+                if kernelsu_next_version:
+                    kernelsu_next_versionCode = kernelsu_next_version
+                else:
+                    parts = version.split('.')
+                    a = int(parts[0])
+                    b = int(parts[1])
+                    c = int(parts[2])
+                    kernelsu_next_versionCode = (a * 256 * 256) + (b * 256) + c
+            setattr(ma, 'version', kernelsu_next_version)
+            setattr(ma, 'versionCode', kernelsu_next_versionCode)
+            setattr(ma, 'link', kernelsu_next_url)
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', KSU_NEXT_PKG_NAME)
+            setattr(ma, 'release_notes', kernelsu_next_release_notes)
+            return ma
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU Next processing")
+            traceback.print_exc()
+            return
+
+    elif channel == 'APatch':
+        try:
+            # https://github.com/bmax121/APatch/releases
+            apatch_version = get_gh_latest_release_version('bmax121', 'APatch')
+            apatch_release_notes = get_gh_latest_release_notes('bmax121', 'APatch')
+            apatch_url = download_gh_latest_release_asset_regex('bmax121', 'APatch', r'^APatch_.*\.apk$', True)
+            if apatch_url is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch APK")
+                return
+            match = re.search(r'_([0-9]+)-', apatch_url)
+            if match:
+                apatch_versionCode =  match.group(1)
+            else:
+                if apatch_version:
+                    apatch_versionCode = apatch_version
+                else:
+                    parts = version.split('.')
+                    a = int(parts[0])
+                    b = int(parts[1])
+                    c = int(parts[2])
+                    apatch_versionCode = (a * 256 * 256) + (b * 256) + c
+            setattr(ma, 'version', apatch_version)
+            setattr(ma, 'versionCode', apatch_versionCode)
+            setattr(ma, 'link', apatch_url)
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', APATCH_PKG_NAME)
+            setattr(ma, 'release_notes', apatch_release_notes)
+            return ma
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during APatch processing")
+            traceback.print_exc()
+            return
+    elif channel == 'Magisk zygote64_32 stable':
+        url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/stable.json"
+
+    elif channel == 'Magisk zygote64_32 beta':
+        url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/beta.json"
+
+    elif channel == 'Magisk zygote64_32 canary':
+        # url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/canary.json"
+        url = "https://raw.githubusercontent.com/ActiveIce/Magisk_zygote64_32/master/canary.json"
+
+    elif channel == 'Magisk zygote64_32 debug':
+        url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/debug.json"
+
+    elif channel == 'Magisk special 25203':
+        url = ""
+        setattr(ma, 'version', "f9e82c9e")
+        setattr(ma, 'versionCode', "25203")
+        setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_25203/app-release.apk")
+        setattr(ma, 'note_link', "note_link")
+        setattr(ma, 'package', MAGISK_PKG_NAME)
+        release_notes = """
+## 2022.10.03 Special Magisk v25.2 Build\n\n
+This is a special Magisk build by XDA Member [gecowa6967](https://xdaforums.com/m/gecowa6967.11238881/)\n\n
+- Based on build versionCode: 25203 versionName: f9e82c9e\n
+- Modified to disable loading modules.\n
+- Made to recover from bootloops due to bad / incompatible Modules.\n\n
+### Steps to follow
+If your are bootlooping due to bad modules, and if you load stock boot image, it works fine but you're not rooted to removed modules, then follow these steps.\n\n
+- Uninstall the currently installed Magisk Manager.\n
+- Install this special version.\n
+- Create a patched boot / init_boot using this Magisk Manager version.\n
+- Flash the patched image.\n
+- You should now be able to get root access, and your modules will not load.\n
+- Delete / Disable suspect modules.\n
+- Uninstall this Magisk Manager.\n
+- Install your Magisk Manager of choice.\n
+- Create patched boot / init_boot image.\n
+- Flash the patched image.\n
+- You should be good to go.\n\n
+### Full Details: [here](https://xdaforums.com/t/magisk-general-support-discussion.3432382/page-2667#post-87520397)\n
+        """
+        setattr(ma, 'release_notes', release_notes)
+        return ma
+
+    elif channel == 'Magisk special 26401':
+        url = ""
+        setattr(ma, 'version', "76aef836")
+        setattr(ma, 'versionCode', "26401")
+        setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_26401/app-release.apk")
+        setattr(ma, 'note_link', "note_link")
+        setattr(ma, 'package', MAGISK_PKG_NAME)
+        release_notes = """
+## 2023.11.12 Special Magisk v26.4 Build\n\n
+This is a special Magisk build\n\n
+- Based on build versionCode: 26401 versionName: 76aef836\n
+- Modified to disable loading modules while keep root.\n
+- Made to recover from bootloops due to bad / incompatible Modules.\n\n
+### Steps to follow [here](https://github.com/badabing2005/Magisk)\n
+        """
+        setattr(ma, 'release_notes', release_notes)
+        return ma
+    elif channel == 'Magisk special 27001':
+        url = ""
+        setattr(ma, 'version', "79fd3e40")
+        setattr(ma, 'versionCode', "27001")
+        setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_27001/app-release.apk")
+        setattr(ma, 'note_link', "note_link")
+        setattr(ma, 'package', MAGISK_PKG_NAME)
+        release_notes = """
+## 2024.02.12 Special Magisk v27.0 Build\n\n
+This is a special Magisk build\n\n
+- Based on build versionCode: 27001 versionName: 79fd3e40\n
+- Modified to disable loading modules while keep root.\n
+- Made to recover from bootloops due to bad / incompatible Modules.\n\n
+### Steps to follow [here](https://github.com/badabing2005/Magisk)\n
+        """
+        setattr(ma, 'release_notes', release_notes)
+        return ma
+
+    else:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown Magisk channel {channel}\n")
+        return
+
+    try:
+        payload={}
+        headers = {
+            'Content-Type': "application/json"
+        }
+        response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
+        if response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk downloads links: {url}")
+            return
+        data = response.json()
+        setattr(ma, 'version', data['magisk']['version'])
+        setattr(ma, 'versionCode', data['magisk']['versionCode'])
+        setattr(ma, 'link', data['magisk']['link'])
+        note_link = data['magisk']['note']
+        setattr(ma, 'note_link', note_link)
+        setattr(ma, 'package', MAGISK_PKG_NAME)
+        if channel in ['Magisk Delta Canary', 'Magisk Delta Debug']:
+            setattr(ma, 'package', MAGISK_DELTA_PKG_NAME)
+        # Get the note contents
+        headers = {}
+        with contextlib.suppress(Exception):
+            setattr(ma, 'release_notes', '')
+            response = request_with_fallback(method='GET', url=ma.note_link, headers=headers, data=payload)
+            if response.status_code != 200:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk download release_notes: {url}")
+                return
+            setattr(ma, 'release_notes', response.text)
+        return ma
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links: {url} processing")
+        traceback.print_exc()
+        return
 
 
 # ============================================================================

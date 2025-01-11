@@ -125,7 +125,8 @@ class SuPermissionDialog(wx.Dialog):
         logging = self.logging_checkbox.GetValue()
         print(f"Allow button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
         device = get_phone()
-        device.magisk_update_su(uid=self.uid, policy='allow', logging=logging, notification=notification, until=until)
+        if device:
+            device.magisk_update_su(uid=self.uid, policy='allow', logging=logging, notification=notification, until=until)
         self.EndModal(wx.ID_CANCEL)
 
     def OnDeny(self, event):
@@ -135,7 +136,8 @@ class SuPermissionDialog(wx.Dialog):
         logging = self.logging_checkbox.GetValue()
         print(f"Deny button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
         device = get_phone()
-        device.magisk_update_su(uid=self.uid, policy='deny', logging=logging, notification=notification, until=until)
+        if device:
+            device.magisk_update_su(uid=self.uid, policy='deny', logging=logging, notification=notification, until=until)
         self.EndModal(wx.ID_CANCEL)
 
     def OnRevoke(self, event):
@@ -143,7 +145,8 @@ class SuPermissionDialog(wx.Dialog):
         until = self.ComputeEpoch(until_text)
         print(f"Revoke button clicked. Until: {until_text}, Notification: 1, Logging: 1, Epoch: {until}")
         device = get_phone()
-        device.magisk_update_su(uid=self.uid, policy='deny', logging=1, notification=1, until=until)
+        if device:
+            device.magisk_update_su(uid=self.uid, policy='deny', logging=1, notification=1, until=until)
         self.EndModal(wx.ID_CANCEL)
 
     def OnCancel(self, event):
@@ -180,15 +183,17 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.SetTitle("Manage Packages on the Device")
         self.package_count = 0
         self.all_cb_clicked = False
-        self.device = get_phone(True)
         self.download_folder = None
         self.abort = False
         self.show_system_apps = True
         self.show_user_apps = True
+        self.device = get_phone(True)
 
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-            return -1
+            wx.MessageBox(f"❌ ERROR: You must first select a valid device.", "Error", wx.OK | wx.ICON_ERROR)
+            self.Close()
+            return
 
         res = self.device.get_detailed_packages()
         if res == 0:

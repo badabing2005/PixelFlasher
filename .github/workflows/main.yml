@@ -337,6 +337,77 @@ jobs:
             dist/PixelFlasher_Ubuntu_22_04
             dist/PixelFlasher_Ubuntu_22_04.sha256
 
+# ---------------------------------------------------------------------------
+#                              build_ubuntu_24_04
+# ---------------------------------------------------------------------------
+  build_ubuntu_24_04:
+    if: github.actor == 'badabing2005'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        run: |
+          sudo apt update
+          sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt update
+          sudo apt install -y python3.13
+          sudo apt install -y python3.13-venv
+          sudo apt install -y python3-pip
+          python3.13 --version
+
+      - name: Install wxPython prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3.13-dev
+          sudo apt-get install -y libgtk-3-dev
+          sudo apt-get install -y libunwind-dev
+          sudo apt-get install -y libgstreamer1.0-dev
+          sudo apt-get install -y gstreamer1.0-plugins-base
+          sudo apt-get install -y freeglut3-dev
+          sudo apt-get install -y libjpeg-dev
+          sudo apt-get install -y libpng-dev
+          sudo apt-get install -y libtiff-dev
+          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libnotify-dev
+          sudo apt-get install -y libsm-dev
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev
+
+      - name: Create virtual environment, install dependencies, and build
+        run: |
+          python3.13 -m venv myenv
+          . myenv/bin/activate
+          python --version
+          pip install -U pip
+          pip install -U six wheel setuptools
+          # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04 wxPython==4.2.2 || \
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04 wxPython==4.2.1 || \
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04 wxPython
+          pip install -r requirements.txt
+          python --version && pip freeze
+          ./build.sh
+          mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_24_04
+          sha256sum dist/PixelFlasher_Ubuntu_24_04 > dist/PixelFlasher_Ubuntu_24_04.sha256
+          cat dist/PixelFlasher_Ubuntu_24_04.sha256
+          ls dist
+        shell: bash
+
+      # Upload artifacts Ubuntu 24.04 to Actions
+      - name: Upload Ubuntu 24.04 Artifact
+        uses: actions/upload-artifact@v4
+        id: upload_artifacts_ubuntu_24_04
+        with:
+          name: PixelFlasher_Ubuntu_24_04 Artifacts
+          path: |
+            dist/PixelFlasher_Ubuntu_24_04
+            dist/PixelFlasher_Ubuntu_24_04.sha256
+
   # ---------------------------------------------------------------------------
   #                              build_mac_13
   # ---------------------------------------------------------------------------
@@ -452,7 +523,7 @@ jobs:
   # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_mac_13]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_13]
 
     runs-on: ubuntu-latest
 
@@ -497,6 +568,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: PixelFlasher_Ubuntu_22_04 Artifacts
+          path: release
+        continue-on-error: true
+
+      # Download the Ubuntu_24_04 artifact from the build_ubuntu_24_04 job
+      - name: Download Ubuntu_24_04 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PixelFlasher_Ubuntu_24_04 Artifacts
           path: release
         continue-on-error: true
 

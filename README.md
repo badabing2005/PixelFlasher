@@ -1,5 +1,5 @@
 <img src="/images/icon-dark-128.png" alt="PixelFlasher Icon" align="left" />
-  <h1> PixelFlasher </h1>
+<h1 style="border:none;">PixelFlasher</h1>
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) [![Github Releases](https://img.shields.io/github/downloads/badabing2005/PixelFlasher/total.svg?style=flat)](https://github.com/badabing2005/PixelFlasher/releases)
 

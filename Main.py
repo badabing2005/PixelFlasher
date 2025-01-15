@@ -2164,6 +2164,7 @@ class PixelFlasher(wx.Frame):
         dialog = wx.FileDialog(self, "Select one or multiple APK file(s) to install", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
         if dialog.ShowModal() == wx.ID_CANCEL:
+            print("⚠️ User cancelled the file(s) selection operation")
             return     # the user changed their mind
         paths = dialog.GetPaths()
         dialog.Destroy()

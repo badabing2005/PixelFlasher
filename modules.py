@@ -1918,7 +1918,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             with wx.FileDialog(self, "Select Magisk Application", '', '', wildcard="Images (*.*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
                 puml(":Other Magisk Application for patch use ;\n")
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
-                    print("User cancelled.")
+                    print("⚠️ User cancelled.")
                     puml("#pink:User Cancelled;\n")
                     return -1
                 other_magisk = fileDialog.GetPath()
@@ -1984,6 +1984,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 data += "elif [[ -f \"/data/local/tmp/pf/assets.magisk64\" ]]; then\n"
                 data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk64 -c)\n"
                 data += "    echo \"PATCHING_MAGISK_VERSION: $PATCHING_MAGISK_VERSION\"\n"
+                data += "else\n"
+                data += "    echo \"❌ ERROR: Magisk binary not found in /data/local/tmp/pf/assets/ \"\n"
                 data += "fi\n"
 
             data += "SYSTEM_ROOT=false\n"
@@ -2946,7 +2948,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
 
         if not magiskboot_created:
             # Find latest Magisk to download
-            apk = device.get_magisk_apk_details('Magisk Stable')
+            apk = get_magisk_apk_details('Magisk Stable')
             if apk is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Stable version.")
                 puml("#red:Could not find Magisk Stable version;\n")
@@ -3165,7 +3167,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
 
         if not magiskboot_created:
             # Find latest Magisk to download
-            apk = device.get_magisk_apk_details('Magisk Stable')
+            apk = get_magisk_apk_details('Magisk Stable')
             filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
             download_file(apk.link, filename)
             magisk_apk = os.path.join(tmp_path, filename)

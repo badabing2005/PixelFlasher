@@ -567,7 +567,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def kernel(self):
-        if self._kernel is None and self.mode == 'adb':
+        if self._kernel is None and self.true_mode == 'adb':
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell uname -a"
                 res = run_shell(theCmd)
@@ -700,7 +700,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_version(self):
-        if self._magisk_version is None and self.mode == 'adb' and self.rooted:
+        if self._magisk_version is None and self.true_mode == 'adb' and self.rooted:
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk -c\'\""
                 res = run_shell(theCmd)
@@ -746,7 +746,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_config_path(self):
-        if self._magisk_config_path is None and self.mode == 'adb' and self.rooted:
+        if self._magisk_config_path is None and self.true_mode == 'adb' and self.rooted:
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -1 $(magisk --path)/.magisk/config\'\""
                 res = run_shell(theCmd)
@@ -834,6 +834,8 @@ class Device():
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get {item} status.")
             puml(f"#red:ERROR: Could not get {item} status.;\n", True)
             return -1
+        finally:
+            res = self.delete("/data/local/tmp/avbctl", self.rooted)
 
     # ----------------------------------------------------------------------------
     #                               method reset_ota_update
@@ -881,6 +883,9 @@ class Device():
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an exception if reset_ota_update function.")
             puml(f"#red:ERROR: Encountered an exception if reset_ota_update function.;\n", True)
             return -1
+        finally:
+            res = self.delete("/data/local/tmp/update_engine_client", self.rooted)
+
 
     # ----------------------------------------------------------------------------
     #                               method get_vbmeta_details
@@ -1024,7 +1029,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_backups(self):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -d -1 /data/magisk_backup_*\'\""
                 res = run_shell(theCmd)
@@ -1047,7 +1052,7 @@ class Device():
     # ----------------------------------------------------------------------------
     @property
     def magisk_sha1(self):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat $(magisk --path)/.magisk/config | grep SHA1 | cut -d \'=\' -f 2\'\""
                 res = run_shell(theCmd)
@@ -1141,13 +1146,16 @@ class Device():
             traceback.print_exc()
             puml("#red:Exception during exec_magisk_settings operation.;\n", True)
             return -1
+        finally:
+            if script_path:
+                res = self.delete(script_path, self.rooted)
 
 
     # ----------------------------------------------------------------------------
     #                               method magisk_add_systemless_hosts
     # ----------------------------------------------------------------------------
     def magisk_add_systemless_hosts(self):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 print("Magisk adding built-in systemless hosts module ...")
                 puml(":Magisk adding built-in systemless hosts module;\n", True)
@@ -1192,7 +1200,7 @@ add_hosts_module
     #                               method magisk_enable_zygisk
     # ----------------------------------------------------------------------------
     def magisk_enable_zygisk(self, enable):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 value = "1" if enable else "0"
                 print(f"Updating Zygisk flag value to: {value}")
@@ -1246,7 +1254,7 @@ add_hosts_module
     #                               method magisk_update_su
     # ----------------------------------------------------------------------------
     def magisk_update_su(self, uid, policy, logging, notification, until=0, label=''):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 if policy == "allow":
                     value = 2
@@ -1280,7 +1288,7 @@ add_hosts_module
     #                               Method run_magisk_migration
     # ----------------------------------------------------------------------------
     def run_magisk_migration(self, sha1 = None):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 print("Making sure stock_boot.img is found on the device ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -l /data/adb/magisk/stock_boot.img\'\""
@@ -1306,13 +1314,11 @@ add_hosts_module
                     debug(f"Return Code: {res.returncode}")
                     debug(f"Stdout: {res.stdout}")
                     debug(f"Stderr: {res.stderr}")
-                    if res.returncode == 0:
-                        print("run_migration completed.")
-                        if sha1:
-                            magisk_backups = self.magisk_backups
-                            if self.magisk_backups and sha1 in magisk_backups:
-                                print(f"Magisk backup for {sha1} was successful")
-                                return 0
+                    if sha1:
+                        magisk_backups = self.magisk_backups
+                        if self.magisk_backups and sha1 in magisk_backups:
+                            print(f"Magisk backup for {sha1} was successful")
+                            return 0
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                 return -1
             except Exception as e:
@@ -1327,54 +1333,57 @@ add_hosts_module
     #                               Method data_adb_backup
     # ----------------------------------------------------------------------------
     def data_adb_backup(self, filename):
-        if self.mode == 'adb' and self.rooted:
-            try:
-                print("Creating a backup of /data/adb ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/local/tmp/data_adb.tgz; tar cvfz /data/local/tmp/data_adb.tgz /data/adb/\'\""
-                res = run_shell(theCmd)
-                # expect 0
-                if res and isinstance(res, subprocess.CompletedProcess):
-                    debug(f"Return Code: {res.returncode}")
-                    debug(f"Stdout: {res.stdout}")
-                    debug(f"Stderr: {res.stderr}")
-                    if res.returncode != 0:
+        try:
+            if self.true_mode == 'adb' and self.rooted:
+                try:
+                    print("Creating a backup of /data/adb ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/local/tmp/data_adb.tgz; tar cvfz /data/local/tmp/data_adb.tgz /data/adb/\'\""
+                    res = run_shell(theCmd)
+                    # expect 0
+                    if res and isinstance(res, subprocess.CompletedProcess):
+                        debug(f"Return Code: {res.returncode}")
+                        debug(f"Stdout: {res.stdout}")
+                        debug(f"Stderr: {res.stderr}")
+                        if res.returncode != 0:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb")
+                            print("Aborting ...\n")
+                            return -2
+                    else:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb")
                         print("Aborting ...\n")
                         return -2
-                else:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb")
-                    print("Aborting ...\n")
-                    return -2
 
-                # check if backup got created.
-                print("\nChecking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
-                res,_ = self.check_file("/data/local/tmp/data_adb.tgz")
-                if res != 1:
-                    print("Aborting ...\n")
-                    puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")
-                    return -2
+                    # check if backup got created.
+                    print("\nChecking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
+                    res,_ = self.check_file("/data/local/tmp/data_adb.tgz")
+                    if res != 1:
+                        print("Aborting ...\n")
+                        puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")
+                        return -2
 
-                print(f"Pulling /data/local/tmp/data_adb.tgz from the phone to: {filename} ...")
-                res = self.pull_file("/data/local/tmp/data_adb.tgz", f"\"{filename}\"")
-                if res != 0:
-                    print("Aborting ...\n")
-                    puml("#red:Failed to pull /data/local/tmp/data_adb.tgz from the phone;\n}\n")
-                    return -2
-            except Exception as e:
-                traceback.print_exc()
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_backup.")
+                    print(f"Pulling /data/local/tmp/data_adb.tgz from the phone to: {filename} ...")
+                    res = self.pull_file("/data/local/tmp/data_adb.tgz", f"\"{filename}\"")
+                    if res != 0:
+                        print("Aborting ...\n")
+                        puml("#red:Failed to pull /data/local/tmp/data_adb.tgz from the phone;\n}\n")
+                        return -2
+                except Exception as e:
+                    traceback.print_exc()
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_backup.")
+                    return -1
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_backup function is only available in adb mode on rooted devices.")
                 return -1
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_backup function is only available in adb mode on rooted devices.")
-            return -1
-        print("Backup completed.")
-        return 0
+            print("Backup completed.")
+            return 0
+        finally:
+            res = self.delete("/data/local/tmp/data_adb.tgz", self.rooted)
 
     # ----------------------------------------------------------------------------
     #                               Method data_adb_restore
     # ----------------------------------------------------------------------------
     def data_adb_restore(self, filename):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 print(f"Pushing {filename} to /data/local/tmp/data_adb.tgz on the phone ...")
                 res = self.push_file(filename, "/data/local/tmp/data_adb.tgz", True)
@@ -1412,6 +1421,8 @@ add_hosts_module
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: In function data_adb_restore.")
                 print("Aborting ...\n")
                 return -1
+            finally:
+                res = self.delete("/data/local/tmp/data_adb.tgz", self.rooted)
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_restore function is only available in adb mode on rooted devices.")
             return -1
@@ -1420,7 +1431,7 @@ add_hosts_module
     #                               Method data_adb_clear
     # ----------------------------------------------------------------------------
     def data_adb_clear(self):
-        if self.mode == 'adb' and self.rooted:
+        if self.true_mode == 'adb' and self.rooted:
             try:
                 print("Clearing the contents of /data/adb/ ...")
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -rf /data/adb/*\'\""
@@ -1445,10 +1456,10 @@ add_hosts_module
             return -1
 
     # ----------------------------------------------------------------------------
-    #                               Method create_magisk_backup
+    #                   Method create_magisk_backup (not used)
     # ----------------------------------------------------------------------------
     def create_magisk_backup(self, sha1 = None):
-        if self.mode == 'adb' and self.rooted and sha1:
+        if self.true_mode == 'adb' and self.rooted and sha1:
             try:
                 print("Getting the current SHA1 from Magisk config ...")
                 magisk_sha1 = self.magisk_sha1
@@ -1511,6 +1522,8 @@ add_hosts_module
                 traceback.print_exc()
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Magisk backup failed.")
                 return -1
+            finally:
+                res = self.delete("/data/local/tmp/stock_boot.img")
         return -1
 
     # ----------------------------------------------------------------------------
@@ -1909,6 +1922,9 @@ add_hosts_module
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
             return -1
+        finally:
+            if with_su:
+                res = self.delete(remote_file, with_su=True)
 
     # ----------------------------------------------------------------------------
     #                               Method pull_file
@@ -1970,6 +1986,9 @@ add_hosts_module
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
             return -1
+        finally:
+            if with_su:
+                res = self.delete(temp_remote_file, with_su=True)
 
     # ----------------------------------------------------------------------------
     #                               Method set_file_permissions
@@ -2282,7 +2301,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def magisk_app_version(self):
-        if self._magisk_app_version is None and self.mode == 'adb' and get_magisk_package():
+        if self._magisk_app_version is None and self.true_mode == 'adb' and get_magisk_package():
             self._magisk_app_version, self._magisk_app_version_code = self.get_app_version(get_magisk_package())
         return self._magisk_app_version
 
@@ -2291,7 +2310,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def ksu_app_version(self):
-        if self._ksu_app_version is None and self.mode == 'adb':
+        if self._ksu_app_version is None and self.true_mode == 'adb':
             self._ksu_app_version, self._ksu_app_version_code = self.get_app_version(KERNEL_SU_PKG_NAME)
         return self._ksu_app_version
 
@@ -2300,7 +2319,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def ksu_next_app_version(self):
-        if self._ksu_next_app_version is None and self.mode == 'adb':
+        if self._ksu_next_app_version is None and self.true_mode == 'adb':
             self._ksu_next_app_version, self._ksu_next_app_version_code = self.get_app_version(KSU_NEXT_PKG_NAME)
         return self._ksu_next_app_version
 
@@ -2309,7 +2328,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def apatch_app_version(self):
-        if self._apatch_app_version is None and self.mode == 'adb':
+        if self._apatch_app_version is None and self.true_mode == 'adb':
             self._apatch_app_version, self._apatch_app_version_code = self.get_app_version(APATCH_PKG_NAME)
         return self._apatch_app_version
 
@@ -2318,7 +2337,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def apatch_next_app_version(self):
-        if self._apatch_next_app_version is None and self.mode == 'adb':
+        if self._apatch_next_app_version is None and self.true_mode == 'adb':
             self._apatch_next_app_version, self._apatch_next_app_version_code = self.get_app_version(APATCH_NEXT_PKG_NAME)
         return self._apatch_next_app_version
 
@@ -2327,7 +2346,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def config_kallsyms(self):
-        if self._config_kallsyms is None and self.mode == 'adb':
+        if self._config_kallsyms is None and self.true_mode == 'adb':
             self._config_kallsyms = self.get_config_kallsyms()
         return self._config_kallsyms
 
@@ -2359,7 +2378,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def config_kallsyms_all(self):
-        if self._config_kallsyms_all is None and self.mode == 'adb':
+        if self._config_kallsyms_all is None and self.true_mode == 'adb':
             self._config_kallsyms_all = self.get_config_kallsyms_all()
         return self._config_kallsyms_all
 
@@ -2392,7 +2411,7 @@ add_hosts_module
     def get_app_version(self, pkg):
         version = ''
         versionCode = ''
-        if pkg and self.mode == 'adb':
+        if pkg and self.true_mode == 'adb':
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {pkg}"
                 res = run_shell(theCmd)
@@ -2504,7 +2523,7 @@ add_hosts_module
     def is_display_unlocked(self):
         print("Checking to see if display is unlocked ...")
         try:
-            if self.mode == 'adb':
+            if self.true_mode == 'adb':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"dumpsys power | grep \'mHolding\'\""
                 res = run_shell(theCmd)
                 mHoldingWakeLockSuspendBlocker = False
@@ -2553,7 +2572,7 @@ add_hosts_module
         if self._get_magisk_detailed_modules is None or refresh == True:
             try:
                 config = get_config()
-                if self.mode == 'adb' and self.rooted:
+                if self.true_mode == 'adb' and self.rooted:
                     if sys.platform == "win32":
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do if test -d \"$FILE\"; then echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf; fi; done\'\""
                         res = run_shell(theCmd, encoding='utf-8')
@@ -2613,7 +2632,7 @@ add_hosts_module
                             for module in self._get_magisk_detailed_modules:
                                 if module:
                                     m = Magisk(module)
-                                    if self.mode == 'adb' and get_adb():
+                                    if self.true_mode == 'adb' and get_adb():
                                         # get the uninstall state by checking if there is a remove file in the module directory
                                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/remove\'\""
                                         res = run_shell(theCmd)
@@ -2699,7 +2718,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def rooted(self):
-        if self._rooted is None and self.mode == 'adb':
+        if self._rooted is None and self.true_mode == 'adb':
             if get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c 'ls -l /data/adb/'\""
                 res = run_shell(theCmd, timeout=8)
@@ -2728,7 +2747,7 @@ add_hosts_module
     @property
     def magisk_denylist_enforced(self):
         try:
-            if self._magisk_denylist_enforced is None and self.mode == 'adb':
+            if self._magisk_denylist_enforced is None and self.true_mode == 'adb':
                 if get_adb():
                     data = f"magisk --denylist status"
                     res = self.exec_magisk_settings(data, 1)
@@ -2753,7 +2772,7 @@ add_hosts_module
     @property
     def magisk_zygisk_enabled(self):
         try:
-            if self._magisk_zygisk_enabled is None and self.mode == 'adb':
+            if self._magisk_zygisk_enabled is None and self.true_mode == 'adb':
                 if get_adb():
                     data = f"magisk --sqlite \"SELECT value FROM settings WHERE key='zygisk';\""
                     res = self.exec_magisk_settings(data, 1)
@@ -3456,7 +3475,7 @@ add_hosts_module
             else:
                 sdk_flag = ""
 
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 print(f"Installing {app} on device ...")
                 puml(f":Installing {app};\n", True)
                 theCmd = f"\"{get_adb()}\" -s {self.id} install {playstore_flag} {sdk_flag} -r \"{app}\""
@@ -3476,7 +3495,7 @@ add_hosts_module
                 self.reboot_system()
                 time.sleep(60)
                 res = self.refresh_phone_mode()
-                if self.mode == 'adb' and get_adb():
+                if self.true_mode == 'adb' and get_adb():
                     res = self.install_apk(app)
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device could not reboot to adb mode.\n Aborting install ...")
@@ -3728,7 +3747,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def install_magisk_module(self, module):
         try:
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 print(f"Installing magisk module {module} ...")
                 puml(":Install magisk module;\n", True)
                 puml(f"note right:{module};\n")
@@ -3765,7 +3784,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def enable_magisk_module(self, dirname):
         try:
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 print(f"Enabling magisk module {dirname} ...")
                 puml(":Enable magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
@@ -3788,7 +3807,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def restore_magisk_module(self, dirname):
         try:
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 print(f"Restoring magisk module {dirname} ...")
                 puml(":Restore magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
@@ -3852,7 +3871,7 @@ add_hosts_module
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: invalid scrcpy path {scrcpy_path} ")
                 return 1
             scrcpy_folder = os.path.dirname(scrcpy_path)
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 print(f"Launching scrcpy for device: {self.id} ...")
                 puml(":Launching scrcpy;\n", True)
                 theCmd = f"\"{scrcpy_path}\" -s {self.id} {flags}"
@@ -3892,7 +3911,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def uninstall_magisk_module(self, dirname):
         try:
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 print(f"Uninstalling magisk module {dirname} ...")
                 puml(":Uninstall magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
@@ -3915,7 +3934,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def disable_magisk_module(self, dirname):
         try:
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 print(f"Disabling magisk module {dirname} ...")
                 puml(":Disable magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
@@ -3940,7 +3959,7 @@ add_hosts_module
         try:
             print("Disabling magisk modules ...")
             puml(":SOS Disable magisk modules;\n", True)
-            if self.mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and get_adb():
                 theCmd = f"\"{get_adb()}\" -s {self.id} wait-for-device shell magisk --remove-modules"
                 debug(theCmd)
                 return run_shell(theCmd)

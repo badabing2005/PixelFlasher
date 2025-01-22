@@ -642,13 +642,20 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnClose
     # -----------------------------------------------
     def OnClose(self, e):
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close.")
-        labels = get_labels()
-        if (labels):
-            with open(get_labels_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
-                # Write the dictionary to the file in JSON format
-                json.dump(labels, f, indent=4)
-        self.EndModal(wx.ID_CANCEL)
+        try:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close.")
+            labels = get_labels()
+            if (labels):
+                with open(get_labels_file_path(), "w", encoding='ISO-8859-1', errors="replace") as f:
+                    # Write the dictionary to the file in JSON format
+                    json.dump(labels, f, indent=4)
+            # Delete aapt2 from the device
+            res = self.device.delete("/data/local/tmp/aapt2", self.device.rooted)
+        except Exception:
+            traceback.print_exc()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to properly close the window.")
+        finally:
+            self.EndModal(wx.ID_CANCEL)
 
     # -----------------------------------------------
     #                  OnDisable

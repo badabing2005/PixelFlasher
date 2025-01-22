@@ -763,14 +763,19 @@ class PifManager(wx.Dialog):
     #                  onClose
     # -----------------------------------------------
     def onClose(self, e):
-        dialog_size = self.GetSize()
-        dialog_x, dialog_y = dialog_size.GetWidth(), dialog_size.GetHeight()
-        config = get_config()
-        config.pif_width = dialog_x
-        config.pif_height = dialog_y
-        config.pif = self.config.pif
-        set_config(config)
-        self.Destroy()
+        try:
+            dialog_size = self.GetSize()
+            dialog_x, dialog_y = dialog_size.GetWidth(), dialog_size.GetHeight()
+            config = get_config()
+            config.pif_width = dialog_x
+            config.pif_height = dialog_y
+            config.pif = self.config.pif
+            set_config(config)
+        except Exception:
+            traceback.print_exc()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to properly close the window.")
+        finally:
+            self.Destroy()
 
     # -----------------------------------------------
     #                  LoadReload
@@ -1309,6 +1314,8 @@ class PifManager(wx.Dialog):
         except Exception:
             traceback.print_exc()
         finally:
+            if device:
+                res = device.delete("/data/local/tmp/pi.xml", device.rooted)
             self._on_spin('stop')
 
 

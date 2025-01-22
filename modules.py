@@ -657,6 +657,8 @@ def process_file(self, file_type):
                 print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
                 # Check if the firmware file starts with image-* and warn the user or abort
                 firmware_file_name = os.path.basename(file_to_process)
+                # empty mkdir - Nothing will be extracted here, needed for Non-Pixel factory firmware
+                os.makedirs(package_dir_full, exist_ok=True)
                 if firmware_file_name.startswith('image-'):
                     title = "Possibly extracted firmware."
                     message =  f"WARNING: It looks like you have extracted the firmware file.\nand selected the image zip from it.\n\n"
@@ -2027,7 +2029,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
             data += "	if [[ -n \"$PATCHING_MAGISK_VERSION\" ]]; then echo $PATCHING_MAGISK_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
-            data += "	echo \"ERROR: Patching failed!\"\n"
+            data += "	echo \"❌ ERROR: Patching failed!\"\n"
             data += "fi\n\n"
             if delete_temp_files:
                 data += "echo \"Cleaning up ...\"\n"
@@ -2160,7 +2162,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
             data += "	if [[ -n \"$KERNELSU_VERSION\" ]]; then echo $KERNELSU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
-            data += "	echo \"ERROR: Patching failed!\"\n"
+            data += "	echo \"❌ ERROR: Patching failed!\"\n"
             data += "fi\n\n"
             if delete_temp_files:
                 data += "echo \"Cleaning up ...\"\n"
@@ -2328,7 +2330,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             data += "            echo \"$PATCHING_KSU_VERSION\" >> /data/local/tmp/pf_patch.log\n"
             data += "        fi\n"
             data += "    else\n"
-            data += "        echo \"ERROR: Patching failed!\"\n"
+            data += "        echo \"❌ ERROR: Patching failed!\"\n"
             data += "    fi\n"
             data += "fi\n\n"
             delete_temp_files = False
@@ -2554,7 +2556,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
             data += "	if [[ -n \"$PATCHING_APATCH_VERSION\" ]]; then echo $PATCHING_APATCH_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
-            data += "	echo \"ERROR: Patching failed!\"\n"
+            data += "	echo \"❌ ERROR: Patching failed!\"\n"
             data += "fi\n\n"
             if delete_temp_files:
                 data += "echo \"Cleaning up ...\"\n"
@@ -3498,11 +3500,16 @@ Unless you know what you're doing, it is recommended that you take the default s
                 puml("#lightgreen:Magisk Backup: Success;\n")
             else:
                 print(f"Magisk has NOT made a backup of the source {boot_file_name}")
-                print("Triggering Magisk to create a backup ...")
-                # Trigger Magisk to make a backup
-                res = device.run_magisk_migration(boot_sha1_long)
-                # if return is -2, then copy boot.img to stock_boot.img
-                if res == -2:
+                do_manual_backup = True
+                if method == 1:
+                    print("Triggering Magisk to create a backup ...")
+                    # Trigger Magisk to make a backup
+                    res = device.run_magisk_migration(boot_sha1_long)
+                    if res != -2:
+                        do_manual_backup = False
+                    else:
+                        print("Magisk did not make a backup, will do a manual backup.")
+                if do_manual_backup:
                     # copy stock_boot from Downloads folder it already exists, and do it as su if rooted
                     stock_boot_path = '/data/adb/magisk/stock_boot.img'
                     print(f"Copying {boot_img} to {stock_boot_path} ...")
@@ -3511,7 +3518,7 @@ Unless you know what you're doing, it is recommended that you take the default s
                         print("Aborting Backup ...\n")
                     else:
                         # rerun the migration.
-                        print("Triggering Magisk migration again to create a backup ...")
+                        print("Triggering Magisk migration to create a backup ...")
                         res = device.run_magisk_migration(boot_sha1_long)
                         print(f"\nChecking to see if Magisk made a backup of the source {boot_file_name}")
                         magisk_backups = device.magisk_backups
@@ -3871,7 +3878,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 if self.config.fastboot_verbose:
                     fastboot_options += '--verbose '
             fastboot_options += 'flash '
-        theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} boot \"{boot_img_path}\""
+        theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {partition} \"{boot_img_path}\""
         debug(theCmd)
         res = run_shell(theCmd)
         if res and isinstance(res, subprocess.CompletedProcess):
@@ -4195,7 +4202,7 @@ def flash_phone(self):
             # cp = get_system_codepage()
             cp = "65001"
         if cp:
-            first_line_win = f"chcp {cp}\n@ECHO OFF\n"
+            first_line_win = f"\nchcp {cp}\n@ECHO OFF\n"
         else:
             first_line_win = f"@ECHO OFF\n"
         first_line_linux = "#!/bin/sh\n"
@@ -4257,8 +4264,8 @@ def flash_phone(self):
                         action = "boot"
                         msg  = "\nLive Boot to:           "
                         if device.hardware in KNOWN_INIT_BOOT_DEVICES:
-                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported yet.")
-                            puml("#orange:Live booting Pixel 7 or newer are not supported yet;\n}\n")
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported.")
+                            puml("#orange:Live booting Pixel 7 or newer are not supported;\n}\n")
                             self.toast("Flash action", "⚠️ Live booting Pixel 7 or newer devices is not supported.")
                             # return -1
                     else:
@@ -4450,7 +4457,7 @@ def flash_phone(self):
                 # Process flash_all files
                 flash_all_win32 = process_flash_all_file(os.path.join(package_dir_full, "flash-all.bat"))
                 if (flash_all_win32 == 'ERROR'):
-                    print("Aborting ...\n")
+                    print("Make sure you have a supported firmware file.\nAborting ...\n")
                     puml("#red:Error processing flash_all.bat file;\n}\n")
                     return -1
                 flash_all_linux = process_flash_all_file(os.path.join(package_dir_full, "flash-all.sh"))
@@ -4474,7 +4481,7 @@ def flash_phone(self):
                     debug(f"\nsh file\n{s2}\n")
 
                 if cp:
-                    data_win = f"chcp {cp}\n"
+                    data_win = f"\nchcp {cp}\n"
                 else:
                     data_win = ''
                 if self.config.flash_mode == 'dryRun':
@@ -4789,7 +4796,7 @@ def flash_phone(self):
                         # flash the patch
                         flash = "flash"
 
-                    if (boot.is_init_boot or (device.hardware is not None and device.hardware in KNOWN_INIT_BOOT_DEVICES)) and boot.patch_method not in ['kernelsu', 'apatch', 'apatch_manual']:
+                    if boot.is_init_boot:
                         print("Flashing patched init_boot ...")
                         theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
                         is_init_boot = True

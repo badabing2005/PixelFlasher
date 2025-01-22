@@ -1363,6 +1363,9 @@ def open_folder(self, path, isFile = False):
             dir_path = os.path.dirname(path)
         else:
             dir_path = path
+        if not os.path.exists(dir_path):
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {dir_path} does not exist.")
+            return
         if sys.platform == "darwin":
             subprocess.Popen(["open", dir_path], env=get_env_variables())
         elif sys.platform == "win32":

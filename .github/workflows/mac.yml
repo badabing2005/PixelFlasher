@@ -61,8 +61,10 @@ jobs:
       - name: List Cellar directory
         run: ls /opt/homebrew/Cellar
 
-      - name: Set Compiling for universial 2
-        run : export ARCHFLAGS="-arch x86_64 -arch arm64" && export PIP_NO_BINARY=1
+      - name: Updating Homebrew Packages
+        run : |
+          brew upgrade
+          brew remove openssl@1.1
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
@@ -106,7 +108,7 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: python3.13 -m pip install -r requirements.txt
+        run: ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install -r requirements.txt
 
       - name: List modules and their versions
         run: python3.13 -m pip freeze

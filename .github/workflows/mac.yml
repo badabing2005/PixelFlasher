@@ -108,7 +108,7 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install -r requirements.txt
+        run: ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi' -r requirements.txt
 
       - name: List modules and their versions
         run: python3.13 -m pip freeze

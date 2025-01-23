@@ -2561,7 +2561,7 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
         response = request_with_fallback('GET', pixel_get_url)
         if response == 'ERROR' or response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel GET HTML")
-            return None, None
+            return None, None, security_patch_level_date
         pixel_get_html = response.text
 
         # Fetch Pixel Beta HTML
@@ -2572,11 +2572,11 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
             response = request_with_fallback('GET', pixel_beta_url)
             if response == 'ERROR' or response.status_code != 200:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel Beta HTML")
-                return None, None
+                return None, None, security_patch_level_date
             pixel_beta_html = response.text
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Beta link not found")
-            return None, None
+            return None, None, security_patch_level_date
 
         # Parse Pixel Beta HTML
         soup = BeautifulSoup(pixel_beta_html, 'html.parser')
@@ -2615,7 +2615,7 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
         response = request_with_fallback('GET', secbull_url)
         if response == 'ERROR' or response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Security Bulletin HTML")
-            return None, None
+            return None, None, security_patch_level_date
         secbull_html = response.text
 
         # Find the corresponding table row in the html
@@ -2633,13 +2633,13 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
                     debug(f"Security Patch Level: {security_patch_level}")
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-                    return None, None
+                    return None, None, security_patch_level_date
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-                return None, None
+                return None, None, security_patch_level_date
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-            return None, None
+            return None, None, security_patch_level_date
 
         return model_list, product_list, security_patch_level
     except Exception as e:
@@ -2711,18 +2711,35 @@ def get_beta_pif(device_model='random', force_version=None):
 
     # Determine the latest date(s)
     newest_data = []
-    latest_date = max(filter(None, (ota_date_object, factory_date_object, gsi_date_object)), default=None)
+    dates = []
+    if ota_date_object:
+        dates.append((ota_date_object, 'ota'))
+    if factory_date_object:
+        dates.append((factory_date_object, 'factory'))
+    if gsi_date_object:
+        dates.append((gsi_date_object, 'gsi'))
 
-    if latest_date is None:
+    # Sort dates in descending order
+    dates.sort(key=lambda x: (x[0], {'ota': 0, 'factory': 1, 'gsi': 2}[x[1]]), reverse=True)
+
+    if not dates:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to determine the latest date")
         return -1
 
-    if ota_date_object == latest_date:
-        newest_data.append('ota')
-    if factory_date_object == latest_date:
-        newest_data.append('factory')
-    if gsi_date_object == latest_date:
-        newest_data.append('gsi')
+    latest_date = dates[0][0]
+
+    # Group dates by their value
+    date_groups = {}
+    for date, source in dates:
+        if date not in date_groups:
+            date_groups[date] = []
+        date_groups[date].append(source)
+
+    # Process groups in descending date order
+    for date in sorted(date_groups.keys(), reverse=True):
+        # Sort sources within each date group to maintain ota, factory, gsi order
+        sources = sorted(date_groups[date], key=lambda x: {'ota': 0, 'factory': 1, 'gsi': 2}[x])
+        newest_data.extend(sources)
 
     def get_model_and_prod_list(data):
         for device in data.__dict__['devices']:
@@ -2742,7 +2759,8 @@ def get_beta_pif(device_model='random', force_version=None):
                 product_list = []
                 model_list, product_list = get_model_and_prod_list(ota_data)
                 expiry_date = ota_data.__dict__['beta_expiry_date']
-                break
+                if model_list and product_list:
+                    break
         elif data == 'factory' and factory_data:
             debug("Extracting PIF from Beta Factory ...")
             # Grab fp and sp from Factory zip
@@ -2752,7 +2770,8 @@ def get_beta_pif(device_model='random', force_version=None):
                 product_list = []
                 model_list, product_list = get_model_and_prod_list(factory_data)
                 expiry_date = factory_data.__dict__['beta_expiry_date']
-                break
+                if model_list and product_list:
+                    break
         elif data == 'gsi' and partial_gsi_data:
             debug("Extracting PIF from Beta GSI ...")
             # Grab fp and sp from GSI zip
@@ -2767,7 +2786,8 @@ def get_beta_pif(device_model='random', force_version=None):
                 if not fingerprint:
                     build_id = partial_gsi_data.__dict__['build']
                     fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{latest_version}/{build_id}/{incremental}:user/release-keys"
-                break
+                    if fingerprint and security_patch:
+                        break
 
     build_type = 'user'
     build_tags = 'release-keys'
@@ -2806,7 +2826,7 @@ def get_beta_pif(device_model='random', force_version=None):
         }
         return pif_data
 
-    if device_model != '' and f"{device_model}_beta" in product_list:
+    if device_model and product_list and f"{device_model}_beta" in product_list:
         product = f"{device_model}_beta"
         model = model_list[product_list.index(product)]
         device = device_model
@@ -2833,7 +2853,11 @@ def get_beta_pif(device_model='random', force_version=None):
         print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
         return json_string
     else:
-        model, product, device = set_random_beta()
+        if model and product and device:
+            model, product, device = set_random_beta()
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No beta data found.")
+            return "No beta print found for the selected version."
 
     # Dump values to pif.json
     pif_data = get_pif_data(model, product, device, latest_version, build_id, incremental, security_patch, build_type, build_tags)

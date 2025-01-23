@@ -59,8 +59,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: List Cellar directory
-        run: |
-          ls /usr/homebrew/Cellar
+        run: ls /opt/homebrew/Cellar
+
+      - name: Set Compiling for universial 2
+        run : export ARCHFLAGS="-arch x86_64 -arch arm64" && export PIP_NO_BINARY=1
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
@@ -71,8 +73,7 @@ jobs:
         run: pip install wxPython
 
       - name: Install node
-        run: |
-          brew install node
+        run: brew install node
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -80,8 +81,7 @@ jobs:
           node-version: '20'
 
       - name: Install ImageMagick
-        run: |
-          brew install imagemagick
+        run: brew install imagemagick
 
       - name: Install create-dmg
         run: |
@@ -95,7 +95,7 @@ jobs:
           fi
 
       - name: Add Python 3.13 to PATH
-        run: export PATH=/usr/homebrew/Cellar/python@3.13/bin:$PATH
+        run: export PATH=/opt/homebrew/Cellar/python@3.13/bin:$PATH
 
       - name: Create virtual environment
         run: python3.13 -m venv myenv
@@ -114,8 +114,7 @@ jobs:
       # Build application
       - name: Build application
         id: build_app
-        run: |
-          ./build.sh
+        run: ./build.sh
         continue-on-error: true
 
       # if the previous step fails, rename the app file and upload it as an artifact

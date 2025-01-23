@@ -49,7 +49,7 @@ on:
 
 jobs:
   build_mac:
-    if: ${{ github.actor == 'badabing2005' }}
+    if: github.actor == 'badabing2005'
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     # runs-on: macos-latest
     runs-on: macos-latest
@@ -117,50 +117,27 @@ jobs:
       - name: Build application
         id: build_app
         run: ./build.sh
-        continue-on-error: true
-
-      # if the previous step fails, rename the app file and upload it as an artifact
-      # otherwsie rename the dmg file and upload it as an artifact
-
-      # Upload app artifacts macOS to Actions
-      - name: Upload macOS app Artifacts
-        if: ${{ steps.build_app.outcome == 'failure' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }} # Only run this step when running in GitHub Actions
-        uses: actions/upload-artifact@v4
-        id: upload_app_artifacts_macOS
-        with:
-          name: PixelFlasher_macOS.app Artifacts
-          path: |
-            dist/PixelFlasher_macOS.app
-            dist/PixelFlasher_macOS.app.sha256
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v4
         with:
           name: PixelFlasher.app
           path: dist/PixelFlasher.app
-        if: ${{ steps.build_app.outcome == 'success' }}
-
-      - name: Rename the file
-        run: mv dist/PixelFlasher.dmg dist/PixelFlasher_macOS.dmg
-        if: ${{ steps.build_app.outcome == 'success' }}
 
       - name: Get sha256
         run: |
-          shasum -a 256 dist/PixelFlasher_macOS.dmg > dist/PixelFlasher_macOS.dmg.sha256
-          cat dist/PixelFlasher_macOS.dmg.sha256
-        if: ${{ steps.build_app.outcome == 'success' }}
+          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
+          cat dist/PixelFlasher.dmg.sha256
 
       - name: List contents of dist directory
-        run: ls dist
-        if: ${{ steps.build_app.outcome == 'success' }}
+        run: ls ./ dist/
 
-      # Upload dmg artifacts macOS to Actions
+      # Upload artifacts macOS
       - name: Upload macOS Artifact
-        if: ${{ steps.build_app.outcome == 'success' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v4
-        id: upload_artifact_macOS
+        id: upload_artifact_macos
         with:
-          name: PixelFlasher_macOS.dmg Artifacts
+          name: PixelFlasher.dmg Artifacts
           path: |
-            dist/PixelFlasher_macOS.dmg
-            dist/PixelFlasher_macOS.dmg.sha256
+            dist/PixelFlasher.dmg
+            dist/PixelFlasher.dmg.sha256

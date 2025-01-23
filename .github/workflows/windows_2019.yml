@@ -48,8 +48,8 @@ on:
         description: 'Build tags'
 
 jobs:
-  build_windows:
-    if: ${{ github.actor == 'badabing2005' }}
+  build_windows_2019:
+    if: github.actor == 'badabing2005'
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     runs-on: windows-2019
 
@@ -112,14 +112,12 @@ jobs:
       - name: List contents of dist directory again
         run: ls dist
 
-      # Upload artifacts Windows to Actions
-      - name: Upload Windows Artifact
-        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
+      # Upload artifacts Windows 2019
+      - name: Upload Windows 2019 Artifact
         uses: actions/upload-artifact@v4
-        id: upload_artifacts_windows
+        id: upload_artifacts_windows_2019
         with:
           name: PixelFlasher_Win_2019.exe Artifacts
           path: |
             dist/PixelFlasher_Win_2019.exe
             dist/PixelFlasher_Win_2019.exe.sha256
-

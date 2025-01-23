@@ -29,7 +29,7 @@
 # information on this, and how to apply and follow the GNU AGPL, see
 # <https://www.gnu.org/licenses/>.
 
-name: Build for MacOS 12
+name: Build for macOS
 
 env:
   ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,73 +48,57 @@ on:
         description: 'Build tags'
 
 jobs:
-  build_mac_12:
+  build_mac_13:
     if: ${{ github.actor == 'badabing2005' }}
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     # runs-on: macos-latest
-    runs-on: macos-12
+    runs-on: macos-15-arm64
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: List Cellar directory Again
+      - name: List Cellar directory
         run: |
-          ls /usr/local/Cellar
+          ls /usr/homebrew/Cellar
 
-      - name: Uninstall Pythons other than 3.11
-        run: |
-          brew uninstall --ignore-dependencies python@3.12 || true
-          echo "doing brew list"
-          brew list
-          echo "getting directory list for /usr/local/Cellar"
-          ls /usr/local/Cellar
-
-      - name: Set up Python 3.11
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install wxPython
-        # run: brew install wxpython
         run: pip install wxPython
 
-      # - name: Install node
-      #   run: brew install node
+      - name: Install node
+        run: |
+          brew install node
 
-      # - name: Install GraphicsMagick
-      #   run: |
-      #     curl -L -O https://newcontinuum.dl.sourceforge.net/project/graphicsmagick/graphicsmagick/1.3.42/GraphicsMagick-1.3.42.tar.xz
-      #     xz -d GraphicsMagick-1.3.42.tar.xz
-      #     tar -xf GraphicsMagick-1.3.42.tar
-      #     cd GraphicsMagick-1.3.42
-      #     ./configure
-      #     make
-      #     sudo make install
-      #     cd ..
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      # - name: Install ImageMagick
-      #   run: |
-      #     curl -O https://imagemagick.org/archive/binaries/ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
-      #     tar -xzf ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
-      #     echo "MAGICK_HOME=$(pwd)/ImageMagick-7.0.10" >> $GITHUB_ENV
-      #     echo "DYLD_LIBRARY_PATH=$(pwd)/ImageMagick-7.0.10/lib/" >> $GITHUB_ENV
-      #     echo "PATH=$(pwd)/ImageMagick-7.0.10/bin:$PATH" >> $GITHUB_ENV
-      #     echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
-      #     echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
-      #     echo "PATH = ${{env.PATH}}"
-      #     ls -l ${{env.MAGICK_HOME}}/bin/
+      - name: Install ImageMagick
+        run: |
+          brew install imagemagick
 
       - name: Install create-dmg
         run: |
           npm cache clean --force
           npm install --global create-dmg
+          # Check if 'util.isDate' is patched
+          if grep -q "util.isDate" "$(npm root -g)/create-dmg/node_modules/macos-alias/lib/encode.js"; then
+            echo "Patching util.isDate..."
+            sed -i.bak "s/util.isDate/((val) => Object.prototype.toString.call(val) === '[object Date]')/g" \
+              "$(npm root -g)/create-dmg/node_modules/macos-alias/lib/encode.js"
+          fi
 
-      - name: Add Python 3.11 to PATH
-        run: export PATH=/usr/local/Cellar/python@3.11/bin:$PATH
+      - name: Add Python 3.13 to PATH
+        run: export PATH=/usr/homebrew/Cellar/python@3.13/bin:$PATH
 
       - name: Create virtual environment
-        run: python3.11 -m venv myenv
+        run: python3.13 -m venv myenv
         shell: bash
 
       - name: Activate virtual environment
@@ -122,49 +106,60 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: python3.11 -m pip install -r requirements.txt
+        run: python3.13 -m pip install -r requirements.txt
 
       - name: List modules and their versions
-        run: python3.11 -m pip freeze
+        run: python3.13 -m pip freeze
 
+      # Build application
       - name: Build application
         id: build_app
-        run: ./build.sh
+        run: |
+          ./build.sh
+        continue-on-error: true
+
+      # if the previous step fails, rename the app file and upload it as an artifact
+      # otherwsie rename the dmg file and upload it as an artifact
+
+      # Upload app artifacts Mac-OS 13 to Actions
+      - name: Upload macOS app Artifacts
+        if: ${{ steps.build_app.outcome == 'failure' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }} # Only run this step when running in GitHub Actions
+        uses: actions/upload-artifact@v4
+        id: upload_app_artifacts_macOS
+        with:
+          name: PixelFlasher_macOS.app Artifacts
+          path: |
+            dist/PixelFlasher_macOS.app
+            dist/PixelFlasher_macOS.app.sha256
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v4
         with:
           name: PixelFlasher.app
           path: dist/PixelFlasher.app
+        if: ${{ steps.build_app.outcome == 'success' }}
 
-      # - name: Create DMG
-      #   id: create_dmg
-      #   run: |
-      #     create-dmg dist/PixelFlasher.app dist
-      #     ls -l ./ dist/
-      #   if: ${{ steps.build_app.outcome == 'success' }}
-      #   continue-on-error: true
-
-      # - name: Rename the file
-      #   id: rename_dmg
-      #   run: mv dist/PixelFlasher*.dmg dist/PixelFlasher_MacOS_12.dmg
+      - name: Rename the file
+        run: mv dist/PixelFlasher.dmg dist/PixelFlasher_macOS.dmg
+        if: ${{ steps.build_app.outcome == 'success' }}
 
       - name: Get sha256
         run: |
-          shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher_MacOS_12.dmg.sha256
-          cat dist/PixelFlasher_MacOS_12.dmg.sha256
+          shasum -a 256 dist/PixelFlasher_macOS.dmg > dist/PixelFlasher_macOS.dmg.sha256
+          cat dist/PixelFlasher_macOS.dmg.sha256
         if: ${{ steps.build_app.outcome == 'success' }}
 
       - name: List contents of dist directory
-        run: ls ./ dist/
+        run: ls dist
+        if: ${{ steps.build_app.outcome == 'success' }}
 
-      # Upload artifacts Mac-OS 12
-      - name: Upload Mac-OS 12 Artifact
-        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
+      # Upload dmg artifacts Mac-OS 13 to Actions
+      - name: Upload macOS Artifact
+        if: ${{ steps.build_app.outcome == 'success' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v4
-        id: upload_artifact_macos_12
+        id: upload_artifact_macOS
         with:
-          name: PixelFlasher_MacOS_12.dmg Artifacts
+          name: PixelFlasher_macOS.dmg Artifacts
           path: |
-            dist/PixelFlasher_MacOS_12.dmg
-            dist/PixelFlasher_MacOS_12.dmg.sha256
+            dist/PixelFlasher_macOS.dmg
+            dist/PixelFlasher_macOS.dmg.sha256

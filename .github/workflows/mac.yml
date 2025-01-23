@@ -48,11 +48,11 @@ on:
         description: 'Build tags'
 
 jobs:
-  build_mac_13:
+  build_mac:
     if: ${{ github.actor == 'badabing2005' }}
     # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     # runs-on: macos-latest
-    runs-on: macos-15-arm64
+    runs-on: macos-latest
 
     steps:
       - name: Checkout code
@@ -121,7 +121,7 @@ jobs:
       # if the previous step fails, rename the app file and upload it as an artifact
       # otherwsie rename the dmg file and upload it as an artifact
 
-      # Upload app artifacts Mac-OS 13 to Actions
+      # Upload app artifacts macOS to Actions
       - name: Upload macOS app Artifacts
         if: ${{ steps.build_app.outcome == 'failure' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v4
@@ -153,7 +153,7 @@ jobs:
         run: ls dist
         if: ${{ steps.build_app.outcome == 'success' }}
 
-      # Upload dmg artifacts Mac-OS 13 to Actions
+      # Upload dmg artifacts macOS to Actions
       - name: Upload macOS Artifact
         if: ${{ steps.build_app.outcome == 'success' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v4

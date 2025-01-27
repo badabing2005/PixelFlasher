@@ -29,7 +29,7 @@
 # information on this, and how to apply and follow the GNU AGPL, see
 # <https://www.gnu.org/licenses/>.
 
-name: Build for macOS 11+
+name: Build for Older macOS Versions
 
 env:
   ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,21 +48,19 @@ on:
         description: 'Build tags'
 
 jobs:
-  build_mac:
+  build_mac_old:
     if: github.actor == 'badabing2005'
-    runs-on: macos-latest
+    runs-on: macos-13
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: List Cellar directory
-        run: ls /opt/homebrew/Cellar
+        run: ls /usr/local/Cellar
 
       - name: Updating Homebrew Packages
-        run : |
-          brew upgrade
-          brew remove openssl@1.1
+        run : brew upgrade
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
@@ -95,7 +93,7 @@ jobs:
           fi
 
       - name: Add Python 3.13 to PATH
-        run: export PATH=/opt/homebrew/Cellar/python@3.13/bin:$PATH
+        run: export PATH=/usr/local/Cellar/python@3.13/bin:$PATH
 
       - name: Create virtual environment
         run: python3.13 -m venv myenv
@@ -106,7 +104,7 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi' -r requirements.txt
+        run: python3.13 -m pip install -r requirements.txt
 
       - name: List modules and their versions
         run: python3.13 -m pip freeze
@@ -122,21 +120,22 @@ jobs:
           path: dist/PixelFlasher.app
 
       - name: Rename the file names
-        run: mv dist/PixelFlasher.dmg "dist/PixelFlasher(macOS 11+).dmg"
+        run: mv dist/PixelFlasher.dmg "dist/PixelFlasher(Older macOS Versions).dmg"
 
       - name: Get sha256
         run: |
-          shasum -a 256 "dist/PixelFlasher(macOS 11+).dmg" > "dist/PixelFlasher(macOS 11+).dmg.sha256"
-          cat "dist/PixelFlasher(macOS 11+).dmg.sha256"
+          shasum -a 256 "dist/PixelFlasher(Older macOS Versions).dmg" > "dist/PixelFlasher(Older macOS Versions).dmg.sha256"
+          cat "dist/PixelFlasher(Older macOS Versions).dmg.sha256"
 
       - name: List contents of dist directory
         run: ls ./ dist/
 
-      - name: Upload macOS 11+ Artifact
+      # Upload artifacts macOS
+      - name: Upload Old macOS Artifact
         uses: actions/upload-artifact@v4
-        id: upload_artifact_macos
+        id: upload_artifact_old_macos
         with:
-          name: PixelFlasher(macOS 11+).dmg Artifacts
+          name: PixelFlasher(Older macOS Versions).dmg Artifacts
           path: |
-            dist/PixelFlasher(macOS 11+).dmg
-            dist/PixelFlasher(macOS 11+).dmg.sha256
+            dist/PixelFlasher(Older macOS Versions).dmg
+            dist/PixelFlasher(Older macOS Versions).dmg.sha256

@@ -68,13 +68,17 @@ jobs:
     uses: ./.github/workflows/ubuntu_24_04.yml
     secrets: inherit
 
+  build_mac_old:
+    uses: ./.github/workflows/mac_old.yml
+    secrets: inherit
+
   build_mac:
     uses: ./.github/workflows/mac.yml
     secrets: inherit
 
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_ubuntu_24_04, build_mac]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac]
 
     runs-on: ubuntu-latest
 
@@ -130,11 +134,18 @@ jobs:
           path: release
         continue-on-error: true
 
+      - name: Download macOS Artifacts for Older macOS Versions
+        uses: actions/download-artifact@v4
+        with:
+          name: PixelFlasher(Older macOS Versions).dmg Artifacts
+          path: release
+        continue-on-error: true
+
       # Download the macOS artifacts from the build_mac job
       - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: PixelFlasher.dmg Artifacts
+          name: PixelFlasher(macOS 11+).dmg Artifacts
           path: release
         continue-on-error: true
 

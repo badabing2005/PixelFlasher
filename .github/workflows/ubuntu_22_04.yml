@@ -47,19 +47,6 @@ on:
       tags:
         description: 'Build tags'
 
-  workflow_call:
-    secrets:
-      GITHUB_TOKEN:
-        required: true
-      CERTIFICATE:
-        required: true
-      CERT_PASSWORD:
-        required: true
-      CERTHASH:
-        required: true
-      CERTNAME:
-        required: true
-
 jobs:
   build_ubuntu_22_04:
     if: github.actor == 'badabing2005'

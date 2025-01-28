@@ -136,7 +136,7 @@ jobs:
       - name: Download macOS Artifacts for Older macOS Versions
         uses: actions/download-artifact@v4
         with:
-          name: PixelFlasher(Older macOS Versions).dmg Artifacts
+          name: PixelFlasher_MacOS_legacy.dmg Artifacts
           path: release
         continue-on-error: true
 
@@ -144,7 +144,7 @@ jobs:
       - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: PixelFlasher(macOS 11+).dmg Artifacts
+          name: PixelFlasher_MacOS.dmg Artifacts
           path: release
         continue-on-error: true
 

@@ -50,7 +50,11 @@ jobs:
         run: ls /usr/local/Cellar
 
       - name: Updating Homebrew Packages
-        run : brew upgrade
+        run : |
+          brew upgrade
+          brew remove openssl@1.1
+          # Clean up openssl@1.1 configuration files
+          rm -rf /opt/homebrew/etc/openssl@1.1
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
@@ -110,12 +114,12 @@ jobs:
           path: dist/PixelFlasher.app
 
       - name: Rename the file names
-        run: mv dist/PixelFlasher.dmg "dist/PixelFlasher(Older macOS Versions).dmg"
+        run: mv dist/PixelFlasher.dmg "dist/PixelFlasher_MacOS_legacy.dmg"
 
       - name: Get sha256
         run: |
-          shasum -a 256 "dist/PixelFlasher(Older macOS Versions).dmg" > "dist/PixelFlasher(Older macOS Versions).dmg.sha256"
-          cat "dist/PixelFlasher(Older macOS Versions).dmg.sha256"
+          shasum -a 256 "dist/PixelFlasher_MacOS_legacy.dmg" > "dist/PixelFlasher_MacOS_legacy.dmg.sha256"
+          cat "dist/PixelFlasher_MacOS_legacy.dmg.sha256"
 
       - name: List contents of dist directory
         run: ls ./ dist/
@@ -125,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v4
         id: upload_artifact_old_macos
         with:
-          name: PixelFlasher(Older macOS Versions).dmg Artifacts
+          name: PixelFlasher_MacOS_legacy.dmg Artifacts
           path: |
-            dist/PixelFlasher(Older macOS Versions).dmg
-            dist/PixelFlasher(Older macOS Versions).dmg.sha256
+            dist/PixelFlasher_MacOS_legacy.dmg
+            dist/PixelFlasher_MacOS_legacy.dmg.sha256

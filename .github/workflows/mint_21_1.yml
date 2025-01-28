@@ -31,17 +31,9 @@
 
 name: Build for Mint 21.1
 
-env:
-  ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 # Controls when the workflow will run
 on:
-  # push:
-    # # Sequence of patterns matched against refs/tags
-    # tags:
-    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
-  # Allows you to run this workflow manually from the Actions tab
+  workflow_call: 
   workflow_dispatch:
     inputs:
       tags:

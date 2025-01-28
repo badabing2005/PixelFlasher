@@ -229,7 +229,7 @@ Check the [releases section](https://github.com/badabing2005/PixelFlasher/releas
 
 ### Release Files
 
-[![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher.exe)[![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_24_04)[![MacOS](https://img.shields.io/badge/-MacOS-black.svg?style=for-the-badge&logo=apple)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_macos.dmg)[![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/badabing2005/PixelFlasher/releases)
+[![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher.exe)[![Linux](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_24_04)[![MacOS](https://img.shields.io/badge/-MacOS-black.svg?style=for-the-badge&logo=apple)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_macos.dmg)[![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/badabing2005/PixelFlasher/releases)
 
 File|Description
 :---|:---

@@ -56,9 +56,12 @@ pyinstaller --log-level=DEBUG \
 
 if [[ $OSTYPE == 'darwin'* ]]; then
     # https://github.com/sindresorhus/create-dmg
+    echo "List before creating DMG"
     ls -l ./ dist/
     chmod +x dist/$NAME.app/Contents/MacOS/$NAME
     create-dmg "dist/$NAME.app"
+    echo "List after creating DMG"
+    ls -l ./ dist/
     mv "$NAME $VERSION.dmg" "dist/$DIST_NAME.dmg"
 fi
 

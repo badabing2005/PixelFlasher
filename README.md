@@ -17,6 +17,7 @@
 - [Description / Features](#description--features)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+  - [Release Files](#release-files)
   - [Supported platforms](#supported-platforms)
 - [Status](#status)
 - [Build it yourself](#build-it-yourself)
@@ -225,6 +226,20 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
 
 PixelFlasher doesn't have to be installed, just double-click it and it'll start.  
 Check the [releases section](https://github.com/badabing2005/PixelFlasher/releases) for downloads.  
+
+### Release Files
+
+[![Windows](https://img.shields.io/badge/-Windows_x64-blue.svg?style=for-the-badge&logo=windows)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher.exe)[![Unix](https://img.shields.io/badge/-Linux/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_24_04)[![MacOS](https://img.shields.io/badge/-MacOS-black.svg?style=for-the-badge&logo=apple)](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_macos.dmg)[![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/badabing2005/PixelFlasher/releases)
+
+File|Description
+:---|:---
+[PixelFlasher.exe](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher.exe)|Windows standalone x64 binary (recommended for **Windows**)
+[PixelFlasher_win_2019.exe](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_win_2019.exe)| Built with Windows 2019, to be used on older Windows)
+[PixelFlasher_MacOS.dmg](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_MacOS.dmg)|Universal MacOS (11+) standalone executable (recommended for **MacOS**)
+[PixelFlasher_MacOS_legacy.dmg](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_MacOS_legacy.dmg)|x86_64 MacOS standalone executable (to be used on older MacOS devices)
+[PixelFlasher_Ubuntu_24_04](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_24_04)| Built on Ubuntu 24.04 Linux standalone x64 binary (recommended for **Linux**)
+[PixelFlasher_Ubuntu_22_04](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_22_04)| Built on Ubuntu 22.04 Linux standalone x64 binary
+[PixelFlasher_Ubuntu_20_04](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_20_04)| Built on Ubuntu 20.04 Linux standalone x64 binary
 
 ### Supported platforms  
 

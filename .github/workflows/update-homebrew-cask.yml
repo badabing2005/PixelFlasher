@@ -77,11 +77,11 @@ jobs:
 
     - name: Check if DMG file exists
       run: |
-        if ! curl -L --fail "https://github.com/badabing2005/PixelFlasher/releases/download/${{ env.TAG_NAME }}/PixelFlasher.dmg" -o PixelFlasher.dmg; then
+        if ! curl -L --fail "https://github.com/badabing2005/PixelFlasher/releases/download/${{ env.TAG_NAME }}/PixelFlasher(macOS 11+).dmg" -o PixelFlasher(macOS 11+).dmg; then
             echo "Error: DMG file not found. Exiting."
             exit 1
         fi
-        NEW_SHA256=$(shasum -a 256 PixelFlasher.dmg | awk '{ print $1 }')
+        NEW_SHA256=$(shasum -a 256 PixelFlasher(macOS 11+).dmg | awk '{ print $1 }')
         echo "NEW_SHA256=$NEW_SHA256" >> $GITHUB_ENV
         ls -lR
 

@@ -38,8 +38,13 @@ DIST_NAME="PixelFlasher"
 pushd "$(dirname "$0")"
 
 if [[ $OSTYPE == 'darwin'* ]]; then
-    echo "Building for MacOS"
-    specfile=build-on-mac.spec
+    if [[$(arch) == 'arm64']]; then
+        echo "Building macOS Universal Binary"
+        specfile=build-on-mac.spec
+    else
+        echo "Building for macOS"
+        specfile=build-on-mac-intel-only.spec
+    fi
 else
     echo "Building for Linux"
     specfile=build-on-linux.spec

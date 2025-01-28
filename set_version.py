@@ -45,6 +45,7 @@ file2 = os.path.join(cwd, 'build.sh')
 file3 = os.path.join(cwd, 'constants.py')
 file4 = os.path.join(cwd, 'windows-metadata.yaml')
 file5 = os.path.join(cwd, 'windows-version-info.txt')
+file6 = os.path.join(cwd, 'build-on-mac-intel-only.spec')
 
 s1 = r"\s+(version=)'(\d+\.\d+\.\d+.\d+)',"
 s2 = r"(VERSION=)(\d+\.\d+\.\d+.\d+)"
@@ -57,7 +58,7 @@ s5_3 = r"(FileVersion', )u'(\d+\.\d+\.\d+.\d+)'"
 s5_4 = r"(ProductVersion', )u'(\d+\.\d+\.\d+.\d+)'"
 s5 = (s5_1, s5_2, s5_3, s5_4)
 
-alist = [(file1, s1), (file2, s2), (file3, s3), (file4, s4)]
+alist = [(file1, s1), (file2, s2), (file3, s3), (file4, s4), (file6, s1)]
 
 # ============================================================================
 #                               Function get_values

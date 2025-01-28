@@ -2567,6 +2567,8 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
         # Fetch Pixel Beta HTML
         soup = BeautifulSoup(pixel_get_html, 'html.parser')
         beta_link = soup.find('a', string=lambda x: x and 'Factory images for Google Pixel' in x)
+        if not beta_link:
+            beta_link = soup.find('a', string=lambda x: x and 'Pixel downloads page' in x)
         if beta_link:
             pixel_beta_url = "https://developer.android.com" + beta_link['href']
             response = request_with_fallback('GET', pixel_beta_url)
@@ -2853,7 +2855,7 @@ def get_beta_pif(device_model='random', force_version=None):
         print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
         return json_string
     else:
-        if model and product and device:
+        if model_list and product_list:
             model, product, device = set_random_beta()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No beta data found.")

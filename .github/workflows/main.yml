@@ -47,6 +47,11 @@ on:
       tags:
         description: 'Build tags'
 
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
 jobs:
   build_windows:
     uses: ./.github/workflows/windows.yml

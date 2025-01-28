@@ -48,482 +48,37 @@ on:
         description: 'Build tags'
 
 jobs:
-  # ---------------------------------------------------------------------------
-  #                              build_windows
-  # ---------------------------------------------------------------------------
   build_windows:
-    if: github.actor == 'badabing2005'
-    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
-    runs-on: windows-latest
+    uses: ./.github/workflows/windows.yml
+    secrets: inherit
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Create virtual environment
-        run: python -m venv myenv
-        shell: powershell
-
-      - name: Activate virtual environment
-        run: .\myenv\Scripts\Activate.ps1
-        shell: powershell
-
-      - name: Install wxPython and build
-        run: |
-          python --version
-          pip install -U six wheel setuptools
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.2 wxPython
-        shell: powershell
-
-      - name: Install requirements
-        run: pip install -r requirements.txt
-
-      - name: List modules and their versions
-        run: pip freeze
-
-      - name: Build application
-        run: .\build.bat
-
-      - name: List contents of dist directory
-        run: ls dist
-
-      - name: Sign Windows Executable
-        uses: skymatic/code-sign-action@v3
-        with:
-          certificate: '${{ secrets.CERTIFICATE }}'
-          password: '${{ secrets.CERT_PASSWORD }}'
-          certificatesha1: '${{ secrets.CERTHASH }}'
-          certificatename: '${{ secrets.CERTNAME }}'
-          description: 'PixelFlasher'
-          timestampUrl: 'http://timestamp.digicert.com'
-          folder: 'dist'
-          recursive: false
-
-      - name: Get sha256
-        run: |
-          certutil -hashfile dist/PixelFlasher.exe SHA256 > dist/PixelFlasher.exe.sha256
-          cat dist/PixelFlasher.exe.sha256
-
-      - name: List contents of dist directory again
-        run: ls dist
-
-      # Upload artifacts Windows
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
-        id: upload_artifacts_windows
-        with:
-          name: PixelFlasher.exe Artifacts
-          path: |
-            dist/PixelFlasher.exe
-            dist/PixelFlasher.exe.sha256
-
-  # ---------------------------------------------------------------------------
-  #                              build_windows_2019
-  # ---------------------------------------------------------------------------
   build_windows_2019:
-    if: github.actor == 'badabing2005'
-    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
-    runs-on: windows-2019
+    uses: ./.github/workflows/windows_2019.yml
+    secrets: inherit
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.8'
-
-      - name: Create virtual environment
-        run: python -m venv myenv
-        shell: powershell
-
-      - name: Activate virtual environment
-        run: .\myenv\Scripts\Activate.ps1
-        shell: powershell
-
-      - name: Install wxPython and build
-        run: |
-          python --version
-          pip install -U six wheel setuptools
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.2 wxPython
-        shell: powershell
-
-      - name: Install requirements
-        run: pip install -r requirements.txt
-
-      - name: List modules and their versions
-        run: pip freeze
-
-      - name: Build application
-        run: .\build.bat
-
-      - name: Rename the file
-        run: mv dist/PixelFlasher.exe dist/PixelFlasher_Win_2019.exe
-
-      - name: List contents of dist directory
-        run: ls dist
-
-      - name: Sign Windows Executable
-        uses: skymatic/code-sign-action@v3
-        with:
-          certificate: '${{ secrets.CERTIFICATE }}'
-          password: '${{ secrets.CERT_PASSWORD }}'
-          certificatesha1: '${{ secrets.CERTHASH }}'
-          certificatename: '${{ secrets.CERTNAME }}'
-          description: 'PixelFlasher'
-          timestampUrl: 'http://timestamp.digicert.com'
-          folder: 'dist'
-          recursive: false
-
-      - name: Get sha256
-        run: |
-          certutil -hashfile dist/PixelFlasher_Win_2019.exe SHA256 > dist/PixelFlasher_Win_2019.exe.sha256
-          cat dist/PixelFlasher_Win_2019.exe.sha256
-
-      - name: List contents of dist directory again
-        run: ls dist
-
-      # Upload artifacts Windows 2019
-      - name: Upload Windows 2019 Artifact
-        uses: actions/upload-artifact@v4
-        id: upload_artifacts_windows_2019
-        with:
-          name: PixelFlasher_Win_2019.exe Artifacts
-          path: |
-            dist/PixelFlasher_Win_2019.exe
-            dist/PixelFlasher_Win_2019.exe.sha256
-
-  # ---------------------------------------------------------------------------
-  #                              build_ubuntu_20_04
-  # ---------------------------------------------------------------------------
   build_ubuntu_20_04:
-    if: github.actor == 'badabing2005'
-    runs-on: ubuntu-20.04
+    uses: ./.github/workflows/ubuntu_20_04.yml
+    secrets: inherit
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        run: |
-          sudo apt update
-          sudo apt install software-properties-common -y
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt update
-          sudo apt install -y python3.13
-          sudo apt install -y python3.13-venv
-          sudo apt install -y python3-pip
-          python3.13 --version
-
-      - name: Install wxPython prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3.13-dev
-          sudo apt-get install -y libgtk-3-dev
-          sudo apt-get install -y libunwind-dev
-          sudo apt-get install -y libgstreamer1.0-dev
-          sudo apt-get install -y gstreamer1.0-plugins-base
-          sudo apt-get install -y freeglut3-dev
-          sudo apt-get install -y libwebkit2gtk-4.0-dev
-          sudo apt-get install -y libjpeg-dev
-          sudo apt-get install -y libpng-dev
-          sudo apt-get install -y libtiff-dev
-          sudo apt-get install -y libsdl2-dev
-          sudo apt-get install -y libnotify-dev
-          sudo apt-get install -y libsm-dev
-
-      - name: Create virtual environment, install dependencies, and build
-        run: |
-          python3.13 -m venv myenv
-          . myenv/bin/activate
-          python --version
-          pip install -U pip
-          pip install -U six wheel setuptools
-          # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython==4.2.2 || \
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython==4.2.1 || \
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
-          pip install -r requirements.txt
-          python --version && pip freeze
-          ./build.sh
-          mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_20_04
-          sha256sum dist/PixelFlasher_Ubuntu_20_04 > dist/PixelFlasher_Ubuntu_20_04.sha256
-          cat dist/PixelFlasher_Ubuntu_20_04.sha256
-          ls dist
-        shell: bash
-
-      # Upload artifacts Ubuntu 20.04
-      - name: Upload Ubuntu 20.04 Artifact
-        uses: actions/upload-artifact@v4
-        id: upload_artifacts_ubuntu_20_04
-        with:
-          name: PixelFlasher_Ubuntu_20_04 Artifacts
-          path: |
-            dist/PixelFlasher_Ubuntu_20_04
-            dist/PixelFlasher_Ubuntu_20_04.sha256
-
-  # ---------------------------------------------------------------------------
-  #                              build_ubuntu_22_04
-  # ---------------------------------------------------------------------------
   build_ubuntu_22_04:
-    if: github.actor == 'badabing2005'
-    runs-on: ubuntu-22.04
+    uses: ./.github/workflows/ubuntu_22_04.yml
+    secrets: inherit
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        run: |
-          sudo apt update
-          sudo apt install software-properties-common -y
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt update
-          sudo apt install -y python3.13
-          sudo apt install -y python3.13-venv
-          sudo apt install -y python3-pip
-          python3.13 --version
-
-      - name: Install wxPython prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3.13-dev
-          sudo apt-get install -y libgtk-3-dev
-          sudo apt-get install -y libunwind-dev
-          sudo apt-get install -y libgstreamer1.0-dev
-          sudo apt-get install -y gstreamer1.0-plugins-base
-          sudo apt-get install -y freeglut3-dev
-          sudo apt-get install -y libwebkit2gtk-4.0-dev
-          sudo apt-get install -y libjpeg-dev
-          sudo apt-get install -y libpng-dev
-          sudo apt-get install -y libtiff-dev
-          sudo apt-get install -y libsdl2-dev
-          sudo apt-get install -y libnotify-dev
-          sudo apt-get install -y libsm-dev
-
-      - name: Create virtual environment, install dependencies, and build
-        run: |
-          python3.13 -m venv myenv
-          . myenv/bin/activate
-          python --version
-          pip install -U pip
-          pip install -U six wheel setuptools
-          # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.2 || \
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.1 || \
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
-          pip install -r requirements.txt
-          python --version && pip freeze
-          ./build.sh
-          mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_22_04
-          sha256sum dist/PixelFlasher_Ubuntu_22_04 > dist/PixelFlasher_Ubuntu_22_04.sha256
-          cat dist/PixelFlasher_Ubuntu_22_04.sha256
-          ls dist
-        shell: bash
-
-      # Upload artifacts Ubuntu 22.04
-      - name: Upload Ubuntu 22.04 Artifact
-        uses: actions/upload-artifact@v4
-        id: upload_artifacts_ubuntu_22_04
-        with:
-          name: PixelFlasher_Ubuntu_22_04 Artifacts
-          path: |
-            dist/PixelFlasher_Ubuntu_22_04
-            dist/PixelFlasher_Ubuntu_22_04.sha256
-
-# ---------------------------------------------------------------------------
-#                              build_ubuntu_24_04
-# ---------------------------------------------------------------------------
   build_ubuntu_24_04:
-    if: github.actor == 'badabing2005'
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/ubuntu_24_04.yml
+    secrets: inherit
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  build_mac_old:
+    uses: ./.github/workflows/mac_old.yml
+    secrets: inherit
 
-      - name: Set up Python
-        run: |
-          sudo apt update
-          sudo apt install software-properties-common -y
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt update
-          sudo apt install -y python3.13
-          sudo apt install -y python3.13-venv
-          sudo apt install -y python3-pip
-          python3.13 --version
+  build_mac:
+    uses: ./.github/workflows/mac.yml
+    secrets: inherit
 
-      - name: Install wxPython prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3.13-dev
-          sudo apt-get install -y libgtk-3-dev
-          sudo apt-get install -y libunwind-dev
-          sudo apt-get install -y libgstreamer1.0-dev
-          sudo apt-get install -y gstreamer1.0-plugins-base
-          sudo apt-get install -y freeglut3-dev
-          sudo apt-get install -y libjpeg-dev
-          sudo apt-get install -y libpng-dev
-          sudo apt-get install -y libtiff-dev
-          sudo apt-get install -y libsdl2-dev
-          sudo apt-get install -y libnotify-dev
-          sudo apt-get install -y libsm-dev
-          sudo add-apt-repository universe
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev
-
-      - name: Create virtual environment, install dependencies, and build
-        run: |
-          python3.13 -m venv myenv
-          . myenv/bin/activate
-          python --version
-          pip install -U pip
-          pip install -U six wheel setuptools
-          # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04 wxPython==4.2.2 || \
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04 wxPython==4.2.1 || \
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04 wxPython
-          pip install -r requirements.txt
-          python --version && pip freeze
-          ./build.sh
-          mv dist/PixelFlasher dist/PixelFlasher_Ubuntu_24_04
-          sha256sum dist/PixelFlasher_Ubuntu_24_04 > dist/PixelFlasher_Ubuntu_24_04.sha256
-          cat dist/PixelFlasher_Ubuntu_24_04.sha256
-          ls dist
-        shell: bash
-
-      # Upload artifacts Ubuntu 24.04 to Actions
-      - name: Upload Ubuntu 24.04 Artifact
-        uses: actions/upload-artifact@v4
-        id: upload_artifacts_ubuntu_24_04
-        with:
-          name: PixelFlasher_Ubuntu_24_04 Artifacts
-          path: |
-            dist/PixelFlasher_Ubuntu_24_04
-            dist/PixelFlasher_Ubuntu_24_04.sha256
-
-  # ---------------------------------------------------------------------------
-  #                              build_mac_13
-  # ---------------------------------------------------------------------------
-  build_mac_13:
-      if: github.actor == 'badabing2005'
-      # runs-on: macos-latest
-      runs-on: macos-13
-
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-
-        - name: List Cellar directory
-          run: |
-            ls /usr/local/Cellar
-
-        - name: Set up Python 3.13
-          uses: actions/setup-python@v5
-          with:
-            python-version: '3.13'
-
-        - name: Install wxPython
-          # run: brew install wxpython
-          run: pip install wxPython
-
-        - name: Install node
-          run: |
-            brew install node
-
-        - name: Set up Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version: '20'
-
-        # - name: Install GraphicsMagick
-        #   run: |
-        #     brew install graphicsmagick
-
-        - name: Install ImageMagick
-          run: |
-            curl -O https://imagemagick.org/archive/binaries/ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
-            tar -xzf ImageMagick-x86_64-apple-darwin20.1.0.tar.gz
-            echo "MAGICK_HOME=$(pwd)/ImageMagick-7.0.10" >> $GITHUB_ENV
-            echo "DYLD_LIBRARY_PATH=$(pwd)/ImageMagick-7.0.10/lib/" >> $GITHUB_ENV
-            echo "PATH=$(pwd)/ImageMagick-7.0.10/bin:$PATH" >> $GITHUB_ENV
-            echo "MAGICK_HOME = ${{env.MAGICK_HOME}}"
-            echo "DYLD_LIBRARY_PATH = ${{env.DYLD_LIBRARY_PATH}}"
-            echo "PATH = ${{env.PATH}}"
-            ls -l ${{env.MAGICK_HOME}}/bin/
-
-        - name: Install wxPython
-          # run: brew install wxpython
-          run: pip install wxPython
-
-        - name: Install create-dmg
-          run: |
-            npm cache clean --force
-            npm install --global create-dmg
-            # Check if 'util.isDate' is patched
-            if grep -q "util.isDate" "$(npm root -g)/create-dmg/node_modules/macos-alias/lib/encode.js"; then
-              echo "Patching util.isDate..."
-              sed -i.bak "s/util.isDate/((val) => Object.prototype.toString.call(val) === '[object Date]')/g" \
-                "$(npm root -g)/create-dmg/node_modules/macos-alias/lib/encode.js"
-            fi
-
-        - name: Add Python 3.13 to PATH
-          run: export PATH=/usr/local/Cellar/python@3.13/bin:$PATH
-
-        - name: Create virtual environment
-          run: python3.13 -m venv myenv
-          shell: bash
-
-        - name: Activate virtual environment
-          run: source myenv/bin/activate
-          shell: bash
-
-        - name: Install requirements
-          run: python3.13 -m pip install -r requirements.txt
-
-        - name: List modules and their versions
-          run: python3.13 -m pip freeze
-
-        - name: Build application
-          id: build_app
-          run: ./build.sh
-
-        - name: Upload PixelFlasher.app as artifact
-          uses: actions/upload-artifact@v4
-          with:
-            name: PixelFlasher.app
-            path: dist/PixelFlasher.app
-
-        - name: Get sha256
-          run: |
-            shasum -a 256 dist/PixelFlasher.dmg > dist/PixelFlasher.dmg.sha256
-            cat dist/PixelFlasher.dmg.sha256
-
-        - name: List contents of dist directory
-          run: ls ./ dist/
-
-        # Upload artifacts Mac-OS 13
-        - name: Upload Mac-OS 13 Artifact
-          uses: actions/upload-artifact@v4
-          id: upload_artifact_macos_13
-          with:
-            name: PixelFlasher.dmg Artifacts
-            path: |
-              dist/PixelFlasher.dmg
-              dist/PixelFlasher.dmg.sha256
-
-  # ---------------------------------------------------------------------------
-  #                              deploy
-  # ---------------------------------------------------------------------------
   deploy:
     if: github.actor == 'badabing2005'
-    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_13]
+    needs: [build_windows, build_windows_2019, build_ubuntu_20_04, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac]
 
     runs-on: ubuntu-latest
 
@@ -579,11 +134,18 @@ jobs:
           path: release
         continue-on-error: true
 
-      # Download the Mac-OS artifacts from the build_mac_12 job
-      - name: Download Mac-OS Artifacts
+      - name: Download macOS Artifacts for Older macOS Versions
         uses: actions/download-artifact@v4
         with:
-          name: PixelFlasher.dmg Artifacts
+          name: PixelFlasher(Older macOS Versions).dmg Artifacts
+          path: release
+        continue-on-error: true
+
+      # Download the macOS artifacts from the build_mac job
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: PixelFlasher(macOS 11+).dmg Artifacts
           path: release
         continue-on-error: true
 

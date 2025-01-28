@@ -49,8 +49,7 @@ on:
 
 jobs:
   build_ubuntu_24_04:
-    if: ${{ github.actor == 'badabing2005' }}
-    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
+    if: github.actor == 'badabing2005'
     runs-on: ubuntu-24.04
 
     steps:
@@ -109,7 +108,6 @@ jobs:
 
       # Upload artifacts Ubuntu 24.04 to Actions
       - name: Upload Ubuntu 24.04 Artifact
-        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }} # Only run this step when running in GitHub Actions
         uses: actions/upload-artifact@v4
         id: upload_artifacts_ubuntu_24_04
         with:
@@ -117,38 +115,3 @@ jobs:
           path: |
             dist/PixelFlasher_Ubuntu_24_04
             dist/PixelFlasher_Ubuntu_24_04.sha256
-
-      # # Copy the artifact to a local directory
-      # - name: Copy Ubuntu 24.04 Artifact locally
-      #   if: ${{ env.ACT }} # Only run this step when not running in GitHub Actions
-      #   run: |
-      #     cp dist/PixelFlasher dist/PixelFlasher_Ubuntu_24_04
-
-      # # Create a release
-      # - name: Create Release
-        # id: create_release
-        # # uses: actions/create-release@v1
-        # uses: ncipollo/release-action@v1.11.1
-        # # env:
-          # # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-          # token: ${{ secrets.GITHUB_TOKEN }}
-          # tag: ${{ github.ref }}
-          # # release_name: Release ${{ github.ref }}
-          # # name: Release ${{ github.ref }}
-          # name: Release ${{ github.ref }}
-          # allowUpdates: "true"
-          # draft: false
-          # prerelease: true
-
-      # # Upload the Ubuntu 24.04 artifact to release
-      # - name: Upload Ubuntu 24.04 Artifact to release
-        # uses: shogo82148/actions-upload-release-asset@v1
-        # # uses: actions/upload-release-asset@v1
-        # env:
-          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-          # upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # asset_path: dist/PixelFlasher
-          # asset_name: PixelFlasher_Ubuntu_24_04
-          # asset_content_type: application/zip

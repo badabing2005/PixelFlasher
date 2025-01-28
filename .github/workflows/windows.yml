@@ -31,17 +31,8 @@
 
 name: Build for Windows
 
-env:
-  ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-# Controls when the workflow will run
 on:
-  # push:
-    # # Sequence of patterns matched against refs/tags
-    # tags:
-    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
-  # Allows you to run this workflow manually from the Actions tab
+  workflow_call:
   workflow_dispatch:
     inputs:
       tags:
@@ -49,8 +40,6 @@ on:
 
 jobs:
   build_windows:
-    if: github.actor == 'badabing2005'
-    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     runs-on: windows-latest
 
     steps:

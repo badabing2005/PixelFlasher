@@ -5385,47 +5385,73 @@ Before posting publicly please carefully inspect the contents.
     #                  _on_paste_selection
     # -----------------------------------------------
     def _on_paste_selection(self, event):
-        config_path = get_config_path()
-        factory_images = os.path.join(config_path, 'factory_images')
-        package_sig = get_firmware_id()
-        package_dir_full = os.path.join(factory_images, package_sig)
-        image_mode = self.image_choice.Items[self.image_choice.GetSelection()]
-        flag = True
-        if image_mode in ['boot', 'init_boot']:
-            boot = get_boot()
-            if boot and boot.boot_path:
-                pasted_filename = boot.boot_path
-        elif image_mode == "vbmeta":
-            pasted_filename = find_file_by_prefix(package_dir_full, "vbmeta.img")
-        elif image_mode == "bootloader":
-            pasted_filename = find_file_by_prefix(package_dir_full, "bootloader-")
-        elif image_mode == "radio":
-            pasted_filename = find_file_by_prefix(package_dir_full, "radio-")
-        elif image_mode == "dtbo":
-            pasted_filename = find_file_by_prefix(package_dir_full, "dtbo.img")
-        elif image_mode == "vendor_boot":
-            pasted_filename = find_file_by_prefix(package_dir_full, "vendor_boot.img")
-        elif image_mode == "vendor_kernel_boot":
-            pasted_filename = find_file_by_prefix(package_dir_full, "vendor_kernel_boot.img")
-        elif image_mode == "super_empty":
-            pasted_filename = find_file_by_prefix(package_dir_full, "super_empty.img")
-        else:
-            print("Nothing to paste!")
-            flag = False
-            return
-        if pasted_filename is None:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file Not Found in {package_dir_full}")
-            flag = False
-            return
-        if flag and os.path.exists(pasted_filename):
-            print(f"Pasted {pasted_filename} to custom flash")
-            puml(f":Paste boot path;\nnote right:{pasted_filename};\n", True)
-            self.image_file_picker.SetPath(pasted_filename)
-            set_image_path(pasted_filename)
-            self._update_custom_flash_options()
-            set_flash_button_state(self)
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file: {pasted_filename} Not Found in {package_dir_full}")
+        try:
+            config_path = get_config_path()
+            factory_images = os.path.join(config_path, 'factory_images')
+            package_sig = get_firmware_id()
+            package_dir_full = os.path.join(factory_images, package_sig)
+            image_mode = self.image_choice.Items[self.image_choice.GetSelection()]
+            flag = True
+            pasted_filename = None
+            if image_mode == 'boot':
+                boot = get_boot()
+                if boot and boot.is_init_boot == 1:
+                    if boot.is_patched == 1:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Selected file is not of type boot")
+                        flag = False
+                    else:
+                        # if init_boot and stock, then we want to paste the stock boot.img path
+                        print(f"Selected file is stock init_boot, looking for stock boot.img instead ...")
+                        boot_dir = os.path.dirname(boot.boot_path)
+                        boot_img_path = os.path.join(boot_dir, 'boot.img')
+                        pasted_filename = boot_img_path
+                elif boot and boot.boot_path:
+                    pasted_filename = boot.boot_path
+            elif image_mode == 'init_boot':
+                boot = get_boot()
+                if boot and boot.is_init_boot != 1:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Selected file is not of type init_boot")
+                    flag = False
+                elif boot and boot.boot_path:
+                    pasted_filename = boot.boot_path
+            elif image_mode == "vbmeta":
+                pasted_filename = find_file_by_prefix(package_dir_full, "vbmeta.img")
+            elif image_mode == "bootloader":
+                pasted_filename = find_file_by_prefix(package_dir_full, "bootloader-")
+            elif image_mode == "radio":
+                pasted_filename = find_file_by_prefix(package_dir_full, "radio-")
+            elif image_mode == "dtbo":
+                pasted_filename = find_file_by_prefix(package_dir_full, "dtbo.img")
+            elif image_mode == "vendor_boot":
+                pasted_filename = find_file_by_prefix(package_dir_full, "vendor_boot.img")
+            elif image_mode == "vendor_kernel_boot":
+                pasted_filename = find_file_by_prefix(package_dir_full, "vendor_kernel_boot.img")
+            elif image_mode == "super_empty":
+                pasted_filename = find_file_by_prefix(package_dir_full, "super_empty.img")
+            else:
+                flag = False
+            if not flag:
+                return
+            if pasted_filename is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file Not Found in {package_dir_full}")
+                flag = False
+                return
+            if flag and os.path.exists(pasted_filename):
+                print(f"Pasted {pasted_filename} to custom flash")
+                puml(f":Paste boot path;\nnote right:{pasted_filename};\n", True)
+                self.image_file_picker.SetPath(pasted_filename)
+                set_image_path(pasted_filename)
+                self._update_custom_flash_options()
+                set_flash_button_state(self)
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: file: {pasted_filename} Not Found in {package_dir_full}")
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while patching with Magisk")
+            traceback.print_exc()
+        finally:
+            if not flag:
+                print("Nothing to paste!")
+                self.image_file_picker.SetPath('')
 
     # -----------------------------------------------
     #                  _on_magisk_patch_boot

@@ -53,8 +53,8 @@ jobs:
         run : |
           brew upgrade
           brew remove openssl@1.1
-          # Clean up openssl@1.1 configuration files
-          rm -rf /opt/homebrew/etc/openssl@1.1
+          # # Clean up openssl@1.1 configuration files
+          # rm -rf /opt/homebrew/etc/openssl@1.1
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
@@ -98,7 +98,7 @@ jobs:
         shell: bash
 
       - name: Install requirements
-        run: PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi' -r requirements.txt
+        run: PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
 
       - name: List modules and their versions
         run: python3.13 -m pip freeze

@@ -3795,6 +3795,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
         message += f"Current Slot:           {device.active_slot}\n"
         message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
+        message += f"No Reboot:              {self.config.no_reboot}\n"
         message += "boot.img path:\n"
         message += f"  {boot_img_path}\n"
         message += "\nClick OK to accept and continue.\n"

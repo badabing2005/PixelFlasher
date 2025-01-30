@@ -3747,7 +3747,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def install_magisk_module(self, module):
         try:
-            if self.true_mode == 'adb' and get_adb():
+            if self.true_mode == 'adb' and self.rooted and get_adb():
                 print(f"Installing magisk module {module} ...")
                 puml(":Install magisk module;\n", True)
                 puml(f"note right:{module};\n")
@@ -3757,7 +3757,10 @@ add_hosts_module
                     puml("#red:Failed to transfer the module file to the phone;\n")
                     print("Aborting ...\n}\n")
                     return
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --install-module /sdcard/Download/{module_name}\'\""
+                if "KernelSU" in self.su_version:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
+                else:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --install-module /sdcard/Download/{module_name}\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res and isinstance(res, subprocess.CompletedProcess):
@@ -3915,7 +3918,10 @@ add_hosts_module
                 print(f"Uninstalling magisk module {dirname} ...")
                 puml(":Uninstall magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'touch /data/adb/modules/{dirname}/remove\'\""
+                if "KernelSU" in self.su_version:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module uninstall {dirname}\'\""
+                else:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'touch /data/adb/modules/{dirname}/remove\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 return 0

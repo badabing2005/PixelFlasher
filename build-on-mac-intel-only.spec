@@ -57,6 +57,6 @@ exe = EXE(pyz,
           icon='images/icon-dark-256.icns')
 app = BUNDLE(exe,
              name='PixelFlasher.app',
-             version='7.9.1.1',
+             version='7.9.2.4',
              icon='./images/icon-dark-256.icns',
              bundle_identifier='com.badabing.pixelflasher')

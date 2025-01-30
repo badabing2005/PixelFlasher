@@ -31,14 +31,14 @@
 # <https://www.gnu.org/licenses/>.
 
 rm -rf build dist
-VERSION=7.9.1.1
+VERSION=7.9.2.4
 NAME="PixelFlasher"
 DIST_NAME="PixelFlasher"
 
 pushd "$(dirname "$0")"
 
 if [[ $OSTYPE == 'darwin'* ]]; then
-    if [[$(arch) == 'arm64']]; then
+    if [[ $(arch) == 'arm64' ]]; then
         echo "Building macOS Universal Binary"
         specfile=build-on-mac.spec
     else
@@ -56,9 +56,12 @@ pyinstaller --log-level=DEBUG \
 
 if [[ $OSTYPE == 'darwin'* ]]; then
     # https://github.com/sindresorhus/create-dmg
+    echo "List before creating DMG"
     ls -l ./ dist/
     chmod +x dist/$NAME.app/Contents/MacOS/$NAME
     create-dmg "dist/$NAME.app"
+    echo "List after creating DMG"
+    ls -l ./ dist/
     mv "$NAME $VERSION.dmg" "dist/$DIST_NAME.dmg"
 fi
 

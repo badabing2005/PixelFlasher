@@ -2992,6 +2992,8 @@ Before posting publicly please carefully inspect the contents.
                 # message += f"    ro.boot.warranty_bit:            {device.get_prop('ro.boot.warranty_bit')}\n"
                 message += f"    ro.boot.veritymode:              {device.get_prop('ro.boot.veritymode')}\n"
                 message += f"    ro.boot.verifiedbootstate:       {device.get_prop('ro.boot.verifiedbootstate')}\n"
+                message += f"    ro.build.version.security_patch: {device.get_prop('ro.build.version.security_patch')}\n"
+                message += f"    ro.vendor.build.security_patch:  {device.get_prop('ro.vendor.build.security_patch')}\n"
                 # message += f"    vendor.boot.verifiedbootstate:   {device.get_prop('vendor.boot.verifiedbootstate')}\n"
                 # message += f"    ro.warranty_bit:                 {device.get_prop('ro.warranty_bit')}\n"
                 message += f"    ro.secure:                       {device.get_prop('ro.secure')}\n"

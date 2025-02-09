@@ -58,28 +58,28 @@ jobs:
           sdk-version: 22621
 
       - name: Create virtual environment
-        run: python -m venv myenv
         shell: pwsh
+        run: python -m venv myenv
 
       - name: Activate virtual environment
-        run: .\myenv\Scripts\Activate.ps1
         shell: pwsh
+        run: .\myenv\Scripts\Activate.ps1
 
       - name: Install build tools
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
           pip install --upgrade setuptools wheel build delvewheel
-          # pip install --upgrade build
-        shell: pwsh
 
       - name: Build wxPython for ARM64
+        shell: pwsh
         run: |
           git clone https://github.com/wxWidgets/Phoenix.git
           cd Phoenix
-          python build.py build_wx --toolkit=msw --arch=arm64
-          python build.py build --plat-name win_arm64
-          pip install dist/*.whl
-        shell: pwsh
+          python build.py dox etg --nodoc sip
+          python build.py build_wx --arm64
+          python build.py build_py --python=python
+          pip install -e .
 
       - name: Install requirements
         shell: pwsh
@@ -90,10 +90,11 @@ jobs:
       - name: Modify build spec
         run: |
           (Get-Content build-on-win.spec) -replace 'exe = EXE\(', 'exe = EXE(target_arch=''arm64'',' | Set-Content build-on-win.spec
-        shell: powershell
+        shell: pwsh
 
       - name: Build ARM64 application
         run: .\build.bat
+        shell: cmd
 
       - name: Sign Windows ARM64 Executable
         uses: skymatic/code-sign-action@v3
@@ -111,7 +112,7 @@ jobs:
         run: |
           certutil -hashfile dist/PixelFlasher.exe SHA256 > dist/PixelFlasher-arm64.exe.sha256
           cat dist/PixelFlasher-arm64.exe.sha256
-        shell: powershell
+        shell: pwsh
 
       - name: Rename executable
         run: Move-Item dist/PixelFlasher.exe dist/PixelFlasher-arm64.exe

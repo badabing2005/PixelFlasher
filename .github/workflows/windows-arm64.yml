@@ -50,34 +50,42 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          architecture: 'arm64'
+          # Using x64 Python for cross-compilation
+
+      - name: Install Windows SDK
+        uses: GuillaumeFalourd/setup-windows10-sdk-action@v1
+        with:
+          sdk-version: 22621
 
       - name: Create virtual environment
         run: python -m venv myenv
-        shell: powershell
+        shell: pwsh
 
       - name: Activate virtual environment
         run: .\myenv\Scripts\Activate.ps1
-        shell: powershell
+        shell: pwsh
 
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade setuptools wheel
-          pip install --upgrade build
-        shell: powershell
+          pip install --upgrade setuptools wheel build delvewheel
+          # pip install --upgrade build
+        shell: pwsh
 
-      - name: Build wxPython from source
+      - name: Build wxPython for ARM64
         run: |
           git clone https://github.com/wxWidgets/Phoenix.git
           cd Phoenix
-          python build.py build_wx --arch=arm64
-          python build.py bdist_wheel --plat-name win_arm64
+          python build.py build_wx --toolkit=msw --arch=arm64
+          python build.py build --plat-name win_arm64
           pip install dist/*.whl
-        shell: powershell
+        shell: pwsh
 
       - name: Install requirements
-        run: pip install -r requirements.txt
+        shell: pwsh
+        run: |
+          pip install --upgrade pyinstaller
+          pip install -r requirements.txt
 
       - name: Modify build spec
         run: |
@@ -107,7 +115,7 @@ jobs:
 
       - name: Rename executable
         run: Move-Item dist/PixelFlasher.exe dist/PixelFlasher-arm64.exe
-        shell: powershell
+        shell: pwsh
 
       - name: Upload ARM64 Artifacts
         uses: actions/upload-artifact@v4

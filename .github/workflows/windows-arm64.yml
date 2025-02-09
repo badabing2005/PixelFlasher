@@ -49,7 +49,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.12'
           architecture: 'arm64'
 
       - name: Create virtual environment
@@ -105,10 +105,14 @@ jobs:
           cat dist/PixelFlasher-arm64.exe.sha256
         shell: powershell
 
+      - name: Rename executable
+        run: Move-Item dist/PixelFlasher.exe dist/PixelFlasher-arm64.exe
+        shell: powershell
+
       - name: Upload ARM64 Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: PixelFlasher-ARM64.exe Artifacts
           path: |
-            dist/PixelFlasher.exe
+            dist/PixelFlasher-arm64.exe
             dist/PixelFlasher-arm64.exe.sha256

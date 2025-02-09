@@ -247,11 +247,17 @@ class PifManager(wx.Dialog):
         self.push_kb_button.Enable(False)
         self.push_kb_button.Show(False)
 
-        # Edit Tricky Store Target button
+        # Edit Tricky Store target.txt button
         self.edit_ts_target_button = wx.Button(self, wx.ID_ANY, u"Edit TS Target", wx.DefaultPosition, wx.DefaultSize, 0)
         self.edit_ts_target_button.SetToolTip(u"Edit Tricky Store target.txt file.")
         self.edit_ts_target_button.Enable(False)
         self.edit_ts_target_button.Show(False)
+
+        # Edit Tricky Store security_patch.txt button
+        self.edit_security_patch_button = wx.Button(self, wx.ID_ANY, u"Edit TS SP", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.edit_security_patch_button.SetToolTip(u"Edit Tricky Store security_patch.txt file.")
+        self.edit_security_patch_button.Enable(False)
+        self.edit_security_patch_button.Show(False)
 
         # Process build.prop button
         self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -322,6 +328,7 @@ class PifManager(wx.Dialog):
         self.cleanup_dg_button.SetMinSize((button_width, -1))
         self.push_kb_button.SetMinSize((button_width, -1))
         self.edit_ts_target_button.SetMinSize((button_width, -1))
+        self.edit_security_patch_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
         self.process_bulk_prop_button.SetMinSize((button_width, -1))
         self.process_img_button.SetMinSize((button_width, -1))
@@ -355,6 +362,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.cleanup_dg_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         v_buttons_sizer.Add(self.push_kb_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         v_buttons_sizer.Add(self.edit_ts_target_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
+        v_buttons_sizer.Add(self.edit_security_patch_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.process_bulk_prop_button, 0, wx.TOP | wx.RIGHT, 5)
@@ -451,6 +459,7 @@ class PifManager(wx.Dialog):
         self.cleanup_dg_button.Bind(wx.EVT_BUTTON, self.CleanupDG)
         self.push_kb_button.Bind(wx.EVT_BUTTON, self.select_file_and_push)
         self.edit_ts_target_button.Bind(wx.EVT_BUTTON, self.edit_ts_target)
+        self.edit_security_patch_button.Bind(wx.EVT_BUTTON, self.edit_ts_security_patch)
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
         self.process_bulk_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildPropFolder)
         self.process_img_button.Bind(wx.EVT_BUTTON, self.ProcessImg)
@@ -576,6 +585,8 @@ class PifManager(wx.Dialog):
         self.push_kb_button.Show(False)
         self.edit_ts_target_button.Enable(False)
         self.edit_ts_target_button.Show(False)
+        self.edit_security_patch_button.Enable(False)
+        self.edit_security_patch_button.Show(False)
         self.auto_update_pif_checkbox.Enable(False)
         self.auto_check_pi_checkbox.Enable(False)
         self.pi_checker_button.Enable(False)
@@ -608,6 +619,8 @@ class PifManager(wx.Dialog):
                         self.push_kb_button.Show(True)
                         self.edit_ts_target_button.Enable(True)
                         self.edit_ts_target_button.Show(True)
+                        self.edit_security_patch_button.Enable(True)
+                        self.edit_security_patch_button.Show(True)
 
                     flavor = module.name.replace(" ", "").lower()
                     self.pif_flavor = f"{flavor}_{module.versionCode}"
@@ -909,6 +922,13 @@ class PifManager(wx.Dialog):
                 print("Error killing GMS.")
             else:
                 print("Killing Google GMS succeeded.")
+
+            print("Killing Android Vending  ...")
+            res = device.perform_package_action(pkg='com.android.vending', action='killall')
+            if res.returncode != 0:
+                print("Error killing Android Vending.")
+            else:
+                print("Killing Android Vending succeeded.")
 
             if not just_push:
                 self.check_pif_json()
@@ -1917,20 +1937,41 @@ class PifManager(wx.Dialog):
     #                  edit_ts_target
     # -----------------------------------------------
     def edit_ts_target(self, event):
+        self.edit_ts_file("/data/adb/tricky_store/target.txt")
+        event.Skip()
+
+
+    # -----------------------------------------------
+    #                  edit_ts_security_patch
+    # -----------------------------------------------
+    def edit_ts_security_patch(self, event):
+        self.edit_ts_file("/data/adb/tricky_store/security_patch.txt")
+        event.Skip()
+
+
+    # -----------------------------------------------
+    #                  edit_ts_file
+    # -----------------------------------------------
+    def edit_ts_file(self, filename):
         try:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Tricky Store target.")
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Tricky Store file: {filename}.")
             device = get_phone(True)
             if not device.rooted:
                 return
             self._on_spin('start')
             config_path = get_config_path()
-            ts_target_file = os.path.join(config_path, 'tmp', 'ts_target.txt')
+            # get the file portion from full path
+            just_filename = os.path.basename(filename)
+            ts_target_file = os.path.join(config_path, 'tmp', just_filename)
             # pull the file
-            res = device.pull_file("/data/adb/tricky_store/target.txt", ts_target_file, True)
+            res = device.pull_file(filename, ts_target_file, True)
             if res != 0:
-                debug("file: /data/adb/tricky_store/target.txt not found,\n")
-                return
-            # get the contents of target.txt
+                debug(f"file: {filename} not found,\n")
+                # create an empty ts_target_file
+                with open(ts_target_file, 'w', encoding='ISO-8859-1', errors="replace") as f:
+                    f.write('')
+                print(f"An empty local {just_filename} file has been created.")
+            # get the contents of the file
             encoding = detect_encoding(ts_target_file)
             with open(ts_target_file, 'r', encoding=encoding, errors="replace") as f:
                 contents = f.read()
@@ -1947,19 +1988,19 @@ class PifManager(wx.Dialog):
                 with open(ts_target_file, 'r', encoding='ISO-8859-1', errors="replace") as f:
                     contents = f.read()
                 # push the file back to the device
-                res = device.push_file(ts_target_file, "/data/adb/tricky_store/target.txt", True)
+                res = device.push_file(ts_target_file, filename, True)
                 if res != 0:
-                    print("\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing the updated target.txt file. ...\n")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing the updated {filename} file. ...\n")
                     return
-                print(f"\nTricky Store target.txt file has been modified!")
-                print(f"The updated target.txt:")
+                print(f"\nTricky Store {filename} file has been modified!")
+                print(f"The updated {filename}:")
                 print(f"___________________________________________________\n{contents}")
                 print("___________________________________________________\n")
             else:
-                print("User cancelled editing Tricky Store target.txt file.")
+                print(f"User cancelled editing Tricky Store {filename} file.")
                 return -1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function edit_ts_target.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function edit_ts_file.")
             traceback.print_exc()
         finally:
             self._on_spin('stop')

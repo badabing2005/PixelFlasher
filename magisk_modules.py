@@ -147,6 +147,11 @@ class MagiskModules(wx.Dialog):
         self.uninstall_module_button.SetToolTip(u"Uninstall magisk module.")
         self.uninstall_module_button.Enable(False)
 
+        # Run Module Action button
+        self.run_action_button = wx.Button(self, wx.ID_ANY, u"Run Action", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.run_action_button.SetToolTip(u"Run Module action.sh.")
+        self.run_action_button.Enable(False)
+
         # Play Integrity Fix Install button
         self.pif_install_button = wx.Button(self, wx.ID_ANY, u"Install Pif / TS Module", wx.DefaultPosition, wx.DefaultSize, 0)
         self.pif_install_button.SetToolTip(u"Install Play Integrity Fix module.")
@@ -190,6 +195,7 @@ class MagiskModules(wx.Dialog):
         self.install_module_button.SetMinSize((button_width, -1))
         self.update_module_button.SetMinSize((button_width, -1))
         self.uninstall_module_button.SetMinSize((button_width, -1))
+        self.run_action_button.SetMinSize((button_width, -1))
         self.pif_install_button.SetMinSize((button_width, -1))
         self.zygisk_next_install_button.SetMinSize((button_width, -1))
         self.systemless_hosts_button.SetMinSize((button_width, -1))
@@ -229,6 +235,7 @@ class MagiskModules(wx.Dialog):
         v_buttons_sizer.Add(self.install_module_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.update_module_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.uninstall_module_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.run_action_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.pif_install_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.zygisk_next_install_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.systemless_hosts_button, 0, wx.TOP | wx.RIGHT, 5)
@@ -265,6 +272,7 @@ class MagiskModules(wx.Dialog):
         self.install_module_button.Bind(wx.EVT_BUTTON, self.onInstallModule)
         self.update_module_button.Bind(wx.EVT_BUTTON, self.onUpdateModule)
         self.uninstall_module_button.Bind(wx.EVT_BUTTON, self.onUninstallModule)
+        self.run_action_button.Bind(wx.EVT_BUTTON, self.onRunModuleAction)
         self.pif_install_button.Bind(wx.EVT_BUTTON, self.onInstallPif)
         self.zygisk_next_install_button.Bind(wx.EVT_BUTTON, self.onInstallZygiskNext)
         self.systemless_hosts_button.Bind(wx.EVT_BUTTON, self.onSystemlessHosts)
@@ -342,6 +350,7 @@ class MagiskModules(wx.Dialog):
                     self.install_module_button.Enable(False)
                     self.update_module_button.Enable(False)
                     self.uninstall_module_button.Enable(False)
+                    self.run_action_button.Enable(False)
                     self.pif_install_button.Enable(False)
                     self.zygisk_next_install_button.Enable(False)
                     self.enable_zygisk_button.Enable(False)
@@ -408,6 +417,7 @@ class MagiskModules(wx.Dialog):
         if row == -1:
             self.uninstall_module_button.Enable(False)
             self.uninstall_module_button.SetLabel('Uninstall Module')
+            self.run_action_button.Enable(False)
         else:
             self.uninstall_module_button.Enable(True)
             if self.list.GetItemTextColour(row) == wx.LIGHT_GREY:
@@ -440,6 +450,11 @@ class MagiskModules(wx.Dialog):
                 self.html.SetPage(changelog_html)
         else:
             self.update_module_button.Enable(False)
+        # if module has has_action then enable run action button
+        if self.module.hasAction == 'True':
+            self.run_action_button.Enable(True)
+        else:
+            self.run_action_button.Enable(False)
         event.Skip()
 
     # -----------------------------------------------
@@ -581,7 +596,7 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
             downloaded_file_path = download_file(url)
             print(f"Installing Play Integrity Fix (PIF) module. URL: {downloaded_file_path} ...")
-            device.install_magisk_module(downloaded_file_path)
+            device.magisk_install_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
@@ -607,10 +622,27 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
             downloaded_file_path = download_file(url.zipUrl)
             print(f"Installing ZygiskNext module. URL: {downloaded_file_path} ...")
-            device.install_magisk_module(downloaded_file_path)
+            device.magisk_install_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during ZygiskNext module installation.")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  onRunModuleAction
+    # -----------------------------------------------
+    def onRunModuleAction(self, e):
+        # run the action.sh script
+        try:
+            device = get_phone(True)
+            if not device.rooted:
+                return
+            self._on_spin('start')
+            res = device.magisk_run_module_action(self.module.dirname)
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules run action.")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -634,7 +666,7 @@ class MagiskModules(wx.Dialog):
                         res = device.restore_magisk_module(modules[i].dirname)
                     else:
                         print(f"Uninstalling Module {name} ...")
-                        res = device.uninstall_magisk_module(modules[i].dirname)
+                        res = device.magisk_uninstall_module(modules[i].dirname)
                     if res == 0:
                         modules[i].state = 'remove'
                         self.refresh_modules()
@@ -663,7 +695,7 @@ class MagiskModules(wx.Dialog):
                 self._on_spin('start')
                 print(f"Downloading Magisk Module: {name} URL: {url} ...")
                 downloaded_file_path = download_file(url)
-                device.install_magisk_module(downloaded_file_path)
+                device.magisk_install_module(downloaded_file_path)
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
@@ -688,7 +720,7 @@ class MagiskModules(wx.Dialog):
             print(f"\nSelected {pathname} for installation.")
             try:
                 self._on_spin('start')
-                device.install_magisk_module(pathname)
+                device.magisk_install_module(pathname)
                 self.refresh_modules()
             except IOError:
                 wx.LogError(f"Cannot install module file '{pathname}'.")

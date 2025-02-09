@@ -159,6 +159,7 @@ class Device():
         self.props = {}
         self._config_kallsyms = None
         self._config_kallsyms_all = None
+        self._tmp_readable = None
         # Get vbmeta details
         self.vbmeta = self.get_vbmeta_details()
 
@@ -540,6 +541,26 @@ class Device():
         return res
 
     # ----------------------------------------------------------------------------
+    #                               property ro_boot_vbmeta_device_state
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_boot_vbmeta_device_state(self):
+        res = self.get_prop('ro.boot.vbmeta.device_state')
+        if res == 'unlocked':
+            add_unlocked_device(self.id)
+        return res
+
+    # ----------------------------------------------------------------------------
+    #                               property ro_boot_verifiedbootstate
+    # ----------------------------------------------------------------------------
+    @property
+    def ro_boot_verifiedbootstate(self):
+        res = self.get_prop('ro.boot.verifiedbootstate')
+        if res in ['red', 'orange']:
+            add_unlocked_device(self.id)
+        return res
+
+    # ----------------------------------------------------------------------------
     #                               property unlocked
     # ----------------------------------------------------------------------------
     @property
@@ -558,6 +579,7 @@ class Device():
         if self.mode == 'f.b':
             return '?'
         elif self.rooted:
+            add_unlocked_device(self.id)
             return '✓'
         else:
             return '✗'
@@ -805,6 +827,23 @@ class Device():
             puml("#red:Encountered an error in get_partitions.;\n")
             traceback.print_exc()
             return -1
+
+    # ----------------------------------------------------------------------------
+    #                               method get_bl_status
+    # ----------------------------------------------------------------------------
+    def get_bl_status(self):
+        bl_status = 'locked'
+        if self.rooted:
+            bl_status = 'unlocked'
+        elif self.ro_boot_flash_locked == False:
+            bl_status = 'unlocked'
+        elif self.ro_boot_vbmeta_device_state == 'unlocked':
+            bl_status = 'unlocked'
+        elif self.ro_boot_verifiedbootstate in ['red', 'orange']:
+            bl_status = 'unlocked'
+        elif self.unlocked:
+            bl_status = 'unlocked'
+        return bl_status
 
     # ----------------------------------------------------------------------------
     #                               method get_verity_verification
@@ -1388,9 +1427,6 @@ add_hosts_module
                 print(f"Pushing {filename} to /data/local/tmp/data_adb.tgz on the phone ...")
                 res = self.push_file(filename, "/data/local/tmp/data_adb.tgz", True)
                 if res != 0:
-                    print(f"Return Code: {res.returncode}")
-                    print(f"Stdout: {res.stdout}")
-                    print(f"Stderr: {res.stderr}")
                     print("Aborting ...\n")
                     return -1
 
@@ -2574,7 +2610,7 @@ add_hosts_module
                 config = get_config()
                 if self.true_mode == 'adb' and self.rooted:
                     if sys.platform == "win32":
-                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do if test -d \"$FILE\"; then echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf; fi; done\'\""
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'for FILE in /data/adb/modules/*; do if test -d \"$FILE\"; then echo $FILE; if test -f \"$FILE/remove\"; then echo \"state=remove\"; elif test -f \"$FILE/disable\"; then echo \"state=disabled\"; else echo \"state=enabled\"; fi; if test -f \"$FILE/action.sh\"; then echo \"hasAction=True\"; else echo \"hasAction=False\"; fi; cat \"$FILE/module.prop\"; echo; echo -----pf; fi; done\'\""
                         res = run_shell(theCmd, encoding='utf-8')
                         if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                             modules = []
@@ -2597,6 +2633,7 @@ add_hosts_module
                                     setattr(m, 'updateDetails', {})
                                     setattr(m, 'updateAvailable', False)
                                     setattr(m, 'updateIssue', False)
+                                    setattr(m, 'hasAction', False)
                                     for line in module_prop:
                                         # ignore empty lines
                                         if line == '':
@@ -2646,6 +2683,13 @@ add_hosts_module
                                                 m.state = 'disabled'
                                             else:
                                                 m.state = 'enabled'
+                                        # check if the module has action.sh
+                                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls /data/adb/modules/{module}/action.sh\'\""
+                                        res = run_shell(theCmd)
+                                        if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                                            m.hasAction = True
+                                        else:
+                                            m.hasAction = False
                                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat /data/adb/modules/{module}/module.prop\'\""
                                         res = run_shell(theCmd)
                                         if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
@@ -2742,6 +2786,26 @@ add_hosts_module
         return self._rooted
 
     # ----------------------------------------------------------------------------
+    #                               property tmp_readable
+    # ----------------------------------------------------------------------------
+    @property
+    def tmp_readable(self):
+        if self._tmp_readable is None and self.true_mode == 'adb':
+            if get_adb():
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell ls -l /data/local/tmp/"
+                res = run_shell(theCmd, timeout=8)
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    if 'Permission denied' in f"{res.stdout} {res.stderr}" or res.returncode == 1:
+                        self._tmp_readable = False
+                    else:
+                        self._tmp_readable = True
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
+                puml("#red:ERROR: adb command is not found;\n", True)
+                return False
+        return self._tmp_readable
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_denylist_enforced
     # ----------------------------------------------------------------------------
     @property
@@ -2801,6 +2865,7 @@ add_hosts_module
             else:
                 mode = self.mode
             if mode is not None:
+                self.get_bl_status()
                 return f"{self.root_symbol:<3}({mode:<3})   {self.id:<25}{self.hardware:<12}{self.build:<25}"
             else:
                 return "ERROR"
@@ -3743,9 +3808,9 @@ add_hosts_module
             return -1
 
     # ----------------------------------------------------------------------------
-    #                               Method install_magisk_module
+    #                               Method magisk_install_module
     # ----------------------------------------------------------------------------
-    def install_magisk_module(self, module):
+    def magisk_install_module(self, module):
         try:
             if self.true_mode == 'adb' and self.rooted and get_adb():
                 print(f"Installing magisk module {module} ...")
@@ -3757,8 +3822,10 @@ add_hosts_module
                     puml("#red:Failed to transfer the module file to the phone;\n")
                     print("Aborting ...\n}\n")
                     return
-                if "KernelSU" in self.su_version:
+                if "kernelsu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
+                elif "apatch" in self.su_version.lower():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd module install /sdcard/Download/{module_name}\'\""
                 else:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --install-module /sdcard/Download/{module_name}\'\""
                 debug(theCmd)
@@ -3777,10 +3844,40 @@ add_hosts_module
                 puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in install_magisk_module.")
-            puml("#red:Encountered an error in install_magisk_module.;\n")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in magisk_install_module.")
+            puml("#red:Encountered an error in magisk_install_module.;\n")
             traceback.print_exc()
             return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method magisk_run_module_action
+    # ----------------------------------------------------------------------------
+    def magisk_run_module_action(self, dirname):
+        try:
+            if self.true_mode == 'adb' and get_adb():
+                print(f"Running magisk module action for {dirname} ...")
+                puml(":Run magisk module action;\n", True)
+                puml(f"note right:{dirname};\n")
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/magisk/busybox sh -o standalone /data/adb/modules/{dirname}/action.sh\'\""
+                debug(theCmd)
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    debug(f"Return Code: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
+                    if res.returncode != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: when running action.sh for module {dirname}.")
+                        print("Aborting ...\n")
+                        return -1
+                print(f"Action.sh for module {dirname} executed successfully.")
+                return 0
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in magisk_run_module_action.")
+            puml("#red:Encountered an error in magisk_run_module_action.;\n")
+            traceback.print_exc()
+            return -1
+
+
 
     # ----------------------------------------------------------------------------
     #                               Method enable_magisk_module
@@ -3910,16 +4007,18 @@ add_hosts_module
             return -1
 
     # ----------------------------------------------------------------------------
-    #                               Method uninstall_magisk_module
+    #                               Method magisk_uninstall_module
     # ----------------------------------------------------------------------------
-    def uninstall_magisk_module(self, dirname):
+    def magisk_uninstall_module(self, dirname):
         try:
             if self.true_mode == 'adb' and get_adb():
                 print(f"Uninstalling magisk module {dirname} ...")
                 puml(":Uninstall magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
-                if "KernelSU" in self.su_version:
+                if "kernelsu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module uninstall {dirname}\'\""
+                elif "apatch" in self.su_version.lower():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd module uninstall {dirname}\'\""
                 else:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'touch /data/adb/modules/{dirname}/remove\'\""
                 debug(theCmd)
@@ -3930,8 +4029,8 @@ add_hosts_module
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
                 return 1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in uninstall_magisk_module.")
-            puml("#red:Encountered an error in uninstall_magisk_module.;\n")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in magisk_uninstall_module.")
+            puml("#red:Encountered an error in magisk_uninstall_module.;\n")
             traceback.print_exc()
             return -1
 

@@ -2511,7 +2511,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
 
         title = "Device Analysis Report"
         message = '''
-#                   WARNING! WARNING! WARNING! WARNING!
+# ATTENTION!
 **This feature will generate a device analysis report that you could post online to get assistance on Play Integrity related issues.**<br/>
 
 This report will inherently reveal sensitive information about your device such as:
@@ -2524,6 +2524,7 @@ This report will inherently reveal sensitive information about your device such 
 	- `/data/adb/tricky_store/spoof_build_vars`
 	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)
 	- `/data/adb/tricky_store/target.txt`
+	- `/data/adb/tricky_store/security_patch.txt`
 - PlayIntegrity Fork (if available):
 	- `/data/adb/modules/playintegrityfix/custom.pif.json`
 	- `/data/adb/modules/playintegrityfix/custom.app_replace.list`
@@ -2651,6 +2652,14 @@ Before posting publicly please carefully inspect the contents.
                 print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store target.txt ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/tricky_store/target.txt", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # TrickyStore - security_patch.txt
+                print("\n==============================================================================")
+                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store security_patch.txt ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/tricky_store/security_patch.txt", True)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2959,6 +2968,11 @@ Before posting publicly please carefully inspect the contents.
             message += f"    Device Bootloader Version:       {device.get_prop('version-bootloader', 'ro.bootloader')}\n"
         if device.true_mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
+            message += f"    /data/local/tmp accessible:      {device.tmp_readable}\n"
+            if not device.tmp_readable:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/local/tmp is not accessible, this will affect some features.")
+                print("This often is caused by Apatch or KernelSU.\n You can read about it here with possible solutions: https://github.com/badabing2005/PixelFlasher/issues/275#issuecomment-2641278840")
+                self.toast("Device Analysis", "❌ ERROR: /data/local/tmp is not accessible, this will affect some features.")
             message += f"    Device Build:                    {device.build}\n"
             ro_product_first_api_level = device.get_prop('ro.product.first_api_level')
             message += f"    Device API Level:                {device.api_level}\n"
@@ -2986,12 +3000,13 @@ Before posting publicly please carefully inspect the contents.
                 message += f"    oem_unlock_supported:            {device.get_prop('sys.oem_unlock_supported')}\n"
                 message += f"    sys_oem_unlock_allowed:          {device.get_prop('sys.oem_unlock_allowed')}\n"
                 message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"
-                message += f"    ro.boot.vbmeta.device_state:     {device.get_prop('ro.boot.vbmeta.device_state')}\n"
+                message += f"    ro.boot.vbmeta.device_state:     {device.ro_boot_vbmeta_device_state}\n"
                 # message += f"    vendor.boot.vbmeta.device_state: {device.get_prop('vendor.boot.vbmeta.device_state')}\n"
                 message += f"    ro.product.first_api_level:      {ro_product_first_api_level}\n"
                 # message += f"    ro.boot.warranty_bit:            {device.get_prop('ro.boot.warranty_bit')}\n"
                 message += f"    ro.boot.veritymode:              {device.get_prop('ro.boot.veritymode')}\n"
-                message += f"    ro.boot.verifiedbootstate:       {device.get_prop('ro.boot.verifiedbootstate')}\n"
+                message += f"    ro.boot.verifiedbootstate:       {device.ro_boot_verifiedbootstate}\n"
+                message += f"    PF Bootloader Status:            {device.get_bl_status().upper()}\n"
                 message += f"    ro.build.version.security_patch: {device.get_prop('ro.build.version.security_patch')}\n"
                 message += f"    ro.vendor.build.security_patch:  {device.get_prop('ro.vendor.build.security_patch')}\n"
                 # message += f"    vendor.boot.verifiedbootstate:   {device.get_prop('vendor.boot.verifiedbootstate')}\n"
@@ -3027,6 +3042,7 @@ Before posting publicly please carefully inspect the contents.
             message += f"    slot-retry-count:b:              {device.get_prop('slot-retry-count:b')}\n"
             message += f"    slot-unbootable:b:               {device.get_prop('slot-unbootable:b')}\n"
             message += f"    slot-successful:b:               {device.get_prop('slot-successful:b')}\n"
+            message += f"    PF Bootloader Status:            {device.get_bl_status().upper()}\n"
         if device.rooted:
             message += f"    Device Rooted with:              {device.su_version}\n"
             m_version = device.magisk_version
@@ -4991,7 +5007,7 @@ Before posting publicly please carefully inspect the contents.
                     for keybox in aosp_keyboxes:
                         print(f"    {keybox}")
                 if not_revoked > 0:
-                    print("\nList of good keyboxes:")
+                    print("\nList of valid keyboxes:")
                     for keybox in good_keyboxes:
                         print(f"    {keybox}")
                 print("\n")

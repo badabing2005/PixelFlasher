@@ -46,46 +46,58 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Download ARM64 Python
+        shell: pwsh
+        run: |
+          curl https://www.python.org/ftp/python/3.13.0/python-3.13.0-arm64.exe --output python-arm64.exe
+          ./python-arm64.exe /quiet InstallAllUsers=1 PrependPath=1
+
+      - name: Install Windows SDK
+        uses: GuillaumeFalourd/setup-windows10-sdk-action@v1
         with:
-          python-version: '3.13'
-          architecture: 'arm64'
+          sdk-version: 22621
 
       - name: Create virtual environment
+        shell: pwsh
         run: python -m venv myenv
-        shell: powershell
 
       - name: Activate virtual environment
+        shell: pwsh
         run: .\myenv\Scripts\Activate.ps1
-        shell: powershell
 
       - name: Install build tools
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade setuptools wheel
-          pip install --upgrade build
-        shell: powershell
+          pip install --upgrade setuptools wheel build delvewheel
 
-      - name: Build wxPython from source
+      - name: Build wxPython for ARM64
+        shell: pwsh
         run: |
           git clone https://github.com/wxWidgets/Phoenix.git
           cd Phoenix
-          python build.py build_wx --arch=arm64
-          python build.py bdist_wheel --plat-name win_arm64
-          pip install dist/*.whl
-        shell: powershell
+          python build.py dox etg --nodoc sip
+          python build.py build_wx --arm64
+          python build.py build_py --python=python
+          pip install -e .
 
       - name: Install requirements
-        run: pip install -r requirements.txt
-
-      - name: Modify build spec
+        shell: pwsh
         run: |
-          (Get-Content build-on-win.spec) -replace 'exe = EXE\(', 'exe = EXE(target_arch=''arm64'',' | Set-Content build-on-win.spec
-        shell: powershell
+          pip install --upgrade pyinstaller
+          pip install -r requirements.txt
 
       - name: Build ARM64 application
-        run: .\build.bat
+        shell: cmd
+        run: pyinstaller --log-level=DEBUG --clean --noconfirm build-on-win-arm64.spec
+
+      - name: Verify Output Exists
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/PixelFlasher-arm64.exe")) {
+            Write-Error "ARM64 executable not found"
+            exit 1
+          }
 
       - name: Sign Windows ARM64 Executable
         uses: skymatic/code-sign-action@v3
@@ -100,15 +112,16 @@ jobs:
           recursive: false
 
       - name: Generate SHA256
+        shell: pwsh
         run: |
-          certutil -hashfile dist/PixelFlasher.exe SHA256 > dist/PixelFlasher-arm64.exe.sha256
-          cat dist/PixelFlasher-arm64.exe.sha256
-        shell: powershell
+          Get-FileHash "dist/PixelFlasher-arm64.exe" -Algorithm SHA256 | Select-Object -ExpandProperty Hash > dist/PixelFlasher-arm64.exe.sha256
+          Get-Content dist/PixelFlasher-arm64.exe.sha256
 
       - name: Upload ARM64 Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: PixelFlasher-ARM64.exe Artifacts
           path: |
-            dist/PixelFlasher.exe
+            dist/PixelFlasher-arm64.exe
             dist/PixelFlasher-arm64.exe.sha256
+

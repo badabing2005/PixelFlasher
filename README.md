@@ -234,6 +234,7 @@ Check the [releases section](https://github.com/badabing2005/PixelFlasher/releas
 File|Description
 :---|:---
 [PixelFlasher.exe](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher.exe)|Windows standalone x64 binary (recommended for **Windows**)
+[PixelFlasher-arm64.exe](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher-arm64.exe)|Windows standalone arm64 binary (recommended for **Windows arm64**)
 [PixelFlasher_win_2019.exe](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_win_2019.exe)| Built with Windows 2019, to be used on older Windows)
 [PixelFlasher_MacOS.dmg](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_MacOS.dmg)|Universal MacOS (11+) standalone executable (recommended for **MacOS**)
 [PixelFlasher_MacOS_legacy.dmg](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_MacOS_legacy.dmg)|x86_64 MacOS standalone executable (to be used on older MacOS devices)

@@ -1877,6 +1877,39 @@ or hit the **Cancel** button to abort.
         puml("#red:Encountered an error while running manual Magisk;\n")
         traceback.print_exc()
 
+# ============================================
+#        Function is_device_unlocked
+# ============================================
+def is_device_unlocked(self, device):
+    # return values:
+    # -1: Device not detected
+    #  0: Bootloader is locked
+    #  1: Bootloader is unlocked
+    print("Checking if the bootloader is unlocked ...")
+    if not device:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not detected.")
+        return -1
+    device_id = device.id
+    if not (device.get_bl_status() == 'unlocked' or check_for_unlocked(device_id)):
+        print("Device does not appear to be unlocked. Reloading it just in case ...")
+        self.refresh_device(device_id)
+        device = get_phone()
+        if device is None:
+            # sleep 5 seconds and try again for good measure
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.\n  Retrying in 5 seconds ...")
+            time.sleep(5)
+            self.refresh_device(device_id)
+            device = get_phone()
+            if device is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Still unable to detect the device.")
+                self.clear_device_selection()
+                return -1
+        print("Checking if the bootloader is unlocked (2nd attempt) ...")
+        if not (device.get_bl_status() == 'unlocked' or check_for_unlocked(device_id)):
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked.")
+            return 0
+        print("Bootloader is unlocked:")
+    return 1
 
 # ============================================================================
 #                               Function patch_boot_img
@@ -3027,11 +3060,12 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 if kernelsu_version:
                     kernelsu_versionCode = kernelsu_version
                 else:
-                    parts = version.split('.')
-                    a = int(parts[0])
-                    b = int(parts[1])
-                    c = int(parts[2])
-                    kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+                    # parts = version.split('.')
+                    # a = int(parts[0])
+                    # b = int(parts[1])
+                    # c = int(parts[2])
+                    # kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+                    kernelsu_versionCode = 0
             filename = f"KernelSU_{kernelsu_version}_{kernelsu_versionCode}.apk"
             download_file(kernelsu_url, filename)
             # install the apk
@@ -3063,11 +3097,12 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 if kernelsu_version:
                     kernelsu_versionCode = kernelsu_version
                 else:
-                    parts = version.split('.')
-                    a = int(parts[0])
-                    b = int(parts[1])
-                    c = int(parts[2])
-                    kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+                    # parts = version.split('.')
+                    # a = int(parts[0])
+                    # b = int(parts[1])
+                    # c = int(parts[2])
+                    # kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+                    kernelsu_versionCode = 0
             filename = f"KernelSU-Next_{kernelsu_version}_{kernelsu_versionCode}.apk"
             download_file(kernelsu_url, filename)
             # install the apk
@@ -3099,11 +3134,12 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 if apatch_version:
                     apatch_versionCode = apatch_version
                 else:
-                    parts = version.split('.')
-                    a = int(parts[0])
-                    b = int(parts[1])
-                    c = int(parts[2])
-                    apatch_versionCode = (a * 256 * 256) + (b * 256) + c
+                    # parts = version.split('.')
+                    # a = int(parts[0])
+                    # b = int(parts[1])
+                    # c = int(parts[2])
+                    # apatch_versionCode = (a * 256 * 256) + (b * 256) + c
+                    apatch_versionCode = 0
             filename = f"APatch_{apatch_version}_{apatch_versionCode}.apk"
             download_file(apatch_url, filename)
             # install the apk
@@ -3855,18 +3891,25 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
     done_flashing = False
     if mode == 'fastboot' and get_fastboot():
-        # Check for bootloader unlocked
-        if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device.id):
-            self.refresh_device(device_id)
-            device = get_phone()
-            print("Checking if the bootloader is unlocked ...")
-            if not device.unlocked:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
-                print("Aborting ...\n")
-                puml("#red:Bootloader is locked, can't flash;\n}\n")
-                self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
-                return -1
-            print("Bootloader is unlocked, continuing ...")
+        if not (self.config.advanced_options and self.config.flash_mode == 'customFlash' and get_image_mode() == 'SIDELOAD'):
+            # Check for bootloader unlocked
+            if self.config.check_for_bootloader_unlocked:
+                res = is_device_unlocked(self, device)
+                if res == -1:
+                    # Device is not detected
+                    print("Aborting ...\n")
+                    puml("#red:Device is not detected;\n}\n")
+                    self.toast("Flash action", "❌ Device is not detected.")
+                    return -1
+                elif res == 0:
+                    print("Aborting ...\n")
+                    puml("#red:Bootloader is locked, can't flash;\n}\n")
+                    self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
+                    return -1
+                else:
+                    print("✅ Bootloader is unlocked, continuing ...")
+            else:
+                print("⚠️ Skipping bootloader unlock check ...")
 
         startFlash = time.time()
         fastboot_options = ''
@@ -4583,6 +4626,44 @@ def flash_phone(self):
             title = "Flash Options"
             message = get_flash_settings(self) + message + '\n'
 
+        # ============================================
+        # Sub Function     reboot_device_to_bootloader
+        # ============================================
+        def reboot_device_to_bootloader():
+            nonlocal device
+            # reboot to bootloader if flashing is necessary
+            if self.config.disable_verity or self.config.disable_verification or self.config.flash_mode == 'customFlash' or (boot and not boot.is_stock_boot):
+                # Check for bootloader unlocked
+                res = is_device_unlocked(self, device)
+                if res == -1:
+                    # Device is not detected
+                    print("Aborting ...\n")
+                    puml("#red:Device is not detected;\n}\n")
+                    self.toast("Flash action", "❌ Device is not detected.")
+                    return -1
+                elif res == 0:
+                    print("Aborting ...\n")
+                    puml("#red:Bootloader is locked, can't flash;\n}\n")
+                    self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
+                    return -1
+                else:
+                    print("✅ Bootloader is unlocked, continuing ...")
+
+                res = device.reboot_bootloader(fastboot_included = True)
+                if res is None or res == -1:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    print("Aborting ...\n")
+                    puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
+                    self.toast("Flash action", "❌ Encountered an error while rebooting to bootloader.")
+                    bootloader_issue_message()
+                    refresh_and_done()
+                    return -1
+                self.refresh_device(device_id)
+                device = get_phone()
+                return 0
+            else:
+                return 1
+
         #----------------------------------------
         # common part for package or custom flash
         #----------------------------------------
@@ -4716,38 +4797,11 @@ def flash_phone(self):
                 return -1
         # be in bootloader mode for flashing
         else:
-            res = device.reboot_bootloader(fastboot_included = True)
+            res = reboot_device_to_bootloader()
             if res == -1:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                refresh_and_done()
                 print("Aborting ...\n")
-                puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
-                self.toast("Flash action", "❌ Encountered an error while rebooting to bootloader.")
-                bootloader_issue_message()
                 return -1
-            # Check for bootloader unlocked
-            if self.config.check_for_bootloader_unlocked and not check_for_unlocked(device_id):
-                image_mode = get_image_mode()
-                self.refresh_device(device_id)
-                device = get_phone()
-                if device is None:
-                    # sleep 5 seconds and try again for good measure
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.\n  Retrying in 5 seconds ...")
-                    time.sleep(5)
-                    self.refresh_device(device_id)
-                    device = get_phone()
-                    if device is None:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Still unable to detect the device.")
-                        print("Aborting ...\n")
-                        self.clear_device_selection()
-                        return -1
-                print("Checking if the bootloader is unlocked ...")
-                if not (device.unlocked or (self.config.advanced_options and self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD') or self.config.flash_mode == 'OTA'):
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Bootloader is locked, can't flash.")
-                    print("Aborting ...\n")
-                    puml("#red:Bootloader is locked, can't flash;\n}\n")
-                    self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
-                    return -1
-                print("Bootloader is unlocked, continuing ...")
 
         # -------------------------------------------------------------------------
         # 4 Run the script
@@ -4786,10 +4840,20 @@ def flash_phone(self):
         def apply_patch_if_needed():
             nonlocal device
             # flash patched boot / init_boot if dry run is not selected.
-            if not boot.is_stock_boot and self.config.flash_mode != 'dryRun':
-                print("Checking if the bootloader is unlocked ...")
-                if check_for_unlocked(device_id) or device.unlocked:
-                    print("Bootloader is unlocked, continuing ...")
+            if self.config.check_for_bootloader_unlocked and (not boot.is_stock_boot and self.config.flash_mode != 'dryRun'):
+                res = is_device_unlocked(self, device)
+                if res == -1:
+                    # Device is not detected
+                    print("Aborting ...\n")
+                    puml("#red:Device is not detected;\n}\n")
+                    self.toast("Flash action", "❌ Device is not detected.")
+                    return -1
+                elif res == 0:
+                    print("Aborting ...\n")
+                    puml("#red:Bootloader is locked, can't flash;\n}\n")
+                    self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
+                    return -1
+                else:
                     # we do not want to flash if we have selected Temporary root
                     if self.config.advanced_options and self.config.temporary_root and boot.is_patched:
                         flash = ''
@@ -4818,11 +4882,6 @@ def flash_phone(self):
                     print("Aborting ...")
                     puml("#red:Encountered an error while flashing the patch.;\n}\n")
                     self.toast("Flash action", "❌ Encountered an error while flashing the patch.")
-                    print("Aborting ...\n")
-                    return -1
-                else:
-                    print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Bootloader is locked, skipping flashing ...")
-                    puml("#orange:Bootloader is locked, skipping flashing.;\n")
                     print("Aborting ...\n")
                     return -1
             return 0
@@ -4915,29 +4974,6 @@ def flash_phone(self):
                     print("Aborting ...\n")
                     return -1
             return 0
-
-        # ============================================
-        # Sub Function     reboot_device_to_bootloader
-        # ============================================
-        def reboot_device_to_bootloader():
-            nonlocal device
-            # reboot to bootloader if flashing is necessary
-            if self.config.disable_verity or self.config.disable_verification or not boot.is_stock_boot:
-                res = device.reboot_bootloader(fastboot_included = True)
-                if res is None or res == -1:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
-                    print("Aborting ...\n")
-                    puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
-                    self.toast("Flash action", "❌ Encountered an error while rebooting to bootloader.")
-                    bootloader_issue_message()
-                    refresh_and_done()
-                    return -1
-                image_mode = get_image_mode()
-                self.refresh_device(device_id)
-                device = get_phone()
-                return 0
-            else:
-                return 1
 
         # ============================================
         # Sub Function                 get_device_mode
@@ -5040,21 +5076,21 @@ def flash_phone(self):
                         buttons_text = ["Done rebooting to system, continue", "Cancel"]
                         action_text = 'system'
                     message = f'''
-    ## Is your device waiting for interaction?
+## Is your device waiting for interaction?
 
-    _If it is not, please hit the cancel button._
+_If it is not, please hit the cancel button._
 
-    If your device is waiting for user interaction which can not be programmatically invoked.
+If your device is waiting for user interaction which can not be programmatically invoked.
 
-    - Using volume keys, scroll up and down and select **Reboot {action_text}**
-    - Press the power button to apply.
+- Using volume keys, scroll up and down and select **Reboot {action_text}**
+- Press the power button to apply.
 
-    When done, the device should reboot to {action_text} <br/>
-    Wait for the device to fully boot to {action_text} <br/>
-    Click on **Done rebooting to {action_text}, continue** button <br/>
-    or hit the **Cancel** button to abort.
+When done, the device should reboot to {action_text} <br/>
+Wait for the device to fully boot to {action_text} <br/>
+Click on **Done rebooting to {action_text}, continue** button <br/>
+or hit the **Cancel** button to abort.
 
-    '''
+'''
                     print(f"\n*** Dialog ***\n{message}\n______________\n")
                     dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
                     dlg.CentreOnParent(wx.BOTH)
@@ -5066,13 +5102,20 @@ def flash_phone(self):
                         refresh_and_done()
                         return -1
                     # Check device mode again
-                    res = get_device_mode(expect_bootloader=True)
-                    if res == -1:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device or device is not in bootloader mode.")
-                        print("Aborting ...\n")
-                        refresh_and_done()
-                        return -1
-
+                    if action_text == 'bootloader':
+                        res = get_device_mode(expect_bootloader=True)
+                        if res == -1:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device or device is not in bootloader mode.")
+                            print("Aborting ...\n")
+                            refresh_and_done()
+                            return -1
+                    else:
+                        res = get_device_mode(expect_bootloader=False)
+                        if res == -1:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device or device is not in system mode.")
+                            print("Aborting ...\n")
+                            refresh_and_done()
+                            return -1
                 # reboot to bootloader if flashing is necessary
                 res = reboot_device_to_bootloader()
                 if res == -1:
@@ -5093,21 +5136,21 @@ def flash_phone(self):
                     title = "Waiting for user interaction"
                     buttons_text = ["Done rebooting to bootloader, continue", "Cancel"]
                     message = '''
-    ## Your watch should now be in Android Recovery
+## Your watch should now be in Android Recovery
 
-    _If it is not, please hit the cancel button._
+_If it is not, please hit the cancel button._
 
-    The watch is waiting for user interaction which can not be programmatically invoked.
+The watch is waiting for user interaction which can not be programmatically invoked.
 
-    - Using touch, scroll and select **Reboot to bootloader**
-    - Press the side button to apply.
+- Using touch, scroll and select **Reboot to bootloader**
+- Press the side button to apply.
 
-    When done, the watch should reboot to bootloader mode <br/>
-    Wait for the watch to indicate that it is in bootloader mode <br/>
-    Click on **Done rebooting to bootloader, continue** button <br/>
-    or hit the **Cancel** button to abort.
+When done, the watch should reboot to bootloader mode <br/>
+Wait for the watch to indicate that it is in bootloader mode <br/>
+Click on **Done rebooting to bootloader, continue** button <br/>
+or hit the **Cancel** button to abort.
 
-    '''
+'''
                     print(f"\n*** Dialog ***\n{message}\n______________\n")
                     dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
                     dlg.CentreOnParent(wx.BOTH)
@@ -5124,17 +5167,17 @@ def flash_phone(self):
                     title = "Waiting for user interaction"
                     buttons_text = ["Done rebooting to system, continue"]
                     message = '''
-    ## Your watch should now be in Android Recovery
+## Your watch should now be in Android Recovery
 
-    The watch is waiting for user interaction which can not be programmatically invoked.
+The watch is waiting for user interaction which can not be programmatically invoked.
 
-    - Using touch, scroll and select **Reboot to system now**
-    - Press the side button to apply.
+- Using touch, scroll and select **Reboot to system now**
+- Press the side button to apply.
 
-    When applied, the watch should reboot to system. <br/>
-    Click on **Done rebooting to system, continue** button when the watch OS fully loads.
+When applied, the watch should reboot to system. <br/>
+Click on **Done rebooting to system, continue** button when the watch OS fully loads.
 
-    '''
+'''
                     print(f"\n*** Dialog ***\n{message}\n______________\n")
                     dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,300])
                     dlg.CentreOnParent(wx.BOTH)
@@ -5142,7 +5185,7 @@ def flash_phone(self):
                     dlg.Destroy()
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
 
-            # Watch continue with flashing
+            # continue with flashing
             if continue_ota_flag:
                 # make sure device is detected
                 res = device_is_detected()

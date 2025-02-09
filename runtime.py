@@ -83,64 +83,64 @@ from payload_dumper import extract_payload
 import cProfile, pstats, io
 import avbtool
 
-verbose = False
-adb = None
-fastboot = None
-adb_sha256 = None
-fastboot_sha256 = None
-phones = []
-device_list = []
-phone_id = None
-advanced_options = False
-update_check = True
-firmware_model = None
-firmware_id = None
-custom_rom_id = None
-logfile = None
-pumlfile = None
-sdk_version = None
-image_mode = None
-image_path = None
-custom_rom_file = None
-message_box_title = None
-message_box_message = None
-version = None
-db = None
-boot = None
-system_code_page = None
-codepage_setting = False
-codepage_value = ''
-magisk_package = ''
-file_explorer = ''
-linux_shell = ''
-patched_with = ''
-customize_font = False
-pf_font_face = ''
-pf_font_size = 12
-app_labels = {}
-xiaomi_list = {}
-favorite_pifs = {}
-a_only = False
-offer_patch_methods = False
-use_busybox_shell = False
-firmware_hash_valid = False
-firmware_has_init_boot = False
-rom_has_init_boot = False
-dlg_checkbox_values = None
-recovery_patch = False
-config_path = None
-android_versions = {}
-android_devices = {}
-env_variables = os.environ.copy()
-is_ota = False
-sdk_is_ok = False
-low_memory = False
-config = {}
-config_file_path = ''
-unlocked_devices = []
-window_shown = False
-puml_enabled = True
-magisk_apks = None
+_verbose = False
+_adb = None
+_fastboot = None
+_adb_sha256 = None
+_fastboot_sha256 = None
+_phones = []
+_device_list = []
+_phone_id = None
+# _advanced_options = False
+# _update_check = True
+_firmware_model = None
+_firmware_id = None
+_custom_rom_id = None
+_logfile = None
+_pumlfile = None
+_sdk_version = None
+_image_mode = None
+_image_path = None
+_custom_rom_file = None
+_message_box_title = None
+_message_box_message = None
+# _version = None
+_db = None
+_boot = None
+_system_code_page = None
+# _codepage_setting = False
+# _codepage_value = ''
+_magisk_package = ''
+# _file_explorer = ''
+_linux_shell = ''
+_patched_with = ''
+# _customize_font = False
+# _pf_font_face = ''
+# _pf_font_size = 12
+_app_labels = {}
+_xiaomi_list = {}
+_favorite_pifs = {}
+_a_only = False
+# _offer_patch_methods = False
+# _use_busybox_shell = False
+_firmware_hash_valid = False
+_firmware_has_init_boot = False
+_rom_has_init_boot = False
+_dlg_checkbox_values = None
+# _recovery_patch = False
+_config_path = None
+_android_versions = {}
+_android_devices = {}
+_env_variables = os.environ.copy()
+_is_ota = False
+_sdk_is_ok = False
+_low_memory = False
+_config = {}
+_config_file_path = ''
+_unlocked_devices = []
+_window_shown = False
+_puml_enabled = True
+_magisk_apks = None
 
 
 # ============================================================================
@@ -250,72 +250,89 @@ class MagiskApk():
 #                               Function get_config
 # ============================================================================
 def get_config():
-    global config
-    return config
+    global _config
+    return _config
 
 
 # ============================================================================
 #                               Function set_config
 # ============================================================================
 def set_config(value):
-    global config
-    config = value
+    global _config
+    _config = value
+
 
 # ============================================================================
 #                               Function get_window_shown
 # ============================================================================
 def get_window_shown():
-    global window_shown
-    return window_shown
+    global _window_shown
+    return _window_shown
+
 
 # ============================================================================
 #                               Function set_window_shown
 # ============================================================================
 def set_window_shown(value):
-    global window_shown
-    window_shown = value
+    global _window_shown
+    _window_shown = value
+
 
 # ============================================================================
 #                               Function check_for_unlocked
 # ============================================================================
 def check_for_unlocked(item):
-    return item in unlocked_devices
+    global _unlocked_devices
+    if item in _unlocked_devices:
+        return True
+    else:
+        return False
 
 
 # ============================================================================
 #                               Function add_unlocked_device
 # ============================================================================
 def add_unlocked_device(item):
-    if item not in unlocked_devices:
-        unlocked_devices.append(item)
+    global _unlocked_devices
+    if item not in _unlocked_devices:
+        _unlocked_devices.append(item)
 
 
 # ============================================================================
 #                               Function remove_unlocked_device
 # ============================================================================
 def remove_unlocked_device(item):
-    if item in unlocked_devices:
-        unlocked_devices.remove(item)
+    global _unlocked_devices
+    if item in _unlocked_devices:
+        _unlocked_devices.remove(item)
+
+
+# ============================================================================
+#                               Function get_unlocked_device
+# ============================================================================
+def get_unlocked_device():
+    global _unlocked_devices
+    return _unlocked_devices
 
 
 # ============================================================================
 #                               Function set_console_widget
 # ============================================================================
 def set_console_widget(widget):
-    global console_widget
-    console_widget = widget
+    global _console_widget
+    _console_widget = widget
 
 
 # ============================================================================
 #                               Function flush_output
 # ============================================================================
 def flush_output():
-    global console_widget
+    global _console_widget
     if get_window_shown():
         wx.YieldIfNeeded()
-    if console_widget:
+    if _console_widget:
         sys.stdout.flush()
-        wx.CallAfter(console_widget.Update)
+        wx.CallAfter(_console_widget.Update)
         if get_window_shown():
             wx.YieldIfNeeded()
 
@@ -324,160 +341,160 @@ def flush_output():
 #                               Function get_boot
 # ============================================================================
 def get_boot():
-    global boot
-    return boot
+    global _boot
+    return _boot
 
 
 # ============================================================================
 #                               Function set_boot
 # ============================================================================
 def set_boot(value):
-    global boot
-    boot = value
+    global _boot
+    _boot = value
 
 
 # ============================================================================
 #                               Function get_labels
 # ============================================================================
 def get_labels():
-    global app_labels
-    return app_labels
+    global _app_labels
+    return _app_labels
 
 
 # ============================================================================
 #                               Function set_labels
 # ============================================================================
 def set_labels(value):
-    global app_labels
-    app_labels = value
+    global _app_labels
+    _app_labels = value
 
 
 # ============================================================================
 #                               Function get_xiaomi
 # ============================================================================
 def get_xiaomi():
-    global xiaomi_list
-    return xiaomi_list
+    global _xiaomi_list
+    return _xiaomi_list
 
 
 # ============================================================================
 #                               Function set_xiaomi
 # ============================================================================
 def set_xiaomi(value):
-    global xiaomi_list
-    xiaomi_list = value
+    global _xiaomi_list
+    _xiaomi_list = value
 
 
 # ============================================================================
 #                               Function get_favorite_pifs
 # ============================================================================
 def get_favorite_pifs():
-    global favorite_pifs
-    return favorite_pifs
+    global _favorite_pifs
+    return _favorite_pifs
 
 
 # ============================================================================
 #                               Function set_favorite_pifs
 # ============================================================================
 def set_favorite_pifs(value):
-    global favorite_pifs
-    favorite_pifs = value
+    global _favorite_pifs
+    _favorite_pifs = value
 
 
 # ============================================================================
 #                               Function get_low_memory
 # ============================================================================
 def get_low_memory():
-    global low_memory
-    return low_memory
+    global _low_memory
+    return _low_memory
 
 
 # ============================================================================
 #                               Function set_low_memory
 # ============================================================================
 def set_low_memory(value):
-    global low_memory
-    low_memory = value
+    global _low_memory
+    _low_memory = value
 
 
 # ============================================================================
 #                               Function get_android_versions
 # ============================================================================
 def get_android_versions():
-    global android_versions
-    return android_versions
+    global _android_versions
+    return _android_versions
 
 
 # ============================================================================
 #                               Function set_android_versions
 # ============================================================================
 def set_android_versions(value):
-    global android_versions
-    android_versions = value
+    global _android_versions
+    _android_versions = value
 
 
 # ============================================================================
 #                               Function get_android_devices
 # ============================================================================
 def get_android_devices():
-    global android_devices
-    return android_devices
+    global _android_devices
+    return _android_devices
 
 
 # ============================================================================
 #                               Function set_android_devices
 # ============================================================================
 def set_android_devices(value):
-    global android_devices
-    android_devices = value
+    global _android_devices
+    _android_devices = value
 
 
 # ============================================================================
 #                               Function get_env_variables
 # ============================================================================
 def get_env_variables():
-    global env_variables
-    return env_variables
+    global _env_variables
+    return _env_variables
 
 
 # ============================================================================
 #                               Function set_env_variables
 # ============================================================================
 def set_env_variables(value):
-    global env_variables
-    env_variables = value
+    global _env_variables
+    _env_variables = value
 
 
 # ============================================================================
 #                               Function get_patched_with
 # ============================================================================
 def get_patched_with():
-    global patched_with
-    return patched_with
+    global _patched_with
+    return _patched_with
 
 
 # ============================================================================
 #                               Function set_patched_with
 # ============================================================================
 def set_patched_with(value):
-    global patched_with
-    patched_with = value
+    global _patched_with
+    _patched_with = value
 
 
 # ============================================================================
 #                               Function get_db
 # ============================================================================
 def get_db():
-    global db
-    return db
+    global _db
+    return _db
 
 
 # ============================================================================
 #                               Function set_db
 # ============================================================================
 def set_db(value):
-    global db
-    db = value
+    global _db
+    _db = value
 
 
 # ============================================================================
@@ -519,160 +536,160 @@ def get_pf_db():
 #                               Function get_verbose
 # ============================================================================
 def get_verbose():
-    global verbose
-    return verbose
+    global _verbose
+    return _verbose
 
 
 # ============================================================================
 #                               Function set_verbose
 # ============================================================================
 def set_verbose(value):
-    global verbose
-    verbose = value
+    global _verbose
+    _verbose = value
 
 
 # ============================================================================
 #                               Function get_a_only
 # ============================================================================
 def get_a_only():
-    global a_only
-    return a_only
+    global _a_only
+    return _a_only
 
 
 # ============================================================================
 #                               Function set_a_only
 # ============================================================================
 def set_a_only(value):
-    global a_only
-    a_only = value
+    global _a_only
+    _a_only = value
 
 
 # ============================================================================
 #                               Function get_adb
 # ============================================================================
 def get_adb():
-    global adb
-    return adb
+    global _adb
+    return _adb
 
 
 # ============================================================================
 #                               Function set_adb
 # ============================================================================
 def set_adb(value):
-    global adb
-    adb = value
+    global _adb
+    _adb = value
 
 
 # ============================================================================
 #                               Function get_puml_state
 # ============================================================================
 def get_puml_state():
-    global puml_enabled
-    return puml_enabled
+    global _puml_enabled
+    return _puml_enabled
 
 
 # ============================================================================
 #                               Function set_puml_state
 # ============================================================================
 def set_puml_state(value):
-    global puml_enabled
-    puml_enabled = value
+    global _puml_enabled
+    _puml_enabled = value
 
 
 # ============================================================================
 #                               Function get_fastboot
 # ============================================================================
 def get_fastboot():
-    global fastboot
-    return fastboot
+    global _fastboot
+    return _fastboot
 
 
 # ============================================================================
 #                               Function set_fastboot
 # ============================================================================
 def set_fastboot(value):
-    global fastboot
-    fastboot = value
+    global _fastboot
+    _fastboot = value
 
 
 # ============================================================================
 #                               Function get_adb_sha256
 # ============================================================================
 def get_adb_sha256():
-    global adb_sha256
-    return adb_sha256
+    global _adb_sha256
+    return _adb_sha256
 
 
 # ============================================================================
 #                               Function set_adb_sha256
 # ============================================================================
 def set_adb_sha256(value):
-    global adb_sha256
-    adb_sha256 = value
+    global _adb_sha256
+    _adb_sha256 = value
 
 
 # ============================================================================
 #                               Function get_fastboot_sha256
 # ============================================================================
 def get_fastboot_sha256():
-    global fastboot_sha256
-    return fastboot_sha256
+    global _fastboot_sha256
+    return _fastboot_sha256
 
 
 # ============================================================================
 #                               Function set_fastboot_sha256
 # ============================================================================
 def set_fastboot_sha256(value):
-    global fastboot_sha256
-    fastboot_sha256 = value
+    global _fastboot_sha256
+    _fastboot_sha256 = value
 
 
 # ============================================================================
 #                               Function get_phones
 # ============================================================================
 def get_phones():
-    global phones
-    return phones
+    global _phones
+    return _phones
 
 
 # ============================================================================
 #                               Function set_phones
 # ============================================================================
 def set_phones(value):
-    global phones
-    phones = value
+    global _phones
+    _phones = value
 
 
 # ============================================================================
 #                               Function get_device_list
 # ============================================================================
 def get_device_list():
-    global device_list
-    return device_list
+    global _device_list
+    return _device_list
 
 
 # ============================================================================
 #                               Function set_device_list
 # ============================================================================
 def set_device_list(value):
-    global device_list
-    device_list = value
+    global _device_list
+    _device_list = value
 
 
 # ============================================================================
 #                               Function get_phone_id
 # ============================================================================
 def get_phone_id():
-    global phone_id
-    return phone_id
+    global _phone_id
+    return _phone_id
 
 
 # ============================================================================
 #                               Function set_phone_id
 # ============================================================================
 def set_phone_id(value):
-    global phone_id
-    phone_id = value
+    global _phone_id
+    _phone_id = value
 
 
 # ============================================================================
@@ -694,64 +711,64 @@ def get_phone(make_sure_connected=False):
 #                               Function get_system_codepage
 # ============================================================================
 def get_system_codepage():
-    global system_code_page
-    return system_code_page
+    global _system_code_page
+    return _system_code_page
 
 
 # ============================================================================
 #                               Function set_system_codepage
 # ============================================================================
 def set_system_codepage(value):
-    global system_code_page
-    system_code_page = value
+    global _system_code_page
+    _system_code_page = value
 
 
 # ============================================================================
 #                               Function get_magisk_package
 # ============================================================================
 def get_magisk_package():
-    global magisk_package
-    return magisk_package
+    global _magisk_package
+    return _magisk_package
 
 
 # ============================================================================
 #                               Function set_magisk_package
 # ============================================================================
 def set_magisk_package(value):
-    global magisk_package
-    magisk_package = value
+    global _magisk_package
+    _magisk_package = value
 
 
 # ============================================================================
 #                               Function get_linux_shell
 # ============================================================================
 def get_linux_shell():
-    global linux_shell
-    return linux_shell
+    global _linux_shell
+    return _linux_shell
 
 
 # ============================================================================
 #                               Function set_linux_shell
 # ============================================================================
 def set_linux_shell(value):
-    global linux_shell
-    linux_shell = value
+    global _linux_shell
+    _linux_shell = value
 
 
 # ============================================================================
 #                               Function get_is_ota
 # ============================================================================
 def get_ota():
-    global is_ota
-    return is_ota
+    global _is_ota
+    return _is_ota
 
 
 # ============================================================================
 #                               Function set_ota
 # ============================================================================
 def set_ota(self, value):
-    global is_ota
-    is_ota = value
+    global _is_ota
+    _is_ota = value
     self.config.firmware_is_ota = value
     if value:
         self.enable_disable_radio_button('OTA', True, selected=True, just_select=True)
@@ -765,256 +782,256 @@ def set_ota(self, value):
 #                               Function get_sdk_state
 # ============================================================================
 def get_sdk_state():
-    global sdk_is_ok
-    return sdk_is_ok
+    global _sdk_is_ok
+    return _sdk_is_ok
 
 
 # ============================================================================
 #                               Function set_sdk_state
 # ============================================================================
 def set_sdk_state(value):
-    global sdk_is_ok
-    sdk_is_ok = value
+    global _sdk_is_ok
+    _sdk_is_ok = value
 
 
 # ============================================================================
 #                               Function get_firmware_hash_validity
 # ============================================================================
 def get_firmware_hash_validity():
-    global firmware_hash_valid
-    return firmware_hash_valid
+    global _firmware_hash_valid
+    return _firmware_hash_valid
 
 
 # ============================================================================
 #                               Function set_firmware_hash_validity
 # ============================================================================
 def set_firmware_hash_validity(value):
-    global firmware_hash_valid
-    firmware_hash_valid = value
+    global _firmware_hash_valid
+    _firmware_hash_valid = value
 
 
 # ============================================================================
 #                               Function get_firmware_has_init_boot
 # ============================================================================
 def get_firmware_has_init_boot():
-    global firmware_has_init_boot
-    return firmware_has_init_boot
+    global _firmware_has_init_boot
+    return _firmware_has_init_boot
 
 
 # ============================================================================
 #                               Function set_firmware_has_init_boot
 # ============================================================================
 def set_firmware_has_init_boot(value):
-    global firmware_has_init_boot
-    firmware_has_init_boot = value
+    global _firmware_has_init_boot
+    _firmware_has_init_boot = value
 
 
 # ============================================================================
 #                               Function get_rom_has_init_boot
 # ============================================================================
 def get_rom_has_init_boot():
-    global rom_has_init_boot
-    return rom_has_init_boot
+    global _rom_has_init_boot
+    return _rom_has_init_boot
 
 
 # ============================================================================
 #                               Function set_rom_has_init_boot
 # ============================================================================
 def set_rom_has_init_boot(value):
-    global rom_has_init_boot
-    rom_has_init_boot = value
+    global _rom_has_init_boot
+    _rom_has_init_boot = value
 
 
 # ============================================================================
 #                               Function get_dlg_checkbox_values
 # ============================================================================
 def get_dlg_checkbox_values():
-    global dlg_checkbox_values
-    return dlg_checkbox_values
+    global _dlg_checkbox_values
+    return _dlg_checkbox_values
 
 
 # ============================================================================
 #                               Function set_dlg_checkbox_values
 # ============================================================================
 def set_dlg_checkbox_values(value):
-    global dlg_checkbox_values
-    dlg_checkbox_values = value
+    global _dlg_checkbox_values
+    _dlg_checkbox_values = value
 
 
 # ============================================================================
 #                               Function get_firmware_model
 # ============================================================================
 def get_firmware_model():
-    global firmware_model
-    return firmware_model
+    global _firmware_model
+    return _firmware_model
 
 
 # ============================================================================
 #                               Function set_firmware_model
 # ============================================================================
 def set_firmware_model(value):
-    global firmware_model
-    firmware_model = value
+    global _firmware_model
+    _firmware_model = value
 
 
 # ============================================================================
 #                               Function get_firmware_id
 # ============================================================================
 def get_firmware_id():
-    global firmware_id
-    return firmware_id
+    global _firmware_id
+    return _firmware_id
 
 
 # ============================================================================
 #                               Function set_firmware_id
 # ============================================================================
 def set_firmware_id(value):
-    global firmware_id
-    firmware_id = value
+    global _firmware_id
+    _firmware_id = value
 
 
 # ============================================================================
 #                               Function get_custom_rom_id
 # ============================================================================
 def get_custom_rom_id():
-    global custom_rom_id
-    return custom_rom_id
+    global _custom_rom_id
+    return _custom_rom_id
 
 
 # ============================================================================
 #                               Function set_custom_rom_id
 # ============================================================================
 def set_custom_rom_id(value):
-    global custom_rom_id
-    custom_rom_id = value
+    global _custom_rom_id
+    _custom_rom_id = value
 
 
 # ============================================================================
 #                               Function get_logfile
 # ============================================================================
 def get_logfile():
-    global logfile
-    return logfile
+    global _logfile
+    return _logfile
 
 
 # ============================================================================
 #                               Function set_logfile
 # ============================================================================
 def set_logfile(value):
-    global logfile
-    logfile = value
+    global _logfile
+    _logfile = value
 
 
 # ============================================================================
 #                               Function get_pumlfile
 # ============================================================================
 def get_pumlfile():
-    global pumlfile
-    return pumlfile
+    global _pumlfile
+    return _pumlfile
 
 
 # ============================================================================
 #                               Function set_pumlfile
 # ============================================================================
 def set_pumlfile(value):
-    global pumlfile
-    pumlfile = value
+    global _pumlfile
+    _pumlfile = value
 
 
 # ============================================================================
 #                               Function get_sdk_version
 # ============================================================================
 def get_sdk_version():
-    global sdk_version
-    return sdk_version
+    global _sdk_version
+    return _sdk_version
 
 
 # ============================================================================
 #                               Function set_sdk_version
 # ============================================================================
 def set_sdk_version(value):
-    global sdk_version
-    sdk_version = value
+    global _sdk_version
+    _sdk_version = value
 
 
 # ============================================================================
 #                               Function get_image_mode
 # ============================================================================
 def get_image_mode():
-    global image_mode
-    return image_mode
+    global _image_mode
+    return _image_mode
 
 
 # ============================================================================
 #                               Function set_image_mode
 # ============================================================================
 def set_image_mode(value):
-    global image_mode
-    image_mode = value
+    global _image_mode
+    _image_mode = value
 
 
 # ============================================================================
 #                               Function get_image_path
 # ============================================================================
 def get_image_path():
-    global image_path
-    return image_path
+    global _image_path
+    return _image_path
 
 
 # ============================================================================
 #                               Function set_image_path
 # ============================================================================
 def set_image_path(value):
-    global image_path
-    image_path = value
+    global _image_path
+    _image_path = value
 
 
 # ============================================================================
 #                               Function get_custom_rom_file
 # ============================================================================
 def get_custom_rom_file():
-    global custom_rom_file
-    return custom_rom_file
+    global _custom_rom_file
+    return _custom_rom_file
 
 
 # ============================================================================
 #                               Function set_custom_rom_file
 # ============================================================================
 def set_custom_rom_file(value):
-    global custom_rom_file
-    custom_rom_file = value
+    global _custom_rom_file
+    _custom_rom_file = value
 
 
 # ============================================================================
 #                               Function get_message_box_title
 # ============================================================================
 def get_message_box_title():
-    global message_box_title
-    return message_box_title
+    global _message_box_title
+    return _message_box_title
 
 
 # ============================================================================
 #                               Function set_message_box_title
 # ============================================================================
 def set_message_box_title(value):
-    global message_box_title
-    message_box_title = value
+    global _message_box_title
+    _message_box_title = value
 
 
 # ============================================================================
 #                               Function get_message_box_message
 # ============================================================================
 def get_message_box_message():
-    global message_box_message
-    return message_box_message
+    global _message_box_message
+    return _message_box_message
 
 
 # ============================================================================
 #                               Function set_message_box_message
 # ============================================================================
 def set_message_box_message(value):
-    global message_box_message
-    message_box_message = value
+    global _message_box_message
+    _message_box_message = value
 
 
 # ============================================================================
@@ -1081,15 +1098,15 @@ def init_config_path(config_file_path=''):
 # ============================================================================
 def init_db():
     try:
-        global db
+        global _db
         config_path = get_sys_config_path()
         # connect / create db
-        db = sl.connect(os.path.join(config_path, get_pf_db()))
-        db.execute("PRAGMA foreign_keys = ON")
+        _db = sl.connect(os.path.join(config_path, get_pf_db()))
+        _db.execute("PRAGMA foreign_keys = ON")
         # create tables
-        with db:
+        with _db:
             # PACKAGE Table
-            db.execute("""
+            _db.execute("""
                 CREATE TABLE IF NOT EXISTS PACKAGE (
                     id INTEGER NOT NULL PRIMARY KEY,
                     boot_hash TEXT NOT NULL,
@@ -1100,7 +1117,7 @@ def init_db():
                 );
             """)
             # BOOT Table
-            db.execute("""
+            _db.execute("""
                 CREATE TABLE IF NOT EXISTS BOOT (
                     id INTEGER NOT NULL PRIMARY KEY,
                     boot_hash TEXT NOT NULL UNIQUE,
@@ -1113,7 +1130,7 @@ def init_db():
                 );
             """)
             # PACKAGE_BOOT Table
-            db.execute("""
+            _db.execute("""
                 CREATE TABLE IF NOT EXISTS PACKAGE_BOOT (
                     package_id INTEGER,
                     boot_id INTEGER,
@@ -1126,36 +1143,36 @@ def init_db():
 
             # Check if the patch_method and is_odin column already exists in the BOOT table
             # Added in version 5.1
-            cursor = db.execute("PRAGMA table_info(BOOT)")
+            cursor = _db.execute("PRAGMA table_info(BOOT)")
             columns = cursor.fetchall()
             column_names = [column[1] for column in columns]
 
             if 'patch_method' not in column_names:
                 # Add the patch_method column to the BOOT table
-                db.execute("ALTER TABLE BOOT ADD COLUMN patch_method TEXT;")
+                _db.execute("ALTER TABLE BOOT ADD COLUMN patch_method TEXT;")
             if 'is_odin' not in column_names:
                 # Add the is_odin column to the BOOT table
-                db.execute("ALTER TABLE BOOT ADD COLUMN is_odin INTEGER;")
+                _db.execute("ALTER TABLE BOOT ADD COLUMN is_odin INTEGER;")
             # Added in version 5.4
             if 'is_stock_boot' not in column_names:
                 # Add the is_stock_boot column to the BOOT table
-                db.execute("ALTER TABLE BOOT ADD COLUMN is_stock_boot INTEGER;")
+                _db.execute("ALTER TABLE BOOT ADD COLUMN is_stock_boot INTEGER;")
             if 'is_init_boot' not in column_names:
                 # Add the is_init_boot column to the BOOT table
-                db.execute("ALTER TABLE BOOT ADD COLUMN is_init_boot INTEGER;")
+                _db.execute("ALTER TABLE BOOT ADD COLUMN is_init_boot INTEGER;")
             if 'patch_source_sha1' not in column_names:
                 # Add the patch_source_sha1 column to the BOOT table
-                db.execute("ALTER TABLE BOOT ADD COLUMN patch_source_sha1 INTEGER;")
+                _db.execute("ALTER TABLE BOOT ADD COLUMN patch_source_sha1 INTEGER;")
 
             # Check if the full_ota column already exists in the PACKAGE table
             # Added in version 5.8
-            cursor = db.execute("PRAGMA table_info(PACKAGE)")
+            cursor = _db.execute("PRAGMA table_info(PACKAGE)")
             columns = cursor.fetchall()
             column_names = [column[1] for column in columns]
 
             if 'full_ota' not in column_names:
                 # Add the full_ota column to the BOOT table (values: 0:Not Full OTA, 1:Full OTA NULL:UNKNOWN)
-                db.execute("ALTER TABLE PACKAGE ADD COLUMN full_ota INTEGER;")
+                _db.execute("ALTER TABLE PACKAGE ADD COLUMN full_ota INTEGER;")
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while init_db")
         traceback.print_exc()
@@ -1166,16 +1183,16 @@ def init_db():
 # ============================================================================
 def get_config_file_path():
     # return os.path.join(get_sys_config_path(), CONFIG_FILE_NAME).strip()
-    global config_file_path
-    return config_file_path
+    global _config_file_path
+    return _config_file_path
 
 
 # ============================================================================
 #                               Function set_config
 # ============================================================================
 def set_config_file_path(value):
-    global config_file_path
-    config_file_path = value
+    global _config_file_path
+    _config_file_path = value
 
 
 # ============================================================================
@@ -1189,16 +1206,16 @@ def get_sys_config_path():
 #                               Function get_config_path
 # ============================================================================
 def get_config_path():
-    global config_path
-    return config_path
+    global _config_path
+    return _config_path
 
 
 # ============================================================================
 #                               Function set_config_path
 # ============================================================================
 def set_config_path(value):
-    global config_path
-    config_path = value
+    global _config_path
+    _config_path = value
 
 
 # ============================================================================
@@ -2080,6 +2097,7 @@ def create_support_zip():
         print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Creating support.zip file ...")
         config_path = get_config_path()
         sys_config_path = get_sys_config_path()
+        config = get_config()
         tmp_dir_full = os.path.join(config_path, 'tmp')
         support_dir_full = os.path.join(config_path, 'support')
         support_zip = os.path.join(tmp_dir_full, 'support.zip')
@@ -3320,6 +3338,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
     try:
         module_versionCode = 0
         module_flavor = None
+        config = get_config()
         with contextlib.suppress(Exception):
             module_flavor = pif_flavor.split('_')[0]
             module_versionCode = int(pif_flavor.split('_')[1])
@@ -4184,7 +4203,7 @@ def get_freeman_pif(abi_list=None):
 # ============================================================================
 def get_pif_from_image(image_file):
     config_path = get_config_path()
-    # config = get_config()
+    config = get_config()
     path_to_7z = get_path_to_7z()
     temp_dir = tempfile.TemporaryDirectory()
     temp_dir_path = temp_dir.name
@@ -4727,7 +4746,7 @@ def extract_magiskboot(apk_path, architecture, output_path):
         file_path_in_apk = f"lib/{architecture}/libmagiskboot.so"
         output_file_path = os.path.join(output_path, "magiskboot")
 
-        cmd = f"{path_to_7z} e {apk_path} -o{output_path} -r {file_path_in_apk} -y"
+        cmd = f"{path_to_7z} e \"{apk_path}\" -o\"{output_path}\" -r {file_path_in_apk} -y"
         debug(cmd)
         res = run_shell2(cmd)
         if res and isinstance(res, subprocess.CompletedProcess):
@@ -4801,8 +4820,9 @@ def check_internet():
     try:
         _ = requests.get(url, timeout=timeout)
         return True
-    except requests.ConnectionError:
+    except requests.ConnectionError as e:
         print("No internet connection available.")
+        print(e)
     return False
 
 
@@ -5110,6 +5130,7 @@ def add_hash_footer(boot_image_path,
 # ============================================================================
 def run_tool(tool_details):
     try:
+        config = get_config()
         command = tool_details['command']
         arguments = tool_details['arguments']
         directory = tool_details['directory']
@@ -5475,8 +5496,8 @@ def insert_package_boot_record(package_id, boot_id):
 #                               Function magisk_apks
 # ============================================================================
 def get_magisk_apks():
-    global magisk_apks
-    if magisk_apks is None:
+    global _magisk_apks
+    if _magisk_apks is None:
         try:
             apks = []
             mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'Magisk Alpha', 'Magisk Delta Canary', 'Magisk Delta Debug', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
@@ -5484,12 +5505,12 @@ def get_magisk_apks():
                 apk = get_magisk_apk_details(i)
                 if apk:
                     apks.append(apk)
-            magisk_apks = apks
+            _magisk_apks = apks
         except Exception as e:
-            magisk_apks is None
+            _magisk_apks is None
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads link: {i} processing")
             traceback.print_exc()
-    return magisk_apks
+    return _magisk_apks
 
 
 # ============================================================================
@@ -5551,11 +5572,12 @@ def get_magisk_apk_details(channel):
                 if kernelsu_version:
                     kernelsu_versionCode = kernelsu_version
                 else:
-                    parts = version.split('.')
-                    a = int(parts[0])
-                    b = int(parts[1])
-                    c = int(parts[2])
-                    kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+                    # parts = version.split('.')
+                    # a = int(parts[0])
+                    # b = int(parts[1])
+                    # c = int(parts[2])
+                    # kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
+                    kernelsu_versionCode = 0
             setattr(ma, 'version', kernelsu_version)
             setattr(ma, 'versionCode', kernelsu_versionCode)
             setattr(ma, 'link', kernelsu_url)
@@ -5584,11 +5606,12 @@ def get_magisk_apk_details(channel):
                 if kernelsu_next_version:
                     kernelsu_next_versionCode = kernelsu_next_version
                 else:
-                    parts = version.split('.')
-                    a = int(parts[0])
-                    b = int(parts[1])
-                    c = int(parts[2])
-                    kernelsu_next_versionCode = (a * 256 * 256) + (b * 256) + c
+                    # parts = version.split('.')
+                    # a = int(parts[0])
+                    # b = int(parts[1])
+                    # c = int(parts[2])
+                    # kernelsu_next_versionCode = (a * 256 * 256) + (b * 256) + c
+                    kernelsu_next_versionCode = 0
             setattr(ma, 'version', kernelsu_next_version)
             setattr(ma, 'versionCode', kernelsu_next_versionCode)
             setattr(ma, 'link', kernelsu_next_url)
@@ -5617,11 +5640,12 @@ def get_magisk_apk_details(channel):
                 if apatch_version:
                     apatch_versionCode = apatch_version
                 else:
-                    parts = version.split('.')
-                    a = int(parts[0])
-                    b = int(parts[1])
-                    c = int(parts[2])
-                    apatch_versionCode = (a * 256 * 256) + (b * 256) + c
+                    # parts = version.split('.')
+                    # a = int(parts[0])
+                    # b = int(parts[1])
+                    # c = int(parts[2])
+                    # apatch_versionCode = (a * 256 * 256) + (b * 256) + c
+                    apatch_versionCode = 0
             setattr(ma, 'version', apatch_version)
             setattr(ma, 'versionCode', apatch_versionCode)
             setattr(ma, 'link', apatch_url)

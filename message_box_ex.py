@@ -61,7 +61,8 @@ class MessageBoxEx(wx.Dialog):
 
         if is_md:
             self.html = wx.html.HtmlWindow(self, wx.ID_ANY, size=size)
-            md_html = markdown.markdown(message)
+            message = message.strip()  # Remove leading/trailing whitespace
+            md_html = markdown.markdown(message, extensions=['extra'])
 
             # Adjust colors for dark mode on Mac and Linux
             if darkdetect.isDark() and sys.platform != "win32":

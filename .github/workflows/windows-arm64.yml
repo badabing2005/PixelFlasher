@@ -87,14 +87,9 @@ jobs:
           pip install --upgrade pyinstaller
           pip install -r requirements.txt
 
-      - name: Modify build spec
-        run: |
-          (Get-Content build-on-win.spec) -replace 'exe = EXE\(', 'exe = EXE(target_arch=''arm64'',' | Set-Content build-on-win.spec
-        shell: pwsh
-
       - name: Build ARM64 application
-        run: .\build.bat
         shell: cmd
+        run: pyinstaller --log-level=DEBUG --clean --noconfirm build-on-win-arm64.spec
 
       - name: Sign Windows ARM64 Executable
         uses: skymatic/code-sign-action@v3

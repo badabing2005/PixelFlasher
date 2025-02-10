@@ -2016,7 +2016,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 data += "elif [[ -f \"/data/local/tmp/pf/assets/magisk32\" ]]; then\n"
                 data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk32 -c)\n"
                 data += "    echo \"PATCHING_MAGISK_VERSION: $PATCHING_MAGISK_VERSION\"\n"
-                data += "elif [[ -f \"/data/local/tmp/pf/assets.magisk64\" ]]; then\n"
+                data += "elif [[ -f \"/data/local/tmp/pf/assets/magisk64\" ]]; then\n"
                 data += "    PATCHING_MAGISK_VERSION=$(/data/local/tmp/pf/assets/magisk64 -c)\n"
                 data += "    echo \"PATCHING_MAGISK_VERSION: $PATCHING_MAGISK_VERSION\"\n"
                 data += "else\n"

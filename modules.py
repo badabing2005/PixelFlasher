@@ -4783,6 +4783,7 @@ def flash_phone(self):
                 print("Aborting ...\n")
                 puml("#red:Encountered an error while rebooting to sideload;\n}\n")
                 self.toast("Flash action", "❌ Encountered an error while rebooting to sideload.")
+                refresh_and_done()
                 return -1
         # Some images need to be flashed in fastbootd mode
         # note: system and vendor, typically get flashed to both slots. '--skip-secondary' will not flash secondary slots in flashall/update
@@ -4794,10 +4795,11 @@ def flash_phone(self):
                 print("Aborting ...\n")
                 puml("#red:Encountered an error while rebooting to fastbootd;\n}\n")
                 self.toast("Flash action", "❌ Encountered an error while rebooting to fastbootd.")
+                refresh_and_done()
                 return -1
         # be in bootloader mode for flashing
         else:
-            res = reboot_device_to_bootloader()
+            res = device.reboot_bootloader()
             if res == -1:
                 refresh_and_done()
                 print("Aborting ...\n")

@@ -4452,35 +4452,38 @@ def get_connected_devices():
             theCmd = f"\"{get_adb()}\" devices"
             debug(theCmd)
             res = run_shell(theCmd, timeout=60)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
-                debug(f"adb devices:\n{res.stdout}")
-                for device in res.stdout.split('\n'):
-                    if any(keyword in device for keyword in ['device', 'recovery', 'sideload', 'rescue']):
-                        if device == "List of devices attached":
-                            continue
-                        # with contextlib.suppress(Exception):
-                        try:
-                            d_id = device.split("\t")
-                            if len(d_id) != 2:
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Return Code: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.stdout:
+                    for device in res.stdout.split('\n'):
+                        if any(keyword in device for keyword in ['device', 'recovery', 'sideload', 'rescue']):
+                            if device == "List of devices attached":
                                 continue
-                            mode = d_id[1].strip()
-                            d_id = d_id[0].strip()
-                            true_mode = None
-                            if mode in ('recovery', 'sideload', 'rescue'):
-                                true_mode = mode
-                            device = Device(d_id, 'adb', true_mode)
-                            device.init('adb')
-                            device_details = device.get_device_details()
-                            devices.append(device_details)
-                            phones.append(device)
-                        except Exception as e:
-                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
-                            traceback.print_exc()
+                            # with contextlib.suppress(Exception):
+                            try:
+                                d_id = device.split("\t")
+                                if len(d_id) != 2:
+                                    continue
+                                mode = d_id[1].strip()
+                                d_id = d_id[0].strip()
+                                true_mode = None
+                                if mode in ('recovery', 'sideload', 'rescue'):
+                                    true_mode = mode
+                                device = Device(d_id, 'adb', true_mode)
+                                device.init('adb')
+                                device_details = device.get_device_details()
+                                devices.append(device_details)
+                                phones.append(device)
+                            except Exception as e:
+                                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb devices.")
+                                traceback.print_exc()
                     else:
                         if device.strip() != "":
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown device state: {device}\n")
             else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected adb devices.")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
 
@@ -4488,23 +4491,27 @@ def get_connected_devices():
             theCmd = f"\"{get_fastboot()}\" devices"
             debug(theCmd)
             res = run_shell(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
-                debug(f"fastboot devices:\n{res.stdout}")
-                for device in res.stdout.split('\n'):
-                    if 'no permissions' in device:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
-                        puml("#red:No permissions to access fastboot device;\n", True)
-                        continue
-                    if 'fastboot' in device:
-                        d_id = device.split("\t")
-                        d_id = d_id[0].strip()
-                        device = Device(d_id, 'f.b')
-                        device.init('f.b')
-                        device_details = device.get_device_details()
-                        devices.append(device_details)
-                        phones.append(device)
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Return Code: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.stdout:
+                    # debug(f"fastboot devices:\n{res.stdout}")
+                    for device in res.stdout.split('\n'):
+                        if 'no permissions' in device:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
+                            puml("#red:No permissions to access fastboot device;\n", True)
+                            continue
+                        if 'fastboot' in device:
+                            d_id = device.split("\t")
+                            d_id = d_id[0].strip()
+                            device = Device(d_id, 'f.b')
+                            device.init('f.b')
+                            device_details = device.get_device_details()
+                            devices.append(device_details)
+                            phones.append(device)
         else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting fastboot devices.")
 
         set_phones(phones)
     except Exception as e:

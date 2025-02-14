@@ -3902,10 +3902,16 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                     self.toast("Flash action", "❌ Device is not detected.")
                     return -1
                 elif res == 0:
-                    print("Aborting ...\n")
-                    puml("#red:Bootloader is locked, can't flash;\n}\n")
                     self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
-                    return -1
+                    dlg = wx.MessageDialog(None, f"Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?", "Error", wx.YES_NO | wx.ICON_ERROR)
+                    result = dlg.ShowModal()
+                    if result != wx.ID_YES:
+                        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
+                        print("Aborting ...\n")
+                        puml("#red:Bootloader is locked, can't flash;\n}\n")
+                        return -1
+                    else:
+                        print("❌ Bootloader is locked, but user chose to proceed ...")
                 else:
                     print("✅ Bootloader is unlocked, continuing ...")
             else:
@@ -4642,10 +4648,16 @@ def flash_phone(self):
                     self.toast("Flash action", "❌ Device is not detected.")
                     return -1
                 elif res == 0:
-                    print("Aborting ...\n")
-                    puml("#red:Bootloader is locked, can't flash;\n}\n")
                     self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
-                    return -1
+                    dlg = wx.MessageDialog(None, f"Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?", "Error", wx.YES_NO | wx.ICON_ERROR)
+                    result = dlg.ShowModal()
+                    if result != wx.ID_YES:
+                        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
+                        print("Aborting ...\n")
+                        puml("#red:Bootloader is locked, can't flash;\n}\n")
+                        return -1
+                    else:
+                        print("❌ Bootloader is locked, but user chose to proceed ...")
                 else:
                     print("✅ Bootloader is unlocked, continuing ...")
 
@@ -4851,10 +4863,16 @@ def flash_phone(self):
                     self.toast("Flash action", "❌ Device is not detected.")
                     return -1
                 elif res == 0:
-                    print("Aborting ...\n")
-                    puml("#red:Bootloader is locked, can't flash;\n}\n")
                     self.toast("Flash action", "❌ Bootloader is locked, cannot flash.")
-                    return -1
+                    dlg = wx.MessageDialog(None, f"Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?", "Error", wx.YES_NO | wx.ICON_ERROR)
+                    result = dlg.ShowModal()
+                    if result != wx.ID_YES:
+                        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
+                        print("Aborting ...\n")
+                        puml("#red:Bootloader is locked, can't flash;\n}\n")
+                        return -1
+                    else:
+                        print("❌ Bootloader is locked, but user chose to proceed ...")
                 else:
                     # we do not want to flash if we have selected Temporary root
                     if self.config.advanced_options and self.config.temporary_root and boot.is_patched:

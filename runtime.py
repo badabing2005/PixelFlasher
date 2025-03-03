@@ -4863,6 +4863,7 @@ def check_kb(filename):
 
         shadow_banned_list = SHADOW_BANNED_ISSUERS
         is_sw_signed = False
+        is_google_signed = False
         is_expired = False
         expiring_soon = False
         is_revoked = False
@@ -4929,6 +4930,9 @@ def check_kb(filename):
             if "Software Attestation" in cert_issuer:
                 is_sw_signed = True
 
+            if issuer_sn in ['f92009e853b6b045']:
+                is_google_signed = True
+
             if expiry < datetime.now(timezone.utc):
                 is_expired = True
                 print(f"{tab_text}❌❌❌ Certificate is EXPIRED")
@@ -4953,7 +4957,7 @@ def check_kb(filename):
         if is_expired:
             print(f"\n❌❌❌ Keybox {filename} contains expired certificates!")
             results.append('expired')
-        if is_sw_signed:
+        if is_sw_signed or not is_google_signed:
             print(f"⚠️ Keybox {filename} is software signed! This is not a hardware-backed keybox!")
             results.append('aosp')
         if expiring_soon:

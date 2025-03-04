@@ -610,6 +610,7 @@ def process_file(self, file_type):
         if file_type == 'firmware':
             is_stock_boot = True
             file_to_process = self.config.firmware_path
+            file_ext = os.path.splitext(file_to_process)[1].lower()
             print(f"Factory File:          {file_to_process}")
             puml(f"note right:{file_to_process}\n")
             package_sig = get_firmware_id()
@@ -913,27 +914,37 @@ def process_file(self, file_type):
                     return
 
                 print(f"Extracting {files_to_extract} from {image_file_path} ...")
+                print("This could take some more time, please wait ...")
                 puml(f":Extract {files_to_extract};\n")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
-                debug(f"{theCmd}")
-                res = run_shell(theCmd)
-                # expect ret 0
-                if res and isinstance(res, subprocess.CompletedProcess):
-                    debug(f"Return Code: {res.returncode}")
-                    debug(f"Stdout: {res.stdout}")
-                    debug(f"Stderr: {res.stderr}")
-                    if res.returncode != 0:
+                if file_ext in ['.tgz']:
+                    res = extract_from_nested_tgz(image_file_path, files_to_extract, tmp_dir_full)
+                    if not res:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
                         puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
                         self.toast("Process action", f"❌ Could not extract {boot_file_name}")
                         print("Aborting ...\n")
                         return
                 else:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-                    puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
-                    self.toast("Process action", f"❌ Could not extract {boot_file_name}")
-                    print("Aborting ...\n")
-                    return
+                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
+                    debug(f"{theCmd}")
+                    res = run_shell(theCmd)
+                    # expect ret 0
+                    if res and isinstance(res, subprocess.CompletedProcess):
+                        debug(f"Return Code: {res.returncode}")
+                        debug(f"Stdout: {res.stdout}")
+                        debug(f"Stderr: {res.stderr}")
+                        if res.returncode != 0:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
+                            puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                            self.toast("Process action", f"❌ Could not extract {boot_file_name}")
+                            print("Aborting ...\n")
+                            return
+                    else:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
+                        puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                        self.toast("Process action", f"❌ Could not extract {boot_file_name}")
+                        print("Aborting ...\n")
+                        return
 
         # sometimes the return code is 0 but no file to extract, handle that case.
         # also handle the case of extraction from payload.bin

@@ -1448,6 +1448,101 @@ def get_compression_method(zip_path, file_to_replace):
 
 
 # ============================================================================
+#                               Function extract_from_nested_tgz
+# ============================================================================
+def extract_from_nested_tgz(archive_path, file_paths, output_dir):
+    """
+    Extract files from nested archives (like tgz -> tar -> folder structure).
+
+    Args:
+        archive_path: Path to the outer archive file
+        file_paths: List of filenames to extract
+        output_dir: Directory to extract files to
+
+    Returns:
+        True if all files were successfully extracted, False otherwise
+    """
+
+    temp_dir = tempfile.mkdtemp(dir=tempfile.gettempdir())
+    success = True
+
+    try:
+        path_to_7z = get_path_to_7z()
+
+        # First extract the outer archive (tgz) to get the inner archive (tar)
+        debug(f"Extracting outer archive to {temp_dir}")
+
+        cmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir}\" \"{archive_path}\""
+        debug(f"{cmd}")
+        result = run_shell(cmd)
+        if result.returncode != 0:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract outer archive")
+            return False
+
+        # Find the inner tar file
+        tar_file = None
+        for root, _, files in os.walk(temp_dir):
+            for file in files:
+                if file.endswith('.tar'):
+                    tar_file = os.path.join(root, file)
+                    break
+            if tar_file:
+                break
+
+        if not tar_file:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find inner tar archive")
+            return False
+
+        # Extract the tar file to the temp directory
+        debug(f"Extracting inner archive {tar_file}")
+
+        inner_extract_dir = os.path.join(temp_dir, "inner")
+        os.makedirs(inner_extract_dir, exist_ok=True)
+
+        cmd = f"\"{path_to_7z}\" x -bd -y -o\"{inner_extract_dir}\" \"{tar_file}\""
+        debug(f"{cmd}")
+        result = run_shell(cmd)
+        if result.returncode != 0:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract inner archive")
+            return False
+        # delete the tar file
+        os.remove(tar_file)
+
+        # Copy each needed file to the output directory
+        for file_name in file_paths.split():
+            found = False
+            file_path = None
+
+            for root, _, files in os.walk(inner_extract_dir):
+                for file in files:
+                    if file == file_name:
+                        file_path = os.path.join(root, file)
+                        found = True
+                        break
+                if found:
+                    break
+
+            if file_path and os.path.exists(file_path):
+                output_file = os.path.join(output_dir, file_name)
+                shutil.copy2(file_path, output_file)
+                debug(f"Extracted {file_name} to {output_file}")
+            else:
+                print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {file_name} in extracted content")
+                success = False
+
+    except Exception as e:
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract from nested archive: {str(e)}")
+        traceback.print_exc()
+        success = False
+    finally:
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception as e:
+            debug(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: cleaning up temp directory: {str(e)}")
+    return success
+
+
+# ============================================================================
 #                   Function replace_file_in_zip_with_7zip
 # ============================================================================
 def replace_file_in_zip_with_7zip(zip_path, file_to_replace, new_file_path):

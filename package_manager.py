@@ -923,6 +923,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.popupRmFromDeny = wx.NewIdRef()
             self.popupDownload = wx.NewIdRef()
             self.popupLaunch = wx.NewIdRef()
+            self.popupPermissions = wx.NewIdRef()
             self.popupKill = wx.NewIdRef()
             self.popupClearData = wx.NewIdRef()
             self.popupRefresh = wx.NewIdRef()
@@ -938,6 +939,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.Bind(wx.EVT_MENU, self.OnPopupRmFromDeny, id=self.popupRmFromDeny)
             self.Bind(wx.EVT_MENU, self.OnPopupDownload, id=self.popupDownload)
             self.Bind(wx.EVT_MENU, self.OnPopupLaunch, id=self.popupLaunch)
+            self.Bind(wx.EVT_MENU, self.OnPopupPermissions, id=self.popupPermissions)
             self.Bind(wx.EVT_MENU, self.OnPopupKill, id=self.popupKill)
             self.Bind(wx.EVT_MENU, self.OnPopupClearData, id=self.popupClearData)
             self.Bind(wx.EVT_MENU, self.OnPopupRefresh, id=self.popupRefresh)
@@ -953,6 +955,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         uninstallItem = menu.Append(self.popupUninstall, "Uninstall Package")
         downloadItem = menu.Append(self.popupDownload, "Download Package")
         launchItem = menu.Append(self.popupLaunch, "Launch Package")
+        PermissionsItem = menu.Append(self.popupPermissions, "View Application Permissions")
         killItem = menu.Append(self.popupKill, "Kill Application")
         clearItem = menu.Append(self.popupClearData, "Clear Application Data")
         # Add a separator
@@ -973,6 +976,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         uninstallItem.SetBitmap(images.uninstall_24.GetBitmap())
         downloadItem.SetBitmap(images.download_24.GetBitmap())
         launchItem.SetBitmap(images.launch_24.GetBitmap())
+        PermissionsItem.SetBitmap(images.permissions_24.GetBitmap())
         killItem.SetBitmap(images.kill_24.GetBitmap())
         clearItem.SetBitmap(images.clear_24.GetBitmap())
         refreshItem.SetBitmap(images.scan_24.GetBitmap())
@@ -1071,6 +1075,14 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  OnPopupPermissions
+    # -----------------------------------------------
+    def OnPopupPermissions(self, event):
+        self._on_spin('start')
+        self.ApplySingleAction(self.currentItem, 'get-permissions')
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  OnPopupKill
     # -----------------------------------------------
     def OnPopupKill(self, event):
@@ -1161,6 +1173,13 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             print(f"Removing {counter}{pkg} type: {type} from Magisk Denylist...")
         elif action == "launch":
             print(f"Launching {counter}{pkg} type: {type}...")
+        elif action == "get-permissions":
+            print(f"Getting Permissions for {counter}{pkg} type: {type}...")
+            res = self.device.get_package_permissions(pkg)
+            if res:
+                self.details.SetValue(f"{res}")
+                debug(res)
+            return
         elif action == "kill":
             print(f"Killing {counter}{pkg} type: {type}...")
         elif action == "clear-data":

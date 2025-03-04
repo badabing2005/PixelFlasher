@@ -2262,6 +2262,47 @@ add_hosts_module
             return -1, -1
 
     # ----------------------------------------------------------------------------
+    #                               Method get_package_permissions
+    # ----------------------------------------------------------------------------
+    def get_package_permissions(self, pkg: str, pkg_path = '') -> str:
+        """Method package permissions (App name) given a package name.
+
+        Args:
+            pkg:        Package
+            pkg_path:   Package APK path, if provided, the Method skips figuring it out (faster). Default ''
+
+        Returns:
+            permissions on success.
+            -1          if an exception is raised.
+        """
+        if self.true_mode != 'adb':
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions. Device is not in ADB mode.")
+            return -1, -1
+        print()
+        try:
+            if pkg_path == '':
+                pkg_path = self.get_package_path(f"{pkg}", True)
+                if pkg_path == -1:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions.")
+                    return -1, -1
+                debug(f"    Package Path: {pkg_path}")
+            print(f"Getting package {pkg} permissions from the device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"/data/local/tmp/aapt2 d permissions {pkg_path}\""
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                return res.stdout
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
+                return -1
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions.")
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method uiautomator_dump
     # ----------------------------------------------------------------------------
     def uiautomator_dump(self, path: str):

@@ -6806,3 +6806,18 @@ shizuku_24 = PyEmbeddedImage(
     b'N/OiMzWHxf9nfZH31DP3gouYvP5J1tPFHr54K1onuPNRx7Faf/4lg3c+vJ5LxJ0lAk/Iaak2'
     b'9H/JSiofXc8Ukx989H0SuBQNpv9FgL8BobmWfM3j26MAAAAASUVORK5CYII=')
 
+#----------------------------------------------------------------------
+beta_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACMklEQVRIS+2VT2sTURTF730T'
+    b'01qa2k4UtFoVFD+AIkjNwk39AoIuXLnQIkjbUaQrrQaXNanFP+jCreIHqAtdqrUi6qYIBUGl'
+    b'dKN9JohoSWaOZ5IGpHYy7djufJt5zMw9v3fPvXdGZZ2XrrO+xALG27ElaAkKED2mkFaIzDLq'
+    b'jePr1YGSvo07YFNAIYvtRvCaIlv/EoJARXODVl80gzQFjLn+Q1E9AUiZYv0LRibSFTkoKdxh'
+    b'4D7en/Ss6U0EuCJIdWbxncGtPOvIkNV8Q6jo4owq7gqkwgxaCKdzy6/IDIpt2KYbMReG0f8+'
+    b'b16fNiTGXJym5j1mYJlBNlEG1130OIrPNQC017M6Ge5HM9icSuMlt3sAFDzrXFgTwIaKzFTT'
+    b'cpK4YQp2M62pTVaPnBL9lQhwows7YfApDFboYV46oHhct4xtWtXjA2X9kLhNl1qkKgG9ekDB'
+    b'3ZyDeu2Aa4PWXE5U5KgajLvYQdJ9IvoWG+AcG+DWqrsoChAKPRI4cy6eEXKIfs0OWdOzpoBQ'
+    b'rOj6eVW9VMvC1y6vpKXlIJFz0CyDGiDr36b3Z8N9ZV7bL4r+SAxgMfMLxowOf9VwsmXxGzXD'
+    b'bRstekKLjv6TRfWGYReJTNN3y+t+pp5hu/5kEx9gkd+vGvDnHPCUExTIUbyjIUTgKwm0n96/'
+    b'azYLK65B2cpUJiN7jSPdMPLlvNXpuCELn0cCbnZiV9XBx5o9gea8b/p8JYJL3/kPiHUt9qcf'
+    b'qxDzwm9g7hgohWJl9wAAAABJRU5ErkJggg==')
+

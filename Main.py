@@ -612,6 +612,7 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
                 device_menu = wx.Menu()
                 device_download_flag = False
 
+                # Handle OTA and Factory downloads
                 for download_type in ['ota', 'factory']:
                     download_menu = wx.Menu()
 
@@ -648,6 +649,23 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
 
                     if device_download_flag:
                         download_type_menu_item.SetBitmap(images.download_24.GetBitmap())
+
+                # Handle Beta downloads if they exist
+                if 'beta' in device_data:
+                    beta_menu = wx.Menu()
+                    for beta_entry in device_data['beta']:
+                        version = beta_entry['version']
+                        sha256 = beta_entry['sha256']
+                        menu_label = f"{version} ({device_label})"
+                        menu_id = self.generate_unique_id()
+                        beta_menu_item = beta_menu.Append(menu_id, menu_label, sha256)
+                        if beta_menu_item is not None:
+                            url = beta_entry['url']
+                            self.bind_download_event(beta_menu_item, url)
+                            beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
+
+                    beta_menu_item = device_menu.AppendSubMenu(beta_menu, "Beta")
+                    beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
 
                 if device_type == 'phone':
                     device_menu_item = self.phones_menu.AppendSubMenu(device_menu, f"{device_id} ({device_label})")
@@ -695,6 +713,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
 
                 submenu_ota = wx.Menu()
                 submenu_factory = wx.Menu()
+                submenu_beta = wx.Menu() if 'beta' in device_data else None
                 download_flag = False
 
                 for download_entry in reversed(device_data['ota']):
@@ -719,9 +738,22 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                             menu_item.SetBitmap(images.download_24.GetBitmap())
                             download_flag = True
 
+                # Add Beta submenu if beta data exists
+                if submenu_beta and 'beta' in device_data:
+                    for beta_entry in device_data['beta']:
+                        version = beta_entry['version']
+                        menu_label = f"{version}"
+                        menu_id = wx.NewId()
+                        menu_item = submenu_beta.Append(menu_id, menu_label)
+                        self.parent.Bind(wx.EVT_MENU, lambda event, u=beta_entry['url']: self.on_download(u), menu_item)
+                        menu_item.SetBitmap(images.beta_24.GetBitmap())
+
             with contextlib.suppress(Exception):
                 ota_menu_item = self.AppendSubMenu(submenu_ota, "OTA")
                 factory_menu_item = self.AppendSubMenu(submenu_factory, "Factory")
+                if submenu_beta:
+                    beta_menu_item = self.AppendSubMenu(submenu_beta, "Beta")
+                    beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
                 if download_flag:
                     ota_menu_item.SetBitmap(images.download_24.GetBitmap())
                     factory_menu_item.SetBitmap(images.download_24.GetBitmap())

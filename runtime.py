@@ -2668,6 +2668,34 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
 
 
 # ============================================================================
+#                 Function get_beta_links
+# ============================================================================
+def get_beta_links():
+    try:
+        # Get the latest Android version
+        latest_version, latest_version_url = get_latest_android_version(None)
+        ota_data = None
+        factory_data = None
+        if latest_version == -1:
+            return None, None
+
+
+        # Fetch OTA HTML
+        ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
+        ota_data = get_beta_data(ota_url)
+
+        # Fetch Factory HTML
+        factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
+        factory_data = get_beta_data(factory_url)
+
+        return ota_data, factory_data
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting beta links.")
+        traceback.print_exc()
+        return None, None
+
+
+# ============================================================================
 #                 Function get_beta_pif
 # ============================================================================
 def get_beta_pif(device_model='random', force_version=None):
@@ -3120,6 +3148,17 @@ def get_google_images(save_to=None):
         if save_to is None:
             save_to = os.path.join(get_config_path(), "google_images.json").strip()
 
+        # Fetch the Beta OTA and Beta Factory image data
+        ota_beta_data, factory_beta_data = get_beta_links()
+        if ota_beta_data.build:
+            ota_build_id = ota_beta_data.build
+        else:
+            ota_build_id = ''
+        if factory_beta_data.build:
+            factory_build_id = factory_beta_data.build
+        else:
+            factory_build_id = ''
+
         for image_type in ['ota', 'factory', 'ota-watch', 'factory-watch']:
             if image_type == 'ota':
                 url = "https://developers.google.com/android/ota"
@@ -3218,6 +3257,36 @@ def get_google_images(save_to=None):
                 # Append the downloads to the corresponding list based on download_type
                 data[device_id]['ota'].extend(downloads_dict['ota'])
                 data[device_id]['factory'].extend(downloads_dict['factory'])
+
+                beta_entries = []
+
+                # Check if we have valid beta data for OTA
+                if ota_beta_data and isinstance(ota_beta_data, BetaData) and hasattr(ota_beta_data, 'devices'):
+                    for beta_item in ota_beta_data.devices:
+                        if device_label == beta_item['device']:
+                            beta_info = {
+                                'version': f"OTA - {beta_item['category']} ({ota_build_id})",
+                                'url': beta_item['url'],
+                                'sha256': beta_item['hash'],
+                                'date': datetime.now().strftime('%y%m%d')
+                            }
+                            beta_entries.append(beta_info)
+
+                # Check if we have valid beta data for Factory
+                if factory_beta_data and isinstance(factory_beta_data, BetaData) and hasattr(factory_beta_data, 'devices'):
+                    for beta_item in factory_beta_data.devices:
+                        if device_label == beta_item['device']:
+                            beta_info = {
+                                'version': f"Factory - {beta_item['category']} ({factory_build_id})",
+                                'url': beta_item['url'],
+                                'sha256': beta_item['hash'],
+                                'date': datetime.now().strftime('%y%m%d')
+                            }
+                            beta_entries.append(beta_info)
+
+                # Only add beta list if there are actual beta entries
+                if beta_entries:
+                    data[device_id]['beta'] = beta_entries
 
         # Convert to JSON
         json_data = json.dumps(data, indent=2)

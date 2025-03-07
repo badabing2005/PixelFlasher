@@ -172,6 +172,10 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: Release v${{ steps.get_version.outputs.version }}
           # body_path: RELEASE.md
+          body: |
+
+            ## Which file to download?
+            A description of the various artifacts is in the [README](https://github.com/badabing2005/PixelFlasher#release-files)
           draft: true
           prerelease: false
           files: |

@@ -561,6 +561,7 @@ class GoogleImagesBaseMenu(wx.Menu):
             # self.parent.update_firmware_selection(destination_path)
 
         filename = os.path.basename(url)
+        print(f"User selected {url} for download")
         dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
             destination_path = dialog.GetPath()
@@ -3775,6 +3776,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             self._on_spin('start')
             if self.config.firmware_path:
+                print("This could take some time, please wait ...")
                 process_file(self, 'firmware')
             self.update_widget_states()
         except Exception as e:
@@ -4958,6 +4960,7 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def _on_check_keybox(self, event):
         try:
+            # Select keybox files
             total_keyboxes = None
             with wx.FileDialog(self, "Select keybox to test", '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -4965,43 +4968,42 @@ Before posting publicly please carefully inspect the contents.
                     return
                 selected_files = fileDialog.GetPaths()
 
+            # Define all possible result categories
+            result_categories = {
+                'valid': {'count': 0, 'files': [], 'description': 'Not Revoked keyboxes'},
+                'revoked': {'count': 0, 'files': [], 'description': 'Revoked keyboxes'},
+                'aosp': {'count': 0, 'files': [], 'description': 'Self signed / AOSP keyboxes'},
+                'invalid': {'count': 0, 'files': [], 'description': 'Invalid keyboxes'},
+                'long_chain': {'count': 0, 'files': [], 'description': 'Long chain keyboxes'},
+                'shadow_banned': {'count': 0, 'files': [], 'description': 'Shadow banned keyboxes'},
+                'invalid_structure': {'count': 0, 'files': [], 'description': 'keyboxes with invalid structure'},
+                'missing_private_key': {'count': 0, 'files': [], 'description': 'Keyboxes with missing private keys'},
+                'missing_chain': {'count': 0, 'files': [], 'description': 'Keyboxes with missing certificate chains'},
+                'invalid_chain': {'count': 0, 'files': [], 'description': 'Keyboxes with invalid certificate chains'},
+                'invalid_private_key': {'count': 0, 'files': [], 'description': 'Keyboxes with invalid private keys'},
+                'key_mismatch': {'count': 0, 'files': [], 'description': 'Keyboxes with Private / Public Key mismatches'},
+                'missing_algorithms': {'count': 0, 'files': [], 'description': 'Keyboxes with missing algorithms'}
+            }
+
+            # Find the length of the longest description for formatting
+            longest_desc = max(len(data['description']) for data in result_categories.values())
+
             total_keyboxes = len(selected_files)
-            revoked_count = 0
-            not_revoked = 0
-            aosp_count = 0
-            invalid_count = 0
-            long_chain_count = 0
-            shadow_banned_count = 0
-            revoked_keyboxes = []
-            aosp_keyboxes = []
-            invalid_keyboxes = []
-            good_keyboxes = []
-            long_chain_keyboxes = []
-            shadow_banned_keyboxes = []
 
             self._on_spin('start')
             wx.Yield()
+
+            # Process each keybox file
             for selected_file in selected_files:
                 wx.Yield()
                 res = check_kb(selected_file)
-                if 'valid' in res:
-                    not_revoked += 1
-                    good_keyboxes.append(selected_file)
-                if 'revoked' in res:
-                    revoked_count += 1
-                    revoked_keyboxes.append(selected_file)
-                if 'aosp' in res:
-                    aosp_count += 1
-                    aosp_keyboxes.append(selected_file)
-                if 'long_chain' in res:
-                    long_chain_count += 1
-                    long_chain_keyboxes.append(selected_file)
-                if 'shadow_banned' in res:
-                    shadow_banned_count += 1
-                    shadow_banned_keyboxes.append(selected_file)
-                if 'invalid' in res:
-                    invalid_count += 1
-                    invalid_keyboxes.append(selected_file)
+
+                # Update counts and lists for each result type
+                for result_type in res:
+                    if result_type in result_categories:
+                        result_categories[result_type]['count'] += 1
+                        result_categories[result_type]['files'].append(selected_file)
+
         except Exception as e:
             print(f"Error: {e}")
             traceback.print_exc()
@@ -5010,38 +5012,21 @@ Before posting publicly please carefully inspect the contents.
 
             if total_keyboxes is not None and total_keyboxes > 1:
                 print("========================================================================")
-                print(f"Total keyboxes checked:       {total_keyboxes}")
-                if invalid_count > 0:
-                    print(f"Invalid keyboxes count:       {invalid_count} / {total_keyboxes}")
-                print(f"Revoked keyboxes count:       {revoked_count} / {total_keyboxes}")
-                print(f"Long chain keyboxes count:    {long_chain_count} / {total_keyboxes}")
-                print(f"Shadow banned keyboxes count: {shadow_banned_count} / {total_keyboxes}")
-                print(f"AOSP keyboxes count:          {aosp_count} / {total_keyboxes}")
-                print(f"Not Revoked keyboxes count:   {not_revoked} / {total_keyboxes}")
-                if invalid_count > 0:
-                    print("\nList of invalid keyboxes:")
-                    for keybox in invalid_keyboxes:
-                        print(f"    {keybox}")
-                if revoked_count > 0:
-                    print("\nList of revoked keyboxes:")
-                    for keybox in revoked_keyboxes:
-                        print(f"    {keybox}")
-                if long_chain_count > 0:
-                    print("\nList of long chain keyboxes:")
-                    for keybox in long_chain_keyboxes:
-                        print(f"    {keybox}")
-                if shadow_banned_count > 0:
-                    print("\nList of shadow banned keyboxes:")
-                    for keybox in shadow_banned_keyboxes:
-                        print(f"    {keybox}")
-                if aosp_count > 0:
-                    print("\nList of AOSP keyboxes:")
-                    for keybox in aosp_keyboxes:
-                        print(f"    {keybox}")
-                if not_revoked > 0:
-                    print("\nList of valid keyboxes:")
-                    for keybox in good_keyboxes:
-                        print(f"    {keybox}")
+                print(f"Total keyboxes checked: {total_keyboxes}")
+
+                # Print summary for types with counts > 0
+                for result_type, data in result_categories.items():
+                    if data['count'] > 0:
+                        spaces = ' ' * (longest_desc - len(data['description']) + 1)
+                        print(f"{data['description']}:{spaces}{data['count']} / {total_keyboxes}")
+
+                # Print detailed lists for each category with results
+                for result_type, data in result_categories.items():
+                    if data['count'] > 0:
+                        print(f"\nList of {data['description'].lower()}:")
+                        for keybox in data['files']:
+                            print(f"    {keybox}")
+
                 print("\n")
 
     # -----------------------------------------------

@@ -221,6 +221,7 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
 - On Windows: The latest [Google USB drivers](https://developer.android.com/studio/run/win-usb?authuser=1%2F) installed in adb and fastboot modes.
 - On MacOS: [Allow USB Accessory to connect](https://support.apple.com/en-us/102282) (very important!).
 - On Linux: [User needs to be added](https://developer.android.com/studio/run/device#setting-up) to `plugdev` group.
+  Arch distro users, you might want to check [this](https://github.com/badabing2005/PixelFlasher/issues/283).
 
 ## Installation
 

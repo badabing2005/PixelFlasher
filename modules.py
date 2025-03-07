@@ -615,11 +615,17 @@ def process_file(self, file_type):
             puml(f"note right:{file_to_process}\n")
             package_sig = get_firmware_id()
             package_dir_full = os.path.join(factory_images, package_sig)
+            wx.Yield()
             found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
+            wx.Yield()
             found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
+            wx.Yield()
             found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=True)
+            wx.Yield()
             found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=True)
+            wx.Yield()
             found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=True)
+            wx.Yield()
             found_boot_img_lz4 = ''
             set_firmware_has_init_boot(False)
             set_ota(self, False)
@@ -634,6 +640,7 @@ def process_file(self, file_type):
                 package_dir_full = os.path.join(factory_images, package_sig)
                 image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
                 # Unzip the factory image
+                wx.Yield()
                 debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{factory_images}\" \"{file_to_process}\""
                 debug(theCmd)
@@ -654,6 +661,7 @@ def process_file(self, file_type):
                     print("Aborting ...\n")
                     self.toast(f"Process action", "❌ Could not extract {file_to_process}")
                     return
+                wx.Yield()
             elif found_boot_img or found_init_boot_img:
                 print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
                 # Check if the firmware file starts with image-* and warn the user or abort
@@ -687,6 +695,7 @@ def process_file(self, file_type):
                     print("Detected OTA file")
                 else:
                     print("Detected a firmware, with payload.bin")
+                wx.Yield()
             else:
                 # -------------------------
                 # Samsung firmware handling
@@ -705,6 +714,7 @@ def process_file(self, file_type):
                 found_home_csc = ''
                 # see if we find AP_*.tar.md5, if yes set is_samsung flag
                 for file in file_list:
+                    wx.Yield()
                     if not found_ap and fnmatch.fnmatch(file, patterns['AP']):
                         # is_odin = 1
                         is_odin = True
@@ -730,7 +740,9 @@ def process_file(self, file_type):
                     debug(f"Unzipping Image: {file_to_process} into {package_dir_full} ...")
                     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{file_to_process}\""
                     debug(theCmd)
+                    wx.Yield()
                     res = run_shell2(theCmd)
+                    wx.Yield()
                     # see if there is boot.img.lz4 in AP file
                     found_boot_img_lz4 = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="boot.img.lz4", nested=False)
                     if found_boot_img_lz4:
@@ -744,8 +756,10 @@ def process_file(self, file_type):
                         print(f"Extracting {boot_image_file} from {found_ap} ...")
                         puml(f":Extract {boot_image_file};\n")
                         theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{package_dir_full}\" \"{image_file_path}\" {boot_image_file}"
+                        wx.Yield()
                         debug(f"{theCmd}")
                         res = run_shell(theCmd)
+                        wx.Yield()
                         # expect ret 0
                         if res and isinstance(res, subprocess.CompletedProcess):
                             debug(f"Return Code: {res.returncode}")
@@ -791,9 +805,13 @@ def process_file(self, file_type):
                     return
         else:
             file_to_process = self.config.custom_rom_path
+            file_ext = os.path.splitext(file_to_process)[1].lower()
             print(f"ROM File:              {file_to_process}")
+            wx.Yield()
             found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
+            wx.Yield()
             found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=False)
+            wx.Yield()
             found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=False)
             set_rom_has_init_boot(False)
             if found_init_boot_img:
@@ -808,6 +826,7 @@ def process_file(self, file_type):
             puml(f"note right:{image_file_path}\n")
 
         # delete all files in tmp folder to make sure we're dealing with new files only.
+        wx.Yield()
         delete_all(tmp_dir_full)
 
         if is_payload_bin:
@@ -820,7 +839,9 @@ def process_file(self, file_type):
                 puml(":Extract payload.bin;\n")
                 theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{file_to_process}\" payload.bin"
                 debug(f"{theCmd}")
+                wx.Yield()
                 res = run_shell(theCmd)
+                wx.Yield()
                 # expect ret 0
                 if res and isinstance(res, subprocess.CompletedProcess):
                     debug(f"Return Code: {res.returncode}")
@@ -844,7 +865,9 @@ def process_file(self, file_type):
                     os.makedirs(package_dir_full, exist_ok=True)
                 if self.config.extra_img_extracts:
                     print("Option to copy extra img files is enabled.")
+                    wx.Yield()
                     extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
+                    wx.Yield()
                     if os.path.exists(os.path.join(package_dir_full, 'dtbo.img')):
                         dtbo_img_file = os.path.join(package_dir_full, 'dtbo.img')
                         debug(f"Copying {dtbo_img_file}")
@@ -863,7 +886,9 @@ def process_file(self, file_type):
                         shutil.copy(vendor_kernel_boot_img_file, os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), follow_symlinks=True)
                 else:
                     print("Extracting files from payload.bin ...")
+                    wx.Yield()
                     extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
+                    wx.Yield()
                 if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
                     boot_img_file = os.path.join(package_dir_full, 'boot.img')
                     debug(f"Copying {boot_img_file}")
@@ -916,6 +941,7 @@ def process_file(self, file_type):
                 print(f"Extracting {files_to_extract} from {image_file_path} ...")
                 print("This could take some more time, please wait ...")
                 puml(f":Extract {files_to_extract};\n")
+                wx.Yield()
                 if file_ext in ['.tgz']:
                     res = extract_from_nested_tgz(image_file_path, files_to_extract, tmp_dir_full)
                     if not res:
@@ -927,6 +953,7 @@ def process_file(self, file_type):
                 else:
                     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
                     debug(f"{theCmd}")
+                    wx.Yield()
                     res = run_shell(theCmd)
                     # expect ret 0
                     if res and isinstance(res, subprocess.CompletedProcess):
@@ -958,6 +985,7 @@ def process_file(self, file_type):
             return
 
         # get the checksum of the boot_file_name
+        wx.Yield()
         checksum = sha1(os.path.join(boot_img_file))
         print(f"sha1 of {boot_file_name}: {checksum}")
         puml(f"note right:sha1 of {boot_file_name}: {checksum}\n")
@@ -1006,6 +1034,7 @@ def process_file(self, file_type):
                 traceback.print_exc()
 
         # Let's see if we already have an entry for the BOOT
+        wx.Yield()
         print(f"Checking DB entry for BOOT: {checksum}")
         boot_id = 0
         cursor.execute(f"SELECT ID FROM BOOT WHERE boot_hash = '{checksum}'")

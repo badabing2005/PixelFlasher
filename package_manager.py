@@ -123,7 +123,7 @@ class SuPermissionDialog(wx.Dialog):
         until = self.ComputeEpoch(until_text)
         notification = self.notification_checkbox.GetValue()
         logging = self.logging_checkbox.GetValue()
-        print(f"Allow button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
+        print(f"\nAllow button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
         device = get_phone()
         if device:
             device.magisk_update_su(uid=self.uid, policy='allow', logging=logging, notification=notification, until=until)
@@ -134,7 +134,7 @@ class SuPermissionDialog(wx.Dialog):
         until = self.ComputeEpoch(until_text)
         notification = self.notification_checkbox.GetValue()
         logging = self.logging_checkbox.GetValue()
-        print(f"Deny button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
+        print(f"\nDeny button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
         device = get_phone()
         if device:
             device.magisk_update_su(uid=self.uid, policy='deny', logging=logging, notification=notification, until=until)
@@ -143,14 +143,14 @@ class SuPermissionDialog(wx.Dialog):
     def OnRevoke(self, event):
         until_text = 'Revoke'
         until = self.ComputeEpoch(until_text)
-        print(f"Revoke button clicked. Until: {until_text}, Notification: 1, Logging: 1, Epoch: {until}")
+        print(f"\nRevoke button clicked. Until: {until_text}, Notification: 1, Logging: 1, Epoch: {until}")
         device = get_phone()
         if device:
             device.magisk_update_su(uid=self.uid, policy='deny', logging=1, notification=1, until=until)
         self.EndModal(wx.ID_CANCEL)
 
     def OnCancel(self, event):
-        print("Cancel button clicked")
+        print("\nUser pressed Cancel")
         self.EndModal(wx.ID_CANCEL)
 
     def ComputeEpoch(self, until):
@@ -1042,8 +1042,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         # Popup a small dialog to display SU Permission selection
         dialog = SuPermissionDialog(self, pkg=pkg, uid=uid, label=text)
-        if dialog.ShowModal() != wx.ID_OK:
-            print("User pressed Cancel")
+        result = dialog.ShowModal()
         dialog.Destroy()
 
         # self.RefreshPackages()

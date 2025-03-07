@@ -36,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       tags:
-        description: 'Build tags'
+        description: "Build tags"
 
 jobs:
   build_ubuntu_20_04:

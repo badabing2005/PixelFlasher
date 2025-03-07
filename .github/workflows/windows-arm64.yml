@@ -36,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       tags:
-        description: 'Build tags'
+        description: "Build tags"
 
 jobs:
   build_windows_arm64:
@@ -102,13 +102,13 @@ jobs:
       - name: Sign Windows ARM64 Executable
         uses: skymatic/code-sign-action@v3
         with:
-          certificate: '${{ secrets.CERTIFICATE }}'
-          password: '${{ secrets.CERT_PASSWORD }}'
-          certificatesha1: '${{ secrets.CERTHASH }}'
-          certificatename: '${{ secrets.CERTNAME }}'
-          description: 'PixelFlasher ARM64'
-          timestampUrl: 'http://timestamp.digicert.com'
-          folder: 'dist'
+          certificate: "${{ secrets.CERTIFICATE }}"
+          password: "${{ secrets.CERT_PASSWORD }}"
+          certificatesha1: "${{ secrets.CERTHASH }}"
+          certificatename: "${{ secrets.CERTNAME }}"
+          description: "PixelFlasher ARM64"
+          timestampUrl: "http://timestamp.digicert.com"
+          folder: "dist"
           recursive: false
 
       - name: Generate SHA256
@@ -124,4 +124,3 @@ jobs:
           path: |
             dist/PixelFlasher-arm64.exe
             dist/PixelFlasher-arm64.exe.sha256
-

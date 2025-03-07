@@ -39,7 +39,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Build tag'
+        description: "Build tag"
         required: false
 
 jobs:
@@ -48,66 +48,66 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout the repository
-      uses: actions/checkout@v4
+      - name: Checkout the repository
+        uses: actions/checkout@v4
 
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '2.7'
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "2.7"
 
-    - name: Install Homebrew
-      run: |
-        echo "Installing Homebrew..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      - name: Install Homebrew
+        run: |
+          echo "Installing Homebrew..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-    - name: Clone homebrew-cask repo
-      run: |
-        git clone https://github.com/badabing2005/homebrew-PixelFlasher.git
-        cd homebrew-PixelFlasher
+      - name: Clone homebrew-cask repo
+        run: |
+          git clone https://github.com/badabing2005/homebrew-PixelFlasher.git
+          cd homebrew-PixelFlasher
 
-    - name: Determine tag name
-      id: determine-tag
-      run: |
-        if [ -n "${{ github.event.inputs.tag }}" ]; then
-          echo "TAG_NAME=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
-        else
-          echo "TAG_NAME=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
-        fi
+      - name: Determine tag name
+        id: determine-tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "TAG_NAME=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+          else
+            echo "TAG_NAME=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+          fi
 
-    - name: Check if DMG file exists
-      run: |
-        if ! curl -L --fail "https://github.com/badabing2005/PixelFlasher/releases/download/${{ env.TAG_NAME }}/PixelFlasher_MacOS.dmg" -o PixelFlasher_MacOS.dmg; then
-            echo "Error: DMG file not found. Exiting."
-            exit 1
-        fi
-        NEW_SHA256=$(shasum -a 256 PixelFlasher_MacOS.dmg | awk '{ print $1 }')
-        echo "NEW_SHA256=$NEW_SHA256" >> $GITHUB_ENV
-        ls -lR
+      - name: Check if DMG file exists
+        run: |
+          if ! curl -L --fail "https://github.com/badabing2005/PixelFlasher/releases/download/${{ env.TAG_NAME }}/PixelFlasher_MacOS.dmg" -o PixelFlasher_MacOS.dmg; then
+              echo "Error: DMG file not found. Exiting."
+              exit 1
+          fi
+          NEW_SHA256=$(shasum -a 256 PixelFlasher_MacOS.dmg | awk '{ print $1 }')
+          echo "NEW_SHA256=$NEW_SHA256" >> $GITHUB_ENV
+          ls -lR
 
-    - name: Strip leading 'v' from tag name
-      run: |
-        TAG_NAME_STRIPPED=$(echo "${{ env.TAG_NAME }}" | sed 's/^v//')
-        echo "TAG_NAME=$TAG_NAME_STRIPPED" >> $GITHUB_ENV
+      - name: Strip leading 'v' from tag name
+        run: |
+          TAG_NAME_STRIPPED=$(echo "${{ env.TAG_NAME }}" | sed 's/^v//')
+          echo "TAG_NAME=$TAG_NAME_STRIPPED" >> $GITHUB_ENV
 
-    - name: Update Cask version
-      run: |
-        cd homebrew-PixelFlasher/Casks
-        sed -i "s/version \".*\"/version \"${{ env.TAG_NAME }}\"/g" pixelflasher.rb
-        sed -i "s/sha256 \".*\"/sha256 \"${{ env.NEW_SHA256 }}\"/g" pixelflasher.rb
+      - name: Update Cask version
+        run: |
+          cd homebrew-PixelFlasher/Casks
+          sed -i "s/version \".*\"/version \"${{ env.TAG_NAME }}\"/g" pixelflasher.rb
+          sed -i "s/sha256 \".*\"/sha256 \"${{ env.NEW_SHA256 }}\"/g" pixelflasher.rb
 
-    - name: Commit and Push changes
-      env:
-        PAT: ${{ secrets.TAP_REPO_PAT }}
-      run: |
-        cd homebrew-PixelFlasher
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git remote set-url origin https://x-access-token:${PAT}@github.com/badabing2005/homebrew-PixelFlasher.git
-        git add .
-        if git diff --cached --quiet; then
-            echo "No changes to commit."
-        else
-            git commit -m "Update PixelFlasher to version v${{ env.TAG_NAME }}"
-            git push origin main
-        fi
+      - name: Commit and Push changes
+        env:
+          PAT: ${{ secrets.TAP_REPO_PAT }}
+        run: |
+          cd homebrew-PixelFlasher
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${PAT}@github.com/badabing2005/homebrew-PixelFlasher.git
+          git add .
+          if git diff --cached --quiet; then
+              echo "No changes to commit."
+          else
+              git commit -m "Update PixelFlasher to version v${{ env.TAG_NAME }}"
+              git push origin main
+          fi

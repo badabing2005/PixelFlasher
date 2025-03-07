@@ -36,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       tags:
-        description: 'Build tags'
+        description: "Build tags"
 
 jobs:
   build_mac:
@@ -50,7 +50,7 @@ jobs:
         run: ls /opt/homebrew/Cellar
 
       - name: Updating Homebrew Packages
-        run : |
+        run: |
           brew upgrade
           brew remove openssl@1.1
           # # Clean up openssl@1.1 configuration files
@@ -59,7 +59,7 @@ jobs:
       - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       - name: Install wxPython
         run: pip install wxPython
@@ -70,7 +70,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install ImageMagick
         run: brew install imagemagick

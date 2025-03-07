@@ -63,6 +63,8 @@ alist = [(file1, s1), (file2, s2), (file3, s3), (file4, s4), (file6, s1)]
 # ============================================================================
 #                               Function get_values
 # ============================================================================
+
+
 def get_values(thelist, update):
     # for index, tuple in enumerate(thelist):
     for tuple in thelist:
@@ -80,6 +82,12 @@ def get_values(thelist, update):
             print("\tNO MATCH IS FOUND.")
 
 
+def validate_version(version):
+    """Validate version number format"""
+    pattern = r'^\d+\.\d+\.\d+\.\d+$'
+    if not re.match(pattern, version):
+        raise ValueError("Version must be in format: X.X.X.X")
+    return version
     print(file5)
     with open(file5, "rt", encoding='ISO-8859-1', errors="replace") as fin:
         data = fin.read()
@@ -97,7 +105,7 @@ def get_values(thelist, update):
 #                               Function set_values
 # ============================================================================
 def set_values(file, search, replace):
-    with open (file, 'r' ) as f:
+    with open(file, 'r') as f:
         content = f.read()
         # content_new = re.sub(search, replace, content, flags = re.M)
         content_new = content.replace(search, replace)
@@ -113,9 +121,10 @@ target_version = ''
 print("Getting current values ...")
 get_values(alist, False)
 target_version = input("\nEnter the new Version: ")
-target_comma_version = target_version.replace('.', ',')
-print(f"\nSetting Versions to: {target_version} ...")
-get_values(alist, True)
-print("Getting updated values ...")
-get_values(alist, False)
-
+try:
+    target_version = validate_version(target_version)
+    target_comma_version = target_version.replace('.', ',')
+    print(f"\nSetting Versions to: {target_version} ...")
+    get_values(alist, True)
+except ValueError as e:
+    print(f"\n❌ Error: {e}")

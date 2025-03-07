@@ -33,11 +33,11 @@ name: Build for Mint 21.1
 
 # Controls when the workflow will run
 on:
-  workflow_call: 
+  workflow_call:
   workflow_dispatch:
     inputs:
       tags:
-        description: 'Build tags'
+        description: "Build tags"
 
 jobs:
   build_mint_21_1:

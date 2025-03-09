@@ -3168,7 +3168,7 @@ add_hosts_module
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     if timeout:
                         res2 = self.fastboot_wait_for_bootloader(timeout=timeout)
-                        if res2 == 1:
+                        if res2 == -1:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
                             # puml(f"note right:ERROR: during fastboot_wait_for_bootloader in reboot_bootloader;\n")
                             return -1
@@ -3512,11 +3512,20 @@ add_hosts_module
             while time.time() - start_time < timeout:
                 with contextlib.suppress(Exception):
                     theCmd = f"\"{get_fastboot()}\" devices"
-                    res = run_shell(theCmd)
+                    res = run_shell(theCmd, timeout=timeout)
                     if res and isinstance(res, subprocess.CompletedProcess) and f"{device_id}\t" in res.stdout:
-                        print(f"device: {device_id} is now in bootloader or fastbootd mode.")
-                        puml(f":device: {device_id} is now in bootloader or fastbootd mode;\n", True)
-                        return 0
+                        # sometimes fastboot devices returns the device in the list but it's not in bootloader mode
+                        # so we need to check the state of the device again
+                        time.sleep(1)
+                        mode = self.get_device_state(device_id, update=False)
+                        if mode == 'fastboot':
+                            print(f"device: {device_id} is now in bootloader or fastbootd mode.")
+                            puml(f":device: {device_id} is now in bootloader or fastbootd mode;\n", True)
+                            return 0
+                        else:
+                            print(f"device: {device_id} is in {mode} mode.")
+                            puml(f":device: {device_id} is in {mode} mode;\n", True)
+                            return -1
                 time.sleep(1)
             print(f"Timeout: [{timeout}] Fastboot could not detect device: {device_id} in bootloader or fastbootd mode ")
             puml(f":Timeout: [{timeout}] Fastboot could not detect device: {device_id} in bootloader or fastbootd mode;\n", True)
@@ -3711,6 +3720,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3735,6 +3745,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
             if mode == 'fastboot' and get_fastboot():
                 print(f"Switching to other slot. Current slot [{self.active_slot}] for device: {self.id} ...")
@@ -3770,6 +3781,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3794,6 +3806,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3826,6 +3839,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3862,7 +3876,7 @@ add_hosts_module
                 if res != 0:
                     puml("#red:Failed to transfer the module file to the phone;\n")
                     print("Aborting ...\n}\n")
-                    return
+                    return -1
                 if "kernelsu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
                 elif "apatch" in self.su_version.lower():
@@ -3883,7 +3897,7 @@ add_hosts_module
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
-                return 1
+                return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in magisk_install_module.")
             puml("#red:Encountered an error in magisk_install_module.;\n")
@@ -4068,7 +4082,7 @@ add_hosts_module
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
-                return 1
+                return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in magisk_uninstall_module.")
             puml("#red:Encountered an error in magisk_uninstall_module.;\n")

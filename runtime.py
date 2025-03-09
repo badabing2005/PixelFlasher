@@ -5151,7 +5151,7 @@ def check_kb(filename):
                         parsed_cert = x509.load_pem_x509_certificate(cert_text.encode())
                         cert_chain.append(parsed_cert)
 
-                        cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed = parse_cert(cert.text)
+                        cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed, crl_distribution_points = parse_cert(cert.text)
 
                         # Format the issuer field
                         formatted_issuer, issuer_sn = format_dn(cert_issuer)
@@ -5175,15 +5175,17 @@ def check_kb(filename):
                             formatted_issued_to_text = "REDACTED"
                             formatted_issuer_text = "REDACTED"
 
-                        print(f'{tab_text}Certificate SN:         {cert_sn_text}')
-                        print(f'{tab_text}Issued to:              {formatted_issued_to_text}')
-                        print(f'{tab_text}Issuer:                 {formatted_issuer_text}')
-                        print(f'{tab_text}Signature Algorithm:    {sig_algo}')
-                        print(f'{tab_text}Key Usage:              {key_usages}')
+                        print(f'{tab_text}Certificate SN:          {cert_sn_text}')
+                        print(f'{tab_text}Issued to:               {formatted_issued_to_text}')
+                        print(f'{tab_text}Issuer:                  {formatted_issuer_text}')
+                        print(f'{tab_text}Signature Algorithm:     {sig_algo}')
+                        print(f'{tab_text}Key Usage:               {key_usages}')
+                        if crl_distribution_points:
+                            print(f'{tab_text}CRL Distribution Points: {crl_distribution_points}')
                         expired_text = ""
                         if expiry < datetime.now(timezone.utc):
                             expired_text = " (EXPIRED)"
-                        print(f"{tab_text}Validity:               {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}\n")
+                        print(f"{tab_text}Validity:                {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}\n")
 
                         if "Software Attestation" in cert_issuer:
                             is_sw_signed = True
@@ -5272,7 +5274,6 @@ def check_kb(filename):
                             except Exception as e:
                                 print(f"  ❌ ERROR: RSA Certificate chain validation failed for {algorithm}: {e}")
                                 results.append('invalid_chain')
-                                # raise
                         elif isinstance(public_key, ec.EllipticCurvePublicKey):
                             try:
                                 public_key.verify(
@@ -5283,7 +5284,6 @@ def check_kb(filename):
                             except Exception as e:
                                 print(f"  ❌ ERROR: ECDSA Certificate chain validation failed for {algorithm}: {e}")
                                 results.append('invalid_chain')
-                                # raise
 
                         # Verify the rest of the chain
                         for i in range(len(intermediate_certs)):
@@ -5304,7 +5304,6 @@ def check_kb(filename):
                                 except Exception as e:
                                     print(f"  ❌ RSA Certificate chain validation failed for {algorithm}: {e}")
                                     results.append('invalid_chain')
-                                    # raise
                             elif isinstance(public_key, ec.EllipticCurvePublicKey):
                                 try:
                                     public_key.verify(
@@ -5315,7 +5314,6 @@ def check_kb(filename):
                                 except Exception as e:
                                     print(f"  ❌ ECDSA Certificate chain validation failed for {algorithm}: {e}")
                                     results.append('invalid_chain')
-                                    # raise
                             else:
                                 print(f"  ❌ ERROR: Unsupported public key type for {algorithm}")
                                 results.append('invalid_chain')
@@ -5400,6 +5398,7 @@ def parse_cert(cert):
     sig_algo = None
     expiry = None
     key_usages = 'None'
+    crl_distribution_points = None
 
     try:
         issuer = parsed.issuer.rfc4514_string()
@@ -5451,7 +5450,23 @@ def parse_cert(cert):
     except Exception as e:
         logging.error(f"Key usage extraction failed: {e}")
 
-    return serial_number, issuer, subject, sig_algo, expiry, key_usages, parsed
+    # Extract CRL Distribution Points
+    try:
+        crl_ext = parsed.extensions.get_extension_for_oid(ExtensionOID.CRL_DISTRIBUTION_POINTS)
+        if crl_ext:
+            crl_points = []
+            for point in crl_ext.value:
+                if point.full_name:
+                    for name in point.full_name:
+                        if name.value:
+                            crl_points.append(name.value)
+            if crl_points:
+                crl_distribution_points = crl_points
+    except Exception as e:
+        if not "ObjectIdentifier(oid=2.5.29.31" in str(e):
+            logging.error(f"CRL distribution points extraction failed: {e}")
+
+    return serial_number, issuer, subject, sig_algo, expiry, key_usages, parsed, crl_distribution_points
 
 
 # ============================================================================

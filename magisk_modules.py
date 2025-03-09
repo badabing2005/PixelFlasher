@@ -445,9 +445,7 @@ class MagiskModules(wx.Dialog):
             self.update_module_button.Enable(True)
             if self.module.updateDetails.changelog:
                 changelog_md = f"# Change Log:\n{self.module.updateDetails.changelog}"
-                # convert markdown to html
-                changelog_html = markdown.markdown(changelog_md)
-                self.html.SetPage(changelog_html)
+                self.outputMessage(changelog_md)
         else:
             self.update_module_button.Enable(False)
         # if module has has_action then enable run action button
@@ -456,6 +454,15 @@ class MagiskModules(wx.Dialog):
         else:
             self.run_action_button.Enable(False)
         event.Skip()
+
+    # -----------------------------------------------
+    #                  outputMessage
+    # -----------------------------------------------
+    def outputMessage(self, md_message):
+        self.html.SetPage('')
+        # convert markdown to html
+        html_message = markdown.markdown(md_message)
+        self.html.SetPage(html_message)
 
     # -----------------------------------------------
     #                  onCancel
@@ -473,7 +480,9 @@ class MagiskModules(wx.Dialog):
                 return
             print("Enable Zygisk")
             self._on_spin('start')
-            device.magisk_enable_zygisk(True)
+            res = device.magisk_enable_zygisk(True)
+            if res == 0:
+                self.outputMessage("## You need to reboot your device for the changes to take effect.")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onEnableZygisk")
             traceback.print_exc()
@@ -490,7 +499,9 @@ class MagiskModules(wx.Dialog):
                 return
             print("Disable Zygisk")
             self._on_spin('start')
-            device.magisk_enable_zygisk(False)
+            res = device.magisk_enable_zygisk(False)
+            if res == 0:
+                self.outputMessage("## You need to reboot your device for the changes to take effect.")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onDisableZygisk")
             traceback.print_exc()
@@ -596,7 +607,9 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
             downloaded_file_path = download_file(url)
             print(f"Installing Play Integrity Fix (PIF) module. URL: {downloaded_file_path} ...")
-            device.magisk_install_module(downloaded_file_path)
+            res = device.magisk_install_module(downloaded_file_path)
+            if res == 0:
+                self.outputMessage("## You need to reboot your device to complete the installation.")
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
@@ -622,7 +635,9 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
             downloaded_file_path = download_file(url.zipUrl)
             print(f"Installing ZygiskNext module. URL: {downloaded_file_path} ...")
-            device.magisk_install_module(downloaded_file_path)
+            res = device.magisk_install_module(downloaded_file_path)
+            if res == 0:
+                self.outputMessage("## You need to reboot your device to complete the installation.")
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during ZygiskNext module installation.")
@@ -670,6 +685,7 @@ class MagiskModules(wx.Dialog):
                     if res == 0:
                         modules[i].state = 'remove'
                         self.refresh_modules()
+                        self.outputMessage("## You need to reboot your device for the changes to take effect.")
                     else:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to remove module: {modules[i].name}")
                     break
@@ -695,7 +711,9 @@ class MagiskModules(wx.Dialog):
                 self._on_spin('start')
                 print(f"Downloading Magisk Module: {name} URL: {url} ...")
                 downloaded_file_path = download_file(url)
-                device.magisk_install_module(downloaded_file_path)
+                res = device.magisk_install_module(downloaded_file_path)
+                if res == 0:
+                    self.outputMessage("## You need to reboot your device to complete the update.")
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
@@ -720,7 +738,9 @@ class MagiskModules(wx.Dialog):
             print(f"\nSelected {pathname} for installation.")
             try:
                 self._on_spin('start')
-                device.magisk_install_module(pathname)
+                res = device.magisk_install_module(pathname)
+                if res == 0:
+                    self.outputMessage("## You need to reboot your device to complete the installation.")
                 self.refresh_modules()
             except IOError:
                 wx.LogError(f"Cannot install module file '{pathname}'.")

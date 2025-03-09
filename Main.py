@@ -3293,15 +3293,25 @@ Before posting publicly please carefully inspect the contents.
     #                  clear_device_selection
     # -----------------------------------------------
     def clear_device_selection(self):
+        device_id = self.config.device
         self.config.device = None
         selected_index = self.device_choice.GetSelection()
-        print(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Cleared device selection {self.device_choice.GetStringSelection()}")
+        debug(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Clearing device selection {self.device_choice.GetStringSelection()} ...")
         if selected_index != wx.NOT_FOUND:
             items = self.device_choice.GetItems()
             del items[selected_index]
             self.device_choice.SetItems(items)
             self.device_choice.Select(-1)
             set_phone_id(None)
+            debug(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Cleared device selection {self.device_choice.GetStringSelection()}")
+        phones = get_phones()
+        if phones:
+            for device in phones:
+                if device.id == device_id:
+                    phones.remove(device)
+                    set_phones(phones)
+                    debug(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Cleared device id: {device_id} from phones list.")
+                    break
         self._reflect_slots()
         self.update_widget_states()
 
@@ -4314,9 +4324,11 @@ Before posting publicly please carefully inspect the contents.
                     res = device.reboot_bootloader(fastboot_included = True)
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                        self.clear_device_selection()
                         bootloader_issue_message()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+            self.clear_device_selection()
             traceback.print_exc()
         finally:
             self.refresh_device()

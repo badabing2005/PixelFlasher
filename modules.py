@@ -3818,6 +3818,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         boot_dir = os.path.dirname(boot.boot_path)
         boot_img_path = boot.boot_path
         boot_hash = boot.boot_hash
+        size = [960, 650]
         if boot.is_init_boot:
             partition = "init_boot"
         else:
@@ -3826,62 +3827,63 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting init_boot partition is not supported, looking for stock boot.img")
             boot_img_path = os.path.join(boot_dir, 'boot.img')
             if os.path.exists(boot_img_path):
+                size = [960, 880]
                 boot_hash = sha1(boot_img_path)
                 partition = "boot"
                 print(f"✅ Found stock boot.img in {boot_dir} with SHA1: {boot_hash}")
-                message += f"⚠️ Live Booting init_boot is not supported, stock boot.img will be used instead.\n\n"
-                message += "Depending on the selection, Live booting stock boot.img might not make a difference.\n"
-                message += "Magisk patches init_boot\n"
-                message += "Apatch patches boot\n"
-                message += "KernelSU (and Next) patches boot\n"
-                message += "KernelSU_LKM (and Next) patches init_boot\n\n"
+                message += f"##⚠️ Live Booting init_boot is not supported, stock boot.img will be used instead.<br/>\n"
+                message += "Depending on the selection, Live booting stock boot.img might not make a difference.<br/>\n"
+                message += "Magisk patches init_boot<br/>\n"
+                message += "Apatch patches boot<br/>\n"
+                message += "KernelSU (and Next) patches boot<br/>\n"
+                message += "KernelSU_LKM (and Next) patches init_boot<br/>\n\n"
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} {boot_img_path} file not found, Aborting ...")
                 puml("#red:{boot_img_path} file not found\n}\n")
                 return -1
 
-        message += f"Live/Flash Boot Options:\n"
-        message += f"Option:                 {option}\n"
-        message += f"Partition:              {partition}\n"
-        message += f"Boot SHA1:              {boot_hash}\n"
-        message += f"Hardware:               {device.hardware}\n"
+        message += f"## Live/Flash Boot Options:\n\n"
+        message += f"<pre>Option:                     {option}\n"
+        message += f"Partition:                  {partition}\n"
+        message += f"Boot SHA1:                  {boot_hash}\n"
+        message += f"Hardware:                   {device.hardware}\n"
 
         if boot.is_patched == 1:
-            message += "Patched:                Yes\n"
+            message += "Patched:                    Yes\n"
             if boot.patch_method:
-                message += f"Patched Method:         {boot.patch_method}\n"
+                message += f"Patched Method:             {boot.patch_method}\n"
             if boot.patch_source_sha1:
-                message += f"Patch Source SHA1:      {boot.patch_source_sha1}\n"
+                message += f"Patch Source SHA1:          {boot.patch_source_sha1}\n"
             if boot.patch_method in ["kernelsu", "kernelsu_lkm"]:
-                message += f"Patched With KernelSU:  {boot.magisk_version}\n"
+                message += f"Patched With KernelSU:      {boot.magisk_version}\n"
             if "kernelsu-next" in boot.patch_method:
-                message += f"Patched With KSU-Next:  {boot.magisk_version}\n"
+                message += f"Patched With KSU-Next:      {boot.magisk_version}\n"
             elif "apatch" in boot.patch_method:
-                message += f"Patched With Apatch:    {boot.magisk_version}\n"
+                message += f"Patched With Apatch:        {boot.magisk_version}\n"
             else:
-                message += f"Patched With Magisk:    {boot.magisk_version}\n"
-            message += f"Patched on Device:      {boot.hardware}\n"
-            message += f"Original boot.img from: {boot.package_sig}\n"
-            message += f"Original boot.img SHA1: {boot.package_boot_hash}\n"
+                message += f"Patched With Magisk:        {boot.magisk_version}\n"
+            message += f"Patched on Device:          {boot.hardware}\n"
+            message += f"Original boot.img from:     {boot.package_sig}\n"
+            message += f"Original boot.img SHA1:     {boot.package_boot_hash}\n"
         else:
-            message += "Patched:                No\n"
-        message += f"Custom Flash Options:   {self.config.advanced_options}\n"
+            message += "Patched:                    No\n"
+        message += f"Custom Flash Options:       {self.config.advanced_options}\n"
         # don't allow inactive slot flashing
-        message += "Flash To Inactive Slot: False\n"
-        message += f"Flash Both Slots:       {self.config.flash_both_slots}\n"
-        message += f"Current Slot:           {device.active_slot}\n"
-        message += f"Verbose Fastboot:       {self.config.fastboot_verbose}\n"
-        message += f"No Reboot:              {self.config.no_reboot}\n"
+        message += "Flash To Inactive Slot:     False\n"
+        message += f"Flash Both Slots:           {self.config.flash_both_slots}\n"
+        message += f"Current Slot:               {device.active_slot}\n"
+        message += f"Verbose Fastboot:           {self.config.fastboot_verbose}\n"
+        message += f"No Reboot:                  {self.config.no_reboot}\n"
         message += "boot.img path:\n"
-        message += f"  {boot_img_path}\n"
-        message += "\nClick OK to accept and continue.\n"
-        message += "or Hit CANCEL to abort."
-        print(f"\n*** Dialog ***\n{message}\n______________\n")
+        message += f"  {boot_img_path}</pre>\n"
+        message += "\nClick OK to accept and continue, or CANCEL to abort."
+        clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
+        print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
         puml(f":{option} Boot;\n", True)
-        puml(f"note right\nDialog\n====\n{message}\nend note\n")
+        puml(f"note right\nDialog\n====\n{clean_message}\nend note\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1)
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1, disable_buttons=[], is_md=True, size=size)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         if result == 1:
@@ -3921,6 +3923,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 mode = "fastboot"
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                self.clear_device_selection()
                 bootloader_issue_message()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device, aborting ...\n")
@@ -4704,6 +4707,7 @@ def flash_phone(self):
                 res = device.reboot_bootloader(fastboot_included = True)
                 if res is None or res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     print("Aborting ...\n")
                     puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
                     self.toast("Flash action", "❌ Encountered an error while rebooting to bootloader.")
@@ -5259,17 +5263,21 @@ Click on **Done rebooting to system, continue** button when the watch OS fully l
                     refresh_and_done()
                     return -1
 
-                # flash vbmeta if disabling verity / verification
-                res = flash_vbmeta_if_needed()
-                if res == -1:
-                    refresh_and_done()
-                    return -1
+                if wipe_flag:
+                    dlg = wx.MessageDialog(None, "You have selected  WIPE option.\nAdb debugging will be reset and diabled\nHence patch or vbmeta flashing will be skipped.",'Wipe Data',wx.OK | wx.ICON_EXCLAMATION)
+                    result = dlg.ShowModal()
+                else:
+                    # flash vbmeta if disabling verity / verification
+                    res = flash_vbmeta_if_needed()
+                    if res == -1:
+                        refresh_and_done()
+                        return -1
 
-                # apply patch if needed
-                res = apply_patch_if_needed()
-                if res == -1:
-                    refresh_and_done()
-                    return -1
+                    # apply patch if needed
+                    res = apply_patch_if_needed()
+                    if res == -1:
+                        refresh_and_done()
+                        return -1
 
                 # reboot to system if needed
                 reboot_to_system_if_needed()

@@ -1875,14 +1875,30 @@ class PixelFlasher(wx.Frame):
         help_menu.AppendSeparator()
         # Links Submenu
         links = wx.Menu()
-        self.linksMenuItem1 = links.Append(wx.ID_ANY, "Homeboy76\'s Guide")
-        self.linksMenuItem2 = links.Append(wx.ID_ANY, "V0latyle\'s Guide")
-        self.linksMenuItem3 = links.Append(wx.ID_ANY, "roirraW\'s Guide")
+        github = wx.Menu()
+        xda = wx.Menu()
+        xda_guides_category = wx.Menu()
+        xda_general_category = wx.Menu()
+        xda_submenu_item = links.AppendSubMenu(xda, "XDA Community (Forum)")
+        xda_submenu_item.SetBitmap(images.forum_24.GetBitmap())
+        xda_general_item = xda.AppendSubMenu(xda_general_category, "General")
+        xda_general_item.SetBitmap(images.about_24.GetBitmap())
+        self.linksMenuItem16 = xda_general_category.Append(wx.ID_ANY, "osm0sis\'s PIF FAQ")
+        self.linksMenuItem17 = xda_general_category.Append(wx.ID_ANY, "V0latyle\'s PI API Info")
+        self.linksMenuItem18 = xda_general_category.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
+        self.linksMenuItem19 = xda_general_category.Append(wx.ID_ANY, "Tricky Store (Support Thread)")
+        xda_guides_item = xda.AppendSubMenu(xda_guides_category, "Guides")
+        xda_guides_item.SetBitmap(images.guide_24.GetBitmap())
+        self.linksMenuItem1 = xda_guides_category.Append(wx.ID_ANY, "Homeboy76\'s Guide")
+        self.linksMenuItem2 = xda_guides_category.Append(wx.ID_ANY, "V0latyle\'s Guide")
+        self.linksMenuItem3 = xda_guides_category.Append(wx.ID_ANY, "roirraW\'s Guide")
         links.AppendSeparator()
-        self.linksMenuItem4 = links.Append(wx.ID_ANY, "osm0sis\'s PlayIntegrityFork")
-        self.linksMenuItem5 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
-        self.linksMenuItem15 = links.Append(wx.ID_ANY, "5ec1cff\'s TrickyStore")
-        self.linksMenuItem8 = links.Append(wx.ID_ANY, "TheFreeman193\'s Play Integrity Fix Props Collection")
+        github_submenu_item = links.AppendSubMenu(github, "GitHub")
+        github_submenu_item.SetBitmap(images.github_24.GetBitmap())
+        self.linksMenuItem4 = github.Append(wx.ID_ANY, "osm0sis\'s PlayIntegrityFork")
+        self.linksMenuItem5 = github.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
+        self.linksMenuItem15 = github.Append(wx.ID_ANY, "5ec1cff\'s TrickyStore")
+        self.linksMenuItem8 = github.Append(wx.ID_ANY, "TheFreeman193\'s Play Integrity Fix Props Collection")
         links.AppendSeparator()
         self.linksMenuItem6 = links.Append(wx.ID_ANY, "Get the Google USB Driver")
         self.linksMenuItem7 = links.Append(wx.ID_ANY, "Android Security Update Bulletins")
@@ -1909,6 +1925,10 @@ class PixelFlasher(wx.Frame):
         self.linksMenuItem13.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem14.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem15.SetBitmap(images.open_link_24.GetBitmap())
+        self.linksMenuItem16.SetBitmap(images.open_link_24.GetBitmap())
+        self.linksMenuItem17.SetBitmap(images.open_link_24.GetBitmap())
+        self.linksMenuItem18.SetBitmap(images.open_link_24.GetBitmap())
+        self.linksMenuItem19.SetBitmap(images.open_link_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem1)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem2)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem3)
@@ -1924,6 +1944,10 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem13)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem14)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem15)
+        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem16)
+        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem17)
+        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem18)
+        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem19)
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
         # separator
@@ -2321,6 +2345,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.linksMenuItem13.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 15"),
                 self.linksMenuItem14.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 15"),
                 self.linksMenuItem15.GetId(): ('https://github.com/5ec1cff/TrickyStore', "5ec1cff's TrickyStore"),
+                self.linksMenuItem16.GetId(): ('https://xdaforums.com/t/pif-faq.4653307/', "osm0sis's PIF FAQ"),
+                self.linksMenuItem17.GetId(): ('https://xdaforums.com/t/info-play-integrity-api-replacement-for-safetynet.4479337/', "V0latyle\'s PI API Info"),
+                self.linksMenuItem18.GetId(): ('https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/', "chiteroman's PlayIntegrityFix"),
+                self.linksMenuItem19.GetId(): ('https://xdaforums.com/t/tricky-store-bootloader-keybox-spoofing.4683446/', "Tricky Store (Support Thread)"),
             }
 
             if clicked_id in link_info:
@@ -6318,4 +6346,3 @@ def main():
 if __name__ == '__main__':
     __name__ = 'Main'
     main()
-

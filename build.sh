@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -31,7 +32,7 @@
 # <https://www.gnu.org/licenses/>.
 
 rm -rf build dist
-VERSION=7.11.1.0
+VERSION=7.11.2.0
 NAME="PixelFlasher"
 DIST_NAME="PixelFlasher"
 

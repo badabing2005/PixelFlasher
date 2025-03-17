@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -1177,7 +1178,7 @@ class PixelFlasher(wx.Frame):
     def _build_status_bar(self):
         self.statusBar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusBar.SetStatusWidths([-2, -1])
-        status_text = f"Welcome to PixelFlasher {VERSION}"
+        status_text = f"Welcome to PixelFlasher {VERSION} by Badabing2005"
         self.statusBar.SetStatusText(status_text, 0)
 
     # -----------------------------------------------
@@ -1547,6 +1548,34 @@ class PixelFlasher(wx.Frame):
     #         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _build_links_menu
+    # -----------------------------------------------
+    def _build_links_menu(self):
+        links = wx.Menu()
+
+        # Create a dictionary to store menu_id -> (url, label) mappings
+        if not hasattr(self, 'link_urls'):
+            self.link_urls = {}
+
+        # Create menu items from the data structure
+        for item in LINKS_MENU_DATA:
+            if item is None:
+                # Add a separator
+                links.AppendSeparator()
+            else:
+                label, image_name, url = item
+                menu_item = links.Append(wx.ID_ANY, label)
+                # Get the bitmap from the image name
+                bitmap = getattr(images, image_name).GetBitmap()
+                menu_item.SetBitmap(bitmap)
+
+                # Store the URL and label in our dictionary using the menu item's ID
+                self.link_urls[menu_item.GetId()] = (url, label)
+
+                self.Bind(wx.EVT_MENU, self._on_link_clicked, menu_item)
+        return links
+
+    # -----------------------------------------------
     #                  _build_menu_bar
     # -----------------------------------------------
     def _build_menu_bar(self):
@@ -1856,84 +1885,25 @@ class PixelFlasher(wx.Frame):
         # Help Menu Items
         # ---------------
         # Report an issue
-        self.issue_item = help_menu.Append(wx.ID_ANY, 'Report an Issue', 'Report an Issue')
+        self.issue_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["issue"]["description"], HELP_MENU_ITEMS["issue"]["description"])
         self.issue_item.SetBitmap(images.bug_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.issue_item)
-        # # Feature Request
-        self.feature_item = help_menu.Append(wx.ID_ANY, 'Feature Request', 'Feature Request')
+        # Feature Request
+        self.feature_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["feature"]["description"], HELP_MENU_ITEMS["feature"]["description"])
         self.feature_item.SetBitmap(images.feature_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.feature_item)
-        # # Project Home
-        self.project_page_item = help_menu.Append(wx.ID_ANY, 'PixelFlasher Project Page', 'PixelFlasher Project Page')
+        # Project Home
+        self.project_page_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["project"]["description"], HELP_MENU_ITEMS["project"]["description"])
         self.project_page_item.SetBitmap(images.github_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.project_page_item)
         # Community Forum
-        self.forum_item = help_menu.Append(wx.ID_ANY, 'PixelFlasher Community (Forum)', 'PixelFlasher Community (Forum)')
+        self.forum_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["forum"]["description"], HELP_MENU_ITEMS["forum"]["description"])
         self.forum_item.SetBitmap(images.forum_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.forum_item)
         # separator
         help_menu.AppendSeparator()
         # Links Submenu
-        links = wx.Menu()
-        self.linksMenuItem1 = links.Append(wx.ID_ANY, "Homeboy76\'s Guide")
-        self.linksMenuItem2 = links.Append(wx.ID_ANY, "V0latyle\'s Guide")
-        self.linksMenuItem3 = links.Append(wx.ID_ANY, "roirraW\'s Guide")
-        links.AppendSeparator()
-        self.linksMenuItem15 = links.Append(wx.ID_ANY, "osm0sis\'s PIF FAQ")
-        self.linksMenuItem16 = links.Append(wx.ID_ANY, "V0latyle\'s PI API Info")
-        self.linksMenuItem17 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
-        self.linksMenuItem18 = links.Append(wx.ID_ANY, "Tricky Store (Support Thread)")            
-        links.AppendSeparator()
-        self.linksMenuItem4 = links.Append(wx.ID_ANY, "osm0sis\'s PlayIntegrityFork")
-        self.linksMenuItem5 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
-        self.linksMenuItem14 = links.Append(wx.ID_ANY, "5ec1cff\'s TrickyStore")
-        links.AppendSeparator()
-        self.linksMenuItem6 = links.Append(wx.ID_ANY, "Get the Google USB Driver")
-        self.linksMenuItem7 = links.Append(wx.ID_ANY, "Android Security Update Bulletins")
-        links.AppendSeparator()
-        self.linksMenuItem8 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Phones / Tablets")
-        self.linksMenuItem9 = links.Append(wx.ID_ANY, "Factory Images for Pixel Phones / Tablets")
-        self.linksMenuItem10 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Watches")
-        self.linksMenuItem11 = links.Append(wx.ID_ANY, "Factory Images for Pixel Watches")
-        links.AppendSeparator()
-        self.linksMenuItem12 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Beta 15")
-        self.linksMenuItem13 = links.Append(wx.ID_ANY, "Factory Images for Pixel Beta 15")
-        self.linksMenuItem1.SetBitmap(images.guide_24.GetBitmap())
-        self.linksMenuItem2.SetBitmap(images.guide_24.GetBitmap())
-        self.linksMenuItem3.SetBitmap(images.guide_24.GetBitmap())
-        self.linksMenuItem4.SetBitmap(images.github_24.GetBitmap())
-        self.linksMenuItem5.SetBitmap(images.github_24.GetBitmap())
-        self.linksMenuItem6.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem7.SetBitmap(images.open_link_24.GetBitmap())    
-        self.linksMenuItem8.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem9.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem10.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem11.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem12.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem13.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem14.SetBitmap(images.github_24.GetBitmap())
-        self.linksMenuItem15.SetBitmap(images.forum_24.GetBitmap())
-        self.linksMenuItem16.SetBitmap(images.forum_24.GetBitmap())
-        self.linksMenuItem17.SetBitmap(images.forum_24.GetBitmap())
-        self.linksMenuItem18.SetBitmap(images.forum_24.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem1)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem2)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem3)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem4)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem5)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem6)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem7)      
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem8)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem9)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem10)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem11)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem12)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem13)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem14)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem15)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem16)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem17)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem18)
+        links = self._build_links_menu()
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
         # separator
@@ -2308,42 +2278,30 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     def _on_link_clicked(self, event):
         try:
             self._on_spin('start')
-            clicked_id = event.GetId()
+            menu_item_id = event.GetId()
 
-            # A dictionary mapping menu item IDs to tuples containing URL and link description
-            link_info = {
-                self.issue_item.GetId(): ('https://github.com/badabing2005/PixelFlasher/issues/new', "Report an Issue"),
-                self.feature_item.GetId(): ('https://github.com/badabing2005/PixelFlasher/issues/new', "Feature Request"),
-                self.project_page_item.GetId(): ('https://github.com/badabing2005/PixelFlasher', "PixelFlasher Project Page"),
-                self.forum_item.GetId(): ('https://xdaforums.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/', "PixelFlasher Community (Forum)"),
-                self.linksMenuItem1.GetId(): ('https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/', "Homeboy76's Guide"),
-                self.linksMenuItem2.GetId(): ('https://xdaforums.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/', "V0latyle's Guide"),
-                self.linksMenuItem3.GetId(): ('https://xdaforums.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/', "roirraW's Guide"),
-                self.linksMenuItem4.GetId(): ('https://github.com/osm0sis/PlayIntegrityFork', "osm0sis's PlayIntegrityFork"),
-                self.linksMenuItem5.GetId(): ('https://github.com/chiteroman/PlayIntegrityFix', "chiteroman's PlayIntegrityFix"),
-                self.linksMenuItem6.GetId(): ('https://developer.android.com/studio/run/win-usb?authuser=1%2F', "Get the Google USB Driver"),
-                self.linksMenuItem7.GetId(): ('https://source.android.com/docs/security/bulletin/', "Android Security Update Bulletins"),
-                self.linksMenuItem8.GetId(): (FULL_OTA_IMAGES_FOR_PIXEL_DEVICES, "Full OTA Images for Pixel Phones, Tablets"),
-                self.linksMenuItem9.GetId(): (FACTORY_IMAGES_FOR_PIXEL_DEVICES, "Factory Images for Pixel Phones, Tablets"),
-                self.linksMenuItem10.GetId(): (FULL_OTA_IMAGES_FOR_WATCH_DEVICES, "Full OTA Images for Pixel Watches"),
-                self.linksMenuItem11.GetId(): (FACTORY_IMAGES_FOR_WATCH_DEVICES, "Factory Images for Pixel Watches"),
-                self.linksMenuItem12.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 15"),
-                self.linksMenuItem13.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 15"),
-                self.linksMenuItem14.GetId(): ('https://github.com/5ec1cff/TrickyStore', "5ec1cff's TrickyStore"),
-                self.linksMenuItem15.GetId(): (OSM0SIS_PIF_FAQ, "osm0sis's PIF FAQ"),
-                self.linksMenuItem16.GetId(): (V0LATYLES_PI_API_INFO, "V0latyle\'s PI API Info"),
-                self.linksMenuItem17.GetId(): (CHITEROMANS_PIF, "chiteroman's PlayIntegrityFix"),
-                self.linksMenuItem18.GetId(): (TRICKYSTORE_SUPPORT_THREAD, "Tricky Store (Support Thread)"),
+            # Handle special cases like issue, feature, project items
+            special_items = {
+                self.issue_item.GetId(): (HELP_MENU_ITEMS["issue"]["url"], HELP_MENU_ITEMS["issue"]["description"]),
+                self.feature_item.GetId(): (HELP_MENU_ITEMS["feature"]["url"], HELP_MENU_ITEMS["feature"]["description"]),
+                self.project_page_item.GetId(): (HELP_MENU_ITEMS["project"]["url"], HELP_MENU_ITEMS["project"]["description"]),
+                self.forum_item.GetId(): (HELP_MENU_ITEMS["forum"]["url"], HELP_MENU_ITEMS["forum"]["description"]),
             }
 
-            if clicked_id in link_info:
-                url, description = link_info[clicked_id]
-                print(f"Open Link {description} {url}")
-                puml(f":Open Link;\nnote right\n=== {description}\n[[{url}]]\nend note\n", True)
-                res = webbrowser.open_new(url)
-                debug(f"Open Link {description} {url} {res}")
+            # Check if this is one of our links menu items
+            if menu_item_id in special_items:
+                url, description = special_items[menu_item_id]
+            elif hasattr(self, 'link_urls') and menu_item_id in self.link_urls:
+                url, description = self.link_urls[menu_item_id]
             else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown menu item clicked")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown menu item clicked, id: {menu_item_id}")
+                self._on_spin('stop')
+                return
+
+            print(f"Open Link {description} {url}")
+            puml(f":Open Link;\nnote right\n=== {description}\n[[{url}]]\nend note\n", True)
+            res = webbrowser.open_new(url)
+            debug(f"Open Link {description} {url} {res}")
 
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
@@ -2483,7 +2441,12 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel OTA Update")
             device = get_phone(True)
             if device:
-                device.reset_ota_update()
+                ota_clean_start_time = time.time()
+                res = device.reset_ota_update()
+                ota_clean_time = time.time() - ota_clean_start_time
+                if ota_clean_time > 10:
+                    print(f"ℹ️ Cleaning up previous OTA update took {ota_clean_time:.2f} seconds. Cleaning it again one more time for good measure ...")
+                    res = device.reset_ota_update()
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
                 self.toast("Cancel OTA Update", "❌ ERROR: No device selected")

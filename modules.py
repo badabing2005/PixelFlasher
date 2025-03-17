@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -4830,7 +4831,12 @@ def flash_phone(self):
             # Let's cancel previous OTA just to be safe.
             if device.true_mode == 'adb' and device.rooted:
                 print("Cancelling a previous OTA update for good measure ...")
+                ota_clean_start_time = time.time()
                 res = device.reset_ota_update()
+                ota_clean_time = time.time() - ota_clean_start_time
+                if ota_clean_time > 10:
+                    print(f"Cleaning up previous OTA update took {ota_clean_time:.2f} seconds. Cleaning it again one more time for good measure ...")
+                    res = device.reset_ota_update()
             else:
                 print("Skipping cancelling a previous OTA update. Device needs to be rooted and in adb mode ...")
             res = device.reboot_sideload(90)
@@ -5264,7 +5270,7 @@ Click on **Done rebooting to system, continue** button when the watch OS fully l
                     return -1
 
                 if wipe_flag:
-                    dlg = wx.MessageDialog(None, "You have selected  WIPE option.\nAdb debugging will be reset and diabled\nHence patch or vbmeta flashing will be skipped.",'Wipe Data',wx.OK | wx.ICON_EXCLAMATION)
+                    dlg = wx.MessageDialog(None, "You have selected  WIPE option.\nAdb debugging will be reset and disabled\nHence patch or vbmeta flashing will be skipped.",'Wipe Data',wx.OK | wx.ICON_EXCLAMATION)
                     result = dlg.ShowModal()
                 else:
                     # flash vbmeta if disabling verity / verification

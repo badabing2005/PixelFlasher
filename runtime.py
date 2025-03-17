@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -5126,6 +5127,8 @@ def check_kb(filename):
                     cert_chain = []
                     # Parse private key from the keybox
                     private_key_text = private_key.text.strip()
+                    private_key_text = re.sub(re.compile(r'^\s+', re.MULTILINE), '', private_key_text)
+                    private_key_text = clean_pem_key(private_key_text)
                     private_key_obj = None
 
                     try:
@@ -5381,6 +5384,29 @@ def check_kb(filename):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
         print(e)
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function to clean_pem_key
+# ============================================================================
+def clean_pem_key(key_text):
+    # Key with spaces instead of newlines (common in XML)
+    if '-----BEGIN' in key_text and '\n' not in key_text:
+        # Split at the BEGIN marker
+        parts = re.split(r'(-----BEGIN [^-]+-----)', key_text)
+        if len(parts) >= 3:
+            header = parts[1]
+            # Split at the END marker
+            content_parts = re.split(r'(-----END [^-]+-----)', parts[2])
+            if len(content_parts) >= 2:
+                # Extract the base64 content and format with newlines
+                content = content_parts[0].strip()
+                content_chunks = content.split()
+                formatted_content = '\n'.join(content_chunks)
+                footer = content_parts[1]
+                # Reassemble the key
+                key_text = f"{header}\n{formatted_content}\n{footer}"
+    return key_text
 
 
 # ============================================================================

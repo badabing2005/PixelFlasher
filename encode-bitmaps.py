@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -179,6 +180,8 @@ command_lines = [
     "-a -F -i -n shizuku-24 images/shizuku-24.png images.py",
     "-a -F -i -n beta-24 images/beta-24.png images.py",
     "-a -F -i -n permissions-24 images/permissions-24.png images.py",
+    "-a -F -i -n google-24 images/google-24.png images.py",
+    "-a -F -i -n android-24 images/android-24.png images.py",
 ]
 
 if __name__ == "__main__":
@@ -191,7 +194,8 @@ if __name__ == "__main__":
         header = """
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under

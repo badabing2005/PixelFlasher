@@ -1874,15 +1874,15 @@ class PixelFlasher(wx.Frame):
         # separator
         help_menu.AppendSeparator()
         # Links Submenu
-        links = wx.Menu()       
-        self.linksMenuItem15 = links.Append(wx.ID_ANY, "osm0sis\'s PIF FAQ")
-        self.linksMenuItem16 = links.Append(wx.ID_ANY, "V0latyle\'s PI API Info")
-        self.linksMenuItem17 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
-        self.linksMenuItem18 = links.Append(wx.ID_ANY, "Tricky Store (Support Thread)")
-        links.AppendSeparator()
+        links = wx.Menu()
         self.linksMenuItem1 = links.Append(wx.ID_ANY, "Homeboy76\'s Guide")
         self.linksMenuItem2 = links.Append(wx.ID_ANY, "V0latyle\'s Guide")
         self.linksMenuItem3 = links.Append(wx.ID_ANY, "roirraW\'s Guide")
+        links.AppendSeparator()
+        self.linksMenuItem15 = links.Append(wx.ID_ANY, "osm0sis\'s PIF FAQ")
+        self.linksMenuItem16 = links.Append(wx.ID_ANY, "V0latyle\'s PI API Info")
+        self.linksMenuItem17 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
+        self.linksMenuItem18 = links.Append(wx.ID_ANY, "Tricky Store (Support Thread)")            
         links.AppendSeparator()
         self.linksMenuItem4 = links.Append(wx.ID_ANY, "osm0sis\'s PlayIntegrityFork")
         self.linksMenuItem5 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
@@ -1904,7 +1904,7 @@ class PixelFlasher(wx.Frame):
         self.linksMenuItem4.SetBitmap(images.github_24.GetBitmap())
         self.linksMenuItem5.SetBitmap(images.github_24.GetBitmap())
         self.linksMenuItem6.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem7.SetBitmap(images.open_link_24.GetBitmap())       
+        self.linksMenuItem7.SetBitmap(images.open_link_24.GetBitmap())    
         self.linksMenuItem8.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem9.SetBitmap(images.open_link_24.GetBitmap())
         self.linksMenuItem10.SetBitmap(images.open_link_24.GetBitmap())
@@ -1922,7 +1922,7 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem4)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem5)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem6)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem7)       
+        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem7)      
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem8)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem9)
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem10)
@@ -2330,10 +2330,10 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 self.linksMenuItem12.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 15"),
                 self.linksMenuItem13.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 15"),
                 self.linksMenuItem14.GetId(): ('https://github.com/5ec1cff/TrickyStore', "5ec1cff's TrickyStore"),
-                self.linksMenuItem15.GetId(): ('https://xdaforums.com/t/pif-faq.4653307/', "osm0sis's PIF FAQ"),
-                self.linksMenuItem16.GetId(): ('https://xdaforums.com/t/info-play-integrity-api-replacement-for-safetynet.4479337/', "V0latyle\'s PI API Info"),
-                self.linksMenuItem17.GetId(): ('https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/', "chiteroman's PlayIntegrityFix"),
-                self.linksMenuItem18.GetId(): ('https://xdaforums.com/t/tricky-store-bootloader-keybox-spoofing.4683446/', "Tricky Store (Support Thread)"),
+                self.linksMenuItem15.GetId(): (OSM0SIS_PIF_FAQ, "osm0sis's PIF FAQ"),
+                self.linksMenuItem16.GetId(): (V0LATYLES_PI_API_INFO, "V0latyle\'s PI API Info"),
+                self.linksMenuItem17.GetId(): (CHITEROMANS_PIF, "chiteroman's PlayIntegrityFix"),
+                self.linksMenuItem18.GetId(): (TRICKYSTORE_SUPPORT_THREAD, "Tricky Store (Support Thread)"),
             }
 
             if clicked_id in link_info:

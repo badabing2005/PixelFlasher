@@ -98,3 +98,7 @@ APATCH_PKG_NAME = 'me.bmax.apatch'
 APATCH_NEXT_PKG_NAME = 'me.garfieldhan.apatch.next'
 ZYGISK_NEXT_UPDATE_URL = 'https://api.nullptr.icu/android/zygisk-next/static/update.json'
 SHADOW_BANNED_ISSUERS = ['13fd9052d73ab08658c44740d915f693']
+OSM0SIS_PIF_FAQ = 'https://xdaforums.com/t/pif-faq.4653307/'
+V0LATYLES_PI_API_INFO = 'https://xdaforums.com/t/info-play-integrity-api-replacement-for-safetynet.4479337'
+CHITEROMANS_PIF = 'https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985'
+TRICKYSTORE_SUPPORT_THREAD = 'https://xdaforums.com/t/tricky-store-bootloader-keybox-spoofing.4683446'

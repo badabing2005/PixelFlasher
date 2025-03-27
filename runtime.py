@@ -4911,7 +4911,7 @@ def extract_magiskboot(apk_path, architecture, output_path):
         file_path_in_apk = f"lib/{architecture}/libmagiskboot.so"
         output_file_path = os.path.join(output_path, "magiskboot")
 
-        cmd = f'"{path_to_7z}" e \"{apk_path}\" -o\"{output_path}\" -r {file_path_in_apk} -y'
+        cmd = f"\"{path_to_7z}\" e \"{apk_path}\" -o\"{output_path}\" -r {file_path_in_apk} -y"
         debug(cmd)
         res = run_shell2(cmd)
         if res and isinstance(res, subprocess.CompletedProcess):

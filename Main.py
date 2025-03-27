@@ -979,6 +979,9 @@ class PixelFlasher(wx.Frame):
 
             # check platform tools
             try:
+                # If platform tools are not found, see if we're running NixOS
+                if  not self.config.platform_tools_path and not sys.platform == "win32" and os.path.exists('/etc/NIXOS'):
+                    self.config.platform_tools_path = '/run/current-system/sw/bin/'
                 res_sdk = check_platform_tools(self)
                 if res_sdk != -1:
                     # load platform tools value

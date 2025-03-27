@@ -3047,15 +3047,17 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         # download the latest KernelSU
         kmi_parts = kmi.split('-')
         look_for_kernelsu = '-'.join(kmi_parts[::-1])
+        kernel_su_gz_file = None
+
         if patch_flavor == 'KernelSU':
-            kernel_su_gz_file = download_ksu_latest_release_asset(user='tiann', repo='KernelSU', asset_name=look_for_kernelsu, anykernel=anykernel)
-            if kernel_su_gz_file:
+            if kernel_su_gz_file := download_ksu_latest_release_asset(user='tiann', repo='KernelSU', asset_name=look_for_kernelsu, anykernel=anykernel):
                 kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
+
         elif patch_flavor == 'KernelSU-Next':
-            kernel_su_gz_file = download_ksu_latest_release_asset(user='rifsxd', repo='KernelSU-Next', asset_name=look_for_kernelsu, anykernel=anykernel)
-            if kernel_su_gz_file:
+            if kernel_su_gz_file := download_ksu_latest_release_asset(user='rifsxd', repo='KernelSU-Next', asset_name=look_for_kernelsu, anykernel=anykernel):
                 kernelsu_version = get_gh_latest_release_version('rifsxd', 'KernelSU-Next')
-        if not kernel_su_gz_file:
+
+        if not kernel_su_gz_file is str:
             print("ERROR: Could not find matching KernelSU generic image\nAborting ...\n")
             return
 

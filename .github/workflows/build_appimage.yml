@@ -175,16 +175,19 @@ jobs:
           # Copy icon
           cp images/icon-dark-256.png AppDir/usr/share/icons/hicolor/256x256/apps/pixelflasher.png
 
-          # Create entry point script
+          # Copy Python executable
+          cp $(which python3.9) AppDir/usr/bin/python3
+
+          # Create entry point script using appdir-relative paths
           cat > AppDir/usr/bin/pixelflasher << EOF
           #!/bin/bash
           # Use relative paths within the AppImage
-          SELF=\$(readlink -f "\$0")
-          HERE=\${SELF%/*}
-          APP_DIR=\${HERE}/../../
-          cd "\${APP_DIR}/usr/src/pixelflasher"
-          export PYTHONPATH="\${APP_DIR}/usr/lib/python3.9/site-packages"
-          exec "\${APP_DIR}/usr/bin/python3" PixelFlasher.py "\$@"
+          THIS_DIR=\$(dirname "\$(readlink -f "\$0")")
+          APPDIR=\$(dirname "\$(dirname "\$THIS_DIR")")
+          cd "\$APPDIR/usr/src/pixelflasher"
+          export PYTHONHOME="\$APPDIR/usr"
+          export PYTHONPATH="\$APPDIR/usr/lib/python3.9/site-packages"
+          exec "\$APPDIR/usr/bin/python3" PixelFlasher.py "\$@"
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
 
@@ -192,15 +195,15 @@ jobs:
           cat > AppDir/AppRun << EOF
           #!/bin/bash
           # Get the directory where the AppImage is mounted
-          SELF=\$(readlink -f "\$0")
-          HERE=\${SELF%/*}
+          HERE="\$(dirname "\$(readlink -f "\$0")")"
 
-          # Set environment variables relative to the AppImage mount
-          export PATH="\${HERE}/usr/bin:\$PATH"
-          export PYTHONPATH="\${HERE}/usr/lib/python3.9/site-packages"
+          # Set environment variables
+          export PATH="\$HERE/usr/bin:\$PATH"
+          export PYTHONHOME="\$HERE/usr"
+          export PYTHONPATH="\$HERE/usr/lib/python3.9/site-packages"
 
           # Execute the entry point
-          exec "\${HERE}/usr/bin/pixelflasher" "\$@"
+          exec "\$HERE/usr/bin/pixelflasher" "\$@"
           EOF
           chmod +x AppDir/AppRun
 

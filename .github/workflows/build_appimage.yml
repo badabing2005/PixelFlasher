@@ -1,0 +1,172 @@
+#
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+# for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Also add information on how to contact you by electronic and paper mail.
+#
+# If your software can interact with users remotely through a computer network,
+# you should also make sure that it provides a way for users to get its source.
+# For example, if your program is a web application, its interface could
+# display a "Source" link that leads users to an archive of the code. There are
+# many ways you could offer source, and different solutions will be better for
+# different programs; see section 13 for the specific requirements.
+#
+# You should also get your employer (if you work as a programmer) or school, if
+# any, to sign a "copyright disclaimer" for the program, if necessary. For more
+# information on this, and how to apply and follow the GNU AGPL, see
+# <https://www.gnu.org/licenses/>.
+
+name: Build AppImage
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Build tags'
+
+jobs:
+  build_appimage:
+    # Use an older Ubuntu for better compatibility with older systems
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        run: |
+          sudo apt update
+          sudo apt install software-properties-common -y
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt update
+          sudo apt install -y python3.9
+          sudo apt install -y python3.9-venv
+          sudo apt install -y python3-pip
+          python3.9 --version
+
+      - name: Install wxPython prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3.9-dev
+          sudo apt-get install -y libgtk-3-dev
+          sudo apt-get install -y libunwind-dev
+          sudo apt-get install -y libgstreamer1.0-dev
+          sudo apt-get install -y gstreamer1.0-plugins-base
+          sudo apt-get install -y freeglut3-dev
+          sudo apt-get install -y libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libjpeg-dev
+          sudo apt-get install -y libpng-dev
+          sudo apt-get install -y libtiff-dev
+          sudo apt-get install -y libsdl2-dev
+          sudo apt-get install -y libnotify-dev
+          sudo apt-get install -y libsm-dev
+          # Install tools needed for AppImage creation
+          sudo apt-get install -y patchelf curl zsync
+
+      - name: Create virtual environment and install dependencies
+        run: |
+          python3.9 -m venv myenv
+          . myenv/bin/activate
+          python --version
+          pip install -U pip
+          pip install -U six wheel setuptools
+          # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython==4.2.2 || \
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython==4.2.1 || \
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
+          pip install -r requirements.txt
+          # Install python-appimage
+          pip install python-appimage
+          python --version && pip freeze
+        shell: bash
+
+      - name: Create AppImage configuration
+        run: |
+          # Get version from build.sh
+          VERSION=$(grep -m1 "VERSION=" build.sh | cut -d'=' -f2 || echo "1.0.0")
+
+          # Create appimage configuration file
+          cat > appimage.yml << EOF
+          app: PixelFlasher
+          binary: PixelFlasher
+          script: PixelFlasher.py
+          version: ${VERSION}
+          icon: images/icon-dark-256.png
+          categories: Utility;Development
+          extra_data:
+            - images/
+            - bin/
+            - android_versions.json
+            - android_devices.json
+            - testkey_rsa4096.pem
+          binaries:
+            - bin/7zzs
+          hidden_imports:
+            - _cffi_backend
+          EOF
+        shell: bash
+
+      - name: Create .desktop file
+        run: |
+          mkdir -p dist
+          cat > PixelFlasher.desktop << EOF
+          [Desktop Entry]
+          Type=Application
+          Name=PixelFlasher
+          Comment=Android Flashing Tool
+          Exec=PixelFlasher
+          Icon=pixelflasher
+          Categories=Utility;Development;
+          Terminal=false
+          EOF
+        shell: bash
+
+      - name: Build AppImage with python-appimage
+        run: |
+          . myenv/bin/activate
+          # Get version from setup.py
+          VERSION=$(grep -m1 version= setup.py | cut -d'"' -f2 || echo "1.0.0")
+
+          # Build AppImage
+          python -m python_appimage build app \
+            --python-version 3.9 \
+            --app-name PixelFlasher \
+            --linux-tag=20_04 \
+            --entry-point PixelFlasher:main \
+            --output-directory dist \
+            --include-files images/ bin/ android_versions.json android_devices.json testkey_rsa4096.pem \
+            .
+
+          # Rename the AppImage to include version
+          mv dist/PixelFlasher-*.AppImage dist/PixelFlasher-${VERSION}-x86_64.AppImage
+
+          # Generate SHA256 checksum
+          cd dist
+          sha256sum PixelFlasher-*.AppImage > PixelFlasher-${VERSION}-x86_64.AppImage.sha256
+          cat PixelFlasher-${VERSION}-x86_64.AppImage.sha256
+          ls -la
+        shell: bash
+
+      # Upload artifacts
+      - name: Upload AppImage Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelFlasher AppImage
+          path: |
+            dist/PixelFlasher-*.AppImage
+            dist/PixelFlasher-*.AppImage.sha256

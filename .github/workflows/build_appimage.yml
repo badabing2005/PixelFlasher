@@ -171,8 +171,28 @@ jobs:
           cp -r /usr/lib/python3.9/* AppDir/usr/lib/python3.9/
           cp $(which python3.9) AppDir/usr/bin/python3
 
-          # Install Python dependencies in AppDir
-          python3.9 -m pip install --prefix=AppDir/usr -r requirements.txt
+          # DEBUGGING: Print requirements before installing
+          echo "Contents of requirements.txt:"
+          cat requirements.txt
+
+          # Install Python dependencies with verbose output and strict error checking
+          echo "Installing packages to site-packages directory"
+          mkdir -p AppDir/usr/lib/python3.9/site-packages
+          . myenv/bin/activate
+          pip install -v -r requirements.txt --target=AppDir/usr/lib/python3.9/site-packages || { echo "ERROR: Package installation failed!"; exit 1; }
+
+          # DEBUGGING: Verify packages were installed correctly
+          echo "Checking if packages were installed correctly:"
+          ls -la AppDir/usr/lib/python3.9/site-packages/
+          echo "Specifically looking for darkdetect:"
+          find AppDir -name "darkdetect*"
+
+          # Copy wxPython manually from venv if needed
+          echo "Copying wxPython from virtual environment if needed"
+          if [ ! -d "AppDir/usr/lib/python3.9/site-packages/wx" ]; then
+            echo "wxPython not found in target, copying from venv"
+            cp -r myenv/lib/python3.9/site-packages/wx* AppDir/usr/lib/python3.9/site-packages/ || echo "WARNING: wxPython copy failed"
+          fi
 
           # Copy the source files to AppDir from temp directory
           cp -r tmp_src/* AppDir/usr/src/pixelflasher/
@@ -188,7 +208,7 @@ jobs:
           APPDIR=\$(dirname "\$(dirname "\$THIS_DIR")")
           cd "\$APPDIR/usr/src/pixelflasher"
           export PYTHONHOME="\$APPDIR/usr"
-          export PYTHONPATH="\$APPDIR/usr/lib/python3.9:\$APPDIR/usr/lib/python3.9/site-packages"
+          export PYTHONPATH="\$APPDIR/usr/lib/python3.9/site-packages:\$APPDIR/usr/lib/python3.9"
           exec "\$APPDIR/usr/bin/python3" PixelFlasher.py "\$@"
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
@@ -202,7 +222,12 @@ jobs:
           # Set environment variables
           export PATH="\$HERE/usr/bin:\$PATH"
           export PYTHONHOME="\$HERE/usr"
-          export PYTHONPATH="\$HERE/usr/lib/python3.9:\$HERE/usr/lib/python3.9/site-packages"
+          export PYTHONPATH="\$HERE/usr/lib/python3.9/site-packages:\$HERE/usr/lib/python3.9"
+
+          # Add additional debug output to help troubleshoot Python import issues
+          echo "AppImage mounted at: \$HERE"
+          echo "PYTHONPATH: \$PYTHONPATH"
+          ls -la "\$HERE/usr/lib/python3.9/site-packages" | grep dark
 
           # Execute the entry point
           exec "\$HERE/usr/bin/pixelflasher" "\$@"

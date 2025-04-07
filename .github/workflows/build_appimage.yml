@@ -139,26 +139,47 @@ jobs:
       - name: Build AppImage with python-appimage
         run: |
           . myenv/bin/activate
-          # Get version from setup.py
-          VERSION=$(grep -m1 version= setup.py | cut -d'"' -f2 || echo "1.0.0")
 
-          # Build AppImage
-          python -m python_appimage build app \
-            --python-version 3.9 \
-            --app-name PixelFlasher \
-            --linux-tag=20_04 \
-            --entry-point PixelFlasher:main \
-            --output-directory dist \
-            --include-files images/ bin/ android_versions.json android_devices.json testkey_rsa4096.pem \
-            .
+          # Get version from build.sh
+          VERSION=$(grep -m1 "VERSION=" build.sh | cut -d'=' -f2 || echo "1.0.0")
+          echo "Building AppImage for version: ${VERSION}"
 
-          # Rename the AppImage to include version
-          mv dist/PixelFlasher-*.AppImage dist/PixelFlasher-${VERSION}-x86_64.AppImage
+          # Create AppDir structure
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          # Copy the source files to AppDir
+          cp -r . AppDir/usr/src/pixelflasher/
+
+          # Copy icon
+          cp images/icon-dark-256.png AppDir/usr/share/icons/hicolor/256x256/apps/pixelflasher.png
+
+          # Create entry point script
+          cat > AppDir/usr/bin/pixelflasher << EOF
+          #!/bin/bash
+          cd /usr/src/pixelflasher
+          exec python3 PixelFlasher.py "\$@"
+          EOF
+          chmod +x AppDir/usr/bin/pixelflasher
+
+          # create AppImage
+          python -m python_appimage build appimage \
+            AppDir \
+            --python-version=3.9 \
+            --linux-tag=cp39-cp39 \
+            --dest-dir=dist
+
+          # Rename the AppImage (don't include version)
+          # mv dist/python*.AppImage dist/PixelFlasher-${VERSION}-x86_64.AppImage
+          mv dist/python*.AppImage dist/PixelFlasher-x86_64.AppImage
 
           # Generate SHA256 checksum
           cd dist
-          sha256sum PixelFlasher-*.AppImage > PixelFlasher-${VERSION}-x86_64.AppImage.sha256
-          cat PixelFlasher-${VERSION}-x86_64.AppImage.sha256
+          # sha256sum PixelFlasher-*.AppImage > PixelFlasher-${VERSION}-x86_64.AppImage.sha256
+          # cat PixelFlasher-${VERSION}-x86_64.AppImage.sha256
+          sha256sum PixelFlasher-x86_64.AppImage > PixelFlasher-x86_64.AppImage.sha256
+          cat PixelFlasher-x86_64.AppImage.sha256
           ls -la
         shell: bash
 

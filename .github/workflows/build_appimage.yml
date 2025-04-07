@@ -136,6 +136,15 @@ jobs:
           EOF
         shell: bash
 
+      - name: Install AppImage tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget fuse
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          sudo mv appimagetool /usr/local/bin/
+        shell: bash
+
       - name: Build AppImage with python-appimage
         run: |
           . myenv/bin/activate
@@ -154,7 +163,11 @@ jobs:
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/lib/python3.9/site-packages
           mkdir -p AppDir/usr/src/pixelflasher
+
+          # Install Python and dependencies in AppDir
+          python3.9 -m pip install --prefix=AppDir/usr -r requirements.txt
 
           # Copy the source files to AppDir from temp directory
           cp -r tmp_src/* AppDir/usr/src/pixelflasher/
@@ -166,6 +179,7 @@ jobs:
           cat > AppDir/usr/bin/pixelflasher << EOF
           #!/bin/bash
           cd /usr/src/pixelflasher
+          export PYTHONPATH=/usr/lib/python3.9/site-packages
           exec python3 PixelFlasher.py "\$@"
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
@@ -175,7 +189,9 @@ jobs:
           #!/bin/bash
           SELF=\$(readlink -f "\$0")
           HERE=\${SELF%/*}
-          exec "\$HERE/usr/bin/pixelflasher" "\$@"
+          export PATH="\${HERE}/usr/bin:\${PATH}"
+          export PYTHONPATH="\${HERE}/usr/lib/python3.9/site-packages"
+          exec "\${HERE}/usr/bin/pixelflasher" "\$@"
           EOF
           chmod +x AppDir/AppRun
 
@@ -186,22 +202,12 @@ jobs:
           ln -sf usr/share/applications/PixelFlasher.desktop AppDir/
           ln -sf usr/share/icons/hicolor/256x256/apps/pixelflasher.png AppDir/
 
-          # Build AppImage using app command
-          python -m python_appimage build app \
-            --python-version 3.9 \
-            --app-name PixelFlasher \
-            --linux-tag=20_04 \
-            --output-directory dist \
-            AppDir
-
-          # Rename the AppImage (don't include version for now)
-          # mv dist/PixelFlasher-*.AppImage dist/PixelFlasher-${VERSION}-x86_64.AppImage
-          mv dist/PixelFlasher-*.AppImage dist/PixelFlasher-x86_64.AppImage
+          # Create AppImage
+          mkdir -p dist
+          /usr/local/bin/appimagetool AppDir dist/PixelFlasher-x86_64.AppImage
 
           # Generate SHA256 checksum
           cd dist
-          # sha256sum PixelFlasher-*.AppImage > PixelFlasher-${VERSION}-x86_64.AppImage.sha256
-          # cat PixelFlasher-${VERSION}-x86_64.AppImage.sha256
           sha256sum PixelFlasher-x86_64.AppImage > PixelFlasher-x86_64.AppImage.sha256
           cat PixelFlasher-x86_64.AppImage.sha256
           ls -la

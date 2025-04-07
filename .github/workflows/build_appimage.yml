@@ -145,7 +145,7 @@ jobs:
           sudo mv appimagetool /usr/local/bin/
         shell: bash
 
-      - name: Build AppImage with python-appimage
+      - name: Build AppImage with appimagetool
         run: |
           . myenv/bin/activate
 
@@ -204,7 +204,7 @@ jobs:
 
           # Create AppImage
           mkdir -p dist
-          /usr/local/bin/appimagetool AppDir dist/PixelFlasher-x86_64.AppImage
+          ARCH=x86_64 /usr/local/bin/appimagetool AppDir dist/PixelFlasher-x86_64.AppImage
 
           # Generate SHA256 checksum
           cd dist

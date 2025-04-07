@@ -148,6 +148,7 @@ jobs:
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          mkdir -p AppDir/usr/src/pixelflasher
 
           # Copy the source files to AppDir
           cp -r . AppDir/usr/src/pixelflasher/
@@ -163,6 +164,9 @@ jobs:
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
 
+          # Copy .desktop file to correct location
+          cp PixelFlasher.desktop AppDir/usr/share/applications/
+
           # create AppImage
           python -m python_appimage build appimage \
             AppDir \
@@ -170,7 +174,7 @@ jobs:
             --linux-tag=cp39-cp39 \
             --dest-dir=dist
 
-          # Rename the AppImage (don't include version)
+          # Rename the AppImage (don't include version for now)
           # mv dist/python*.AppImage dist/PixelFlasher-${VERSION}-x86_64.AppImage
           mv dist/python*.AppImage dist/PixelFlasher-x86_64.AppImage
 

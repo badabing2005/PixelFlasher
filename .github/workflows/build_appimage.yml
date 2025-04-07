@@ -144,14 +144,20 @@ jobs:
           VERSION=$(grep -m1 "VERSION=" build.sh | cut -d'=' -f2 || echo "1.0.0")
           echo "Building AppImage for version: ${VERSION}"
 
+          # Create a temporary directory for source files
+          mkdir -p tmp_src
+
+          # Copy needed files to the temporary directory, excluding AppDir
+          cp -r *.py *.json *.pem *.sh *.desktop images/ bin/ LICENSE README.md tmp_src/
+
           # Create AppDir structure
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
           mkdir -p AppDir/usr/src/pixelflasher
 
-          # Copy the source files to AppDir
-          cp -r . AppDir/usr/src/pixelflasher/
+          # Copy the source files to AppDir from temp directory
+          cp -r tmp_src/* AppDir/usr/src/pixelflasher/
 
           # Copy icon
           cp images/icon-dark-256.png AppDir/usr/share/icons/hicolor/256x256/apps/pixelflasher.png

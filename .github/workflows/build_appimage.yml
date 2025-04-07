@@ -166,7 +166,12 @@ jobs:
           mkdir -p AppDir/usr/lib/python3.9/site-packages
           mkdir -p AppDir/usr/src/pixelflasher
 
-          # Install Python and dependencies in AppDir
+          # Copy the entire Python standard library
+          mkdir -p AppDir/usr/lib/python3.9
+          cp -r /usr/lib/python3.9/* AppDir/usr/lib/python3.9/
+          cp $(which python3.9) AppDir/usr/bin/python3
+
+          # Install Python dependencies in AppDir
           python3.9 -m pip install --prefix=AppDir/usr -r requirements.txt
 
           # Copy the source files to AppDir from temp directory
@@ -174,9 +179,6 @@ jobs:
 
           # Copy icon
           cp images/icon-dark-256.png AppDir/usr/share/icons/hicolor/256x256/apps/pixelflasher.png
-
-          # Copy Python executable
-          cp $(which python3.9) AppDir/usr/bin/python3
 
           # Create entry point script using appdir-relative paths
           cat > AppDir/usr/bin/pixelflasher << EOF
@@ -186,7 +188,7 @@ jobs:
           APPDIR=\$(dirname "\$(dirname "\$THIS_DIR")")
           cd "\$APPDIR/usr/src/pixelflasher"
           export PYTHONHOME="\$APPDIR/usr"
-          export PYTHONPATH="\$APPDIR/usr/lib/python3.9/site-packages"
+          export PYTHONPATH="\$APPDIR/usr/lib/python3.9:\$APPDIR/usr/lib/python3.9/site-packages"
           exec "\$APPDIR/usr/bin/python3" PixelFlasher.py "\$@"
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
@@ -200,7 +202,7 @@ jobs:
           # Set environment variables
           export PATH="\$HERE/usr/bin:\$PATH"
           export PYTHONHOME="\$HERE/usr"
-          export PYTHONPATH="\$HERE/usr/lib/python3.9/site-packages"
+          export PYTHONPATH="\$HERE/usr/lib/python3.9:\$HERE/usr/lib/python3.9/site-packages"
 
           # Execute the entry point
           exec "\$HERE/usr/bin/pixelflasher" "\$@"

@@ -170,19 +170,33 @@ jobs:
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
 
+          # Create AppRun file
+          cat > AppDir/AppRun << EOF
+          #!/bin/bash
+          SELF=\$(readlink -f "\$0")
+          HERE=\${SELF%/*}
+          exec "\$HERE/usr/bin/pixelflasher" "\$@"
+          EOF
+          chmod +x AppDir/AppRun
+
           # Copy .desktop file to correct location
           cp PixelFlasher.desktop AppDir/usr/share/applications/
 
-          # create AppImage
-          python -m python_appimage build appimage \
-            AppDir \
-            --python-version=3.9 \
-            --linux-tag=cp39-cp39 \
-            --dest-dir=dist
+          # Create symlink in root AppDir
+          ln -sf usr/share/applications/PixelFlasher.desktop AppDir/
+          ln -sf usr/share/icons/hicolor/256x256/apps/pixelflasher.png AppDir/
+
+          # Build AppImage using app command
+          python -m python_appimage build app \
+            --python-version 3.9 \
+            --app-name PixelFlasher \
+            --linux-tag=20_04 \
+            --output-directory dist \
+            AppDir
 
           # Rename the AppImage (don't include version for now)
-          # mv dist/python*.AppImage dist/PixelFlasher-${VERSION}-x86_64.AppImage
-          mv dist/python*.AppImage dist/PixelFlasher-x86_64.AppImage
+          # mv dist/PixelFlasher-*.AppImage dist/PixelFlasher-${VERSION}-x86_64.AppImage
+          mv dist/PixelFlasher-*.AppImage dist/PixelFlasher-x86_64.AppImage
 
           # Generate SHA256 checksum
           cd dist

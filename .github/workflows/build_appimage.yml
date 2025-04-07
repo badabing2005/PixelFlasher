@@ -178,25 +178,37 @@ jobs:
           # Create entry point script
           cat > AppDir/usr/bin/pixelflasher << EOF
           #!/bin/bash
-          cd /usr/src/pixelflasher
-          export PYTHONPATH=/usr/lib/python3.9/site-packages
-          exec python3 PixelFlasher.py "\$@"
+          # Use relative paths within the AppImage
+          SELF=\$(readlink -f "\$0")
+          HERE=\${SELF%/*}
+          APP_DIR=\${HERE}/../../
+          cd "\${APP_DIR}/usr/src/pixelflasher"
+          export PYTHONPATH="\${APP_DIR}/usr/lib/python3.9/site-packages"
+          exec "\${APP_DIR}/usr/bin/python3" PixelFlasher.py "\$@"
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
 
           # Create AppRun file
           cat > AppDir/AppRun << EOF
           #!/bin/bash
+          # Get the directory where the AppImage is mounted
           SELF=\$(readlink -f "\$0")
           HERE=\${SELF%/*}
-          export PATH="\${HERE}/usr/bin:\${PATH}"
+
+          # Set environment variables relative to the AppImage mount
+          export PATH="\${HERE}/usr/bin:\$PATH"
           export PYTHONPATH="\${HERE}/usr/lib/python3.9/site-packages"
+
+          # Execute the entry point
           exec "\${HERE}/usr/bin/pixelflasher" "\$@"
           EOF
           chmod +x AppDir/AppRun
 
           # Copy .desktop file to correct location
           cp PixelFlasher.desktop AppDir/usr/share/applications/
+
+          # Fix the Exec line in the .desktop file to use the correct path
+          sed -i 's|Exec=PixelFlasher|Exec=pixelflasher|g' AppDir/usr/share/applications/PixelFlasher.desktop
 
           # Create symlink in root AppDir
           ln -sf usr/share/applications/PixelFlasher.desktop AppDir/

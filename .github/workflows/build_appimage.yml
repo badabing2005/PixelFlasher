@@ -166,26 +166,19 @@ jobs:
           mkdir -p AppDir/usr/lib/python3.9/site-packages
           mkdir -p AppDir/usr/src/pixelflasher
 
+          # Create a lib directory for shared libraries
+          mkdir -p AppDir/usr/lib/x86_64-linux-gnu/
+
           # Copy the entire Python standard library
           mkdir -p AppDir/usr/lib/python3.9
           cp -r /usr/lib/python3.9/* AppDir/usr/lib/python3.9/
           cp $(which python3.9) AppDir/usr/bin/python3
 
-          # DEBUGGING: Print requirements before installing
-          echo "Contents of requirements.txt:"
-          cat requirements.txt
-
-          # Install Python dependencies with verbose output and strict error checking
+          # Install Python dependencies
           echo "Installing packages to site-packages directory"
           mkdir -p AppDir/usr/lib/python3.9/site-packages
           . myenv/bin/activate
-          pip install -v -r requirements.txt --target=AppDir/usr/lib/python3.9/site-packages || { echo "ERROR: Package installation failed!"; exit 1; }
-
-          # DEBUGGING: Verify packages were installed correctly
-          echo "Checking if packages were installed correctly:"
-          ls -la AppDir/usr/lib/python3.9/site-packages/
-          echo "Specifically looking for darkdetect:"
-          find AppDir -name "darkdetect*"
+          pip install -r requirements.txt --target=AppDir/usr/lib/python3.9/site-packages || { echo "ERROR: Package installation failed!"; exit 1; }
 
           # Copy wxPython manually from venv if needed
           echo "Copying wxPython from virtual environment if needed"
@@ -193,6 +186,19 @@ jobs:
             echo "wxPython not found in target, copying from venv"
             cp -r myenv/lib/python3.9/site-packages/wx* AppDir/usr/lib/python3.9/site-packages/ || echo "WARNING: wxPython copy failed"
           fi
+
+          # Copy required shared libraries for wxPython
+          echo "Copying required shared libraries for wxPython"
+          sudo apt-get install -y libnotify4 libgstreamer1.0-0 libwebkit2gtk-4.0-37 \
+            libsdl2-2.0-0 libjpeg-turbo8 libpng16-16 libtiff5 \
+            libgtk-3-0 libsm6 libwxgtk3.0-gtk3-0v5
+
+          # Copy shared libraries to the AppDir
+          for lib in libnotify.so.4 libgstreamer-1.0.so.0 libwebkit2gtk-4.0.so.37 \
+            libgtk-3.so.0 libgdk-3.so.0 libpango-1.0.so.0 libgobject-2.0.so.0 \
+            libglib-2.0.so.0 libcairo.so.2 libsm.so.6 libwx_gtk3u_core-3.0.so.0; do
+            find /usr/lib -name $lib -exec cp -v {} AppDir/usr/lib/x86_64-linux-gnu/ \; || echo "WARNING: Could not find $lib"
+          done
 
           # Copy the source files to AppDir from temp directory
           cp -r tmp_src/* AppDir/usr/src/pixelflasher/
@@ -209,6 +215,7 @@ jobs:
           cd "\$APPDIR/usr/src/pixelflasher"
           export PYTHONHOME="\$APPDIR/usr"
           export PYTHONPATH="\$APPDIR/usr/lib/python3.9/site-packages:\$APPDIR/usr/lib/python3.9"
+          export LD_LIBRARY_PATH="\$APPDIR/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
           exec "\$APPDIR/usr/bin/python3" PixelFlasher.py "\$@"
           EOF
           chmod +x AppDir/usr/bin/pixelflasher
@@ -223,11 +230,7 @@ jobs:
           export PATH="\$HERE/usr/bin:\$PATH"
           export PYTHONHOME="\$HERE/usr"
           export PYTHONPATH="\$HERE/usr/lib/python3.9/site-packages:\$HERE/usr/lib/python3.9"
-
-          # Add additional debug output to help troubleshoot Python import issues
-          echo "AppImage mounted at: \$HERE"
-          echo "PYTHONPATH: \$PYTHONPATH"
-          ls -la "\$HERE/usr/lib/python3.9/site-packages" | grep dark
+          export LD_LIBRARY_PATH="\$HERE/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
 
           # Execute the entry point
           exec "\$HERE/usr/bin/pixelflasher" "\$@"

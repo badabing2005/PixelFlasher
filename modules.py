@@ -2794,7 +2794,38 @@ According to the author, Magic Mount is more stable and compatible and is recomm
 
     # If patch_flavor is KernelSU* check if the device is a Pixel device and if the kernel is KMI
     if patch_flavor in ['KernelSU', 'KernelSU_LKM','KernelSU-Next', 'KernelSU_Next_LKM' ]:
-        kmi = device.kmi
+        if self.config.override_kmi:
+            title = "Kernel KMI Override"
+            message = f"Kernel KMI Override: {self.config.override_kmi}\n\n"
+            message += "You have set a custom kernel KMI override.\n"
+            message += "Are you sure you want to proceed with this override?\n"
+            message += "Click OK to proceed with the override.\n"
+            message += "or Hit CANCEL to abort."
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            puml(f"note right\nDialog\n====\n{message}\nend note\n")
+            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                # ok to proceed with the override
+                print("User pressed ok.")
+                puml(":User Pressed OK;\nnote right:Proceed with Kernel KMI Override\n")
+                dlg.Destroy()
+            else:
+                # User cancelled out of KMI Override
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel, out of Kernel KMI Override.")
+                puml(":User Pressed Cancel;\n}\n")
+                print("Aborting ...\n")
+                dlg.Destroy()
+                return -1
+            # set the kmi to the override value
+            kmi = self.config.override_kmi
+        else:
+            kmi = device.kmi
+        if not kmi:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unsupported Kernel KMI [{kmi}]")
+            print("Aborting ...\n")
+            puml("#red:Unsupported Kernel KMI [{kmi}];\n}\n")
+            return
         anykernel = False
         pixel_devices = get_android_devices()
         if not device.is_gki:
@@ -3047,6 +3078,8 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         # download the latest KernelSU
         kmi_parts = kmi.split('-')
         look_for_kernelsu = '-'.join(kmi_parts[::-1])
+        kernel_su_gz_file = None
+        kernelsu_version = None
         if patch_flavor == 'KernelSU':
             kernel_su_gz_file = download_ksu_latest_release_asset(user='tiann', repo='KernelSU', asset_name=look_for_kernelsu, anykernel=anykernel)
             if kernel_su_gz_file:
@@ -3056,6 +3089,9 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             if kernel_su_gz_file:
                 kernelsu_version = get_gh_latest_release_version('rifsxd', 'KernelSU-Next')
         if not kernel_su_gz_file:
+            print("ERROR: Could not find matching KernelSU generic image\nAborting ...\n")
+            return
+        if isinstance(kernel_su_gz_file, list):
             print("ERROR: Could not find matching KernelSU generic image\nAborting ...\n")
             return
 
@@ -4681,6 +4717,13 @@ def flash_phone(self):
         # ============================================
         def reboot_device_to_bootloader():
             nonlocal device
+            if not device:
+                device = get_phone(True)
+            if device is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Can't reboot to bootloader because the device not detected.")
+                print("Aborting ...\n")
+                puml("#red:Can't reboot to bootloader because the device not detected;\n}\n")
+                return -1
             # reboot to bootloader if flashing is necessary
             if self.config.disable_verity or self.config.disable_verification or self.config.flash_mode == 'customFlash' or (boot and not boot.is_stock_boot):
                 # Check for bootloader unlocked
@@ -5050,6 +5093,7 @@ def flash_phone(self):
         # ============================================
         def get_device_mode(expect_bootloader=False):
             nonlocal device
+            nonlocal device_id
             mode = device.get_device_state(device_id=device_id, timeout=60, retry=3)
             if mode and mode != "ERROR":
                 print(f"Currently the device is in {mode} mode.")
@@ -5059,8 +5103,14 @@ def flash_phone(self):
                     return -1
                 image_mode = get_image_mode()
                 self.refresh_device(device_id)
-                device = get_phone()
-                return 0
+                new_device = get_phone(True)
+                if new_device:
+                    device = new_device
+                    return 0
+                else:
+                    print("ERROR: Device was lost after refresh")
+                    print("Aborting ...\n")
+                    return -1
             else:
                 if mode and mode == "ERROR":
                     print(f"Currently the device is in {mode} mode.")

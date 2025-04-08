@@ -203,7 +203,6 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.override_kmi.ShowCancelButton(True)
         self.override_kmi.SetDescriptiveText("Example: 5.15.131-android14")
         self.override_kmi.ShowSearchButton(False)
-        self.override_kmi.Disable()
 
         # Use Custom Font
         self.use_custom_font_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Use Custom Fontface", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)

@@ -2524,7 +2524,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         title = "Device Analysis Report"
         message = '''
 # ATTENTION!
-**This feature will generate a device analysis report that you could post online to get assistance on Play Integrity related issues.**<br/>
+**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>
 
 This report will inherently reveal sensitive information about your device such as:
 
@@ -2560,7 +2560,8 @@ This report will inherently reveal sensitive information about your device such 
 This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>
 Your privacy is yours to keep.<br/>
 
-Before posting publicly please carefully inspect the contents.
+If you continue you'd only be generating the report, and not posting it online.<br/>
+If you want to post it online, please make sure to remove any sensitive information from the report before posting it online.<br/>
 
 **Are you sure you want to continue?**<br/>
 '''

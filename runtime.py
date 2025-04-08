@@ -4765,6 +4765,11 @@ def bootloader_issue_message():
 def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True):
     try:
         url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        if asset_name:
+            look_for = asset_name
+        else:
+            look_for = "[all entries]"
+        print(f"Fetching latest release from {url} matching {look_for} ...")
         response = request_with_fallback(method='GET', url=url)
         assets = response.json().get('assets', [])
 

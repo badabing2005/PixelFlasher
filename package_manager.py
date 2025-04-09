@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -123,7 +124,7 @@ class SuPermissionDialog(wx.Dialog):
         until = self.ComputeEpoch(until_text)
         notification = self.notification_checkbox.GetValue()
         logging = self.logging_checkbox.GetValue()
-        print(f"Allow button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
+        print(f"\nAllow button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
         device = get_phone()
         if device:
             device.magisk_update_su(uid=self.uid, policy='allow', logging=logging, notification=notification, until=until)
@@ -134,7 +135,7 @@ class SuPermissionDialog(wx.Dialog):
         until = self.ComputeEpoch(until_text)
         notification = self.notification_checkbox.GetValue()
         logging = self.logging_checkbox.GetValue()
-        print(f"Deny button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
+        print(f"\nDeny button clicked. Until: {until_text}, Notification: {notification}, Logging: {logging}, Epoch: {until}")
         device = get_phone()
         if device:
             device.magisk_update_su(uid=self.uid, policy='deny', logging=logging, notification=notification, until=until)
@@ -143,14 +144,14 @@ class SuPermissionDialog(wx.Dialog):
     def OnRevoke(self, event):
         until_text = 'Revoke'
         until = self.ComputeEpoch(until_text)
-        print(f"Revoke button clicked. Until: {until_text}, Notification: 1, Logging: 1, Epoch: {until}")
+        print(f"\nRevoke button clicked. Until: {until_text}, Notification: 1, Logging: 1, Epoch: {until}")
         device = get_phone()
         if device:
             device.magisk_update_su(uid=self.uid, policy='deny', logging=1, notification=1, until=until)
         self.EndModal(wx.ID_CANCEL)
 
     def OnCancel(self, event):
-        print("Cancel button clicked")
+        print("\nUser pressed Cancel")
         self.EndModal(wx.ID_CANCEL)
 
     def ComputeEpoch(self, until):
@@ -923,6 +924,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.popupRmFromDeny = wx.NewIdRef()
             self.popupDownload = wx.NewIdRef()
             self.popupLaunch = wx.NewIdRef()
+            self.popupPermissions = wx.NewIdRef()
             self.popupKill = wx.NewIdRef()
             self.popupClearData = wx.NewIdRef()
             self.popupRefresh = wx.NewIdRef()
@@ -938,6 +940,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.Bind(wx.EVT_MENU, self.OnPopupRmFromDeny, id=self.popupRmFromDeny)
             self.Bind(wx.EVT_MENU, self.OnPopupDownload, id=self.popupDownload)
             self.Bind(wx.EVT_MENU, self.OnPopupLaunch, id=self.popupLaunch)
+            self.Bind(wx.EVT_MENU, self.OnPopupPermissions, id=self.popupPermissions)
             self.Bind(wx.EVT_MENU, self.OnPopupKill, id=self.popupKill)
             self.Bind(wx.EVT_MENU, self.OnPopupClearData, id=self.popupClearData)
             self.Bind(wx.EVT_MENU, self.OnPopupRefresh, id=self.popupRefresh)
@@ -953,6 +956,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         uninstallItem = menu.Append(self.popupUninstall, "Uninstall Package")
         downloadItem = menu.Append(self.popupDownload, "Download Package")
         launchItem = menu.Append(self.popupLaunch, "Launch Package")
+        PermissionsItem = menu.Append(self.popupPermissions, "View Application Permissions")
         killItem = menu.Append(self.popupKill, "Kill Application")
         clearItem = menu.Append(self.popupClearData, "Clear Application Data")
         # Add a separator
@@ -973,6 +977,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         uninstallItem.SetBitmap(images.uninstall_24.GetBitmap())
         downloadItem.SetBitmap(images.download_24.GetBitmap())
         launchItem.SetBitmap(images.launch_24.GetBitmap())
+        PermissionsItem.SetBitmap(images.permissions_24.GetBitmap())
         killItem.SetBitmap(images.kill_24.GetBitmap())
         clearItem.SetBitmap(images.clear_24.GetBitmap())
         refreshItem.SetBitmap(images.scan_24.GetBitmap())
@@ -1038,8 +1043,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         # Popup a small dialog to display SU Permission selection
         dialog = SuPermissionDialog(self, pkg=pkg, uid=uid, label=text)
-        if dialog.ShowModal() != wx.ID_OK:
-            print("User pressed Cancel")
+        result = dialog.ShowModal()
         dialog.Destroy()
 
         # self.RefreshPackages()
@@ -1068,6 +1072,14 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def OnPopupLaunch(self, event):
         self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'launch')
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  OnPopupPermissions
+    # -----------------------------------------------
+    def OnPopupPermissions(self, event):
+        self._on_spin('start')
+        self.ApplySingleAction(self.currentItem, 'get-permissions')
         self._on_spin('stop')
 
     # -----------------------------------------------
@@ -1161,6 +1173,13 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             print(f"Removing {counter}{pkg} type: {type} from Magisk Denylist...")
         elif action == "launch":
             print(f"Launching {counter}{pkg} type: {type}...")
+        elif action == "get-permissions":
+            print(f"Getting Permissions for {counter}{pkg} type: {type}...")
+            res = self.device.get_package_permissions(pkg)
+            if res:
+                self.details.SetValue(f"{res}")
+                debug(res)
+            return
         elif action == "kill":
             print(f"Killing {counter}{pkg} type: {type}...")
         elif action == "clear-data":

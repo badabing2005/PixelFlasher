@@ -1,7 +1,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -6805,4 +6806,67 @@ shizuku_24 = PyEmbeddedImage(
     b'3RlfJNBxmvdlUhPypFK84KSpjNpvvoGZJfhzLM2CDKqyh0BESHipHaN5kVpvPIHlI5R+/MgG'
     b'N/OiMzWHxf9nfZH31DP3gouYvP5J1tPFHr54K1onuPNRx7Faf/4lg3c+vJ5LxJ0lAk/Iaak2'
     b'9H/JSiofXc8Ukx989H0SuBQNpv9FgL8BobmWfM3j26MAAAAASUVORK5CYII=')
+
+#----------------------------------------------------------------------
+beta_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACMklEQVRIS+2VT2sTURTF730T'
+    b'01qa2k4UtFoVFD+AIkjNwk39AoIuXLnQIkjbUaQrrQaXNanFP+jCreIHqAtdqrUi6qYIBUGl'
+    b'dKN9JohoSWaOZ5IGpHYy7djufJt5zMw9v3fPvXdGZZ2XrrO+xALG27ElaAkKED2mkFaIzDLq'
+    b'jePr1YGSvo07YFNAIYvtRvCaIlv/EoJARXODVl80gzQFjLn+Q1E9AUiZYv0LRibSFTkoKdxh'
+    b'4D7en/Ss6U0EuCJIdWbxncGtPOvIkNV8Q6jo4owq7gqkwgxaCKdzy6/IDIpt2KYbMReG0f8+'
+    b'b16fNiTGXJym5j1mYJlBNlEG1130OIrPNQC017M6Ge5HM9icSuMlt3sAFDzrXFgTwIaKzFTT'
+    b'cpK4YQp2M62pTVaPnBL9lQhwows7YfApDFboYV46oHhct4xtWtXjA2X9kLhNl1qkKgG9ekDB'
+    b'3ZyDeu2Aa4PWXE5U5KgajLvYQdJ9IvoWG+AcG+DWqrsoChAKPRI4cy6eEXKIfs0OWdOzpoBQ'
+    b'rOj6eVW9VMvC1y6vpKXlIJFz0CyDGiDr36b3Z8N9ZV7bL4r+SAxgMfMLxowOf9VwsmXxGzXD'
+    b'bRstekKLjv6TRfWGYReJTNN3y+t+pp5hu/5kEx9gkd+vGvDnHPCUExTIUbyjIUTgKwm0n96/'
+    b'azYLK65B2cpUJiN7jSPdMPLlvNXpuCELn0cCbnZiV9XBx5o9gea8b/p8JYJL3/kPiHUt9qcf'
+    b'qxDzwm9g7hgohWJl9wAAAABJRU5ErkJggg==')
+
+#----------------------------------------------------------------------
+permissions_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1B'
+    b'AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5F'
+    b'VCA1LjEuNBLfpoMAAAC2ZVhJZklJKgAIAAAABQAaAQUAAQAAAEoAAAAbAQUAAQAAAFIAAAAo'
+    b'AQMAAQAAAAIAAAAxAQIAEAAAAFoAAABphwQAAQAAAGoAAAAAAAAAYAAAAAEAAABgAAAAAQAA'
+    b'AFBhaW50Lk5FVCA1LjEuNAADAACQBwAEAAAAMDIzMAGgAwABAAAAAQAAAAWgBAABAAAAlAAA'
+    b'AAAAAAACAAEAAgAEAAAAUjk4AAIABwAEAAAAMDEwMAAAAADX5rshveZftAAAAm5JREFUSEvd'
+    b'lE1IVUEYhp/v6M0sQ1LKHwKxRWkFKcRFg06C/aBmZdCiIDCxoI1Qy06IhJdqYYRBQbgrchEE'
+    b'FZT940XCfiAojYTEjaQQFUJJ3rwzLe5R7p0zdt3WszvvvN+8M9+ZGfjXEVOw0dEfk5CENgF1'
+    b'wE+gz3Nl1PTZWDCgs18tEZEKoB5oADYDIX94GngN3AMezqhfw2drsrUxBdgCIlFdBRwEdgMb'
+    b'bB6D38Bb4AHQ67kykjyYUhyJqlyQD0Bxsg4JpyOgAa3MwXmeea7UJgtO8geQCWQYGiKg44qp'
+    b'L5NMT33XIubS5skyBTMAIGV9IjAz/YPnNy7o801FRBryGIreUShrywN7swWkIA6MDPappz2n'
+    b'Zc+pq3rbkTPc9PbL5NiwdgJ7DZI2QCuYGH1P4fowVXuPEW5s1QBfxz+ZVitpA8SBgtKNMjny'
+    b'ihe3rzBwq1sAVpWUmVYraQO0gvKt9bLj+Dl9v7tN3ty9RnPXI726pExU3HQHSR+gYWlODtVN'
+    b'J2RZ/hpqWzpkbWVN2ro5bMbAAdQ6Ia8sKqW/t4tLzRWMvRtQlp8cqDUDrGcvgUbNxiheV0nF'
+    b'zsMsz80XizugpAR4rvPNv/ZBNEx8fEl5dR27WjwKSstFBU49A6Zg7gAgErgwGkJZ2YQPtMVz'
+    b'8gr1As/FZ+CyKQZ6RuLBOwlcTBEFZmMzyhFHnMyQWRcD9nmu9Bm6PYBESKsfsmJOE/+xMzo9'
+    b'Dhz1XHmSovrYWgSA50oP6LD/5sPcaUqd/Dqa8EKT87cdJBOJ6kagHdjiS4NAu+fKY8MaYFEB'
+    b'AJ3ReEhwDgEKrXq97RmLuMf/A38A7868xh5PWVQAAAAASUVORK5CYII=')
+
+#----------------------------------------------------------------------
+google_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAB/UlEQVRIS7WVTUSmURTHK5Ji'
+    b'Fn0SGSka0lD7Nk1azKIULaLSzDppjGFIpobSiNJitIiIWrVJH/ShXaSmXVFpkQyZYTIMU4um'
+    b'j/n9Ob1u1/M+z5t6D3/3vuf5n/M/97z3OU9qSpItNcn5U6IEMiigCbwCVaAUZINrsAKWwSL4'
+    b'Hq/QMIHXBH0FJRGnvOL5GOgB/3xuPIE+iP0BiU/w/TTRAu/5Er/rExH4BOmzQ9yy6rZZLxx/'
+    b'MXsV8sZaplaqXffMP0EdT9ccxns7/m1Im1R1JpgN4rgCaRD2wQsjDlnlIbmjH7kCqmTBQk5M'
+    b'6DI6RTjDFZiG2mb0TtbxxyZXvCtw6LSniP3pUwv8JqFeIlk60P0Osl2cLyPEYx1wT3BGUK4F'
+    b'PmP9+wiBXmIH/Rbt4aiwpOWsB3EEJvFrZPiWj0Nxsg9gxBeYwtFhhC5WjYmH2EfIXyygnXXG'
+    b'F2jAMW8EnaYS3DxAYQNutfFjHfBfNLWlzEiqaDhBASWWgOwYxFroj4pGHs45STVrBiJOojd/'
+    b'Hehqy96CqbscQdNUo7fbEdlh/w5sOr7n7P8AjWj9X5pFslWgMR+bXUECmkmjnoiCj8APkAOC'
+    b'3oNv+GvBvesd9sFpMaFCp/J4W12OVnDuE6I+mVkENIMaoFulPudZkl+s+shMAH0zAi1KIIHi'
+    b'wylJF/gP78dSGaeIPe8AAAAASUVORK5CYII=')
+
+#----------------------------------------------------------------------
+android_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAABsUlEQVRIS+2Uz0vCABTH33MI'
+    b'ERJBQVBCvy5BENG8doluIsnMcFQQdKi/IKjuRn9Ahw4RBDW1nKFEtzp0dVK3upTWKSiK8ibb'
+    b'6ykmzvxVKF4aG2Pwfd/P+343htDkA5vsD/+Amg23pqJxxT1wLZ8ma65XJKg0UzaBqHhWCegt'
+    b'IavBeiBi0OMmA/oScninVF++opBXEHXjMt2ecd7NRD+rQUZDXlubrp/DR2pKW9Ey9QFYld0K'
+    b'DHAjGDcEOMkf9AhvYydCCyA9AsEtAl0R4hinjSV8EbXcIhVfsqhITjaNIWDVD4HN+QSXJqtn'
+    b'dQPY3I+I6/X0X9AQ+eOyulmzIkdA2gbAtV+Z58VEtMVJNopnTfEdirTIjRxkBZz7nW8nfC1X'
+    b'qilXD8AeX7Os6czNEc0z5OgbUgCIu6IVOvqTXE1vXngBtowL09Z7hvaUTUT0bBWEwYyhRzn1'
+    b'dH4upQnCMMwd69nnAmBCkZYsiPsmI6JXNu+qVhdv/MJLdZs1hhz3RQImgCPgydbh+Uv3pTNc'
+    b'3aHmUxfMAEV64m3tjQCwx0PcFx4yARpk/MOmNX/TRqb5T1CzzS8Ot5MZGf0EQAAAAABJRU5E'
+    b'rkJggg==')
 

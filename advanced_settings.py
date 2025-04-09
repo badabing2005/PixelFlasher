@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -202,7 +203,6 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.override_kmi.ShowCancelButton(True)
         self.override_kmi.SetDescriptiveText("Example: 5.15.131-android14")
         self.override_kmi.ShowSearchButton(False)
-        self.override_kmi.Disable()
 
         # Use Custom Font
         self.use_custom_font_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Use Custom Fontface", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)

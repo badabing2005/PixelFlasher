@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -69,7 +70,7 @@ from bs4 import BeautifulSoup
 from cryptography import x509
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
@@ -1448,6 +1449,101 @@ def get_compression_method(zip_path, file_to_replace):
 
 
 # ============================================================================
+#                               Function extract_from_nested_tgz
+# ============================================================================
+def extract_from_nested_tgz(archive_path, file_paths, output_dir):
+    """
+    Extract files from nested archives (like tgz -> tar -> folder structure).
+
+    Args:
+        archive_path: Path to the outer archive file
+        file_paths: List of filenames to extract
+        output_dir: Directory to extract files to
+
+    Returns:
+        True if all files were successfully extracted, False otherwise
+    """
+
+    temp_dir = tempfile.mkdtemp(dir=tempfile.gettempdir())
+    success = True
+
+    try:
+        path_to_7z = get_path_to_7z()
+
+        # First extract the outer archive (tgz) to get the inner archive (tar)
+        debug(f"Extracting outer archive to {temp_dir}")
+
+        cmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir}\" \"{archive_path}\""
+        debug(f"{cmd}")
+        result = run_shell(cmd)
+        if result.returncode != 0:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract outer archive")
+            return False
+
+        # Find the inner tar file
+        tar_file = None
+        for root, _, files in os.walk(temp_dir):
+            for file in files:
+                if file.endswith('.tar'):
+                    tar_file = os.path.join(root, file)
+                    break
+            if tar_file:
+                break
+
+        if not tar_file:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find inner tar archive")
+            return False
+
+        # Extract the tar file to the temp directory
+        debug(f"Extracting inner archive {tar_file}")
+
+        inner_extract_dir = os.path.join(temp_dir, "inner")
+        os.makedirs(inner_extract_dir, exist_ok=True)
+
+        cmd = f"\"{path_to_7z}\" x -bd -y -o\"{inner_extract_dir}\" \"{tar_file}\""
+        debug(f"{cmd}")
+        result = run_shell(cmd)
+        if result.returncode != 0:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract inner archive")
+            return False
+        # delete the tar file
+        os.remove(tar_file)
+
+        # Copy each needed file to the output directory
+        for file_name in file_paths.split():
+            found = False
+            file_path = None
+
+            for root, _, files in os.walk(inner_extract_dir):
+                for file in files:
+                    if file == file_name:
+                        file_path = os.path.join(root, file)
+                        found = True
+                        break
+                if found:
+                    break
+
+            if file_path and os.path.exists(file_path):
+                output_file = os.path.join(output_dir, file_name)
+                shutil.copy2(file_path, output_file)
+                debug(f"Extracted {file_name} to {output_file}")
+            else:
+                print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {file_name} in extracted content")
+                success = False
+
+    except Exception as e:
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract from nested archive: {str(e)}")
+        traceback.print_exc()
+        success = False
+    finally:
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception as e:
+            debug(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: cleaning up temp directory: {str(e)}")
+    return success
+
+
+# ============================================================================
 #                   Function replace_file_in_zip_with_7zip
 # ============================================================================
 def replace_file_in_zip_with_7zip(zip_path, file_to_replace, new_file_path):
@@ -2668,6 +2764,34 @@ def get_partial_gsi_data2(release_href, security_patch_level_date):
 
 
 # ============================================================================
+#                 Function get_beta_links
+# ============================================================================
+def get_beta_links():
+    try:
+        # Get the latest Android version
+        latest_version, latest_version_url = get_latest_android_version(None)
+        ota_data = None
+        factory_data = None
+        if latest_version == -1:
+            return None, None
+
+
+        # Fetch OTA HTML
+        ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
+        ota_data = get_beta_data(ota_url)
+
+        # Fetch Factory HTML
+        factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
+        factory_data = get_beta_data(factory_url)
+
+        return ota_data, factory_data
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting beta links.")
+        traceback.print_exc()
+        return None, None
+
+
+# ============================================================================
 #                 Function get_beta_pif
 # ============================================================================
 def get_beta_pif(device_model='random', force_version=None):
@@ -3120,6 +3244,17 @@ def get_google_images(save_to=None):
         if save_to is None:
             save_to = os.path.join(get_config_path(), "google_images.json").strip()
 
+        # Fetch the Beta OTA and Beta Factory image data
+        ota_beta_data, factory_beta_data = get_beta_links()
+        if ota_beta_data.build:
+            ota_build_id = ota_beta_data.build
+        else:
+            ota_build_id = ''
+        if factory_beta_data.build:
+            factory_build_id = factory_beta_data.build
+        else:
+            factory_build_id = ''
+
         for image_type in ['ota', 'factory', 'ota-watch', 'factory-watch']:
             if image_type == 'ota':
                 url = "https://developers.google.com/android/ota"
@@ -3218,6 +3353,36 @@ def get_google_images(save_to=None):
                 # Append the downloads to the corresponding list based on download_type
                 data[device_id]['ota'].extend(downloads_dict['ota'])
                 data[device_id]['factory'].extend(downloads_dict['factory'])
+
+                beta_entries = []
+
+                # Check if we have valid beta data for OTA
+                if ota_beta_data and isinstance(ota_beta_data, BetaData) and hasattr(ota_beta_data, 'devices'):
+                    for beta_item in ota_beta_data.devices:
+                        if device_label == beta_item['device']:
+                            beta_info = {
+                                'version': f"OTA - {beta_item['category']} ({ota_build_id})",
+                                'url': beta_item['url'],
+                                'sha256': beta_item['hash'],
+                                'date': datetime.now().strftime('%y%m%d')
+                            }
+                            beta_entries.append(beta_info)
+
+                # Check if we have valid beta data for Factory
+                if factory_beta_data and isinstance(factory_beta_data, BetaData) and hasattr(factory_beta_data, 'devices'):
+                    for beta_item in factory_beta_data.devices:
+                        if device_label == beta_item['device']:
+                            beta_info = {
+                                'version': f"Factory - {beta_item['category']} ({factory_build_id})",
+                                'url': beta_item['url'],
+                                'sha256': beta_item['hash'],
+                                'date': datetime.now().strftime('%y%m%d')
+                            }
+                            beta_entries.append(beta_info)
+
+                # Only add beta list if there are actual beta entries
+                if beta_entries:
+                    data[device_id]['beta'] = beta_entries
 
         # Convert to JSON
         json_data = json.dumps(data, indent=2)
@@ -4600,6 +4765,11 @@ def bootloader_issue_message():
 def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True):
     try:
         url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        if asset_name:
+            look_for = asset_name
+        else:
+            look_for = "[all entries]"
+        print(f"Fetching latest release from {url} matching {look_for} ...")
         response = request_with_fallback(method='GET', url=url)
         assets = response.json().get('assets', [])
 
@@ -4746,7 +4916,7 @@ def extract_magiskboot(apk_path, architecture, output_path):
         file_path_in_apk = f"lib/{architecture}/libmagiskboot.so"
         output_file_path = os.path.join(output_path, "magiskboot")
 
-        cmd = f"{path_to_7z} e \"{apk_path}\" -o\"{output_path}\" -r {file_path_in_apk} -y"
+        cmd = f"\"{path_to_7z}\" e \"{apk_path}\" -o\"{output_path}\" -r {file_path_in_apk} -y"
         debug(cmd)
         res = run_shell2(cmd)
         if res and isinstance(res, subprocess.CompletedProcess):
@@ -4838,6 +5008,7 @@ def check_kb(filename):
         'Pragma': 'no-cache'
     }
     try:
+        # Get CRL data
         crl = request_with_fallback(method='GET', url=url, headers=headers, nocache=True)
         if crl is not None and crl != 'ERROR':
             last_modified = crl.headers.get('last-modified', 'Unknown')
@@ -4850,100 +5021,347 @@ def check_kb(filename):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not fetch CRL from {url}")
             return ['invalid']
 
-        # Extract certificates from keybox
-        certs = []
-        try:
-            for elem in ET.parse(filename).getroot().iter():
-                if elem.tag == 'Certificate':
-                    certs.append(elem.text.strip())
-        except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract certificates from {filename}")
-            print(e)
-            return ['invalid']
+        print(f"\nChecking keybox: {filename} ...")
 
         shadow_banned_list = SHADOW_BANNED_ISSUERS
         is_sw_signed = False
+        is_google_signed = False
         is_expired = False
         expiring_soon = False
         is_revoked = False
         is_shadow_banned = False
-        i = 1
-        print(f"\nChecking keybox: {filename} ...")
-
-        last_issuer = ""
-        cert_counter = 0
-        tab_text = ""
-        chain_counter = 0
-
-        for cert in certs:
-            cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed = parse_cert(cert)
-
-            # Format the issuer field
-            formatted_issuer, issuer_sn = format_dn(cert_issuer)
-
-            if issuer_sn in shadow_banned_list:
-                is_shadow_banned = True
-
-            # Format the issued to field
-            formatted_issued_to, issued_to_sn = format_dn(cert_subject)
-
-            # indent the chain
-            if last_issuer == issued_to_sn or last_issuer == cert_subject:
-                tab_text += "    "
-                cert_counter_text = " "
-                chain_counter += 1
-            else:
-                tab_text = ""
-                cert_counter += 1
-                cert_counter_text = f"{cert_counter}"
-
-            # handle no sn case
-            if issuer_sn == "":
-                last_issuer = cert_issuer
-                if cert_counter == 0:
-                    cert_counter = 1
-                cert_counter_text = f"{cert_counter}"
-            else:
-                last_issuer = issuer_sn
-
-            # redact if verbose is not set
-            if get_verbose():
-                cert_sn_text = cert_sn
-                formatted_issued_to_text = formatted_issued_to
-                formatted_issuer_text = formatted_issuer
-            else:
-                cert_sn_text = "REDACTED"
-                formatted_issued_to_text = "REDACTED"
-                formatted_issuer_text = "REDACTED"
-
-            print(f'\n{tab_text}Certificate {cert_counter_text} SN:       {cert_sn_text}')
-            print(f'{tab_text}Issued to:              {formatted_issued_to_text}')
-            print(f'{tab_text}Issuer:                 {formatted_issuer_text}')
-            print(f'{tab_text}Signature Algorithm:    {sig_algo}')
-            print(f'{tab_text}Key Usage:              {key_usages}')
-            expired_text = ""
-            if expiry < datetime.now(timezone.utc):
-                expired_text = " (EXPIRED)"
-            print(f"{tab_text}Validity:               {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}")
-
-            if "Software Attestation" in cert_issuer:
-                is_sw_signed = True
-
-            if expiry < datetime.now(timezone.utc):
-                is_expired = True
-                print(f"{tab_text}❌❌❌ Certificate is EXPIRED")
-            elif expiry < datetime.now(timezone.utc) + timedelta(days=30):
-                expiring_soon = True
-                print(f"{tab_text}⚠️ Certificate is EXPIRING SOON")
-
-            if cert_sn.strip().lower() in (sn.strip().lower() for sn in crl["entries"].keys()):
-                print(f"{tab_text}❌❌❌ Certificate {i} is REVOKED")
-                print(f"{tab_text}❌❌❌ Reason: {crl['entries'][cert_sn]['reason']} ***")
-                is_revoked = True
-
-            i += 1
-
+        long_chain = False
         results = []
+
+        # Parse keybox XML
+        try:
+            tree = ET.parse(filename)
+            root = tree.getroot()
+        except Exception as e:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not parse keybox XML {filename}")
+            print(e)
+            results.append('invalid')
+            return results
+
+        # 1. Validate root element is AndroidAttestation
+        if root.tag != 'AndroidAttestation':
+            print(f"❌ ERROR: Root element is not AndroidAttestation, found: {root.tag}")
+            results.append('invalid_structure')
+            return results
+
+        # 2. Check NumberOfKeyboxes
+        num_keyboxes = root.find('NumberOfKeyboxes')
+        if num_keyboxes is None:
+            print("❌ ERROR: Missing NumberOfKeyboxes element")
+            results.append('invalid_structure')
+            return results
+        expected_keyboxes = int(num_keyboxes.text)
+        print(f"Expected number of keyboxes: {expected_keyboxes}")
+
+        # 3. Process each Keybox
+        keyboxes = root.findall('Keybox')
+        if not keyboxes:
+            print("❌ ERROR: No Keybox elements found")
+            results.append('invalid_structure')
+            return results
+
+        if len(keyboxes) != expected_keyboxes:
+            print(f"⚠️ WARNING: NumberOfKeyboxes ({expected_keyboxes}) does not match actual keyboxes found ({len(keyboxes)})")
+
+        k = 1
+        for keybox in keyboxes:
+            wx.Yield()
+            device_id = keybox.get('DeviceID')
+            if not device_id:
+                print("❌ ERROR: Keybox missing DeviceID attribute")
+                results.append('invalid_structure')
+                continue
+            print(f"\nProcessing Keybox {k}/{expected_keyboxes} for Device ID: {device_id}")
+
+            # 4. Verify both RSA and ECDSA algorithms are present
+            required_algorithms = {'rsa', 'ecdsa'}
+            found_algorithms = set()
+
+            for key_element in keybox.findall('Key'):
+                wx.Yield()
+                algorithm = key_element.get('algorithm')
+                if not algorithm:
+                    print("  ❌ ERROR: Key element missing algorithm attribute")
+                    continue
+
+                # Process the Chain
+                algorithm = algorithm.lower()
+                print(f"\n→ Processing {algorithm} chain:")
+                found_algorithms.add(algorithm)
+
+                # 5. Check PrivateKey
+                private_key = key_element.find('PrivateKey')
+                if private_key is None:
+                    print(f"  ❌ ERROR: No PrivateKey found for {algorithm} key")
+                    results.append('missing_private_key')
+                    continue
+
+                # 6. Check CertificateChain
+                cert_chain = key_element.find('CertificateChain')
+                if cert_chain is None:
+                    print(f"  ❌ ERROR: No CertificateChain found for {algorithm} key")
+                    results.append('missing_chain')
+                    continue
+
+                # 7. Verify number of certificates matches
+                num_certs_elem = cert_chain.find('NumberOfCertificates')
+                if num_certs_elem is None:
+                    print(f"  ❌ ERROR: Missing NumberOfCertificates for {algorithm} chain")
+                    results.append('invalid_chain')
+                    continue
+
+                expected_certs = int(num_certs_elem.text)
+                actual_certs = len(cert_chain.findall('Certificate'))
+                if actual_certs != expected_certs:
+                    print(f"  ⚠️ WARNING: NumberOfCertificates ({expected_certs}) does not match actual certificates found ({actual_certs})")
+
+                # 8. Process certificates
+                certs = cert_chain.findall('Certificate')
+                if len(certs) < 2:
+                    print(f"  ❌ ERROR: {algorithm} chain must have at least 2 certificates (leaf and root)")
+                    results.append('invalid_chain')
+                    continue
+
+                # Validate certificate chain
+                try:
+                    cert_chain = []
+                    # Parse private key from the keybox
+                    private_key_text = private_key.text.strip()
+                    private_key_text = re.sub(re.compile(r'^\s+', re.MULTILINE), '', private_key_text)
+                    private_key_text = clean_pem_key(private_key_text)
+                    private_key_obj = None
+
+                    try:
+                        private_key_obj = serialization.load_pem_private_key(
+                            private_key_text.encode(),
+                            password=None
+                        )
+                    except Exception as e:
+                        if "EC curves with explicit parameters" in str(e) or "unsupported" in str(e).lower():
+                            # Set private_key_obj to a special sentinel value to indicate skipped validation.
+                            private_key_obj = "UNSUPPORTED_CURVE"
+                        else:
+                            print(f"  ❌ ERROR: Failed to parse private key for {algorithm} key: {e}")
+                            results.append('invalid_private_key')
+
+                    # Parse certificates in the chain
+                    if len(certs) > 4:
+                        long_chain = True
+                    tab_text = ""
+                    for cert in certs:
+                        wx.Yield()
+                        cert_text = cert.text.strip()
+                        parsed_cert = x509.load_pem_x509_certificate(cert_text.encode())
+                        cert_chain.append(parsed_cert)
+
+                        cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed, crl_distribution_points = parse_cert(cert.text)
+
+                        # Format the issuer field
+                        formatted_issuer, issuer_sn = format_dn(cert_issuer)
+
+                        if issuer_sn in shadow_banned_list:
+                            is_shadow_banned = True
+
+                        # Format the issued to field
+                        formatted_issued_to, issued_to_sn = format_dn(cert_subject)
+
+                        # indent the chain
+                        tab_text += "  "
+
+                        # redact if verbose is not set
+                        if get_verbose():
+                            cert_sn_text = cert_sn
+                            formatted_issued_to_text = formatted_issued_to
+                            formatted_issuer_text = formatted_issuer
+                        else:
+                            cert_sn_text = "REDACTED"
+                            formatted_issued_to_text = "REDACTED"
+                            formatted_issuer_text = "REDACTED"
+
+                        print(f'{tab_text}Certificate SN:          {cert_sn_text}')
+                        print(f'{tab_text}Issued to:               {formatted_issued_to_text}')
+                        print(f'{tab_text}Issuer:                  {formatted_issuer_text}')
+                        print(f'{tab_text}Signature Algorithm:     {sig_algo}')
+                        print(f'{tab_text}Key Usage:               {key_usages}')
+                        if crl_distribution_points:
+                            print(f'{tab_text}CRL Distribution Points: {crl_distribution_points}')
+                        expired_text = ""
+                        if expiry < datetime.now(timezone.utc):
+                            expired_text = " (EXPIRED)"
+                        print(f"{tab_text}Validity:                {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}\n")
+
+                        if "Software Attestation" in cert_issuer:
+                            is_sw_signed = True
+
+                        if issuer_sn in ['f92009e853b6b045']:
+                            is_google_signed = True
+
+                        if expiry < datetime.now(timezone.utc):
+                            is_expired = True
+                            print(f"{tab_text}❌❌❌ Certificate is EXPIRED")
+                        elif expiry < datetime.now(timezone.utc) + timedelta(days=30):
+                            expiring_soon = True
+                            print(f"{tab_text}⚠️ Certificate is EXPIRING SOON")
+
+                        if cert_sn.strip().lower() in (sn.strip().lower() for sn in crl["entries"].keys()):
+                            print(f"{tab_text}❌❌❌ Certificate is REVOKED")
+                            print(f"{tab_text}❌❌❌ Reason: {crl['entries'][cert_sn]['reason']} ***")
+                            is_revoked = True
+
+                    # First is leaf, last is root
+                    leaf_cert = cert_chain[0]
+                    root_cert = cert_chain[-1]
+                    intermediate_certs = cert_chain[1:-1]
+
+                    # Verify the private key matches the leaf certificate's public key
+                    if private_key_obj is not None and private_key_obj != "UNSUPPORTED_CURVE" and leaf_cert is not None:
+                        try:
+                            leaf_public_key = leaf_cert.public_key()
+
+                            # For RSA keys
+                            if isinstance(private_key_obj, rsa.RSAPrivateKey) and isinstance(leaf_public_key, rsa.RSAPublicKey):
+                                priv_public_numbers = private_key_obj.public_key().public_numbers()
+                                leaf_public_numbers = leaf_public_key.public_numbers()
+
+                                if (priv_public_numbers.n == leaf_public_numbers.n and
+                                    priv_public_numbers.e == leaf_public_numbers.e):
+                                    print(f"  ✅ Private key matches leaf certificate for {algorithm} chain")
+                                else:
+                                    print(f"  ❌ ERROR: Private key does not match leaf certificate for {algorithm} chain")
+                                    results.append('key_mismatch')
+
+                            # For ECDSA keys
+                            elif isinstance(private_key_obj, ec.EllipticCurvePrivateKey) and isinstance(leaf_public_key, ec.EllipticCurvePublicKey):
+                                priv_public_key = private_key_obj.public_key()
+
+                                priv_public_bytes = priv_public_key.public_bytes(
+                                    encoding=serialization.Encoding.PEM,
+                                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                                )
+
+                                leaf_public_bytes = leaf_public_key.public_bytes(
+                                    encoding=serialization.Encoding.PEM,
+                                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                                )
+
+                                if priv_public_bytes == leaf_public_bytes:
+                                    print(f"  ✅ Private key matches leaf certificate for {algorithm} chain")
+                                else:
+                                    print(f"  ❌ ERROR: Private key does not match leaf certificate for {algorithm} chain")
+                                    results.append('key_mismatch')
+                            else:
+                                print(f"  ❌ ERROR: Mismatched key types between private key and certificate for {algorithm} chain")
+                                results.append('key_mismatch')
+                        except Exception as e:
+                            print(f"  ❌ ERROR: Failed to verify key pair match: {e}")
+                            results.append('key_mismatch')
+                    elif private_key_obj == "UNSUPPORTED_CURVE":
+                        print(f"  ⚠️ WARNING: Skipped private key validation due to unsupported curve format")
+
+                    # Validate the certificate chain
+                    try:
+                        # Verify leaf is signed by first intermediate (or root if no intermediates)
+                        current_cert = leaf_cert
+                        next_cert = intermediate_certs[0] if intermediate_certs else root_cert
+
+                        # Verify leaf cert is signed by next cert in chain
+                        public_key = next_cert.public_key()
+                        if isinstance(public_key, rsa.RSAPublicKey):
+                            try:
+                                public_key.verify(
+                                    current_cert.signature,
+                                    current_cert.tbs_certificate_bytes,
+                                    padding.PKCS1v15(),
+                                    current_cert.signature_hash_algorithm
+                                )
+                            except Exception as e:
+                                print(f"  ❌ ERROR: RSA Certificate chain validation failed for {algorithm}: {e}")
+                                results.append('invalid_chain')
+                        elif isinstance(public_key, ec.EllipticCurvePublicKey):
+                            try:
+                                public_key.verify(
+                                    current_cert.signature,
+                                    current_cert.tbs_certificate_bytes,
+                                    ec.ECDSA(current_cert.signature_hash_algorithm)
+                                )
+                            except Exception as e:
+                                print(f"  ❌ ERROR: ECDSA Certificate chain validation failed for {algorithm}: {e}")
+                                results.append('invalid_chain')
+
+                        # Verify the rest of the chain
+                        for i in range(len(intermediate_certs)):
+                            wx.Yield()
+                            current_cert = intermediate_certs[i]
+                            next_cert = intermediate_certs[i + 1] if i + 1 < len(intermediate_certs) else root_cert
+
+                            # Verify current_cert was signed by next_cert
+                            public_key = next_cert.public_key()
+                            if isinstance(public_key, rsa.RSAPublicKey):
+                                try:
+                                    public_key.verify(
+                                        current_cert.signature,
+                                        current_cert.tbs_certificate_bytes,
+                                        padding.PKCS1v15(),
+                                        current_cert.signature_hash_algorithm
+                                    )
+                                except Exception as e:
+                                    print(f"  ❌ RSA Certificate chain validation failed for {algorithm}: {e}")
+                                    results.append('invalid_chain')
+                            elif isinstance(public_key, ec.EllipticCurvePublicKey):
+                                try:
+                                    public_key.verify(
+                                        current_cert.signature,
+                                        current_cert.tbs_certificate_bytes,
+                                        ec.ECDSA(current_cert.signature_hash_algorithm)
+                                    )
+                                except Exception as e:
+                                    print(f"  ❌ ECDSA Certificate chain validation failed for {algorithm}: {e}")
+                                    results.append('invalid_chain')
+                            else:
+                                print(f"  ❌ ERROR: Unsupported public key type for {algorithm}")
+                                results.append('invalid_chain')
+                                # raise ValueError("Unsupported public key type")
+
+                        # Finally verify root signed the last intermediate (if any intermediates exist)
+                        if intermediate_certs:
+                            public_key = root_cert.public_key()
+                            if isinstance(public_key, rsa.RSAPublicKey):
+                                public_key.verify(
+                                    intermediate_certs[-1].signature,
+                                    intermediate_certs[-1].tbs_certificate_bytes,
+                                    padding.PKCS1v15(),
+                                    intermediate_certs[-1].signature_hash_algorithm
+                                )
+                            elif isinstance(public_key, ec.EllipticCurvePublicKey):
+                                public_key.verify(
+                                    intermediate_certs[-1].signature,
+                                    intermediate_certs[-1].tbs_certificate_bytes,
+                                    ec.ECDSA(intermediate_certs[-1].signature_hash_algorithm)
+                                )
+
+                        print(f"  ✅ Certificate chain validation successful for {algorithm}")
+
+                    except Exception as e:
+                        print(f"  ❌ Certificate chain validation failed for {algorithm}: {e}")
+                        results.append('invalid_chain')
+
+                except Exception as e:
+                    print(f"❌ ERROR validating certificate chain: {e}")
+                    results.append('invalid_chain')
+
+            # Check if all required algorithms were found
+            missing_algorithms = required_algorithms - found_algorithms
+            if missing_algorithms:
+                print(f"\n❌ Missing required algorithm chains: {', '.join(missing_algorithms)}")
+                results.append('missing_algorithms')
+
+            k += 1
+
         if is_revoked:
             print(f"\n❌❌❌ Keybox {filename} contains revoked certificates!")
             results.append('revoked')
@@ -4953,13 +5371,13 @@ def check_kb(filename):
         if is_expired:
             print(f"\n❌❌❌ Keybox {filename} contains expired certificates!")
             results.append('expired')
-        if is_sw_signed:
+        if is_sw_signed or not is_google_signed:
             print(f"⚠️ Keybox {filename} is software signed! This is not a hardware-backed keybox!")
             results.append('aosp')
         if expiring_soon:
             print(f"⚠️ Keybox {filename} contains certificates that are expiring soon!")
             results.append('expiring_soon')
-        if chain_counter > 4:
+        if long_chain:
             print(f"⚠️ Keybox {filename} contains certificates longer chain than normal, this may no work.")
             results.append('long_chain')
         if is_shadow_banned:
@@ -4971,6 +5389,29 @@ def check_kb(filename):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
         print(e)
         traceback.print_exc()
+
+
+# ============================================================================
+#                               Function to clean_pem_key
+# ============================================================================
+def clean_pem_key(key_text):
+    # Key with spaces instead of newlines (common in XML)
+    if '-----BEGIN' in key_text and '\n' not in key_text:
+        # Split at the BEGIN marker
+        parts = re.split(r'(-----BEGIN [^-]+-----)', key_text)
+        if len(parts) >= 3:
+            header = parts[1]
+            # Split at the END marker
+            content_parts = re.split(r'(-----END [^-]+-----)', parts[2])
+            if len(content_parts) >= 2:
+                # Extract the base64 content and format with newlines
+                content = content_parts[0].strip()
+                content_chunks = content.split()
+                formatted_content = '\n'.join(content_chunks)
+                footer = content_parts[1]
+                # Reassemble the key
+                key_text = f"{header}\n{formatted_content}\n{footer}"
+    return key_text
 
 
 # ============================================================================
@@ -4988,6 +5429,7 @@ def parse_cert(cert):
     sig_algo = None
     expiry = None
     key_usages = 'None'
+    crl_distribution_points = None
 
     try:
         issuer = parsed.issuer.rfc4514_string()
@@ -5039,7 +5481,23 @@ def parse_cert(cert):
     except Exception as e:
         logging.error(f"Key usage extraction failed: {e}")
 
-    return serial_number, issuer, subject, sig_algo, expiry, key_usages, parsed
+    # Extract CRL Distribution Points
+    try:
+        crl_ext = parsed.extensions.get_extension_for_oid(ExtensionOID.CRL_DISTRIBUTION_POINTS)
+        if crl_ext:
+            crl_points = []
+            for point in crl_ext.value:
+                if point.full_name:
+                    for name in point.full_name:
+                        if name.value:
+                            crl_points.append(name.value)
+            if crl_points:
+                crl_distribution_points = crl_points
+    except Exception as e:
+        if not "ObjectIdentifier(oid=2.5.29.31" in str(e):
+            logging.error(f"CRL distribution points extraction failed: {e}")
+
+    return serial_number, issuer, subject, sig_algo, expiry, key_usages, parsed, crl_distribution_points
 
 
 # ============================================================================

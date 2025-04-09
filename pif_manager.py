@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -286,7 +287,7 @@ class PifManager(wx.Dialog):
         self.auto_check_pi_checkbox.Enable(False)
 
         # option button PI Selection
-        self.pi_choices = ["Play Integrity API Checker", "Simple Play Integrity Checker", "Android Integrity Checker", "Play Store", "YASNAC"]
+        self.pi_choices = ["Play Integrity API Checker", "Simple Play Integrity Checker", "Android Integrity Checker", "Play Store"]
         self.pi_option = wx.RadioBox(self, choices=self.pi_choices, style=wx.RA_VERTICAL)
 
         # Disable UIAutomator
@@ -553,6 +554,8 @@ class PifManager(wx.Dialog):
                 self.auto_check_pi_checkbox.SetValue(self.config.pif['auto_check_play_integrity'])
             with contextlib.suppress(KeyError):
                 selected_index = self.config.pif['test_app_index']
+                if selected_index >= len(self.pi_choices):
+                    selected_index = 0
                 self.pi_option.SetSelection(selected_index)
                 self.pi_selection(self.pi_choices[selected_index])
             with contextlib.suppress(KeyError):

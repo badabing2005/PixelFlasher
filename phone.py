@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -2262,6 +2263,47 @@ add_hosts_module
             return -1, -1
 
     # ----------------------------------------------------------------------------
+    #                               Method get_package_permissions
+    # ----------------------------------------------------------------------------
+    def get_package_permissions(self, pkg: str, pkg_path = '') -> str:
+        """Method package permissions (App name) given a package name.
+
+        Args:
+            pkg:        Package
+            pkg_path:   Package APK path, if provided, the Method skips figuring it out (faster). Default ''
+
+        Returns:
+            permissions on success.
+            -1          if an exception is raised.
+        """
+        if self.true_mode != 'adb':
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions. Device is not in ADB mode.")
+            return -1, -1
+        print()
+        try:
+            if pkg_path == '':
+                pkg_path = self.get_package_path(f"{pkg}", True)
+                if pkg_path == -1:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions.")
+                    return -1, -1
+                debug(f"    Package Path: {pkg_path}")
+            print(f"Getting package {pkg} permissions from the device ...")
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"/data/local/tmp/aapt2 d permissions {pkg_path}\""
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                return res.stdout
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
+                return -1
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} permissions.")
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method uiautomator_dump
     # ----------------------------------------------------------------------------
     def uiautomator_dump(self, path: str):
@@ -3127,7 +3169,7 @@ add_hosts_module
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     if timeout:
                         res2 = self.fastboot_wait_for_bootloader(timeout=timeout)
-                        if res2 == 1:
+                        if res2 == -1:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during reboot_bootloader")
                             # puml(f"note right:ERROR: during fastboot_wait_for_bootloader in reboot_bootloader;\n")
                             return -1
@@ -3471,11 +3513,20 @@ add_hosts_module
             while time.time() - start_time < timeout:
                 with contextlib.suppress(Exception):
                     theCmd = f"\"{get_fastboot()}\" devices"
-                    res = run_shell(theCmd)
+                    res = run_shell(theCmd, timeout=timeout)
                     if res and isinstance(res, subprocess.CompletedProcess) and f"{device_id}\t" in res.stdout:
-                        print(f"device: {device_id} is now in bootloader or fastbootd mode.")
-                        puml(f":device: {device_id} is now in bootloader or fastbootd mode;\n", True)
-                        return 0
+                        # sometimes fastboot devices returns the device in the list but it's not in bootloader mode
+                        # so we need to check the state of the device again
+                        time.sleep(1)
+                        mode = self.get_device_state(device_id, update=False)
+                        if mode == 'fastboot':
+                            print(f"device: {device_id} is now in bootloader or fastbootd mode.")
+                            puml(f":device: {device_id} is now in bootloader or fastbootd mode;\n", True)
+                            return 0
+                        else:
+                            print(f"device: {device_id} is in {mode} mode.")
+                            puml(f":device: {device_id} is in {mode} mode;\n", True)
+                            return -1
                 time.sleep(1)
             print(f"Timeout: [{timeout}] Fastboot could not detect device: {device_id} in bootloader or fastbootd mode ")
             puml(f":Timeout: [{timeout}] Fastboot could not detect device: {device_id} in bootloader or fastbootd mode;\n", True)
@@ -3670,6 +3721,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3694,6 +3746,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
             if mode == 'fastboot' and get_fastboot():
                 print(f"Switching to other slot. Current slot [{self.active_slot}] for device: {self.id} ...")
@@ -3729,6 +3782,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3753,6 +3807,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3785,6 +3840,7 @@ add_hosts_module
                 res = self.reboot_bootloader()
                 if res == -1:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                    self.clear_device_selection()
                     bootloader_issue_message()
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
@@ -3821,7 +3877,7 @@ add_hosts_module
                 if res != 0:
                     puml("#red:Failed to transfer the module file to the phone;\n")
                     print("Aborting ...\n}\n")
-                    return
+                    return -1
                 if "kernelsu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
                 elif "apatch" in self.su_version.lower():
@@ -3842,7 +3898,7 @@ add_hosts_module
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml(f"#red:ERROR: Device: {self.id} is not in adb mode;\n", True)
-                return 1
+                return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in magisk_install_module.")
             puml("#red:Encountered an error in magisk_install_module.;\n")
@@ -4027,7 +4083,7 @@ add_hosts_module
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
                 puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
-                return 1
+                return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in magisk_uninstall_module.")
             puml("#red:Encountered an error in magisk_uninstall_module.;\n")
@@ -4452,35 +4508,38 @@ def get_connected_devices():
             theCmd = f"\"{get_adb()}\" devices"
             debug(theCmd)
             res = run_shell(theCmd, timeout=60)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
-                debug(f"adb devices:\n{res.stdout}")
-                for device in res.stdout.split('\n'):
-                    if any(keyword in device for keyword in ['device', 'recovery', 'sideload', 'rescue']):
-                        if device == "List of devices attached":
-                            continue
-                        # with contextlib.suppress(Exception):
-                        try:
-                            d_id = device.split("\t")
-                            if len(d_id) != 2:
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Return Code: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.stdout:
+                    for device in res.stdout.split('\n'):
+                        if any(keyword in device for keyword in ['device', 'recovery', 'sideload', 'rescue']):
+                            if device == "List of devices attached":
                                 continue
-                            mode = d_id[1].strip()
-                            d_id = d_id[0].strip()
-                            true_mode = None
-                            if mode in ('recovery', 'sideload', 'rescue'):
-                                true_mode = mode
-                            device = Device(d_id, 'adb', true_mode)
-                            device.init('adb')
-                            device_details = device.get_device_details()
-                            devices.append(device_details)
-                            phones.append(device)
-                        except Exception as e:
-                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected devices.")
-                            traceback.print_exc()
+                            # with contextlib.suppress(Exception):
+                            try:
+                                d_id = device.split("\t")
+                                if len(d_id) != 2:
+                                    continue
+                                mode = d_id[1].strip()
+                                d_id = d_id[0].strip()
+                                true_mode = None
+                                if mode in ('recovery', 'sideload', 'rescue'):
+                                    true_mode = mode
+                                device = Device(d_id, 'adb', true_mode)
+                                device.init('adb')
+                                device_details = device.get_device_details()
+                                devices.append(device_details)
+                                phones.append(device)
+                            except Exception as e:
+                                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting adb devices.")
+                                traceback.print_exc()
                     else:
                         if device.strip() != "":
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown device state: {device}\n")
             else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine Android Platform Tools version.\n")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting connected adb devices.")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adb command is not found!")
 
@@ -4488,23 +4547,27 @@ def get_connected_devices():
             theCmd = f"\"{get_fastboot()}\" devices"
             debug(theCmd)
             res = run_shell(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess) and res.stdout:
-                debug(f"fastboot devices:\n{res.stdout}")
-                for device in res.stdout.split('\n'):
-                    if 'no permissions' in device:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
-                        puml("#red:No permissions to access fastboot device;\n", True)
-                        continue
-                    if 'fastboot' in device:
-                        d_id = device.split("\t")
-                        d_id = d_id[0].strip()
-                        device = Device(d_id, 'f.b')
-                        device.init('f.b')
-                        device_details = device.get_device_details()
-                        devices.append(device_details)
-                        phones.append(device)
+            if res and isinstance(res, subprocess.CompletedProcess):
+                debug(f"Return Code: {res.returncode}")
+                debug(f"Stdout: {res.stdout}")
+                debug(f"Stderr: {res.stderr}")
+                if res.stdout:
+                    # debug(f"fastboot devices:\n{res.stdout}")
+                    for device in res.stdout.split('\n'):
+                        if 'no permissions' in device:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
+                            puml("#red:No permissions to access fastboot device;\n", True)
+                            continue
+                        if 'fastboot' in device:
+                            d_id = device.split("\t")
+                            d_id = d_id[0].strip()
+                            device = Device(d_id, 'f.b')
+                            device.init('f.b')
+                            device_details = device.get_device_details()
+                            devices.append(device_details)
+                            phones.append(device)
         else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: fastboot command is not found!")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting fastboot devices.")
 
         set_phones(phones)
     except Exception as e:

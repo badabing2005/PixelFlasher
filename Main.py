@@ -2,7 +2,8 @@
 
 # This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -561,6 +562,7 @@ class GoogleImagesBaseMenu(wx.Menu):
             # self.parent.update_firmware_selection(destination_path)
 
         filename = os.path.basename(url)
+        print(f"User selected {url} for download")
         dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
             destination_path = dialog.GetPath()
@@ -612,6 +614,7 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
                 device_menu = wx.Menu()
                 device_download_flag = False
 
+                # Handle OTA and Factory downloads
                 for download_type in ['ota', 'factory']:
                     download_menu = wx.Menu()
 
@@ -648,6 +651,23 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
 
                     if device_download_flag:
                         download_type_menu_item.SetBitmap(images.download_24.GetBitmap())
+
+                # Handle Beta downloads if they exist
+                if 'beta' in device_data:
+                    beta_menu = wx.Menu()
+                    for beta_entry in device_data['beta']:
+                        version = beta_entry['version']
+                        sha256 = beta_entry['sha256']
+                        menu_label = f"{version} ({device_label})"
+                        menu_id = self.generate_unique_id()
+                        beta_menu_item = beta_menu.Append(menu_id, menu_label, sha256)
+                        if beta_menu_item is not None:
+                            url = beta_entry['url']
+                            self.bind_download_event(beta_menu_item, url)
+                            beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
+
+                    beta_menu_item = device_menu.AppendSubMenu(beta_menu, "Beta")
+                    beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
 
                 if device_type == 'phone':
                     device_menu_item = self.phones_menu.AppendSubMenu(device_menu, f"{device_id} ({device_label})")
@@ -695,6 +715,7 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
 
                 submenu_ota = wx.Menu()
                 submenu_factory = wx.Menu()
+                submenu_beta = wx.Menu() if 'beta' in device_data else None
                 download_flag = False
 
                 for download_entry in reversed(device_data['ota']):
@@ -719,9 +740,22 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                             menu_item.SetBitmap(images.download_24.GetBitmap())
                             download_flag = True
 
+                # Add Beta submenu if beta data exists
+                if submenu_beta and 'beta' in device_data:
+                    for beta_entry in device_data['beta']:
+                        version = beta_entry['version']
+                        menu_label = f"{version}"
+                        menu_id = wx.NewId()
+                        menu_item = submenu_beta.Append(menu_id, menu_label)
+                        self.parent.Bind(wx.EVT_MENU, lambda event, u=beta_entry['url']: self.on_download(u), menu_item)
+                        menu_item.SetBitmap(images.beta_24.GetBitmap())
+
             with contextlib.suppress(Exception):
                 ota_menu_item = self.AppendSubMenu(submenu_ota, "OTA")
                 factory_menu_item = self.AppendSubMenu(submenu_factory, "Factory")
+                if submenu_beta:
+                    beta_menu_item = self.AppendSubMenu(submenu_beta, "Beta")
+                    beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
                 if download_flag:
                     ota_menu_item.SetBitmap(images.download_24.GetBitmap())
                     factory_menu_item.SetBitmap(images.download_24.GetBitmap())
@@ -945,6 +979,9 @@ class PixelFlasher(wx.Frame):
 
             # check platform tools
             try:
+                # If platform tools are not found, see if we're running NixOS
+                if  not self.config.platform_tools_path and not sys.platform == "win32" and os.path.exists('/etc/NIXOS'):
+                    self.config.platform_tools_path = '/run/current-system/sw/bin/'
                 res_sdk = check_platform_tools(self)
                 if res_sdk != -1:
                     # load platform tools value
@@ -1144,7 +1181,7 @@ class PixelFlasher(wx.Frame):
     def _build_status_bar(self):
         self.statusBar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusBar.SetStatusWidths([-2, -1])
-        status_text = f"Welcome to PixelFlasher {VERSION}"
+        status_text = f"Welcome to PixelFlasher {VERSION} by Badabing2005"
         self.statusBar.SetStatusText(status_text, 0)
 
     # -----------------------------------------------
@@ -1514,6 +1551,34 @@ class PixelFlasher(wx.Frame):
     #         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _build_links_menu
+    # -----------------------------------------------
+    def _build_links_menu(self):
+        links = wx.Menu()
+
+        # Create a dictionary to store menu_id -> (url, label) mappings
+        if not hasattr(self, 'link_urls'):
+            self.link_urls = {}
+
+        # Create menu items from the data structure
+        for item in LINKS_MENU_DATA:
+            if item is None:
+                # Add a separator
+                links.AppendSeparator()
+            else:
+                label, image_name, url = item
+                menu_item = links.Append(wx.ID_ANY, label)
+                # Get the bitmap from the image name
+                bitmap = getattr(images, image_name).GetBitmap()
+                menu_item.SetBitmap(bitmap)
+
+                # Store the URL and label in our dictionary using the menu item's ID
+                self.link_urls[menu_item.GetId()] = (url, label)
+
+                self.Bind(wx.EVT_MENU, self._on_link_clicked, menu_item)
+        return links
+
+    # -----------------------------------------------
     #                  _build_menu_bar
     # -----------------------------------------------
     def _build_menu_bar(self):
@@ -1823,74 +1888,25 @@ class PixelFlasher(wx.Frame):
         # Help Menu Items
         # ---------------
         # Report an issue
-        self.issue_item = help_menu.Append(wx.ID_ANY, 'Report an Issue', 'Report an Issue')
+        self.issue_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["issue"]["description"], HELP_MENU_ITEMS["issue"]["description"])
         self.issue_item.SetBitmap(images.bug_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.issue_item)
-        # # Feature Request
-        self.feature_item = help_menu.Append(wx.ID_ANY, 'Feature Request', 'Feature Request')
+        # Feature Request
+        self.feature_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["feature"]["description"], HELP_MENU_ITEMS["feature"]["description"])
         self.feature_item.SetBitmap(images.feature_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.feature_item)
-        # # Project Home
-        self.project_page_item = help_menu.Append(wx.ID_ANY, 'PixelFlasher Project Page', 'PixelFlasher Project Page')
+        # Project Home
+        self.project_page_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["project"]["description"], HELP_MENU_ITEMS["project"]["description"])
         self.project_page_item.SetBitmap(images.github_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.project_page_item)
         # Community Forum
-        self.forum_item = help_menu.Append(wx.ID_ANY, 'PixelFlasher Community (Forum)', 'PixelFlasher Community (Forum)')
+        self.forum_item = help_menu.Append(wx.ID_ANY, HELP_MENU_ITEMS["forum"]["description"], HELP_MENU_ITEMS["forum"]["description"])
         self.forum_item.SetBitmap(images.forum_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_link_clicked, self.forum_item)
         # separator
         help_menu.AppendSeparator()
         # Links Submenu
-        links = wx.Menu()
-        self.linksMenuItem1 = links.Append(wx.ID_ANY, "Homeboy76\'s Guide")
-        self.linksMenuItem2 = links.Append(wx.ID_ANY, "V0latyle\'s Guide")
-        self.linksMenuItem3 = links.Append(wx.ID_ANY, "roirraW\'s Guide")
-        links.AppendSeparator()
-        self.linksMenuItem4 = links.Append(wx.ID_ANY, "osm0sis\'s PlayIntegrityFork")
-        self.linksMenuItem5 = links.Append(wx.ID_ANY, "chiteroman\'s PlayIntegrityFix")
-        self.linksMenuItem15 = links.Append(wx.ID_ANY, "5ec1cff\'s TrickyStore")
-        self.linksMenuItem8 = links.Append(wx.ID_ANY, "TheFreeman193\'s Play Integrity Fix Props Collection")
-        links.AppendSeparator()
-        self.linksMenuItem6 = links.Append(wx.ID_ANY, "Get the Google USB Driver")
-        self.linksMenuItem7 = links.Append(wx.ID_ANY, "Android Security Update Bulletins")
-        links.AppendSeparator()
-        self.linksMenuItem9 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Phones / Tablets")
-        self.linksMenuItem10 = links.Append(wx.ID_ANY, "Factory Images for Pixel Phones / Tablets")
-        self.linksMenuItem11 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Watches")
-        self.linksMenuItem12 = links.Append(wx.ID_ANY, "Factory Images for Pixel Watches")
-        links.AppendSeparator()
-        self.linksMenuItem13 = links.Append(wx.ID_ANY, "Full OTA Images for Pixel Beta 15")
-        self.linksMenuItem14 = links.Append(wx.ID_ANY, "Factory Images for Pixel Beta 15")
-        self.linksMenuItem1.SetBitmap(images.guide_24.GetBitmap())
-        self.linksMenuItem2.SetBitmap(images.guide_24.GetBitmap())
-        self.linksMenuItem3.SetBitmap(images.guide_24.GetBitmap())
-        self.linksMenuItem4.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem5.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem6.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem7.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem8.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem9.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem10.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem11.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem12.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem13.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem14.SetBitmap(images.open_link_24.GetBitmap())
-        self.linksMenuItem15.SetBitmap(images.open_link_24.GetBitmap())
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem1)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem2)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem3)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem4)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem5)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem6)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem7)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem8)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem9)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem10)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem11)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem12)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem13)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem14)
-        self.Bind(wx.EVT_MENU, self._on_link_clicked, self.linksMenuItem15)
+        links = self._build_links_menu()
         links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
         # separator
@@ -2265,39 +2281,30 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     def _on_link_clicked(self, event):
         try:
             self._on_spin('start')
-            clicked_id = event.GetId()
+            menu_item_id = event.GetId()
 
-            # A dictionary mapping menu item IDs to tuples containing URL and link description
-            link_info = {
-                self.issue_item.GetId(): ('https://github.com/badabing2005/PixelFlasher/issues/new', "Report an Issue"),
-                self.feature_item.GetId(): ('https://github.com/badabing2005/PixelFlasher/issues/new', "Feature Request"),
-                self.project_page_item.GetId(): ('https://github.com/badabing2005/PixelFlasher', "PixelFlasher Project Page"),
-                self.forum_item.GetId(): ('https://xdaforums.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/', "PixelFlasher Community (Forum)"),
-                self.linksMenuItem1.GetId(): ('https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/', "Homeboy76's Guide"),
-                self.linksMenuItem2.GetId(): ('https://xdaforums.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/', "V0latyle's Guide"),
-                self.linksMenuItem3.GetId(): ('https://xdaforums.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/', "roirraW's Guide"),
-                self.linksMenuItem4.GetId(): ('https://github.com/osm0sis/PlayIntegrityFork', "osm0sis's PlayIntegrityFork"),
-                self.linksMenuItem5.GetId(): ('https://github.com/chiteroman/PlayIntegrityFix', "chiteroman's PlayIntegrityFix"),
-                self.linksMenuItem6.GetId(): ('https://developer.android.com/studio/run/win-usb?authuser=1%2F', "Get the Google USB Driver"),
-                self.linksMenuItem7.GetId(): ('https://source.android.com/docs/security/bulletin/', "Android Security Update Bulletins"),
-                self.linksMenuItem8.GetId(): ('https://github.com/TheFreeman193/PIFS', "TheFreeman193's Play Integrity Fix Props Collection"),
-                self.linksMenuItem9.GetId(): (FULL_OTA_IMAGES_FOR_PIXEL_DEVICES, "Full OTA Images for Pixel Phones, Tablets"),
-                self.linksMenuItem10.GetId(): (FACTORY_IMAGES_FOR_PIXEL_DEVICES, "Factory Images for Pixel Phones, Tablets"),
-                self.linksMenuItem11.GetId(): (FULL_OTA_IMAGES_FOR_WATCH_DEVICES, "Full OTA Images for Pixel Watches"),
-                self.linksMenuItem12.GetId(): (FACTORY_IMAGES_FOR_WATCH_DEVICES, "Factory Images for Pixel Watches"),
-                self.linksMenuItem13.GetId(): (FULL_OTA_IMAGES_FOR_BETA, "Full OTA Images for Pixel Beta 15"),
-                self.linksMenuItem14.GetId(): (FACTORY_IMAGES_FOR_BETA, "Factory Images for Pixel Beta 15"),
-                self.linksMenuItem15.GetId(): ('https://github.com/5ec1cff/TrickyStore', "5ec1cff's TrickyStore"),
+            # Handle special cases like issue, feature, project items
+            special_items = {
+                self.issue_item.GetId(): (HELP_MENU_ITEMS["issue"]["url"], HELP_MENU_ITEMS["issue"]["description"]),
+                self.feature_item.GetId(): (HELP_MENU_ITEMS["feature"]["url"], HELP_MENU_ITEMS["feature"]["description"]),
+                self.project_page_item.GetId(): (HELP_MENU_ITEMS["project"]["url"], HELP_MENU_ITEMS["project"]["description"]),
+                self.forum_item.GetId(): (HELP_MENU_ITEMS["forum"]["url"], HELP_MENU_ITEMS["forum"]["description"]),
             }
 
-            if clicked_id in link_info:
-                url, description = link_info[clicked_id]
-                print(f"Open Link {description} {url}")
-                puml(f":Open Link;\nnote right\n=== {description}\n[[{url}]]\nend note\n", True)
-                res = webbrowser.open_new(url)
-                debug(f"Open Link {description} {url} {res}")
+            # Check if this is one of our links menu items
+            if menu_item_id in special_items:
+                url, description = special_items[menu_item_id]
+            elif hasattr(self, 'link_urls') and menu_item_id in self.link_urls:
+                url, description = self.link_urls[menu_item_id]
             else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown menu item clicked")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown menu item clicked, id: {menu_item_id}")
+                self._on_spin('stop')
+                return
+
+            print(f"Open Link {description} {url}")
+            puml(f":Open Link;\nnote right\n=== {description}\n[[{url}]]\nend note\n", True)
+            res = webbrowser.open_new(url)
+            debug(f"Open Link {description} {url} {res}")
 
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a link")
@@ -2437,7 +2444,12 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel OTA Update")
             device = get_phone(True)
             if device:
-                device.reset_ota_update()
+                ota_clean_start_time = time.time()
+                res = device.reset_ota_update()
+                ota_clean_time = time.time() - ota_clean_start_time
+                if ota_clean_time > 10:
+                    print(f"ℹ️ Cleaning up previous OTA update took {ota_clean_time:.2f} seconds. Cleaning it again one more time for good measure ...")
+                    res = device.reset_ota_update()
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
                 self.toast("Cancel OTA Update", "❌ ERROR: No device selected")
@@ -2512,7 +2524,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
         title = "Device Analysis Report"
         message = '''
 # ATTENTION!
-**This feature will generate a device analysis report that you could post online to get assistance on Play Integrity related issues.**<br/>
+**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>
 
 This report will inherently reveal sensitive information about your device such as:
 
@@ -2548,7 +2560,8 @@ This report will inherently reveal sensitive information about your device such 
 This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>
 Your privacy is yours to keep.<br/>
 
-Before posting publicly please carefully inspect the contents.
+If you continue you'd only be generating the report, and not posting it online.<br/>
+If you want to post it online, please make sure to remove any sensitive information from the report before posting it online.<br/>
 
 **Are you sure you want to continue?**<br/>
 '''
@@ -3260,15 +3273,25 @@ Before posting publicly please carefully inspect the contents.
     #                  clear_device_selection
     # -----------------------------------------------
     def clear_device_selection(self):
+        device_id = self.config.device
         self.config.device = None
         selected_index = self.device_choice.GetSelection()
-        print(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Cleared device selection {self.device_choice.GetStringSelection()}")
+        debug(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Clearing device selection {self.device_choice.GetStringSelection()} ...")
         if selected_index != wx.NOT_FOUND:
             items = self.device_choice.GetItems()
             del items[selected_index]
             self.device_choice.SetItems(items)
             self.device_choice.Select(-1)
             set_phone_id(None)
+            debug(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Cleared device selection {self.device_choice.GetStringSelection()}")
+        phones = get_phones()
+        if phones:
+            for device in phones:
+                if device.id == device_id:
+                    phones.remove(device)
+                    set_phones(phones)
+                    debug(f"ℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Cleared device id: {device_id} from phones list.")
+                    break
         self._reflect_slots()
         self.update_widget_states()
 
@@ -3743,6 +3766,7 @@ Before posting publicly please carefully inspect the contents.
             print("==============================================================================")
             self._on_spin('start')
             if self.config.firmware_path:
+                print("This could take some time, please wait ...")
                 process_file(self, 'firmware')
             self.update_widget_states()
         except Exception as e:
@@ -4280,9 +4304,11 @@ Before posting publicly please carefully inspect the contents.
                     res = device.reboot_bootloader(fastboot_included = True)
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+                        self.clear_device_selection()
                         bootloader_issue_message()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
+            self.clear_device_selection()
             traceback.print_exc()
         finally:
             self.refresh_device()
@@ -4926,6 +4952,7 @@ Before posting publicly please carefully inspect the contents.
     # -----------------------------------------------
     def _on_check_keybox(self, event):
         try:
+            # Select keybox files
             total_keyboxes = None
             with wx.FileDialog(self, "Select keybox to test", '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -4933,43 +4960,42 @@ Before posting publicly please carefully inspect the contents.
                     return
                 selected_files = fileDialog.GetPaths()
 
+            # Define all possible result categories
+            result_categories = {
+                'valid': {'count': 0, 'files': [], 'description': 'Not Revoked keyboxes'},
+                'revoked': {'count': 0, 'files': [], 'description': 'Revoked keyboxes'},
+                'aosp': {'count': 0, 'files': [], 'description': 'Self signed / AOSP keyboxes'},
+                'invalid': {'count': 0, 'files': [], 'description': 'Invalid keyboxes'},
+                'long_chain': {'count': 0, 'files': [], 'description': 'Long chain keyboxes'},
+                'shadow_banned': {'count': 0, 'files': [], 'description': 'Shadow banned keyboxes'},
+                'invalid_structure': {'count': 0, 'files': [], 'description': 'keyboxes with invalid structure'},
+                'missing_private_key': {'count': 0, 'files': [], 'description': 'Keyboxes with missing private keys'},
+                'missing_chain': {'count': 0, 'files': [], 'description': 'Keyboxes with missing certificate chains'},
+                'invalid_chain': {'count': 0, 'files': [], 'description': 'Keyboxes with invalid certificate chains'},
+                'invalid_private_key': {'count': 0, 'files': [], 'description': 'Keyboxes with invalid private keys'},
+                'key_mismatch': {'count': 0, 'files': [], 'description': 'Keyboxes with Private / Public Key mismatches'},
+                'missing_algorithms': {'count': 0, 'files': [], 'description': 'Keyboxes with missing algorithms'}
+            }
+
+            # Find the length of the longest description for formatting
+            longest_desc = max(len(data['description']) for data in result_categories.values())
+
             total_keyboxes = len(selected_files)
-            revoked_count = 0
-            not_revoked = 0
-            aosp_count = 0
-            invalid_count = 0
-            long_chain_count = 0
-            shadow_banned_count = 0
-            revoked_keyboxes = []
-            aosp_keyboxes = []
-            invalid_keyboxes = []
-            good_keyboxes = []
-            long_chain_keyboxes = []
-            shadow_banned_keyboxes = []
 
             self._on_spin('start')
             wx.Yield()
+
+            # Process each keybox file
             for selected_file in selected_files:
                 wx.Yield()
                 res = check_kb(selected_file)
-                if 'valid' in res:
-                    not_revoked += 1
-                    good_keyboxes.append(selected_file)
-                if 'revoked' in res:
-                    revoked_count += 1
-                    revoked_keyboxes.append(selected_file)
-                if 'aosp' in res:
-                    aosp_count += 1
-                    aosp_keyboxes.append(selected_file)
-                if 'long_chain' in res:
-                    long_chain_count += 1
-                    long_chain_keyboxes.append(selected_file)
-                if 'shadow_banned' in res:
-                    shadow_banned_count += 1
-                    shadow_banned_keyboxes.append(selected_file)
-                if 'invalid' in res:
-                    invalid_count += 1
-                    invalid_keyboxes.append(selected_file)
+
+                # Update counts and lists for each result type
+                for result_type in res:
+                    if result_type in result_categories:
+                        result_categories[result_type]['count'] += 1
+                        result_categories[result_type]['files'].append(selected_file)
+
         except Exception as e:
             print(f"Error: {e}")
             traceback.print_exc()
@@ -4978,38 +5004,21 @@ Before posting publicly please carefully inspect the contents.
 
             if total_keyboxes is not None and total_keyboxes > 1:
                 print("========================================================================")
-                print(f"Total keyboxes checked:       {total_keyboxes}")
-                if invalid_count > 0:
-                    print(f"Invalid keyboxes count:       {invalid_count} / {total_keyboxes}")
-                print(f"Revoked keyboxes count:       {revoked_count} / {total_keyboxes}")
-                print(f"Long chain keyboxes count:    {long_chain_count} / {total_keyboxes}")
-                print(f"Shadow banned keyboxes count: {shadow_banned_count} / {total_keyboxes}")
-                print(f"AOSP keyboxes count:          {aosp_count} / {total_keyboxes}")
-                print(f"Not Revoked keyboxes count:   {not_revoked} / {total_keyboxes}")
-                if invalid_count > 0:
-                    print("\nList of invalid keyboxes:")
-                    for keybox in invalid_keyboxes:
-                        print(f"    {keybox}")
-                if revoked_count > 0:
-                    print("\nList of revoked keyboxes:")
-                    for keybox in revoked_keyboxes:
-                        print(f"    {keybox}")
-                if long_chain_count > 0:
-                    print("\nList of long chain keyboxes:")
-                    for keybox in long_chain_keyboxes:
-                        print(f"    {keybox}")
-                if shadow_banned_count > 0:
-                    print("\nList of shadow banned keyboxes:")
-                    for keybox in shadow_banned_keyboxes:
-                        print(f"    {keybox}")
-                if aosp_count > 0:
-                    print("\nList of AOSP keyboxes:")
-                    for keybox in aosp_keyboxes:
-                        print(f"    {keybox}")
-                if not_revoked > 0:
-                    print("\nList of valid keyboxes:")
-                    for keybox in good_keyboxes:
-                        print(f"    {keybox}")
+                print(f"Total keyboxes checked: {total_keyboxes}")
+
+                # Print summary for types with counts > 0
+                for result_type, data in result_categories.items():
+                    if data['count'] > 0:
+                        spaces = ' ' * (longest_desc - len(data['description']) + 1)
+                        print(f"{data['description']}:{spaces}{data['count']} / {total_keyboxes}")
+
+                # Print detailed lists for each category with results
+                for result_type, data in result_categories.items():
+                    if data['count'] > 0:
+                        print(f"\nList of {data['description'].lower()}:")
+                        for keybox in data['files']:
+                            print(f"    {keybox}")
+
                 print("\n")
 
     # -----------------------------------------------
@@ -6289,4 +6298,3 @@ def main():
 if __name__ == '__main__':
     __name__ = 'Main'
     main()
-

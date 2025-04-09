@@ -1,5 +1,6 @@
 #
-# Copyright (C) 2024 Badabing2005
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -172,6 +173,10 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: Release v${{ steps.get_version.outputs.version }}
           # body_path: RELEASE.md
+          body: |
+
+            ## Which file to download?
+            A description of the various artifacts is in the [README](https://github.com/badabing2005/PixelFlasher#release-files)
           draft: true
           prerelease: false
           files: |

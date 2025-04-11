@@ -164,7 +164,7 @@ jobs:
           Type=Application
           Name=PixelFlasher
           Comment=Android Flashing Tool
-          Exec=PixelFlasher
+          Exec=usr/bin/PixelFlasher
           Icon=pixelflasher
           Categories=Utility;Development;
           Terminal=false
@@ -173,6 +173,18 @@ jobs:
           # Create symlink in root AppDir
           ln -sf usr/share/applications/PixelFlasher.desktop AppDir/
           ln -sf usr/share/icons/hicolor/256x256/apps/pixelflasher.png AppDir/
+
+      - name: Create AppRun script
+        run: |
+          # Create AppRun file
+          cat > AppDir/AppRun << EOF
+          #!/bin/bash
+          HERE="\$(dirname \"\$(readlink -f \"\$0\")\")"
+          export PATH="\$HERE/usr/bin:\$PATH"
+          export LD_LIBRARY_PATH="\$HERE/usr/lib:\$HERE/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
+          exec "\$HERE/usr/bin/PixelFlasher" "\$@"
+          EOF
+          chmod +x AppDir/AppRun
 
       - name: Build AppImage
         run: |

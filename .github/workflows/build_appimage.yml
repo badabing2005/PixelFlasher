@@ -90,9 +90,9 @@ jobs:
           pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython==4.2.1 || \
           pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
           pip install -r requirements.txt
-          # Install python-appimage
-          pip install python-appimage
           python --version && pip freeze
+          ./build.sh
+          ls dist
         shell: bash
 
       - name: Create AppImage configuration
@@ -145,108 +145,37 @@ jobs:
           sudo mv appimagetool /usr/local/bin/
         shell: bash
 
-      - name: Build AppImage with appimagetool
+      - name: Create AppImage structure
         run: |
-          . myenv/bin/activate
-
-          # Get version from build.sh
-          VERSION=$(grep -m1 "VERSION=" build.sh | cut -d'=' -f2 || echo "1.0.0")
-          echo "Building AppImage for version: ${VERSION}"
-
-          # Create a temporary directory for source files
-          mkdir -p tmp_src
-
-          # Copy needed files to the temporary directory, excluding AppDir
-          cp -r *.py *.json *.pem *.sh *.desktop images/ bin/ LICENSE README.md tmp_src/
-
           # Create AppDir structure
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-          mkdir -p AppDir/usr/lib/python3.9/site-packages
-          mkdir -p AppDir/usr/src/pixelflasher
 
-          # Create a lib directory for shared libraries
-          mkdir -p AppDir/usr/lib/x86_64-linux-gnu/
-
-          # Copy the entire Python standard library
-          mkdir -p AppDir/usr/lib/python3.9
-          cp -r /usr/lib/python3.9/* AppDir/usr/lib/python3.9/
-          cp $(which python3.9) AppDir/usr/bin/python3
-
-          # Install Python dependencies
-          echo "Installing packages to site-packages directory"
-          mkdir -p AppDir/usr/lib/python3.9/site-packages
-          . myenv/bin/activate
-          pip install -r requirements.txt --target=AppDir/usr/lib/python3.9/site-packages || { echo "ERROR: Package installation failed!"; exit 1; }
-
-          # Copy wxPython manually from venv if needed
-          echo "Copying wxPython from virtual environment if needed"
-          if [ ! -d "AppDir/usr/lib/python3.9/site-packages/wx" ]; then
-            echo "wxPython not found in target, copying from venv"
-            cp -r myenv/lib/python3.9/site-packages/wx* AppDir/usr/lib/python3.9/site-packages/ || echo "WARNING: wxPython copy failed"
-          fi
-
-          # Copy required shared libraries for wxPython
-          echo "Copying required shared libraries for wxPython"
-          sudo apt-get install -y libnotify4 libgstreamer1.0-0 libwebkit2gtk-4.0-37 \
-            libsdl2-2.0-0 libjpeg-turbo8 libpng16-16 libtiff5 \
-            libgtk-3-0 libsm6 libwxgtk3.0-gtk3-0v5
-
-          # Copy shared libraries to the AppDir
-          for lib in libnotify.so.4 libgstreamer-1.0.so.0 libwebkit2gtk-4.0.so.37 \
-            libgtk-3.so.0 libgdk-3.so.0 libpango-1.0.so.0 libgobject-2.0.so.0 \
-            libglib-2.0.so.0 libcairo.so.2 libsm.so.6 libwx_gtk3u_core-3.0.so.0; do
-            find /usr/lib -name $lib -exec cp -v {} AppDir/usr/lib/x86_64-linux-gnu/ \; || echo "WARNING: Could not find $lib"
-          done
-
-          # Copy the source files to AppDir from temp directory
-          cp -r tmp_src/* AppDir/usr/src/pixelflasher/
+          # Copy the PyInstaller-built executable
+          cp dist/PixelFlasher AppDir/usr/bin/
 
           # Copy icon
           cp images/icon-dark-256.png AppDir/usr/share/icons/hicolor/256x256/apps/pixelflasher.png
 
-          # Create entry point script using appdir-relative paths
-          cat > AppDir/usr/bin/pixelflasher << EOF
-          #!/bin/bash
-          # Use relative paths within the AppImage
-          THIS_DIR=\$(dirname "\$(readlink -f "\$0")")
-          APPDIR=\$(dirname "\$(dirname "\$THIS_DIR")")
-          cd "\$APPDIR/usr/src/pixelflasher"
-          export PYTHONHOME="\$APPDIR/usr"
-          export PYTHONPATH="\$APPDIR/usr/lib/python3.9/site-packages:\$APPDIR/usr/lib/python3.9"
-          export LD_LIBRARY_PATH="\$APPDIR/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
-          exec "\$APPDIR/usr/bin/python3" PixelFlasher.py "\$@"
+          # Create .desktop file
+          cat > AppDir/usr/share/applications/PixelFlasher.desktop << EOF
+          [Desktop Entry]
+          Type=Application
+          Name=PixelFlasher
+          Comment=Android Flashing Tool
+          Exec=PixelFlasher
+          Icon=pixelflasher
+          Categories=Utility;Development;
+          Terminal=false
           EOF
-          chmod +x AppDir/usr/bin/pixelflasher
-
-          # Create AppRun file
-          cat > AppDir/AppRun << EOF
-          #!/bin/bash
-          # Get the directory where the AppImage is mounted
-          HERE="\$(dirname "\$(readlink -f "\$0")")"
-
-          # Set environment variables
-          export PATH="\$HERE/usr/bin:\$PATH"
-          export PYTHONHOME="\$HERE/usr"
-          export PYTHONPATH="\$HERE/usr/lib/python3.9/site-packages:\$HERE/usr/lib/python3.9"
-          export LD_LIBRARY_PATH="\$HERE/usr/lib/x86_64-linux-gnu:\$LD_LIBRARY_PATH"
-
-          # Execute the entry point
-          exec "\$HERE/usr/bin/pixelflasher" "\$@"
-          EOF
-          chmod +x AppDir/AppRun
-
-          # Copy .desktop file to correct location
-          cp PixelFlasher.desktop AppDir/usr/share/applications/
-
-          # Fix the Exec line in the .desktop file to use the correct path
-          sed -i 's|Exec=PixelFlasher|Exec=pixelflasher|g' AppDir/usr/share/applications/PixelFlasher.desktop
 
           # Create symlink in root AppDir
           ln -sf usr/share/applications/PixelFlasher.desktop AppDir/
           ln -sf usr/share/icons/hicolor/256x256/apps/pixelflasher.png AppDir/
 
+      - name: Build AppImage
+        run: |
           # Create AppImage
           mkdir -p dist
           ARCH=x86_64 /usr/local/bin/appimagetool AppDir dist/PixelFlasher-x86_64.AppImage

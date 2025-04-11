@@ -4428,11 +4428,13 @@ def update_phones(device_id, mode=None):
         devices = get_device_list()
         # Find the index of the entry you want to replace
         index_to_replace = None
+        device_is_found = False
 
         for i, device in enumerate(phones):
             if device.id == device_id:
                 index_to_replace = i
                 device = None
+                device_is_found = True
                 break
 
         state = None
@@ -4446,7 +4448,7 @@ def update_phones(device_id, mode=None):
             debug(f"mode: {mode}, state: {state}")
 
         # don't use else here, because mode can be None
-        if not mode:
+        if not mode or not device_is_found:
             if get_adb():
                 theCmd = f"\"{get_adb()}\" -s {device_id} get-state"
                 debug(theCmd)
@@ -4455,6 +4457,7 @@ def update_phones(device_id, mode=None):
                     device_mode = res.stdout.strip('\n')
                     debug(f"device_mode: {device_mode}")
                     state = 'adb'
+                    device_is_found = True
             if get_fastboot():
                 theCmd = f"\"{get_fastboot()}\" -s {device_id} devices"
                 debug(theCmd)
@@ -4462,8 +4465,8 @@ def update_phones(device_id, mode=None):
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0 and 'fastboot' in res.stdout:
                     debug("device_mode: f.b")
                     state = 'f.b'
+                    device_is_found = True
             debug(f"mode: None, state: {state}")
-
 
         if mode in ['recovery', 'sideload', 'rescue']:
             device = Device(device_id, 'adb', mode)
@@ -4471,6 +4474,12 @@ def update_phones(device_id, mode=None):
             device = Device(device_id, state)
         device.init(state)
         device_details = device.get_device_details()
+        print(f"Device: {device_details}")
+
+        # If the device is not in the list, but is found, append it
+        if index_to_replace is None and device_details != "ERROR" and device:
+            phones.append(device)
+            devices.append(device_details)
 
         # Replace the entry at the found index with the new device_details or remove if it does not exist
         if index_to_replace is not None:
@@ -4485,6 +4494,7 @@ def update_phones(device_id, mode=None):
                     del phones[index_to_replace]
                     del devices[index_to_replace]
                     set_phone_id(None)
+
         set_phones(phones)
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating phones.")

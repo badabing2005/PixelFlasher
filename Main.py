@@ -860,6 +860,7 @@ class PixelFlasher(wx.Frame):
                 set_verbose(self.config.verbose)
             if self.config.first_run:
                 print("First Run: No previous configuration file is found.")
+                self.config.save(get_config_file_path())
             else:
                 print(f"{json.dumps(self.config.data, indent=4, sort_keys=True)}")
                 puml("note right\n")
@@ -2598,13 +2599,13 @@ If you want to post it online, please make sure to remove any sensitive informat
                 self.change_logfile(logfile)
                 t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Starting Device analysis for PIF")
+                print(f" 🚀 {datetime.now():%Y-%m-%d %H:%M:%S} Starting Device analysis for PIF")
                 print("==============================================================================")
                 print(f"PixelFlasher version: {VERSION}")
 
                 # Device details
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Getting Device details ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Getting Device details ...")
                 print("==============================================================================")
                 self._print_device_details(device)
                 if not device.rooted:
@@ -2616,14 +2617,30 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # Testkey check
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking for testkey ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking for testkey ...")
                 print("==============================================================================")
                 self._on_spin('start')
                 self._on_check_otacerts(None)
 
+                # SELinux Load timestamp
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking SElinux load timestamp ...")
+                print("==============================================================================")
+                self._on_spin('start')
+                res = device.selinux_load_timestamp()
+                print(res)
+
+                # Overlay FS Mount count
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Overlay FS Mount count ...")
+                print("==============================================================================")
+                self._on_spin('start')
+                res = device.mount_count()
+                print(res)
+
                 # Magisk Denylist / Enforced
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Magisk denylist ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Magisk denylist ...")
                 print("==============================================================================")
                 self._on_spin('start')
                 cmd = "magisk --denylist ls"
@@ -2632,7 +2649,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # Magisk Denylist / Enforced
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Magisk denylist enforced ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Magisk denylist enforced ...")
                 print("==============================================================================")
                 self._on_spin('start')
                 res = device.magisk_denylist_enforced
@@ -2643,7 +2660,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # Zygisk enabled
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Zygisk status ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Zygisk status ...")
                 print("==============================================================================")
                 self._on_spin('start')
                 res = device.magisk_zygisk_enabled
@@ -2654,7 +2671,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # TrickyStore - spoof_build_vars
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store spoof_build_vars ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store spoof_build_vars ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/tricky_store/spoof_build_vars", True)
                 if res != -1:
@@ -2662,7 +2679,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # TrickyStore - target.txt
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store target.txt ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store target.txt ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/tricky_store/target.txt", True)
                 if res != -1:
@@ -2670,7 +2687,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # TrickyStore - security_patch.txt
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store security_patch.txt ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store security_patch.txt ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/tricky_store/security_patch.txt", True)
                 if res != -1:
@@ -2678,7 +2695,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # TrickyStore - keybox.xml
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store keybox status ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store keybox status ...")
                 print("==============================================================================")
                 keybox_xml = '/data/adb/tricky_store/keybox.xml'
                 res,_ = device.check_file(keybox_xml, True)
@@ -2694,7 +2711,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # PlayIntegrity Fork - custom.pif.json
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.json ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.json ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.json", True)
                 if res != -1:
@@ -2702,7 +2719,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # PlayIntegrity Fork - custom.app_replace.list
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace.list", True)
                 if res != -1:
@@ -2710,7 +2727,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # PlayIntegrity Fork - scripts-only-mode
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
                 res,_ = device.check_file('/data/adb/modules/playintegrityfix/scripts-only-mode', True)
                 if res == 1:
@@ -2720,7 +2737,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # PlayIntegrityFix - pif.json
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix pif.json ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix pif.json ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/modules/playintegrityfix/pif.json", True)
                 if res != -1:
@@ -2728,7 +2745,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # PlayIntegrityFix - older pif.json
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix older pif.json ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix older pif.json ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/pif.json", True)
                 if res != -1:
@@ -2736,7 +2753,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # Check for conflicting custom ROM injection apps
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Check for custom ROM injection apps ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Check for custom ROM injection apps ...")
                 print("==============================================================================")
                 # # Xiaomi.eu
                 print("Checking for Xiaomi.eu ROM injection ...")
@@ -2771,7 +2788,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # Check for overlay detection
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Check for overlay detection ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Check for overlay detection ...")
                 print("==============================================================================")
                 print("Checking for /debug_ramdisk contents without root...")
                 res = device.exec_cmd("ls -lR /debug_ramdisk", False)
@@ -2782,14 +2799,14 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # Check for Droidguard VM list
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Checking for droidguard VM list ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking for droidguard VM list ...")
                 print("==============================================================================")
                 res = device.exec_cmd("ls -lR /data/data/com.google.android.gms/app_dg_cache", True)
                 print(res)
 
                 # logcat for PlayIntegrity related logs
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Getting pif logcat ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Getting pif logcat ...")
                 print("==============================================================================")
                 res = device.get_logcat("pif", True)
                 if res:
@@ -2797,7 +2814,7 @@ If you want to post it online, please make sure to remove any sensitive informat
 
                 # logcat for PlayIntegrity related logs
                 print("\n==============================================================================")
-                print(f" {datetime.now():%Y-%m-%d %H:%M:%S} getting Tricky Store logcat ...")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} getting Tricky Store logcat ...")
                 print("==============================================================================")
                 res = device.get_logcat("tricky", True)
                 if res:
@@ -3010,6 +3027,8 @@ If you want to post it online, please make sure to remove any sensitive informat
                 message += f"    CONFIG_KALLSYMS:                 {device.config_kallsyms}\n"
                 message += f"    CONFIG_KALLSYMS_ALL:             {device.config_kallsyms_all}\n"
                 message += f"    Page Size:                       {device.get_page_size()}\n"
+                message += f"    SElinux load timestamp:          {device.selinux_load_timestamp()}\n"
+                message += f"    Overlay FS Mount Count:          {device.mount_count()}\n"
                 message += f"    oem_unlock_supported:            {device.get_prop('sys.oem_unlock_supported')}\n"
                 message += f"    sys_oem_unlock_allowed:          {device.get_prop('sys.oem_unlock_allowed')}\n"
                 message += f"    ro.boot.flash.locked:            {device.ro_boot_flash_locked}\n"

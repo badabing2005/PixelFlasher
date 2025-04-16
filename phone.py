@@ -2848,6 +2848,30 @@ add_hosts_module
         return self._tmp_readable
 
     # ----------------------------------------------------------------------------
+    #                               method selinux_load_timestamp
+    # ----------------------------------------------------------------------------
+    def selinux_load_timestamp(self):
+        if self.true_mode == 'adb':
+            if get_adb():
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell stat -c %y /sys/fs/selinux/load"
+                res = run_shell(theCmd, timeout=8)
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    return res.stdout.strip('\n')
+        return ''
+
+    # ----------------------------------------------------------------------------
+    #                               method mount_count
+    # ----------------------------------------------------------------------------
+    def mount_count(self):
+        if self.true_mode == 'adb':
+            if get_adb():
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell wc -l /proc/mounts"
+                res = run_shell(theCmd, timeout=8)
+                if res and isinstance(res, subprocess.CompletedProcess):
+                    return res.stdout.strip('\n').split()[0]
+        return ''
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_denylist_enforced
     # ----------------------------------------------------------------------------
     @property

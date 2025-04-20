@@ -1,4 +1,10 @@
 {
+    "tegu": {
+        "device": "Google Pixel 9a",
+        "android_version_end_date": "May 2032",
+        "security_update_end_date": "May 2032",
+        "first_api_level": "34"
+    },
     "seluna": {
         "device": "Pixel Watch 3 (LTE)",
         "android_version_end_date": "October 2027",

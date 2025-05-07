@@ -48,7 +48,6 @@ import webbrowser
 import threading
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
-
 import darkdetect
 import wx
 import wx.adv
@@ -64,10 +63,16 @@ import cProfile, pstats
 with contextlib.suppress(Exception):
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
 
+from config import Config
+
+# see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
+locale.setlocale(locale.LC_ALL, 'C')
+# Initialize translations before any UI code executes
+from i18n import _, get_available_languages, get_language, set_language, initialize_translations
+
 from advanced_settings import AdvancedSettings
 from backup_manager import BackupManager
 from wifi import Wireless
-from config import Config
 from constants import *
 from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
@@ -83,9 +88,6 @@ from phone import get_connected_devices, update_phones
 from runtime import *
 from my_tools import MyToolsDialog
 
-# see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
-locale.setlocale(locale.LC_ALL, 'C')
-
 # For troubleshooting, set inspector = True
 inspector = False
 dont_initialize = False
@@ -93,6 +95,66 @@ do_profiling = False
 
 # Declare global_args at the global scope
 global_args = None
+
+# Initialize language and translations
+lang = get_language()
+initialize_translations()
+
+# Links menu data structure
+LINKS_MENU_DATA = [
+    # Format: (label, image_name, url)
+    # Guides
+    (_("Homeboy76's Guide"), "guide_24", "https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/"),
+    (_("V0latyle's Guide"), "guide_24", "https://xdaforums.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/"),
+    (_("roirraW's Guide"), "guide_24", "https://xdaforums.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/"),
+    None,  # Separator
+    # FAQ and info
+    (_("osm0sis's PIF FAQ"), "forum_24", "https://xdaforums.com/t/pif-faq.4653307/"),
+    (_("V0latyle's PI API Info"), "forum_24", "https://xdaforums.com/t/info-play-integrity-api-replacement-for-safetynet.4479337"),
+    (_("chiteroman's PlayIntegrityFix"), "forum_24", "https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985"),
+    (_("Tricky Store (Support Thread)"), "forum_24", "https://xdaforums.com/t/tricky-store-bootloader-keybox-spoofing.4683446"),
+    None,  # Separator
+    # GitHub repos
+    (_("osm0sis's PlayIntegrityFork"), "github_24", "https://github.com/osm0sis/PlayIntegrityFork"),
+    (_("chiteroman's PlayIntegrityFix"), "github_24", "https://github.com/chiteroman/PlayIntegrityFix"),
+    (_("5ec1cff's TrickyStore"), "github_24", "https://github.com/5ec1cff/TrickyStore"),
+    None,  # Separator
+    # References
+    (_("Get the Google USB Driver"), "android_24", "https://developer.android.com/studio/run/win-usb?authuser=1%2F"),
+    (_("Android Security Update Bulletins"), "android_24", "https://source.android.com/docs/security/bulletin/"),
+    (_("Android Codenames, tags, and build numbers"), "android_24", "https://source.android.com/docs/setup/reference/build-numbers"),
+    None,  # Separator
+    # Device images
+    (_("Full OTA Images for Pixel Phones / Tablets"), "google_24", 'https://developers.google.com/android/ota'),
+    (_("Factory Images for Pixel Phones / Tablets"), "google_24", 'https://developers.google.com/android/ota'),
+    (_("Full OTA Images for Pixel Watches"), "google_24", 'https://developers.google.com/android/ota-watch'),
+    (_("Factory Images for Pixel Watches"), "google_24", 'https://developers.google.com/android/images-watch'),
+    None,  # Separator
+    # Beta images
+    (_("Full OTA Images for Pixel Beta 16"), "android_24", 'https://developer.android.com/about/versions/15/download-ota'),
+    (_("Factory Images for Pixel Beta 16"), "android_24", 'https://developer.android.com/about/versions/15/download'),
+]
+
+# Help menu URLs and descriptions
+HELP_MENU_ITEMS = {
+    "issue": {
+        "url": "https://github.com/badabing2005/PixelFlasher/issues/new",
+        "description": _("Report an Issue")
+    },
+    "feature": {
+        "url": "https://github.com/badabing2005/PixelFlasher/issues/new",
+        "description": _("Feature Request")
+    },
+    "project": {
+        "url": "https://github.com/badabing2005/PixelFlasher",
+        "description": _("PixelFlasher Project Page")
+    },
+    "forum": {
+        "url": "https://xdaforums.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/",
+        "description": _("PixelFlasher Community (Forum)")
+    }
+}
+
 
 # ============================================================================
 #                               Class RedirectText
@@ -156,7 +218,7 @@ class RedirectText():
 #                               Class FilePickerComboBox
 # ============================================================================
 class FilePickerComboBox(wx.Panel):
-    def __init__(self, parent, dialog_title="Select a file", wildcard="All files (*.*)|*.*"):
+    def __init__(self, parent, dialog_title=_("Select a file"), wildcard="All files (*.*)|*.*"):
         super(FilePickerComboBox, self).__init__(parent)
 
         self.history_file = get_device_images_history_file_path()
@@ -165,7 +227,7 @@ class FilePickerComboBox(wx.Panel):
         self.history = []
 
         self.combo_box = wx.ComboBox(self, wx.ID_ANY, style=wx.CB_READONLY)
-        self.browse_button = wx.Button(self, wx.ID_ANY, 'Browse')
+        self.browse_button = wx.Button(self, wx.ID_ANY, _('Browse'))
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.combo_box, 1, wx.EXPAND)
@@ -209,7 +271,7 @@ class FilePickerComboBox(wx.Panel):
                 self.history.pop()
             if self.combo_box.Count > 16:
                 self.combo_box.Delete(self.combo_box.Count - 1)
-            with open(self.history_file, 'w') as f:
+            with open(self.history_file, 'w', encoding='utf-8') as f:
                 json.dump(self.history, f)
         self.combo_box.SetValue(path)
 
@@ -226,7 +288,7 @@ class FilePickerComboBox(wx.Panel):
             self.combo_box.Delete(self.combo_box.FindString(path))
             self.combo_box.Insert(path, 0)
             self.combo_box.SetValue(path)
-            with open(self.history_file, 'w') as f:
+            with open(self.history_file, 'w', encoding='utf-8') as f:
                 json.dump(self.history, f)
 
     def Bind(self, event, handler):
@@ -336,7 +398,7 @@ class DropDownButton(buttons.GenBitmapTextButton):
 # ============================================================================
 class DownloadProgressWindow(wx.Frame):
     def __init__(self, parent=None):
-        super().__init__(parent, title="Downloads Progress", size=(800, 300))
+        super().__init__(parent, title=_("Downloads Progress"), size=(800, 300))
         self.downloads = {}  # {url: (gauge, cancel_button, panel)}
         self.main_panel = wx.Panel(self)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -361,7 +423,7 @@ class DownloadProgressWindow(wx.Frame):
         download_sizer.Add(gauge, 1, wx.ALL | wx.EXPAND, 5)
 
         # Cancel button
-        cancel_button = wx.Button(download_panel, label="Cancel", size=(70, 25))
+        cancel_button = wx.Button(download_panel, label=_("Cancel"), size=(70, 25))
         download_sizer.Add(cancel_button, 0, wx.ALL, 5)
 
         download_panel.SetSizer(download_sizer)
@@ -556,14 +618,14 @@ class GoogleImagesBaseMenu(wx.Menu):
     def on_download(self, url, event=None, unique_id=any):
         # debug(f"Download triggered for URL: {url}, Menu ID: {unique_id}")
         def download_completed(destination_path):
-            self.parent.toast("Download Successful", f"✅ File downloaded successfully: {url} and saved to {destination_path}")
+            self.parent.toast(_("Download Successful"), _("✅ File downloaded successfully: %s and saved to %s") % (url, destination_path))
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Download Successful", f"File downloaded successfully: {url} and saved to {destination_path}")
             # self.parent.firmware_picker.SetPath(destination_path)
             # self.parent.update_firmware_selection(destination_path)
 
         filename = os.path.basename(url)
         print(f"User selected {url} for download")
-        dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        dialog = wx.FileDialog(None, _("Save File"), defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
             destination_path = dialog.GetPath()
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Starting background download for: {url} to be saved to {destination_path}\nplease be patient ...")
@@ -582,7 +644,7 @@ class GoogleImagesBaseMenu(wx.Menu):
         if self.progress_window:
             self.progress_window.Show()
         else:
-            self.parent.toast("No Downloads", "ℹ️ No downloads are in progress.")
+            self.parent.toast(_("No Downloads"), _("ℹ️ No downloads are in progress."))
 
 # ============================================================================
 #                               Class GoogleImagesMenu
@@ -682,19 +744,19 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
                         device_menu_item.SetBitmap(device_icon)
                         device_menu_item.SetBackgroundColour((100, 155, 139, 255))
 
-            phone_menu_item = self.AppendSubMenu(self.phones_menu, "Phones")
+            phone_menu_item = self.AppendSubMenu(self.phones_menu, _("Phones"))
             phone_menu_item.SetBitmap(phone_icon)
-            watches_menu_item = self.AppendSubMenu(self.watches_menu, "Watches")
+            watches_menu_item = self.AppendSubMenu(self.watches_menu, _("Watches"))
             watches_menu_item.SetBitmap(watch_icon)
             self.AppendSeparator()
-            refresh_images_menu_item = self.Append(wx.ID_ANY, "Refresh images list")
+            refresh_images_menu_item = self.Append(wx.ID_ANY, _("Refresh images list"))
             self.Bind(wx.EVT_MENU, self.on_refresh_google_images, refresh_images_menu_item)
             self.AppendSeparator()
-            show_progress_menu_item = self.Append(wx.ID_ANY, "Show Progress Window")
+            show_progress_menu_item = self.Append(wx.ID_ANY, _("Show Progress Window"))
             self.Bind(wx.EVT_MENU, self.on_show_progress_window, show_progress_menu_item)
 
             if download_available:
-                self.parent.toast("Updates are available", f"ℹ️ There are updates available for your device.\nCheck Google Images menu.")
+                self.parent.toast(_("Updates are available"), _("ℹ️ There are updates available for your device.\nCheck Google Images menu."))
                 if hasattr(self.parent, 'firmware_button') and self.parent.firmware_button:
                     self.parent.firmware_button.SetBitmap(images.open_link_red_24.GetBitmap())
 
@@ -799,6 +861,12 @@ class PixelFlasher(wx.Frame):
             self.config.pos_x = pos.x
             self.config.pos_y = pos.y
 
+        # set the language
+        if hasattr(self.config, 'language') and self.config.language:
+            set_language(self.config.language)
+        else:
+            set_language('en')
+
         self.toolbar_flags = self.get_toolbar_config()
 
         self.Center()
@@ -820,14 +888,6 @@ class PixelFlasher(wx.Frame):
             self.initialize()
         set_window_shown(True)
         self.Show(True)
-
-    def change_logfile(self, new_logfile_path):
-        """Change the logfile to a new one."""
-        self.redirect_text.set_logfile(new_logfile_path)
-
-    def reset_logfile(self):
-        """Reset the logfile to the original one."""
-        self.redirect_text.reset_logfile()
 
 
     # -----------------------------------------------
@@ -967,12 +1027,12 @@ class PixelFlasher(wx.Frame):
                         if firmware_hash[:8] in self.config.firmware_path:
                             print(f"✅ Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
                             puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
-                            # self.toast("Firmware SHA256", "✅ SHA256 of the selected file matches the segment in the filename.")
+                            # self.toast(_("Firmware SHA256"), _("✅ SHA256 of the selected file matches the segment in the filename."))
                             set_firmware_hash_validity(True)
                         else:
                             print(f"⚠️ WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
                             puml("#orange:Unable to match the checksum in the filename;\n")
-                            self.toast("Firmware SHA256", "⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good.")
+                            self.toast(_("Firmware SHA256"), _("⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good."))
                             set_firmware_hash_validity(False)
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while extracting firmware info during initialization.")
@@ -991,7 +1051,7 @@ class PixelFlasher(wx.Frame):
 
                     # if adb is found, display the version
                     if get_sdk_version():
-                        self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+                        self.platform_tools_label.SetLabel(_("Android Platform Tools\nVersion %s") % get_sdk_version())
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for platform tools during initialization.")
                 traceback.print_exc()
@@ -1119,6 +1179,54 @@ class PixelFlasher(wx.Frame):
             traceback.print_exc()
 
     # -----------------------------------------------
+    #           change_logfile
+    # -----------------------------------------------
+    def change_logfile(self, new_logfile_path):
+        """Change the logfile to a new one."""
+        self.redirect_text.set_logfile(new_logfile_path)
+
+    # -----------------------------------------------
+    #           reset_logfile
+    # -----------------------------------------------
+    def reset_logfile(self):
+        """Reset the logfile to the original one."""
+        self.redirect_text.reset_logfile()
+
+    # -----------------------------------------------
+    #           get_language_name
+    # -----------------------------------------------
+    def get_language_name(self, lang_code):
+        """Return human-readable language name for language code"""
+        return LANGUAGE_NAMES.get(lang_code, lang_code)
+
+    # -----------------------------------------------
+    #           on_language_change
+    # -----------------------------------------------
+    def on_language_change(self, lang_code):
+        """Handle language change from menu"""
+        if set_language(lang_code):
+            # Save the language to configuration
+            self.config.language = lang_code
+            self.config.save(get_config_file_path())
+
+            # Update menu items
+            for code, menu_item in self.language_menu_items.items():
+                menu_item.Check(code == lang_code)
+
+            # Update the Language menu text itself
+            lang_menu = self.menuBar.FindMenu(_("&Language"))
+            if lang_menu != wx.NOT_FOUND:
+                self.menuBar.SetMenuLabel(lang_menu, _("&Language"))
+
+            # Display a message to the user
+            wx.MessageBox(_("Language changed to %s. A restart is required for translations to apply.") %
+                            self.get_language_name(lang_code), _("Language Changed"))
+
+            print(f"Language changed to {lang_code}, a reboot is required.")
+            return True
+        return False
+
+    # -----------------------------------------------
     #           enable_disable_radio_buttons
     # -----------------------------------------------
     def enable_disable_radio_button(self, name, state, selected=False, just_select=False):
@@ -1182,7 +1290,7 @@ class PixelFlasher(wx.Frame):
     def _build_status_bar(self):
         self.statusBar = self.CreateStatusBar(2, wx.STB_SIZEGRIP)
         self.statusBar.SetStatusWidths([-2, -1])
-        status_text = f"Welcome to PixelFlasher {VERSION} by Badabing2005"
+        status_text = _("Welcome to PixelFlasher %s by Badabing2005") % VERSION
         self.statusBar.SetStatusText(status_text, 0)
 
     # -----------------------------------------------
@@ -1203,13 +1311,13 @@ class PixelFlasher(wx.Frame):
 
             # Install APK
             if self.config.toolbar['visible']['install_apk']:
-                tb.AddTool(toolId=5, label="Install APK", bitmap=images.install_apk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Install APK on the device", longHelp="Install APK on the device", clientData=None)
+                tb.AddTool(toolId=5, label=_("Install APK"), bitmap=images.install_apk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Install APK on the device"), longHelp=_("Install APK on the device"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=5)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=5)
 
             # Package Manager
             if self.config.toolbar['visible']['package_manager']:
-                tb.AddTool(toolId=8, label="App Manager", bitmap=images.packages_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Package Manager", longHelp="Manage Apps / Packages", clientData=None)
+                tb.AddTool(toolId=8, label=_("App Manager"), bitmap=images.packages_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Package Manager"), longHelp=_("Manage Apps / Packages"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=8)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=8)
 
@@ -1219,37 +1327,37 @@ class PixelFlasher(wx.Frame):
 
             # Shell
             if self.config.toolbar['visible']['adb_shell']:
-                tb.AddTool(toolId=10, label="ADB Shell", bitmap=images.shell_64.GetBitmap(), bmpDisabled=images.shell_64_disabled.GetBitmap(), kind=wx.ITEM_NORMAL, shortHelp="Open ADB shell to the device.", longHelp="Open adb shell to the device", clientData=None)
+                tb.AddTool(toolId=10, label=_("ADB Shell"), bitmap=images.shell_64.GetBitmap(), bmpDisabled=images.shell_64_disabled.GetBitmap(), kind=wx.ITEM_NORMAL, shortHelp=_("Open ADB shell to the device."), longHelp=_("Open adb shell to the device"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=10)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=10)
 
             # Scrcpy
             if self.config.toolbar['visible']['scrcpy']:
-                tb.AddTool(toolId=15, label="Scrcpy", bitmap=images.scrcpy_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Launch Screen Copy", longHelp="Launch Screen Copy", clientData=None)
+                tb.AddTool(toolId=15, label=_("Scrcpy"), bitmap=images.scrcpy_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Launch Screen Copy"), longHelp=_("Launch Screen Copy"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=15)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=15)
 
             # Device Info
             if self.config.toolbar['visible']['device_info']:
-                tb.AddTool(toolId=20, label="Device Info", bitmap=images.about_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Dump Full Device Info", longHelp="Dump Full Device Info", clientData=None)
+                tb.AddTool(toolId=20, label=_("Device Info"), bitmap=images.about_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Dump Full Device Info"), longHelp=_("Dump Full Device Info"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=20)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=20)
 
             # Check Verity / Verification
             # if self.config.toolbar['visible']['check_verity']:
-            #     tb.AddTool(toolId=30, label="Verify", bitmap=images.shield_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Check Verity / Verification status", longHelp="Check Verity / Verification status", clientData=None)
+            #     tb.AddTool(toolId=30, label=_("Verify"), bitmap=images.shield_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Check Verity / Verification status"), longHelp=_("Check Verity / Verification status"), clientData=None)
             #     self.Bind(wx.EVT_TOOL, self.OnToolClick, id=30)
             #     self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=30)
 
             # Partition Manager
             if self.config.toolbar['visible']['partition_manager'] and self.config.advanced_options:
-                tb.AddTool(toolId=40, label="Partitions", bitmap=images.partition_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Partition Manager", longHelp="Partition Manager", clientData=None)
+                tb.AddTool(toolId=40, label=_("Partitions"), bitmap=images.partition_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Partition Manager"), longHelp=_("Partition Manager"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=40)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=40)
 
             # PI Analysis Report
             if self.config.toolbar['visible']['pi_analysis_report'] and self.config.advanced_options:
-                tb.AddTool(toolId=50, label="PI Analysis", bitmap=images.analyze_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="PI Analysis Report", longHelp="PI Analysis Report", clientData=None)
+                tb.AddTool(toolId=50, label=_("PI Analysis Report"), bitmap=images.analyze_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("PI Analysis Report"), longHelp=_("PI Analysis Report"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=50)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=50)
 
@@ -1260,7 +1368,7 @@ class PixelFlasher(wx.Frame):
 
             # Switch Slot
             if self.config.toolbar['visible']['switch_slot'] and self.config.advanced_options:
-                tb.AddTool(toolId=100, label="Switch Slot", bitmap=images.switch_slot_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Switch to the other Slot", longHelp="Switch to the other Slot", clientData=None)
+                tb.AddTool(toolId=100, label=_("Switch Slot"), bitmap=images.switch_slot_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Switch to the other Slot"), longHelp=_("Switch to the other Slot"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=100)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=100)
                 # separator
@@ -1268,49 +1376,49 @@ class PixelFlasher(wx.Frame):
 
             # Reboot to System
             if self.config.toolbar['visible']['reboot_system']:
-                tb.AddTool(toolId=110, label="System", bitmap=images.reboot_system_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to System", longHelp="Reboot to System", clientData=None)
+                tb.AddTool(toolId=110, label=_("System"), bitmap=images.reboot_system_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to System"), longHelp=_("Reboot to System"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=110)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=110)
 
             # Reboot to Bootloader
             if self.config.toolbar['visible']['reboot_bootloader']:
-                tb.AddTool(toolId=120, label="Bootloader", bitmap=images.reboot_bootloader_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Bootloader", longHelp="Reboot to Bootloader", clientData=None)
+                tb.AddTool(toolId=120, label=_("Bootloader"), bitmap=images.reboot_bootloader_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to Bootloader"), longHelp=_("Reboot to Bootloader"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=120)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=120)
 
             # Reboot to fastbootd
             if self.config.toolbar['visible']['reboot_fastbootd']:
-                tb.AddTool(toolId=125, label="fastbootd", bitmap=images.reboot_fastbootd_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to userspace fastboot (fastbootd)", longHelp="Reboot to userspace fastboot (fastbootd)", clientData=None)
+                tb.AddTool(toolId=125, label=_("Fastbootd"), bitmap=images.reboot_fastbootd_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to userspace fastboot (fastbootd)"), longHelp=_("Reboot to userspace fastboot (fastbootd)"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=125)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=125)
 
             # Reboot to Recovery
             if self.config.toolbar['visible']['reboot_recovery'] and self.config.advanced_options:
-                tb.AddTool(toolId=130, label="Recovery", bitmap=images.reboot_recovery_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Recovery", longHelp="Reboot to Recovery", clientData=None)
+                tb.AddTool(toolId=130, label=_("Recovery"), bitmap=images.reboot_recovery_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to Recovery"), longHelp=_("Reboot to Recovery"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=130)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=130)
 
             # Reboot to Interactive Recovery
             if self.config.toolbar['visible']['reboot_recovery_interactive'] and self.config.advanced_options:
-                tb.AddTool(toolId=135, label="iRecovery", bitmap=images.reboot_irecovery_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Interactive Recovery", longHelp="Reboot to Interactive Recovery", clientData=None)
+                tb.AddTool(toolId=135, label=_("iRecovery"), bitmap=images.reboot_irecovery_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to Interactive Recovery"), longHelp=_("Reboot to Interactive Recovery"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=135)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=135)
 
             # Reboot to Safe Mode
             if self.config.toolbar['visible']['reboot_safe_mode'] and self.config.advanced_options:
-                tb.AddTool(toolId=140, label="Safe Mode", bitmap=images.reboot_safe_mode_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Safe Mode", longHelp="Reboot to Safe Mode", clientData=None)
+                tb.AddTool(toolId=140, label=_("Safe Mode"), bitmap=images.reboot_safe_mode_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to Safe Mode"), longHelp=_("Reboot to Safe Mode"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=140)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=140)
 
             # Reboot to Download
             if self.config.toolbar['visible']['reboot_download'] and self.config.advanced_options:
-                tb.AddTool(toolId=150, label="Download", bitmap=images.reboot_download_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Download Mode", longHelp="Reboot to Download Mode", clientData=None)
+                tb.AddTool(toolId=150, label=_("Download"), bitmap=images.reboot_download_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to Download Mode"), longHelp=_("Reboot to Download Mode"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=150)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=150)
 
             # Reboot to Sideload
             if self.config.toolbar['visible']['reboot_sideload'] and self.config.advanced_options:
-                tb.AddTool(toolId=160, label="Sideload", bitmap=images.reboot_sideload_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Reboot to Sideload Mode", longHelp="Reboot to Sideload Mode", clientData=None)
+                tb.AddTool(toolId=160, label=_("Sideload"), bitmap=images.reboot_sideload_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Reboot to Sideload Mode"), longHelp=_("Reboot to Sideload Mode"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=160)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=160)
 
@@ -1320,31 +1428,31 @@ class PixelFlasher(wx.Frame):
 
             # Manage Magisk Settings (json file knows this and magisk_modules)
             if self.config.toolbar['visible']['magisk_modules']:
-                tb.AddTool(toolId=200, label="Magisk", bitmap=images.magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Manage Magisk modules and settings", longHelp="Manage Magisk modules and settings", clientData=None)
+                tb.AddTool(toolId=200, label=_("Magisk"), bitmap=images.magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Manage Magisk modules and settings"), longHelp=_("Manage Magisk modules and settings"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=200)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=200)
 
             # Download and Install Magisk Manager
             if self.config.toolbar['visible']['install_magisk']:
-                tb.AddTool(toolId=210, label="Rooting App", bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Download / Install rooting app like Magisk or KernelSU or APatch", longHelp="Download / Install rooting app like Magisk or KernelSU or APatch", clientData=None)
+                tb.AddTool(toolId=210, label=_("Rooting App"), bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Download / Install rooting app like Magisk or KernelSU or APatch"), longHelp=_("Download / Install rooting app like Magisk or KernelSU or APatch"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=210)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=210)
 
             # Magisk Backup Manager
             if self.config.toolbar['visible']['magisk_backup_manager']:
-                tb.AddTool(toolId=220, label="Magisk Backup", bitmap=images.backup_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Magisk Backup Manager", longHelp="Magisk Backup Manager", clientData=None)
+                tb.AddTool(toolId=220, label=_("Magisk Backup"), bitmap=images.backup_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Magisk Backup Manager"), longHelp=_("Magisk Backup Manager"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=220)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=220)
 
             # Pif Manager
             if self.config.toolbar['visible']['pif_manager']:
-                tb.AddTool(toolId=225, label="Pif Manager", bitmap=images.pif_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Pif Manager", longHelp="Pif Manager", clientData=None)
+                tb.AddTool(toolId=225, label=_("Pif Manager"), bitmap=images.pif_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Pif Manager"), longHelp=_("Pif Manager"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=225)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=225)
 
             # SOS, Disable Magisk Modules
             if self.config.toolbar['visible']['sos'] and self.config.advanced_options:
-                tb.AddTool(toolId=230, label="SOS", bitmap=images.sos_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=u"Remove Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV).", longHelp="SOS", clientData=None)
+                tb.AddTool(toolId=230, label=_("SOS"), bitmap=images.sos_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Remove Magisk Modules\nThis button issues the following command:\n    adb wait-for-device shell magisk --remove-modules\nThis helps for cases where device bootloops due to incompatible magisk modules(YMMV)."), longHelp=_("SOS"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=230)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=230)
 
@@ -1354,13 +1462,13 @@ class PixelFlasher(wx.Frame):
 
             # Lock Bootloader
             if self.config.toolbar['visible']['lock_bootloader'] and self.config.advanced_options:
-                tb.AddTool(toolId=300, label="Lock", bitmap=images.lock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Lock Bootloader", longHelp="Lock Bootloader", clientData=None)
+                tb.AddTool(toolId=300, label=_("Lock"), bitmap=images.lock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Lock Bootloader"), longHelp=_("Lock Bootloader"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=300)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=300)
 
             # UnLock Bootloader
             if self.config.toolbar['visible']['unlock_bootloader'] and self.config.advanced_options:
-                tb.AddTool(toolId=310, label="UnLock", bitmap=images.unlock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="UnLock Bootloader\nCaution will wipe data", longHelp="UnLock Bootloader", clientData=None)
+                tb.AddTool(toolId=310, label=_("UnLock"), bitmap=images.unlock_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("UnLock Bootloader\nCaution will wipe data"), longHelp=_("UnLock Bootloader"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=310)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=310)
 
@@ -1372,13 +1480,13 @@ class PixelFlasher(wx.Frame):
 
             if self.config.toolbar['visible']['configuration']:
             # Configuration
-                tb.AddTool(toolId=900, label="Settings", bitmap=images.settings_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Settings", longHelp="Configuration Settings", clientData=None)
+                tb.AddTool(toolId=900, label=_("Settings"), bitmap=images.settings_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Settings"), longHelp=_("Configuration Settings"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=900)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=900)
 
             # Create Support
             support_bmp = wx.ArtProvider.GetBitmapBundle(wx.ART_HELP, wx.ART_TOOLBAR, tsize)
-            tb.AddTool(toolId=910, label="Support", bitmap=support_bmp, bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp="Create Support file", longHelp="Create Support file", clientData=None)
+            tb.AddTool(toolId=910, label=_("Support"), bitmap=support_bmp, bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Create Support file"), longHelp=_("Create Support file"), clientData=None)
             self.Bind(wx.EVT_TOOL, self.OnToolClick, id=910)
             self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=910)
 
@@ -1601,19 +1709,22 @@ class PixelFlasher(wx.Frame):
         # Create the My Tools menu
         self.my_tools_menu = wx.Menu()
 
+        # Create the language menu
+        lang_menu = wx.Menu()
+
         # Create the Help menu
         help_menu = wx.Menu()
 
         # File Menu Items
         # ---------------
         # Settings Menu
-        config_item = file_menu.Append(wx.ID_PREFERENCES , "Settings", "Settings")
+        config_item = file_menu.Append(wx.ID_PREFERENCES , _("Settings"), _("Settings"))
         config_item.SetBitmap(images.settings_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_advanced_config, config_item)
         # separator
         file_menu.AppendSeparator()
         # Exit Menu
-        exit_item = file_menu.Append(wx.ID_EXIT, "E&xit\tCtrl-Q", "Exit PixelFlasher")
+        exit_item = file_menu.Append(wx.ID_EXIT, _("E&xit\tCtrl-Q"), _("Exit PixelFlasher"))
         exit_item.SetBitmap(images.exit_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_exit_app, exit_item)
         # Set the ID of the "Exit" menu item on macOS
@@ -1623,77 +1734,77 @@ class PixelFlasher(wx.Frame):
         # Device Menu Items
         # ----------------
         # Install APK
-        self.install_apk = device_menu.Append(wx.ID_ANY, "Install APK", "Install APK")
+        self.install_apk = device_menu.Append(wx.ID_ANY, _("Install APK"), _("Install APK"))
         self.install_apk.SetBitmap(images.install_apk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_install_apk, self.install_apk)
         # Package Manager
-        self.package_manager = device_menu.Append(wx.ID_ANY, "Package Manager", "Package Manager")
+        self.package_manager = device_menu.Append(wx.ID_ANY, _("Package Manager"), _("Package Manager"))
         self.package_manager.SetBitmap(images.packages_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_package_manager, self.package_manager)
         # separator
         device_menu.AppendSeparator()
         # ADB Shell Menu
-        self.shell_menu_item = device_menu.Append(wx.ID_ANY, "ADB Shell", "Open adb shell to the device")
+        self.shell_menu_item = device_menu.Append(wx.ID_ANY, _("ADB Shell"), _("Open adb shell to the device"))
         self.shell_menu_item.SetBitmap(images.shell_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_adb_shell, self.shell_menu_item)
         # Scrcpy Menu
-        self.scrcpy_menu_item = device_menu.Append(wx.ID_ANY, "Scrcpy", "Launch Screen Copy")
+        self.scrcpy_menu_item = device_menu.Append(wx.ID_ANY, _("Scrcpy"), _("Launch Screen Copy"))
         self.scrcpy_menu_item.SetBitmap(images.scrcpy_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_scrcpy, self.scrcpy_menu_item)
         # Device Info Menu
-        self.device_info_menu_item = device_menu.Append(wx.ID_ANY, "Device Info", "Dump Full Device Info")
+        self.device_info_menu_item = device_menu.Append(wx.ID_ANY, _("Device Info"), _("Dump Full Device Info"))
         self.device_info_menu_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_device_info, self.device_info_menu_item)
         # Get PIF Print Menu
-        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, "Pif Print", "Get current device's Pif print (osm0sis fork v5 format)")
+        self.pif_info_menu_item = device_menu.Append(wx.ID_ANY, _("Pif Print"), _("Get current device's Pif print (osm0sis fork v5 format)"))
         self.pif_info_menu_item.SetBitmap(images.json_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pif_info, self.pif_info_menu_item)
         # Get Props as json Menu
-        self.props_as_json_menu_item = device_menu.Append(wx.ID_ANY, "Props as Json", "Get current device's properties in json format")
+        self.props_as_json_menu_item = device_menu.Append(wx.ID_ANY, _("Props as Json"), _("Get current device's properties in json format"))
         self.props_as_json_menu_item.SetBitmap(images.json_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_props_as_json, self.props_as_json_menu_item)
         # Dump Screen XML Menu
-        self.xml_view_menu_item = device_menu.Append(wx.ID_ANY, "Dump Screen XML", "Use uiautomator to dump the screen view in xml")
+        self.xml_view_menu_item = device_menu.Append(wx.ID_ANY, _("Dump Screen XML"), _("Use uiautomator to dump the screen view in xml"))
         self.xml_view_menu_item.SetBitmap(images.xml_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_xml_view, self.xml_view_menu_item)
         # Cancel OTA Update Menu
-        self.cancel_ota_menu_item = device_menu.Append(wx.ID_ANY, "Cancel OTA Update", "Cancels and Resets OTA updates by Google (Not PixelFlasher)")
+        self.cancel_ota_menu_item = device_menu.Append(wx.ID_ANY, _("Cancel OTA Update"), _("Cancels and Resets OTA updates by Google (Not PixelFlasher)"))
         self.cancel_ota_menu_item.SetBitmap(images.cancel_ota_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_cancel_ota, self.cancel_ota_menu_item)
         # Check otacerts  Menu
-        self.check_otacerts_menu_item = device_menu.Append(wx.ID_ANY, "Check otacerts", "Used to see if ROM is signed or not.")
+        self.check_otacerts_menu_item = device_menu.Append(wx.ID_ANY, _("Check otacerts"), _("Used to see if ROM is signed or not."))
         self.check_otacerts_menu_item.SetBitmap(images.check_otacerts_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_check_otacerts, self.check_otacerts_menu_item)
         # # Verity / Verification Menu
-        # self.verity_menu_item = device_menu.Append(wx.ID_ANY, "Verity / Verification Status", "Check Verity / Verification Status")
+        # self.verity_menu_item = device_menu.Append(wx.ID_ANY, _("Verity / Verification Status"), _("Check Verity / Verification Status"))
         # self.verity_menu_item.SetBitmap(images.shield_24.GetBitmap())
         # self.Bind(wx.EVT_MENU, self._on_verity_check, self.verity_menu_item)
         # Partitions Manager
-        self.partitions_menu = device_menu.Append(wx.ID_ANY, "Partitions Manager", "Backup / Erase Partitions")
+        self.partitions_menu = device_menu.Append(wx.ID_ANY, _("Partitions Manager"), _("Backup / Erase Partitions"))
         self.partitions_menu.SetBitmap(images.partition_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_partition_manager, self.partitions_menu)
         # Pi Analysis Report
-        self.pi_analysis_report_menu = device_menu.Append(wx.ID_ANY, "PI Analysis Report", "Generate a report of PI Analysis")
+        self.pi_analysis_report_menu = device_menu.Append(wx.ID_ANY, _("PI Analysis Report"), _("Generate a report of PI Analysis"))
         self.pi_analysis_report_menu.SetBitmap(images.analyze_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pi_analysis_report, self.pi_analysis_report_menu)
         # separator
         device_menu.AppendSeparator()
         # Switch Slot
-        self.switch_slot_menu = device_menu.Append(wx.ID_ANY, "Switch Slot", "Switch to the other slow")
+        self.switch_slot_menu = device_menu.Append(wx.ID_ANY, _("Switch Slot"), _("Switch to the other slot"))
         self.switch_slot_menu.SetBitmap(images.switch_slot_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_switch_slot, self.switch_slot_menu)
         # separator
         device_menu.AppendSeparator()
         # Reboot Submenu
         reboot = wx.Menu()
-        self.reboot_system_menu = reboot.Append(wx.ID_ANY, "System")
-        self.reboot_bootloader_menu = reboot.Append(wx.ID_ANY, "Bootloader")
-        self.reboot_fastbootd_menu = reboot.Append(wx.ID_ANY, "Fastbootd")
-        self.reboot_recovery_menu = reboot.Append(wx.ID_ANY, "Recovery")
-        self.reboot_recovery_interactive_menu = reboot.Append(wx.ID_ANY, "Interactive Recovery")
-        self.reboot_safe_mode_menu = reboot.Append(wx.ID_ANY, "Safe Mode")
-        self.reboot_download_menu = reboot.Append(wx.ID_ANY, "Download")
-        self.reboot_sideload_menu = reboot.Append(wx.ID_ANY, "Sideload")
+        self.reboot_system_menu = reboot.Append(wx.ID_ANY, _("System"))
+        self.reboot_bootloader_menu = reboot.Append(wx.ID_ANY, _("Bootloader"))
+        self.reboot_fastbootd_menu = reboot.Append(wx.ID_ANY, _("Fastbootd"))
+        self.reboot_recovery_menu = reboot.Append(wx.ID_ANY, _("Recovery"))
+        self.reboot_recovery_interactive_menu = reboot.Append(wx.ID_ANY, _("Interactive Recovery"))
+        self.reboot_safe_mode_menu = reboot.Append(wx.ID_ANY, _("Safe Mode"))
+        self.reboot_download_menu = reboot.Append(wx.ID_ANY, _("Download"))
+        self.reboot_sideload_menu = reboot.Append(wx.ID_ANY, _("Sideload"))
         self.reboot_system_menu.SetBitmap(images.reboot_System_24.GetBitmap())
         self.reboot_bootloader_menu.SetBitmap(images.reboot_bootloader_24.GetBitmap())
         self.reboot_fastbootd_menu.SetBitmap(images.reboot_fastbootd_24.GetBitmap())
@@ -1710,7 +1821,7 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_reboot_safemode, self.reboot_safe_mode_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_download, self.reboot_download_menu)
         self.Bind(wx.EVT_MENU, self._on_reboot_sideload, self.reboot_sideload_menu)
-        self.reboot_menu = device_menu.Append(wx.ID_ANY, 'Reboot', reboot)
+        self.reboot_menu = device_menu.Append(wx.ID_ANY, _("Reboot"), reboot)
         self.reboot_menu.SetBitmap(images.reboot_24.GetBitmap())
         # Push File Submenu
         push_file = wx.Menu()
@@ -1720,69 +1831,73 @@ class PixelFlasher(wx.Frame):
         self.push_file_to_download_menu.SetBitmap(images.push_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_push_to_tmp, self.push_file_to_tmp_menu)
         self.Bind(wx.EVT_MENU, self._on_push_to_download, self.push_file_to_download_menu)
-        self.push_menu = device_menu.Append(wx.ID_ANY, 'Push file(s) to', push_file)
+        self.push_menu = device_menu.Append(wx.ID_ANY, _('Push file(s) to'), push_file)
         self.push_menu.SetBitmap(images.push_cart_24.GetBitmap())
         # separator
         device_menu.AppendSeparator()
         # Magisk Settings
-        self.magisk_menu = device_menu.Append(wx.ID_ANY, "Magisk", "Manage Magisk modules and settings")
+        self.magisk_menu = device_menu.Append(wx.ID_ANY, _("Magisk"), _("Manage Magisk modules and settings"))
         self.magisk_menu.SetBitmap(images.magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk, self.magisk_menu)
         # Install Magisk
-        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, "Rooting App", "Download / Install rooting app like Magisk or KernelSU or APatch")
+        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, _("Rooting App"), _("Download / Install rooting app like Magisk or KernelSU or APatch"))
         self.install_magisk_menu.SetBitmap(images.install_magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_rooting_app, self.install_magisk_menu)
         # Magisk Backup Manager
-        self.magisk_backup_manager_menu = device_menu.Append(wx.ID_ANY, "Magisk Backup Manager", "Manage Magisk Backups")
+        self.magisk_backup_manager_menu = device_menu.Append(wx.ID_ANY, _("Magisk Backup Manager"), _("Manage Magisk Backups"))
         self.magisk_backup_manager_menu.SetBitmap(images.backup_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_backup_manager, self.magisk_backup_manager_menu)
         # Data ADB Backup
-        self.data_adb_backup_menu = device_menu.Append(wx.ID_ANY, "Backup /data/adb", "Backs up /data/adb.\nThis is useful for backing up Magisk modules.\nNOTE: If a module writes to anywhere other than /data/adb, those paths will not be backed up.")
+        self.data_adb_backup_menu = device_menu.Append(wx.ID_ANY, _("Backup /data/adb"), _("Backs up /data/adb.\nThis is useful for backing up Magisk modules.\nNOTE: If a module writes to anywhere other than /data/adb, those paths will not be backed up."))
         self.data_adb_backup_menu.SetBitmap(images.folder_zip_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_data_adb_backup, self.data_adb_backup_menu)
         # Data ADB Restore
-        self.data_adb_restore_menu = device_menu.Append(wx.ID_ANY, "Restore /data/adb", "Restore /data/adb from a backup file.\nThis is useful for restoring Magisk modules.\nNOTE: If a module writes to anywhere other than /data/adb, those items will not be restored.")
+        self.data_adb_restore_menu = device_menu.Append(wx.ID_ANY, _("Restore /data/adb"), _("Restore /data/adb from a backup file.\nThis is useful for restoring Magisk modules.\nNOTE: If a module writes to anywhere other than /data/adb, those items will not be restored."))
         self.data_adb_restore_menu.SetBitmap(images.restore_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_data_adb_restore, self.data_adb_restore_menu)
         # Clear Data ADB
-        self.data_adb_clear_menu = device_menu.Append(wx.ID_ANY, "Clear /data/adb/*", "Clear up /data/adb/ content (not the directory).\nThis is useful when switching to different root flavor.")
+        self.data_adb_clear_menu = device_menu.Append(wx.ID_ANY, _("Clear /data/adb/*"), _("Clear up /data/adb/ content (not the directory).\nThis is useful when switching to different root flavor."))
         self.data_adb_clear_menu.SetBitmap(images.delete_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_data_adb_clear, self.data_adb_clear_menu)
         # Start Shizuku
-        self.start_shizuku_menu = device_menu.Append(wx.ID_ANY, "Start Shizuku", "Starts Shizuku service on the device.")
+        self.start_shizuku_menu = device_menu.Append(wx.ID_ANY, _("Start Shizuku"), _("Starts Shizuku service on the device."))
         self.start_shizuku_menu.SetBitmap(images.shizuku_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_start_shizuku, self.start_shizuku_menu)
         # Pif Manager
-        self.pif_manager_menu = device_menu.Append(wx.ID_ANY, "Pif Manager", "Pif Backups")
+        self.pif_manager_menu = device_menu.Append(wx.ID_ANY, _("Pif Manager"), _("Pif Manager"))
         self.pif_manager_menu.SetBitmap(images.pif_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pif_manager, self.pif_manager_menu)
         # SOS
-        self.sos_menu = device_menu.Append(wx.ID_ANY, "SOS", "Disable Magisk Modules")
+        self.sos_menu = device_menu.Append(wx.ID_ANY, _("SOS"), _("Disable Magisk Modules"))
         self.sos_menu.SetBitmap(images.sos_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_sos, self.sos_menu)
         # separator
         device_menu.AppendSeparator()
         # Lock Bootloader
-        self.bootloader_lock_menu = device_menu.Append(wx.ID_ANY, "Lock Bootloader", "Lock Bootloader")
+        self.bootloader_lock_menu = device_menu.Append(wx.ID_ANY, _("Lock Bootloader"), _("Lock Bootloader"))
         self.bootloader_lock_menu.SetBitmap(images.lock_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_lock_bootloader, self.bootloader_lock_menu)
         # Unlock Bootloader
-        self.bootloader_unlock_menu = device_menu.Append(wx.ID_ANY, "Unlock Bootloader", "Unlock Bootloader (Will wipe data)")
+        self.bootloader_unlock_menu = device_menu.Append(wx.ID_ANY, _("Unlock Bootloader"), _("Unlock Bootloader (Will wipe data)"))
         self.bootloader_unlock_menu.SetBitmap(images.unlock_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_unlock_bootloader, self.bootloader_unlock_menu)
 
         # Dev Tools Menu Items
         # ----------------
         # check keybox.xml
-        self.check_keybox_menu = tools_menu.Append(wx.ID_ANY, "Check keybox.xml", "Check keybox.xml")
+        self.check_keybox_menu = tools_menu.Append(wx.ID_ANY, _("Check keybox.xml"), _("Check keybox.xml"))
         self.check_keybox_menu.SetBitmap(images.cert_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_check_keybox, self.check_keybox_menu)
+        # Decode binary xml
+        self.decode_binary_xml_menu = tools_menu.Append(wx.ID_ANY, _("Decode Binary XML"), _("Decode Binary XML"))
+        self.decode_binary_xml_menu.SetBitmap(images.axml_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_decode_binary_xml, self.decode_binary_xml_menu)
         # Get Image Info
-        self.get_image_info = tools_menu.Append(wx.ID_ANY, "AVB - Get Image Info", "Get Android Verified Boot Image Info")
+        self.get_image_info = tools_menu.Append(wx.ID_ANY, _("AVB - Get Image Info"), _("Get Android Verified Boot Image Info"))
         self.get_image_info.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_get_image_info, self.get_image_info)
         # Prepare downgraded patch
-        self.prep_downgrade_patch_menu = tools_menu.Append(wx.ID_ANY, "AVB - Prepare Downgrade Patch", "Create Downgrade Patch")
+        self.prep_downgrade_patch_menu = tools_menu.Append(wx.ID_ANY, _("AVB - Prepare Downgrade Patch"), _("Create Downgrade Patch"))
         self.prep_downgrade_patch_menu.SetBitmap(images.downgrade_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_prep_downgrade_patch, self.prep_downgrade_patch_menu)
 
@@ -1794,25 +1909,25 @@ class PixelFlasher(wx.Frame):
         # Toolbar Menu Items
         # ------------------
         # Top
-        tb_top_item = tb_menu.Append(21010, 'Top', 'Top', wx.ITEM_RADIO)
+        tb_top_item = tb_menu.Append(21010, _('Top'), _('Top'), wx.ITEM_RADIO)
         tb_top_item.SetBitmap(images.top_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'top':
             tb_top_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_top_item)
         # Left
-        tb_left_item = tb_menu.Append(21020, 'Left', 'Left', wx.ITEM_RADIO)
+        tb_left_item = tb_menu.Append(21020, _('Left'), _('Left'), wx.ITEM_RADIO)
         tb_left_item.SetBitmap(images.left_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'left':
             tb_left_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_left_item)
         # Right
-        tb_right_item = tb_menu.Append(21030, 'Right', 'Right', wx.ITEM_RADIO)
+        tb_right_item = tb_menu.Append(21030, _('Right'), _('Right'), wx.ITEM_RADIO)
         tb_right_item.SetBitmap(images.right_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'right':
             tb_right_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, tb_right_item)
         # Bottom
-        tb_bottom_item = tb_menu.Append(21040, 'Bottom', 'Bottom', wx.ITEM_RADIO)
+        tb_bottom_item = tb_menu.Append(21040, _('Bottom'), _('Bottom'), wx.ITEM_RADIO)
         tb_bottom_item.SetBitmap(images.bottom_24.GetBitmap())
         if self.config.toolbar and self.config.toolbar['tb_position'] == 'bottom':
             tb_bottom_item.Check()
@@ -1820,44 +1935,44 @@ class PixelFlasher(wx.Frame):
         # separator
         tb_menu.AppendSeparator()
         # Checkboxes
-        self.tb_show_text_item = tb_menu.Append(21100, "Show Button Text", "Show Button Text", wx.ITEM_CHECK)
+        self.tb_show_text_item = tb_menu.Append(21100, _("Show Button Text"), _("Show Button Text"), wx.ITEM_CHECK)
         if self.config.toolbar and self.config.toolbar['tb_show_text']:
             self.tb_show_text_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, self.tb_show_text_item)
-        self.tb_show_button_item = tb_menu.Append(21200, "Show Button Icon", "Show Button Icon", wx.ITEM_CHECK)
+        self.tb_show_button_item = tb_menu.Append(21200, _("Show Button Icon"), _("Show Button Icon"), wx.ITEM_CHECK)
         if self.config.toolbar and self.config.toolbar['tb_show_icons']:
             self.tb_show_button_item.Check()
         self.Bind(wx.EVT_MENU, self._on_tb_update, self.tb_show_button_item)
         # separator
         # Show / Hide Buttons Menu
         tb_buttons_menu = wx.Menu()
-        tb_buttons_menu.Append(5, "Install APK", "", wx.ITEM_CHECK).SetBitmap(images.install_apk_24.GetBitmap())
-        tb_buttons_menu.Append(8, "Package Manager", "", wx.ITEM_CHECK).SetBitmap(images.packages_24.GetBitmap())
-        tb_buttons_menu.Append(10, "ADB Shell", "", wx.ITEM_CHECK).SetBitmap(images.shell_24.GetBitmap())
-        tb_buttons_menu.Append(15, "Scrcpy", "", wx.ITEM_CHECK).SetBitmap(images.scrcpy_24.GetBitmap())
-        tb_buttons_menu.Append(20, "Device Info", "", wx.ITEM_CHECK).SetBitmap(images.about_24.GetBitmap())
-        # tb_buttons_menu.Append(30, "Verity Verification Status", "", wx.ITEM_CHECK).SetBitmap(images.shield_24.GetBitmap())
-        tb_buttons_menu.Append(40, "Partitions Manager", "", wx.ITEM_CHECK).SetBitmap(images.partition_24.GetBitmap())
-        tb_buttons_menu.Append(50, "PI Analysis", "", wx.ITEM_CHECK).SetBitmap(images.analyze_24.GetBitmap())
-        tb_buttons_menu.Append(100, "Switch Slot", "", wx.ITEM_CHECK).SetBitmap(images.switch_slot_24.GetBitmap())
-        tb_buttons_menu.Append(110, "Reboot System", "", wx.ITEM_CHECK).SetBitmap(images.reboot_System_24.GetBitmap())
-        tb_buttons_menu.Append(120, "Reboot Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.reboot_bootloader_24.GetBitmap())
-        tb_buttons_menu.Append(125, "Reboot Fastbootd", "", wx.ITEM_CHECK).SetBitmap(images.reboot_fastbootd_24.GetBitmap())
-        tb_buttons_menu.Append(130, "Reboot Recovery", "", wx.ITEM_CHECK).SetBitmap(images.reboot_recovery_24.GetBitmap())
-        tb_buttons_menu.Append(135, "Reboot Interactive Recovery", "", wx.ITEM_CHECK).SetBitmap(images.reboot_irecovery_24.GetBitmap())
-        tb_buttons_menu.Append(140, "Reboot Safe Mode", "", wx.ITEM_CHECK).SetBitmap(images.reboot_safe_mode_24.GetBitmap())
-        tb_buttons_menu.Append(150, "Reboot Download", "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
-        tb_buttons_menu.Append(160, "Reboot Sideload", "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
-        tb_buttons_menu.Append(200, "Magisk", "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
-        tb_buttons_menu.Append(210, "Rooting App", "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
-        tb_buttons_menu.Append(220, "Magisk Backup Manager", "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
-        tb_buttons_menu.Append(225, "Pif Manager", "", wx.ITEM_CHECK).SetBitmap(images.pif_24.GetBitmap())
-        tb_buttons_menu.Append(230, "SOS", "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
-        tb_buttons_menu.Append(300, "Lock Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.lock_24.GetBitmap())
-        tb_buttons_menu.Append(310, "Unlock Bootloader", "", wx.ITEM_CHECK).SetBitmap(images.unlock_24.GetBitmap())
-        tb_buttons_menu.Append(900, "Configuration", "", wx.ITEM_CHECK).SetBitmap(images.settings_24.GetBitmap())
+        tb_buttons_menu.Append(5, _("Install APK"), "", wx.ITEM_CHECK).SetBitmap(images.install_apk_24.GetBitmap())
+        tb_buttons_menu.Append(8, _("Package Manager"), "", wx.ITEM_CHECK).SetBitmap(images.packages_24.GetBitmap())
+        tb_buttons_menu.Append(10, _("ADB Shell"), "", wx.ITEM_CHECK).SetBitmap(images.shell_24.GetBitmap())
+        tb_buttons_menu.Append(15, _("Scrcpy"), "", wx.ITEM_CHECK).SetBitmap(images.scrcpy_24.GetBitmap())
+        tb_buttons_menu.Append(20, _("Device Info"), "", wx.ITEM_CHECK).SetBitmap(images.about_24.GetBitmap())
+        # tb_buttons_menu.Append(30, _("Verity Verification Status"), "", wx.ITEM_CHECK).SetBitmap(images.shield_24.GetBitmap())
+        tb_buttons_menu.Append(40, _("Partitions Manager"), "", wx.ITEM_CHECK).SetBitmap(images.partition_24.GetBitmap())
+        tb_buttons_menu.Append(50, _("PI Analysis Report"), "", wx.ITEM_CHECK).SetBitmap(images.analyze_24.GetBitmap())
+        tb_buttons_menu.Append(100, _("Switch Slot"), "", wx.ITEM_CHECK).SetBitmap(images.switch_slot_24.GetBitmap())
+        tb_buttons_menu.Append(110, _("Reboot to System"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_System_24.GetBitmap())
+        tb_buttons_menu.Append(120, _("Reboot to Bootloader"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_bootloader_24.GetBitmap())
+        tb_buttons_menu.Append(125, _("Reboot to Fastbootd"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_fastbootd_24.GetBitmap())
+        tb_buttons_menu.Append(130, _("Reboot to Recovery"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_recovery_24.GetBitmap())
+        tb_buttons_menu.Append(135, _("Reboot to Interactive Recovery"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_irecovery_24.GetBitmap())
+        tb_buttons_menu.Append(140, _("Reboot to Safe Mode"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_safe_mode_24.GetBitmap())
+        tb_buttons_menu.Append(150, _("Reboot to Download"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_download_24.GetBitmap())
+        tb_buttons_menu.Append(160, _("Reboot to Sideload"), "", wx.ITEM_CHECK).SetBitmap(images.reboot_sideload_24.GetBitmap())
+        tb_buttons_menu.Append(200, _("Magisk"), "", wx.ITEM_CHECK).SetBitmap(images.magisk_24.GetBitmap())
+        tb_buttons_menu.Append(210, _("Rooting App"), "", wx.ITEM_CHECK).SetBitmap(images.install_magisk_24.GetBitmap())
+        tb_buttons_menu.Append(220, _("Magisk Backup Manager"), "", wx.ITEM_CHECK).SetBitmap(images.backup_24.GetBitmap())
+        tb_buttons_menu.Append(225, _("Pif Manager"), "", wx.ITEM_CHECK).SetBitmap(images.pif_24.GetBitmap())
+        tb_buttons_menu.Append(230, _("SOS"), "", wx.ITEM_CHECK).SetBitmap(images.sos_24.GetBitmap())
+        tb_buttons_menu.Append(300, _("Lock Bootloader"), "", wx.ITEM_CHECK).SetBitmap(images.lock_24.GetBitmap())
+        tb_buttons_menu.Append(310, _("Unlock Bootloader"), "", wx.ITEM_CHECK).SetBitmap(images.unlock_24.GetBitmap())
+        tb_buttons_menu.Append(900, _("Configuration"), "", wx.ITEM_CHECK).SetBitmap(images.settings_24.GetBitmap())
         tb_buttons_menu.Bind(wx.EVT_MENU, self._on_button_menu)
-        tb_menu.AppendSubMenu(tb_buttons_menu, "Show / Hide Buttons")
+        tb_menu.AppendSubMenu(tb_buttons_menu, _("Show / Hide Buttons"))
 
         # update tb_buttons_menu items based on config.
         tb_buttons_menu.Check(5, self.config.toolbar['visible']['install_apk'])
@@ -1886,6 +2001,19 @@ class PixelFlasher(wx.Frame):
         tb_buttons_menu.Check(310, self.config.toolbar['visible']['unlock_bootloader'])
         tb_buttons_menu.Check(900, self.config.toolbar['visible']['configuration'])
 
+        # Language Menu Items
+        # Get available languages
+        languages = get_available_languages()
+        self.language_menu_items = {}
+        # Create menu items for each language
+        for lang in languages:
+            language_name = self.get_language_name(lang)
+            menu_item = lang_menu.AppendRadioItem(-1, language_name)
+            self.language_menu_items[lang] = menu_item
+            # Check the current language
+            menu_item.Check(lang == get_language())
+            self.Bind(wx.EVT_MENU, lambda evt, l=lang: self.on_language_change(l), menu_item)
+
         # Help Menu Items
         # ---------------
         # Report an issue
@@ -1908,58 +2036,60 @@ class PixelFlasher(wx.Frame):
         help_menu.AppendSeparator()
         # Links Submenu
         links = self._build_links_menu()
-        links_item = help_menu.Append(wx.ID_ANY, 'Links', links)
+        links_item = help_menu.Append(wx.ID_ANY, _('Links'), links)
         links_item.SetBitmap(images.open_link_24.GetBitmap())
         # separator
         help_menu.AppendSeparator()
         # Open configuration Folder
-        config_folder_item = help_menu.Append(wx.ID_ANY, 'Open Configuration Folder', 'Open Configuration Folder')
+        config_folder_item = help_menu.Append(wx.ID_ANY, _('Open Configuration Folder'), _('Open Configuration Folder'))
         config_folder_item.SetBitmap(images.folder_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_open_config_folder, config_folder_item)
         if get_config_path() != get_sys_config_path():
             # Open pf_home
-            pf_home_item = help_menu.Append(wx.ID_ANY, 'Open PixelFlasher Working Directory', 'Open PixelFlasher Working Directory')
+            pf_home_item = help_menu.Append(wx.ID_ANY, _('Open PixelFlasher Working Directory'), _('Open PixelFlasher Working Directory'))
             pf_home_item.SetBitmap(images.folder_24.GetBitmap())
             self.Bind(wx.EVT_MENU, self._on_open_pf_home, pf_home_item)
         # Create sanitized support.zip
-        support_zip_item = help_menu.Append(wx.ID_ANY, 'Create a Sanitized support.zip', 'Create a Sanitized support.zip')
+        support_zip_item = help_menu.Append(wx.ID_ANY, _('Create a Sanitized support.zip'), _('Create a Sanitized support.zip'))
         support_zip_item.SetBitmap(images.support_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_support_zip, support_zip_item)
         # separator
         help_menu.AppendSeparator()
         # update check
-        update_item = help_menu.Append(wx.ID_ANY, 'Check for New Version', 'Check for New Version')
+        update_item = help_menu.Append(wx.ID_ANY, _('Check for New Version'), _('Check for New Version'))
         update_item.SetBitmap(images.update_check_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, update_item)
         # separator
         help_menu.AppendSeparator()
         # About
-        about_item = help_menu.Append(wx.ID_ABOUT, '&About PixelFlasher', 'About')
+        about_item = help_menu.Append(wx.ID_ABOUT, _('&About PixelFlasher'), _('About'))
         about_item.SetBitmap(images.about_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_help_about, about_item)
 
         # Add the File menu to the menu bar
-        self.menuBar.Append(file_menu, "&File")
+        self.menuBar.Append(file_menu, _("&File"))
         # Add the Device menu to the menu bar
-        self.menuBar.Append(device_menu, "&Device")
+        self.menuBar.Append(device_menu, _("&Device"))
         # Add the Dev Tools menu to the menu bar
-        self.menuBar.Append(tools_menu, "Dev Tools")
+        self.menuBar.Append(tools_menu, _("Dev Tools"))
         # Add the My Tools menu to the menu bar
-        self.menuBar.Append(self.my_tools_menu, "My Tools")
+        self.menuBar.Append(self.my_tools_menu, _("&My Tools"))
         # Create an instance of GoogleImagesMenu
         self.google_images_menu = GoogleImagesMenu(self)
         # Append GoogleImagesMenu to the menu bar
-        self.menuBar.Append(self.google_images_menu, "&Google Images")
+        self.menuBar.Append(self.google_images_menu, _("&Google Images"))
         # Add the Toolbar menu to the menu bar
-        self.menuBar.Append(tb_menu, "&Toolbar")
+        self.menuBar.Append(tb_menu, _("&Toolbar"))
+        # Add Language menu to menuBar
+        self.menuBar.Append(lang_menu, _("&Language"))
         # Add the Help menu to the menu bar
-        self.menuBar.Append(help_menu, '&Help')
+        self.menuBar.Append(help_menu, _('&Help'))
         # Add the Test menu to the menu bar
         if self.config.dev_mode:
             test_menu = wx.Menu()
             test1_item = test_menu.Append(wx.ID_ANY, "Test1", "Test1")
             self.Bind(wx.EVT_MENU, self.Test, test1_item)
-            self.menuBar.Append(test_menu, '&Test')
+            self.menuBar.Append(test_menu, 'Test')
 
         self.SetMenuBar(self.menuBar)
 
@@ -2173,12 +2303,12 @@ class PixelFlasher(wx.Frame):
         device = get_phone(True)
         if not device:
             print("ERROR: Please select a device before attempting APK Installation")
-            self.toast("APK Install", "❌ ERROR: Please select a device before attempting APK Installation.")
+            self.toast(_("APK Install"), _("❌ ERROR: Please select a device before attempting APK Installation."))
             self.clear_device_selection()
             return
 
-        wildcard = "Android Applications (*.*.apk)|*.apk"
-        dialog = wx.FileDialog(self, "Select one or multiple APK file(s) to install", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+        wildcard = "Android Applications (*.apk)|*.apk"
+        dialog = wx.FileDialog(self, _("Select one or multiple APK file(s) to install"), wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
         if dialog.ShowModal() == wx.ID_CANCEL:
             print("⚠️ User cancelled the file(s) selection operation")
@@ -2187,28 +2317,27 @@ class PixelFlasher(wx.Frame):
         dialog.Destroy()
 
         try:
-            title = "APK installation options"
-            buttons_text = ["Install", "Cancel"]
-            checkboxes=["Set ownership to Play Store Market", "Bypass low target sdk block"]
-            message = '''
-**APK installation options**<br/>
+            title = _("APK installation options")
+            buttons_text = [_("Install"), _("Cancel")]
+            checkboxes=[_("Set ownership to Play Store Market"), _("Bypass low target sdk block")]
+            message = _("**APK installation options**<br/>\n")
+            message += "\n"
+            message += _("This is a summary of available options.<br/>\n")
+            message += "\n"
+            message += _("1. **Set ownership to Play Store Market** This option sets the ownership to Play Store (as if it was installed from Play Store).<br/>\n")
+            message += _("   Android auto apps require that they be installed from the Play Market.<br/>\n")
+            message += "\n"
+            message += _("2. Starting with Android 14, apps with a targetSdkVersion lower than 23 can't be installed.<br/>\n")
+            message += _("   Requiring apps to meet these minimum target API level requirements improves security and privacy for users.<br/><br/>\n")
+            message += _("   Malware often targets older API levels in order to bypass security and privacy protections that have been introduced in newer Android versions.<br/>\n")
+            message += _("   For example, some malware apps use a `targetSdkVersion` of 22 to avoid being subjected to the runtime permission model\n")
+            message += _("   introduced in 2015 by Android 6.0 Marshmallow (API level 23).<br/>\n")
+            message += _("   This Android 14 change makes it harder for malware to avoid security and privacy improvements.<br/>\n")
+            message += _("   Attempting to install an app targeting a lower API level will result in an installation failure.<br/><br/>\n")
+            message += _("   **Bypass low target sdk block** option bypasses that enforcement.\n")
+            message += "\n"
+            message += _("_If you have selected multiple APKs to install, the options will apply to all APKs._\n")
 
-This is a summary of available options.<br/>
-
-1. **Set ownership to Play Store Market** This option sets the ownership to Play Store (as if it was installed from Play Store).<br/>
-   Android auto apps require that they be installed from the Play Market.<br/>
-
-2. Starting with Android 14, apps with a targetSdkVersion lower than 23 can't be installed.<br/>
-   Requiring apps to meet these minimum target API level requirements improves security and privacy for users.<br/><br/>
-   Malware often targets older API levels in order to bypass security and privacy protections that have been introduced in newer Android versions.<br/>
-   For example, some malware apps use a `targetSdkVersion` of 22 to avoid being subjected to the runtime permission model
-   introduced in 2015 by Android 6.0 Marshmallow (API level 23).<br/>
-   This Android 14 change makes it harder for malware to avoid security and privacy improvements.<br/>
-   Attempting to install an app targeting a lower API level will result in an installation failure.<br/><br/>
-   **Bypass low target sdk block** option bypasses that enforcement.
-
-_If you have selected multiple APKs to install, the options will apply to all APKs._
-'''
             print(f"\n*** Dialog ***\n{message}\n______________\n")
             puml(":Dialog;\n", True)
             puml(f"note right\n{message}\nend note\n")
@@ -2344,7 +2473,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
     # -----------------------------------------------
     def _on_support_zip(self, event):
         timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-        with wx.FileDialog(self, "Save support file", '', f"support_{timestr}.zip", wildcard="Support files (*.zip)|*.zip",
+        with wx.FileDialog(self, _("Save support file"), '', f"support_{timestr}.zip", wildcard="Support files (*.zip)|*.zip",
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
 
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -2417,11 +2546,11 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             device = get_phone(True)
             if not device:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-                self.toast("Dump Screen Xml", "❌ ERROR: No device selected")
+                self.toast(_("Dump Screen Xml"), _("❌ ERROR: No device selected"))
                 self.clear_device_selection()
                 return
             timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-            with wx.FileDialog(self, "Dump Screen Xml", '', f"screen_dump_{timestr}.xml", wildcard="Screen Dump (*.xml)|*.xml",
+            with wx.FileDialog(self, _("Dump Screen Xml"), '', f"screen_dump_{timestr}.xml", wildcard="Screen Dump (*.xml)|*.xml",
                             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     return     # the user changed their mind
@@ -2453,7 +2582,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                     res = device.reset_ota_update()
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-                self.toast("Cancel OTA Update", "❌ ERROR: No device selected")
+                self.toast(_("Cancel OTA Update"), _("❌ ERROR: No device selected"))
                 self.clear_device_selection()
                 return
         except Exception as e:
@@ -2478,7 +2607,7 @@ _If you have selected multiple APKs to install, the options will apply to all AP
                 print(res)
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-                self.toast("Check OTA Certs", "❌ ERROR: No device selected")
+                self.toast(_("Check OTA Certs"), _("❌ ERROR: No device selected"))
                 self.clear_device_selection()
                 return
         except Exception as e:
@@ -2523,50 +2652,49 @@ _If you have selected multiple APKs to install, the options will apply to all AP
             return -1
 
         title = "Device Analysis Report"
-        message = '''
-# ATTENTION!
-**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>
+        message = _("# ATTENTION!\n")
+        message += _("**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n")
+        message += "\n"
+        message += _("This report will inherently reveal sensitive information about your device such as:\n")
+        message += "\n"
+        message += _("- Device id and other device related details.\n")
+        message += _("- Magisk (if available):\n")
+        message += _("	- modules list.\n")
+        message += _("	- denylist.\n")
+        message += _("- TrickyStore (if available):\n")
+        message += "	- `/data/adb/tricky_store/spoof_build_vars`\n"
+        message += _("	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)\n")
+        message += "	- `/data/adb/tricky_store/target.txt`\n"
+        message += "	- `/data/adb/tricky_store/security_patch.txt`\n"
+        message += _("- PlayIntegrity Fork (if available):\n")
+        message += "	- `/data/adb/modules/playintegrityfix/custom.pif.json`\n"
+        message += "	- `/data/adb/modules/playintegrityfix/custom.app_replace.list`\n"
+        message += "	- `/data/adb/modules/playintegrityfix/scripts-only-mode`\n"
+        message += _("- PlayIntegrityFix (if available):\n")
+        message += "	- `/data/adb/modules/playintegrityfix/pif.json`\n"
+        message += "	- `/data/adb/pif.json`\n"
+        message += _("- Whether a testkey ROM is used or not.\n")
+        message += _("- logcat for PlayIntegrity and TrickyStore related logs.\n")
+        message += _("- Droidguard VM list.\n")
+        message += _("- If any custom ROM injection apps are installed from:\n")
+        message += "    - Xiaomi.eu\n"
+        message += "    - EliteRoms\n"
+        message += "    - helluvaOS\n"
+        message += "    - hentaiOS\n"
+        message += "    - Evolution X\n"
+        message += "    - PixelOS\n"
+        message += _("- Check overlays (if contents of /debug_ramdisk is visible without root)\n")
+        message += "\n"
+        message += _("**NOTE:**\n")
+        message += _("This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>\n")
+        message += _("Your privacy is yours to keep.<br/>\n")
+        message += "\n"
+        message += _("If you continue you'd only be generating the report, and not posting it online.<br/>\n")
+        message += _("If you want to post it online, please make sure to remove any sensitive information from the report before posting it online.<br/>\n")
+        message += "\n"
+        message += _("**Are you sure you want to continue?**<br/>\n")
 
-This report will inherently reveal sensitive information about your device such as:
-
-- Device id and other device related details.
-- Magisk (if available):
-	- modules list.
-	- denylist.
-- TrickyStore (if available):
-	- `/data/adb/tricky_store/spoof_build_vars`
-	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)
-	- `/data/adb/tricky_store/target.txt`
-	- `/data/adb/tricky_store/security_patch.txt`
-- PlayIntegrity Fork (if available):
-	- `/data/adb/modules/playintegrityfix/custom.pif.json`
-	- `/data/adb/modules/playintegrityfix/custom.app_replace.list`
-	- `/data/adb/modules/playintegrityfix/scripts-only-mode`
-- PlayIntegrityFix (if available):
-	- `/data/adb/modules/playintegrityfix/pif.json`
-	- `/data/adb/pif.json`
-- Whether a testkey ROM is used or not.
-- logcat for PlayIntegrity and TrickyStore related logs.
-- Droidguard VM list.
-- If any custom ROM injection apps are installed from:
-    - Xiaomi.eu
-    - EliteRoms
-    - helluvaOS
-    - hentaiOS
-    - Evolution X
-    - PixelOS
-- Check overlays (if contents of /debug_ramdisk is visible without root)
-
-**NOTE:**
-This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>
-Your privacy is yours to keep.<br/>
-
-If you continue you'd only be generating the report, and not posting it online.<br/>
-If you want to post it online, please make sure to remove any sensitive information from the report before posting it online.<br/>
-
-**Are you sure you want to continue?**<br/>
-'''
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['Yes', 'No'], default_button=1, is_md=True, size=[915,700])
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('Yes'), _('No')], default_button=1, is_md=True, size=[915,700])
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -2584,7 +2712,7 @@ If you want to post it online, please make sure to remove any sensitive informat
                 hardware = device.hardware
             else:
                 hardware = "unknown"
-            with wx.FileDialog(self, "Save device analysis", '', f"{hardware}_analysis_{timestr}.log", wildcard="log files (*.log)|*.log",
+            with wx.FileDialog(self, _("Save device analysis"), '', f"{hardware}_analysis_{timestr}.log", wildcard="log files (*.log)|*.log",
                             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     return     # the user changed their mind
@@ -2698,7 +2826,7 @@ If you want to post it online, please make sure to remove any sensitive informat
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store keybox status ...")
                 print("==============================================================================")
                 keybox_xml = '/data/adb/tricky_store/keybox.xml'
-                res,_ = device.check_file(keybox_xml, True)
+                res, unused = device.check_file(keybox_xml, True)
                 if res == 1:
                     keybox_file = os.path.join(tmp_dir_full, "keybox.xml")
                     debug(f"Pulling {keybox_xml} from the phone to: {keybox_file} ...")
@@ -2729,7 +2857,7 @@ If you want to post it online, please make sure to remove any sensitive informat
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
-                res,_ = device.check_file('/data/adb/modules/playintegrityfix/scripts-only-mode', True)
+                res, unused = device.check_file('/data/adb/modules/playintegrityfix/scripts-only-mode', True)
                 if res == 1:
                     print("scripts-only-mode is enabled")
                 else:
@@ -3002,7 +3130,7 @@ If you want to post it online, please make sure to remove any sensitive informat
             if not device.tmp_readable:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: /data/local/tmp is not accessible, this will affect some features.")
                 print("This often is caused by Apatch or KernelSU.\n You can read about it here with possible solutions: https://github.com/badabing2005/PixelFlasher/issues/275#issuecomment-2641278840")
-                self.toast("Device Analysis", "❌ ERROR: /data/local/tmp is not accessible, this will affect some features.")
+                self.toast(_("Device Analysis"), _("❌ ERROR: /data/local/tmp is not accessible, this will affect some features."))
             message += f"    Device Build:                    {device.build}\n"
             ro_product_first_api_level = device.get_prop('ro.product.first_api_level')
             message += f"    Device API Level:                {device.api_level}\n"
@@ -3110,19 +3238,19 @@ If you want to post it online, please make sure to remove any sensitive informat
                     message += f"    Slot B Verity:                   {enabled_disabled(device.vbmeta.verity_b)}\n"
                     message += f"    Slot B Verification:             {enabled_disabled(device.vbmeta.verification_b)}\n"
                     if ( device.vbmeta.verity_a != device.vbmeta.verity_b ) or ( device.vbmeta.verification_a != device.vbmeta.verification_b ):
-                        alert += "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+                        alert += _("    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification")
                 else:
                     message += f"    Verity:                          {enabled_disabled(device.vbmeta.verity_a)}\n"
                     message += f"    Verification:                    {enabled_disabled(device.vbmeta.verification_a)}\n"
                 # self.config.disable_verification is a disable flag, which is the inverse of device.vbmeta.verification
                 if ( device.vbmeta.verity_a == self.config.disable_verity ) or ( device.vbmeta.verity_b == self.config.disable_verity ):
-                    alert += "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+                    alert += _("    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n")
                 if ( device.vbmeta.verification_a == self.config.disable_verification ) or ( device.vbmeta.verification_b == self.config.disable_verification ):
-                    alert += "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
-                    alert += "                                     This has a device wipe implications, please double check.\n"
+                    alert += _("    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n")
+                    alert += _("                                     This has a device wipe implications, please double check.\n")
                 message += alert
                 if alert != '':
-                    self.toast("vbmeta Warning!", alert)
+                    self.toast(_("vbmeta Warning!"), alert)
             return message
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while getting vbmeta data.")
@@ -3138,7 +3266,7 @@ If you want to post it online, please make sure to remove any sensitive informat
             if bad_kernel in kernel:
                 print(f"⚠️ WARNING! Problematic Kernel: {kernel} is installed. Play Integrity would possibly fail.")
                 print(f"Kernel string: {bad_kernel} is known to be banned.\n")
-                self.toast("WARNING! Banned Kernel", f"⚠️ Kernel string: {bad_kernel} is known to be banned.\nPlay Integrity would possibly fail.")
+                self.toast(_("WARNING! Banned Kernel"), _("⚠️ Kernel string: %s is known to be banned.\nPlay Integrity would possibly fail.") % bad_kernel)
                 puml(f"#red:Kernel: {kernel} is detected;\n")
                 puml("note right:This kernel is known to be banned")
 
@@ -3241,10 +3369,10 @@ If you want to post it online, please make sure to remove any sensitive informat
                         self.update_google_images_menu(update_icons_only=not is_init)
             else:
                 set_phone_id(None)
-                self.device_label.Label = "ADB Connected Devices"
+                self.device_label.Label = _("ADB Connected Devices")
             if self.device_choice.StringSelection == '':
                 set_phone_id(None)
-                self.device_label.Label = "ADB Connected Devices"
+                self.device_label.Label = _("ADB Connected Devices")
                 self.config.device = None
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} No Device is selected!")
                 puml(f":Select Device;\nnote right:No Device is selected!\n")
@@ -3321,20 +3449,20 @@ If you want to post it online, please make sure to remove any sensitive informat
         device = get_phone()
         if device:
             if device.active_slot == 'a':
-                self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [A]"
+                self.device_label.Label = _("ADB Connected Devices\nCurrent Active Slot: [A]")
                 self.update_slot_image('a')
                 set_a_only(False)
             elif device.active_slot == 'b':
-                self.device_label.Label = "ADB Connected Devices\nCurrent Active Slot: [B]"
+                self.device_label.Label = _("ADB Connected Devices\nCurrent Active Slot: [B]")
                 set_a_only(False)
                 self.update_slot_image('b')
             else:
-                self.device_label.Label = "ADB Connected Devices"
+                self.device_label.Label = _("ADB Connected Devices")
                 set_a_only(True)
                 self.update_slot_image('none')
             self.update_rooted_image(device.rooted)
         else:
-            self.device_label.Label = "ADB Connected Devices"
+            self.device_label.Label = _("ADB Connected Devices")
             self.update_slot_image('none')
             self.update_rooted_image(False)
 
@@ -3693,7 +3821,7 @@ If you want to post it online, please make sure to remove any sensitive informat
                     self.device_choice.SetSelection(-1)
                     print("⚠️ No Devices found.")
                     puml(f"note right:No Devices are found\n")
-                    self.toast("Scan", "⚠️ No devices are found..")
+                    self.toast(_("Scan"), _("⚠️ No devices are found.."))
                     self._on_spin('stop')
                     return
                 print(f"{self.device_choice.Count} Device(s) are found.")
@@ -3702,7 +3830,7 @@ If you want to post it online, please make sure to remove any sensitive informat
                 if self.device_choice.StringSelection == '':
                     # Popup the devices dropdown
                     self.device_choice.Popup()
-                    self.toast("Scan", f"✅ Select your device from the list of {self.device_choice.Count} found devices.")
+                    self.toast(_("Scan"), _("✅ Select your device from the list of %s found devices.") % self.device_choice.Count)
             else:
                 print("Please set Android Platform Tools Path first.")
         except Exception as e:
@@ -3726,9 +3854,9 @@ If you want to post it online, please make sure to remove any sensitive informat
             self.config.platform_tools_path = event.GetPath().replace("'", "")
             check_platform_tools(self)
             if get_sdk_version():
-                self.platform_tools_label.SetLabel(f"Android Platform Tools\nVersion {get_sdk_version()}")
+                self.platform_tools_label.SetLabel(_("Android Platform Tools\nVersion %s") % get_sdk_version())
             else:
-                self.platform_tools_label.SetLabel("Android Platform Tools")
+                self.platform_tools_label.SetLabel(_("Android Platform Tools"))
             self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting platform tools")
@@ -3970,7 +4098,7 @@ If you want to post it online, please make sure to remove any sensitive informat
             alert = self.get_vbmeta(device)
             if show_alert and "WARNING!" in alert:
                 try:
-                    dlg = MessageBoxEx(parent=None, title="vbmeta issue.", message=f"Warning!\n{alert}", button_texts=["OK"], default_button=1)
+                    dlg = MessageBoxEx(parent=None, title=_("vbmeta issue."), message=_("Warning!\n%s") % alert, button_texts=[_("OK")], default_button=1)
                     puml(f"note right\nDialog\n====\nWarning!\n{alert}\nend note\n")
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
@@ -4050,7 +4178,7 @@ If you want to post it online, please make sure to remove any sensitive informat
             # check to see if there id a downgrade patch
             boot = get_boot()
             if not boot:
-                wx.MessageBox(f"❌ ERROR: You must first select a boot image", "Error", wx.OK | wx.ICON_ERROR)
+                wx.MessageBox(_("❌ ERROR: You must first select a boot image"), _("Error"), wx.OK | wx.ICON_ERROR)
                 print("\nPlease select a boot image!")
                 self.no_wipe_downgrade_checkbox.SetValue(False)
                 return -1
@@ -4060,30 +4188,30 @@ If you want to post it online, please make sure to remove any sensitive informat
             downgrade_file_name = "downgrade_boot.img"
             downgrade_file_path = os.path.join(directory_path, downgrade_file_name)
             if not os.path.exists(downgrade_file_path):
-                wx.MessageBox(f"❌ ERROR: Downgrade patch file not found\nYou must first create a downgrade patch to enable this option.", "Error", wx.OK | wx.ICON_ERROR)
+                wx.MessageBox(_("❌ ERROR: Downgrade patch file not found\nYou must first create a downgrade patch to enable this option."), _("Error"), wx.OK | wx.ICON_ERROR)
                 print(f"\nDowngrade patch file {downgrade_file_path} not found!")
                 self.no_wipe_downgrade_checkbox.SetValue(False)
                 return
 
             if self.config.flash_mode == 'wipeData':
-                wx.MessageBox(f"❌ ERROR: Wipe All Data is selected\nYou must first select another mode to enable this option.", "Error", wx.OK | wx.ICON_ERROR)
+                wx.MessageBox(_("❌ ERROR: Wipe All Data is selected\nYou must first select another mode to enable this option."), _("Error"), wx.OK | wx.ICON_ERROR)
                 print("\nWipe Data is enabled!")
                 self.no_wipe_downgrade_checkbox.SetValue(False)
                 return
 
-            title = "No Wipe Downgrade"
-            message = "                 WARNING!!! WARNING!!! WARNING!!!\n\n"
-            message += "THIS IS AN EXPERIMENTAL FEATURE, NO ASSURANCES THAT IT WOULD WORK\n"
-            message += "Do NOT enable this option if you are not downgrading!!!\n"
-            message += "Proceed only if you know what you're doing.\n\n"
-            message += "Do you want to continue to select the No Wipe Downgrade option?\n"
-            message += "       Press OK to continue or CANCEL to abort.\n"
+            title = _("No Wipe Downgrade")
+            message = _("                 WARNING!!! WARNING!!! WARNING!!!\n\n")
+            message += _("THIS IS AN EXPERIMENTAL FEATURE, NO ASSURANCES THAT IT WOULD WORK\n")
+            message += _("Do NOT enable this option if you are not downgrading!!!\n")
+            message += _("Proceed only if you know what you're doing.\n\n")
+            message += _("Do you want to continue to select the No Wipe Downgrade option?\n")
+            message += _("       Press OK to continue or CANCEL to abort.\n")
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
             print(f"\n*** Dialog ***\n{message}\n______________\n")
             set_message_box_title(title)
             set_message_box_message(message)
             try:
-                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
             except Exception:
                 traceback.print_exc()
                 self.no_wipe_downgrade_checkbox.SetValue(False)
@@ -4236,7 +4364,7 @@ If you want to post it online, please make sure to remove any sensitive informat
     # -----------------------------------------------
     def select_file_and_push(self, destination):
         try:
-            with wx.FileDialog(self, "Select files to push", '', '', wildcard="All files (*.*)|*.*", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
+            with wx.FileDialog(self, _("Select files to push"), '', '', wildcard="All files (*.*)|*.*", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled file push.")
                     return
@@ -4364,19 +4492,19 @@ If you want to post it online, please make sure to remove any sensitive informat
         print("==============================================================================")
         if not self.config.device:
             return
-        title = "Lock Bootloader"
-        message = "         WARNING!!! WARNING!!! WARNING!!!\n\n"
-        message += "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n"
-        message += "TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n"
-        message += "       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n"
-        message += "Do you want to continue to Lock the device bootloader?\n"
-        message += "       Press OK to continue or CANCEL to abort.\n"
+        title = _("Lock Bootloader")
+        message = _("         WARNING!!! WARNING!!! WARNING!!!\n\n")
+        message += _("NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n")
+        message += _("TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n")
+        message += _("       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n")
+        message += _("Do you want to continue to Lock the device bootloader?\n")
+        message += _("       Press OK to continue or CANCEL to abort.\n")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
         try:
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
         except Exception:
             traceback.print_exc()
             return
@@ -4392,21 +4520,21 @@ If you want to post it online, please make sure to remove any sensitive informat
             return
         dlg.Destroy()
 
-        title = "Lock Bootloader"
-        message = "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n"
-        message += "Make sure you first read either of the guides linked in the help menu.\n"
-        message += "Failing to follow the proper steps could potentially brick your phone.\n"
-        message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-        message += "fastboot commands, if your PC fastboot drivers are not properly setup,\n"
-        message += "fastboot will wait forever, and PixelFlasher will appear hung.\n"
-        message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
-        message += "      Do you want to continue to Lock the device bootloader?\n"
-        message += "              Press OK to continue or CANCEL to abort.\n"
+        title = _("Lock Bootloader")
+        message = _("WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n")
+        message += _("Make sure you first read either of the guides linked in the help menu.\n")
+        message += _("Failing to follow the proper steps could potentially brick your phone.\n")
+        message += _("\nNote: Pressing OK button will invoke a script that will utilize\n")
+        message += _("fastboot commands, if your PC fastboot drivers are not properly setup,\n")
+        message += _("fastboot will wait forever, and PixelFlasher will appear hung.\n")
+        message += _("In such cases, killing the fastboot process will resume to normalcy.\n\n")
+        message += _("      Do you want to continue to Lock the device bootloader?\n")
+        message += _("              Press OK to continue or CANCEL to abort.\n")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
 
@@ -4452,21 +4580,21 @@ If you want to post it online, please make sure to remove any sensitive informat
         print("==============================================================================")
         if not self.config.device:
             return
-        title = "Unlock Bootloader"
-        message = "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n"
-        message += "Make sure you first read either of the guides linked in the help menu.\n"
-        message += "Failing to follow the proper steps could potentially brick your phone.\n"
-        message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
-        message += "fastboot commands, if your PC fastboot drivers are not properly setup,\n"
-        message += "fastboot will wait forever, and PixelFlasher will appear hung.\n"
-        message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
-        message += "      Do you want to continue to Unlock the device bootloader?\n"
-        message += "              Press OK to continue or CANCEL to abort.\n"
+        title = _("Unlock Bootloader")
+        message = _("WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n")
+        message += _("Make sure you first read either of the guides linked in the help menu.\n")
+        message += _("Failing to follow the proper steps could potentially brick your phone.\n")
+        message += _("\nNote: Pressing OK button will invoke a script that will utilize\n")
+        message += _("fastboot commands, if your PC fastboot drivers are not properly setup,\n")
+        message += _("fastboot will wait forever, and PixelFlasher will appear hung.\n")
+        message += _("In such cases, killing the fastboot process will resume to normalcy.\n\n")
+        message += _("      Do you want to continue to Unlock the device bootloader?\n")
+        message += _("              Press OK to continue or CANCEL to abort.\n")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
 
@@ -4513,19 +4641,19 @@ If you want to post it online, please make sure to remove any sensitive informat
             print("==============================================================================")
             if not self.config.device:
                 return
-            title = "Disable Magisk Modules"
-            message = "WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n"
-            message += "You would only need to do this if your device is bootlooping due to\n"
-            message += "incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n"
-            message += "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n"
-            message += "If your device is not detected PixelFlasher will appear hung.\n"
-            message += "In such cases, killing the adb process will resume to normalcy.\n\n"
-            message += "                        Press OK to continue or CANCEL to abort.\n"
+            title = _("Disable Magisk Modules")
+            message = _("WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n")
+            message += _("You would only need to do this if your device is bootlooping due to\n")
+            message += _("incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n")
+            message += _("\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n")
+            message += _("If your device is not detected PixelFlasher will appear hung.\n")
+            message += _("In such cases, killing the adb process will resume to normalcy.\n\n")
+            message += _("                        Press OK to continue or CANCEL to abort.\n")
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
             print(f"\n*** Dialog ***\n{message}\n______________\n")
             set_message_box_title(title)
             set_message_box_message(message)
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1)
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=1)
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
 
@@ -4726,7 +4854,7 @@ If you want to post it online, please make sure to remove any sensitive informat
             device = get_phone(True)
             if device:
                 timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
-                with wx.FileDialog(self, "Save /data/adb backup file", '', f"{device.hardware}_data_adb_{timestr}.tgz", wildcard="Data adb backup (*.tgz)|*.tgz",
+                with wx.FileDialog(self, _("Save /data/adb backup file"), '', f"{device.hardware}_data_adb_{timestr}.tgz", wildcard="Data adb backup (*.tgz)|*.tgz",
                                 style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
                     if fileDialog.ShowModal() == wx.ID_CANCEL:
                         return     # the user changed their mind
@@ -4751,7 +4879,7 @@ If you want to post it online, please make sure to remove any sensitive informat
         try:
             device = get_phone(True)
             if device:
-                with wx.FileDialog(self, "Select /data/adb backup file", '', '', wildcard="All files (*.tgz)|*.tgz", style=wx.FD_OPEN) as fileDialog:
+                with wx.FileDialog(self, _("Select /data/adb backup file"), '', '', wildcard="All files (*.tgz)|*.tgz", style=wx.FD_OPEN) as fileDialog:
                     if fileDialog.ShowModal() == wx.ID_CANCEL:
                         print("User cancelled file push.")
                         return
@@ -4777,15 +4905,15 @@ If you want to post it online, please make sure to remove any sensitive informat
         try:
             device = get_phone(True)
             if device:
-                title = "Clear /data/adb/ contents"
-                message = "WARNING!!! This will the clear contents of /data/adb\n\n"
-                message += "Do you want to continue to clear /data/adb/ contents?\n"
-                message += "      Press OK to continue or CANCEL to abort.\n"
+                title = _("Clear /data/adb/ contents")
+                message = _("WARNING!!! This will the clear contents of /data/adb\n\n")
+                message += _("Do you want to continue to clear /data/adb/ contents?\n")
+                message += _("      Press OK to continue or CANCEL to abort.\n")
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {title}")
                 print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
-                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=2)
+                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
                 if result == 1:
@@ -4936,7 +5064,7 @@ If you want to post it online, please make sure to remove any sensitive informat
             print("\n==============================================================================")
             print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated ADB Kill")
             print("==============================================================================")
-            dlg = wx.MessageDialog(None, "This will invoke the command adb kill-server.\nAre you sure want to continue?",'ADB Kill Server',wx.YES_NO | wx.ICON_EXCLAMATION)
+            dlg = wx.MessageDialog(None, _("This will invoke the command adb kill-server.\nAre you sure want to continue?"), _('ADB Kill Server'),wx.YES_NO | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled Killing ADB server.")
@@ -4967,15 +5095,37 @@ If you want to post it online, please make sure to remove any sensitive informat
         self.update_widget_states()
 
     # -----------------------------------------------
+    #                  _on_decode_binary_xml
+    # -----------------------------------------------
+    def _on_decode_binary_xml(self, event):
+        try:
+            with wx.FileDialog(self, _("Select binary xml file to decode"), '', '', wildcard="All files (*.xml;*.axml)|*.xml;*.axml", style=wx.FD_OPEN) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled binary xml file decoding.")
+                    return
+                selected_file = fileDialog.GetPath()
+
+				# Decode xml
+                if path.exists(selected_file):
+                    xml_content = axml2xml(selected_file)
+                    print(f"Decoded XML content:\n{xml_content}")
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: binary xml file not found")
+
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while decoding binary xml")
+            traceback.print_exc()
+
+    # -----------------------------------------------
     #                  _on_check_keybox
     # -----------------------------------------------
     def _on_check_keybox(self, event):
         try:
             # Select keybox files
             total_keyboxes = None
-            with wx.FileDialog(self, "Select keybox to test", '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
+            with wx.FileDialog(self, _("Select keybox to test"), '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
-                    print("User cancelled file push.")
+                    print("User cancelled keybox.xml check.")
                     return
                 selected_files = fileDialog.GetPaths()
 
@@ -5049,7 +5199,7 @@ If you want to post it online, please make sure to remove any sensitive informat
             print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Customize My Tools")
             print("==============================================================================")
             puml(":Customize My Tools;\n", True)
-            dlg = MyToolsDialog(self, title='Customize My Tools')
+            dlg = MyToolsDialog(self, title=_('Customize My Tools'))
             dlg.ShowModal()
             dlg.Destroy()
 
@@ -5090,7 +5240,7 @@ If you want to post it online, please make sure to remove any sensitive informat
                     self.my_tools_menu.AppendSeparator()
 
             # Ensure the "Customize My Tools" menu item is kept at the end
-            self.customize_my_tools_menu = self.my_tools_menu.Append(wx.ID_ANY, "Customize My Tools", "Add / Edit / Delete Custom menu items")
+            self.customize_my_tools_menu = self.my_tools_menu.Append(wx.ID_ANY, _("Customize My Tools"), _("Add / Edit / Delete Custom menu items"))
             self.customize_my_tools_menu.SetBitmap(images.wrench_24.GetBitmap())
             self.Bind(wx.EVT_MENU, self._on_customize_my_tools, self.customize_my_tools_menu)
 
@@ -5103,7 +5253,7 @@ If you want to post it online, please make sure to remove any sensitive informat
     # -----------------------------------------------
     def _on_get_image_info(self, event):
         try:
-            with wx.FileDialog(self, "Select Boot Image", '', '', wildcard="All files (*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
+            with wx.FileDialog(self, _("Select Boot Image"), '', '', wildcard="All files (*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled file push.")
                     return
@@ -5754,12 +5904,16 @@ If you want to post it online, please make sure to remove any sensitive informat
         self._build_toolbar(self.toolbar_flags)
 
         # 1st row widgets, Android platform tools
-        self.platform_tools_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Android Platform Tools")
+        self.platform_tools_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_("Android Platform Tools"))
         self.sdk_link = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.sdk_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
-        self.sdk_link.SetToolTip("Download Latest Android Platform-Tools")
-        self.platform_tools_picker = wx.DirPickerCtrl(parent=panel, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
-        self.platform_tools_picker.SetToolTip("Select Android Platform-Tools Folder\nWhere adb and fastboot are located.")
+        self.sdk_link.SetToolTip(_("Download Latest Android Platform-Tools"))
+        # self.platform_tools_picker = wx.DirPickerCtrl(parent=panel, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
+        # Create a custom DirPickerCtrl with translatable button
+        self.platform_tools_picker = wx.DirPickerCtrl(parent=panel, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST | wx.DIRP_SMALL)
+        # Set the button label with translatable text
+        self.platform_tools_picker.GetPickerCtrl().SetLabel(_("  Browse  "))
+        self.platform_tools_picker.SetToolTip(_("Select Android Platform-Tools Folder\nWhere adb and fastboot are located."))
         platform_tools_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         platform_tools_label_sizer.Add(window=self.platform_tools_label, proportion=0, flag=wx.ALL, border=0)
         platform_tools_label_sizer.AddStretchSpacer()
@@ -5768,11 +5922,11 @@ If you want to post it online, please make sure to remove any sensitive informat
         self.sdk_sizer.Add(window=self.platform_tools_picker, proportion=1, flag=wx.EXPAND)
 
         # 2nd row widgets, Connected Devices
-        self.device_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"ADB Connected Devices")
-        self.device_label.SetToolTip(u"Double click this label to issue the command:\nadb kill-server")
+        self.device_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_("ADB Connected Devices"))
+        self.device_label.SetToolTip(_("Double click this label to issue the command:\nadb kill-server"))
         self.wifi_adb = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.wifi_adb.SetBitmap(images.wifi_adb_24.GetBitmap())
-        self.wifi_adb.SetToolTip(u"Open wireless manager dialog.")
+        self.wifi_adb.SetToolTip(_("Open wireless manager dialog."))
         adb_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         adb_label_sizer.Add(window=self.device_label, proportion=0, flag=wx.ALL, border=0)
         adb_label_sizer.AddStretchSpacer()
@@ -5780,17 +5934,17 @@ If you want to post it online, please make sure to remove any sensitive informat
         self.device_choice = NoScrollComboBox(parent=panel, id=wx.ID_ANY, value=wx.EmptyString, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=[], style=wx.CB_DROPDOWN | wx.CB_READONLY)
         self.device_choice.SetSelection(-1)
         self.device_choice.SetFont(font=wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
-        device_tooltip = "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
-        device_tooltip += "✓ Rooted with Magisk.\n"
-        device_tooltip += "✗ Probably Not Root (Magisk Tools not found).\n"
-        device_tooltip += "?  Unable to determine the root status.\n\n"
-        device_tooltip += "(adb) device is in adb mode\n"
-        device_tooltip += "(f.b) device is in fastboot mode\n"
-        device_tooltip += "(sid) device is in sideload mode\n"
-        device_tooltip += "(rec) device is in recovery mode\n"
+        device_tooltip = _("[root status] [device mode] [device id] [device model] [device firmware]\n\n")
+        device_tooltip += _("✓ Rooted with Magisk.\n")
+        device_tooltip += _("✗ Probably Not Root (Magisk Tools not found).\n")
+        device_tooltip += _("?  Unable to determine the root status.\n\n")
+        device_tooltip += _("(adb) device is in adb mode\n")
+        device_tooltip += _("(f.b) device is in fastboot mode\n")
+        device_tooltip += _("(sid) device is in sideload mode\n")
+        device_tooltip += _("(rec) device is in recovery mode\n")
         self.device_choice.SetToolTip(device_tooltip)
-        self.scan_button = wx.Button(parent=panel, label=u"Scan")
-        self.scan_button.SetToolTip(u"Scan for Devices\nPlease manually select the device after the scan is completed.")
+        self.scan_button = wx.Button(parent=panel, label=_("Scan"))
+        self.scan_button.SetToolTip(_("Scan for Devices\nPlease manually select the device after the scan is completed."))
         self.scan_button.SetBitmap(images.scan_24.GetBitmap())
         device_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         device_sizer.Add(window=self.device_choice, proportion=1, flag=wx.EXPAND)
@@ -5804,16 +5958,16 @@ If you want to post it online, please make sure to remove any sensitive informat
         self.staticline1.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_HIGHLIGHT))
 
         # 5th row widgets, firmware file
-        firmware_label = wx.StaticText(parent=panel, label=u"Device Image")
+        firmware_label = wx.StaticText(parent=panel, label=_("Device Image"))
         self.firmware_button = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.firmware_button.SetBitmap(images.open_link_24.GetBitmap())
-        self.firmware_button.SetToolTip(u"Download image file for current Pixel device.")
-        # self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.firmware_picker = FilePickerComboBox(parent=panel, dialog_title="Select a file", wildcard="Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar")
-        self.firmware_picker.SetToolTip(u"Select Pixel Firmware")
-        self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.firmware_button.SetToolTip(_("Download image file for current Pixel device."))
+        # self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message="Select a file", wildcard="Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.firmware_picker = FilePickerComboBox(parent=panel, dialog_title=_("Select a file"), wildcard="Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar")
+        self.firmware_picker.SetToolTip(_("Select Pixel Firmware"))
+        self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=_("Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_firmware.SetBitmap(images.process_file_24.GetBitmap())
-        self.process_firmware.SetToolTip(u"Process the firmware file and extract the boot.img")
+        self.process_firmware.SetToolTip(_("Process the firmware file and extract the boot.img"))
         firmware_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         firmware_label_sizer.Add(window=firmware_label, proportion=0, flag=wx.ALL, border=2)
         firmware_label_sizer.AddStretchSpacer(1)
@@ -5823,21 +5977,21 @@ If you want to post it online, please make sure to remove any sensitive informat
         self.firmware_sizer.Add(window=self.process_firmware, flag=wx.LEFT, border=2)
 
         # 6th row widgets, custom_rom
-        self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Apply Custom ROM", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.custom_rom_checkbox.SetToolTip(u"Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM")
-        self.custom_rom = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.custom_rom.SetToolTip(u"Select Custom ROM")
-        self.process_rom = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Process", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Apply Custom ROM"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.custom_rom_checkbox.SetToolTip(_("Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM"))
+        self.custom_rom = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_("Select a file"), wildcard="ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.custom_rom.SetToolTip(_("Select Custom ROM"))
+        self.process_rom = wx.Button(parent=panel, id=wx.ID_ANY, label=_("Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_rom.SetBitmap(images.process_file_24.GetBitmap())
-        self.process_rom.SetToolTip(u"Process the ROM file and extract the boot.img")
+        self.process_rom.SetToolTip(_("Process the ROM file and extract the boot.img"))
         custom_rom_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_rom_sizer.Add(window=self.custom_rom, proportion=1, flag=wx.EXPAND)
         custom_rom_sizer.Add(window=self.process_rom, flag=wx.LEFT, border=2)
 
         # 7th row widgets, boot.img related widgets
-        self.select_boot_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Select a boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Show All boot/init_boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_all_boot_checkBox.SetToolTip(u"Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM")
+        self.select_boot_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_("Select a boot/init_boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Show All boot/init_boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_all_boot_checkBox.SetToolTip(_("Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM"))
         #
         self.slot_image = wx.StaticBitmap(panel, pos=(0, 0))
         self.slot_image.SetBitmap(wx.NullBitmap)
@@ -5853,13 +6007,13 @@ If you want to post it online, please make sure to remove any sensitive informat
         self.list = wx.ListCtrl(parent=panel, id=-1, size=(-1, self.CharHeight * 6), style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(1, 'Source SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(2, 'Package Fingerprint  ', wx.LIST_FORMAT_LEFT, width=-1)
-        self.list.InsertColumn(3, 'Patched with version ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(4, 'Patch Method  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(5, 'Patched on Device  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(6, 'Date  ', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(7, 'Package Path  ', wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(1, _('Source SHA1  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(2, _('Package Fingerprint  '), wx.LIST_FORMAT_LEFT, width=-1)
+        self.list.InsertColumn(3, _('Patched with version '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(4, _('Patch Method  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(5, _('Patched on Device  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(6, _('Date  '), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(7, _('Package Path  '), wx.LIST_FORMAT_LEFT, -1)
         self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'), wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         if sys.platform != "win32":
             self.list.SetFont(wx.Font(11, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
@@ -5886,39 +6040,39 @@ If you want to post it online, please make sure to remove any sensitive informat
         # Create a new list (will be by value and not by reference)
         self.boot_column_widths = list(column_widths)
         #
-        self.folders_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.folder_24.GetBitmap(), label=u"Open Folder", pos=wx.DefaultPosition, style=0)
-        self.boot_folder_button = self.folders_button.AddFunction("Open boot files folder", lambda: self._on_boot_folder(None), images.folder_24.GetBitmap())
-        self.firmware_folder_button = self.folders_button.AddFunction("Open Working Directory", lambda: self._on_firmware_folder(None), images.folder_24.GetBitmap())
+        self.folders_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.folder_24.GetBitmap(), label=_("Open Folder"), pos=wx.DefaultPosition, style=0)
+        self.boot_folder_button = self.folders_button.AddFunction(_("Open boot files folder"), lambda: self._on_boot_folder(None), images.folder_24.GetBitmap())
+        self.firmware_folder_button = self.folders_button.AddFunction(_("Open Working Directory"), lambda: self._on_firmware_folder(None), images.folder_24.GetBitmap())
         #
-        self.patch_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.patch_24.GetBitmap(), label=u"Patch", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
-        self.patch_button.SetToolTip(u"Patch the selected item")
-        self.patch_magisk_button = self.patch_button.AddFunction("Patch with Magisk", lambda: self._on_magisk_patch_boot(None), images.magisk_24.GetBitmap())
-        self.patch_kernelsu_button = self.patch_button.AddFunction("Patch with KernelSU", lambda: self._on_kernelsu_patch_boot(None), images.kernelsu_24.GetBitmap())
-        self.patch_kernelsu_lkm_button = self.patch_button.AddFunction("Patch with KernelSU LKM", lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
-        self.patch_kernelsu_next_button = self.patch_button.AddFunction("Patch with KernelSU-Next", lambda: self._on_kernelsu_next_patch_boot(None), images.kernelsu_next_24.GetBitmap())
-        self.patch_kernelsu_next_lkm_button = self.patch_button.AddFunction("Patch with KernelSU-Next LKM", lambda: self._on_kernelsu_next_lkm_patch_boot(None), images.kernelsu_next_24.GetBitmap())
-        self.patch_apatch_button = self.patch_button.AddFunction("Patch with APatch", lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
-        self.patch_apatch_manual_button = self.patch_button.AddFunction("Patch with APatch Alternate", lambda: self._on_apatch_manual_patch_boot(None), images.apatch_24.GetBitmap(), False)
-        self.patch_custom_boot_button = self.patch_button.AddFunction("Patch custom boot/init_boot", lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
-        self.patch_downgrade_button = self.patch_button.AddFunction("Create Downgrade Patch", lambda: self._on_prep_downgrade_patch(None), images.downgrade_24.GetBitmap(), False)
+        self.patch_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.patch_24.GetBitmap(), label=_("Patch"), pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.patch_button.SetToolTip(_("Patch the selected item"))
+        self.patch_magisk_button = self.patch_button.AddFunction(_("Patch with Magisk"), lambda: self._on_magisk_patch_boot(None), images.magisk_24.GetBitmap())
+        self.patch_kernelsu_button = self.patch_button.AddFunction(_("Patch with KernelSU"), lambda: self._on_kernelsu_patch_boot(None), images.kernelsu_24.GetBitmap())
+        self.patch_kernelsu_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU LKM"), lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
+        self.patch_kernelsu_next_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next"), lambda: self._on_kernelsu_next_patch_boot(None), images.kernelsu_next_24.GetBitmap())
+        self.patch_kernelsu_next_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next LKM"), lambda: self._on_kernelsu_next_lkm_patch_boot(None), images.kernelsu_next_24.GetBitmap())
+        self.patch_apatch_button = self.patch_button.AddFunction(_("Patch with APatch"), lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
+        self.patch_apatch_manual_button = self.patch_button.AddFunction(_("Patch with APatch Alternate"), lambda: self._on_apatch_manual_patch_boot(None), images.apatch_24.GetBitmap(), False)
+        self.patch_custom_boot_button = self.patch_button.AddFunction(_("Patch custom boot/init_boot"), lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
+        self.patch_downgrade_button = self.patch_button.AddFunction(_("Create Downgrade Patch"), lambda: self._on_prep_downgrade_patch(None), images.downgrade_24.GetBitmap(), False)
         #
-        self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=u"Delete", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
-        self.delete_boot_button.SetToolTip(u"Delete the selected item")
+        self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=_("Delete"), pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.delete_boot_button.SetToolTip(_("Delete the selected item"))
         #
-        self.add_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.add_24.GetBitmap(), label=u"Add", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
-        self.add_boot_button.SetToolTip(u"Add a new boot item")
+        self.add_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.add_24.GetBitmap(), label="Add", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.add_boot_button.SetToolTip(_("Add a new boot item"))
         self.add_boot_button.Disable()
         self.add_boot_button.Hide()
         #
-        self.get_boot_info_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.about_24.GetBitmap(), label=u"Info", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
-        self.get_boot_info_button.SetToolTip(u"Get information about the selected item")
+        self.get_boot_info_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.about_24.GetBitmap(), label=_("Info"), pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.get_boot_info_button.SetToolTip(_("Get information about the selected item"))
         self.get_boot_info_button.Hide()
         #
-        self.live_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.boot_24.GetBitmap(), label=u"Live Boot", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
-        self.live_boot_button.SetToolTip(u"Live boot to the selected item")
+        self.live_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.boot_24.GetBitmap(), label=_("Live Boot"), pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.live_boot_button.SetToolTip(_("Live boot to the selected item"))
         #
-        self.flash_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.flash_24.GetBitmap(), label=u"Flash Boot", pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
-        self.flash_boot_button.SetToolTip(u"Flash just the selected item")
+        self.flash_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.flash_24.GetBitmap(), label=_("Flash Boot"), pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)
+        self.flash_boot_button.SetToolTip(_("Flash just the selected item"))
         #
         boot_label_v_sizer = wx.BoxSizer(wx.VERTICAL)
         boot_label_v_sizer.Add(window=self.select_boot_label, flag=wx.ALL, border=0)
@@ -5942,36 +6096,38 @@ If you want to post it online, please make sure to remove any sensitive informat
         list_sizer.Add(image_buttons_sizer, proportion=0, flag=wx.ALL|wx.EXPAND)
 
         # 8th row widgets (Flash Mode)
-        mode_label = wx.StaticText(panel, label=u"Flash Mode")
+        mode_label = wx.StaticText(panel, label=_("Flash Mode"))
         self.mode_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         # _add_mode_radio_button(sizer, index, flash_mode, label, tooltip)
-        _add_mode_radio_button(sizer=self.mode_sizer, index=0, flash_mode='keepData', label="Keep Data", tooltip="Data will be kept intact.")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label="WIPE all data", tooltip="CAUTION: This will wipe your data")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label="Dry Run", tooltip="Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing.")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label="Full OTA", tooltip="Flash full OTA, and have the choice of flashing patched image(s).")
-        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label="Custom Flash", tooltip="Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\nIt will flash the single selected file.")
+        _add_mode_radio_button(sizer=self.mode_sizer, index=0, flash_mode='keepData', label=_("Keep Data"), tooltip=_("Data will be kept intact."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=1, flash_mode='wipeData', label=_("WIPE all data"), tooltip=_("CAUTION: This will wipe your data"))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=2, flash_mode='dryRun', label=_("Dry Run"), tooltip=_("Dry Run, no flashing will be done.\nThe phone will reboot to fastboot and then\nback to normal.\nThis is for testing."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=3, flash_mode='OTA', label=_("Full OTA"), tooltip=_("Flash full OTA, and have the choice of flashing patched image(s)."))
+        _add_mode_radio_button(sizer=self.mode_sizer, index=4, flash_mode='customFlash', label=_("Custom Flash"), tooltip=_("Custom Flash, Advanced option to flash a single file.\nThis will not flash the factory image.\nIt will flash the single selected file."))
 
 
         # 9th row widgets (custom flash)
-        self.live_boot_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=u"Live Boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.RB_GROUP)
+        self.live_boot_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label="Live Boot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.RB_GROUP)
         self.live_boot_radio_button.Enable(False)
-        self.live_boot_radio_button.SetToolTip(u"Live Boot to selected boot / init_boot")
-        self.flash_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=u"Flash", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.live_boot_radio_button.SetToolTip(_("Live Boot to selected boot / init_boot"))
+        self.flash_radio_button = wx.RadioButton(parent=panel, id=wx.ID_ANY, label=_("Flash"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.flash_radio_button.SetValue(True)
         self.flash_radio_button.Enable(False)
-        self.flash_radio_button.SetToolTip(u"Flashes the selected boot / init_boot")
+        self.flash_radio_button.SetToolTip(_("Flashes the selected boot / init_boot"))
         custom_advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_advanced_options_sizer.Add(window=self.live_boot_radio_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         custom_advanced_options_sizer.Add(window=self.flash_radio_button, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         # 2nd column
         # https://android.googlesource.com/platform/system/core/+/refs/heads/master/fastboot/fastboot.cpp#144
-        image_choices = [ u"boot", u"init_boot", u"bootloader", u"cache", u"dtbo", u"dts", u"odm", u"odm_dlkm", u"product", u"pvmfw", u"radio", u"recovery", u"super", u"super_empty", u"system", u"system_dlkm", u"system_ext", u"system_other", u"userdata", u"vbmeta", u"vbmeta_system", u"vbmeta_vendor", u"vendor", u"vendor_boot", u"vendor_dlkm", u"vendor_kernel_boot", u"vendor_other", u"image", u"SIDELOAD" ]
+        image_choices = [ "boot", "init_boot", "bootloader", "cache", "dtbo", "dts", "odm", "odm_dlkm", "product", "pvmfw", "radio", "recovery", "super", "super_empty", "system", "system_dlkm", "system_ext", "system_other", "userdata", "vbmeta", "vbmeta_system", "vbmeta_vendor", "vendor", "vendor_boot", "vendor_dlkm", "vendor_kernel_boot", "vendor_other", "image", "SIDELOAD" ]
         self.image_choice = NoScrollChoice(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=image_choices, style=0)
         self.image_choice.SetSelection(-1)
-        self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select a file", wildcard=u"Flashable files (*.img;*.zip)|*.img;*.zip", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_("Select a file"), wildcard="Flashable files (*.img;*.zip)|*.img;*.zip", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        # Set the button label with translatable text
+        self.image_file_picker.GetPickerCtrl().SetLabel(_("Browse"))
         self.paste_selection = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.paste_selection.SetBitmap(images.paste_24.GetBitmap())
-        self.paste_selection.SetToolTip(u"Depending on the flash selection, paste the appropriate path as custom image.")
+        self.paste_selection.SetToolTip(_("Depending on the flash selection, paste the appropriate path as custom image."))
         custom_flash_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         custom_flash_sizer.Add(window=self.image_choice, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
         custom_flash_sizer.Add(window=self.paste_selection, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=2)
@@ -5979,27 +6135,27 @@ If you want to post it online, please make sure to remove any sensitive informat
 
 
         # 10th row widgets, Flash options
-        self.advanced_options_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Flash Options")
-        self.flash_to_inactive_slot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to inactive slot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.flash_to_inactive_slot_checkBox.SetToolTip(u"This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact.")
-        self.flash_both_slots_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Flash to both slots", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.flash_both_slots_checkBox.SetToolTip(u"This option when checked will flash to both slots.")
-        self.disable_verity_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.disable_verity_checkBox.SetToolTip(u"Disables Verity")
-        self.disable_verification_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Disable Verification", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.disable_verification_checkBox.SetToolTip(u"Disables Verification")
-        self.fastboot_force_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Force", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.fastboot_force_checkBox.SetToolTip(u"Force a flash operation that may be unsafe (will wipe your data)")
-        self.fastboot_verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Verbose", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.fastboot_verbose_checkBox.SetToolTip(u"Set fastboot option to verbose")
-        self.temporary_root_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Temporary Root", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.temporary_root_checkBox.SetToolTip(u"This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if Magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image.")
-        self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"No reboot", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.no_reboot_checkBox.SetToolTip(u"Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.")
-        self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Wipe", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.wipe_checkBox.SetToolTip(u"This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.")
-        self.no_wipe_downgrade_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"No Wipe Downgrade", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.no_wipe_downgrade_checkbox.SetToolTip(u"WARNING!!! This is a highly experimental feature.\nThis will attempt to downgrade the device without needing a data wipe.\n")
+        self.advanced_options_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_("Flash Options"))
+        self.flash_to_inactive_slot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Flash to inactive slot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_to_inactive_slot_checkBox.SetToolTip(_("This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact."))
+        self.flash_both_slots_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Flash to both slots"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.flash_both_slots_checkBox.SetToolTip(_("This option when checked will flash to both slots."))
+        self.disable_verity_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Disable Verity"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verity_checkBox.SetToolTip(_("Disables Verity"))
+        self.disable_verification_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Disable Verification"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_verification_checkBox.SetToolTip(_("Disables Verification"))
+        self.fastboot_force_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Force"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.fastboot_force_checkBox.SetToolTip(_("Force a flash operation that may be unsafe (will wipe your data)"))
+        self.fastboot_verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Verbose"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.fastboot_verbose_checkBox.SetToolTip(_("Set fastboot option to verbose"))
+        self.temporary_root_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Temporary Root"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.temporary_root_checkBox.SetToolTip(_("This option when enabled will not flash patched boot\nInstead it will flash unpatched boot.img, but boot to Live Patched boot\nHandy to test if Magisk will cause a bootloop.\n\nPlease be aware that this temporary root will not survive a subsequent reboot.\nIf you want to make this permanent, just Flash Boot the patched boot image."))
+        self.no_reboot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("No reboot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.no_reboot_checkBox.SetToolTip(_("Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot."))
+        self.wipe_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Wipe"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.wipe_checkBox.SetToolTip(_("This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time."))
+        self.no_wipe_downgrade_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("No Wipe Downgrade"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.no_wipe_downgrade_checkbox.SetToolTip(_("WARNING!!! This is a highly experimental feature.\nThis will attempt to downgrade the device without needing a data wipe.\n"))
         self.advanced_options_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.advanced_options_sizer.Add(window=self.flash_to_inactive_slot_checkBox, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         self.advanced_options_sizer.Add(window=self.flash_both_slots_checkBox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
@@ -6013,21 +6169,21 @@ If you want to post it online, please make sure to remove any sensitive informat
         self.advanced_options_sizer.Add(window=self.no_wipe_downgrade_checkbox, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=2)
 
         # 11th row widgets, Flash button
-        self.flash_button = wx.Button(parent=panel, id=-1, label="Flash Device", pos=wx.DefaultPosition, size=wx.Size(-1, 48))
+        self.flash_button = wx.Button(parent=panel, id=-1, label=_("Flash Device"), pos=wx.DefaultPosition, size=wx.Size(-1, 48))
         self.flash_button.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.flash_button.SetToolTip(u"Flashes the selected device with chosen flash options.")
+        self.flash_button.SetToolTip(_("Flashes the selected device with chosen flash options."))
         self.flash_button.SetBitmap(images.flash_32.GetBitmap())
 
         # 12th row widgets, console
-        console_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Console", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        console_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_("Console"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spinner = wx.ActivityIndicator(panel, -1, size=(80, 80), style=0)
-        self.spinner_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=u"Please be patient ...", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spinner_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label=_("Please be patient ..."), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spinner_label.SetForegroundColour((255,0,0))
         self.spinner_label.SetFont(wx.Font(wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString))
-        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=u"Support", size=wx.Size(-1, 32), style=0)
+        self.support_button = wx.Button(parent=panel, id=wx.ID_ANY, label=_("Support"), size=wx.Size(-1, 32), style=0)
         self.support_button.SetBitmap(images.support_24.GetBitmap())
         self.support_button.SetBitmapMargins(wx.Size(10, -1))
-        self.support_button.SetToolTip(u"Create encrypted and optionally sanitized support.zip file\nWhen sanitized all sensitive data is redacted.\n\nThis file is absolutely required when asking for help.")
+        self.support_button.SetToolTip(_("Create encrypted and optionally sanitized support.zip file\nWhen sanitized all sensitive data is redacted.\n\nThis file is absolutely required when asking for help."))
         console_v_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         console_v_sizer.Add(console_label, flag=wx.ALL, border=0)
         console_v_sizer.AddSpacer(10)
@@ -6050,9 +6206,9 @@ If you want to post it online, please make sure to remove any sensitive informat
                 self.console_ctrl.SetDefaultStyle(wx.TextAttr(wx.BLUE))
 
         # 13th row widgets, debug and clear button
-        self.verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=u"Debug", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.verbose_checkBox.SetToolTip(u"Enable Debug Messages in the console.")
-        clear_button = wx.Button(parent=panel, id=-1, label="Clear Console", pos=wx.DefaultPosition)
+        self.verbose_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Debug"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.verbose_checkBox.SetToolTip(_("Enable Debug Messages in the console."))
+        clear_button = wx.Button(parent=panel, id=-1, label=_("Clear Console"), pos=wx.DefaultPosition)
 
         # add the rows to flexgrid
         fgs1.AddMany([
@@ -6157,10 +6313,13 @@ If you want to post it online, please make sure to remove any sensitive informat
                             item.SetBitmap(device_icon)
             else:
                 self.google_images_menu.reset_menu_id()
-                menu_index = self.menuBar.FindMenu("Google Images")
-                self.menuBar.Remove(menu_index)
-                self.google_images_menu = GoogleImagesMenu(self)
-                self.menuBar.Insert(menu_index, self.google_images_menu, "Google Images")
+                menu_index = self.menuBar.FindMenu(_("&Google Images"))
+                if menu_index is not None and menu_index != -1:
+                    self.menuBar.Remove(menu_index)
+                    self.google_images_menu = GoogleImagesMenu(self)
+                    self.menuBar.Insert(menu_index, self.google_images_menu, _("&Google Images"))
+                else:
+                    print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Couldn't find Google Images Menu")
             self.Refresh()
             self.Update()
         except Exception as e:

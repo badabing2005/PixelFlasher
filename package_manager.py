@@ -50,6 +50,8 @@ import images as images
 from runtime import *
 
 from datetime import datetime, timedelta
+from i18n import _
+
 
 # ============================================================================
 #                               Class ListCtrl
@@ -65,7 +67,7 @@ class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
 # ============================================================================
 class SuPermissionDialog(wx.Dialog):
     def __init__(self, parent, pkg, uid, label=None):
-        super().__init__(parent, title="Set SU Permission")
+        super().__init__(parent, title=_("Set SU Permission"))
         self.pkg = pkg
         self.uid = uid
 
@@ -73,28 +75,28 @@ class SuPermissionDialog(wx.Dialog):
         if label is not None:
             label_text = wx.StaticText(self, label=label)
         else:
-            label_text = wx.StaticText(self, label="Enter SU Permission details:")
+            label_text = wx.StaticText(self, label=_("Enter SU Permission details:"))
         font = label_text.GetFont()
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         label_text.SetFont(font)
 
         # Checkbox for notification
-        self.notification_checkbox = wx.CheckBox(self, label="Enable Notification")
+        self.notification_checkbox = wx.CheckBox(self, label=_("Enable Notification"))
 
         # Checkbox for logging
-        self.logging_checkbox = wx.CheckBox(self, label="Enable Logging")
+        self.logging_checkbox = wx.CheckBox(self, label=_("Enable Logging"))
 
         # Dropdown for Until
-        until_choices = ['Forever', '10 mins', '20 mins', '30 mins', '60 mins']
+        until_choices = [_('Forever'), _('10 mins'), _('20 mins'), _('30 mins'), _('60 mins')]
         self.until_dropdown = wx.ComboBox(self, choices=until_choices, style=wx.CB_DROPDOWN| wx.CB_READONLY)
         # Set "Forever" as the default selection
         self.until_dropdown.SetSelection(0)
 
         # Buttons
-        allow_button = wx.Button(self, label="Allow")
-        deny_button = wx.Button(self, label="Deny")
-        revoke_button = wx.Button(self, label="Revoke")
-        cancel_button = wx.Button(self, label="Cancel")
+        allow_button = wx.Button(self, label=_("Allow"))
+        deny_button = wx.Button(self, label=_("Deny"))
+        revoke_button = wx.Button(self, label=_("Revoke"))
+        cancel_button = wx.Button(self, label=_("Cancel"))
 
         # Bind buttons to functions
         allow_button.Bind(wx.EVT_BUTTON, self.OnAllow)
@@ -142,7 +144,7 @@ class SuPermissionDialog(wx.Dialog):
         self.EndModal(wx.ID_CANCEL)
 
     def OnRevoke(self, event):
-        until_text = 'Revoke'
+        until_text = _('Revoke')
         until = self.ComputeEpoch(until_text)
         print(f"\nRevoke button clicked. Until: {until_text}, Notification: 1, Logging: 1, Epoch: {until}")
         device = get_phone()
@@ -157,17 +159,17 @@ class SuPermissionDialog(wx.Dialog):
     def ComputeEpoch(self, until):
         # Compute the epoch value based on the 'until' dropdown choice
         now = datetime.now()
-        if until == 'Forever':
+        if until == _('Forever'):
             return 0
-        elif until == '10 mins':
+        elif until == _('10 mins'):
             future = now + timedelta(minutes=10)
-        elif until == '20 mins':
+        elif until == _('20 mins'):
             future = now + timedelta(minutes=20)
-        elif until == '30 mins':
+        elif until == _('30 mins'):
             future = now + timedelta(minutes=30)
-        elif until == '60 mins':
+        elif until == _('60 mins'):
             future = now + timedelta(minutes=60)
-        elif until == 'Revoke':
+        elif until == _('Revoke'):
             future = now - timedelta(minutes=1)
         else:
             return 0
@@ -181,7 +183,7 @@ class SuPermissionDialog(wx.Dialog):
 class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def __init__(self, *args, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs, style = wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
-        self.SetTitle("Manage Packages on the Device")
+        self.SetTitle(_("Manage Packages on the Device"))
         self.package_count = 0
         self.all_cb_clicked = False
         self.download_folder = None
@@ -192,7 +194,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-            wx.MessageBox(f"❌ ERROR: You must first select a valid device.", "Error", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(_("❌ ERROR: You must first select a valid device."), _("Error"), wx.OK | wx.ICON_ERROR)
             self.Close()
             return
 
@@ -221,7 +223,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         self.message_label = wx.StaticText(panel1, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
-        self.message_label.Label = f"{self.package_count} Packages"
+        self.message_label.Label = _("%s Packages") % self.package_count
         self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
         self.searchCtrl = wx.SearchCtrl(panel1, style=wx.TE_PROCESS_ENTER)
         self.searchCtrl.ShowCancelButton(True)
@@ -232,14 +234,14 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         vSizer1.Add(message_sizer, 0, wx.EXPAND, 5)
 
         hSizer1 = wx.BoxSizer( wx.HORIZONTAL )
-        self.all_checkbox = wx.CheckBox(panel1, wx.ID_ANY, u"Check / Uncheck All", wx.DefaultPosition, wx.DefaultSize, style=wx.CHK_3STATE)
-        self.system_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, u"Show System apps", wx.DefaultPosition, wx.DefaultSize)
+        self.all_checkbox = wx.CheckBox(panel1, wx.ID_ANY, _("Check / Uncheck All"), wx.DefaultPosition, wx.DefaultSize, style=wx.CHK_3STATE)
+        self.system_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, _("Show System apps"), wx.DefaultPosition, wx.DefaultSize)
         self.system_apps_checkbox.SetValue(True)
-        self.user_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, u"Show 3rd Party apps", wx.DefaultPosition, wx.DefaultSize)
+        self.user_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, _("Show 3rd Party apps"), wx.DefaultPosition, wx.DefaultSize)
         self.user_apps_checkbox.SetValue(True)
 
-        self.button_get_names = wx.Button( panel1, wx.ID_ANY, u"Get All Application Names", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.button_get_names.SetToolTip(u"Extracts App names, and caches them for faster loading in the future.\nNOTE: This could take a while.")
+        self.button_get_names = wx.Button( panel1, wx.ID_ANY, _("Get All Application Names"), wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.button_get_names.SetToolTip(_("Extracts App names, and caches them for faster loading in the future.\nNOTE: This could take a while."))
         hSizer1.Add( (10, 0), 0, wx.EXPAND, 5 )
         hSizer1.Add(self.all_checkbox, 0, wx.EXPAND, 5)
         hSizer1.Add( (10, 0), 0, wx.EXPAND, 5 )
@@ -281,46 +283,46 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        self.disable_button = wx.Button(panel2, wx.ID_ANY, u"Disable", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.disable_button.SetToolTip(u"Disable checked packages")
+        self.disable_button = wx.Button(panel2, wx.ID_ANY, _("Disable"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.disable_button.SetToolTip(_("Disable checked packages"))
         self.disable_button.Enable(False)
         buttons_sizer.Add(self.disable_button, 0, wx.ALL, 20)
 
-        self.enable_button = wx.Button(panel2, wx.ID_ANY, u"Enable", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.enable_button.SetToolTip(u"Enable checked packages")
+        self.enable_button = wx.Button(panel2, wx.ID_ANY, _("Enable"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.enable_button.SetToolTip(_("Enable checked packages"))
         self.enable_button.Enable(False)
         buttons_sizer.Add(self.enable_button, 0, wx.ALL, 20)
 
-        self.uninstall_button = wx.Button(panel2, wx.ID_ANY, u"Uninstall", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.uninstall_button.SetToolTip(u"Uninstall checked packages")
+        self.uninstall_button = wx.Button(panel2, wx.ID_ANY, _("Uninstall"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.uninstall_button.SetToolTip(_("Uninstall checked packages"))
         self.uninstall_button.Enable(False)
         buttons_sizer.Add(self.uninstall_button, 0, wx.ALL, 20)
 
-        self.add_to_deny_button = wx.Button(panel2, wx.ID_ANY, u"Add to Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.add_to_deny_button.SetToolTip(u"Add package to Magisk Denylist")
+        self.add_to_deny_button = wx.Button(panel2, wx.ID_ANY, _("Add to Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.add_to_deny_button.SetToolTip(_("Add package to Magisk Denylist"))
         self.add_to_deny_button.Enable(False)
         buttons_sizer.Add(self.add_to_deny_button, 0, wx.ALL, 20)
 
-        self.rm_from_deny_button = wx.Button(panel2, wx.ID_ANY, u"Remove from Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.rm_from_deny_button.SetToolTip(u"Remove package from Magisk Denylist")
+        self.rm_from_deny_button = wx.Button(panel2, wx.ID_ANY, _("Remove from Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.rm_from_deny_button.SetToolTip(_("Remove package from Magisk Denylist"))
         self.rm_from_deny_button.Enable(False)
         buttons_sizer.Add(self.rm_from_deny_button, 0, wx.ALL, 20)
 
-        self.install_apk_button = wx.Button(panel2, wx.ID_ANY, u"Install APK", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.install_apk_button.SetToolTip(u"Install an APK on the device")
+        self.install_apk_button = wx.Button(panel2, wx.ID_ANY, _("Install APK"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.install_apk_button.SetToolTip(_("Install an APK on the device"))
         buttons_sizer.Add(self.install_apk_button, 0, wx.ALL, 20)
 
-        self.download_apk_button = wx.Button(panel2, wx.ID_ANY, u"Download APK", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.download_apk_button.SetToolTip(u"Extract and download APK")
+        self.download_apk_button = wx.Button(panel2, wx.ID_ANY, _("Download APK"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.download_apk_button.SetToolTip(_("Extract and download APK"))
         self.download_apk_button.Enable(False)
         buttons_sizer.Add(self.download_apk_button, 0, wx.ALL, 20)
 
-        self.export_list_button = wx.Button(panel2, wx.ID_ANY, u"Export List", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.export_list_button.SetToolTip(u"Export the package list in CSV format")
+        self.export_list_button = wx.Button(panel2, wx.ID_ANY, _("Export List"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.export_list_button.SetToolTip(_("Export the package list in CSV format"))
         buttons_sizer.Add(self.export_list_button, 0, wx.ALL, 20)
 
-        self.close_button = wx.Button(panel2, wx.ID_ANY, u"Close", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.close_button.SetToolTip(u"Closes this dialog")
+        self.close_button = wx.Button(panel2, wx.ID_ANY, _("Close"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.close_button.SetToolTip(_("Closes this dialog"))
         buttons_sizer.Add(self.close_button, 0, wx.ALL, 20)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
@@ -442,7 +444,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                     self.list.SetItemColumnImage(i, 0, -1)
                     i += 1
             res = self.device.push_aapt2()
-            self.message_label.Label = f"{str(i)} / {self.package_count} Packages"
+            self.message_label.Label = _("%s / %s Packages") % (str(i), self.package_count)
         self.list.SetColumnWidth(0, -2)
         grow_column(self.list, 0, 20)
         self.list.SetColumnWidth(1, -2)
@@ -753,7 +755,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self._on_spin('start')
         start = time.time()
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Export List")
-        with wx.FileDialog(self, "Export Package list", '', f"packages_{self.device.hardware}.csv", wildcard="Package list (*.csv)|*.csv",
+        with wx.FileDialog(self, _("Export Package list"), '', f"packages_{self.device.hardware}.csv", wildcard="Package list (*.csv)|*.csv",
                         style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 return     # the user changed their mind
@@ -815,7 +817,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         label = self.getColumnText(self.currentItem, 7)
         if multiple:
             if not self.download_folder:
-                with wx.DirDialog(None, "Choose a directory where all apks should be saved.", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+                with wx.DirDialog(None, _("Choose a directory where all apks should be saved."), style=wx.DD_DEFAULT_STYLE) as folderDialog:
                     if folderDialog.ShowModal() == wx.ID_CANCEL:
                         print("User Cancelled saving packages (option: folder).")
                         self.abort = True
@@ -824,7 +826,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                     print(f"Selected Download Directory: {self.download_folder}")
             pathname =  os.path.join(self.download_folder, f"{pkg}.apk")
         else:
-            with wx.FileDialog(self, "Download APK file", '', f"{pkg}.apk", wildcard="APK files (*.apk)|*.apk", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+            with wx.FileDialog(self, _("Download APK file"), '', f"{pkg}.apk", wildcard="APK files (*.apk)|*.apk", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print(f"User Cancelled saving package: {pkg}")
                     return     # the user changed their mind
@@ -951,25 +953,25 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         # build the menu
         menu = wx.Menu()
-        disableItem = menu.Append(self.popupDisable, "Disable Package")
-        enableItem = menu.Append(self.popupEnable, "Enable Package")
-        uninstallItem = menu.Append(self.popupUninstall, "Uninstall Package")
-        downloadItem = menu.Append(self.popupDownload, "Download Package")
-        launchItem = menu.Append(self.popupLaunch, "Launch Package")
-        PermissionsItem = menu.Append(self.popupPermissions, "View Application Permissions")
-        killItem = menu.Append(self.popupKill, "Kill Application")
-        clearItem = menu.Append(self.popupClearData, "Clear Application Data")
+        disableItem = menu.Append(self.popupDisable, _("Disable Package"))
+        enableItem = menu.Append(self.popupEnable, _("Enable Package"))
+        uninstallItem = menu.Append(self.popupUninstall, _("Uninstall Package"))
+        downloadItem = menu.Append(self.popupDownload, _("Download Package"))
+        launchItem = menu.Append(self.popupLaunch, _("Launch Package"))
+        PermissionsItem = menu.Append(self.popupPermissions, _("View Application Permissions"))
+        killItem = menu.Append(self.popupKill, _("Kill Application"))
+        clearItem = menu.Append(self.popupClearData, _("Clear Application Data"))
         # Add a separator
         menu.AppendSeparator()
-        refreshItem = menu.Append(self.popupRefresh, "Refresh")
-        checkItem = menu.Append(self.popupCheckAllBoxes, "Check All")
-        unCheckItem = menu.Append(self.popupUnCheckAllBoxes, "UnCheck All")
-        clipboardItem=menu.Append(self.popupCopyClipboard, "Copy to Clipboard")
+        refreshItem = menu.Append(self.popupRefresh, _("Refresh"))
+        checkItem = menu.Append(self.popupCheckAllBoxes, _("Check All"))
+        unCheckItem = menu.Append(self.popupUnCheckAllBoxes, _("UnCheck All"))
+        clipboardItem=menu.Append(self.popupCopyClipboard, _("Copy to Clipboard"))
         # Add a separator
         menu.AppendSeparator()
-        addDenyItem = menu.Append(self.popupAddToDeny, "Add Package to Magisk Denylist")
-        removeDenyItem = menu.Append(self.popupRmFromDeny, "Remove Package from Magisk Denylist")
-        suPermissionItem = menu.Append(self.popupSuPermission, "SU Permission ...")
+        addDenyItem = menu.Append(self.popupAddToDeny, _("Add Package to Magisk Denylist"))
+        removeDenyItem = menu.Append(self.popupRmFromDeny, _("Remove Package from Magisk Denylist"))
+        suPermissionItem = menu.Append(self.popupSuPermission, _("SU Permission ..."))
 
         # set icons
         disableItem.SetBitmap(images.disable_24.GetBitmap())

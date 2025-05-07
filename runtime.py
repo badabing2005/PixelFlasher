@@ -73,7 +73,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
-
+from i18n import _, set_language
 import lz4.frame
 import requests
 import wx
@@ -84,6 +84,7 @@ from payload_dumper import extract_payload
 import cProfile, pstats, io
 import avbtool
 
+app_language = 'en'  # Default language is English
 _verbose = False
 _adb = None
 _fastboot = None
@@ -246,6 +247,23 @@ class MagiskApk():
     def __init__(self, type):
         self.type = type
 
+
+# ============================================================================
+#                               Function get_app_language
+# ============================================================================
+def get_app_language():
+    global _app_language
+    return _app_language
+
+
+# ============================================================================
+#                               Function set_app_language
+# ============================================================================
+def set_app_language(value):
+    global _app_language
+    _app_language = value
+    # Update the actual translation system
+    set_language(value)
 
 # ============================================================================
 #                               Function get_config
@@ -527,10 +545,10 @@ def get_pf_db():
     # we have different db schemas for each of these versions
     if parse(VERSION) < parse('4.0.0'):
         return 'PixelFlasher.db'
-    elif parse(VERSION) < parse('9.0.0'):
+    elif parse(VERSION) < parse('99.0.0'):
         return 'PixelFlasher4.db'
     else:
-        return 'PixelFlasher9.db'
+        return 'PixelFlasher99.db'
 
 
 # ============================================================================
@@ -2471,7 +2489,7 @@ def check_module_update(url):
     try:
         skiplist = get_skip_urls_file_path()
         if os.path.exists(skiplist):
-            with open(skiplist, 'r') as f:
+            with open(skiplist, 'r', encoding='ISO-8859-1', errors="replace") as f:
                 skiplist_urls = f.read().splitlines()
                 if url in skiplist_urls:
                     print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Skipping update check for {url}")
@@ -2497,7 +2515,7 @@ def check_module_update(url):
                 setattr(mu, 'changelog', response.text)
                 return mu
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
-            dlg = wx.MessageDialog(None, f"Module update URL has issues, inform the module author: {url}\nDo you want to skip checking updates for this module?", "Error", wx.YES_NO | wx.ICON_ERROR)
+            dlg = wx.MessageDialog(None, _("Module update URL has issues, inform the module author: %s\nDo you want to skip checking updates for this module?") % url, _("Error"), wx.YES_NO | wx.ICON_ERROR)
             result = dlg.ShowModal()
             if result == wx.ID_YES:
                 # add url to a list of failed urls
@@ -3287,14 +3305,17 @@ def get_google_images(save_to=None):
             # Iterate through the device elements
             for device_element in device_elements:
                 # Check if the text of the <h2> element should be skipped
-                if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions"]:
+                if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions", "Special instructions for updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Manual flashing instructions"]:
                     continue
 
                 # Extract the device name from the 'id' attribute
                 device_id = device_element.get('id')
 
-                # Extract the device label from the text and strip "id"
-                device_label = device_element.get('data-text').strip('"').split('" for ')[1]
+                # Extract the device label from the text and strip "id", if it fails, skip it
+                try:
+                    device_label = device_element.get('data-text').strip('"').split('" for ')[1]
+                except IndexError:
+                    continue
 
                 # Initialize a dictionary to store the device's downloads for both OTA and Factory
                 downloads_dict = {'ota': [], 'factory': []}
@@ -5958,7 +5979,7 @@ def get_magisk_apks():
     if _magisk_apks is None:
         try:
             apks = []
-            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'Magisk Alpha', 'Magisk Delta Canary', 'Magisk Delta Debug', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
+            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'KitsuneMagisk Fork', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
             for i in mlist:
                 apk = get_magisk_apk_details(i)
                 if apk:
@@ -6008,6 +6029,9 @@ def get_magisk_apk_details(channel):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Alpha processing")
             traceback.print_exc()
             return
+    elif channel == 'KitsuneMagisk Fork':
+        url = "https://1q23lyc45.github.io/canary.json"
+
     elif channel == 'Magisk Delta Canary':
         url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"
 
@@ -6214,7 +6238,7 @@ This is a special Magisk build\n\n
         note_link = data['magisk']['note']
         setattr(ma, 'note_link', note_link)
         setattr(ma, 'package', MAGISK_PKG_NAME)
-        if channel in ['Magisk Delta Canary', 'Magisk Delta Debug']:
+        if channel in ['Magisk Delta Canary', 'Magisk Delta Debug', 'KitsuneMagisk Fork']:
             setattr(ma, 'package', MAGISK_DELTA_PKG_NAME)
         # Get the note contents
         headers = {}

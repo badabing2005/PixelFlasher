@@ -1,0 +1,2548 @@
+# English translations for PixelFlasher.
+# Copyright (C) 2023-2024 Badabing2005
+# This file is distributed under the same license as the PixelFlasher package.
+msgid ""
+msgstr ""
+"Project-Id-Version: PixelFlasher\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-05-13 16:17+0000\n"
+"PO-Revision-Date: 2024-05-13 16:17+0000\n"
+"Last-Translator: PixelFlasher Developers <badabing2005@hotmail.com>\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+##############################################################################
+# Common buttons
+##############################################################################
+msgid "Yes"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Apply"
+msgstr ""
+
+# Main Menu items
+msgid "&File"
+msgstr ""
+
+msgid "&Device"
+msgstr ""
+
+msgid "Dev Tools"
+msgstr ""
+
+msgid "&My Tools"
+msgstr ""
+
+msgid "&Google Images"
+msgstr ""
+
+msgid "&Toolbar"
+msgstr ""
+
+msgid "&Language"
+msgstr ""
+
+msgid "&Help"
+msgstr ""
+
+##############################################################################
+# Menu
+##############################################################################
+# -------------------------------------
+# File menu items
+# -------------------------------------
+msgid "Settings"
+msgstr ""
+
+msgid "Exit"
+msgstr ""
+
+msgid "E&xit\tCtrl-Q"
+msgstr ""
+
+msgid "Exit PixelFlasher"
+msgstr ""
+
+# -------------------------------------
+# Device menu items
+# -------------------------------------
+msgid "Install APK"
+msgstr ""
+
+msgid "Package Manager"
+msgstr ""
+
+msgid "ADB Shell"
+msgstr ""
+
+msgid "Scrcpy"
+msgstr ""
+
+msgid "Device Info"
+msgstr ""
+
+msgid "Pif Print"
+msgstr ""
+
+msgid "Props as Json"
+msgstr ""
+
+msgid "Dump Screen XML"
+msgstr ""
+
+msgid "Cancel OTA Update"
+msgstr ""
+
+msgid "Check otacerts"
+msgstr ""
+
+msgid "Partitions Manager"
+msgstr ""
+
+msgid "PI Analysis Report"
+msgstr ""
+
+msgid "Switch Slot"
+msgstr ""
+
+msgid "Reboot"
+msgstr ""
+
+# -------------------------------------
+# Reboot sub-menu items
+# -------------------------------------
+msgid "System"
+msgstr ""
+
+msgid "Bootloader"
+msgstr ""
+
+msgid "Fastbootd"
+msgstr ""
+
+msgid "Recovery"
+msgstr ""
+
+msgid "Interactive Recovery"
+msgstr ""
+
+msgid "Safe Mode"
+msgstr ""
+
+msgid "Download"
+msgstr ""
+
+msgid "Sideload"
+msgstr ""
+# ---
+
+msgid "Push file(s) to"
+msgstr ""
+
+msgid "Magisk"
+msgstr ""
+
+msgid "Rooting App"
+msgstr ""
+
+msgid "Magisk Backup Manager"
+msgstr ""
+
+msgid "Backup /data/adb"
+msgstr ""
+
+msgid "Restore /data/adb"
+msgstr ""
+
+msgid "Clear /data/adb/*"
+msgstr ""
+
+msgid "Start Shizuku"
+msgstr ""
+
+msgid "Pif Manager"
+msgstr ""
+
+msgid "SOS"
+msgstr ""
+
+msgid "Lock Bootloader"
+msgstr ""
+
+msgid "Unlock Bootloader"
+msgstr ""
+
+# -------------------------------------
+# Dev Tools menu items
+# -------------------------------------
+msgid "Check keybox.xml"
+msgstr ""
+
+msgid "Decode Binary XML"
+msgstr ""
+
+msgid "AVB - Get Image Info"
+msgstr ""
+
+msgid "AVB - Prepare Downgrade Patch"
+msgstr ""
+
+# -------------------------------------
+# My Tools menu items
+# -------------------------------------
+msgid "Customize My Tools"
+msgstr ""
+
+# Google Images menu items
+msgid "Phones"
+msgstr ""
+
+msgid "Watches"
+msgstr ""
+
+msgid "Refresh images list"
+msgstr ""
+
+msgid "Show Progress Window"
+msgstr ""
+
+# -------------------------------------
+# Toolbar menu items
+# -------------------------------------
+msgid "Top"
+msgstr ""
+
+msgid "Left"
+msgstr ""
+
+msgid "Right"
+msgstr ""
+
+msgid "Bottom"
+msgstr ""
+
+msgid "Show Button Text"
+msgstr ""
+
+msgid "Show Button Icon"
+msgstr ""
+
+msgid "Show / Hide Buttons"
+msgstr ""
+
+# -------------------------------------
+# Toolbar Show / Hide Button
+# sub-menu items share translations
+# from Device menu items
+# -------------------------------------
+msgid "Reboot to System"
+msgstr ""
+
+msgid "Reboot to Bootloader"
+msgstr ""
+
+msgid "Reboot to Fastbootd"
+msgstr ""
+
+msgid "Reboot to Recovery"
+msgstr ""
+
+msgid "Reboot to Interactive Recovery"
+msgstr ""
+
+msgid "Reboot to Safe Mode"
+msgstr ""
+
+msgid "Reboot to Download"
+msgstr ""
+
+msgid "Reboot to Sideload"
+msgstr ""
+
+msgid "Configuration"
+msgstr ""
+
+msgid "Support"
+msgstr ""
+
+# -------------------------------------
+# Help menu items
+# -------------------------------------
+msgid "Report an Issue"
+msgstr ""
+
+msgid "Feature Request"
+msgstr ""
+
+msgid "PixelFlasher Project Page"
+msgstr ""
+
+msgid "PixelFlasher Community (Forum)"
+msgstr ""
+
+msgid "Links"
+msgstr ""
+
+msgid "Open Configuration Folder"
+msgstr ""
+
+msgid "Open PixelFlasher Working Directory"
+msgstr ""
+
+msgid "Create a Sanitized support.zip"
+msgstr ""
+
+msgid "Check for New Version"
+msgstr ""
+
+msgid "&About PixelFlasher"
+msgstr ""
+
+msgid "About"
+msgstr ""
+
+# -------------------------------------
+# Links sub-menu items
+# -------------------------------------
+msgid "Homeboy76's Guide"
+msgstr ""
+
+msgid "V0latyle's Guide"
+msgstr ""
+
+msgid "roirraW's Guide"
+msgstr ""
+
+msgid "osm0sis's PIF FAQ"
+msgstr ""
+
+msgid "V0latyle's PI API Info"
+msgstr ""
+
+msgid "Tricky Store (Support Thread)"
+msgstr ""
+
+msgid "osm0sis's PlayIntegrityFork"
+msgstr ""
+
+msgid "chiteroman's PlayIntegrityFix"
+msgstr ""
+
+msgid "5ec1cff's TrickyStore"
+msgstr ""
+
+msgid "Get the Google USB Driver"
+msgstr ""
+
+msgid "Android Security Update Bulletins"
+msgstr ""
+
+msgid "Android Codenames, tags, and build numbers"
+msgstr ""
+
+msgid "Full OTA Images for Pixel Phones / Tablets"
+msgstr ""
+
+msgid "Factory Images for Pixel Phones / Tablets"
+msgstr ""
+
+msgid "Full OTA Images for Pixel Watches"
+msgstr ""
+
+msgid "Factory Images for Pixel Watches"
+msgstr ""
+
+msgid "Full OTA Images for Pixel Beta 16"
+msgstr ""
+
+msgid "Factory Images for Pixel Beta 16"
+msgstr ""
+
+##############################################################################
+# Helper values
+##############################################################################
+msgid "Open adb shell to the device"
+msgstr ""
+
+msgid "Launch Screen Copy"
+msgstr ""
+
+msgid "Dump Full Device Info"
+msgstr ""
+
+msgid "Get current device's Pif print (osm0sis fork v5 format)"
+msgstr ""
+
+msgid "Get current device's properties in json format"
+msgstr ""
+
+msgid "Use uiautomator to dump the screen view in xml"
+msgstr ""
+
+msgid "Cancels and Resets OTA updates by Google (Not PixelFlasher)"
+msgstr ""
+
+msgid "Used to see if ROM is signed or not."
+msgstr ""
+
+msgid "Backup / Erase Partitions"
+msgstr ""
+
+msgid "Generate a report of PI Analysis"
+msgstr ""
+
+msgid "Switch to the other slot"
+msgstr ""
+
+msgid "Manage Magisk modules and settings"
+msgstr ""
+
+msgid "Download / Install rooting app like Magisk or KernelSU or APatch"
+msgstr ""
+
+msgid "Manage Magisk Backups"
+msgstr ""
+
+msgid ""
+"Backs up /data/adb.\n"
+"This is useful for backing up Magisk modules.\n"
+"NOTE: If a module writes to anywhere other than /data/adb, those paths will not be backed up."
+msgstr ""
+
+msgid ""
+"Restore /data/adb from a backup file.\n"
+"This is useful for restoring Magisk modules.\n"
+"NOTE: If a module writes to anywhere other than /data/adb, those items will not be restored."
+msgstr ""
+
+msgid ""
+"Clear up /data/adb/ content (not the directory).\n"
+"This is useful when switching to different root flavor."
+msgstr ""
+
+msgid "Starts Shizuku service on the device."
+msgstr ""
+
+msgid "Disable Magisk Modules"
+msgstr ""
+
+msgid "Unlock Bootloader (Will wipe data)"
+msgstr ""
+
+msgid "Get Android Verified Boot Image Info"
+msgstr ""
+
+msgid "Create Downgrade Patch"
+msgstr ""
+
+##############################################################################
+# Toast messages
+##############################################################################
+msgid "Download Successful"
+msgstr ""
+
+msgid "✅ File downloaded successfully: %s and saved to %s"
+msgstr ""
+
+msgid "No Downloads"
+msgstr ""
+
+msgid "ℹ️ No downloads are in progress."
+msgstr ""
+
+msgid "⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good."
+msgstr ""
+
+msgid "APK Install"
+msgstr ""
+
+msgid "❌ ERROR: Please select a device before attempting APK Installation."
+msgstr ""
+
+msgid "❌ ERROR: No device selected"
+msgstr ""
+
+msgid "Check OTA Certs"
+msgstr ""
+
+msgid "Device Analysis"
+msgstr ""
+
+msgid "❌ ERROR: /data/local/tmp is not accessible, this will affect some features."
+msgstr ""
+
+msgid "vbmeta Warning!"
+msgstr ""
+
+msgid "WARNING! Banned Kernel"
+msgstr ""
+
+msgid "⚠️ Kernel string: %s is known to be banned.\nPlay Integrity would possibly fail."
+msgstr ""
+
+msgid "Scan"
+msgstr ""
+
+msgid "⚠️ No devices are found.."
+msgstr ""
+
+msgid "✅ Select your device from the list of %s found devices."
+msgstr ""
+
+msgid "Firmware SHA256"
+msgstr ""
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+msgstr ""
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+msgstr ""
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+msgstr ""
+
+msgid "                                     This has a device wipe implications, please double check.\n"
+msgstr ""
+
+##############################################################################
+# Message dialogs
+##############################################################################
+msgid "Error"
+msgstr ""
+
+msgid "Warning"
+msgstr ""
+
+msgid "Information"
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Click OK to accept and continue.\n"
+msgstr ""
+
+msgid "or Hit CANCEL to abort."
+msgstr ""
+
+msgid "Select Language"
+msgstr ""
+
+msgid "Language changed to %s. A restart is required for translations to apply."
+msgstr ""
+
+msgid "Language Changed"
+msgstr ""
+
+msgid "Updates are available"
+msgstr ""
+
+msgid "ℹ️ There are updates available for PixelFlasher.\n"
+msgstr ""
+
+msgid "Click OK to download and install the updates.\n"
+msgstr ""
+
+msgid "Select binary xml file to decode"
+msgstr ""
+
+msgid "Select a file"
+msgstr ""
+
+msgid "Browse"
+msgstr ""
+
+msgid "  Browse  "
+msgstr ""
+
+msgid "Save File"
+msgstr ""
+
+msgid "ℹ️ There are updates available for your device.\nCheck Google Images menu.\n"
+msgstr ""
+
+msgid "Select one or multiple APK file(s) to install"
+msgstr ""
+
+msgid "Save support file"
+msgstr ""
+
+msgid "Dump Screen Xml"
+msgstr ""
+
+msgid "Save device analysis"
+msgstr ""
+
+msgid "Select files to push"
+msgstr ""
+
+msgid "Save /data/adb backup file"
+msgstr ""
+
+msgid "Select /data/adb backup file"
+msgstr ""
+
+msgid "Select keybox to test"
+msgstr ""
+
+msgid "Add / Edit / Delete Custom menu items"
+msgstr ""
+
+msgid "Select Boot Image"
+msgstr ""
+
+##############################################################################
+# Main UI
+##############################################################################
+msgid "Downloads Progress"
+msgstr ""
+
+msgid "Welcome to PixelFlasher %s by Badabing2005"
+msgstr ""
+
+msgid "Install APK on the device"
+msgstr ""
+
+msgid "App Manager"
+msgstr ""
+
+msgid "Manage Apps / Packages"
+msgstr ""
+
+msgid "Open ADB shell to the device."
+msgstr ""
+
+msgid "Partitions"
+msgstr ""
+
+msgid "Partition Manager"
+msgstr ""
+
+msgid "Switch to the other Slot"
+msgstr ""
+
+msgid "Reboot to userspace fastboot (fastbootd)"
+msgstr ""
+
+msgid "iRecovery"
+msgstr ""
+
+msgid "Reboot to Download Mode"
+msgstr ""
+
+msgid "Reboot to Sideload Mode"
+msgstr ""
+
+msgid "Magisk Backup"
+msgstr ""
+
+msgid ""
+"Remove Magisk Modules\n"
+"This button issues the following command:\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"This helps for cases where device bootloops due to incompatible magisk modules(YMMV).\n"
+msgstr ""
+
+msgid "Lock"
+msgstr ""
+
+msgid "UnLock"
+msgstr ""
+
+msgid "UnLock Bootloader\nCaution will wipe data\n"
+msgstr ""
+
+msgid "UnLock Bootloader"
+msgstr ""
+
+msgid "Configuration Settings"
+msgstr ""
+
+msgid "Create Support file"
+msgstr ""
+
+msgid "APK installation options"
+msgstr ""
+
+msgid "Install"
+msgstr ""
+
+msgid "Set ownership to Play Store Market"
+msgstr ""
+
+msgid "Bypass low target sdk block"
+msgstr ""
+
+msgid "ADB Connected Devices"
+msgstr ""
+
+msgid "ADB Connected Devices\nCurrent Active Slot: [A]"
+msgstr ""
+
+msgid "ADB Connected Devices\nCurrent Active Slot: [B]"
+msgstr ""
+
+msgid "Android Platform Tools\nVersion %s"
+msgstr ""
+
+msgid "Android Platform Tools"
+msgstr ""
+
+msgid "vbmeta issue."
+msgstr ""
+
+msgid "Warning!\n%s\n"
+msgstr ""
+
+msgid "❌ ERROR: You must first select a boot image"
+msgstr ""
+
+msgid "❌ ERROR: Downgrade patch file not found\nYou must first create a downgrade patch to enable this option.\n"
+msgstr ""
+
+msgid "❌ ERROR: Wipe All Data is selected\nYou must first select another mode to enable this option.\n"
+msgstr ""
+
+msgid "No Wipe Downgrade"
+msgstr ""
+
+msgid "                 WARNING!!! WARNING!!! WARNING!!!\n\n\n"
+msgstr ""
+
+msgid "THIS IS AN EXPERIMENTAL FEATURE, NO ASSURANCES THAT IT WOULD WORK\n\n"
+msgstr ""
+
+msgid "Do NOT enable this option if you are not downgrading!!!\n\n"
+msgstr ""
+
+msgid "Proceed only if you know what you're doing.\n\n\n"
+msgstr ""
+
+msgid "Do you want to continue to select the No Wipe Downgrade option?\n\n"
+msgstr ""
+
+msgid "       Press OK to continue or CANCEL to abort.\n\n"
+msgstr ""
+
+msgid "CANCEL"
+msgstr ""
+
+msgid "         WARNING!!! WARNING!!! WARNING!!!\n\n\n"
+msgstr ""
+
+msgid "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n\n"
+msgstr ""
+
+msgid "TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n\n"
+msgstr ""
+
+msgid "       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n\n"
+msgstr ""
+
+msgid "Do you want to continue to Lock the device bootloader?\n\n"
+msgstr ""
+
+msgid "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n\n"
+msgstr ""
+
+msgid "Make sure you first read either of the guides linked in the help menu.\n\n"
+msgstr ""
+
+msgid "Failing to follow the proper steps could potentially brick your phone.\n\n"
+msgstr ""
+
+msgid "\nNote: Pressing OK button will invoke a script that will utilize\n\n"
+msgstr ""
+
+msgid "fastboot commands, if your PC fastboot drivers are not properly setup,\n\n"
+msgstr ""
+
+msgid "fastboot will wait forever, and PixelFlasher will appear hung.\n\n"
+msgstr ""
+
+msgid "In such cases, killing the fastboot process will resume to normalcy.\n\n\n"
+msgstr ""
+
+msgid "      Do you want to continue to Lock the device bootloader?\n\n"
+msgstr ""
+
+msgid "              Press OK to continue or CANCEL to abort.\n\n"
+msgstr ""
+
+msgid "      Do you want to continue to Unlock the device bootloader?\n\n"
+msgstr ""
+
+msgid "WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n\n"
+msgstr ""
+
+msgid "You would only need to do this if your device is bootlooping due to\n\n"
+msgstr ""
+
+msgid "incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n\n"
+msgstr ""
+
+msgid "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n\n"
+msgstr ""
+
+msgid "If your device is not detected PixelFlasher will appear hung.\n\n"
+msgstr ""
+
+msgid "In such cases, killing the adb process will resume to normalcy.\n\n\n"
+msgstr ""
+
+msgid "                        Press OK to continue or CANCEL to abort.\n\n"
+msgstr ""
+
+msgid "Clear /data/adb/ contents"
+msgstr ""
+
+msgid "WARNING!!! This will the clear contents of /data/adb\n\n\n"
+msgstr ""
+
+msgid "Do you want to continue to clear /data/adb/ contents?\n\n"
+msgstr ""
+
+msgid "      Press OK to continue or CANCEL to abort.\n\n"
+msgstr ""
+
+msgid "This will invoke the command adb kill-server.\nAre you sure want to continue?\n"
+msgstr ""
+
+msgid "ADB Kill Server"
+msgstr ""
+
+msgid "Download Latest Android Platform-Tools"
+msgstr ""
+
+msgid "Select Android Platform-Tools Folder\nWhere adb and fastboot are located.\n"
+msgstr ""
+
+msgid "Double click this label to issue the command:\nadb kill-server"
+msgstr ""
+
+msgid "Open wireless manager dialog."
+msgstr ""
+
+msgid "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
+msgstr ""
+
+msgid "✓ Rooted with Magisk.\n"
+msgstr ""
+
+msgid "✗ Probably Not Root (Magisk Tools not found).\n"
+msgstr ""
+
+msgid "?  Unable to determine the root status.\n\n"
+msgstr ""
+
+msgid "(adb) device is in adb mode\n"
+msgstr ""
+
+msgid "(f.b) device is in fastboot mode\n"
+msgstr ""
+
+msgid "(sid) device is in sideload mode\n"
+msgstr ""
+
+msgid "(rec) device is in recovery mode\n"
+msgstr ""
+
+msgid "Scan for Devices\nPlease manually select the device after the scan is completed."
+msgstr ""
+
+msgid "Device Image"
+msgstr ""
+
+msgid "Download image file for current Pixel device."
+msgstr ""
+
+msgid "Select Pixel Firmware"
+msgstr ""
+
+msgid "Process"
+msgstr ""
+
+msgid "Process the firmware file and extract the boot.img"
+msgstr ""
+
+msgid "Apply Custom ROM"
+msgstr ""
+
+msgid "Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM"
+msgstr ""
+
+msgid "Select Custom ROM"
+msgstr ""
+
+msgid "Process the ROM file and extract the boot.img"
+msgstr ""
+
+msgid "Select a boot/init_boot"
+msgstr ""
+
+msgid "Show All boot/init_boot"
+msgstr ""
+
+msgid "Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM"
+msgstr ""
+
+msgid "Source SHA1  "
+msgstr ""
+
+msgid "Package Fingerprint  "
+msgstr ""
+
+msgid "Patched with version "
+msgstr ""
+
+msgid "Patch Method  "
+msgstr ""
+
+msgid "Patched on Device  "
+msgstr ""
+
+msgid "Date  "
+msgstr ""
+
+msgid "Package Path  "
+msgstr ""
+
+msgid "Open Folder"
+msgstr ""
+
+msgid "Open boot files folder"
+msgstr ""
+
+msgid "Open Working Directory"
+msgstr ""
+
+msgid "Patch"
+msgstr ""
+
+msgid "Patch the selected item"
+msgstr ""
+
+msgid "Patch with Magisk"
+msgstr ""
+
+msgid "Patch with KernelSU"
+msgstr ""
+
+msgid "Patch with KernelSU LKM"
+msgstr ""
+
+msgid "Patch with KernelSU-Next"
+msgstr ""
+
+msgid "Patch with KernelSU-Next LKM"
+msgstr ""
+
+msgid "Patch with APatch"
+msgstr ""
+
+msgid "Patch with APatch Alternate"
+msgstr ""
+
+msgid "Patch custom boot/init_boot"
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Delete the selected item"
+msgstr ""
+
+msgid "Add a new boot item"
+msgstr ""
+
+msgid "Info"
+msgstr ""
+
+msgid "Get information about the selected item"
+msgstr ""
+
+msgid "Live Boot"
+msgstr ""
+
+msgid "Live boot to the selected item"
+msgstr ""
+
+msgid "Flash Boot"
+msgstr ""
+
+msgid "Flash just the selected item"
+msgstr ""
+
+msgid "Flash Mode"
+msgstr ""
+
+msgid "Keep Data"
+msgstr ""
+
+msgid "Data will be kept intact."
+msgstr ""
+
+msgid "WIPE all data"
+msgstr ""
+
+msgid "CAUTION: This will wipe your data"
+msgstr ""
+
+msgid "Dry Run"
+msgstr ""
+
+msgid ""
+"Dry Run, no flashing will be done.\n"
+"The phone will reboot to fastboot and then\n"
+"back to normal.\n"
+"This is for testing.\n"
+msgstr ""
+
+msgid "Full OTA"
+msgstr ""
+
+msgid "Flash full OTA, and have the choice of flashing patched image(s)."
+msgstr ""
+
+msgid "Custom Flash"
+msgstr ""
+
+msgid ""
+"Custom Flash, Advanced option to flash a single file.\n"
+"This will not flash the factory image.\n"
+"It will flash the single selected file.\n"
+msgstr ""
+
+msgid "Live Boot to selected boot / init_boot"
+msgstr ""
+
+msgid "Flash"
+msgstr ""
+
+msgid "Flashes the selected boot / init_boot"
+msgstr ""
+
+msgid "Depending on the flash selection, paste the appropriate path as custom image."
+msgstr ""
+
+msgid "Flash Options"
+msgstr ""
+
+msgid "Flash to inactive slot"
+msgstr ""
+
+msgid "This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact.\n"
+msgstr ""
+
+msgid "Flash to both slots"
+msgstr ""
+
+msgid "This option when checked will flash to both slots."
+msgstr ""
+
+msgid "Disable Verity"
+msgstr ""
+
+msgid "Disables Verity"
+msgstr ""
+
+msgid "Disable Verification"
+msgstr ""
+
+msgid "Disables Verification"
+msgstr ""
+
+msgid "Force"
+msgstr ""
+
+msgid "Force a flash operation that may be unsafe (will wipe your data)"
+msgstr ""
+
+msgid "Verbose"
+msgstr ""
+
+msgid "Set fastboot option to verbose"
+msgstr ""
+
+msgid "Temporary Root"
+msgstr ""
+
+msgid "Wipe"
+msgstr ""
+
+msgid ""
+"This option when enabled will not flash patched boot\n"
+"Instead it will flash unpatched boot.img, but boot to Live Patched boot\n"
+"Handy to test if Magisk will cause a bootloop.\n"
+"Please be aware that this temporary root will not survive a subsequent reboot.\n"
+"If you want to make this permanent, just Flash Boot the patched boot image.\n"
+msgstr ""
+
+msgid "No reboot"
+msgstr ""
+
+msgid "Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.\n"
+msgstr ""
+
+msgid "This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.\n"
+msgstr ""
+
+msgid "WARNING!!! This is a highly experimental feature.\nThis will attempt to downgrade the device without needing a data wipe.\n\n"
+msgstr ""
+
+msgid "Flash Device"
+msgstr ""
+
+msgid "Flashes the selected device with chosen flash options."
+msgstr ""
+
+msgid "Console"
+msgstr ""
+
+msgid "Please be patient ..."
+msgstr ""
+
+msgid "Create encrypted and optionally sanitized support.zip file\nWhen sanitized all sensitive data is redacted.\n\nThis file is absolutely required when asking for help."
+msgstr ""
+
+msgid "Debug"
+msgstr ""
+
+msgid "Enable Debug Messages in the console."
+msgstr ""
+
+msgid "Clear Console"
+msgstr ""
+
+msgid "**APK installation options**<br/>\n"
+msgstr ""
+
+msgid "This is a summary of available options.<br/>\n"
+msgstr ""
+
+msgid "1. **Set ownership to Play Store Market** This option sets the ownership to Play Store (as if it was installed from Play Store).<br/>\n"
+msgstr ""
+
+msgid "   Android auto apps require that they be installed from the Play Market.<br/>\n"
+msgstr ""
+
+msgid "2. Starting with Android 14, apps with a targetSdkVersion lower than 23 can't be installed.<br/>\n"
+msgstr ""
+
+msgid "   Requiring apps to meet these minimum target API level requirements improves security and privacy for users.<br/><br/>\n"
+msgstr ""
+
+msgid "   Malware often targets older API levels in order to bypass security and privacy protections that have been introduced in newer Android versions.<br/>\n"
+msgstr ""
+
+msgid "   For example, some malware apps use a `targetSdkVersion` of 22 to avoid being subjected to the runtime permission model\n"
+msgstr ""
+
+msgid "   introduced in 2015 by Android 6.0 Marshmallow (API level 23).<br/>\n"
+msgstr ""
+
+msgid "   This Android 14 change makes it harder for malware to avoid security and privacy improvements.<br/>\n"
+msgstr ""
+
+msgid "   Attempting to install an app targeting a lower API level will result in an installation failure.<br/><br/>\n"
+msgstr ""
+
+msgid "   **Bypass low target sdk block** option bypasses that enforcement.\n"
+msgstr ""
+
+msgid "_If you have selected multiple APKs to install, the options will apply to all APKs._\n"
+msgstr ""
+
+msgid "# ATTENTION!\n"
+msgstr ""
+
+msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
+msgstr ""
+
+msgid "This report will inherently reveal sensitive information about your device such as:\n"
+msgstr ""
+
+msgid "- Device id and other device related details.\n"
+msgstr ""
+
+msgid "- Magisk (if available):\n"
+msgstr ""
+
+msgid "	- modules list.\n"
+msgstr ""
+
+msgid "	- denylist.\n"
+msgstr ""
+
+msgid "- TrickyStore (if available):\n"
+msgstr ""
+
+msgid "	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)\n"
+msgstr ""
+
+msgid "- PlayIntegrity Fork (if available):\n"
+msgstr ""
+
+msgid "- PlayIntegrityFix (if available):\n"
+msgstr ""
+
+msgid "- Whether a testkey ROM is used or not.\n"
+msgstr ""
+
+msgid "- logcat for PlayIntegrity and TrickyStore related logs.\n"
+msgstr ""
+
+msgid "- Droidguard VM list.\n"
+msgstr ""
+
+msgid "- If any custom ROM injection apps are installed from:\n"
+msgstr ""
+
+msgid "- Check overlays (if contents of /debug_ramdisk is visible without root)\n"
+msgstr ""
+
+msgid "**NOTE:**\n"
+msgstr ""
+
+msgid "This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>\n"
+msgstr ""
+
+msgid "Your privacy is yours to keep.<br/>\n"
+msgstr ""
+
+msgid "If you continue you'd only be generating the report, and not posting it online.<br/>\n"
+msgstr ""
+
+msgid "If you want to post it online, please make sure to remove any sensitive information from the report before posting it online.<br/>\n"
+msgstr ""
+
+msgid "**Are you sure you want to continue?**<br/>\n"
+msgstr ""
+
+##############################################################################
+# Advanced Settings
+##############################################################################
+msgid "Advanced Configuration Settings"
+msgstr ""
+
+msgid "WARNING!\n"
+msgstr ""
+
+msgid "This is advanced configuration.\n"
+msgstr ""
+
+msgid "Unless you know what you are doing,\n"
+msgstr ""
+
+msgid "you should not be enabling it.\n"
+msgstr ""
+
+msgid "YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n"
+msgstr ""
+
+msgid "THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n"
+msgstr ""
+
+msgid "ADB, MAGISK, ANDROID, AND ROOT.\n"
+msgstr ""
+
+msgid "IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n"
+msgstr ""
+
+msgid "Enable Advanced Options"
+msgstr ""
+
+msgid "Expert mode"
+msgstr ""
+
+msgid "Magisk Package Name"
+msgstr ""
+
+msgid "If you have hidden Magisk,\nset this to the hidden package name."
+msgstr ""
+
+msgid "Resets package name to default: %s"
+msgstr ""
+
+msgid "Linux File Explorer:"
+msgstr ""
+
+msgid "Set full path to File Explorer.\nDefault: Nautilus"
+msgstr ""
+
+msgid "Linux Shell:"
+msgstr ""
+
+msgid "Set full path to Linux Shell.\nDefault: gnome-terminal"
+msgstr ""
+
+msgid "Offer Patch Methods"
+msgstr ""
+
+msgid "When patching the choice of method is presented."
+msgstr ""
+
+msgid "Patching Recovery Partition"
+msgstr ""
+
+msgid ""
+"Enabling this will show an option to patch a recovery partition.\n"
+"This should be kept disabled unless you have an old device.\n"
+"(most A-only devices launched with Android 9, legacy SAR)"
+msgstr ""
+
+msgid "Use Busybox Shell"
+msgstr ""
+
+msgid "When creating a patch, if this is checked, busybox ash will be used as shell."
+msgstr ""
+
+msgid "System has low memory"
+msgstr ""
+
+msgid "Use this option to sacrifice speed in favor of memory."
+msgstr ""
+
+msgid "Extra img extraction"
+msgstr ""
+
+msgid "When checked and available in payload.bin\nAlso extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img"
+msgstr ""
+
+msgid "Show notifications"
+msgstr ""
+
+msgid "When checked PixelFlasher will display system toast notifications."
+msgstr ""
+
+msgid "Always create boot.tar"
+msgstr ""
+
+msgid "When checked, PixelFlasher always creates boot.tar of the patched boot file.\nIf unchecked, only for Samsung firmware boot.tar will be created."
+msgstr ""
+
+msgid "Check for updates"
+msgstr ""
+
+msgid "Checks for available updates on startup"
+msgstr ""
+
+msgid "Check for Minimum Disk (5Gb)"
+msgstr ""
+
+msgid "Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues."
+msgstr ""
+
+msgid "Check for bootloader unlocked"
+msgstr ""
+
+msgid "Checks to make sure bootloader is unlocked before flashing."
+msgstr ""
+
+msgid "Check for firmware hash validity"
+msgstr ""
+
+msgid "Checks for sha256 portion to be in the image filename to detect Pixel compatible image."
+msgstr ""
+
+msgid "Keep temporary support files"
+msgstr ""
+
+msgid "It keeps the temporary support files.\nUseful for inspecting what data is included in support.zip."
+msgstr ""
+
+msgid "Check Magisk modules for updates"
+msgstr ""
+
+msgid ""
+"It checks if the module has updates.\n"
+"Disable this if you don't want to check for updates or\n"
+" if some module update server has issues and delays the process."
+msgstr ""
+
+msgid "Show custom ROM options"
+msgstr ""
+
+msgid "Make sure you check if your ROM is supported."
+msgstr ""
+
+msgid "Sanitize (Redact) support files"
+msgstr ""
+
+msgid ""
+"The support files are always encrypted.\n"
+"This option redacts sensitive information from the support files.\n"
+"But impedes support and is not recommended."
+msgstr ""
+
+msgid "Force codepage to"
+msgstr ""
+
+msgid "Uses specified code page instead of system code page"
+msgstr ""
+
+msgid "Delete bundled libs"
+msgstr ""
+
+msgid "The listed libraries would be deleted from the PF bundle to allow system defined ones to be used."
+msgstr ""
+
+msgid "Example: libreadline.so.8, libgdk*"
+msgstr ""
+
+msgid "Override KMI"
+msgstr ""
+
+msgid ""
+"This will override the Kernel Module Interface (KMI) to the specified value.\n"
+"This is useful for devices with custom kernels.\n"
+"The value will be passed to KernelSU as the KMI value."
+msgstr ""
+
+msgid "Example: 5.15.131-android14"
+msgstr ""
+
+msgid "Use Custom Fontface"
+msgstr ""
+
+msgid "Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window."
+msgstr ""
+
+msgid "Sample "
+msgstr ""
+
+msgid "Select font size"
+msgstr ""
+
+msgid "scrcpy Path"
+msgstr ""
+
+msgid "Download scrcpy"
+msgstr ""
+
+msgid "Scrcpy executable (*.exe;*)|*.exe;*"
+msgstr ""
+
+msgid "Select scrcpy executable"
+msgstr ""
+
+msgid "Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)"
+msgstr ""
+
+msgid "Scrcpy settings"
+msgstr ""
+
+##############################################################################
+# Message dialogs and toasts (modules.py)
+##############################################################################
+msgid "Module update URL has issues, inform the module author: %s\nDo you want to skip checking updates for this module?"
+msgstr ""
+
+msgid "You have an old or problematic Android platform Tools version %s \n"
+msgstr ""
+
+msgid "You are strongly advised to update before continuing.\n"
+msgstr ""
+
+msgid "Are you sure you want to continue?"
+msgstr ""
+
+msgid "Bad Android Platform Tools"
+msgstr ""
+
+msgid "Android SDK Version:    %s\n"
+msgstr ""
+
+msgid "Device:                 %s %s %s\n"
+msgstr ""
+
+msgid "Factory Image:          %s\n"
+msgstr ""
+
+msgid "Custom Rom:             %s\n"
+msgstr ""
+
+msgid "Custom Rom File:        %s\n"
+msgstr ""
+
+msgid "\nBoot image:             %s / %s \n"
+msgstr ""
+
+msgid "                        From: %s\n"
+msgstr ""
+
+msgid "                        Patched with %s on %s method:        %s\n"
+msgstr ""
+
+msgid "                        Patched with %s on %s\n"
+msgstr ""
+
+msgid "\nFlash Mode:             %s\n"
+msgstr ""
+
+msgid "SHA256 of %s%s matches the segment in the filename."
+msgstr ""
+
+msgid "⚠️ Firmware SHA256 Mismatch"
+msgstr ""
+
+msgid "WARNING! SHA256 of %s%s does not match segments in the filename.\nPlease double check to make sure the checksum is good."
+msgstr ""
+
+msgid "Process action"
+msgstr ""
+
+msgid "❌ Could not extract %s"
+msgstr ""
+
+msgid "Possibly extracted firmware."
+msgstr ""
+
+msgid "WARNING: It looks like you have extracted the firmware file.\nand selected the image zip from it.\n\n"
+msgstr ""
+
+msgid "You should not extract the file, please select the downloaded firmware file instead\n\n"
+msgstr ""
+
+msgid "If this is not the case, and you want to continue with this selection\n"
+msgstr ""
+
+msgid "❌ Could not unpack %s."
+msgstr ""
+
+msgid "❌ Could not extract %s."
+msgstr ""
+
+msgid "❌ Could not find %s."
+msgstr ""
+
+msgid "⚠️ Detected unsupported firmware."
+msgstr ""
+
+msgid "❌ Could not extract payload.bin."
+msgstr ""
+
+msgid "❌ The selected firmware is not valid."
+msgstr ""
+
+msgid "⚠️ Nothing to extract from %s"
+msgstr ""
+
+msgid "✅ Process %s time: %s seconds"
+msgstr ""
+
+msgid "WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?"
+msgstr ""
+
+msgid "Confirm"
+msgstr ""
+
+msgid "Display is Locked!"
+msgstr ""
+
+msgid "ERROR: Your phone display is Locked.\n\n"
+msgstr ""
+
+msgid "Make sure you unlock your display\n"
+msgstr ""
+
+msgid "And set the display timeout to at least 1 minute.\n\n"
+msgstr ""
+
+msgid "After doing so, Click OK to accept and continue.\n"
+msgstr ""
+
+msgid "Manual Patching"
+msgstr ""
+
+msgid "Done creating the patch, continue"
+msgstr ""
+
+msgid "Magisk Manager is not detected."
+msgstr ""
+
+msgid "WARNING: Magisk Manager [%s] is not found on the phone\n\n"
+msgstr ""
+
+msgid "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
+msgstr ""
+
+msgid "If it is installed and hidden, then you should abort and then unhide it.\n"
+msgstr ""
+
+msgid "If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n"
+msgstr ""
+
+msgid "WARNING: Do not install Magisk again if it is currently hidden.\n"
+msgstr ""
+
+msgid "Do you want PixelFlasher to download and install Magisk?\n"
+msgstr ""
+
+msgid "You will be given a choice of Magisk Version to install.\n\n"
+msgstr ""
+
+msgid "Click OK to continue with Magisk installation.\n"
+msgstr ""
+
+msgid "Kernel KMI Override"
+msgstr ""
+
+msgid "Kernel KMI Override: %s\n\n"
+msgstr ""
+
+msgid "You have set a custom kernel KMI override.\n"
+msgstr ""
+
+msgid "Are you sure you want to proceed with this override?\n"
+msgstr ""
+
+msgid "Click OK to proceed with the override.\n"
+msgstr ""
+
+msgid "Boot Model Mismatch"
+msgstr ""
+
+msgid "APatch Manual Patching"
+msgstr ""
+
+msgid "APatch Manual Patching requires CONFIG_KALLSYMS=y in the kernel config.\n"
+msgstr ""
+
+msgid "APatch Manual Patching only supports kernel versions 3.18 - 6.1\n\n"
+msgstr ""
+
+msgid "Do you want to continue regardless of not meeting the pre-requisites?\n\n"
+msgstr ""
+
+msgid "Click Yes to continue with APatch Manual Patching\n"
+msgstr ""
+
+msgid "or Hit No to abort."
+msgstr ""
+
+msgid "Download Latest KernelPatch Tools"
+msgstr ""
+
+msgid "Latest KernelPatch Tools Pre-release Version: %s\n"
+msgstr ""
+
+msgid "Latest KernelPatch Tools Release Version: %s\n\n"
+msgstr ""
+
+msgid "Do you want to download the latest kptools-android and kpimg-android that includes pre-release versions?\n\n"
+msgstr ""
+
+msgid "Click Yes to download the latest pre-release versions: %s\n"
+msgstr ""
+
+msgid "Click No to download the latest Release versions: %s\n"
+msgstr ""
+
+msgid "%s Boot"
+msgstr ""
+
+msgid "ERROR: Your phone model is: %s\n\n"
+msgstr ""
+
+msgid "The selected Boot is for: %s\n\n"
+msgstr ""
+
+msgid "Unless you know what you are doing, if you continue flashing\n"
+msgstr ""
+
+msgid "you risk bricking your device, proceed only if you are absolutely\n"
+msgstr ""
+
+msgid "certain that this is what you want, you have been warned.\n\n"
+msgstr ""
+
+msgid "Flash action"
+msgstr ""
+
+msgid "❌ Device is not detected."
+msgstr ""
+
+msgid "❌ Bootloader is locked, cannot flash."
+msgstr ""
+
+msgid "Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?"
+msgstr ""
+
+msgid "❌ Android Platform Tools is not set."
+msgstr ""
+
+msgid "❌ Valid device is not selected."
+msgstr ""
+
+msgid "❌ boot is not selected."
+msgstr ""
+
+msgid "You can only sideload OTA that is equal or higher than the currently installed version.\n"
+msgstr ""
+
+msgid "Alternatively, you can flash the full firmware image (with wipe data) to downgrade or patch the current boot image to allow a downgrade without wipe.\n"
+msgstr ""
+
+msgid "See Menu item: Dev Tools | AVB Prepare Downgrade Patch for further details.\n\n"
+msgstr ""
+
+msgid "If you still want to proceed, Click YES to accept and continue. or NO to Abort.\n"
+msgstr ""
+
+msgid "You have selected to WIPE data\nAre you sure want to continue?"
+msgstr ""
+
+msgid "Wipe Data"
+msgstr ""
+
+msgid "✅ Wipe Data is accepted."
+msgstr ""
+
+msgid "You have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?"
+msgstr ""
+
+msgid "Flash option: Wipe"
+msgstr ""
+
+msgid "✅ Wipe is accepted."
+msgstr ""
+
+msgid "You have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?"
+msgstr ""
+
+msgid "Flash option: Force"
+msgstr ""
+
+msgid "✅ Force flag is accepted."
+msgstr ""
+
+msgid "❌ Not enough disk space."
+msgstr ""
+
+msgid "❌ Full OTA or factory image must be selected."
+msgstr ""
+
+msgid "Tensor device not on Android 13 or higher"
+msgstr ""
+
+msgid "WARNING: Your phone OS version is lower than Android 13.\n\n"
+msgstr ""
+
+msgid "If you are upgrading to Android 13 or newer,\n"
+msgstr ""
+
+msgid "make sure you at least flash the bootloader to both slots.\n"
+msgstr ""
+
+msgid "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
+msgstr ""
+
+msgid "a bootloader update that increments the anti-roll back version for the bootloader.\n"
+msgstr ""
+
+msgid "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
+msgstr ""
+
+msgid "After flashing an Android 13 build on these devices\n"
+msgstr ""
+
+msgid "you will not be able to flash and boot older Android 12 builds.\n\n"
+msgstr ""
+
+msgid "Selecting the option 'Flash to both slots'\n"
+msgstr ""
+
+msgid "Will take care of that.\n\n"
+msgstr ""
+
+msgid "Click OK to continue as is.\n"
+msgstr ""
+
+msgid "or Hit CANCEL to abort and change options."
+msgstr ""
+
+msgid "✅ Anti rollback warning acknowledged and bypassed."
+msgstr ""
+
+msgid "❌ downgrade_boot.img is not found."
+msgstr ""
+
+msgid "❌ Unable to replace boot.img in image.zip."
+msgstr ""
+
+msgid "⚠️ Live booting Pixel 7 or newer devices is not supported."
+msgstr ""
+
+msgid "❌ Image file is not selected."
+msgstr ""
+
+msgid "❌ Boot file is not found."
+msgstr ""
+
+msgid "❌ ROM file is not found."
+msgstr ""
+
+msgid "Device / Firmware Mismatch"
+msgstr ""
+
+msgid "The selected firmware is for: %s\n\n"
+msgstr ""
+
+msgid "✅ Device / Firmware mismatch acknowledged."
+msgstr ""
+
+msgid "❌ Encountered an error while rebooting to bootloader."
+msgstr ""
+
+msgid "❌ Encountered an error while rebooting to sideload."
+msgstr ""
+
+msgid "❌ Encountered an error while rebooting to fastbootd."
+msgstr ""
+
+msgid "❌ Encountered an error while running the flash script."
+msgstr ""
+
+msgid "❌ Encountered an error while flashing the patch."
+msgstr ""
+
+msgid "❌ vbmeta flashing did not return the expected result."
+msgstr ""
+
+msgid "❌ It appears that OTA flashing did not properly switch slots."
+msgstr ""
+
+msgid "⚠️ Device is not found after rebooting to bootloader."
+msgstr ""
+
+msgid "✅ Flashing elapsed time: %s seconds"
+msgstr ""
+
+msgid "You have selected  WIPE option.\nAdb debugging will be reset and disabled\nHence patch or vbmeta flashing will be skipped."
+msgstr ""
+
+msgid "%s %s \n"
+msgstr ""
+
+msgid "Device is not detected."
+msgstr ""
+
+msgid "Done rebooting to bootloader, continue"
+msgstr ""
+
+msgid "Done rebooting to system, continue"
+msgstr ""
+
+msgid "## Is your device waiting for interaction?\n"
+msgstr ""
+
+msgid "_If it is not, please hit the cancel button._\n"
+msgstr ""
+
+msgid "If your device is waiting for user interaction which can not be programmatically invoked.\n"
+msgstr ""
+
+msgid "- Using volume keys, scroll up and down and select **Reboot {action_text}**\n"
+msgstr ""
+
+msgid "- Press the power button to apply.\n"
+msgstr ""
+
+msgid "When done, the device should reboot to %s <br/>\n"
+msgstr ""
+
+msgid "Wait for the device to fully boot to %s <br/>\n"
+msgstr ""
+
+msgid "Click on **Done rebooting to %s, continue** button <br/>\n"
+msgstr ""
+
+msgid "or hit the **Cancel** button to abort.\n"
+msgstr ""
+
+msgid "Waiting for user interaction"
+msgstr ""
+
+msgid "## Your watch should now be in Android Recovery\n"
+msgstr ""
+
+msgid "The watch is waiting for user interaction which can not be programmatically invoked.\n"
+msgstr ""
+
+msgid "- Using touch, scroll and select **Reboot to bootloader**\n"
+msgstr ""
+
+msgid "- Press the side button to apply.\n"
+msgstr ""
+
+msgid "When done, the watch should reboot to bootloader mode <br/>\n"
+msgstr ""
+
+msgid "Wait for the watch to indicate that it is in bootloader mode <br/>\n"
+msgstr ""
+
+msgid "Click on **Done rebooting to bootloader, continue** button <br/>\n"
+msgstr ""
+
+msgid "- Using touch, scroll and select **Reboot to system now**\n"
+msgstr ""
+
+msgid "When applied, the watch should reboot to system. <br/>\n"
+msgstr ""
+
+msgid "Click on **Done rebooting to system, continue** button when the watch OS fully loads.\n"
+msgstr ""
+
+##############################################################################
+# Pif Manager
+##############################################################################
+msgid "Active Pif"
+msgstr ""
+
+msgid "Loaded Pif (from Device)"
+msgstr ""
+
+msgid "Active pif is not modified."
+msgstr ""
+
+msgid "Save Active pif content to a json file on disk."
+msgstr ""
+
+msgid "Pif Module"
+msgstr ""
+
+msgid "Active pif is not saved in favorites."
+msgstr ""
+
+msgid "Select a folder to import pif json files."
+msgstr ""
+
+msgid "Output"
+msgstr ""
+
+msgid "Console Output:\nIt could be the json output of processed prop\nor it could be the Play Integrity Check result.\n\nThis is not what currently is on the device."
+msgstr ""
+
+msgid "Smart Paste:\nSets First API to the set value if it is missing or forced.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif."
+msgstr ""
+
+msgid "Paste the console window content to Active pif."
+msgstr ""
+
+msgid "Paste the Active pif to console window."
+msgstr ""
+
+msgid "Reprocess current Active Pif window json.\nUseful if you changed module version which might require additional / different fields."
+msgstr ""
+
+msgid "Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place."
+msgstr ""
+
+msgid "Convert console content from env (key=value) format to json"
+msgstr ""
+
+msgid "Convert console content from json to env (key=value) format"
+msgstr ""
+
+msgid "Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n"
+msgstr ""
+
+msgid "Add missing Keys from device"
+msgstr ""
+
+msgid "When Processing or Reprocessing, add missing fields from device."
+msgstr ""
+
+msgid "Force First API to:"
+msgstr ""
+
+msgid "Forces First API value(s) to"
+msgstr ""
+
+msgid "Sort Keys"
+msgstr ""
+
+msgid "Sorts json keys"
+msgstr ""
+
+msgid "Keep All keys"
+msgstr ""
+
+msgid "Does not remove non standard / unrecognized keys"
+msgstr ""
+
+msgid "Spoof Build"
+msgstr ""
+
+msgid "Spoof Props"
+msgstr ""
+
+msgid "Spoof Provider"
+msgstr ""
+
+msgid "Spoof Signature"
+msgstr ""
+
+msgid "Close"
+msgstr ""
+
+msgid "Create print"
+msgstr ""
+
+msgid "Create pif.json / spoof_build_vars"
+msgstr ""
+
+msgid "Push print, no validation"
+msgstr ""
+
+msgid "Pushes the print as is without performing any validation.\nThis is useful to retain comments."
+msgstr ""
+
+msgid "Reload print"
+msgstr ""
+
+msgid "Reload pif.json / spoof_build_vars from device."
+msgstr ""
+
+msgid "Cleanup DG"
+msgstr ""
+
+msgid "Cleanup Droidguard Cache"
+msgstr ""
+
+msgid "Push keybox.xml"
+msgstr ""
+
+msgid "Push a valid keybox.xml to device."
+msgstr ""
+
+msgid "Edit TS Target"
+msgstr ""
+
+msgid "Edit Tricky Store target.txt file."
+msgstr ""
+
+msgid "Edit TS SP"
+msgstr ""
+
+msgid "Edit Tricky Store security_patch.txt file."
+msgstr ""
+
+msgid "Process build.prop(s)"
+msgstr ""
+
+msgid "Process build.prop to extract a compatible print."
+msgstr ""
+
+msgid "Process bulk props"
+msgstr ""
+
+msgid "Process a folder containing .prop files and convert then to .json files."
+msgstr ""
+
+msgid "Process Image"
+msgstr ""
+
+msgid "Process an image and get a print from it."
+msgstr ""
+
+msgid "Auto Update print"
+msgstr ""
+
+msgid "After Processing build.props, the print is automatically pushed to the device and the GMS process is killed."
+msgstr ""
+
+msgid "Auto Check Play Integrity"
+msgstr ""
+
+msgid "After saving (pushing) print, automatically run Play Integrity Check."
+msgstr ""
+
+msgid "Disable UIAutomator"
+msgstr ""
+
+msgid "Disables UIAutomator\nThis is useful for devices with buggy UIAutomator.\nNOTE: Create the coords.json file manually to make use of automated testing."
+msgstr ""
+
+msgid "Play Integrity Check"
+msgstr ""
+
+msgid "Play Integrity API Checker\nNote: Need to install app from Play store."
+msgstr ""
+
+msgid "Latest"
+msgstr ""
+
+msgid "Custom"
+msgstr ""
+
+msgid "Select 'Latest' to get the latest Pixel beta pif (Includes Developer Preview).\nSelect 'Custom' to set a custom Android version code."
+msgstr ""
+
+msgid "Set a valid Android version code."
+msgstr ""
+
+msgid "Get Pixel Beta Pif"
+msgstr ""
+
+msgid "Get the latest Pixel beta pif."
+msgstr ""
+
+msgid "Get Xiaomi Pif"
+msgstr ""
+
+msgid "Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own."
+msgstr ""
+
+msgid "Get TheFreeman193 Random Pif"
+msgstr ""
+
+msgid "Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work."
+msgstr ""
+
+msgid "No Device is selected.\nPif Manager features are set to limited mode."
+msgstr ""
+
+msgid "Device is not rooted or SU permissions to adb shell is not granted.\nPif Manager features are set to limited mode."
+msgstr ""
+
+msgid "Update print"
+msgstr ""
+
+msgid "Update pif.json / spoof_build_vars."
+msgstr ""
+
+msgid "Create pif.json / spoof_build_vars."
+msgstr ""
+
+msgid "Getting Pixel beta print ...\nPlease be patient this could take some time ..."
+msgstr ""
+
+msgid "Failed to get beta print."
+msgstr ""
+
+msgid "Active pif not in sync"
+msgstr ""
+
+msgid "⚠️ WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing."
+msgstr ""
+
+msgid "Choose property files to open"
+msgstr ""
+
+msgid "Select a Device Image"
+msgstr ""
+
+msgid "Processing %s ...\nPlease be patient this could take some time ..."
+msgstr ""
+
+msgid "Image format not supported"
+msgstr ""
+
+msgid "Select folder to bulk process props files"
+msgstr ""
+
+msgid "The contents is different than what is currently on the device.\nUpdate the print before testing."
+msgstr ""
+
+msgid "Active pif is saved in favorites."
+msgstr ""
+
+msgid "Select keybox to push"
+msgstr ""
+
+msgid "Choose one or multiple json files to reprocess"
+msgstr ""
+
+msgid "Save FP file"
+msgstr ""
+
+msgid "Enter a label:"
+msgstr ""
+
+msgid "Save Pif to Favorites"
+msgstr ""
+
+msgid "Select folder to Import Pifs"
+msgstr ""
+
+##############################################################################
+# Magisk
+##############################################################################
+msgid "❌ ERROR: You must first select a valid device."
+msgstr ""
+
+msgid "Manage Magisk"
+msgstr ""
+
+msgid "When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled."
+msgstr ""
+
+msgid "Magisk Modules"
+msgstr ""
+
+msgid "Enable / Disable Magisk modules"
+msgstr ""
+
+msgid "Install Module"
+msgstr ""
+
+msgid "Install magisk module."
+msgstr ""
+
+msgid "Update Module"
+msgstr ""
+
+msgid "Update magisk module."
+msgstr ""
+
+msgid "Uninstall Module"
+msgstr ""
+
+msgid "Uninstall magisk module."
+msgstr ""
+
+msgid "Run Action"
+msgstr ""
+
+msgid "Run Module action.sh."
+msgstr ""
+
+msgid "Install Pif / TS Module"
+msgstr ""
+
+msgid "Install Play Integrity Fix module."
+msgstr ""
+
+msgid "Install ZygiskNext Module"
+msgstr ""
+
+msgid "Install ZygiskNext module."
+msgstr ""
+
+msgid "Systemless Hosts"
+msgstr ""
+
+msgid "Add Systemless Hosts Module."
+msgstr ""
+
+msgid "Enable Zygisk"
+msgstr ""
+
+msgid "Enable Magisk zygisk (requires reboot)"
+msgstr ""
+
+msgid "Disable Zygisk"
+msgstr ""
+
+msgid "Disable Magisk zygisk (requires reboot)"
+msgstr ""
+
+msgid "Enable Denylist"
+msgstr ""
+
+msgid "Enable Magisk denylist"
+msgstr ""
+
+msgid "Disable Denylist"
+msgstr ""
+
+msgid "Disable Magisk denylist"
+msgstr ""
+
+msgid "Refresh"
+msgstr ""
+
+msgid "Refresh Magisk modules list."
+msgstr ""
+
+msgid "To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature."
+msgstr ""
+
+msgid "Use Pixelflasher's App Manager functionality to add/remove items to denylist or su permissions."
+msgstr ""
+
+msgid "Restore Module"
+msgstr ""
+
+msgid "## You need to reboot your device for the changes to take effect."
+msgstr ""
+
+msgid "osm0sis PlayIntegrityFork"
+msgstr ""
+
+msgid "chiteroman PlayIntegrityFix"
+msgstr ""
+
+msgid "PIF Module"
+msgstr ""
+
+msgid "Select the module you want to install"
+msgstr ""
+
+msgid "## You need to reboot your device to complete the installation."
+msgstr ""
+
+msgid "## You need to reboot your device to complete the update."
+msgstr ""
+
+msgid "Copy"
+msgstr ""
+
+msgid "Select All"
+msgstr ""
+
+##############################################################################
+# Rooting App
+##############################################################################
+msgid "Download and Install Rooting Application"
+msgstr ""
+
+msgid "Select rooting app to install."
+msgstr ""
+
+msgid "Root App"
+msgstr ""
+
+msgid "Version"
+msgstr ""
+
+msgid "VersionCode"
+msgstr ""
+
+msgid "URL"
+msgstr ""
+
+msgid "Package"
+msgstr ""
+
+msgid "WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install."
+msgstr ""
+
+msgid "Download the rooting app."
+msgstr ""
+
+msgid "Copy URL to Clipboard"
+msgstr ""
+
+msgid "Copy Package ID to Clipboard"
+msgstr ""
+
+msgid "Download Selected Rooting App"
+msgstr ""
+
+msgid "Device Not Supported"
+msgstr ""
+
+msgid "The selected Magisk is not supported for your device\n"
+msgstr ""
+
+msgid "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
+msgstr ""
+
+msgid "Unless you know what you are doing, if you choose to continue\n"
+msgstr ""
+
+msgid "you risk running into serious issues, proceed only if you are absolutely\n"
+msgstr ""
+
+##############################################################################
+# Magisk Backup Manager
+##############################################################################
+msgid "Check / Uncheck All"
+msgstr ""
+
+msgid "Delete checked backups"
+msgstr ""
+
+msgid "Add Backup from Computer"
+msgstr ""
+
+msgid "Select a boot.img and create a backup from it.\nWARNING! No verification is done if the selected file is stock boot image or even for the correct device."
+msgstr ""
+
+msgid "Auto Create Backup"
+msgstr ""
+
+msgid "Checks current boot partition,\nFf it is a Magisk Patched with SHA1\nand the boot.img is available, then it\nAutomatically creates a backup of boot image."
+msgstr ""
+
+msgid "Closes this dialog"
+msgstr ""
+
+msgid "boot / init_boot image to create backup of."
+msgstr ""
+
+msgid "Delete Backup"
+msgstr ""
+
+msgid "Check All"
+msgstr ""
+
+msgid "UnCheck All"
+msgstr ""
+
+msgid "Copy to Clipboard"
+msgstr ""
+
+##############################################################################
+# App Manager
+##############################################################################
+msgid "Set SU Permission"
+msgstr ""
+
+msgid "Enter SU Permission details:"
+msgstr ""
+
+msgid "Enable Notification"
+msgstr ""
+
+msgid "Enable Logging"
+msgstr ""
+
+msgid "Forever"
+msgstr ""
+
+msgid "10 mins"
+msgstr ""
+
+msgid "20 mins"
+msgstr ""
+
+msgid "30 mins"
+msgstr ""
+
+msgid "60 mins"
+msgstr ""
+
+msgid "Allow"
+msgstr ""
+
+msgid "Deny"
+msgstr ""
+
+msgid "Revoke"
+msgstr ""
+
+msgid "Manage Packages on the Device"
+msgstr ""
+
+msgid "%s Packages"
+msgstr ""
+
+msgid "Show System apps"
+msgstr ""
+
+msgid "Show 3rd Party apps"
+msgstr ""
+
+msgid "Get All Application Names"
+msgstr ""
+
+msgid "Extracts App names, and caches them for faster loading in the future.\nNOTE: This could take a while."
+msgstr ""
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable checked packages"
+msgstr ""
+
+msgid "Enable"
+msgstr ""
+
+msgid "Enable checked packages"
+msgstr ""
+
+msgid "Uninstall"
+msgstr ""
+
+msgid "Uninstall checked packages"
+msgstr ""
+
+msgid "Add to Denylist"
+msgstr ""
+
+msgid "Add package to Magisk Denylist"
+msgstr ""
+
+msgid "Remove from Denylist"
+msgstr ""
+
+msgid "Remove package from Magisk Denylist"
+msgstr ""
+
+msgid "Install an APK on the device"
+msgstr ""
+
+msgid "Download APK"
+msgstr ""
+
+msgid "Extract and download APK"
+msgstr ""
+
+msgid "Export List"
+msgstr ""
+
+msgid "Export the package list in CSV format"
+msgstr ""
+
+msgid "%s / %s Packages"
+msgstr ""
+
+msgid "Export Package list"
+msgstr ""
+
+msgid "Choose a directory where all apks should be saved."
+msgstr ""
+
+msgid "Download APK file"
+msgstr ""
+
+msgid "Disable Package"
+msgstr ""
+
+msgid "Enable Package"
+msgstr ""
+
+msgid "Uninstall Package"
+msgstr ""
+
+msgid "Download Package"
+msgstr ""
+
+msgid "Launch Package"
+msgstr ""
+
+msgid "View Application Permissions"
+msgstr ""
+
+msgid "Kill Application"
+msgstr ""
+
+msgid "Clear Application Data"
+msgstr ""
+
+msgid "Add Package to Magisk Denylist"
+msgstr ""
+
+msgid "Remove Package from Magisk Denylist"
+msgstr ""
+
+msgid "SU Permission ..."
+msgstr ""

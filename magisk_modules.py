@@ -43,7 +43,9 @@ import wx.html
 import webbrowser
 from datetime import datetime
 from runtime import *
+from constants import *
 from message_box_ex import MessageBoxEx
+from i18n import _
 
 
 # ============================================================================
@@ -86,12 +88,12 @@ class MagiskModules(wx.Dialog):
         self.device = get_phone(True)
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-            wx.MessageBox(f"❌ ERROR: You must first select a valid device.", "Error", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(_("❌ ERROR: You must first select a valid device."), _("Error"), wx.OK | wx.ICON_ERROR)
             self.Close()
             return
 
         self.config = config
-        self.SetTitle("Manage Magisk")
+        self.SetTitle(_("Manage Magisk"))
         self.pif_json_path = PIF_JSON_PATH
 
         # Instance variable to store current selected module
@@ -102,14 +104,14 @@ class MagiskModules(wx.Dialog):
         # Message label
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
-        self.message_label.Label = "When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled."
+        self.message_label.Label = _("When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled.")
         if sys.platform == "win32":
             self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
         self.message_label.SetForegroundColour(wx.Colour(255, 0, 0))
 
         # Module label
-        self.modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Magisk Modules")
-        self.modules_label.SetToolTip(u"Enable / Disable Magisk modules")
+        self.modules_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_("Magisk Modules"))
+        self.modules_label.SetToolTip(_("Enable / Disable Magisk modules"))
         font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.modules_label.SetFont(font)
 
@@ -132,64 +134,64 @@ class MagiskModules(wx.Dialog):
             self.html.SetStandardFonts()
 
         # Ok button
-        self.ok_button = wx.Button(self, wx.ID_ANY, u"OK", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.ok_button = wx.Button(self, wx.ID_ANY, _("OK"), wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Install module button
-        self.install_module_button = wx.Button(self, wx.ID_ANY, u"Install Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.install_module_button.SetToolTip(u"Install magisk module.")
+        self.install_module_button = wx.Button(self, wx.ID_ANY, _("Install Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.install_module_button.SetToolTip(_("Install magisk module."))
 
         # update module button
-        self.update_module_button = wx.Button(self, wx.ID_ANY, u"Update Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.update_module_button.SetToolTip(u"Update magisk module.")
+        self.update_module_button = wx.Button(self, wx.ID_ANY, _("Update Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.update_module_button.SetToolTip(_("Update magisk module."))
         self.update_module_button.Enable(False)
 
         # UnInstall module button
-        self.uninstall_module_button = wx.Button(self, wx.ID_ANY, u"Uninstall Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.uninstall_module_button.SetToolTip(u"Uninstall magisk module.")
+        self.uninstall_module_button = wx.Button(self, wx.ID_ANY, _("Uninstall Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.uninstall_module_button.SetToolTip(_("Uninstall magisk module."))
         self.uninstall_module_button.Enable(False)
 
         # Run Module Action button
-        self.run_action_button = wx.Button(self, wx.ID_ANY, u"Run Action", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.run_action_button.SetToolTip(u"Run Module action.sh.")
+        self.run_action_button = wx.Button(self, wx.ID_ANY, _("Run Action"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.run_action_button.SetToolTip(_("Run Module action.sh."))
         self.run_action_button.Enable(False)
 
         # Play Integrity Fix Install button
-        self.pif_install_button = wx.Button(self, wx.ID_ANY, u"Install Pif / TS Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pif_install_button.SetToolTip(u"Install Play Integrity Fix module.")
+        self.pif_install_button = wx.Button(self, wx.ID_ANY, _("Install Pif / TS Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pif_install_button.SetToolTip(_("Install Play Integrity Fix module."))
 
         # ZygiskNext Install button
-        self.zygisk_next_install_button = wx.Button(self, wx.ID_ANY, u"Install ZygiskNext Module", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.zygisk_next_install_button.SetToolTip(u"Install ZygiskNext module.")
+        self.zygisk_next_install_button = wx.Button(self, wx.ID_ANY, _("Install ZygiskNext Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.zygisk_next_install_button.SetToolTip(_("Install ZygiskNext module."))
 
         # Systemless hosts button
-        self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, u"Systemless Hosts", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.systemless_hosts_button.SetToolTip(u"Add Systemless Hosts Module.")
+        self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, _("Systemless Hosts"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.systemless_hosts_button.SetToolTip(_("Add Systemless Hosts Module."))
 
         # Enable zygisk button
-        self.enable_zygisk_button = wx.Button(self, wx.ID_ANY, u"Enable Zygisk", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.enable_zygisk_button.SetToolTip(u"Enable Magisk zygisk (requires reboot)")
+        self.enable_zygisk_button = wx.Button(self, wx.ID_ANY, _("Enable Zygisk"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.enable_zygisk_button.SetToolTip(_("Enable Magisk zygisk (requires reboot)"))
 
         # Disable zygisk button
-        self.disable_zygisk_button = wx.Button(self, wx.ID_ANY, u"Disable Zygisk", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.disable_zygisk_button.SetToolTip(u"Disable Magisk zygisk (requires reboot)")
+        self.disable_zygisk_button = wx.Button(self, wx.ID_ANY, _("Disable Zygisk"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.disable_zygisk_button.SetToolTip(_("Disable Magisk zygisk (requires reboot)"))
 
         # Enable denlylist button
-        self.enable_denylist_button = wx.Button(self, wx.ID_ANY, u"Enable Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.enable_denylist_button.SetToolTip(u"Enable Magisk denylist")
+        self.enable_denylist_button = wx.Button(self, wx.ID_ANY, _("Enable Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.enable_denylist_button.SetToolTip(_("Enable Magisk denylist"))
 
         # Disable denylist button
-        self.disable_denylist_button = wx.Button(self, wx.ID_ANY, u"Disable Denylist", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.disable_denylist_button.SetToolTip(u"Disable Magisk denylist")
+        self.disable_denylist_button = wx.Button(self, wx.ID_ANY, _("Disable Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.disable_denylist_button.SetToolTip(_("Disable Magisk denylist"))
 
         # Refresh
-        self.refresh_button = wx.Button(self, wx.ID_ANY, u"Refresh", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.refresh_button.SetToolTip(u"Refresh Magisk modules list.")
+        self.refresh_button = wx.Button(self, wx.ID_ANY, _("Refresh"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.refresh_button.SetToolTip(_("Refresh Magisk modules list."))
 
         # static line
         self.staticline1 = wx.StaticLine(parent=self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LI_HORIZONTAL)
 
         # Cancel button
-        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.cancel_button = wx.Button(self, wx.ID_ANY, _("Cancel"), wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Make the buttons the same size
         button_width = self.zygisk_next_install_button.GetSize()[0] + 10
@@ -207,8 +209,8 @@ class MagiskModules(wx.Dialog):
         self.refresh_button.SetMinSize((button_width, -1))
 
         # Label for managing denylist and SU Permissions
-        management_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature.")
-        management_label.SetToolTip(u"Use Pixelflasher's App Manager functionality to add/remove items to denylist or su permissions.")
+        management_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_("To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature."))
+        management_label.SetToolTip(_("Use Pixelflasher's App Manager functionality to add/remove items to denylist or su permissions."))
         font = management_label.GetFont()
         font.SetStyle(wx.FONTSTYLE_ITALIC)
         management_label.SetFont(font)
@@ -417,14 +419,14 @@ class MagiskModules(wx.Dialog):
         row,flags = self.list.HitTest((x,y))
         if row == -1:
             self.uninstall_module_button.Enable(False)
-            self.uninstall_module_button.SetLabel('Uninstall Module')
+            self.uninstall_module_button.SetLabel(_('Uninstall Module'))
             self.run_action_button.Enable(False)
         else:
             self.uninstall_module_button.Enable(True)
             if self.list.GetItemTextColour(row) == wx.LIGHT_GREY:
-                self.uninstall_module_button.SetLabel('Restore Module')
+                self.uninstall_module_button.SetLabel(_('Restore Module'))
             else:
-                self.uninstall_module_button.SetLabel('Uninstall Module')
+                self.uninstall_module_button.SetLabel(_('Uninstall Module'))
         event.Skip()
 
     # -----------------------------------------------
@@ -483,7 +485,7 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
             res = device.magisk_enable_zygisk(True)
             if res == 0:
-                self.outputMessage("## You need to reboot your device for the changes to take effect.")
+                self.outputMessage(_("## You need to reboot your device for the changes to take effect."))
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onEnableZygisk")
             traceback.print_exc()
@@ -502,7 +504,7 @@ class MagiskModules(wx.Dialog):
             self._on_spin('start')
             res = device.magisk_enable_zygisk(False)
             if res == 0:
-                self.outputMessage("## You need to reboot your device for the changes to take effect.")
+                self.outputMessage(_("## You need to reboot your device for the changes to take effect."))
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onDisableZygisk")
             traceback.print_exc()
@@ -575,8 +577,8 @@ class MagiskModules(wx.Dialog):
             device = get_phone(True)
             if not device.rooted:
                 return
-            buttons_text = ["osm0sis PlayIntegrityFork", "chiteroman PlayIntegrityFix", "TrickyStore", "Cancel"]
-            dlg = MessageBoxEx(parent=self, title='PIF Module', message="Select the module you want to install", button_texts=buttons_text, default_button=1)
+            buttons_text = [_("osm0sis PlayIntegrityFork"), _("chiteroman PlayIntegrityFix"), "TrickyStore", _("Cancel")]
+            dlg = MessageBoxEx(parent=self, title=_('PIF Module'), message=_("Select the module you want to install"), button_texts=buttons_text, default_button=1)
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -589,7 +591,7 @@ class MagiskModules(wx.Dialog):
                 module_update_url = PIF_UPDATE_URL
             elif result == 3:
                 # module_update_url = TRICKYSTORE_UPDATE_URL
-                gh_latest_url = download_gh_latest_release_asset_regex('5ec1cff', 'TrickyStore', '^Tricky\-Store.*\-release\.zip$', True)
+                gh_latest_url = download_gh_latest_release_asset_regex('5ec1cff', 'TrickyStore', r'^Tricky\-Store.*\-release\.zip$', True)
             else:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting ...\n")
@@ -610,7 +612,7 @@ class MagiskModules(wx.Dialog):
             print(f"Installing Play Integrity Fix (PIF) module. URL: {downloaded_file_path} ...")
             res = device.magisk_install_module(downloaded_file_path)
             if res == 0:
-                self.outputMessage("## You need to reboot your device to complete the installation.")
+                self.outputMessage(_("## You need to reboot your device to complete the installation."))
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity Fix module installation.")
@@ -638,7 +640,7 @@ class MagiskModules(wx.Dialog):
             print(f"Installing ZygiskNext module. URL: {downloaded_file_path} ...")
             res = device.magisk_install_module(downloaded_file_path)
             if res == 0:
-                self.outputMessage("## You need to reboot your device to complete the installation.")
+                self.outputMessage(_("## You need to reboot your device to complete the installation."))
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during ZygiskNext module installation.")
@@ -686,7 +688,7 @@ class MagiskModules(wx.Dialog):
                     if res == 0:
                         modules[i].state = 'remove'
                         self.refresh_modules()
-                        self.outputMessage("## You need to reboot your device for the changes to take effect.")
+                        self.outputMessage(_("## You need to reboot your device for the changes to take effect."))
                     else:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to remove module: {modules[i].name}")
                     break
@@ -714,7 +716,7 @@ class MagiskModules(wx.Dialog):
                 downloaded_file_path = download_file(url)
                 res = device.magisk_install_module(downloaded_file_path)
                 if res == 0:
-                    self.outputMessage("## You need to reboot your device to complete the update.")
+                    self.outputMessage(_("## You need to reboot your device to complete the update."))
             self.refresh_modules()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
@@ -730,7 +732,7 @@ class MagiskModules(wx.Dialog):
         if not device.rooted:
             return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Install Module.")
-        with wx.FileDialog(self, "select Module file to install", '', '', wildcard="Magisk Modules (*.*.zip)|*.zip", style=wx.FD_OPEN) as fileDialog:
+        with wx.FileDialog(self, "_(select Module file to install)", '', '', wildcard="Magisk Modules (*.*.zip)|*.zip", style=wx.FD_OPEN) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 print("User cancelled module install.")
                 return
@@ -741,7 +743,7 @@ class MagiskModules(wx.Dialog):
                 self._on_spin('start')
                 res = device.magisk_install_module(pathname)
                 if res == 0:
-                    self.outputMessage("## You need to reboot your device to complete the installation.")
+                    self.outputMessage(_("## You need to reboot your device to complete the installation."))
                 self.refresh_modules()
             except IOError:
                 wx.LogError(f"Cannot install module file '{pathname}'.")
@@ -754,8 +756,8 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onContextMenu(self, event):
         menu = wx.Menu()
-        copy_item = menu.Append(wx.ID_COPY, "Copy")
-        select_all_item = menu.Append(wx.ID_SELECTALL, "Select All")
+        copy_item = menu.Append(wx.ID_COPY, _("Copy"))
+        select_all_item = menu.Append(wx.ID_SELECTALL, _("Select All"))
         self.Bind(wx.EVT_MENU, self.onCopy, copy_item)
         self.Bind(wx.EVT_MENU, self.onSelectAll, select_all_item)
 

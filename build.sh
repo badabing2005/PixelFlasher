@@ -32,7 +32,7 @@
 # <https://www.gnu.org/licenses/>.
 
 rm -rf build dist
-VERSION=7.11.4.0
+VERSION=8.0.0.0
 NAME="PixelFlasher"
 DIST_NAME="PixelFlasher"
 
@@ -50,6 +50,14 @@ else
     echo "Building for Linux"
     specfile=build-on-linux.spec
 fi
+
+if ! command -v python3 &> /dev/null
+then
+    PYTHON=python
+else
+    PYTHON=python3
+fi
+$PYTHON ./compile_po.py
 
 pyinstaller --log-level=DEBUG \
             --noconfirm \

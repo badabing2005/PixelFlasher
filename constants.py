@@ -35,7 +35,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '7.11.4.0'
+VERSION = '8.0.0.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -45,7 +45,8 @@ PIF_WIDTH = 1150
 PIF_HEIGHT = 840
 POS_X = 40
 POS_Y = 40
-KNOWN_INIT_BOOT_DEVICES = ['panther', 'cheetah', 'lynx', 'tangorpro', 'felix', 'shiba', 'husky', 'aurora', 'eos', 'akita', 'tokay', 'caiman', 'komodo', 'comet', 'solios', 'seluna']
+
+KNOWN_INIT_BOOT_DEVICES = ['panther', 'cheetah', 'lynx', 'tangorpro', 'felix', 'shiba', 'husky', 'aurora', 'eos', 'akita', 'tokay', 'caiman', 'komodo', 'comet', 'solios', 'seluna', 'tegu']
 KNOWN_BAD_MAGISKS = ['7dbfba76:25207', 'e5641d5b:25208', '2717feac:25209', '981ccabb:25210', '69529ac5:25211', 'e2545e57:26001', '26.0:26000', 'a8c4a33e:26103']
 PIF_UPDATE_URL = 'https://raw.githubusercontent.com/chiteroman/PlayIntegrityFix/main/update.json'
 OSM0SIS_PIF_UPDATE_URL = 'https://raw.githubusercontent.com/osm0sis/PlayIntegrityFork/main/update.json'
@@ -99,57 +100,29 @@ SHADOW_BANNED_ISSUERS = [
     'b701bdebaa0e163c4983ef449cf2273a'
 ]
 
-# Links menu data structure
-LINKS_MENU_DATA = [
-    # Format: (label, image_name, url)
-    # Guides
-    ("Homeboy76's Guide", "guide_24", "https://xdaforums.com/t/guide-november-6-2023-root-pixel-8-pro-unlock-bootloader-pass-safetynet-both-slots-bootable-more.4638510/#post-89128833/"),
-    ("V0latyle's Guide", "guide_24", "https://xdaforums.com/t/guide-root-pixel-6-oriole-with-magisk.4356233/"),
-    ("roirraW's Guide", "guide_24", "https://xdaforums.com/t/december-5-2022-tq1a-221205-011-global-012-o2-uk-unlock-bootloader-root-pixel-7-pro-cheetah-safetynet.4502805/"),
-    None,  # Separator
-    # FAQ and info
-    ("osm0sis's PIF FAQ", "forum_24", "https://xdaforums.com/t/pif-faq.4653307/"),
-    ("V0latyle's PI API Info", "forum_24", "https://xdaforums.com/t/info-play-integrity-api-replacement-for-safetynet.4479337"),
-    ("chiteroman's PlayIntegrityFix", "forum_24", "https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985"),
-    ("Tricky Store (Support Thread)", "forum_24", "https://xdaforums.com/t/tricky-store-bootloader-keybox-spoofing.4683446"),
-    None,  # Separator
-    # GitHub repos
-    ("osm0sis's PlayIntegrityFork", "github_24", "https://github.com/osm0sis/PlayIntegrityFork"),
-    ("chiteroman's PlayIntegrityFix", "github_24", "https://github.com/chiteroman/PlayIntegrityFix"),
-    ("5ec1cff's TrickyStore", "github_24", "https://github.com/5ec1cff/TrickyStore"),
-    None,  # Separator
-    # References
-    ("Get the Google USB Driver", "android_24", "https://developer.android.com/studio/run/win-usb?authuser=1%2F"),
-    ("Android Security Update Bulletins", "android_24", "https://source.android.com/docs/security/bulletin/"),
-    ("Android Codenames, tags, and build numbers", "android_24", "https://source.android.com/docs/setup/reference/build-numbers"),
-    None,  # Separator
-    # Device images
-    ("Full OTA Images for Pixel Phones / Tablets", "google_24", 'https://developers.google.com/android/ota'),
-    ("Factory Images for Pixel Phones / Tablets", "google_24", 'https://developers.google.com/android/ota'),
-    ("Full OTA Images for Pixel Watches", "google_24", 'https://developers.google.com/android/ota-watch'),
-    ("Factory Images for Pixel Watches", "google_24", 'https://developers.google.com/android/images-watch'),
-    None,  # Separator
-    # Beta images
-    ("Full OTA Images for Pixel Beta 16", "android_24", 'https://developer.android.com/about/versions/15/download-ota'),
-    ("Factory Images for Pixel Beta 16", "android_24", 'https://developer.android.com/about/versions/15/download'),
-]
-
-# Help menu URLs and descriptions
-HELP_MENU_ITEMS = {
-    "issue": {
-        "url": "https://github.com/badabing2005/PixelFlasher/issues/new",
-        "description": "Report an Issue"
-    },
-    "feature": {
-        "url": "https://github.com/badabing2005/PixelFlasher/issues/new",
-        "description": "Feature Request"
-    },
-    "project": {
-        "url": "https://github.com/badabing2005/PixelFlasher",
-        "description": "PixelFlasher Project Page"
-    },
-    "forum": {
-        "url": "https://xdaforums.com/t/pixelflasher-gui-tool-that-facilitates-flashing-updating-pixel-phones.4415453/",
-        "description": "PixelFlasher Community (Forum)"
-    }
+# Language names for the language selection menu
+LANGUAGE_NAMES = {
+    'en': 'English',
+    'ar': 'العربية (Arabic)',
+    'cs': 'Čeština (Czech)',
+    'da': 'Dansk (Danish)',
+    'de': 'Deutsch (German)',
+    'el': 'Ελληνικά (Greek)',
+    'es': 'Español (Spanish)',
+    'fr': 'Français (French)',
+    'he': 'עברית (Hebrew)',
+    'hu': 'Magyar (Hungarian)',
+    'it': 'Italiano (Italian)',
+    'ja': '日本語 (Japanese)',
+    'ko': '한국어 (Korean)',
+    'nl': 'Nederlands (Dutch)',
+    'pl': 'Polski (Polish)',
+    'pt': 'Português (Portuguese)',
+    'ro': 'Română (Romanian)',
+    'ru': 'Русский (Russian)',
+    'sv': 'Svenska (Swedish)',
+    'uk': 'Українська (Ukrainian)',
+    'vi': 'Tiếng Việt (Vietnamese)',
+    'zh_CN': '简体中文 (Simplified Chinese)',
+    'zh_TW': '繁體中文 (Traditional Chinese)'
 }

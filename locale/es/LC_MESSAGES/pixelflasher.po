@@ -1,0 +1,2585 @@
+# Spanish translations for PixelFlasher.
+# Copyright (C) 2023-2024 Badabing2005
+# This file is distributed under the same license as the PixelFlasher package.
+msgid ""
+msgstr ""
+"Project-Id-Version: PixelFlasher\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-05-13 16:17+0000\n"
+"PO-Revision-Date: 2024-05-13 16:17+0000\n"
+"Last-Translator: PixelFlasher Developers <badabing2005@hotmail.com>\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+##############################################################################
+# Common buttons
+##############################################################################
+msgid "Yes"
+msgstr "Sí"
+
+msgid "No"
+msgstr "No"
+
+msgid "OK"
+msgstr "Aceptar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Apply"
+msgstr "Aplicar"
+
+# Main Menu items
+msgid "&File"
+msgstr "&Archivo"
+
+msgid "&Device"
+msgstr "&Dispositivo"
+
+msgid "Dev Tools"
+msgstr "Herramientas de desarrollo"
+
+msgid "&My Tools"
+msgstr "&Mis Herramientas"
+
+msgid "&Google Images"
+msgstr "&Imágenes de Google"
+
+msgid "&Toolbar"
+msgstr "&Barra de herramientas"
+
+msgid "&Language"
+msgstr "&Idioma"
+
+msgid "&Help"
+msgstr "&Ayuda"
+
+##############################################################################
+# Menu
+##############################################################################
+# -------------------------------------
+# File menu items
+# -------------------------------------
+msgid "Settings"
+msgstr "Configuración"
+
+msgid "Exit"
+msgstr "Salir"
+
+msgid "E&xit\tCtrl-Q"
+msgstr "&Salir\tCtrl-Q"
+
+msgid "Exit PixelFlasher"
+msgstr "Salir de PixelFlasher"
+
+# -------------------------------------
+# Device menu items
+# -------------------------------------
+msgid "Install APK"
+msgstr "Instalar APK"
+
+msgid "Package Manager"
+msgstr "Administrador de paquetes"
+
+msgid "ADB Shell"
+msgstr "Terminal ADB"
+
+msgid "Scrcpy"
+msgstr "Scrcpy"
+
+msgid "Device Info"
+msgstr "Información del dispositivo"
+
+msgid "Pif Print"
+msgstr "Pif Print"
+
+msgid "Props as Json"
+msgstr "Props como Json"
+
+msgid "Dump Screen XML"
+msgstr "Volcar pantalla en XML"
+
+msgid "Cancel OTA Update"
+msgstr "Cancelar actualización OTA"
+
+msgid "Check otacerts"
+msgstr "Verificar otacerts"
+
+msgid "Partitions Manager"
+msgstr "Administrador de particiones"
+
+msgid "PI Analysis Report"
+msgstr "Informe de análisis PI"
+
+msgid "Switch Slot"
+msgstr "Cambiar ranura"
+
+msgid "Reboot"
+msgstr "Reiniciar"
+
+# -------------------------------------
+# Reboot sub-menu items
+# -------------------------------------
+msgid "System"
+msgstr "Sistema"
+
+msgid "Bootloader"
+msgstr "Bootloader"
+
+msgid "Fastbootd"
+msgstr "Fastbootd"
+
+msgid "Recovery"
+msgstr "Recovery"
+
+msgid "Interactive Recovery"
+msgstr "Recovery interactivo"
+
+msgid "Safe Mode"
+msgstr "Modo seguro"
+
+msgid "Download"
+msgstr "Download"
+
+msgid "Sideload"
+msgstr "Sideload"
+# ---
+
+msgid "Push file(s) to"
+msgstr "Enviar archivo(s) a"
+
+msgid "Magisk"
+msgstr "Magisk"
+
+msgid "Rooting App"
+msgstr "App de root"
+
+msgid "Magisk Backup Manager"
+msgstr "Administrador de copias de Magisk"
+
+msgid "Backup /data/adb"
+msgstr "Copia de seguridad de /data/adb"
+
+msgid "Restore /data/adb"
+msgstr "Restaurar /data/adb"
+
+msgid "Clear /data/adb/*"
+msgstr "Borrar /data/adb/*"
+
+msgid "Start Shizuku"
+msgstr "Iniciar Shizuku"
+
+msgid "Pif Manager"
+msgstr "Administrador Pif"
+
+msgid "SOS"
+msgstr "SOS"
+
+msgid "Lock Bootloader"
+msgstr "Bloquear Bootloader"
+
+msgid "Unlock Bootloader"
+msgstr "Desbloquear Bootloader"
+
+# -------------------------------------
+# Dev Tools menu items
+# -------------------------------------
+msgid "Check keybox.xml"
+msgstr "Verificar keybox.xml"
+
+msgid "Decode Binary XML"
+msgstr "Decodificar XML binario"
+
+msgid "AVB - Get Image Info"
+msgstr "AVB - Obtener info imagen"
+
+msgid "AVB - Prepare Downgrade Patch"
+msgstr "AVB - Preparar parche de downgrade"
+
+# -------------------------------------
+# My Tools menu items
+# -------------------------------------
+msgid "Customize My Tools"
+msgstr "Personalizar Mis Herramientas"
+
+# Google Images menu items
+msgid "Phones"
+msgstr "Teléfonos"
+
+msgid "Watches"
+msgstr "Relojes"
+
+msgid "Refresh images list"
+msgstr "Actualizar lista de imágenes"
+
+msgid "Show Progress Window"
+msgstr "Mostrar ventana de progreso"
+
+# -------------------------------------
+# Toolbar menu items
+# -------------------------------------
+msgid "Top"
+msgstr "Arriba"
+
+msgid "Left"
+msgstr "Izquierda"
+
+msgid "Right"
+msgstr "Derecha"
+
+msgid "Bottom"
+msgstr "Abajo"
+
+msgid "Show Button Text"
+msgstr "Mostrar texto de botones"
+
+msgid "Show Button Icon"
+msgstr "Mostrar iconos de botones"
+
+msgid "Show / Hide Buttons"
+msgstr "Mostrar / Ocultar botones"
+
+# -------------------------------------
+# Toolbar Show / Hide Button
+# sub-menu items share translations
+# from Device menu items
+# -------------------------------------
+msgid "Reboot to System"
+msgstr "Reiniciar a Sistema"
+
+msgid "Reboot to Bootloader"
+msgstr "Reiniciar a Bootloader"
+
+msgid "Reboot to Fastbootd"
+msgstr "Reiniciar a Fastbootd"
+
+msgid "Reboot to Recovery"
+msgstr "Reiniciar a Recovery"
+
+msgid "Reboot to Interactive Recovery"
+msgstr "Reiniciar a Recovery interactivo"
+
+msgid "Reboot to Safe Mode"
+msgstr "Reiniciar a Modo seguro"
+
+msgid "Reboot to Download"
+msgstr "Reiniciar a Download"
+
+msgid "Reboot to Sideload"
+msgstr "Reiniciar a Sideload"
+
+msgid "Configuration"
+msgstr "Configuración"
+
+msgid "Support"
+msgstr "Soporte"
+
+# -------------------------------------
+# Help menu items
+# -------------------------------------
+msgid "Report an Issue"
+msgstr "Reportar un problema"
+
+msgid "Feature Request"
+msgstr "Solicitar función"
+
+msgid "PixelFlasher Project Page"
+msgstr "Página del proyecto PixelFlasher"
+
+msgid "PixelFlasher Community (Forum)"
+msgstr "Comunidad PixelFlasher (Foro)"
+
+msgid "Links"
+msgstr "Enlaces"
+
+msgid "Open Configuration Folder"
+msgstr "Abrir carpeta de configuración"
+
+msgid "Open PixelFlasher Working Directory"
+msgstr "Abrir directorio de trabajo de PixelFlasher"
+
+msgid "Create a Sanitized support.zip"
+msgstr "Crear un support.zip sanitizado"
+
+msgid "Check for New Version"
+msgstr "Buscar nueva versión"
+
+msgid "&About PixelFlasher"
+msgstr "&Acerca de PixelFlasher"
+
+msgid "About"
+msgstr "Acerca"
+
+# -------------------------------------
+# Links sub-menu items
+# -------------------------------------
+msgid "Homeboy76's Guide"
+msgstr "Guía de Homeboy76"
+
+msgid "V0latyle's Guide"
+msgstr "Guía de V0latyle"
+
+msgid "roirraW's Guide"
+msgstr "Guía de roirraW"
+
+msgid "osm0sis's PIF FAQ"
+msgstr "FAQ PIF de osm0sis"
+
+msgid "V0latyle's PI API Info"
+msgstr "Información de API PI de V0latyle"
+
+msgid "Tricky Store (Support Thread)"
+msgstr "Tricky Store (Hilo de soporte)"
+
+msgid "osm0sis's PlayIntegrityFork"
+msgstr "PlayIntegrityFork de osm0sis"
+
+msgid "chiteroman's PlayIntegrityFix"
+msgstr "PlayIntegrityFix de chiteroman"
+
+msgid "5ec1cff's TrickyStore"
+msgstr "TrickyStore de 5ec1cff"
+
+msgid "Get the Google USB Driver"
+msgstr "Obtener el controlador USB de Google"
+
+msgid "Android Security Update Bulletins"
+msgstr "Boletines de actualización de seguridad de Android"
+
+msgid "Android Codenames, tags, and build numbers"
+msgstr "Nombres en clave, etiquetas y números de compilación de Android"
+
+msgid "Full OTA Images for Pixel Phones / Tablets"
+msgstr "Imágenes OTA completas para teléfonos/tabletas Pixel"
+
+msgid "Factory Images for Pixel Phones / Tablets"
+msgstr "Imágenes de fábrica para teléfonos/tabletas Pixel"
+
+msgid "Full OTA Images for Pixel Watches"
+msgstr "Imágenes OTA completas para relojes Pixel"
+
+msgid "Factory Images for Pixel Watches"
+msgstr "Imágenes de fábrica para relojes Pixel"
+
+msgid "Full OTA Images for Pixel Beta 16"
+msgstr "Imágenes OTA completas para Pixel Beta 16"
+
+msgid "Factory Images for Pixel Beta 16"
+msgstr "Imágenes de fábrica para Pixel Beta 16"
+
+##############################################################################
+# Helper values
+##############################################################################
+msgid "Open adb shell to the device"
+msgstr "Abrir terminal adb al dispositivo"
+
+msgid "Launch Screen Copy"
+msgstr "Iniciar copia de pantalla"
+
+msgid "Dump Full Device Info"
+msgstr "Volcar información completa del dispositivo"
+
+msgid "Get current device's Pif print (osm0sis fork v5 format)"
+msgstr "Obtener Pif print del dispositivo actual (formato fork v5 de osm0sis)"
+
+msgid "Get current device's properties in json format"
+msgstr "Obtener propiedades del dispositivo actual en formato json"
+
+msgid "Use uiautomator to dump the screen view in xml"
+msgstr "Usar uiautomator para volcar la vista de pantalla en xml"
+
+msgid "Cancels and Resets OTA updates by Google (Not PixelFlasher)"
+msgstr "Cancela y reinicia actualizaciones OTA de Google (No PixelFlasher)"
+
+msgid "Used to see if ROM is signed or not."
+msgstr "Utilizado para ver si la ROM está firmada o no."
+
+msgid "Backup / Erase Partitions"
+msgstr "Respaldar / Borrar particiones"
+
+msgid "Generate a report of PI Analysis"
+msgstr "Generar un informe de análisis PI"
+
+msgid "Switch to the other slot"
+msgstr "Cambiar a la otra ranura"
+
+msgid "Manage Magisk modules and settings"
+msgstr "Administrar módulos y configuración de Magisk"
+
+msgid "Download / Install rooting app like Magisk or KernelSU or APatch"
+msgstr "Descargar / Instalar app de root como Magisk, KernelSU o APatch"
+
+msgid "Manage Magisk Backups"
+msgstr "Administrar copias de seguridad de Magisk"
+
+msgid ""
+"Backs up /data/adb.\n"
+"This is useful for backing up Magisk modules.\n"
+"NOTE: If a module writes to anywhere other than /data/adb, those paths will not be backed up."
+msgstr ""
+"Respalda /data/adb.\n"
+"Esto es útil para hacer copias de seguridad de módulos Magisk.\n"
+"NOTA: Si un módulo escribe en cualquier lugar que no sea /data/adb, esas rutas no se respaldará."
+
+msgid ""
+"Restore /data/adb from a backup file.\n"
+"This is useful for restoring Magisk modules.\n"
+"NOTE: If a module writes to anywhere other than /data/adb, those items will not be restored."
+msgstr ""
+"Restaura /data/adb desde un archivo de respaldo.\n"
+"Esto es útil para restaurar módulos Magisk.\n"
+"NOTA: Si un módulo escribe en cualquier lugar que no sea /data/adb, esos elementos no se restaurarán."
+
+msgid ""
+"Clear up /data/adb/ content (not the directory).\n"
+"This is useful when switching to different root flavor."
+msgstr ""
+"Borra el contenido de /data/adb/ (no el directorio).\n"
+"Esto es útil al cambiar a una solución de root diferente."
+
+msgid "Starts Shizuku service on the device."
+msgstr "Inicia el servicio Shizuku en el dispositivo."
+
+msgid "Disable Magisk Modules"
+msgstr "Deshabilitar módulos Magisk"
+
+msgid "Unlock Bootloader (Will wipe data)"
+msgstr "Desbloquear Bootloader (Borrará datos)"
+
+msgid "Get Android Verified Boot Image Info"
+msgstr "Obtener información de imagen de arranque verificado de Android"
+
+msgid "Create Downgrade Patch"
+msgstr "Crear parche de downgrade"
+
+##############################################################################
+# toast messages
+##############################################################################
+msgid "Download Successful"
+msgstr "Descarga exitosa"
+
+msgid "✅ File downloaded successfully: %s and saved to %s"
+msgstr "✅ Archivo descargado exitosamente: %s y guardado en %s"
+
+msgid "No Downloads"
+msgstr "Sin descargas"
+
+msgid "ℹ️ No downloads are in progress."
+msgstr "ℹ️ No hay descargas en progreso."
+
+msgid "⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good."
+msgstr "⚠️ ¡ADVERTENCIA! El SHA256 del archivo seleccionado no coincide con los segmentos en el nombre del archivo.\nPor favor, verifique para asegurarse de que el checksum es correcto."
+
+msgid "APK Install"
+msgstr "Instalación de APK"
+
+msgid "❌ ERROR: Please select a device before attempting APK Installation."
+msgstr "❌ ERROR: Por favor seleccione un dispositivo antes de intentar la instalación de APK."
+
+msgid "❌ ERROR: No device selected"
+msgstr "❌ ERROR: Ningún dispositivo seleccionado"
+
+msgid "Check OTA Certs"
+msgstr "Verificar certificados OTA"
+
+msgid "Device Analysis"
+msgstr "Análisis de dispositivo"
+
+msgid "❌ ERROR: /data/local/tmp is not accessible, this will affect some features."
+msgstr "❌ ERROR: /data/local/tmp no es accesible, esto afectará algunas funciones."
+
+msgid "vbmeta Warning!"
+msgstr "¡Advertencia de vbmeta!"
+
+msgid "WARNING! Banned Kernel"
+msgstr "¡ADVERTENCIA! Kernel prohibido"
+
+msgid "⚠️ Kernel string: %s is known to be banned.\nPlay Integrity would possibly fail."
+msgstr "⚠️ Cadena de kernel: %s es conocida por estar prohibida.\nPlay Integrity posiblemente fallará."
+
+msgid "Scan"
+msgstr "Escanear"
+
+msgid "⚠️ No devices are found.."
+msgstr "⚠️ No se encontraron dispositivos.."
+
+msgid "✅ Select your device from the list of %s found devices."
+msgstr "✅ Seleccione su dispositivo de la lista de %s dispositivos encontrados."
+
+msgid "Firmware SHA256"
+msgstr "SHA256 del firmware"
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+msgstr "    ⚠️ ¡ADVERTENCIA! ¡ADVERTENCIA! ¡ADVERTENCIA!    La verificación/verity del slot a no coincide con la verificación/verity del slot b"
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+msgstr "    ⚠️ ¡ADVERTENCIA! ¡ADVERTENCIA! ¡ADVERTENCIA!    Hay una discrepancia entre el estado de verity de vbmeta seleccionado actualmente y el estado de verity del dispositivo\n"
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+msgstr "    ⚠️ ¡ADVERTENCIA! ¡ADVERTENCIA! ¡ADVERTENCIA!    Hay una discrepancia entre el estado de verificación de vbmeta seleccionado actualmente y el estado de verificación del dispositivo\n"
+
+msgid "                                     This has a device wipe implications, please double check.\n"
+msgstr "                                     Esto tiene implicaciones de borrado de datos del dispositivo, por favor verifique nuevamente.\n"
+
+##############################################################################
+# Message dialogs
+##############################################################################
+msgid "Error"
+msgstr "Error"
+
+msgid "Warning"
+msgstr "Advertencia"
+
+msgid "Information"
+msgstr "Información"
+
+msgid "Success"
+msgstr "Éxito"
+
+msgid "Click OK to accept and continue.\n"
+msgstr "Haz clic en ACEPTAR para aceptar y continuar.\n"
+
+msgid "or Hit CANCEL to abort."
+msgstr "o presiona CANCELAR para abortar."
+
+msgid "Select Language"
+msgstr "Seleccionar idioma"
+
+msgid "Language changed to %s. A restart is required for translations to apply."
+msgstr "Idioma cambiado a %s. Se requiere reiniciar para aplicar las traducciones."
+
+msgid "Language Changed"
+msgstr "Idioma cambiado"
+
+msgid "Updates are available"
+msgstr "Actualizaciones disponibles"
+
+msgid "ℹ️ There are updates available for PixelFlasher.\n"
+msgstr "ℹ️ Hay actualizaciones disponibles para PixelFlasher.\n"
+
+msgid "Click OK to download and install the updates.\n"
+msgstr "Haga clic en ACEPTAR para descargar e instalar las actualizaciones.\n"
+
+msgid "Select binary xml file to decode"
+msgstr "Seleccionar archivo xml binario para decodificar"
+
+msgid "Select a file"
+msgstr "Seleccionar un archivo"
+
+msgid "Browse"
+msgstr "Explorar"
+
+msgid "  Browse  "
+msgstr "  Explorar  "
+
+msgid "Save File"
+msgstr "Guardar archivo"
+
+msgid "ℹ️ There are updates available for your device.\nCheck Google Images menu.\n"
+msgstr "ℹ️ Hay actualizaciones disponibles para tu dispositivo.\nRevisa el menú de Imágenes de Google.\n"
+
+msgid "Select one or multiple APK file(s) to install"
+msgstr "Selecciona uno o varios archivos APK para instalar"
+
+msgid "Save support file"
+msgstr "Guardar archivo de soporte"
+
+msgid "Dump Screen Xml"
+msgstr "Volcar pantalla en XML"
+
+msgid "Save device analysis"
+msgstr "Guardar análisis del dispositivo"
+
+msgid "Select files to push"
+msgstr "Seleccionar archivos para enviar"
+
+msgid "Save /data/adb backup file"
+msgstr "Guardar archivo de respaldo de /data/adb"
+
+msgid "Select /data/adb backup file"
+msgstr "Seleccionar archivo de respaldo de /data/adb"
+
+msgid "Select keybox to test"
+msgstr "Seleccionar keybox para probar"
+
+msgid "Add / Edit / Delete Custom menu items"
+msgstr "Añadir / Editar / Eliminar elementos de menú personalizados"
+
+msgid "Select Boot Image"
+msgstr "Seleccionar imagen de arranque"
+
+##############################################################################
+# Main UI
+##############################################################################
+msgid "Downloads Progress"
+msgstr "Progreso de descargas"
+
+msgid "Welcome to PixelFlasher %s by Badabing2005"
+msgstr "Bienvenido a PixelFlasher %s por Badabing2005"
+
+msgid "Install APK on the device"
+msgstr "Instalar APK en el dispositivo"
+
+msgid "App Manager"
+msgstr "Administrador de aplicaciones"
+
+msgid "Manage Apps / Packages"
+msgstr "Administrar Apps / Paquetes"
+
+msgid "Open ADB shell to the device."
+msgstr "Abrir terminal ADB al dispositivo."
+
+msgid "Partitions"
+msgstr "Particiones"
+
+msgid "Partition Manager"
+msgstr "Administrador de particiones"
+
+msgid "Switch to the other Slot"
+msgstr "Cambiar a la otra ranura"
+
+msgid "Reboot to userspace fastboot (fastbootd)"
+msgstr "Reiniciar a fastboot en espacio de usuario (fastbootd)"
+
+msgid "iRecovery"
+msgstr "iRecovery"
+
+msgid "Reboot to Download Mode"
+msgstr "Reiniciar a modo Download"
+
+msgid "Reboot to Sideload Mode"
+msgstr "Reiniciar a modo Sideload"
+
+msgid "Magisk Backup"
+msgstr "Copia de seguridad de Magisk"
+
+msgid ""
+"Remove Magisk Modules\n"
+"This button issues the following command:\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"This helps for cases where device bootloops due to incompatible magisk modules(YMMV).\n"
+msgstr ""
+"Eliminar módulos de Magisk\n"
+"Este botón ejecuta el siguiente comando:\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"Esto ayuda en casos donde el dispositivo entra en bucle de arranque debido a módulos de magisk incompatibles (YMMV).\n"
+
+msgid "Lock"
+msgstr "Bloquear"
+
+msgid "UnLock"
+msgstr "Desbloquear"
+
+msgid "UnLock Bootloader\nCaution will wipe data\n"
+msgstr "Desbloquear Bootloader\nPrecaución: borrará datos\n"
+
+msgid "UnLock Bootloader"
+msgstr "Desbloquear Bootloader"
+
+msgid "Configuration Settings"
+msgstr "Ajustes de configuración"
+
+msgid "Create Support file"
+msgstr "Crear archivo de soporte"
+
+msgid "APK installation options"
+msgstr "Opciones de instalación de APK"
+
+msgid "Install"
+msgstr "Instalar"
+
+msgid "Set ownership to Play Store Market"
+msgstr "Establecer propiedad a Play Store Market"
+
+msgid "Bypass low target sdk block"
+msgstr "Omitir bloqueo de SDK objetivo bajo"
+
+msgid "ADB Connected Devices"
+msgstr "Dispositivos conectados ADB"
+
+msgid "ADB Connected Devices\nCurrent Active Slot: [A]"
+msgstr "Dispositivos conectados ADB\nRanura activa actual: [A]"
+
+msgid "ADB Connected Devices\nCurrent Active Slot: [B]"
+msgstr "Dispositivos conectados ADB\nRanura activa actual: [B]"
+
+msgid "Android Platform Tools\nVersion %s"
+msgstr "Herramientas de plataforma Android\nVersión %s"
+
+msgid "Android Platform Tools"
+msgstr "Herramientas de plataforma Android"
+
+msgid "vbmeta issue."
+msgstr "Problema de vbmeta."
+
+msgid "Warning!\n%s\n"
+msgstr "¡Advertencia!\n%s\n"
+
+msgid "❌ ERROR: You must first select a boot image"
+msgstr "❌ ERROR: Primero debes seleccionar una imagen de arranque"
+
+msgid "❌ ERROR: Downgrade patch file not found\nYou must first create a downgrade patch to enable this option.\n"
+msgstr "❌ ERROR: Archivo de parche de downgrade no encontrado\nPrimero debes crear un parche de downgrade para habilitar esta opción.\n"
+
+msgid "❌ ERROR: Wipe All Data is selected\nYou must first select another mode to enable this option.\n"
+msgstr "❌ ERROR: La opción Borrar todos los datos está seleccionada\nPrimero debes seleccionar otro modo para habilitar esta opción.\n"
+
+msgid "No Wipe Downgrade"
+msgstr "Downgrade sin borrar datos"
+
+msgid "                 WARNING!!! WARNING!!! WARNING!!!\n\n\n"
+msgstr "                 ¡¡¡ADVERTENCIA!!! ¡¡¡ADVERTENCIA!!! ¡¡¡ADVERTENCIA!!!\n\n\n"
+
+msgid "THIS IS AN EXPERIMENTAL FEATURE, NO ASSURANCES THAT IT WOULD WORK\n\n"
+msgstr "ESTA ES UNA FUNCIÓN EXPERIMENTAL, SIN GARANTÍAS DE QUE FUNCIONE\n\n"
+
+msgid "Do NOT enable this option if you are not downgrading!!!\n\n"
+msgstr "¡¡¡NO habilite esta opción si no está haciendo downgrade!!!\n\n"
+
+msgid "Proceed only if you know what you're doing.\n\n\n"
+msgstr "Proceda solo si sabe lo que está haciendo.\n\n\n"
+
+msgid "Do you want to continue to select the No Wipe Downgrade option?\n\n"
+msgstr "¿Desea continuar y seleccionar la opción de Downgrade sin borrar datos?\n\n"
+
+msgid "       Press OK to continue or CANCEL to abort.\n\n"
+msgstr "       Presione ACEPTAR para continuar o CANCELAR para abortar.\n\n"
+
+msgid "CANCEL"
+msgstr "CANCELAR"
+
+msgid "         WARNING!!! WARNING!!! WARNING!!!\n\n\n"
+msgstr "         ¡¡¡ADVERTENCIA!!! ¡¡¡ADVERTENCIA!!! ¡¡¡ADVERTENCIA!!!\n\n\n"
+
+msgid "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n\n"
+msgstr "NUNCA, JAMÁS BLOQUEE EL BOOTLOADER SIN VOLVER\n\n"
+
+msgid "TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n\n"
+msgstr "AL FIRMWARE ORIGINAL O SU TELÉFONO QUEDARÁ INUTILIZADO!!!\n\n\n"
+
+msgid "       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n\n"
+msgstr "       ¡¡¡ESTO BORRARÁ LOS DATOS DE SU DISPOSITIVO!!!\n\n\n"
+
+msgid "Do you want to continue to Lock the device bootloader?\n\n"
+msgstr "¿Desea continuar para bloquear el bootloader del dispositivo?\n\n"
+
+msgid "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n\n"
+msgstr "¡¡¡ADVERTENCIA!!! ESTO BORRARÁ TODOS LOS DATOS DE USUARIO DEL DISPOSITIVO\n\n\n"
+
+msgid "Make sure you first read either of the guides linked in the help menu.\n\n"
+msgstr "Asegúrese de leer primero alguna de las guías vinculadas en el menú de ayuda.\n\n"
+
+msgid "Failing to follow the proper steps could potentially brick your phone.\n\n"
+msgstr "No seguir los pasos adecuados podría potencialmente inutilizar su teléfono.\n\n"
+
+msgid "\nNote: Pressing OK button will invoke a script that will utilize\n\n"
+msgstr "\nNota: Al presionar el botón ACEPTAR se ejecutará un script que utilizará\n\n"
+
+msgid "fastboot commands, if your PC fastboot drivers are not properly setup,\n\n"
+msgstr "comandos fastboot, si los controladores fastboot de su PC no están configurados correctamente,\n\n"
+
+msgid "fastboot will wait forever, and PixelFlasher will appear hung.\n\n"
+msgstr "fastboot esperará indefinidamente, y PixelFlasher parecerá bloqueado.\n\n"
+
+msgid "In such cases, killing the fastboot process will resume to normalcy.\n\n\n"
+msgstr "En tales casos, terminar el proceso fastboot volverá a la normalidad.\n\n\n"
+
+msgid "      Do you want to continue to Lock the device bootloader?\n\n"
+msgstr "      ¿Desea continuar para bloquear el bootloader del dispositivo?\n\n"
+
+msgid "              Press OK to continue or CANCEL to abort.\n\n"
+msgstr "              Presione ACEPTAR para continuar o CANCELAR para abortar.\n\n"
+
+msgid "      Do you want to continue to Unlock the device bootloader?\n\n"
+msgstr "      ¿Desea continuar para desbloquear el bootloader del dispositivo?\n\n"
+
+msgid "WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n\n"
+msgstr "¡¡¡ADVERTENCIA!!! Esta es una función experimental para intentar deshabilitar los módulos de magisk.\n\n\n"
+
+msgid "You would only need to do this if your device is bootlooping due to\n\n"
+msgstr "Solo necesitaría hacer esto si su dispositivo está en bucle de arranque debido a\n\n"
+
+msgid "incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n\n"
+msgstr "módulos de magisk incompatibles, no se garantiza que funcione en todos los casos (YMMV).\n\n"
+
+msgid "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n\n"
+msgstr "\nNota: Al presionar el botón ACEPTAR se ejecutará un script que esperará indefinidamente para detectar el dispositivo.\n\n"
+
+msgid "If your device is not detected PixelFlasher will appear hung.\n\n"
+msgstr "Si su dispositivo no es detectado, PixelFlasher parecerá bloqueado.\n\n"
+
+msgid "In such cases, killing the adb process will resume to normalcy.\n\n\n"
+msgstr "En tales casos, terminar el proceso adb volverá a la normalidad.\n\n\n"
+
+msgid "                        Press OK to continue or CANCEL to abort.\n\n"
+msgstr "                        Presione ACEPTAR para continuar o CANCELAR para abortar.\n\n"
+
+msgid "Clear /data/adb/ contents"
+msgstr "Borrar contenido de /data/adb/"
+
+msgid "WARNING!!! This will the clear contents of /data/adb\n\n\n"
+msgstr "¡¡¡ADVERTENCIA!!! Esto borrará el contenido de /data/adb\n\n\n"
+
+msgid "Do you want to continue to clear /data/adb/ contents?\n\n"
+msgstr "¿Desea continuar para borrar el contenido de /data/adb/?\n\n"
+
+msgid "      Press OK to continue or CANCEL to abort.\n\n"
+msgstr "      Presione ACEPTAR para continuar o CANCELAR para abortar.\n\n"
+
+msgid "This will invoke the command adb kill-server.\nAre you sure want to continue?\n"
+msgstr "Esto ejecutará el comando adb kill-server.\n¿Está seguro de que desea continuar?\n"
+
+msgid "ADB Kill Server"
+msgstr "Detener servidor ADB"
+
+msgid "Download Latest Android Platform-Tools"
+msgstr "Descargar las últimas herramientas de plataforma Android"
+
+msgid "Select Android Platform-Tools Folder\nWhere adb and fastboot are located.\n"
+msgstr "Seleccionar carpeta de herramientas de plataforma Android\nDonde se encuentran adb y fastboot.\n"
+
+msgid "Double click this label to issue the command:\nadb kill-server"
+msgstr "Haga doble clic en esta etiqueta para ejecutar el comando:\nadb kill-server"
+
+msgid "Open wireless manager dialog."
+msgstr "Abrir diálogo de administrador inalámbrico."
+
+msgid "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
+msgstr "[estado de root] [modo del dispositivo] [id del dispositivo] [modelo del dispositivo] [firmware del dispositivo]\n\n"
+
+msgid "✓ Rooted with Magisk.\n"
+msgstr "✓ Rooteado con Magisk.\n"
+
+msgid "✗ Probably Not Root (Magisk Tools not found).\n"
+msgstr "✗ Probablemente sin Root (No se encontraron herramientas de Magisk).\n"
+
+msgid "?  Unable to determine the root status.\n\n"
+msgstr "?  No se puede determinar el estado de root.\n\n"
+
+msgid "(adb) device is in adb mode\n"
+msgstr "(adb) dispositivo en modo adb\n"
+
+msgid "(f.b) device is in fastboot mode\n"
+msgstr "(f.b) dispositivo en modo fastboot\n"
+
+msgid "(sid) device is in sideload mode\n"
+msgstr "(sid) dispositivo en modo sideload\n"
+
+msgid "(rec) device is in recovery mode\n"
+msgstr "(rec) dispositivo en modo recovery\n"
+
+msgid "Scan for Devices\nPlease manually select the device after the scan is completed."
+msgstr "Buscar dispositivos\nPor favor, seleccione manualmente el dispositivo después de que el escaneo se complete."
+
+msgid "Device Image"
+msgstr "Imagen del dispositivo"
+
+msgid "Download image file for current Pixel device."
+msgstr "Descargar archivo de imagen para el dispositivo Pixel actual."
+
+msgid "Select Pixel Firmware"
+msgstr "Seleccionar firmware Pixel"
+
+msgid "Process"
+msgstr "Procesar"
+
+msgid "Process the firmware file and extract the boot.img"
+msgstr "Procesar el archivo de firmware y extraer boot.img"
+
+msgid "Apply Custom ROM"
+msgstr "Aplicar ROM personalizada"
+
+msgid "Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM"
+msgstr "Precaución: Asegúrese de leer la documentación de la ROM seleccionada.\nEsto podría no funcionar para su ROM"
+
+msgid "Select Custom ROM"
+msgstr "Seleccionar ROM personalizada"
+
+msgid "Process the ROM file and extract the boot.img"
+msgstr "Procesar el archivo ROM y extraer boot.img"
+
+msgid "Select a boot/init_boot"
+msgstr "Seleccionar un boot/init_boot"
+
+msgid "Show All boot/init_boot"
+msgstr "Mostrar todos los boot/init_boot"
+
+msgid "Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM"
+msgstr "Mostrar todos los boot/init_boot incluso si no\nson parte del firmware o ROM seleccionados"
+
+msgid "Source SHA1  "
+msgstr "SHA1 de origen  "
+
+msgid "Package Fingerprint  "
+msgstr "Huella digital del paquete  "
+
+msgid "Patched with version "
+msgstr "Parcheado con versión "
+
+msgid "Patch Method  "
+msgstr "Método de parche  "
+
+msgid "Patched on Device  "
+msgstr "Parcheado en dispositivo  "
+
+msgid "Date  "
+msgstr "Fecha  "
+
+msgid "Package Path  "
+msgstr "Ruta del paquete  "
+
+msgid "Open Folder"
+msgstr "Abrir carpeta"
+
+msgid "Open boot files folder"
+msgstr "Abrir carpeta de archivos boot"
+
+msgid "Open Working Directory"
+msgstr "Abrir directorio de trabajo"
+
+msgid "Patch"
+msgstr "Parche"
+
+msgid "Patch the selected item"
+msgstr "Parchear el elemento seleccionado"
+
+msgid "Patch with Magisk"
+msgstr "Parchear con Magisk"
+
+msgid "Patch with KernelSU"
+msgstr "Parchear con KernelSU"
+
+msgid "Patch with KernelSU LKM"
+msgstr "Parchear con KernelSU LKM"
+
+msgid "Patch with KernelSU-Next"
+msgstr "Parchear con KernelSU-Next"
+
+msgid "Patch with KernelSU-Next LKM"
+msgstr "Parchear con KernelSU-Next LKM"
+
+msgid "Patch with APatch"
+msgstr "Parchear con APatch"
+
+msgid "Patch with APatch Alternate"
+msgstr "Parchear con APatch Alternativo"
+
+msgid "Patch custom boot/init_boot"
+msgstr "Parchear boot/init_boot personalizado"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "Delete the selected item"
+msgstr "Eliminar el elemento seleccionado"
+
+msgid "Add a new boot item"
+msgstr "Añadir un nuevo elemento boot"
+
+msgid "Info"
+msgstr "Info"
+
+msgid "Get information about the selected item"
+msgstr "Obtener información sobre el elemento seleccionado"
+
+msgid "Live Boot"
+msgstr "Arranque en vivo"
+
+msgid "Live boot to the selected item"
+msgstr "Arrancar en vivo al elemento seleccionado"
+
+msgid "Flash Boot"
+msgstr "Flashear Boot"
+
+msgid "Flash just the selected item"
+msgstr "Flashear solo el elemento seleccionado"
+
+msgid "Flash Mode"
+msgstr "Modo de flasheo"
+
+msgid "Keep Data"
+msgstr "Mantener datos"
+
+msgid "Data will be kept intact."
+msgstr "Los datos se mantendrán intactos."
+
+msgid "WIPE all data"
+msgstr "BORRAR todos los datos"
+
+msgid "CAUTION: This will wipe your data"
+msgstr "PRECAUCIÓN: Esto borrará sus datos"
+
+msgid "Dry Run"
+msgstr "Prueba en seco"
+
+msgid ""
+"Dry Run, no flashing will be done.\n"
+"The phone will reboot to fastboot and then\n"
+"back to normal.\n"
+"This is for testing.\n"
+msgstr ""
+"Prueba en seco, no se realizará ningún flasheo.\n"
+"El teléfono se reiniciará a fastboot y luego\n"
+"volverá a la normalidad.\n"
+"Esto es para pruebas.\n"
+
+msgid "Full OTA"
+msgstr "OTA completa"
+
+msgid "Flash full OTA, and have the choice of flashing patched image(s)."
+msgstr "Flashear OTA completa, y tener la opción de flashear imágenes parcheadas."
+
+msgid "Custom Flash"
+msgstr "Flasheo personalizado"
+
+msgid ""
+"Custom Flash, Advanced option to flash a single file.\n"
+"This will not flash the factory image.\n"
+"It will flash the single selected file.\n"
+msgstr ""
+"Flasheo personalizado, opción avanzada para flashear un solo archivo.\n"
+"Esto no flasheará la imagen de fábrica.\n"
+"Flasheará solo el archivo seleccionado.\n"
+
+msgid "Live Boot to selected boot / init_boot"
+msgstr "Arranque en vivo al boot / init_boot seleccionado"
+
+msgid "Flash"
+msgstr "Flashear"
+
+msgid "Flashes the selected boot / init_boot"
+msgstr "Flashea el boot / init_boot seleccionado"
+
+msgid "Depending on the flash selection, paste the appropriate path as custom image."
+msgstr "Dependiendo de la selección de flasheo, pegue la ruta apropiada como imagen personalizada."
+
+msgid "Flash Options"
+msgstr "Opciones de flasheo"
+
+msgid "Flash to inactive slot"
+msgstr "Flashear a ranura inactiva"
+
+msgid "This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact.\n"
+msgstr "Esta opción cuando está marcada flasheará a la ranura alternativa (inactiva).\nManteniendo la ranura actual intacta.\n"
+
+msgid "Flash to both slots"
+msgstr "Flashear a ambas ranuras"
+
+msgid "This option when checked will flash to both slots."
+msgstr "Esta opción cuando está marcada flasheará a ambas ranuras."
+
+msgid "Disable Verity"
+msgstr "Deshabilitar Verity"
+
+msgid "Disables Verity"
+msgstr "Deshabilita Verity"
+
+msgid "Disable Verification"
+msgstr "Deshabilitar Verificación"
+
+msgid "Disables Verification"
+msgstr "Deshabilita Verificación"
+
+msgid "Force"
+msgstr "Forzar"
+
+msgid "Force a flash operation that may be unsafe (will wipe your data)"
+msgstr "Forzar una operación de flasheo que puede ser insegura (borrará tus datos)"
+
+msgid "Verbose"
+msgstr "Detallado"
+
+msgid "Set fastboot option to verbose"
+msgstr "Establecer opción de fastboot a detallado"
+
+msgid "Temporary Root"
+msgstr "Root temporal"
+
+msgid "Wipe"
+msgstr "Borrar"
+
+msgid ""
+"This option when enabled will not flash patched boot\n"
+"Instead it will flash unpatched boot.img, but boot to Live Patched boot\n"
+"Handy to test if Magisk will cause a bootloop.\n"
+"Please be aware that this temporary root will not survive a subsequent reboot.\n"
+"If you want to make this permanent, just Flash Boot the patched boot image.\n"
+msgstr ""
+"Esta opción cuando está habilitada no flasheará el boot parcheado\n"
+"En su lugar flasheará el boot.img sin parchear, pero arrancará con el boot parcheado en vivo\n"
+"Útil para probar si Magisk causará un bucle de arranque.\n"
+"Tenga en cuenta que este root temporal no sobrevivirá a un reinicio posterior.\n"
+"Si desea hacerlo permanente, simplemente flashee la imagen de boot parcheada.\n"
+
+msgid "No reboot"
+msgstr "Sin reinicio"
+
+msgid "Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.\n"
+msgstr "No reiniciar después de flashear\nEsto es útil si desea realizar otras acciones antes de reiniciar.\n"
+
+msgid "This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.\n"
+msgstr "Esto invocará una operación de borrado de datos al final del flasheo personalizado.\nUn caso de uso sería cuando se deshabilita la verificación por primera vez.\n"
+
+msgid "WARNING!!! This is a highly experimental feature.\nThis will attempt to downgrade the device without needing a data wipe.\n\n"
+msgstr "¡¡¡ADVERTENCIA!!! Esta es una función altamente experimental.\nEsto intentará hacer downgrade al dispositivo sin necesidad de borrar datos.\n\n"
+
+msgid "Flash Device"
+msgstr "Flashear dispositivo"
+
+msgid "Flashes the selected device with chosen flash options."
+msgstr "Flashea el dispositivo seleccionado con las opciones de flasheo elegidas."
+
+msgid "Console"
+msgstr "Consola"
+
+msgid "Please be patient ..."
+msgstr "Por favor, sea paciente ..."
+
+msgid "Create encrypted and optionally sanitized support.zip file\nWhen sanitized all sensitive data is redacted.\n\nThis file is absolutely required when asking for help."
+msgstr "Crear archivo support.zip encriptado y opcionalmente sanitizado\nCuando está sanitizado todos los datos sensibles son redactados.\nEste archivo es absolutamente necesario cuando se solicita ayuda."
+
+msgid "Debug"
+msgstr "Depuración"
+
+msgid "Enable Debug Messages in the console."
+msgstr "Habilitar mensajes de depuración en la consola."
+
+msgid "Clear Console"
+msgstr "Limpiar consola"
+
+msgid "**APK installation options**<br/>\n"
+msgstr "**Opciones de instalación de APK**<br/>\n"
+
+msgid "This is a summary of available options.<br/>\n"
+msgstr "Este es un resumen de las opciones disponibles.<br/>\n"
+
+msgid "1. **Set ownership to Play Store Market** This option sets the ownership to Play Store (as if it was installed from Play Store).<br/>\n"
+msgstr "1. **Establecer propiedad a Play Store Market** Esta opción establece la propiedad a Play Store (como si se hubiera instalado desde Play Store).<br/>\n"
+
+msgid "   Android auto apps require that they be installed from the Play Market.<br/>\n"
+msgstr "   Las aplicaciones de Android Auto requieren que sean instaladas desde Play Market.<br/>\n"
+
+msgid "2. Starting with Android 14, apps with a targetSdkVersion lower than 23 can't be installed.<br/>\n"
+msgstr "2. A partir de Android 14, las aplicaciones con targetSdkVersion inferior a 23 no se pueden instalar.<br/>\n"
+
+msgid "   Requiring apps to meet these minimum target API level requirements improves security and privacy for users.<br/><br/>\n"
+msgstr "   Requerir que las aplicaciones cumplan con estos requisitos mínimos de nivel de API mejora la seguridad y privacidad para los usuarios.<br/><br/>\n"
+
+msgid "   Malware often targets older API levels in order to bypass security and privacy protections that have been introduced in newer Android versions.<br/>\n"
+msgstr "   El malware a menudo se dirige a niveles de API más antiguos para eludir las protecciones de seguridad y privacidad que se han introducido en las versiones más recientes de Android.<br/>\n"
+
+msgid "   For example, some malware apps use a `targetSdkVersion` of 22 to avoid being subjected to the runtime permission model\n"
+msgstr "   Por ejemplo, algunas aplicaciones maliciosas utilizan un `targetSdkVersion` de 22 para evitar ser sometidas al modelo de permisos en tiempo de ejecución\n"
+
+msgid "   introduced in 2015 by Android 6.0 Marshmallow (API level 23).<br/>\n"
+msgstr "   introducido en 2015 por Android 6.0 Marshmallow (nivel de API 23).<br/>\n"
+
+msgid "   This Android 14 change makes it harder for malware to avoid security and privacy improvements.<br/>\n"
+msgstr "   Este cambio en Android 14 dificulta que el malware evite las mejoras de seguridad y privacidad.<br/>\n"
+
+msgid "   Attempting to install an app targeting a lower API level will result in an installation failure.<br/><br/>\n"
+msgstr "   Intentar instalar una aplicación dirigida a un nivel de API inferior resultará en un fallo de instalación.<br/><br/>\n"
+
+msgid "   **Bypass low target sdk block** option bypasses that enforcement.\n"
+msgstr "   La opción **Omitir bloqueo de SDK objetivo bajo** evita esa restricción.\n"
+
+msgid "_If you have selected multiple APKs to install, the options will apply to all APKs._\n"
+msgstr "_Si ha seleccionado múltiples APKs para instalar, las opciones se aplicarán a todos los APKs._\n"
+
+msgid "# ATTENTION!\n"
+msgstr "# ¡ATENCIÓN!\n"
+
+msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
+msgstr "**Esta función generará un informe de análisis del dispositivo que opcionalmente podría publicar en línea para obtener ayuda con problemas relacionados con Play Integrity.**<br/>\n"
+
+msgid "This report will inherently reveal sensitive information about your device such as:\n"
+msgstr "Este informe revelará inherentemente información sensible sobre su dispositivo como:\n"
+
+msgid "- Device id and other device related details.\n"
+msgstr "- ID del dispositivo y otros detalles relacionados con el dispositivo.\n"
+
+msgid "- Magisk (if available):\n"
+msgstr "- Magisk (si está disponible):\n"
+
+msgid "	- modules list.\n"
+msgstr "	- lista de módulos.\n"
+
+msgid "	- denylist.\n"
+msgstr "	- lista de denegación.\n"
+
+msgid "- TrickyStore (if available):\n"
+msgstr "- TrickyStore (si está disponible):\n"
+
+msgid "	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)\n"
+msgstr "	- `/data/adb/tricky_store/keybox.xml` (No el contenido, solo si los certificados están revocados o no)\n"
+
+msgid "- PlayIntegrity Fork (if available):\n"
+msgstr "- PlayIntegrity Fork (si está disponible):\n"
+
+msgid "- PlayIntegrityFix (if available):\n"
+msgstr "- PlayIntegrityFix (si está disponible):\n"
+
+msgid "- Whether a testkey ROM is used or not.\n"
+msgstr "- Si se utiliza una ROM con testkey o no.\n"
+
+msgid "- logcat for PlayIntegrity and TrickyStore related logs.\n"
+msgstr "- logcat para registros relacionados con PlayIntegrity y TrickyStore.\n"
+
+msgid "- Droidguard VM list.\n"
+msgstr "- Lista de VM de Droidguard.\n"
+
+msgid "- If any custom ROM injection apps are installed from:\n"
+msgstr "- Si hay aplicaciones de inyección de ROM personalizada instaladas desde:\n"
+
+msgid "- Check overlays (if contents of /debug_ramdisk is visible without root)\n"
+msgstr "- Verificar superposiciones (si el contenido de /debug_ramdisk es visible sin root)\n"
+
+msgid "**NOTE:**\n"
+msgstr "**NOTA:**\n"
+
+msgid "This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>\n"
+msgstr "Este informe se guardará en una ubicación de su elección y **no** formará parte de los registros capturados por PixelFlasher (aunque lo vea en la consola), así que tenga la seguridad de que, si envía support.zip para problemas relacionados con PixelFlasher, incluso si ha generado dicho informe, nunca se incluirá en el archivo support.zip.<br/>\n"
+
+msgid "Your privacy is yours to keep.<br/>\n"
+msgstr "Su privacidad es suya para mantener.<br/>\n"
+
+msgid "If you continue you'd only be generating the report, and not posting it online.<br/>\n"
+msgstr "Si continúa, solo estará generando el informe, no publicándolo en línea.<br/>\n"
+
+msgid "If you want to post it online, please make sure to remove any sensitive information from the report before posting it online.<br/>\n"
+msgstr "Si desea publicarlo en línea, asegúrese de eliminar cualquier información sensible del informe antes de publicarlo en línea.<br/>\n"
+
+msgid "**Are you sure you want to continue?**<br/>\n"
+msgstr "**¿Está seguro de que desea continuar?**<br/>\n"
+
+##############################################################################
+# Advanced Settings
+##############################################################################
+msgid "Advanced Configuration Settings"
+msgstr "Configuración Avanzada"
+
+msgid "WARNING!\n"
+msgstr "¡ADVERTENCIA!\n"
+
+msgid "This is advanced configuration.\n"
+msgstr "Esta es una configuración avanzada.\n"
+
+msgid "Unless you know what you are doing,\n"
+msgstr "A menos que sepa lo que está haciendo,\n"
+
+msgid "you should not be enabling it.\n"
+msgstr "no debería estar habilitándola.\n"
+
+msgid "YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n"
+msgstr "USTED Y SOLO USTED ES RESPONSABLE DE CUALQUIER COSA QUE LE SUCEDA A SU DISPOSITIVO.\n"
+
+msgid "THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n"
+msgstr "ESTA HERRAMIENTA ESTÁ CODIFICADA CON LA SUPOSICIÓN EXPRESA DE QUE ESTÁ FAMILIARIZADO CON\n"
+
+msgid "ADB, MAGISK, ANDROID, AND ROOT.\n"
+msgstr "ADB, MAGISK, ANDROID, Y ROOT.\n"
+
+msgid "IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n"
+msgstr "ES SU RESPONSABILIDAD ASEGURARSE DE QUE SABE LO QUE ESTÁ HACIENDO.\n"
+
+msgid "Enable Advanced Options"
+msgstr "Habilitar Opciones Avanzadas"
+
+msgid "Expert mode"
+msgstr "Modo experto"
+
+msgid "Magisk Package Name"
+msgstr "Nombre del paquete Magisk"
+
+msgid "If you have hidden Magisk,\nset this to the hidden package name."
+msgstr "Si ha ocultado Magisk,\nestablezca esto al nombre del paquete oculto."
+
+msgid "Resets package name to default: %s"
+msgstr "Restablece el nombre del paquete al predeterminado: %s"
+
+msgid "Linux File Explorer:"
+msgstr "Explorador de archivos Linux:"
+
+msgid "Set full path to File Explorer.\nDefault: Nautilus"
+msgstr "Establecer ruta completa al Explorador de archivos.\nPredeterminado: Nautilus"
+
+msgid "Linux Shell:"
+msgstr "Shell de Linux:"
+
+msgid "Set full path to Linux Shell.\nDefault: gnome-terminal"
+msgstr "Establecer ruta completa al Shell de Linux.\nPredeterminado: gnome-terminal"
+
+msgid "Offer Patch Methods"
+msgstr "Ofrecer Métodos de Parche"
+
+msgid "When patching the choice of method is presented."
+msgstr "Al parchear se presenta la elección del método."
+
+msgid "Patching Recovery Partition"
+msgstr "Parchear Partición de Recovery"
+
+msgid ""
+"Enabling this will show an option to patch a recovery partition.\n"
+"This should be kept disabled unless you have an old device.\n"
+"(most A-only devices launched with Android 9, legacy SAR)"
+msgstr ""
+"Habilitar esto mostrará una opción para parchear una partición de recovery.\n"
+"Esto debe mantenerse deshabilitado a menos que tenga un dispositivo antiguo.\n"
+"(la mayoría de dispositivos A-only lanzados con Android 9, SAR heredado)"
+
+msgid "Use Busybox Shell"
+msgstr "Usar Shell Busybox"
+
+msgid "When creating a patch, if this is checked, busybox ash will be used as shell."
+msgstr "Al crear un parche, si esto está marcado, se usará busybox ash como shell."
+
+msgid "System has low memory"
+msgstr "El sistema tiene poca memoria"
+
+msgid "Use this option to sacrifice speed in favor of memory."
+msgstr "Use esta opción para sacrificar velocidad a favor de memoria."
+
+msgid "Extra img extraction"
+msgstr "Extracción extra de imágenes"
+
+msgid "When checked and available in payload.bin\nAlso extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img"
+msgstr "Cuando está marcado y disponible en payload.bin\nTambién extrae vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img"
+
+msgid "Show notifications"
+msgstr "Mostrar notificaciones"
+
+msgid "When checked PixelFlasher will display system toast notifications."
+msgstr "Cuando está marcado, PixelFlasher mostrará notificaciones toast del sistema."
+
+msgid "Always create boot.tar"
+msgstr "Siempre crear boot.tar"
+
+msgid "When checked, PixelFlasher always creates boot.tar of the patched boot file.\nIf unchecked, only for Samsung firmware boot.tar will be created."
+msgstr "Cuando está marcado, PixelFlasher siempre crea boot.tar del archivo boot parcheado.\nSi no está marcado, solo se creará boot.tar para firmware Samsung."
+
+msgid "Check for updates"
+msgstr "Buscar actualizaciones"
+
+msgid "Checks for available updates on startup"
+msgstr "Busca actualizaciones disponibles al inicio"
+
+msgid "Check for Minimum Disk (5Gb)"
+msgstr "Verificar Disco Mínimo (5Gb)"
+
+msgid "Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues."
+msgstr "Exige un espacio mínimo de disco de 5 Gb para permitir el flasheo.\nEsto evita problemas relacionados con el almacenamiento."
+
+msgid "Check for bootloader unlocked"
+msgstr "Verificar que el bootloader esté desbloqueado"
+
+msgid "Checks to make sure bootloader is unlocked before flashing."
+msgstr "Verifica que el bootloader esté desbloqueado antes de flashear."
+
+msgid "Check for firmware hash validity"
+msgstr "Verificar validez del hash del firmware"
+
+msgid "Checks for sha256 portion to be in the image filename to detect Pixel compatible image."
+msgstr "Verifica que la porción sha256 esté en el nombre del archivo de imagen para detectar imágenes compatibles con Pixel."
+
+msgid "Keep temporary support files"
+msgstr "Mantener archivos temporales de soporte"
+
+msgid "It keeps the temporary support files.\nUseful for inspecting what data is included in support.zip."
+msgstr "Mantiene los archivos temporales de soporte.\nÚtil para inspeccionar qué datos se incluyen en support.zip."
+
+msgid "Check Magisk modules for updates"
+msgstr "Verificar actualizaciones de módulos Magisk"
+
+msgid ""
+"It checks if the module has updates.\n"
+"Disable this if you don't want to check for updates or\n"
+" if some module update server has issues and delays the process."
+msgstr ""
+"Verifica si el módulo tiene actualizaciones.\n"
+"Deshabilite esto si no desea buscar actualizaciones o\n"
+" si algún servidor de actualización de módulos tiene problemas y retrasa el proceso."
+
+msgid "Show custom ROM options"
+msgstr "Mostrar opciones de ROM personalizadas"
+
+msgid "Make sure you check if your ROM is supported."
+msgstr "Asegúrese de verificar si su ROM es compatible."
+
+msgid "Sanitize (Redact) support files"
+msgstr "Sanitizar (Redactar) archivos de soporte"
+
+msgid ""
+"The support files are always encrypted.\n"
+"This option redacts sensitive information from the support files.\n"
+"But impedes support and is not recommended."
+msgstr ""
+"Los archivos de soporte siempre están encriptados.\n"
+"Esta opción redacta información sensible de los archivos de soporte.\n"
+"Pero impide el soporte y no es recomendable."
+
+msgid "Force codepage to"
+msgstr "Forzar página de códigos a"
+
+msgid "Uses specified code page instead of system code page"
+msgstr "Usa la página de códigos especificada en lugar de la página de códigos del sistema"
+
+msgid "Delete bundled libs"
+msgstr "Eliminar bibliotecas incluidas"
+
+msgid "The listed libraries would be deleted from the PF bundle to allow system defined ones to be used."
+msgstr "Las bibliotecas listadas serían eliminadas del paquete PF para permitir el uso de las definidas por el sistema."
+
+msgid "Example: libreadline.so.8, libgdk*"
+msgstr "Ejemplo: libreadline.so.8, libgdk*"
+
+msgid "Override KMI"
+msgstr "Anular KMI"
+
+msgid ""
+"This will override the Kernel Module Interface (KMI) to the specified value.\n"
+"This is useful for devices with custom kernels.\n"
+"The value will be passed to KernelSU as the KMI value."
+msgstr ""
+"Esto anulará la Interfaz de Módulo del Kernel (KMI) con el valor especificado.\n"
+"Esto es útil para dispositivos con kernels personalizados.\n"
+"El valor se pasará a KernelSU como valor KMI."
+
+msgid "Example: 5.15.131-android14"
+msgstr "Ejemplo: 5.15.131-android14"
+
+msgid "Use Custom Fontface"
+msgstr "Usar fuente personalizada"
+
+msgid "Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window."
+msgstr "Usar fuente personalizada para fuentes monoespaciadas\nPodría requerir reiniciar PixelFlasher para aplicarse correctamente a la ventana de Consola."
+
+msgid "Sample "
+msgstr "Muestra "
+
+msgid "Select font size"
+msgstr "Seleccionar tamaño de fuente"
+
+msgid "scrcpy Path"
+msgstr "Ruta de scrcpy"
+
+msgid "Download scrcpy"
+msgstr "Descargar scrcpy"
+
+msgid "Scrcpy executable (*.exe;*)|*.exe;*"
+msgstr "Ejecutable de scrcpy (*.exe;*)|*.exe;*"
+
+msgid "Select scrcpy executable"
+msgstr "Seleccionar ejecutable de scrcpy"
+
+msgid "Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)"
+msgstr "Banderas / Argumentos (Ejemplo: --video-bit-rate 2M --max-fps=30 --max-size 1024)"
+
+msgid "Scrcpy settings"
+msgstr "Configuración de scrcpy"
+
+##############################################################################
+# Message dialogs and toasts (modules.py)
+##############################################################################
+msgid "Module update URL has issues, inform the module author: %s\nDo you want to skip checking updates for this module?"
+msgstr "La URL de actualización del módulo tiene problemas, informe al autor del módulo: %s\n¿Desea omitir la verificación de actualizaciones para este módulo?"
+
+msgid "You have an old or problematic Android platform Tools version %s \n"
+msgstr "Tiene una versión antigua o problemática de Android Platform Tools %s \n"
+
+msgid "You are strongly advised to update before continuing.\n"
+msgstr "Se recomienda encarecidamente actualizar antes de continuar.\n"
+
+msgid "Are you sure you want to continue?"
+msgstr "¿Está seguro de que desea continuar?"
+
+msgid "Bad Android Platform Tools"
+msgstr "Android Platform Tools problemático"
+
+msgid "Android SDK Version:    %s\n"
+msgstr "Versión de Android SDK:    %s\n"
+
+msgid "Device:                 %s %s %s\n"
+msgstr "Dispositivo:             %s %s %s\n"
+
+msgid "Factory Image:          %s\n"
+msgstr "Imagen de fábrica:       %s\n"
+
+msgid "Custom Rom:             %s\n"
+msgstr "ROM personalizada:       %s\n"
+
+msgid "Custom Rom File:        %s\n"
+msgstr "Archivo de ROM personalizada: %s\n"
+
+msgid "\nBoot image:             %s / %s \n"
+msgstr "\nImagen de arranque:      %s / %s \n"
+
+msgid "                        From: %s\n"
+msgstr "                        De: %s\n"
+
+msgid "                        Patched with %s on %s method:        %s\n"
+msgstr "                        Parcheado con %s en %s método:      %s\n"
+
+msgid "                        Patched with %s on %s\n"
+msgstr "                        Parcheado con %s en %s\n"
+
+msgid "\nFlash Mode:             %s\n"
+msgstr "\nModo de flasheo:         %s\n"
+
+msgid "SHA256 of %s%s matches the segment in the filename."
+msgstr "SHA256 de %s%s coincide con el segmento en el nombre del archivo."
+
+msgid "⚠️ Firmware SHA256 Mismatch"
+msgstr "⚠️ Discrepancia en SHA256 del firmware"
+
+msgid "WARNING! SHA256 of %s%s does not match segments in the filename.\nPlease double check to make sure the checksum is good."
+msgstr "¡ADVERTENCIA! SHA256 de %s%s no coincide con los segmentos en el nombre del archivo.\nPor favor, verifique para asegurarse de que el checksum es correcto."
+
+msgid "Process action"
+msgstr "Acción de procesamiento"
+
+msgid "❌ Could not extract %s"
+msgstr "❌ No se pudo extraer %s"
+
+msgid "Possibly extracted firmware."
+msgstr "Posiblemente firmware extraído."
+
+msgid "WARNING: It looks like you have extracted the firmware file.\nand selected the image zip from it.\n\n"
+msgstr "ADVERTENCIA: Parece que ha extraído el archivo de firmware.\ny seleccionado el zip de imagen de él.\n\n"
+
+msgid "You should not extract the file, please select the downloaded firmware file instead\n\n"
+msgstr "No debería extraer el archivo, por favor seleccione el archivo de firmware descargado en su lugar\n\n"
+
+msgid "If this is not the case, and you want to continue with this selection\n"
+msgstr "Si este no es el caso, y desea continuar con esta selección\n"
+
+msgid "❌ Could not unpack %s."
+msgstr "❌ No se pudo desempaquetar %s."
+
+msgid "❌ Could not extract %s."
+msgstr "❌ No se pudo extraer %s."
+
+msgid "❌ Could not find %s."
+msgstr "❌ No se pudo encontrar %s."
+
+msgid "⚠️ Detected unsupported firmware."
+msgstr "⚠️ Se detectó firmware no compatible."
+
+msgid "❌ Could not extract payload.bin."
+msgstr "❌ No se pudo extraer payload.bin."
+
+msgid "❌ The selected firmware is not valid."
+msgstr "❌ El firmware seleccionado no es válido."
+
+msgid "⚠️ Nothing to extract from %s"
+msgstr "⚠️ Nada que extraer de %s"
+
+msgid "✅ Process %s time: %s seconds"
+msgstr "✅ Tiempo de procesamiento %s: %s segundos"
+
+msgid "WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?"
+msgstr "ADVERTENCIA: El boot.img objetivo no es un downgrade.\n¿Está seguro de que desea continuar?"
+
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgid "Display is Locked!"
+msgstr "¡La pantalla está bloqueada!"
+
+msgid "ERROR: Your phone display is Locked.\n\n"
+msgstr "ERROR: La pantalla de su teléfono está bloqueada.\n\n"
+
+msgid "Make sure you unlock your display\n"
+msgstr "Asegúrese de desbloquear su pantalla\n"
+
+msgid "And set the display timeout to at least 1 minute.\n\n"
+msgstr "Y establecer el tiempo de espera de la pantalla a al menos 1 minuto.\n\n"
+
+msgid "After doing so, Click OK to accept and continue.\n"
+msgstr "Después de hacer esto, haga clic en ACEPTAR para aceptar y continuar.\n"
+
+msgid "Manual Patching"
+msgstr "Parcheado manual"
+
+msgid "Done creating the patch, continue"
+msgstr "Terminado de crear el parche, continuar"
+
+msgid "Magisk Manager is not detected."
+msgstr "No se detecta Magisk Manager."
+
+msgid "WARNING: Magisk Manager [%s] is not found on the phone\n\n"
+msgstr "ADVERTENCIA: Magisk Manager [%s] no se encuentra en el teléfono\n\n"
+
+msgid "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
+msgstr "Esto podría ser porque está oculto, o no está instalado (probablemente no instalado)\n\n"
+
+msgid "If it is installed and hidden, then you should abort and then unhide it.\n"
+msgstr "Si está instalado y oculto, entonces debería abortar y luego desocultarlo.\n"
+
+msgid "If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n"
+msgstr "Si Magisk no está instalado, PixelFlasher puede instalarlo por usted y usarlo para parcheado.\n\n"
+
+msgid "WARNING: Do not install Magisk again if it is currently hidden.\n"
+msgstr "ADVERTENCIA: No instale Magisk nuevamente si actualmente está oculto.\n"
+
+msgid "Do you want PixelFlasher to download and install Magisk?\n"
+msgstr "¿Desea que PixelFlasher descargue e instale Magisk?\n"
+
+msgid "You will be given a choice of Magisk Version to install.\n\n"
+msgstr "Se le dará una opción de versión de Magisk para instalar.\n\n"
+
+msgid "Click OK to continue with Magisk installation.\n"
+msgstr "Haga clic en ACEPTAR para continuar con la instalación de Magisk.\n"
+
+msgid "Kernel KMI Override"
+msgstr "Anulación de KMI del kernel"
+
+msgid "Kernel KMI Override: %s\n\n"
+msgstr "Anulación de KMI del kernel: %s\n\n"
+
+msgid "You have set a custom kernel KMI override.\n"
+msgstr "Ha establecido una anulación personalizada de KMI del kernel.\n"
+
+msgid "Are you sure you want to proceed with this override?\n"
+msgstr "¿Está seguro de que desea continuar con esta anulación?\n"
+
+msgid "Click OK to proceed with the override.\n"
+msgstr "Haga clic en ACEPTAR para continuar con la anulación.\n"
+
+msgid "Boot Model Mismatch"
+msgstr "Discrepancia del modelo de boot"
+
+msgid "APatch Manual Patching"
+msgstr "Parcheado manual de APatch"
+
+msgid "APatch Manual Patching requires CONFIG_KALLSYMS=y in the kernel config.\n"
+msgstr "El parcheado manual de APatch requiere CONFIG_KALLSYMS=y en la configuración del kernel.\n"
+
+msgid "APatch Manual Patching only supports kernel versions 3.18 - 6.1\n\n"
+msgstr "El parcheado manual de APatch solo admite versiones de kernel 3.18 - 6.1\n\n"
+
+msgid "Do you want to continue regardless of not meeting the pre-requisites?\n\n"
+msgstr "¿Desea continuar a pesar de no cumplir con los prerequisitos?\n\n"
+
+msgid "Click Yes to continue with APatch Manual Patching\n"
+msgstr "Haga clic en Sí para continuar con el parcheado manual de APatch\n"
+
+msgid "or Hit No to abort."
+msgstr "o presione No para abortar."
+
+msgid "Download Latest KernelPatch Tools"
+msgstr "Descargar las últimas herramientas de KernelPatch"
+
+msgid "Latest KernelPatch Tools Pre-release Version: %s\n"
+msgstr "Última versión preliminar de herramientas de KernelPatch: %s\n"
+
+msgid "Latest KernelPatch Tools Release Version: %s\n\n"
+msgstr "Última versión de lanzamiento de herramientas de KernelPatch: %s\n\n"
+
+msgid "Do you want to download the latest kptools-android and kpimg-android that includes pre-release versions?\n\n"
+msgstr "¿Desea descargar los últimos kptools-android y kpimg-android que incluyen versiones preliminares?\n\n"
+
+msgid "Click Yes to download the latest pre-release versions: %s\n"
+msgstr "Haga clic en Sí para descargar las últimas versiones preliminares: %s\n"
+
+msgid "Click No to download the latest Release versions: %s\n"
+msgstr "Haga clic en No para descargar las últimas versiones de lanzamiento: %s\n"
+
+msgid "%s Boot"
+msgstr "Boot %s"
+
+msgid "ERROR: Your phone model is: %s\n\n"
+msgstr "ERROR: El modelo de su teléfono es: %s\n\n"
+
+msgid "The selected Boot is for: %s\n\n"
+msgstr "El Boot seleccionado es para: %s\n\n"
+
+msgid "Unless you know what you are doing, if you continue flashing\n"
+msgstr "A menos que sepa lo que está haciendo, si continúa flasheando\n"
+
+msgid "you risk bricking your device, proceed only if you are absolutely\n"
+msgstr "corre el riesgo de inutilizar su dispositivo, proceda solo si está absolutamente\n"
+
+msgid "certain that this is what you want, you have been warned.\n\n"
+msgstr "seguro de que esto es lo que desea, ha sido advertido.\n\n"
+
+msgid "Flash action"
+msgstr "Acción de flasheo"
+
+msgid "❌ Device is not detected."
+msgstr "❌ El dispositivo no es detectado."
+
+msgid "❌ Bootloader is locked, cannot flash."
+msgstr "❌ El bootloader está bloqueado, no se puede flashear."
+
+msgid "Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?"
+msgstr "Su bootloader está bloqueado o no ha otorgado permisos su al proceso shell.\n¿Desea continuar de todos modos?"
+
+msgid "❌ Android Platform Tools is not set."
+msgstr "❌ Android Platform Tools no está configurado."
+
+msgid "❌ Valid device is not selected."
+msgstr "❌ No se ha seleccionado un dispositivo válido."
+
+msgid "❌ boot is not selected."
+msgstr "❌ No se ha seleccionado el boot."
+
+msgid "You can only sideload OTA that is equal or higher than the currently installed version.\n"
+msgstr "Solo puede hacer sideload de OTA que sea igual o superior a la versión actualmente instalada.\n"
+
+msgid "Alternatively, you can flash the full firmware image (with wipe data) to downgrade or patch the current boot image to allow a downgrade without wipe.\n"
+msgstr "Alternativamente, puede flashear la imagen completa del firmware (con borrado de datos) para hacer downgrade o parchear la imagen de boot actual para permitir un downgrade sin borrado.\n"
+
+msgid "See Menu item: Dev Tools | AVB Prepare Downgrade Patch for further details.\n\n"
+msgstr "Vea el elemento de menú: Herramientas de desarrollo | AVB Preparar parche de downgrade para más detalles.\n\n"
+
+msgid "If you still want to proceed, Click YES to accept and continue. or NO to Abort.\n"
+msgstr "Si aún desea continuar, haga clic en SÍ para aceptar y continuar. o NO para abortar.\n"
+
+msgid "You have selected to WIPE data\nAre you sure want to continue?"
+msgstr "Ha seleccionado BORRAR datos\n¿Está seguro de que desea continuar?"
+
+msgid "Wipe Data"
+msgstr "Borrar datos"
+
+msgid "✅ Wipe Data is accepted."
+msgstr "✅ Borrado de datos aceptado."
+
+msgid "You have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?"
+msgstr "Ha seleccionado la opción de flasheo: Borrar\nEsto borrará sus datos\n¿Está seguro de que desea continuar?"
+
+msgid "Flash option: Wipe"
+msgstr "Opción de flasheo: Borrar"
+
+msgid "✅ Wipe is accepted."
+msgstr "✅ Borrado aceptado."
+
+msgid "You have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?"
+msgstr "Ha seleccionado la opción de flasheo: Forzar\nEsto borrará sus datos\n¿Está seguro de que desea continuar?"
+
+msgid "Flash option: Force"
+msgstr "Opción de flasheo: Forzar"
+
+msgid "✅ Force flag is accepted."
+msgstr "✅ Bandera de forzado aceptada."
+
+msgid "❌ Not enough disk space."
+msgstr "❌ No hay suficiente espacio en disco."
+
+msgid "❌ Full OTA or factory image must be selected."
+msgstr "❌ Se debe seleccionar OTA completa o imagen de fábrica."
+
+msgid "Tensor device not on Android 13 or higher"
+msgstr "Dispositivo Tensor no está en Android 13 o superior"
+
+msgid "WARNING: Your phone OS version is lower than Android 13.\n\n"
+msgstr "ADVERTENCIA: La versión del SO de su teléfono es inferior a Android 13.\n\n"
+
+msgid "If you are upgrading to Android 13 or newer,\n"
+msgstr "Si está actualizando a Android 13 o más reciente,\n"
+
+msgid "make sure you at least flash the bootloader to both slots.\n"
+msgstr "asegúrese de al menos flashear el bootloader a ambas ranuras.\n"
+
+msgid "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
+msgstr "La actualización de Android 13 para Pixel 6, Pixel 6 Pro y Pixel 6a contiene\n"
+
+msgid "a bootloader update that increments the anti-roll back version for the bootloader.\n"
+msgstr "una actualización del bootloader que incrementa la versión anti-retroceso para el bootloader.\n"
+
+msgid "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
+msgstr "Esto impide que el dispositivo retroceda a versiones anteriores vulnerables del bootloader.\n"
+
+msgid "After flashing an Android 13 build on these devices\n"
+msgstr "Después de flashear una versión de Android 13 en estos dispositivos\n"
+
+msgid "you will not be able to flash and boot older Android 12 builds.\n\n"
+msgstr "no podrá flashear y arrancar versiones antiguas de Android 12.\n\n"
+
+msgid "Selecting the option 'Flash to both slots'\n"
+msgstr "Seleccionar la opción 'Flashear a ambas ranuras'\n"
+
+msgid "Will take care of that.\n\n"
+msgstr "Se encargará de eso.\n\n"
+
+msgid "Click OK to continue as is.\n"
+msgstr "Haga clic en ACEPTAR para continuar como está.\n"
+
+msgid "or Hit CANCEL to abort and change options."
+msgstr "o presione CANCELAR para abortar y cambiar opciones."
+
+msgid "✅ Anti rollback warning acknowledged and bypassed."
+msgstr "✅ Advertencia de anti-retroceso reconocida y omitida."
+
+msgid "❌ downgrade_boot.img is not found."
+msgstr "❌ downgrade_boot.img no se encuentra."
+
+msgid "❌ Unable to replace boot.img in image.zip."
+msgstr "❌ No se puede reemplazar boot.img en image.zip."
+
+msgid "⚠️ Live booting Pixel 7 or newer devices is not supported."
+msgstr "⚠️ El arranque en vivo de dispositivos Pixel 7 o más nuevos no es compatible."
+
+msgid "❌ Image file is not selected."
+msgstr "❌ No se ha seleccionado archivo de imagen."
+
+msgid "❌ Boot file is not found."
+msgstr "❌ No se encuentra el archivo boot."
+
+msgid "❌ ROM file is not found."
+msgstr "❌ No se encuentra el archivo ROM."
+
+msgid "Device / Firmware Mismatch"
+msgstr "Discrepancia de dispositivo / firmware"
+
+msgid "The selected firmware is for: %s\n\n"
+msgstr "El firmware seleccionado es para: %s\n\n"
+
+msgid "✅ Device / Firmware mismatch acknowledged."
+msgstr "✅ Discrepancia de dispositivo / firmware reconocida."
+
+msgid "❌ Encountered an error while rebooting to bootloader."
+msgstr "❌ Se encontró un error al reiniciar al bootloader."
+
+msgid "❌ Encountered an error while rebooting to sideload."
+msgstr "❌ Se encontró un error al reiniciar a sideload."
+
+msgid "❌ Encountered an error while rebooting to fastbootd."
+msgstr "❌ Se encontró un error al reiniciar a fastbootd."
+
+msgid "❌ Encountered an error while running the flash script."
+msgstr "❌ Se encontró un error al ejecutar el script de flasheo."
+
+msgid "❌ Encountered an error while flashing the patch."
+msgstr "❌ Se encontró un error al flashear el parche."
+
+msgid "❌ vbmeta flashing did not return the expected result."
+msgstr "❌ El flasheo de vbmeta no devolvió el resultado esperado."
+
+msgid "❌ It appears that OTA flashing did not properly switch slots."
+msgstr "❌ Parece que el flasheo OTA no cambió correctamente las ranuras."
+
+msgid "⚠️ Device is not found after rebooting to bootloader."
+msgstr "⚠️ No se encuentra el dispositivo después de reiniciar al bootloader."
+
+msgid "✅ Flashing elapsed time: %s seconds"
+msgstr "✅ Tiempo transcurrido de flasheo: %s segundos"
+
+msgid "You have selected  WIPE option.\nAdb debugging will be reset and disabled\nHence patch or vbmeta flashing will be skipped."
+msgstr "Ha seleccionado la opción BORRAR.\nLa depuración adb se restablecerá y deshabilitará\nPor lo tanto, se omitirá el flasheo del parche o vbmeta."
+
+msgid "%s %s \n"
+msgstr "%s %s \n"
+
+msgid "Device is not detected."
+msgstr "El dispositivo no es detectado."
+
+msgid "Done rebooting to bootloader, continue"
+msgstr "Reinicio al bootloader completado, continuar"
+
+msgid "Done rebooting to system, continue"
+msgstr "Reinicio al sistema completado, continuar"
+
+msgid "## Is your device waiting for interaction?\n"
+msgstr "## ¿Su dispositivo está esperando interacción?\n"
+
+msgid "_If it is not, please hit the cancel button._\n"
+msgstr "_Si no es así, por favor presione el botón cancelar._\n"
+
+msgid "If your device is waiting for user interaction which can not be programmatically invoked.\n"
+msgstr "Si su dispositivo está esperando una interacción del usuario que no puede ser invocada programáticamente.\n"
+
+msgid "- Using volume keys, scroll up and down and select **Reboot {action_text}**\n"
+msgstr "- Usando las teclas de volumen, desplácese arriba y abajo y seleccione **Reiniciar {action_text}**\n"
+
+msgid "- Press the power button to apply.\n"
+msgstr "- Presione el botón de encendido para aplicar.\n"
+
+msgid "When done, the device should reboot to %s <br/>\n"
+msgstr "Cuando termine, el dispositivo debería reiniciar a %s <br/>\n"
+
+msgid "Wait for the device to fully boot to %s <br/>\n"
+msgstr "Espere a que el dispositivo arranque completamente a %s <br/>\n"
+
+msgid "Click on **Done rebooting to %s, continue** button <br/>\n"
+msgstr "Haga clic en el botón **Reinicio a %s completado, continuar** <br/>\n"
+
+msgid "or hit the **Cancel** button to abort.\n"
+msgstr "o presione el botón **Cancelar** para abortar.\n"
+
+msgid "Waiting for user interaction"
+msgstr "Esperando interacción del usuario"
+
+msgid "## Your watch should now be in Android Recovery\n"
+msgstr "## Su reloj debería estar ahora en Recovery de Android\n"
+
+msgid "The watch is waiting for user interaction which can not be programmatically invoked.\n"
+msgstr "El reloj está esperando una interacción del usuario que no puede ser invocada programáticamente.\n"
+
+msgid "- Using touch, scroll and select **Reboot to bootloader**\n"
+msgstr "- Usando el táctil, desplácese y seleccione **Reiniciar a bootloader**\n"
+
+msgid "- Press the side button to apply.\n"
+msgstr "- Presione el botón lateral para aplicar.\n"
+
+msgid "When done, the watch should reboot to bootloader mode <br/>\n"
+msgstr "Cuando termine, el reloj debería reiniciar al modo bootloader <br/>\n"
+
+msgid "Wait for the watch to indicate that it is in bootloader mode <br/>\n"
+msgstr "Espere a que el reloj indique que está en modo bootloader <br/>\n"
+
+msgid "Click on **Done rebooting to bootloader, continue** button <br/>\n"
+msgstr "Haga clic en el botón **Reinicio al bootloader completado, continuar** <br/>\n"
+
+msgid "- Using touch, scroll and select **Reboot to system now**\n"
+msgstr "- Usando el táctil, desplácese y seleccione **Reiniciar al sistema ahora**\n"
+
+msgid "When applied, the watch should reboot to system. <br/>\n"
+msgstr "Cuando se aplique, el reloj debería reiniciar al sistema. <br/>\n"
+
+msgid "Click on **Done rebooting to system, continue** button when the watch OS fully loads.\n"
+msgstr "Haga clic en el botón **Reinicio al sistema completado, continuar** cuando el sistema operativo del reloj cargue completamente.\n"
+
+##############################################################################
+# Pif Manager
+##############################################################################
+msgid "Active Pif"
+msgstr "Pif activo"
+
+msgid "Loaded Pif (from Device)"
+msgstr "Pif cargado (del dispositivo)"
+
+msgid "Active pif is not modified."
+msgstr "El pif activo no está modificado."
+
+msgid "Save Active pif content to a json file on disk."
+msgstr "Guardar el contenido del pif activo a un archivo json en disco."
+
+msgid "Pif Module"
+msgstr "Módulo Pif"
+
+msgid "Active pif is not saved in favorites."
+msgstr "El pif activo no está guardado en favoritos."
+
+msgid "Select a folder to import pif json files."
+msgstr "Seleccionar una carpeta para importar archivos json pif."
+
+msgid "Output"
+msgstr "Salida"
+
+msgid "Console Output:\nIt could be the json output of processed prop\nor it could be the Play Integrity Check result.\n\nThis is not what currently is on the device."
+msgstr "Salida de consola:\nPodría ser la salida json de prop procesado\no podría ser el resultado de verificación de Play Integrity.\n\nEsto no es lo que está actualmente en el dispositivo."
+
+msgid "Smart Paste:\nSets First API to the set value if it is missing or forced.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif."
+msgstr "Pegado inteligente:\nEstablece la primera API al valor establecido si falta o es forzada.\nReprocesa el contenido de la ventana de salida para adaptarlo a los requisitos del módulo actual.\nPega al pif activo."
+
+msgid "Paste the console window content to Active pif."
+msgstr "Pegar el contenido de la ventana de consola al pif activo."
+
+msgid "Paste the Active pif to console window."
+msgstr "Pegar el pif activo a la ventana de consola."
+
+msgid "Reprocess current Active Pif window json.\nUseful if you changed module version which might require additional / different fields."
+msgstr "Reprocesar el json de la ventana Pif activa actual.\nÚtil si cambió la versión del módulo que podría requerir campos adicionales / diferentes."
+
+msgid "Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place."
+msgstr "Reprocesar uno o varios archivo(s) json\nÚtil si cambió la versión del módulo que podría requerir campos adicionales / diferentes.\nSi se selecciona un solo archivo, el nuevo json se enviará a la salida de la consola\nSin embargo, si se seleccionan varios archivos, el archivo seleccionado se actualizará en su lugar."
+
+msgid "Convert console content from env (key=value) format to json"
+msgstr "Convertir contenido de consola de formato env (clave=valor) a json"
+
+msgid "Convert console content from json to env (key=value) format"
+msgstr "Convertir contenido de consola de json a formato env (clave=valor)"
+
+msgid "Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n"
+msgstr "Procesar uno o varios archivo(s) json para generar los extractos de código formateados de FrameworkPatcher.\n"
+
+msgid "Add missing Keys from device"
+msgstr "Añadir claves faltantes del dispositivo"
+
+msgid "When Processing or Reprocessing, add missing fields from device."
+msgstr "Al procesar o reprocesar, añadir campos faltantes del dispositivo."
+
+msgid "Force First API to:"
+msgstr "Forzar primera API a:"
+
+msgid "Forces First API value(s) to"
+msgstr "Fuerza el/los valor(es) de la primera API a"
+
+msgid "Sort Keys"
+msgstr "Ordenar claves"
+
+msgid "Sorts json keys"
+msgstr "Ordena las claves json"
+
+msgid "Keep All keys"
+msgstr "Mantener todas las claves"
+
+msgid "Does not remove non standard / unrecognized keys"
+msgstr "No elimina claves no estándar / no reconocidas"
+
+msgid "Spoof Build"
+msgstr "Falsificar Build"
+
+msgid "Spoof Props"
+msgstr "Falsificar Props"
+
+msgid "Spoof Provider"
+msgstr "Falsificar Proveedor"
+
+msgid "Spoof Signature"
+msgstr "Falsificar Firma"
+
+msgid "Close"
+msgstr "Cerrar"
+
+msgid "Create print"
+msgstr "Crear impresión"
+
+msgid "Create pif.json / spoof_build_vars"
+msgstr "Crear pif.json / spoof_build_vars"
+
+msgid "Push print, no validation"
+msgstr "Enviar impresión, sin validación"
+
+msgid "Pushes the print as is without performing any validation.\nThis is useful to retain comments."
+msgstr "Envía la impresión tal como está sin realizar ninguna validación.\nEsto es útil para conservar comentarios."
+
+msgid "Reload print"
+msgstr "Recargar impresión"
+
+msgid "Reload pif.json / spoof_build_vars from device."
+msgstr "Recargar pif.json / spoof_build_vars desde el dispositivo."
+
+msgid "Cleanup DG"
+msgstr "Limpiar DG"
+
+msgid "Cleanup Droidguard Cache"
+msgstr "Limpiar caché de Droidguard"
+
+msgid "Push keybox.xml"
+msgstr "Enviar keybox.xml"
+
+msgid "Push a valid keybox.xml to device."
+msgstr "Enviar un keybox.xml válido al dispositivo."
+
+msgid "Edit TS Target"
+msgstr "Editar objetivo TS"
+
+msgid "Edit Tricky Store target.txt file."
+msgstr "Editar archivo target.txt de Tricky Store."
+
+msgid "Edit TS SP"
+msgstr "Editar SP TS"
+
+msgid "Edit Tricky Store security_patch.txt file."
+msgstr "Editar archivo security_patch.txt de Tricky Store."
+
+msgid "Process build.prop(s)"
+msgstr "Procesar build.prop(s)"
+
+msgid "Process build.prop to extract a compatible print."
+msgstr "Procesar build.prop para extraer una impresión compatible."
+
+msgid "Process bulk props"
+msgstr "Procesar props en masa"
+
+msgid "Process a folder containing .prop files and convert then to .json files."
+msgstr "Procesar una carpeta que contiene archivos .prop y convertirlos a archivos .json."
+
+msgid "Process Image"
+msgstr "Procesar imagen"
+
+msgid "Process an image and get a print from it."
+msgstr "Procesar una imagen y obtener una impresión de ella."
+
+msgid "Auto Update print"
+msgstr "Actualizar impresión automáticamente"
+
+msgid "After Processing build.props, the print is automatically pushed to the device and the GMS process is killed."
+msgstr "Después de procesar build.props, la impresión se envía automáticamente al dispositivo y se mata el proceso GMS."
+
+msgid "Auto Check Play Integrity"
+msgstr "Verificar Play Integrity automáticamente"
+
+msgid "After saving (pushing) print, automatically run Play Integrity Check."
+msgstr "Después de guardar (enviar) la impresión, ejecutar automáticamente la verificación de Play Integrity."
+
+msgid "Disable UIAutomator"
+msgstr "Deshabilitar UIAutomator"
+
+msgid "Disables UIAutomator\nThis is useful for devices with buggy UIAutomator.\nNOTE: Create the coords.json file manually to make use of automated testing."
+msgstr "Deshabilita UIAutomator\nEsto es útil para dispositivos con UIAutomator con errores.\nNOTA: Cree el archivo coords.json manualmente para hacer uso de pruebas automatizadas."
+
+msgid "Play Integrity Check"
+msgstr "Verificación de Play Integrity"
+
+msgid "Play Integrity API Checker\nNote: Need to install app from Play store."
+msgstr "Verificador de API de Play Integrity\nNota: Necesita instalar la aplicación desde Play Store."
+
+msgid "Latest"
+msgstr "Más reciente"
+
+msgid "Custom"
+msgstr "Personalizado"
+
+msgid "Select 'Latest' to get the latest Pixel beta pif (Includes Developer Preview).\nSelect 'Custom' to set a custom Android version code."
+msgstr "Seleccione 'Más reciente' para obtener el último pif beta de Pixel (Incluye vista previa para desarrolladores).\nSeleccione 'Personalizado' para establecer un código de versión de Android personalizado."
+
+msgid "Set a valid Android version code."
+msgstr "Establecer un código de versión de Android válido."
+
+msgid "Get Pixel Beta Pif"
+msgstr "Obtener Pif beta de Pixel"
+
+msgid "Get the latest Pixel beta pif."
+msgstr "Obtener el último pif beta de Pixel."
+
+msgid "Get Xiaomi Pif"
+msgstr "Obtener Pif de Xiaomi"
+
+msgid "Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own."
+msgstr "Obtener pif de Xiaomi.eu\nFácil de empezar pero no se recomienda ya que se prohíbe rápidamente.\nSe recomienda encontrar el suyo propio."
+
+msgid "Get TheFreeman193 Random Pif"
+msgstr "Obtener Pif aleatorio de TheFreeman193"
+
+msgid "Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work."
+msgstr "Obtener un pif aleatorio del repositorio de TheFreeman193.\nNota: El pif puede funcionar o no."
+
+msgid "No Device is selected.\nPif Manager features are set to limited mode."
+msgstr "No se ha seleccionado ningún dispositivo.\nLas características del Administrador Pif están configuradas en modo limitado."
+
+msgid "Device is not rooted or SU permissions to adb shell is not granted.\nPif Manager features are set to limited mode."
+msgstr "El dispositivo no tiene root o no se han concedido permisos SU al shell adb.\nLas características del Administrador Pif están configuradas en modo limitado."
+
+msgid "Update print"
+msgstr "Actualizar impresión"
+
+msgid "Update pif.json / spoof_build_vars."
+msgstr "Actualizar pif.json / spoof_build_vars."
+
+msgid "Create pif.json / spoof_build_vars."
+msgstr "Crear pif.json / spoof_build_vars."
+
+msgid "Getting Pixel beta print ...\nPlease be patient this could take some time ..."
+msgstr "Obteniendo impresión beta de Pixel ...\nPor favor sea paciente, esto podría tomar algún tiempo ..."
+
+msgid "Failed to get beta print."
+msgstr "Error al obtener impresión beta."
+
+msgid "Active pif not in sync"
+msgstr "Pif activo no sincronizado"
+
+msgid "⚠️ WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing."
+msgstr "⚠️ ¡ADVERTENCIA! El pif del dispositivo no está sincronizado con el contenido del Pif activo.\nEl resultado no reflejará el pif activo que está viendo."
+
+msgid "Choose property files to open"
+msgstr "Elegir archivos de propiedades para abrir"
+
+msgid "Select a Device Image"
+msgstr "Seleccionar una imagen de dispositivo"
+
+msgid "Processing %s ...\nPlease be patient this could take some time ..."
+msgstr "Procesando %s ...\nPor favor sea paciente, esto podría tomar algún tiempo ..."
+
+msgid "Image format not supported"
+msgstr "Formato de imagen no compatible"
+
+msgid "Select folder to bulk process props files"
+msgstr "Seleccionar carpeta para procesar archivos props en masa"
+
+msgid "The contents is different than what is currently on the device.\nUpdate the print before testing."
+msgstr "El contenido es diferente de lo que está actualmente en el dispositivo.\nActualice la impresión antes de probar."
+
+msgid "Active pif is saved in favorites."
+msgstr "El pif activo está guardado en favoritos."
+
+msgid "Select keybox to push"
+msgstr "Seleccionar keybox para enviar"
+
+msgid "Choose one or multiple json files to reprocess"
+msgstr "Elegir uno o varios archivos json para reprocesar"
+
+msgid "Save FP file"
+msgstr "Guardar archivo FP"
+
+msgid "Enter a label:"
+msgstr "Ingrese una etiqueta:"
+
+msgid "Save Pif to Favorites"
+msgstr "Guardar Pif en favoritos"
+
+msgid "Select folder to Import Pifs"
+msgstr "Seleccionar carpeta para importar Pifs"
+
+##############################################################################
+# Magisk
+##############################################################################
+msgid "❌ ERROR: You must first select a valid device."
+msgstr "❌ ERROR: Primero debe seleccionar un dispositivo válido."
+
+msgid "Manage Magisk"
+msgstr "Administrar Magisk"
+
+msgid "When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled."
+msgstr "Cuando presione el botón ACEPTAR, los módulos con casilla seleccionada serán habilitados y el resto serán deshabilitados."
+
+msgid "Magisk Modules"
+msgstr "Módulos Magisk"
+
+msgid "Enable / Disable Magisk modules"
+msgstr "Habilitar / Deshabilitar módulos Magisk"
+
+msgid "Install Module"
+msgstr "Instalar módulo"
+
+msgid "Install magisk module."
+msgstr "Instalar módulo magisk."
+
+msgid "Update Module"
+msgstr "Actualizar módulo"
+
+msgid "Update magisk module."
+msgstr "Actualizar módulo magisk."
+
+msgid "Uninstall Module"
+msgstr "Desinstalar módulo"
+
+msgid "Uninstall magisk module."
+msgstr "Desinstalar módulo magisk."
+
+msgid "Run Action"
+msgstr "Ejecutar acción"
+
+msgid "Run Module action.sh."
+msgstr "Ejecutar action.sh del módulo."
+
+msgid "Install Pif / TS Module"
+msgstr "Instalar módulo Pif / TS"
+
+msgid "Install Play Integrity Fix module."
+msgstr "Instalar módulo Play Integrity Fix."
+
+msgid "Install ZygiskNext Module"
+msgstr "Instalar módulo ZygiskNext"
+
+msgid "Install ZygiskNext module."
+msgstr "Instalar módulo ZygiskNext."
+
+msgid "Systemless Hosts"
+msgstr "Hosts sin sistema"
+
+msgid "Add Systemless Hosts Module."
+msgstr "Añadir módulo Hosts sin sistema."
+
+msgid "Enable Zygisk"
+msgstr "Habilitar Zygisk"
+
+msgid "Enable Magisk zygisk (requires reboot)"
+msgstr "Habilitar Magisk zygisk (requiere reinicio)"
+
+msgid "Disable Zygisk"
+msgstr "Deshabilitar Zygisk"
+
+msgid "Disable Magisk zygisk (requires reboot)"
+msgstr "Deshabilitar Magisk zygisk (requiere reinicio)"
+
+msgid "Enable Denylist"
+msgstr "Habilitar lista de denegación"
+
+msgid "Enable Magisk denylist"
+msgstr "Habilitar lista de denegación de Magisk"
+
+msgid "Disable Denylist"
+msgstr "Deshabilitar lista de denegación"
+
+msgid "Disable Magisk denylist"
+msgstr "Deshabilitar lista de denegación de Magisk"
+
+msgid "Refresh"
+msgstr "Actualizar"
+
+msgid "Refresh Magisk modules list."
+msgstr "Actualizar lista de módulos Magisk."
+
+msgid "To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature."
+msgstr "Para administrar la lista de denegación o para administrar permisos SU, use la función Administrador de aplicaciones de PixelFlasher."
+
+msgid "Use Pixelflasher's App Manager functionality to add/remove items to denylist or su permissions."
+msgstr "Use la funcionalidad Administrador de aplicaciones de Pixelflasher para añadir/eliminar elementos a la lista de denegación o permisos su."
+
+msgid "Restore Module"
+msgstr "Restaurar módulo"
+
+msgid "## You need to reboot your device for the changes to take effect."
+msgstr "## Necesita reiniciar su dispositivo para que los cambios surtan efecto."
+
+msgid "osm0sis PlayIntegrityFork"
+msgstr "osm0sis PlayIntegrityFork"
+
+msgid "chiteroman PlayIntegrityFix"
+msgstr "chiteroman PlayIntegrityFix"
+
+msgid "PIF Module"
+msgstr "Módulo PIF"
+
+msgid "Select the module you want to install"
+msgstr "Seleccione el módulo que desea instalar"
+
+msgid "## You need to reboot your device to complete the installation."
+msgstr "## Necesita reiniciar su dispositivo para completar la instalación."
+
+msgid "## You need to reboot your device to complete the update."
+msgstr "## Necesita reiniciar su dispositivo para completar la actualización."
+
+msgid "Copy"
+msgstr "Copiar"
+
+msgid "Select All"
+msgstr "Seleccionar todo"
+
+##############################################################################
+# Rooting App
+##############################################################################
+msgid "Download and Install Rooting Application"
+msgstr "Descargar e instalar aplicación de root"
+
+msgid "Select rooting app to install."
+msgstr "Seleccione la aplicación de root para instalar."
+
+msgid "Root App"
+msgstr "Aplicación de Root"
+
+msgid "Version"
+msgstr "Versión"
+
+msgid "VersionCode"
+msgstr "Código de versión"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "Package"
+msgstr "Paquete"
+
+msgid "WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install."
+msgstr "¡ADVERTENCIA! No instale magisk si ya tiene instalado un Magisk oculto (stub).\nPrimero desoculte Magisk antes de intentar una instalación."
+
+msgid "Download the rooting app."
+msgstr "Descargar la aplicación de root."
+
+msgid "Copy URL to Clipboard"
+msgstr "Copiar URL al portapapeles"
+
+msgid "Copy Package ID to Clipboard"
+msgstr "Copiar ID del paquete al portapapeles"
+
+msgid "Download Selected Rooting App"
+msgstr "Descargar aplicación de root seleccionada"
+
+msgid "Device Not Supported"
+msgstr "Dispositivo no compatible"
+
+msgid "The selected Magisk is not supported for your device\n"
+msgstr "El Magisk seleccionado no es compatible con su dispositivo\n"
+
+msgid "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
+msgstr "Actualmente solo son compatibles Pixel 7 (panther), Pixel 7 Pro (cheetah), Pixel 7a (lynx) y Pixel Tablet (tangorpro).\n\n"
+
+msgid "Unless you know what you are doing, if you choose to continue\n"
+msgstr "A menos que sepa lo que está haciendo, si elige continuar\n"
+
+msgid "you risk running into serious issues, proceed only if you are absolutely\n"
+msgstr "corre el riesgo de encontrarse con problemas graves, proceda solo si está absolutamente\n"
+
+##############################################################################
+# Magisk Backup Manager
+##############################################################################
+msgid "Check / Uncheck All"
+msgstr "Marcar / Desmarcar todo"
+
+msgid "Delete checked backups"
+msgstr "Eliminar copias de seguridad marcadas"
+
+msgid "Add Backup from Computer"
+msgstr "Añadir copia de seguridad desde el ordenador"
+
+msgid "Select a boot.img and create a backup from it.\nWARNING! No verification is done if the selected file is stock boot image or even for the correct device."
+msgstr "Seleccione un boot.img y cree una copia de seguridad a partir de él.\n¡ADVERTENCIA! No se realiza ninguna verificación si el archivo seleccionado es una imagen de arranque stock o incluso para el dispositivo correcto."
+
+msgid "Auto Create Backup"
+msgstr "Crear copia de seguridad automáticamente"
+
+msgid "Checks current boot partition,\nFf it is a Magisk Patched with SHA1\nand the boot.img is available, then it\nAutomatically creates a backup of boot image."
+msgstr "Verifica la partición de arranque actual,\nSi es un Magisk parcheado con SHA1\ny el boot.img está disponible, entonces\nCrea automáticamente una copia de seguridad de la imagen de arranque."
+
+msgid "Closes this dialog"
+msgstr "Cierra este diálogo"
+
+msgid "boot / init_boot image to create backup of."
+msgstr "imagen boot / init_boot para crear copia de seguridad."
+
+msgid "Delete Backup"
+msgstr "Eliminar copia de seguridad"
+
+msgid "Check All"
+msgstr "Marcar todo"
+
+msgid "UnCheck All"
+msgstr "Desmarcar todo"
+
+msgid "Copy to Clipboard"
+msgstr "Copiar al portapapeles"
+
+##############################################################################
+# App Manager
+##############################################################################
+msgid "Set SU Permission"
+msgstr "Establecer permisos SU"
+
+msgid "Enter SU Permission details:"
+msgstr "Ingrese detalles de permisos SU:"
+
+msgid "Enable Notification"
+msgstr "Habilitar notificación"
+
+msgid "Enable Logging"
+msgstr "Habilitar registro"
+
+msgid "Forever"
+msgstr "Para siempre"
+
+msgid "10 mins"
+msgstr "10 minutos"
+
+msgid "20 mins"
+msgstr "20 minutos"
+
+msgid "30 mins"
+msgstr "30 minutos"
+
+msgid "60 mins"
+msgstr "60 minutos"
+
+msgid "Allow"
+msgstr "Permitir"
+
+msgid "Deny"
+msgstr "Denegar"
+
+msgid "Revoke"
+msgstr "Revocar"
+
+msgid "Manage Packages on the Device"
+msgstr "Administrar paquetes en el dispositivo"
+
+msgid "%s Packages"
+msgstr "%s Paquetes"
+
+msgid "Show System apps"
+msgstr "Mostrar aplicaciones del sistema"
+
+msgid "Show 3rd Party apps"
+msgstr "Mostrar aplicaciones de terceros"
+
+msgid "Get All Application Names"
+msgstr "Obtener todos los nombres de aplicaciones"
+
+msgid "Extracts App names, and caches them for faster loading in the future.\nNOTE: This could take a while."
+msgstr "Extrae nombres de aplicaciones y los almacena en caché para cargarlos más rápido en el futuro.\nNOTA: Esto podría llevar tiempo."
+
+msgid "Disable"
+msgstr "Deshabilitar"
+
+msgid "Disable checked packages"
+msgstr "Deshabilitar paquetes marcados"
+
+msgid "Enable"
+msgstr "Habilitar"
+
+msgid "Enable checked packages"
+msgstr "Habilitar paquetes marcados"
+
+msgid "Uninstall"
+msgstr "Desinstalar"
+
+msgid "Uninstall checked packages"
+msgstr "Desinstalar paquetes marcados"
+
+msgid "Add to Denylist"
+msgstr "Añadir a lista de denegación"
+
+msgid "Add package to Magisk Denylist"
+msgstr "Añadir paquete a lista de denegación de Magisk"
+
+msgid "Remove from Denylist"
+msgstr "Eliminar de lista de denegación"
+
+msgid "Remove package from Magisk Denylist"
+msgstr "Eliminar paquete de lista de denegación de Magisk"
+
+msgid "Install an APK on the device"
+msgstr "Instalar un APK en el dispositivo"
+
+msgid "Download APK"
+msgstr "Descargar APK"
+
+msgid "Extract and download APK"
+msgstr "Extraer y descargar APK"
+
+msgid "Export List"
+msgstr "Exportar lista"
+
+msgid "Export the package list in CSV format"
+msgstr "Exportar la lista de paquetes en formato CSV"
+
+msgid "%s / %s Packages"
+msgstr "%s / %s Paquetes"
+
+msgid "Export Package list"
+msgstr "Exportar lista de paquetes"
+
+msgid "Choose a directory where all apks should be saved."
+msgstr "Elija un directorio donde se guardarán todos los apks."
+
+msgid "Download APK file"
+msgstr "Descargar archivo APK"
+
+msgid "Disable Package"
+msgstr "Deshabilitar paquete"
+
+msgid "Enable Package"
+msgstr "Habilitar paquete"
+
+msgid "Uninstall Package"
+msgstr "Desinstalar paquete"
+
+msgid "Download Package"
+msgstr "Descargar paquete"
+
+msgid "Launch Package"
+msgstr "Iniciar paquete"
+
+msgid "View Application Permissions"
+msgstr "Ver permisos de la aplicación"
+
+msgid "Kill Application"
+msgstr "Terminar aplicación"
+
+msgid "Clear Application Data"
+msgstr "Borrar datos de la aplicación"
+
+msgid "Add Package to Magisk Denylist"
+msgstr "Añadir paquete a lista de denegación de Magisk"
+
+msgid "Remove Package from Magisk Denylist"
+msgstr "Eliminar paquete de lista de denegación de Magisk"
+
+msgid "SU Permission ..."
+msgstr "Permisos SU ..."
+

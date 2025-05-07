@@ -43,6 +43,7 @@ import re
 from datetime import datetime
 from runtime import *
 from file_editor import FileEditor
+from i18n import _
 
 
 # ============================================================================
@@ -71,7 +72,7 @@ class PifManager(wx.Dialog):
         self.SetPosition((offset_x, default_pos.y))
 
         self.config = config
-        self.SetTitle("Pif Manager")
+        self.SetTitle(_("Pif Manager"))
         self.pif_path = None
         self.device_pif = ''
         self.pi_app = 'gr.nikolasspyr.integritycheck'
@@ -90,32 +91,32 @@ class PifManager(wx.Dialog):
         self.beta_pif_version = 'latest'
 
         # Active pif label
-        self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Active Pif")
-        self.active_pif_label.SetToolTip(u"Loaded Pif (from Device)")
+        self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_("Active Pif"))
+        self.active_pif_label.SetToolTip(_("Loaded Pif (from Device)"))
         font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.active_pif_label.SetFont(font)
         # Modified status
         self.pif_modified_image = wx.StaticBitmap(parent=self)
         self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
-        self.pif_modified_image.SetToolTip(u"Active pif is not modified.")
+        self.pif_modified_image.SetToolTip(_("Active pif is not modified."))
         # Save pif
         self.save_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.save_pif_button.SetBitmap(images.save_24.GetBitmap())
-        self.save_pif_button.SetToolTip(u"Save Active pif content to a json file on disk.")
+        self.save_pif_button.SetToolTip(_("Save Active pif content to a json file on disk."))
         # Module version label
         self.pif_selection_combo = wx.ComboBox(self, choices=[], style=wx.CB_READONLY)
-        self.pif_selection_combo.SetToolTip(u"Pif Module")
+        self.pif_selection_combo.SetToolTip(_("Pif Module"))
         # Favorite button
         self.favorite_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
-        self.favorite_pif_button.SetToolTip(u"Active pif is not saved in favorites.")
+        self.favorite_pif_button.SetToolTip(_("Active pif is not saved in favorites."))
         # Combo Box of favorites
         pif_labels = [pif["label"] for pif in self.favorite_pifs.values()]
         self.pif_combo_box = wx.ComboBox(self, choices=pif_labels, style=wx.CB_READONLY)
         # Import button
         self.import_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.import_pif_button.SetBitmap(images.import_24.GetBitmap())
-        self.import_pif_button.SetToolTip(u"Select a folder to import pif json files.")
+        self.import_pif_button.SetToolTip(_("Select a folder to import pif json files."))
 
         # Active Pif
         self.active_pif_stc = stc.StyledTextCtrl(self)
@@ -138,66 +139,66 @@ class PifManager(wx.Dialog):
         self.active_pif_stc.SetMarginWidth(1, 30)
 
         # Console label
-        self.console_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=u"Output")
-        self.console_label.SetToolTip(u"Console Output:\nIt could be the json output of processed prop\nor it could be the Play Integrity Check result.\n\nThis is not what currently is on the device.")
+        self.console_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_("Output"))
+        self.console_label.SetToolTip(_("Console Output:\nIt could be the json output of processed prop\nor it could be the Play Integrity Check result.\n\nThis is not what currently is on the device."))
         font = wx.Font(12, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.console_label.SetFont(font)
         # Smart Paste Up
         self.smart_paste_up = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.smart_paste_up.SetBitmap(images.smart_paste_up_24.GetBitmap())
-        self.smart_paste_up.SetToolTip(u"Smart Paste:\nSets First API to the set value if it is missing or forced.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif.")
+        self.smart_paste_up.SetToolTip(_("Smart Paste:\nSets First API to the set value if it is missing or forced.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif."))
         self.smart_paste_up.Enable(False)
         # Paste Up
         self.paste_up = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.paste_up.SetBitmap(images.paste_up_24.GetBitmap())
-        self.paste_up.SetToolTip(u"Paste the console window content to Active pif.")
+        self.paste_up.SetToolTip(_("Paste the console window content to Active pif."))
         self.paste_up.Enable(False)
         # Paste Down
         self.paste_down = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.paste_down.SetBitmap(images.paste_down_24.GetBitmap())
-        self.paste_down.SetToolTip(u"Paste the Active pif to console window.")
+        self.paste_down.SetToolTip(_("Paste the Active pif to console window."))
         self.paste_down.Enable(False)
         # Reprocess
         self.reprocess = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.reprocess.SetBitmap(images.scan_24.GetBitmap())
-        self.reprocess.SetToolTip(u"Reprocess current Active Pif window json.\nUseful if you changed module version which might require additional / different fields.")
+        self.reprocess.SetToolTip(_("Reprocess current Active Pif window json.\nUseful if you changed module version which might require additional / different fields."))
         self.reprocess.Enable(False)
         # Reprocess Json File(s)
         self.reprocess_json_file = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.reprocess_json_file.SetBitmap(images.json_24.GetBitmap())
-        self.reprocess_json_file.SetToolTip(u"Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place.")
+        self.reprocess_json_file.SetToolTip(_("Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place."))
         # Env to Json
         self.e2j = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.e2j.SetBitmap(images.e2j_24.GetBitmap())
-        self.e2j.SetToolTip(u"Convert console content from env (key=value) format to json")
+        self.e2j.SetToolTip(_("Convert console content from env (key=value) format to json"))
         # Json to Env
         self.j2e = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.j2e.SetBitmap(images.j2e_24.GetBitmap())
-        self.j2e.SetToolTip(u"Convert console content from json to env (key=value) format")
+        self.j2e.SetToolTip(_("Convert console content from json to env (key=value) format"))
         # Get FP Code
         self.get_fp_code = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.get_fp_code.SetBitmap(images.java_24.GetBitmap())
-        self.get_fp_code.SetToolTip(u"Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n")
+        self.get_fp_code.SetToolTip(_("Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n"))
         # Add missing keys checkbox
-        self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Add missing Keys from device", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.add_missing_keys_checkbox.SetToolTip(u"When Processing or Reprocessing, add missing fields from device.")
+        self.add_missing_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Add missing Keys from device"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.add_missing_keys_checkbox.SetToolTip(_("When Processing or Reprocessing, add missing fields from device."))
         # Force First API
-        self.force_first_api_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Force First API to:", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.force_first_api_checkbox.SetToolTip(f"Forces First API value(s) to")
+        self.force_first_api_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Force First API to:"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.force_first_api_checkbox.SetToolTip(_("Forces First API value(s) to"))
         # Input box for the API value
         self.api_value_input = wx.TextCtrl(parent=self, id=wx.ID_ANY, value="25", size=(40, -1))
         # sort_keys
-        self.sort_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Sort Keys", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.sort_keys_checkbox.SetToolTip(f"Sorts json keys")
+        self.sort_keys_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Sort Keys"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.sort_keys_checkbox.SetToolTip(_("Sorts json keys"))
         # keep_unknown
-        self.keep_unknown_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Keep All keys", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.keep_unknown_checkbox.SetToolTip(f"Does not remove non standard / unrecognized keys")
+        self.keep_unknown_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Keep All keys"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.keep_unknown_checkbox.SetToolTip(_("Does not remove non standard / unrecognized keys"))
         # add advanced options checkboxes
-        self.spoofBuild_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Spoof Build", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spoofBuild_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Build"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spoofBuild_checkbox.SetValue(True)
-        self.spoofProps_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Spoof Props", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.spoofProvider_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Spoof Provider", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.spoofSignature_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Spoof Signature", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spoofProps_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Props"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spoofProvider_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Provider"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spoofSignature_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Signature"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
 
         # Console
         self.console_stc = stc.StyledTextCtrl(self)
@@ -220,70 +221,70 @@ class PifManager(wx.Dialog):
         self.console_stc.SetMarginWidth(1, 30)
 
         # Close button
-        self.close_button = wx.Button(self, wx.ID_ANY, u"Close", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.close_button = wx.Button(self, wx.ID_ANY, _("Close"), wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Create print button
-        self.create_pif_button = wx.Button(self, wx.ID_ANY, u"Create print", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.create_pif_button.SetToolTip(u"Create pif.json / spoof_build_vars")
+        self.create_pif_button = wx.Button(self, wx.ID_ANY, _("Create print"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.create_pif_button.SetToolTip(_("Create pif.json / spoof_build_vars"))
         self.create_pif_button.Enable(False)
 
         # Push print no validation button
-        self.push_pif_button = wx.Button(self, wx.ID_ANY, u"Push print, no validation", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.push_pif_button.SetToolTip(u"Pushes the print as is without performing any validation.\nThis is useful to retain comments.")
+        self.push_pif_button = wx.Button(self, wx.ID_ANY, _("Push print, no validation"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.push_pif_button.SetToolTip(_("Pushes the print as is without performing any validation.\nThis is useful to retain comments."))
         self.push_pif_button.Enable(False)
 
         # Reload print button
-        self.reload_pif_button = wx.Button(self, wx.ID_ANY, u"Reload print", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.reload_pif_button.SetToolTip(u"Reload pif.json / spoof_build_vars from device.")
+        self.reload_pif_button = wx.Button(self, wx.ID_ANY, _("Reload print"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.reload_pif_button.SetToolTip(_("Reload pif.json / spoof_build_vars from device."))
         self.reload_pif_button.Enable(False)
 
         # Clean DG button
-        self.cleanup_dg_button = wx.Button(self, wx.ID_ANY, u"Cleanup DG", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.cleanup_dg_button.SetToolTip(u"Cleanup Droidguard Cache")
+        self.cleanup_dg_button = wx.Button(self, wx.ID_ANY, _("Cleanup DG"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.cleanup_dg_button.SetToolTip(_("Cleanup Droidguard Cache"))
         self.cleanup_dg_button.Enable(False)
 
         # Push keybox button
-        self.push_kb_button = wx.Button(self, wx.ID_ANY, u"Push keybox.xml", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.push_kb_button.SetToolTip(u"Push a valid keybox.xml to device.")
+        self.push_kb_button = wx.Button(self, wx.ID_ANY, _("Push keybox.xml"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.push_kb_button.SetToolTip(_("Push a valid keybox.xml to device."))
         self.push_kb_button.Enable(False)
         self.push_kb_button.Show(False)
 
         # Edit Tricky Store target.txt button
-        self.edit_ts_target_button = wx.Button(self, wx.ID_ANY, u"Edit TS Target", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.edit_ts_target_button.SetToolTip(u"Edit Tricky Store target.txt file.")
+        self.edit_ts_target_button = wx.Button(self, wx.ID_ANY, _("Edit TS Target"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.edit_ts_target_button.SetToolTip(_("Edit Tricky Store target.txt file."))
         self.edit_ts_target_button.Enable(False)
         self.edit_ts_target_button.Show(False)
 
         # Edit Tricky Store security_patch.txt button
-        self.edit_security_patch_button = wx.Button(self, wx.ID_ANY, u"Edit TS SP", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.edit_security_patch_button.SetToolTip(u"Edit Tricky Store security_patch.txt file.")
+        self.edit_security_patch_button = wx.Button(self, wx.ID_ANY, _("Edit TS SP"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.edit_security_patch_button.SetToolTip(_("Edit Tricky Store security_patch.txt file."))
         self.edit_security_patch_button.Enable(False)
         self.edit_security_patch_button.Show(False)
 
         # Process build.prop button
-        self.process_build_prop_button = wx.Button(self, wx.ID_ANY, u"Process build.prop(s)", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.process_build_prop_button.SetToolTip(u"Process build.prop to extract a compatible print.")
+        self.process_build_prop_button = wx.Button(self, wx.ID_ANY, _("Process build.prop(s)"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.process_build_prop_button.SetToolTip(_("Process build.prop to extract a compatible print."))
 
         # Process bulk prop
-        self.process_bulk_prop_button = wx.Button(self, wx.ID_ANY, u"Process bulk props", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.process_bulk_prop_button.SetToolTip(u"Process a folder containing .prop files and convert then to .json files.")
+        self.process_bulk_prop_button = wx.Button(self, wx.ID_ANY, _("Process bulk props"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.process_bulk_prop_button.SetToolTip(_("Process a folder containing .prop files and convert then to .json files."))
         self.process_bulk_prop_button.Hide()
 
         # Process Image
-        self.process_img_button = wx.Button(self, wx.ID_ANY, u"Process Image", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.process_img_button.SetToolTip(u"Process an image and get a print from it.")
+        self.process_img_button = wx.Button(self, wx.ID_ANY, _("Process Image"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.process_img_button.SetToolTip(_("Process an image and get a print from it."))
         self.process_img_button.Hide()
         # if self.config.enable_pixel_img_process:
         self.process_img_button.Show()
 
         # Check for Auto Push print
-        self.auto_update_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Update print", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_update_pif_checkbox.SetToolTip(u"After Processing build.props, the print is automatically pushed to the device and the GMS process is killed.")
+        self.auto_update_pif_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Auto Update print"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_update_pif_checkbox.SetToolTip(_("After Processing build.props, the print is automatically pushed to the device and the GMS process is killed."))
         self.auto_update_pif_checkbox.Enable(False)
 
         # Check for Auto Check Play Integrity
-        self.auto_check_pi_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Auto Check Play Integrity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.auto_check_pi_checkbox.SetToolTip(u"After saving (pushing) print, automatically run Play Integrity Check.")
+        self.auto_check_pi_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Auto Check Play Integrity"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_check_pi_checkbox.SetToolTip(_("After saving (pushing) print, automatically run Play Integrity Check."))
         self.auto_check_pi_checkbox.Enable(False)
 
         # option button PI Selection
@@ -291,35 +292,35 @@ class PifManager(wx.Dialog):
         self.pi_option = wx.RadioBox(self, choices=self.pi_choices, style=wx.RA_VERTICAL)
 
         # Disable UIAutomator
-        self.disable_uiautomator_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=u"Disable UIAutomator", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.disable_uiautomator_checkbox.SetToolTip(u"Disables UIAutomator\nThis is useful for devices with buggy UIAutomator.\nNOTE: Create the coords.json file manually to make use of automated testing.")
+        self.disable_uiautomator_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Disable UIAutomator"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.disable_uiautomator_checkbox.SetToolTip(_("Disables UIAutomator\nThis is useful for devices with buggy UIAutomator.\nNOTE: Create the coords.json file manually to make use of automated testing."))
 
         # Play Integrity API Checker button
-        self.pi_checker_button = wx.Button(self, wx.ID_ANY, u"Play Integrity Check", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pi_checker_button.SetToolTip(u"Play Integrity API Checker\nNote: Need to install app from Play store.")
+        self.pi_checker_button = wx.Button(self, wx.ID_ANY, _("Play Integrity Check"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pi_checker_button.SetToolTip(_("Play Integrity API Checker\nNote: Need to install app from Play store."))
 
         # Beta Pif version selection
-        self.rb_latest = wx.RadioButton(self, wx.ID_ANY, "Latest", style=wx.RB_GROUP)
-        self.rb_custom = wx.RadioButton(self, wx.ID_ANY, "Custom")
-        self.rb_custom.SetToolTip(u"Select 'Latest' to get the latest Pixel beta pif (Includes Developer Preview).\nSelect 'Custom' to set a custom Android version code.")
+        self.rb_latest = wx.RadioButton(self, wx.ID_ANY, _("Latest"), style=wx.RB_GROUP)
+        self.rb_custom = wx.RadioButton(self, wx.ID_ANY, _("Custom"))
+        self.rb_custom.SetToolTip(_("Select 'Latest' to get the latest Pixel beta pif (Includes Developer Preview).\nSelect 'Custom' to set a custom Android version code."))
         self.rb_latest.SetValue(True)
 
         # Custom version input
         self.custom_version = wx.TextCtrl(self, wx.ID_ANY, "15", size=(40, -1))
-        self.custom_version.SetToolTip(u"Set a valid Android version code.")
+        self.custom_version.SetToolTip(_("Set a valid Android version code."))
         self.custom_version.Enable(False)
 
         # Get Beta Pif button
-        self.beta_pif_button = wx.Button(self, wx.ID_ANY, u"Get Pixel Beta Pif", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.beta_pif_button.SetToolTip(u"Get the latest Pixel beta pif.")
+        self.beta_pif_button = wx.Button(self, wx.ID_ANY, _("Get Pixel Beta Pif"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.beta_pif_button.SetToolTip(_("Get the latest Pixel beta pif."))
 
         # Get Xiaomi Pif button
-        self.xiaomi_pif_button = wx.Button(self, wx.ID_ANY, u"Get Xiaomi Pif", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.xiaomi_pif_button.SetToolTip(u"Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own.")
+        self.xiaomi_pif_button = wx.Button(self, wx.ID_ANY, _("Get Xiaomi Pif"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.xiaomi_pif_button.SetToolTip(_("Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own."))
 
         # Get TheFreeman193 Pif button
-        self.freeman_pif_button = wx.Button(self, wx.ID_ANY, u"Get TheFreeman193 Random Pif", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.freeman_pif_button.SetToolTip(u"Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work.")
+        self.freeman_pif_button = wx.Button(self, wx.ID_ANY, _("Get TheFreeman193 Random Pif"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.freeman_pif_button.SetToolTip(_("Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work."))
 
         # Make the buttons the same size
         button_width = self.pi_option.GetSize()[0] + 10
@@ -573,10 +574,10 @@ class PifManager(wx.Dialog):
 
         device = get_phone(True)
         if not device:
-            self.console_stc.SetText("No Device is selected.\nPif Manager features are set to limited mode.")
+            self.console_stc.SetText(_("No Device is selected.\nPif Manager features are set to limited mode."))
             return
         if not device.rooted:
-            self.console_stc.SetText("Device is not rooted or SU permissions to adb shell is not granted.\nPif Manager features are set to limited mode.")
+            self.console_stc.SetText(_("Device is not rooted or SU permissions to adb shell is not granted.\nPif Manager features are set to limited mode."))
             return
         modules = device.get_magisk_detailed_modules(refresh)
 
@@ -663,17 +664,17 @@ class PifManager(wx.Dialog):
         if not device.rooted:
             return
         # check for presence of pif.json
-        res,_ = device.check_file(self.pif_path, True)
+        res, unused = device.check_file(self.pif_path, True)
         if res == 1:
             self.pif_exists = True
             self.reload_pif_button.Enable(True)
             self.cleanup_dg_button.Enable(True)
-            self.create_pif_button.SetLabel("Update print")
-            self.create_pif_button.SetToolTip(u"Update pif.json / spoof_build_vars.")
+            self.create_pif_button.SetLabel(_("Update print"))
+            self.create_pif_button.SetToolTip(_("Update pif.json / spoof_build_vars."))
         else:
             self.pif_exists = False
-            self.create_pif_button.SetLabel("Create print")
-            self.create_pif_button.SetToolTip(u"Create pif.json / spoof_build_vars.")
+            self.create_pif_button.SetLabel(_("Create print"))
+            self.create_pif_button.SetToolTip(_("Create pif.json / spoof_build_vars."))
 
     # -----------------------------------------------
     #                  onPifComboBox
@@ -816,7 +817,7 @@ class PifManager(wx.Dialog):
                     return
             else:
                 # we need to create one.
-                with open(pif_prop, 'w') as file:
+                with open(pif_prop, 'w', encoding='utf-8') as file:
                     pass
             # get the contents of modified pif.json
             encoding = detect_encoding(pif_prop)
@@ -1080,7 +1081,7 @@ class PifManager(wx.Dialog):
     def BetaPif(self, e):
         try:
             self._on_spin('start')
-            wx.CallAfter(self.console_stc.SetValue, f"Getting Pixel beta print ...\nPlease be patient this could take some time ...")
+            wx.CallAfter(self.console_stc.SetValue, _("Getting Pixel beta print ...\nPlease be patient this could take some time ..."))
             wx.Yield()
             force_version = None
             device = get_phone()
@@ -1095,7 +1096,7 @@ class PifManager(wx.Dialog):
                 force_version = int(self.beta_pif_version)
             beta_pif = get_beta_pif(device_model, force_version)
             if beta_pif == -1:
-                wx.CallAfter(self.console_stc.SetValue, "Failed to get beta print.")
+                wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
                 return
             self.console_stc.SetValue(beta_pif)
         except Exception:
@@ -1122,7 +1123,7 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
 
             if not self.insync:
-                self.toast("Active pif not in sync", "⚠️ WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing.")
+                self.toast(_("Active pif not in sync"), _("⚠️ WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing."))
 
             # We need to kill TB Checker , Play Store and YASNAC to make sure we read fresh values
             if self.pi_option.StringSelection in ['Android Integrity Checker', 'TB Checker', 'Play Store', 'YASNAC']:
@@ -1372,7 +1373,7 @@ class PifManager(wx.Dialog):
         try:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.prop")
             wildcard = "Property files (*.prop)|*.prop|All files (*.*)|*.*"
-            dialog = wx.FileDialog(self, "Choose property files to open", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+            dialog = wx.FileDialog(self, _("Choose property files to open"), wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
             if dialog.ShowModal() == wx.ID_CANCEL:
                 print("User cancelled file selection.")
@@ -1442,18 +1443,18 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def ProcessImg(self, e):
         try:
-            file_dialog = wx.FileDialog(self, "Select a Device Image", wildcard="Device image files (*.img;*.zip)|*.img;*.zip")
+            file_dialog = wx.FileDialog(self, _("Select a Device Image"), wildcard="Device image files (*.img;*.zip)|*.img;*.zip")
             if file_dialog.ShowModal() == wx.ID_OK:
                 file_path = file_dialog.GetPath()
                 self._on_spin('start')
-                wx.CallAfter(self.console_stc.SetValue, f"Processing {file_path} ...\nPlease be patient this could take some time ...")
+                wx.CallAfter(self.console_stc.SetValue, _("Processing %s ...\nPlease be patient this could take some time ...") % file_path)
                 props_dir = get_pif_from_image(file_path)
                 # prop_files = get files from the props_dir (single level) and store them in a list
                 if props_dir:
                     prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
                     self.process_props(prop_files)
                 else:
-                    wx.CallAfter(self.console_stc.SetValue, "Image format not supported")
+                    wx.CallAfter(self.console_stc.SetValue, _("Image format not supported"))
                     self.console_stc.Refresh()
                     self.console_stc.Update()
         except Exception:
@@ -1469,7 +1470,7 @@ class PifManager(wx.Dialog):
         # sourcery skip: dict-assign-update-to-union
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.props Folder")
 
-        with wx.DirDialog(self, "Select folder to bulk process props files", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+        with wx.DirDialog(self, _("Select folder to bulk process props files"), style=wx.DD_DEFAULT_STYLE) as folderDialog:
             if folderDialog.ShowModal() == wx.ID_CANCEL:
                 print("User cancelled folder selection.")
                 return
@@ -1626,11 +1627,11 @@ class PifManager(wx.Dialog):
                 compare_data = self.device_pif
             if json_data != compare_data:
                 self.pif_modified_image.SetBitmap(images.alert_red_24.GetBitmap())
-                self.pif_modified_image.SetToolTip(u"The contents is different than what is currently on the device.\nUpdate the print before testing.")
+                self.pif_modified_image.SetToolTip(_("The contents is different than what is currently on the device.\nUpdate the print before testing."))
                 self.insync = False
             else:
                 self.pif_modified_image.SetBitmap(images.alert_gray_24.GetBitmap())
-                self.pif_modified_image.SetToolTip(u"Active pif is not modified.")
+                self.pif_modified_image.SetToolTip(_("Active pif is not modified."))
                 self.insync = True
 
             if self.create_pif_button.Enabled and self.favorite_pif_button.Enabled:
@@ -1638,11 +1639,11 @@ class PifManager(wx.Dialog):
                 pif_hash = json_hexdigest(sorted_json_data)
                 if pif_hash in self.favorite_pifs:
                     self.favorite_pif_button.SetBitmap(images.heart_red_24.GetBitmap())
-                    self.favorite_pif_button.SetToolTip(u"Active pif is saved in favorites.")
+                    self.favorite_pif_button.SetToolTip(_("Active pif is saved in favorites."))
                     self.update_combo_box(pif_hash)
                 else:
                     self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
-                    self.favorite_pif_button.SetToolTip(u"Active pif is not saved in favorites.")
+                    self.favorite_pif_button.SetToolTip(_("Active pif is not saved in favorites."))
 
         except Exception:
             traceback.print_exc()
@@ -2014,7 +2015,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def select_file_and_push(self, event):
         try:
-            with wx.FileDialog(self, "Select keybox to push", '', '', wildcard="Keybox files (*.xml)|*.xml", style=wx.FD_OPEN) as fileDialog:
+            with wx.FileDialog(self, _("Select keybox to push"), '', '', wildcard="Keybox files (*.xml)|*.xml", style=wx.FD_OPEN) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled keybox push.")
                     return
@@ -2126,7 +2127,7 @@ class PifManager(wx.Dialog):
     def ReProcessJsonFile(self, event):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed ReProcess Json File(s)")
         wildcard = "Property files (*.json)|*.json|All files (*.*)|*.*"
-        dialog = wx.FileDialog(self, "Choose one or multiple json files to reprocess", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+        dialog = wx.FileDialog(self, _("Choose one or multiple json files to reprocess"), wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
         if dialog.ShowModal() == wx.ID_CANCEL:
             print("User cancelled file selection.")
@@ -2166,7 +2167,7 @@ class PifManager(wx.Dialog):
     def GetFPCode(self, event):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed GetFPCode Json File(s)")
         wildcard = "Property files (*.json)|*.json|All files (*.*)|*.*"
-        dialog = wx.FileDialog(self, "Choose one or multiple json files to reprocess", wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
+        dialog = wx.FileDialog(self, _("Choose one or multiple json files to reprocess"), wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
         if dialog.ShowModal() == wx.ID_CANCEL:
             print("User cancelled file selection.")
@@ -2242,12 +2243,12 @@ class PifManager(wx.Dialog):
                 buildid = match[5]
 
         filename = f"{manufacturer}_{device}_{buildid}.json".replace(' ', '_')
-        with wx.FileDialog(self, "Save FP file", '', filename, wildcard="Json files (*.json)|*.json", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
+        with wx.FileDialog(self, _("Save FP file"), '', filename, wildcard="Json files (*.json)|*.json", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 print(f"User Cancelled saving pif")
                 return     # the user changed their mind
             pathname = fileDialog.GetPath()
-            with open(pathname, 'w') as f:
+            with open(pathname, 'w', encoding='utf-8') as f:
                 json.dump(pif_json, f, indent=4)
 
     # -----------------------------------------------
@@ -2284,7 +2285,7 @@ class PifManager(wx.Dialog):
                     id = active_pif_json['ID']
                 label = f"{brand} {model} {id}"
 
-                dialog = wx.TextEntryDialog(None, "Enter a label:", "Save Pif to Favorites")
+                dialog = wx.TextEntryDialog(None, _("Enter a label:"), _("Save Pif to Favorites"))
                 dialog.SetValue(label)
                 result = dialog.ShowModal()
                 if result == wx.ID_OK:
@@ -2317,7 +2318,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def ImportFavorites(self, e):
         try:
-            with wx.DirDialog(self, "Select folder to Import Pifs", style=wx.DD_DEFAULT_STYLE) as folderDialog:
+            with wx.DirDialog(self, _("Select folder to Import Pifs"), style=wx.DD_DEFAULT_STYLE) as folderDialog:
                 if folderDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled folder selection.")
                     return

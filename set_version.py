@@ -98,13 +98,17 @@ def get_values(thelist, update):
 #                               Function set_values
 # ============================================================================
 def set_values(file, search, replace):
-    with open (file, 'r' ) as f:
-        content = f.read()
-        # content_new = re.sub(search, replace, content, flags = re.M)
-        content_new = content.replace(search, replace)
-    print(f"\t\tReplacing {search} with {replace} ...")
-    with open(file, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
-        f.write(content_new)
+    try:
+        with open(file, 'r', encoding='ISO-8859-1', errors="replace") as f:
+            content = f.read()
+            # content_new = re.sub(search, replace, content, flags = re.M)
+            content_new = content.replace(search, replace)
+        print(f"\t\tReplacing {search} with {replace} ...")
+        with open(file, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
+            f.write(content_new)
+    except Exception as e:
+        print(f"\t\tError: {e}")
+        return False
 
 
 # ============================================================================

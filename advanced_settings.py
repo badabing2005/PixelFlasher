@@ -37,6 +37,8 @@ import wx
 import images as images
 import webbrowser
 from runtime import *
+from constants import *
+from i18n import _
 
 
 # ============================================================================
@@ -46,23 +48,23 @@ class AdvancedSettings(wx.Dialog):
     def __init__(self, parent, *args, **kwargs):
         wx.Dialog.__init__(self, parent, *args, **kwargs, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER)
 
-        self.SetTitle("Advanced Configuration Settings")
+        self.SetTitle(_("Advanced Configuration Settings"))
 
         # Top Part:
         top_panel = wx.Panel(self)
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        warning_text = '''WARNING!
-This is advanced configuration.
-Unless you know what you are doing,
-you should not be enabling it.
+        warning_text = _('WARNING!\n')
+        warning_text += _('This is advanced configuration.\n')
+        warning_text += _('Unless you know what you are doing,\n')
+        warning_text += _('you should not be enabling it.\n')
+        warning_text += '\n'
+        warning_text += _('YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n')
+        warning_text += _('THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n')
+        warning_text += _('ADB, MAGISK, ANDROID, AND ROOT.\n')
+        warning_text += _('IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n')
 
-YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.
-THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH
-ADB, MAGISK, ANDROID, AND ROOT.
-IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
-'''
         # warning label
         self.warning_label = wx.StaticText(parent=top_panel, id=wx.ID_ANY, label=warning_text, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.ALIGN_CENTER_HORIZONTAL)
         self.warning_label.Wrap(-1)
@@ -72,8 +74,8 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
 
         # advanced options
         advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.advanced_options_checkbox = wx.CheckBox(parent=top_panel, id=wx.ID_ANY, label=u"Enable Advanced Options", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.advanced_options_checkbox.SetToolTip(u"Expert mode")
+        self.advanced_options_checkbox = wx.CheckBox(parent=top_panel, id=wx.ID_ANY, label=_("Enable Advanced Options"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.advanced_options_checkbox.SetToolTip(_("Expert mode"))
         advanced_options_sizer.Add(self.advanced_options_checkbox, proportion=0, flag=wx.ALL, border=5)
         top_sizer.Add(advanced_options_sizer, proportion=0, flag=wx.EXPAND, border=5)
 
@@ -94,12 +96,12 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         fgs1.AddGrowableRow(0, 1)
 
         # Magisk Package name
-        package_name_label = wx.StaticText(parent=scrolled_panel, label=u"Magisk Package Name")
+        package_name_label = wx.StaticText(parent=scrolled_panel, label=_("Magisk Package Name"))
         self.package_name = wx.TextCtrl(parent=scrolled_panel, id=-1, size=(-1, -1))
-        self.package_name.SetToolTip(u"If you have hidden Magisk,\nset this to the hidden package name.")
+        self.package_name.SetToolTip(_("If you have hidden Magisk,\nset this to the hidden package name."))
         self.reset_magisk_pkg = wx.BitmapButton(parent=scrolled_panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.reset_magisk_pkg.SetBitmap(images.scan_24.GetBitmap())
-        self.reset_magisk_pkg.SetToolTip(f"Resets package name to default: {MAGISK_PKG_NAME}")
+        self.reset_magisk_pkg.SetToolTip(_("Resets package name to default: %s") % MAGISK_PKG_NAME)
         package_name_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         package_name_sizer.Add(self.package_name, proportion=1, flag=wx.ALL, border=0)
         package_name_sizer.Add(self.reset_magisk_pkg, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
@@ -107,106 +109,106 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         # only add if we're on linux
         if sys.platform.startswith("linux"):
             # Linux File Explorer
-            file_explorer_label = wx.StaticText(scrolled_panel, label=u"Linux File Explorer:")
+            file_explorer_label = wx.StaticText(scrolled_panel, label=_("Linux File Explorer:"))
             file_explorer_label.SetSize(self.package_name.GetSize())
             self.file_explorer = wx.TextCtrl(scrolled_panel, -1, size=(300, -1))
-            self.file_explorer.SetToolTip(u"Set full path to File Explorer.\nDefault: Nautilus")
+            self.file_explorer.SetToolTip(_("Set full path to File Explorer.\nDefault: Nautilus"))
             file_explorer_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
             file_explorer_sizer.Add((20, 0), proportion=0, flag=wx.ALL, border=5)
             file_explorer_sizer.Add(self.file_explorer, proportion=0, flag=wx.LEFT, border=10)
 
             # Linux Shell
-            shell_label = wx.StaticText(parent=scrolled_panel, label=u"Linux Shell:")
+            shell_label = wx.StaticText(parent=scrolled_panel, label=_("Linux Shell:"))
             shell_label.SetSize(self.package_name.GetSize())
             self.shell = wx.TextCtrl(parent=scrolled_panel, id=wx.ID_ANY, size=(300, -1))
-            self.shell.SetToolTip(u"Set full path to Linux Shell.\nDefault: gnome-terminal")
+            self.shell.SetToolTip(_("Set full path to Linux Shell.\nDefault: gnome-terminal"))
             shell_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
             shell_sizer.Add((20, 0), proportion=0, flag=wx.ALL, border=5)
             shell_sizer.Add(self.shell, proportion=0, flag=wx.LEFT, border=10)
 
         # Offer Patch methods
-        self.patch_methods_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Offer Patch Methods", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.patch_methods_checkbox.SetToolTip(u"When patching the choice of method is presented.")
-        self.recovery_patch_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Patching Recovery Partition", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.recovery_patch_checkbox.SetToolTip(u"Enabling this will show an option to patch a recovery partition.\nThis should be kept disabled unless you have an old device.\n(most A-only devices launched with Android 9, legacy SAR)")
+        self.patch_methods_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Offer Patch Methods"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.patch_methods_checkbox.SetToolTip(_("When patching the choice of method is presented."))
+        self.recovery_patch_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Patching Recovery Partition"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.recovery_patch_checkbox.SetToolTip(_("Enabling this will show an option to patch a recovery partition.\nThis should be kept disabled unless you have an old device.\n(most A-only devices launched with Android 9, legacy SAR)"))
 
         # Use Busybox Shell
-        self.use_busybox_shell_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Use Busybox Shell", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.use_busybox_shell_checkbox.SetToolTip(u"When creating a patch, if this is checked, busybox ash will be used as shell.")
+        self.use_busybox_shell_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Use Busybox Shell"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.use_busybox_shell_checkbox.SetToolTip(_("When creating a patch, if this is checked, busybox ash will be used as shell."))
 
         # Enable Low Memory
-        self.low_mem_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"System has low memory", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.low_mem_checkbox.SetToolTip(u"Use this option to sacrifice speed in favor of memory.")
+        self.low_mem_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("System has low memory"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.low_mem_checkbox.SetToolTip(_("Use this option to sacrifice speed in favor of memory."))
 
         # Extra img extraction
-        self.extra_img_extracts_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Extra img extraction", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.extra_img_extracts_checkbox.SetToolTip(u"When checked and available in payload.bin\nAlso extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img")
+        self.extra_img_extracts_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Extra img extraction"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.extra_img_extracts_checkbox.SetToolTip(_("When checked and available in payload.bin\nAlso extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img"))
 
         # Show Notifications
-        self.show_notifications_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Show notifications", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_notifications_checkbox.SetToolTip(u"When checked PixelFlasher will display system toast notifications.")
+        self.show_notifications_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Show notifications"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_notifications_checkbox.SetToolTip(_("When checked PixelFlasher will display system toast notifications."))
 
         # Always Create boot.tar
-        self.create_boot_tar_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Always create boot.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.create_boot_tar_checkbox.SetToolTip(u"When checked, PixelFlasher always creates boot.tar of the patched boot file.\nIf unchecked, only for Samsung firmware boot.tar will be created.")
+        self.create_boot_tar_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Always create boot.tar"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.create_boot_tar_checkbox.SetToolTip(_("When checked, PixelFlasher always creates boot.tar of the patched boot file.\nIf unchecked, only for Samsung firmware boot.tar will be created."))
         self.create_boot_tar_checkbox.Disable()
 
         # Check for updates options
-        self.check_for_update_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.check_for_update_checkbox.SetToolTip(u"Checks for available updates on startup")
+        self.check_for_update_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Check for updates"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_update_checkbox.SetToolTip(_("Checks for available updates on startup"))
 
         # Check for Minimum Disk space option
-        self.check_for_disk_space_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check for Minimum Disk (5Gb)", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.check_for_disk_space_checkbox.SetToolTip(u"Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues.")
+        self.check_for_disk_space_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Check for Minimum Disk (5Gb)"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_disk_space_checkbox.SetToolTip(_("Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues."))
 
         # Check for Bootloader unlocked option
-        self.check_for_bootloader_unlocked_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check for bootloader unlocked", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.check_for_bootloader_unlocked_checkbox.SetToolTip(u"Checks to make sure bootloader is unlocked before flashing.")
+        self.check_for_bootloader_unlocked_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Check for bootloader unlocked"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_bootloader_unlocked_checkbox.SetToolTip(_("Checks to make sure bootloader is unlocked before flashing."))
 
         # Check for Firmware hash validity option
-        self.check_for_firmware_hash_validity_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check for firmware hash validity", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.check_for_firmware_hash_validity_checkbox.SetToolTip(u"Checks for sha256 portion to be in the image filename to detect Pixel compatible image.")
+        self.check_for_firmware_hash_validity_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Check for firmware hash validity"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_for_firmware_hash_validity_checkbox.SetToolTip(_("Checks for sha256 portion to be in the image filename to detect Pixel compatible image."))
 
         # Keep temporary support files option
-        self.keep_temporary_support_files_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Keep temporary support files", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.keep_temporary_support_files_checkbox.SetToolTip(u"It keeps the temporary support files.\nUseful for inspecting what data is included in support.zip.")
+        self.keep_temporary_support_files_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Keep temporary support files"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.keep_temporary_support_files_checkbox.SetToolTip(_("It keeps the temporary support files.\nUseful for inspecting what data is included in support.zip."))
 
         # Check if Magisk modules have updates
-        self.check_module_updates = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Check Magisk modules for updates", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.check_module_updates.SetToolTip(u"It checks if the module has updates.\nDisable this if you don't want to check for updates or\n if some module update server has issues and delays the process.")
+        self.check_module_updates = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Check Magisk modules for updates"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.check_module_updates.SetToolTip(_("It checks if the module has updates.\nDisable this if you don't want to check for updates or\n if some module update server has issues and delays the process."))
 
         # Show custom ROM options
-        self.show_custom_rom_options = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Show custom ROM options", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.show_custom_rom_options.SetToolTip(u"Make sure you check if your ROM is supported.")
+        self.show_custom_rom_options = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Show custom ROM options"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.show_custom_rom_options.SetToolTip(_("Make sure you check if your ROM is supported."))
 
         # Sanitize support files
-        self.sanitize_support_files = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Sanitize (Redact) support files", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.sanitize_support_files.SetToolTip(u"The support files are always encrypted.\nThis option redacts sensitive information from the support files.\nBut impedes support and is not recommended.")
+        self.sanitize_support_files = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Sanitize (Redact) support files"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.sanitize_support_files.SetToolTip(_("The support files are always encrypted.\nThis option redacts sensitive information from the support files.\nBut impedes support and is not recommended."))
 
         # Force codepage
-        self.force_codepage_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Force codepage to", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.force_codepage_checkbox.SetToolTip(u"Uses specified code page instead of system code page")
+        self.force_codepage_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Force codepage to"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.force_codepage_checkbox.SetToolTip(_("Uses specified code page instead of system code page"))
         self.code_page = wx.TextCtrl(parent=scrolled_panel, id=wx.ID_ANY, size=(-1, -1))
 
         # Delete Bundle libs
-        self.delete_bundled_libs_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=u"Delete bundled libs")
-        self.delete_bundled_libs_label.SetToolTip(u"The listed libraries would be deleted from the PF bundle to allow system defined ones to be used.")
+        self.delete_bundled_libs_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("Delete bundled libs"))
+        self.delete_bundled_libs_label.SetToolTip(_("The listed libraries would be deleted from the PF bundle to allow system defined ones to be used."))
         self.delete_bundled_libs = wx.SearchCtrl(scrolled_panel, style=wx.TE_LEFT)
         self.delete_bundled_libs.ShowCancelButton(True)
-        self.delete_bundled_libs.SetDescriptiveText("Example: libreadline.so.8, libgdk*")
+        self.delete_bundled_libs.SetDescriptiveText(_("Example: libreadline.so.8, libgdk*"))
         self.delete_bundled_libs.ShowSearchButton(False)
 
         # Override KMI
-        self.override_kmi_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=u"Override KMI")
-        self.override_kmi_label.SetToolTip(u"This will override the Kernel Module Interface (KMI) to the specified value.\nThis is useful for devices with custom kernels.\nThe value will be passed to KernelSU as the KMI value.")
+        self.override_kmi_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("Override KMI"))
+        self.override_kmi_label.SetToolTip(_("This will override the Kernel Module Interface (KMI) to the specified value.\nThis is useful for devices with custom kernels.\nThe value will be passed to KernelSU as the KMI value."))
         self.override_kmi = wx.SearchCtrl(scrolled_panel, style=wx.TE_LEFT)
         self.override_kmi.ShowCancelButton(True)
-        self.override_kmi.SetDescriptiveText("Example: 5.15.131-android14")
+        self.override_kmi.SetDescriptiveText(_("Example: 5.15.131-android14"))
         self.override_kmi.ShowSearchButton(False)
 
         # Use Custom Font
-        self.use_custom_font_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=u"Use Custom Fontface", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
-        self.use_custom_font_checkbox.SetToolTip(u"Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window.")
+        self.use_custom_font_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Use Custom Fontface"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.use_custom_font_checkbox.SetToolTip(_("Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window."))
 
         # Font Selection
         fonts = wx.FontEnumerator()
@@ -214,23 +216,23 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         font_list = fonts.GetFacenames(wx.FONTENCODING_SYSTEM, fixedWidthOnly=True)
         self.font = wx.ListBox(parent=scrolled_panel, id=wx.ID_ANY, size=(300, 100), choices=font_list)
         self.font_size = wx.SpinCtrl(parent=scrolled_panel, id=wx.ID_ANY, min=6, max=50, initial=self.Parent.config.pf_font_size)
-        self.sample = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label="Sample ")
+        self.sample = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("Sample "))
         fonts_sizer = wx.BoxSizer(wx.HORIZONTAL)
         fonts_sizer.Add(self.font, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         fonts_sizer.Add(self.font_size, proportion=0, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         fonts_sizer.Add(self.sample, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=5)
         self.font.SetSelection(-1)
-        self.font_size.SetToolTip('Select font size')
+        self.font_size.SetToolTip(_('Select font size'))
         self._onFontSelect(None)
 
         # scrcpy 1st row widgets, select path
-        self.scrcpy_path_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=u"scrcpy Path")
+        self.scrcpy_path_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("scrcpy Path"))
         self.scrcpy_link = wx.BitmapButton(parent=scrolled_panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.scrcpy_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
-        self.scrcpy_link.SetToolTip("Download scrcpy")
-        self.scrcpy_path_picker = wx.FilePickerCtrl(parent=scrolled_panel, id=wx.ID_ANY, path=wx.EmptyString, message=u"Select scrcpy executable", wildcard=u"Scrcpy executable (*.exe;*)|*.exe;*", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.scrcpy_link.SetToolTip(_("Download scrcpy"))
+        self.scrcpy_path_picker = wx.FilePickerCtrl(parent=scrolled_panel, id=wx.ID_ANY, path=wx.EmptyString, message=_("Select scrcpy executable"), wildcard=_("Scrcpy executable (*.exe;*)|*.exe;*"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
 
-        self.scrcpy_path_picker.SetToolTip("Select scrcpy executable")
+        self.scrcpy_path_picker.SetToolTip(_("Select scrcpy executable"))
         self.scrcpy_h1sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.scrcpy_h1sizer.Add(window=self.scrcpy_path_label, proportion=0, flag=wx.EXPAND)
         self.scrcpy_h1sizer.AddSpacer(10)
@@ -241,11 +243,11 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         # scrcpy 2nd row flags
         self.scrcpy_flags = wx.SearchCtrl(scrolled_panel, style=wx.TE_LEFT)
         self.scrcpy_flags.ShowCancelButton(True)
-        self.scrcpy_flags.SetDescriptiveText("Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)")
+        self.scrcpy_flags.SetDescriptiveText(_("Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)"))
         self.scrcpy_flags.ShowSearchButton(False)
 
         # build the sizers for scrcpy
-        scrcpy_sb = wx.StaticBox(scrolled_panel, -1, "Scrcpy settings")
+        scrcpy_sb = wx.StaticBox(scrolled_panel, -1, _("Scrcpy settings"))
         scrcpy_vsizer = wx.StaticBoxSizer(scrcpy_sb, wx.VERTICAL)
         scrcpy_vsizer.Add(self.scrcpy_h1sizer, proportion=1, flag=wx.ALL|wx.EXPAND, border=5)
         scrcpy_vsizer.Add(self.scrcpy_flags, proportion=1, flag=wx.ALL|wx.EXPAND, border=5)
@@ -363,9 +365,9 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         bottom_panel = wx.Panel(self)
         bottom_sizer = wx.BoxSizer(wx.HORIZONTAL)
         bottom_sizer.Add((0, 0), proportion=1, flag=wx.EXPAND, border=5)
-        self.ok_button = wx.Button(parent=bottom_panel, id=wx.ID_ANY, label=u"OK", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.ok_button = wx.Button(parent=bottom_panel, id=wx.ID_ANY, label=_("OK"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         bottom_sizer.Add(self.ok_button, proportion=0, flag=wx.ALL, border=20)
-        self.cancel_button = wx.Button(parent=bottom_panel, id=wx.ID_ANY, label=u"Cancel", pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.cancel_button = wx.Button(parent=bottom_panel, id=wx.ID_ANY, label=_("Cancel"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         bottom_sizer.Add(self.cancel_button, proportion=0, flag=wx.ALL, border=20)
         bottom_sizer.Add((0, 0), proportion=1, flag=wx.EXPAND, border=5)
         bottom_panel.SetSizer(bottom_sizer)

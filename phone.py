@@ -44,6 +44,7 @@ from packaging.version import parse
 
 from constants import *
 from runtime import *
+from i18n import _
 
 
 # ============================================================================
@@ -1395,7 +1396,7 @@ add_hosts_module
 
                     # check if backup got created.
                     print("\nChecking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
-                    res,_ = self.check_file("/data/local/tmp/data_adb.tgz")
+                    res, unused = self.check_file("/data/local/tmp/data_adb.tgz")
                     if res != 1:
                         print("Aborting ...\n")
                         puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")

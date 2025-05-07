@@ -24,6 +24,9 @@
 - [Usage](#usage)
   - [Basic Mode](#basic-mode)
   - [Expert Mode](#expert-mode)
+- [Translations](#translations)
+  - [Contributing Translations](#contributing-translations)
+  - [Translation Limitations](#translation-limitations)
 - [Credits](#credits)
 - [Troubleshooting](#troubleshooting)
 - [Disclaimer](#disclaimer)
@@ -431,6 +434,27 @@ Choose the dropdown to select image type.
     - SIDELOAD - Expected file type .zip  
 Select the appropriate flash options.
 **Note:** For Tensor devices (Pixel 6 or newer devices) When `Flash to both slots` option is selected, Pixelflasher flashes each slot individually to overcome a Google bug that fails with the option `--slot=all`
+
+## Translations
+
+PixelFlasher currently includes French and Spanish translations, which were created using online translation tools. While these translations are functional, they may contain inaccuracies or awkward phrasing.
+
+### Contributing Translations
+
+If you'd like to help improve existing translations or add support for a new language:
+
+- Use `locale\en\LC_MESSAGES\pixelflasher.po` as your template for translation.
+- Submit your corrections or new language translations as a pull request.
+
+### Translation Limitations
+
+Please note the following about translations in PixelFlasher:
+
+- Not all strings are translated; some will never be translated while others may be added in the future.
+- Standard output (stdout) and console logs will never be translated.
+- UI sizes and positions may be disrupted by languages that require more space (or much less space) for text elements - these UI adjustments won't be made to accommodate different languages.
+
+Your help improving translations is greatly appreciated!
 
 ## Credits
 

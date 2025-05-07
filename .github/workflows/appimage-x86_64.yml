@@ -42,7 +42,7 @@ on:
 jobs:
   build_appimage:
     # Use an older Ubuntu for better compatibility with older systems
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout code
@@ -86,9 +86,9 @@ jobs:
           pip install -U pip
           pip install -U six wheel setuptools
           # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython==4.2.2 || \
-          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython==4.2.1 || \
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.2 || \
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.1 || \
+          pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
           pip install -r requirements.txt
           python --version && pip freeze
           ./build.sh

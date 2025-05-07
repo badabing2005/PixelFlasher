@@ -47,6 +47,8 @@ import wx.lib.wxpTag
 
 import images as images
 from runtime import *
+from constants import *
+from i18n import _
 
 
 # ============================================================================
@@ -72,7 +74,7 @@ class MagiskDownloads(wx.Dialog):
         style = kwargs.get('style', wx.DEFAULT_DIALOG_STYLE) | wx.RESIZE_BORDER
         kwargs['style'] = style
         wx.Dialog.__init__(self, *args, **kwargs)
-        self.SetTitle("Download and Install Rooting Application")
+        self.SetTitle(_("Download and Install Rooting Application"))
         self.url =  None
         self.channel = None
         self.version = None
@@ -87,7 +89,7 @@ class MagiskDownloads(wx.Dialog):
 
         self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.message_label.Wrap(-1)
-        self.message_label.Label = "Select rooting app to install."
+        self.message_label.Label = _("Select rooting app to install.")
         if sys.platform == "win32":
             self.message_label.SetFont(wx.Font(12, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, "Arial"))
 
@@ -116,12 +118,12 @@ class MagiskDownloads(wx.Dialog):
         apks = get_magisk_apks()
 
         max_url_column_width = 600
-        self.list.InsertColumn(0, 'Root App', width = -1)
-        self.list.InsertColumn(1, 'Version', wx.LIST_FORMAT_LEFT, -1)
-        self.list.InsertColumn(2, 'VersionCode', wx.LIST_FORMAT_LEFT,  -1)
-        self.list.InsertColumn(3, 'URL', wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(0, _('Root App'), width = -1)
+        self.list.InsertColumn(1, _('Version'), wx.LIST_FORMAT_LEFT, -1)
+        self.list.InsertColumn(2, _('VersionCode'), wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(3, _('URL'), wx.LIST_FORMAT_LEFT, -1)
         self.list.SetColumnWidth(3, min(self.list.GetColumnWidth(3), max_url_column_width))
-        self.list.InsertColumn(4, 'Package', wx.LIST_FORMAT_LEFT,  -1)
+        self.list.InsertColumn(4, _('Package'), wx.LIST_FORMAT_LEFT,  -1)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
@@ -171,17 +173,17 @@ class MagiskDownloads(wx.Dialog):
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        self.install_button = wx.Button(self, wx.ID_ANY, u"Install", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.install_button.SetToolTip(u"WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install.")
+        self.install_button = wx.Button(self, wx.ID_ANY, _("Install"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.install_button.SetToolTip(_("WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install."))
         self.install_button.Enable(False)
         buttons_sizer.Add(self.install_button, 0, wx.ALL, 20)
 
-        self.download_button = wx.Button(self, wx.ID_ANY, u"Download", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.download_button.SetToolTip(u"Download the rooting app.")
+        self.download_button = wx.Button(self, wx.ID_ANY, _("Download"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.download_button.SetToolTip(_("Download the rooting app."))
         self.download_button.Enable(False)
         buttons_sizer.Add(self.download_button, 0, wx.ALL, 20)
 
-        self.cancel_button = wx.Button(self, wx.ID_ANY, u"Cancel", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.cancel_button = wx.Button(self, wx.ID_ANY, _("Cancel"), wx.DefaultPosition, wx.DefaultSize, 0)
         buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 20)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
@@ -253,9 +255,9 @@ class MagiskDownloads(wx.Dialog):
 
         # build the menu
         menu = wx.Menu()
-        menu.Append(self.popupCopyURL, "Copy URL to Clipboard")
-        menu.Append(self.popupCopyPackageId, "Copy Package ID to Clipboard")
-        menu.Append(self.popupDownloadMagisk, "Download Selected Rooting App")
+        menu.Append(self.popupCopyURL, _("Copy URL to Clipboard"))
+        menu.Append(self.popupCopyPackageId, _("Copy Package ID to Clipboard"))
+        menu.Append(self.popupDownloadMagisk, _("Download Selected Rooting App"))
 
         # Popup the menu.  If an item is selected then its handler
         # will be called before PopupMenu returns.
@@ -285,7 +287,7 @@ class MagiskDownloads(wx.Dialog):
         versionCode = self.list.GetItem(self.currentItem, 2).Text
         app = self.channel.replace(' ', '_')
         filename = f"{app}_{version}_{versionCode}.apk"
-        dialog = wx.FileDialog(None, "Save File", defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        dialog = wx.FileDialog(None, _("Save File"), defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
             destination_path = dialog.GetPath()
             print(f"Downloading {destination_path} from {url}...")
@@ -363,18 +365,26 @@ class MagiskDownloads(wx.Dialog):
             print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.")
             print("         See details at: https://xdaforums.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")
 
-            title = "Device Not Supported"
-            message =  f"ERROR: Your phone model is: {device.hardware}\n\n"
-            message += "The selected Magisk is not supported for your device\n"
-            message += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
-            message += "Unless you know what you are doing, if you choose to continue\n"
-            message += "you risk running into serious issues, proceed only if you are absolutely\n"
-            message += "certain that this is what you want, you have been warned.\n\n"
-            message += "Click OK to accept and continue.\n"
-            message += "or Hit CANCEL to abort."
-            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            title = _("Device Not Supported")
+            message_en =  f"ERROR: Your phone model is: {device.hardware}\n\n"
+            message_en += "The selected Magisk is not supported for your device\n"
+            message_en += "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
+            message_en += "Unless you know what you are doing, if you choose to continue\n"
+            message_en += "you risk running into serious issues, proceed only if you are absolutely\n"
+            message_en += "certain that this is what you want, you have been warned.\n\n"
+            message_en += "Click OK to accept and continue.\n"
+            message_en += "or Hit CANCEL to abort."
+            message =  _("ERROR: Your phone model is: %s\n\n") % device.hardware
+            message += _("The selected Magisk is not supported for your device\n")
+            message += _("Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n")
+            message += _("Unless you know what you are doing, if you choose to continue\n")
+            message += _("you risk running into serious issues, proceed only if you are absolutely\n")
+            message += _("certain that this is what you want, you have been warned.\n\n")
+            message += _("Click OK to accept and continue.\n")
+            message += _("or Hit CANCEL to abort.")
+            print(f"\n*** Dialog ***\n{message_en}\n______________\n")
             # puml(":Dialog;\n")
-            # puml(f"note right\n{message}\nend note\n")
+            # puml(f"note right\n{message_en}\nend note\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
             if result == wx.ID_OK:

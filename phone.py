@@ -1434,7 +1434,7 @@ add_hosts_module
 
                 # check if backup got created.
                 print("\nChecking to see if backup file [/data/local/tmp/data_adb.tgz] got pushed ...")
-                res, _ = self.check_file("/data/local/tmp/data_adb.tgz", True)
+                res, unused = self.check_file("/data/local/tmp/data_adb.tgz", True)
                 if res != 1:
                     print("Aborting ...\n")
                     puml("#red:Failed to find /data/local/tmp/data_adb.tgz on the phone;\n}\n")

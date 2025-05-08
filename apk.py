@@ -51,10 +51,10 @@ class StringBlock:
         self.m_strings = []
         self.m_styles = []
 
-        for _ in range(0, self.stringCount):
+        for unused in range(0, self.stringCount):
             self.m_stringOffsets.append(unpack('<i', buff.read(4))[0])
 
-        for _ in range(0, self.styleOffsetCount):
+        for unused in range(0, self.styleOffsetCount):
             self.m_styleOffsets.append(unpack('<i', buff.read(4))[0])
 
         size = self.chunkSize - self.stringsOffset
@@ -65,7 +65,7 @@ class StringBlock:
         if (size % 4) != 0:
             print("ooo")
 
-        for _ in range(0, size):
+        for unused in range(0, size):
             self.m_strings.append(unpack('=b', buff.read(1))[0])
 
         if self.stylesOffset != 0:
@@ -75,7 +75,7 @@ class StringBlock:
             if (size % 4) != 0:
                 print("ooo")
 
-            for _ in range(0, size / 4):
+            for unused in range(0, size / 4):
                 self.m_styles.append(unpack('<i', buff.read(4))[0])
 
     def getRaw(self, idx):
@@ -295,7 +295,7 @@ class AXMLParser:
                 if chunkSize < 8 or chunkSize % 4 != 0:
                     print("ooo")
 
-                for _ in range(0, int(chunkSize / 4) - 2):
+                for unused in range(0, int(chunkSize / 4) - 2):
                     self.m_resourceIDs.append(unpack('<L', self.buff.read(4))[0])
 
                 continue
@@ -349,7 +349,7 @@ class AXMLParser:
 
                 self.m_classAttribute = (self.m_classAttribute & 0xFFFF) - 1
 
-                for _ in range(0, attributeCount * ATTRIBUTE_LENGHT):
+                for unused in range(0, attributeCount * ATTRIBUTE_LENGHT):
                     self.m_attributes.append(unpack('<L', self.buff.read(4))[0])
 
                 for i in range(ATTRIBUTE_IX_VALUE_TYPE, len(self.m_attributes), ATTRIBUTE_LENGHT):

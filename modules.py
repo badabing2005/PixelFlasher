@@ -2961,11 +2961,11 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             if patch_flavor == 'APatch':
                 print(f"Also using init_boot.img for {patch_flavor} patching (to extract Ramdisk) with SHA1 of {stock_init_sha1}")
         boot_file_name = os.path.basename(boot_path)
-        filename, _ = os.path.splitext(boot_file_name)
+        filename, unused = os.path.splitext(boot_file_name)
         boot_img = f"{filename}_{stock_sha1}.img"
         if init_boot_path is not None:
             init_boot_file_name = os.path.basename(init_boot_path)
-            init_filename, _ = os.path.splitext(init_boot_file_name)
+            init_filename, unused = os.path.splitext(init_boot_file_name)
             init_boot_img = f"{init_filename}_{stock_init_sha1}.img"
         patch_name = f"{patch_flavor.lower()}_patched"
         patched_img = f"{patch_name}_{boot.boot_hash[:8]}.img"

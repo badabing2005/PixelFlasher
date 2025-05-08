@@ -3305,7 +3305,7 @@ def get_google_images(save_to=None):
             # Iterate through the device elements
             for device_element in device_elements:
                 # Check if the text of the <h2> element should be skipped
-                if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions", "Special instructions for updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Manual flashing instructions"]:
+                if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions", "Special instructions for updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Manual flashing instructions", "Special instructions for updating Pixel devices to the May 2025 monthly release"]:
                     continue
 
                 # Extract the device name from the 'id' attribute
@@ -5009,7 +5009,7 @@ def check_internet():
     url = "http://www.google.com"
     timeout = 5
     try:
-        _ = requests.get(url, timeout=timeout)
+        unused = requests.get(url, timeout=timeout)
         return True
     except requests.ConnectionError as e:
         print("No internet connection available.")
@@ -5860,7 +5860,7 @@ def delete_last_package_record(package_ids, boot_dir):
         cursor = con.cursor()
         package_ids_tuple = tuple(package_ids)
         placeholders = []
-        for _ in package_ids_tuple:
+        for unused in package_ids_tuple:
             placeholders.append('?')
         placeholders = ','.join(placeholders)
         query = f"SELECT * FROM PACKAGE_BOOT WHERE package_id IN ({placeholders})"
@@ -6425,7 +6425,7 @@ def run_shell3(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
 
 #     # Get the calling function and line number
 #     stack = traceback.extract_stack()
-#     filename, lineno, function_name, _ = stack[-3]  # -3 because -1 is current function, -2 is the function that called this function
+#     filename, lineno, function_name, unused = stack[-3]  # -3 because -1 is current function, -2 is the function that called this function
 #     print(f"Called from {function_name} at {filename}:{lineno}")
 
 #     print(s.getvalue())

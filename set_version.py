@@ -107,7 +107,7 @@ def set_values(file, search, replace):
         with open(file, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             f.write(content_new)
     except Exception as e:
-        print(f"\t\tError: {e}")
+        print(f"\n❌ ERROR: {e}")
         return False
 
 

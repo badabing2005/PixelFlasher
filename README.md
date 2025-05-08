@@ -244,7 +244,6 @@ File|Description
 [PixelFlasher_MacOS_legacy.dmg](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_MacOS_legacy.dmg)|x86_64 MacOS standalone executable (to be used on older MacOS devices)
 [PixelFlasher_Ubuntu_24_04](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_24_04)| Built on Ubuntu 24.04 Linux standalone x64 binary (recommended for **Linux**)
 [PixelFlasher_Ubuntu_22_04](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_22_04)| Built on Ubuntu 22.04 Linux standalone x64 binary
-[PixelFlasher_Ubuntu_20_04](https://github.com/badabing2005/PixelFlasher/releases/latest/download/PixelFlasher_Ubuntu_20_04)| Built on Ubuntu 20.04 Linux standalone x64 binary
 
 ### Supported platforms  
 

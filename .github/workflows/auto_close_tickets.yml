@@ -40,6 +40,7 @@ on:
 
 jobs:
   close_tickets:
+    if: ${{ github.actor == 'badabing2005' }}
     runs-on: ubuntu-latest
 
     steps:

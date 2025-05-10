@@ -1107,6 +1107,12 @@ msgstr ""
 msgid "Flash Device"
 msgstr ""
 
+msgid "Sideload OTA"
+msgstr ""
+
+msgid "Custom Flash Device"
+msgstr ""
+
 msgid "Flashes the selected device with chosen flash options."
 msgstr ""
 

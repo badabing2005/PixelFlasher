@@ -1129,7 +1129,13 @@ msgid "WARNING!!! This is a highly experimental feature.\nThis will attempt to d
 msgstr "Attention!!! Il s'agit d'une fonctionnalité très expérimentale.\nCela tentera de rétrograder l'appareil sans avoir besoin d'effacer les données.\n\n"
 
 msgid "Flash Device"
-msgstr "Dispositif de flash"
+msgstr "Flasher l'appareil"
+
+msgid "Sideload OTA"
+msgstr "Chargement latéral OTA"
+
+msgid "Custom Flash Device"
+msgstr "Flash personnalisé de l'appareil"
 
 msgid "Flashes the selected device with chosen flash options."
 msgstr "Fait clignoter l'appareil sélectionné avec les options de flash choisies."

@@ -21,7 +21,8 @@ a = Analysis(['PixelFlasher.py'],
                 ('bin/update_engine_client_r72', 'bin'),
                 ('android_versions.json', '.'),
                 ('android_devices.json', '.'),
-                ('testkey_rsa4096.pem', '.')
+                ('testkey_rsa4096.pem', '.'),
+                ('locale', 'locale')
              ],
              hiddenimports=['_cffi_backend'],
              hookspath=[],

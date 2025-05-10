@@ -1131,6 +1131,12 @@ msgstr "¡¡¡ADVERTENCIA!!! Esta es una función altamente experimental.\nEsto 
 msgid "Flash Device"
 msgstr "Flashear dispositivo"
 
+msgid "Sideload OTA"
+msgstr "Carga lateral OTA"
+
+msgid "Custom Flash Device"
+msgstr "Flash personalizado de dispositivo"
+
 msgid "Flashes the selected device with chosen flash options."
 msgstr "Flashea el dispositivo seleccionado con las opciones de flasheo elegidas."
 

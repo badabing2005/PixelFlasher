@@ -64,6 +64,7 @@ with contextlib.suppress(Exception):
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
 
 from config import Config
+from custom_controls import *
 
 # see https://discuss.wxpython.org/t/wxpython4-1-1-python3-8-locale-wxassertionerror/35168
 locale.setlocale(locale.LC_ALL, 'C')
@@ -212,242 +213,6 @@ class RedirectText():
             previous_logfile_path = self.logfile_stack[-1]
             self.logfile = open(previous_logfile_path, "a", buffering=1, encoding="utf-8", errors="replace")
             set_logfile(previous_logfile_path)
-
-
-# ============================================================================
-#                               Class FilePickerComboBox
-# ============================================================================
-class FilePickerComboBox(wx.Panel):
-    def __init__(self, parent, dialog_title=_("Select a file"), wildcard="All files (*.*)|*.*"):
-        super(FilePickerComboBox, self).__init__(parent)
-
-        self.history_file = get_device_images_history_file_path()
-        self.dialog_title = dialog_title
-        self.wildcard = wildcard
-        self.history = []
-
-        self.combo_box = wx.ComboBox(self, wx.ID_ANY, style=wx.CB_READONLY)
-        self.browse_button = wx.Button(self, wx.ID_ANY, _('Browse'))
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.combo_box, 1, wx.EXPAND)
-        sizer.Add(self.browse_button, 0, wx.EXPAND)
-        self.SetSizer(sizer)
-
-        self.browse_button.Bind(wx.EVT_BUTTON, self.on_browse)
-        self.combo_box.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
-
-        if os.path.exists(self.history_file):
-            try:
-                encoding = detect_encoding(self.history_file)
-                with open(self.history_file, 'r', encoding=encoding, errors="replace") as f:
-                    self.history = json.load(f)
-                    self.combo_box.SetItems(self.history)
-            except Exception as e:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: encountered an exception during device_images_history_file loading.")
-                print(f"Exception: {e}")
-                print("Deleting the device_images_history_file to recover ...")
-                os.remove(self.history_file)
-
-    def on_browse(self, event):
-        file_dialog = wx.FileDialog(self, self.dialog_title, wildcard=self.wildcard)
-        if file_dialog.ShowModal() == wx.ID_OK:
-            file_path = file_dialog.GetPath()
-            if file_path not in self.history:
-                self.history.insert(0, file_path)
-                self.combo_box.Insert(file_path, 0)
-                if len(self.history) > 16:
-                    self.history.pop()
-                if self.combo_box.Count > 16:
-                    self.combo_box.Delete(self.combo_box.Count - 1)
-            self.combo_box.SetValue(file_path)
-            wx.PostEvent(self.combo_box, wx.CommandEvent(wx.EVT_COMBOBOX.typeId, self.combo_box.GetId()))
-
-    def SetPath(self, path):
-        if path and path != '' and path not in self.history:
-            self.history.insert(0, path)
-            self.combo_box.Insert(path, 0)
-            if len(self.history) > 16:
-                self.history.pop()
-            if self.combo_box.Count > 16:
-                self.combo_box.Delete(self.combo_box.Count - 1)
-            with open(self.history_file, 'w', encoding='utf-8') as f:
-                json.dump(self.history, f)
-        self.combo_box.SetValue(path)
-
-    def on_combo_box_change(self, event):
-        path = event.GetString()
-        if path == '':
-            path = self.combo_box.GetValue()
-        if not os.path.exists(path):
-            self.history.remove(path)
-            self.combo_box.Delete(self.combo_box.FindString(path))
-        if path in self.history:
-            self.history.remove(path)
-            self.history.insert(0, path)
-            self.combo_box.Delete(self.combo_box.FindString(path))
-            self.combo_box.Insert(path, 0)
-            self.combo_box.SetValue(path)
-            with open(self.history_file, 'w', encoding='utf-8') as f:
-                json.dump(self.history, f)
-
-    def Bind(self, event, handler):
-        if event == wx.EVT_FILEPICKER_CHANGED:
-            self.handler = handler
-            self.combo_box.Bind(wx.EVT_COMBOBOX, self._on_combo_box_change)
-
-    def _on_combo_box_change(self, event):
-        self.handler(event)
-        self.on_combo_box_change(event)
-
-    def GetPath(self):
-        return self.combo_box.GetStringSelection()
-
-    def SetToolTip(self, tooltip_text):
-        self.combo_box.SetToolTip(tooltip_text)
-
-    def on_mousewheel(self, event):
-        # Stop the event propagation to disable mouse wheel scrolling
-        event.StopPropagation()
-
-
-# ============================================================================
-#                               Class NoScrollComboBox
-# ============================================================================
-class NoScrollComboBox(wx.ComboBox):
-    def __init__(self, *args, **kwargs):
-        super(NoScrollComboBox, self).__init__(*args, **kwargs)
-        self.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
-
-    def on_mousewheel(self, event):
-        # Stop the event propagation to disable mouse wheel scrolling
-        event.StopPropagation()
-
-
-# ============================================================================
-#                               Class NoScrollChoice
-# ============================================================================
-class NoScrollChoice(wx.Choice):
-    def __init__(self, *args, **kwargs):
-        super(NoScrollChoice, self).__init__(*args, **kwargs)
-        self.Bind(wx.EVT_MOUSEWHEEL, self.on_mousewheel)
-
-    def on_mousewheel(self, event):
-        # Stop the event propagation to disable mouse wheel scrolling
-        event.StopPropagation()
-
-
-# ============================================================================
-#                               Class DropDownLink
-# ============================================================================
-class DropDownLink(wx.BitmapButton):
-    def __init__(self, parent, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW):
-        super().__init__(parent, id, bitmap, pos, size, style)
-        self.Bind(wx.EVT_BUTTON, self.OnButtonClick)
-        self.popup_menu = wx.Menu()
-
-    def OnButtonClick(self, event):
-        self.PopupMenu(self.popup_menu)
-
-    def AddLink(self, label, url, icon=None):
-        item = self.popup_menu.Append(wx.ID_ANY, label)
-        if icon:
-            item.SetBitmap(icon)
-        self.Bind(wx.EVT_MENU, lambda event, url=url: self.OnLinkSelected(event, url), item)
-
-    def OnLinkSelected(self, event, url):
-        # Handle the selected link here
-        print(f"Selected link: {url}")
-        open_device_image_download_link(url)
-
-
-# ============================================================================
-#                               Class DropDownButton
-# ============================================================================
-class DropDownButton(buttons.GenBitmapTextButton):
-    # def __init__(self, parent, id=wx.ID_ANY, label='', pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
-    #     super().__init__(parent, id, wx.NullBitmap, label, pos, size, style)
-    def __init__(self, parent, id, bitmap, label, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
-        super().__init__(parent, id, bitmap, label, pos, size, style)
-        self.Bind(wx.EVT_BUTTON, self.OnButtonClick)
-        self.popup_menu = wx.Menu()
-
-    def SetBitmap(self, bitmap):
-        if bitmap.IsOk():
-            self.SetBitmapLabel(bitmap)
-        else:
-            print("Invalid bitmap")
-
-    def OnButtonClick(self, event):
-        self.PopupMenu(self.popup_menu)
-
-    def AddFunction(self, label, function, icon_bitmap=None, enabled=True):
-        item = self.popup_menu.Append(wx.ID_ANY, label)
-        item.Enable(enabled)
-        if icon_bitmap:
-            item.SetBitmap(icon_bitmap)
-        self.Bind(wx.EVT_MENU, lambda event, function=function: self.OnFunctionSelected(event, function), item)
-        return item
-
-    def OnFunctionSelected(self, event, function):
-        # Call the selected function here
-        function()
-
-# ============================================================================
-#                               Class DownloadProgressWindow
-# ============================================================================
-class DownloadProgressWindow(wx.Frame):
-    def __init__(self, parent=None):
-        super().__init__(parent, title=_("Downloads Progress"), size=(800, 300))
-        self.downloads = {}  # {url: (gauge, cancel_button, panel)}
-        self.main_panel = wx.Panel(self)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_panel.SetSizer(self.sizer)
-        self.Bind(wx.EVT_CLOSE, self.on_close)
-
-        if parent:
-            self.CenterOnParent()
-        else:
-            self.Center()
-
-    def add_download(self, url, filename):
-        download_panel = wx.Panel(self.main_panel)
-        download_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        # File name label
-        name_label = wx.StaticText(download_panel, label=filename)
-        download_sizer.Add(name_label, 0, wx.ALL | wx.CENTER, 5)
-
-        # Progress bar
-        gauge = wx.Gauge(download_panel, range=100, size=(200, 25))
-        download_sizer.Add(gauge, 1, wx.ALL | wx.EXPAND, 5)
-
-        # Cancel button
-        cancel_button = wx.Button(download_panel, label=_("Cancel"), size=(70, 25))
-        download_sizer.Add(cancel_button, 0, wx.ALL, 5)
-
-        download_panel.SetSizer(download_sizer)
-        self.sizer.Add(download_panel, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.downloads[url] = (gauge, cancel_button, download_panel)
-        self.sizer.Layout()
-        self.Show()
-
-        return gauge, cancel_button
-
-    def remove_download(self, url):
-        if url in self.downloads:
-            gauge, cancel_button, panel = self.downloads[url]
-            panel.Destroy()
-            del self.downloads[url]
-            self.sizer.Layout()
-
-            # Hide window if no downloads
-            if not self.downloads:
-                self.Hide()
-
-    def on_close(self, event):
-        self.Hide()
 
 # ============================================================================
 #                               Class GoogleImagesBaseMenu
@@ -3305,9 +3070,15 @@ class PixelFlasher(wx.Frame):
     def _update_custom_flash_options(self):
         image_mode = get_image_mode()
         image_path = get_image_path()
-        if self.config.flash_mode != 'customFlash':
+        if self.config.flash_mode == 'customFlash':
+            self.flash_button.Label = _("Custom Flash Device")
+        else:
             self.flash_radio_button.Enable(False)
             self.live_boot_radio_button.Enable(False)
+            if self.config.flash_mode == 'OTA':
+                self.flash_button.Label = _("Sideload OTA")
+            else:
+                self.flash_button.Label = _("Flash Device")
             return
         self.live_boot_radio_button.Enable(False)
         self.flash_radio_button.Enable(False)
@@ -5908,11 +5679,12 @@ class PixelFlasher(wx.Frame):
         self.sdk_link = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.sdk_link.SetBitmap(bitmap=images.open_link_24.GetBitmap())
         self.sdk_link.SetToolTip(_("Download Latest Android Platform-Tools"))
-        # self.platform_tools_picker = wx.DirPickerCtrl(parent=panel, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST)
-        # Create a custom DirPickerCtrl with translatable button
-        self.platform_tools_picker = wx.DirPickerCtrl(parent=panel, id=wx.ID_ANY, style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST | wx.DIRP_SMALL)
-        # Set the button label with translatable text
-        self.platform_tools_picker.GetPickerCtrl().SetLabel(_("  Browse  "))
+        self.platform_tools_picker = ResizableButtonDirPickerCtrl(
+            parent=panel,
+            id=wx.ID_ANY,
+            style=wx.DIRP_USE_TEXTCTRL | wx.DIRP_DIR_MUST_EXIST | wx.DIRP_SMALL,
+            button_label=_("  Browse  ")
+        )
         self.platform_tools_picker.SetToolTip(_("Select Android Platform-Tools Folder\nWhere adb and fastboot are located."))
         platform_tools_label_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         platform_tools_label_sizer.Add(window=self.platform_tools_label, proportion=0, flag=wx.ALL, border=0)
@@ -5962,8 +5734,11 @@ class PixelFlasher(wx.Frame):
         self.firmware_button = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.firmware_button.SetBitmap(images.open_link_24.GetBitmap())
         self.firmware_button.SetToolTip(_("Download image file for current Pixel device."))
-        # self.firmware_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message="Select a file", wildcard="Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        self.firmware_picker = FilePickerComboBox(parent=panel, dialog_title=_("Select a file"), wildcard="Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar")
+        self.firmware_picker = FilePickerComboBox(
+            parent=panel,
+            dialog_title=_("Select a file"),
+            wildcard="Factory Image files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar"
+        )
         self.firmware_picker.SetToolTip(_("Select Pixel Firmware"))
         self.process_firmware = wx.Button(parent=panel, id=wx.ID_ANY, label=_("Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_firmware.SetBitmap(images.process_file_24.GetBitmap())
@@ -5979,7 +5754,15 @@ class PixelFlasher(wx.Frame):
         # 6th row widgets, custom_rom
         self.custom_rom_checkbox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Apply Custom ROM"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.custom_rom_checkbox.SetToolTip(_("Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM"))
-        self.custom_rom = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_("Select a file"), wildcard="ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
+        self.custom_rom = ResizableButtonFilePickerCtrl(
+            parent=panel,
+            id=wx.ID_ANY,
+            path=wx.EmptyString,
+            message=_("Select a file"),
+            wildcard="ROM files (*.zip;*.tgz;*.tar)|*.zip;*.tgz;*.tar",
+            style=wx.FLP_USE_TEXTCTRL,
+            button_label=_("Browse")
+        )
         self.custom_rom.SetToolTip(_("Select Custom ROM"))
         self.process_rom = wx.Button(parent=panel, id=wx.ID_ANY, label=_("Process"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.process_rom.SetBitmap(images.process_file_24.GetBitmap())
@@ -6122,9 +5905,14 @@ class PixelFlasher(wx.Frame):
         image_choices = [ "boot", "init_boot", "bootloader", "cache", "dtbo", "dts", "odm", "odm_dlkm", "product", "pvmfw", "radio", "recovery", "super", "super_empty", "system", "system_dlkm", "system_ext", "system_other", "userdata", "vbmeta", "vbmeta_system", "vbmeta_vendor", "vendor", "vendor_boot", "vendor_dlkm", "vendor_kernel_boot", "vendor_other", "image", "SIDELOAD" ]
         self.image_choice = NoScrollChoice(parent=panel, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, choices=image_choices, style=0)
         self.image_choice.SetSelection(-1)
-        self.image_file_picker = wx.FilePickerCtrl(parent=panel, id=wx.ID_ANY, path=wx.EmptyString, message=_("Select a file"), wildcard="Flashable files (*.img;*.zip)|*.img;*.zip", pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.FLP_USE_TEXTCTRL)
-        # Set the button label with translatable text
-        self.image_file_picker.GetPickerCtrl().SetLabel(_("Browse"))
+        self.image_file_picker = ResizableButtonFilePickerCtrl(
+            parent=panel,
+            id=wx.ID_ANY,
+            message=_("Select a file"),
+            wildcard="Flashable files (*.img;*.zip)|*.img;*.zip",
+            style=wx.FLP_USE_TEXTCTRL,
+            button_label=_("Browse")
+        )
         self.paste_selection = wx.BitmapButton(parent=panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.paste_selection.SetBitmap(images.paste_24.GetBitmap())
         self.paste_selection.SetToolTip(_("Depending on the flash selection, paste the appropriate path as custom image."))
@@ -6284,6 +6072,38 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MOVE_END, self._on_move_end)
         self.Bind(wx.EVT_BUTTON, self._on_show_device_download, self.firmware_button)
 
+        # Get the widths of all buttons and figure out the max width
+        all_controls = [
+            {'control': self.platform_tools_picker, 'type': 'picker'},
+            {'control': self.scan_button, 'type': 'button'},
+            {'control': self.firmware_picker, 'type': 'filepickercombo'},
+            {'control': self.process_firmware, 'type': 'button'},
+            {'control': self.custom_rom, 'type': 'filepickercombo'},
+            {'control': self.process_rom, 'type': 'button'},
+            {'control': self.patch_button, 'type': 'button'},
+            {'control': self.delete_boot_button, 'type': 'button'},
+            {'control': self.folders_button, 'type': 'button'},
+            {'control': self.live_boot_button, 'type': 'button'},
+            {'control': self.flash_boot_button, 'type': 'button'},
+            {'control': self.image_file_picker, 'type': 'picker'}
+        ]
+        button_widths = []
+        # Calculate widths
+        for item in all_controls:
+            if item['type'] == 'button':
+                button_widths.append(item['control'].GetBestSize().width)
+            elif item['type'] == 'picker' and item['control'].GetPickerCtrl():
+                button_widths.append(item['control'].GetPickerCtrl().GetBestSize().width)
+        max_width = max(button_widths) if button_widths else 100
+        # Apply the max width to all buttons
+        for item in all_controls:
+            if item['type'] == 'button':
+                item['control'].SetMinSize(wx.Size(max_width, -1))
+            elif item['type'] == 'picker':
+                item['control'].SetButtonWidth(max_width)
+            elif item['type'] == 'filepickercombo':
+                item['control'].SetButtonWidth(max_width)
+
         # Update UI
         self.Layout()
 
@@ -6422,24 +6242,6 @@ def parse_arguments():
     args  = parser.parse_args()
     return args
 
-
-# ============================================================================
-#                    Function _open_device_image_download_link
-# ============================================================================
-def open_device_image_download_link(url):
-    try:
-        with contextlib.suppress(Exception):
-            device = get_phone()
-            if device:
-                hardware = device.hardware
-            else:
-                hardware = ''
-        print(f"Launching browser for Google image download URL: {url}#{hardware}")
-        webbrowser.open_new(f"{url}#{hardware}")
-        puml(f":Open Link;\nnote right\n=== {hardware} Firmware Link\n[[{url}#{hardware}]]\nend note\n", True)
-    except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware link")
-        traceback.print_exc()
 
 # ============================================================================
 #                               Function ask

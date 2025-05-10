@@ -20,6 +20,9 @@ rsa>=4.9
 polib>=1.1.1
 # Use pre-built wheels for wxPython
 --find-links https://wxpython.org/Phoenix/snapshot-builds/
+--find-links https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04/
+--find-links https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/
+--find-links https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04/
 wxPython==4.2.2
 # wxPython==4.2.1; platform_system == "Linux"
 # wxPython>=4.2.1; platform_system != "Linux"

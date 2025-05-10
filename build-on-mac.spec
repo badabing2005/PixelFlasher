@@ -20,7 +20,8 @@ a = Analysis(['PixelFlasher.py'],
                 ('bin/update_engine_client_r72', 'bin'),
                 ('android_versions.json', '.'),
                 ('android_devices.json', '.'),
-                ('testkey_rsa4096.pem', '.')
+                ('testkey_rsa4096.pem', '.'),
+                ('locale', 'locale')
             ],
              hiddenimports=['_cffi_backend'],
              hookspath=[],
@@ -58,6 +59,6 @@ exe = EXE(pyz,
           icon='images/icon-dark-256.icns')
 app = BUNDLE(exe,
              name='PixelFlasher.app',
-             version='8.0.0.1',
+             version='8.0.1.0',
              icon='./images/icon-dark-256.icns',
              bundle_identifier='com.badabing.pixelflasher')

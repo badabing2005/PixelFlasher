@@ -2864,12 +2864,17 @@ add_hosts_module
     #                               method mount_count
     # ----------------------------------------------------------------------------
     def mount_count(self):
-        if self.true_mode == 'adb':
-            if get_adb():
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell wc -l /proc/mounts"
-                res = run_shell(theCmd, timeout=8)
-                if res and isinstance(res, subprocess.CompletedProcess):
-                    return res.stdout.strip('\n').split()[0]
+        try:
+            if self.true_mode == 'adb':
+                if get_adb():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell wc -l /proc/mounts"
+                    res = run_shell(theCmd, timeout=8)
+                    if res and isinstance(res, subprocess.CompletedProcess):
+                        return res.stdout.strip('\n').split()[0]
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting mount count.")
+            puml("#red:Encountered an error while getting mount count.;\n")
+            traceback.print_exc()
         return ''
 
     # ----------------------------------------------------------------------------

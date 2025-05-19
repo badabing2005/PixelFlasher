@@ -183,6 +183,10 @@ class MagiskModules(wx.Dialog):
         self.disable_denylist_button = wx.Button(self, wx.ID_ANY, _("Disable Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
         self.disable_denylist_button.SetToolTip(_("Disable Magisk denylist"))
 
+        # Superuser Access button
+        self.superuser_access_button = wx.Button(self, wx.ID_ANY, _("Superuser Access"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.superuser_access_button.SetToolTip(_("Superuser Access (requires reboot)"))
+
         # Refresh
         self.refresh_button = wx.Button(self, wx.ID_ANY, _("Refresh"), wx.DefaultPosition, wx.DefaultSize, 0)
         self.refresh_button.SetToolTip(_("Refresh Magisk modules list."))
@@ -206,6 +210,7 @@ class MagiskModules(wx.Dialog):
         self.disable_zygisk_button.SetMinSize((button_width, -1))
         self.enable_denylist_button.SetMinSize((button_width, -1))
         self.disable_denylist_button.SetMinSize((button_width, -1))
+        self.superuser_access_button.SetMinSize((button_width, -1))
         self.refresh_button.SetMinSize((button_width, -1))
 
         # Label for managing denylist and SU Permissions
@@ -246,6 +251,7 @@ class MagiskModules(wx.Dialog):
         v_buttons_sizer.Add(self.disable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.enable_denylist_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.disable_denylist_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.superuser_access_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.refresh_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.staticline1, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.AddStretchSpacer()
@@ -283,6 +289,7 @@ class MagiskModules(wx.Dialog):
         self.disable_zygisk_button.Bind(wx.EVT_BUTTON, self.onDisableZygisk)
         self.enable_denylist_button.Bind(wx.EVT_BUTTON, self.onEnableDenylist)
         self.disable_denylist_button.Bind(wx.EVT_BUTTON, self.onDisableDenylist)
+        self.superuser_access_button.Bind(wx.EVT_BUTTON, self.onSuperuserAccess)
         self.refresh_button.Bind(wx.EVT_BUTTON, self.onRefresh)
         self.cancel_button.Bind(wx.EVT_BUTTON, self.onCancel)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected, self.list)
@@ -361,6 +368,7 @@ class MagiskModules(wx.Dialog):
                     self.systemless_hosts_button.Enable(False)
                     self.enable_denylist_button.Enable(False)
                     self.disable_denylist_button.Enable(False)
+                    self.superuser_access_button.Enable(False)
                     self.refresh_button.Enable(False)
 
                 self.list.SetItemColumnImage(i, 0, -1)
@@ -529,12 +537,6 @@ class MagiskModules(wx.Dialog):
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  onRefresh
-    # -----------------------------------------------
-    def onRefresh(self, e):
-        self.refresh_modules()
-
-    # -----------------------------------------------
     #                  onDisableDenylist
     # -----------------------------------------------
     def onDisableDenylist(self, e):
@@ -550,6 +552,45 @@ class MagiskModules(wx.Dialog):
             traceback.print_exc()
         finally:
             self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  onSuperuserAccess
+    # -----------------------------------------------
+    def onSuperuserAccess(self, e):
+        try:
+            device = get_phone(True)
+            if not device.rooted:
+                return
+            buttons_text = [_("Disabled"), _("Apps Only"), _("ADB Only"), _("Apps and ADB"), _("Cancel")]
+            dlg = MessageBoxEx(parent=self, title=_('Magisk'), message=_("Superuser Access"), button_texts=buttons_text, default_button=1)
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            value = None
+            if result <= 4:
+                value = str(result - 1)
+            else:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting ...\n")
+                return -1
+
+            self._on_spin('start')
+            debug(f"Superuser Access: {value}")
+            res = device.magisk_modify_root_access(value)
+            if res == 0:
+                self.outputMessage(_("## You need to reboot your device for the changes to take effect."))
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in function onSuperuserAccess")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  onRefresh
+    # -----------------------------------------------
+    def onRefresh(self, e):
+        self.refresh_modules()
 
     # -----------------------------------------------
     #                  onSystemlessHosts

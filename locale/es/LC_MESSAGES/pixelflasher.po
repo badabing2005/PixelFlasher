@@ -2349,6 +2349,24 @@ msgstr "Copiar"
 msgid "Select All"
 msgstr "Seleccionar todo"
 
+msgid "Superuser Access"
+msgstr "Modificar acceso root"
+
+msgid "Superuser Access (requires reboot)"
+msgstr "Modificar acceso root (requiere reinicio)"
+
+msgid "Apps Only"
+msgstr "Solo aplicaciones"
+
+msgid "ADB Only"
+msgstr "Solo ADB"
+
+msgid "Apps and ADB"
+msgstr "Aplicaciones y ADB"
+
+msgid "Disabled"
+msgstr "Deshabilitado"
+
 ##############################################################################
 # Rooting App
 ##############################################################################

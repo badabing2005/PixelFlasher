@@ -2313,6 +2313,24 @@ msgstr ""
 msgid "Select All"
 msgstr ""
 
+msgid "Superuser Access"
+msgstr ""
+
+msgid "Superuser Access (requires reboot)"
+msgstr ""
+
+msgid "Apps Only"
+msgstr ""
+
+msgid "ADB Only"
+msgstr ""
+
+msgid "Apps and ADB"
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
 ##############################################################################
 # Rooting App
 ##############################################################################

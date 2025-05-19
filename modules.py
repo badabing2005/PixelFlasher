@@ -2219,7 +2219,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         print("Creating pf_patch.sh script ...")
         patch_label = patch_flavor
         script_path = "/data/local/tmp/pf_patch.sh"
-        exec_cmd = f"\"{get_adb()}\" -s {device.id} shell cd /data/local/tmp; /data/local/tmp/pf_patch.sh"
+        exec_cmd = f"\"{get_adb()}\" -s {device.id} shell \"cd /data/local/tmp; /data/local/tmp/pf_patch.sh\""
         perform_as_root = False
 
         set_patched_with(kernelsu_version)

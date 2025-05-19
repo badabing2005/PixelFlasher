@@ -1227,6 +1227,7 @@ add_hosts_module
                 if res == 0:
                     print("Magisk adding built-in systemless hosts module succeeded")
                     puml("note right:Magisk adding built-in systemless hosts module;\n")
+                    return 0
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to add built-in systemless hosts module.")
                     puml("note right:ERROR: Failed to add built-in systemless hosts module;\n")
@@ -1252,6 +1253,7 @@ add_hosts_module
                 if res == 0:
                     print("Updating Zygisk flag succeeded")
                     puml("note right:Updating Zygisk flag succeeded;\n")
+                    return 0
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Zygisk flag")
                     puml("note right:ERROR: Updating Zygisk flag;\n")
@@ -1260,6 +1262,37 @@ add_hosts_module
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_enable_zygisk operation.")
                 traceback.print_exc()
                 puml("#red:Exception during magisk_enable_zygisk operation.;\n", True)
+
+
+    # ----------------------------------------------------------------------------
+    #                               method magisk_modify_root_access
+    # ----------------------------------------------------------------------------
+    def magisk_modify_root_access(self, value):
+        # https://github.com/topjohnwu/Magisk/blob/a4b8c5e46b02b12b222638edb5c841903678a203/app/core/src/main/java/com/topjohnwu/magisk/core/Config.kt#L60-L61
+        # const val ROOT_ACCESS_DISABLED = 0
+        # const val ROOT_ACCESS_APPS_ONLY = 1
+        # const val ROOT_ACCESS_ADB_ONLY = 2
+        # const val ROOT_ACCESS_APPS_AND_ADB = 3
+        if self.true_mode == 'adb' and self.rooted:
+            try:
+                value = str(value)
+                print(f"Updating Root Access flag value to: {value}")
+                puml(f":Updating Root Access flag value to: {value};\n", True)
+
+                data = f"magisk --sqlite \"INSERT OR REPLACE INTO settings (key, value) VALUES ('root_access', {value});\""
+                res = self.exec_magisk_settings(data)
+                if res == 0:
+                    print("Updating Root Access flag succeeded")
+                    puml("note right:Updating Root Access flag succeeded;\n")
+                    return 0
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Root Access flag")
+                    puml("note right:ERROR: Updating Root Access flag;\n")
+                    return -1
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during magisk_modify_root_access operation.")
+                traceback.print_exc()
+                puml("#red:Exception during magisk_modify_root_access operation.;\n", True)
 
 
     # ----------------------------------------------------------------------------
@@ -1281,6 +1314,7 @@ add_hosts_module
             if res == 0:
                 print("Updating Enforce denylist flag succeeded")
                 puml("note right:Updating Enforce denylist flag succeeded;\n")
+                return 0
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update Enforce denylist flag")
                 puml("note right:ERROR: Updating Enforce denylist flag;\n")
@@ -1315,6 +1349,7 @@ add_hosts_module
                 if res == 0:
                     print("Setting SU permissions succeeded")
                     puml("note right:Setting SU permissions succeeded;\n")
+                    return 0
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to Setting SU permissions")
                     puml("note right:ERROR: Setting SU permissions flag;\n")

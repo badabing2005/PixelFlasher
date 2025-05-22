@@ -2940,6 +2940,8 @@ class PixelFlasher(wx.Frame):
                 message += f"    ro.zygote:                       {device.get_prop('ro.zygote')}\n"
                 message += f"    ro.vendor.product.cpu.abilist:   {device.get_prop('ro.vendor.product.cpu.abilist')}\n"
                 message += f"    ro.vendor.product.cpu.abilist32: {device.get_prop('ro.vendor.product.cpu.abilist32')}\n"
+                message += f"    ro.boot.hw.soc.sec-ar:           {device.get_prop('ro.boot.hw.soc.sec-ar')}\n"
+                message += f"    ro.boot.hw.soc.nonsec-ar:        {device.get_prop('ro.boot.hw.soc.nonsec-ar')}\n"
                 m_app_version = device.magisk_app_version
                 if m_app_version:
                     message += f"    Magisk Manager Version:          {m_app_version}\n"
@@ -2967,6 +2969,8 @@ class PixelFlasher(wx.Frame):
             message += f"    slot-retry-count:b:              {device.get_prop('slot-retry-count:b')}\n"
             message += f"    slot-unbootable:b:               {device.get_prop('slot-unbootable:b')}\n"
             message += f"    slot-successful:b:               {device.get_prop('slot-successful:b')}\n"
+            message += f"    ap-ar-s:                         {device.get_prop('ap-ar-s')}\n"
+            message += f"    ap-ar-ns:                        {device.get_prop('ap-ar-ns')}\n"
             message += f"    PF Bootloader Status:            {device.get_bl_status().upper()}\n"
         if device.rooted:
             message += f"    Device Rooted with:              {device.su_version}\n"

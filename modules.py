@@ -257,8 +257,12 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
             data = con.execute(sql, parameters)
             i = 0
             full_ota = None
+            paths_to_update = []  # Store boot_id and new paths for updating after loop
+
             for row in data:
+                boot_id = row[0]
                 boot_hash = row[1][:8] or ''
+                boot_path = row[2]  # Original boot path
                 package_boot_hash = row[9][:8] or ''
                 package_sig = row[11] or ''
                 patched_with_version = str(row[5]) or ''
@@ -269,6 +273,19 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
                 package_path = row[12] or ''
                 if self.config.firmware_path == package_path:
                     full_ota = row[15]
+
+                # Path verification logic to handle modified pf_home
+                if not os.path.exists(boot_path) and "boot_images4" in boot_path:
+                    try:
+                        path_parts = boot_path.split("boot_images4", 1)
+                        right_side = "boot_images4" + path_parts[1]
+                        new_path = os.path.join(self.config.pf_home, right_side)
+
+                        if os.path.exists(new_path):
+                            # Store for batch update after the loop
+                            paths_to_update.append((boot_id, new_path))
+                    except Exception as e:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Processing boot path during list population: {e}")
 
                 index = self.list.InsertItem(i, boot_hash)                     # boot_hash (SHA1)
                 self.list.SetItem(index, 1, package_boot_hash)                 # package_boot_hash (Source SHA1)
@@ -282,7 +299,19 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
                     self.list.SetItemColumnImage(i, 0, 0)
                 else:
                     self.list.SetItemColumnImage(i, 0, -1)
+                self.list.SetItemData(i, boot_id)  # Store boot_id for later reference
                 i += 1
+
+            # Update the database with the new paths
+            if paths_to_update:
+                try:
+                    with con:
+                        for boot_id, new_path in paths_to_update:
+                            con.execute("UPDATE BOOT SET file_path = ? WHERE id = ?", (new_path, boot_id))
+                    print(f"ℹ️ Updated {len(paths_to_update)} boot paths in database")
+                except Exception as e:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update boot paths in database: {e}")
+
             if i > 0 and full_ota is not None:
                 set_ota(self, bool(full_ota))
 
@@ -4725,7 +4754,7 @@ def flash_phone(self):
                         data_linux += f"# pf_boot.img: {boot.boot_path}\n"
                         data_linux += f"# Android Platform Tools Version: {get_sdk_version()}\n\n"
                         if self.config.flash_to_inactive_slot:
-                            data_tmp = "\necho Switching active slot to the other ...\n"
+                            data_tmp = "\necho Setting active slot to the other ...\n"
                             data_tmp += f"{add_echo}\"{get_fastboot()}\" -s {device_id} --set-active=other\n"
                             data_win += data_tmp
                             data_linux += data_tmp

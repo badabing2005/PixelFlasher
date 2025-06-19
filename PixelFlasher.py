@@ -33,5 +33,8 @@
 # information on this, and how to apply and follow the GNU AGPL, see
 # <https://www.gnu.org/licenses/>.
 
+import os
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
 import Main
 Main.main()

@@ -3090,13 +3090,23 @@ def get_beta_data(url):
             button = cols[1].find('button')
             category = button['data-category']
             zip_filename = button.text.strip()
+            error = False
+            # Check if the build is present in the zip_filename, if not print a warning
+            if build.lower() not in zip_filename.lower():
+                print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Build '{build}' not found in zip filename '{zip_filename}' for device '{device}'")
+                error = True
             hashcode = cols[1].find('code').text.strip()
+            # check if the first 8 characters of the hashcode is not in the zip_filename, if not print a warning
+            if hashcode[:8].lower() not in zip_filename.lower():
+                print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Hashcode '{hashcode[:8]}' not found in zip filename '{zip_filename}' for device '{device}'")
+                error = True
             devices.append({
                 'device': device,
                 'category': category,
                 'zip_filename': zip_filename,
                 'hash': hashcode,
-                'url': None  # Placeholder for URL
+                'url': None,  # Placeholder for URL
+                'error': error
             })
 
         # Find all hrefs and match with zip_filename
@@ -3381,8 +3391,12 @@ def get_google_images(save_to=None):
                 if ota_beta_data and isinstance(ota_beta_data, BetaData) and hasattr(ota_beta_data, 'devices'):
                     for beta_item in ota_beta_data.devices:
                         if device_label == beta_item['device']:
+                            if beta_item['error']:
+                                the_version = f"⚠️ OTA - {beta_item['category']} ({ota_build_id}) - Problem with wrong build or hash"
+                            else:
+                                the_version = f"OTA - {beta_item['category']} ({ota_build_id})"
                             beta_info = {
-                                'version': f"OTA - {beta_item['category']} ({ota_build_id})",
+                                'version': the_version,
                                 'url': beta_item['url'],
                                 'sha256': beta_item['hash'],
                                 'date': datetime.now().strftime('%y%m%d')
@@ -3393,6 +3407,10 @@ def get_google_images(save_to=None):
                 if factory_beta_data and isinstance(factory_beta_data, BetaData) and hasattr(factory_beta_data, 'devices'):
                     for beta_item in factory_beta_data.devices:
                         if device_label == beta_item['device']:
+                            if beta_item['error']:
+                                the_version = f"⚠️ Factory - {beta_item['category']} ({factory_build_id}) - Problem with wrong build or hash"
+                            else:
+                                the_version = f"Factory - {beta_item['category']} ({factory_build_id})"
                             beta_info = {
                                 'version': f"Factory - {beta_item['category']} ({factory_build_id})",
                                 'url': beta_item['url'],

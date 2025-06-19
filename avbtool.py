@@ -41,6 +41,7 @@ import time
 import contextlib
 import traceback
 import rsa
+import datetime
 
 
 # Keep in sync with libavb/avb_version.h.
@@ -2499,6 +2500,14 @@ class Avb(object):
       info['Public key (sha1)'] = '{}'.format(hexdig)
     o.write('Algorithm:                {}\n'.format(alg_name))
     o.write('Rollback Index:           {}\n'.format(header.rollback_index))
+    # if header.rollback_index is epoc date, convert it to a string
+    if header.rollback_index > 0:
+      try:
+        rb_date = datetime.datetime.fromtimestamp(header.rollback_index)
+        o.write('Rollback Index Date:      {}\n'.format(rb_date))
+        info['Rollback Index Date'] = '{}'.format(rb_date)
+      except ValueError:
+        o.write('Rollback Index Date:     (invalid date)\n')
     o.write('Flags:                    {}\n'.format(header.flags))
     o.write('Rollback Index Location:  {}\n'.format(header.rollback_index_location))
     o.write('Release String:           \'{}\'\n'.format(header.release_string))

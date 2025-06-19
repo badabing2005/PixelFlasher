@@ -132,8 +132,8 @@ LINKS_MENU_DATA = [
     (_("Factory Images for Pixel Watches"), "google_24", 'https://developers.google.com/android/images-watch'),
     None,  # Separator
     # Beta images
-    (_("Full OTA Images for Pixel Beta 16"), "android_24", 'https://developer.android.com/about/versions/15/download-ota'),
-    (_("Factory Images for Pixel Beta 16"), "android_24", 'https://developer.android.com/about/versions/15/download'),
+    (_("Full OTA Images for Pixel Beta 16"), "android_24", 'https://developer.android.com/about/versions/16/download-ota'),
+    (_("Factory Images for Pixel Beta 16"), "android_24", 'https://developer.android.com/about/versions/16/download'),
 ]
 
 # Help menu URLs and descriptions
@@ -277,9 +277,7 @@ class GoogleImagesBaseMenu(wx.Menu):
         return last_checked < update_threshold
 
     def get_progress_window(self):
-        if self.progress_window is None:
-            self.progress_window = DownloadProgressWindow(self.parent)
-        return self.progress_window
+        return self.parent.get_progress_window()
 
     def download_with_progress(self, url, destination_path, callback):
         progress_window = self.get_progress_window()
@@ -653,6 +651,12 @@ class PixelFlasher(wx.Frame):
             self.initialize()
         set_window_shown(True)
         self.Show(True)
+
+    def get_progress_window(self):
+        if not hasattr(self, 'download_progress_window') or self.download_progress_window is None:
+            from download_progress import DownloadProgressWindow
+            self.download_progress_window = DownloadProgressWindow(self)
+        return self.download_progress_window
 
 
     # -----------------------------------------------
@@ -3255,7 +3259,7 @@ class PixelFlasher(wx.Frame):
 
             elif condition == 'device_mode_adb':
                 device = get_phone()
-                if device and device.true_mode == 'adb':
+                if device and device.mode == 'adb':
                     return True
                 return False
 
@@ -5153,6 +5157,34 @@ class PixelFlasher(wx.Frame):
                         boot.is_init_boot = row[16]
                         boot.patch_source_sha1 = row[17]
                         package_boot_count += 1
+
+                # Check if the original boot_path exists in case pf_home changed.
+                original_path = boot.boot_path
+                if os.path.exists(original_path):
+                    # Path exists, keep it as is
+                    pass
+                else:
+                    # Path doesn't exist, try to reconstruct it with pf_home
+                    try:
+                        if "boot_images4" in original_path:
+                            path_parts = original_path.split("boot_images4", 1)
+                            right_side = "boot_images4" + path_parts[1]
+                            new_path = os.path.join(self.config.pf_home, right_side)
+
+                            if os.path.exists(new_path):
+                                # Update boot path in object and database
+                                boot.boot_path = new_path
+                                try:
+                                    con = get_db_con()
+                                    if con is not None:
+                                        with con:
+                                            con.execute("UPDATE BOOT SET file_path = ? WHERE id = ?", (new_path, boot.boot_id))
+                                        print(f"ℹ️ Updated boot path from {original_path} to {new_path}")
+                                except Exception as e:
+                                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to update boot path in database: {e}")
+                    except Exception as e:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error processing boot path: {e}")
+
                 self.config.boot_id = boot.boot_id
                 self.config.selected_boot_md5 = boot.boot_hash
                 print("==============")

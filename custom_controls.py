@@ -1,3 +1,38 @@
+#!/usr/bin/env python
+
+# This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
+#
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU Affero General Public License as published by the Free
+# Software Foundation, either version 3 of the License, or (at your option) any
+# later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License
+# for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Also add information on how to contact you by electronic and paper mail.
+#
+# If your software can interact with users remotely through a computer network,
+# you should also make sure that it provides a way for users to get its source.
+# For example, if your program is a web application, its interface could
+# display a "Source" link that leads users to an archive of the code. There are
+# many ways you could offer source, and different solutions will be better for
+# different programs; see section 13 for the specific requirements.
+#
+# You should also get your employer (if you work as a programmer) or school, if
+# any, to sign a "copyright disclaimer" for the program, if necessary. For more
+# information on this, and how to apply and follow the GNU AGPL, see
+# <https://www.gnu.org/licenses/>.
+
 import wx
 import wx.lib.buttons as buttons
 import os
@@ -271,62 +306,6 @@ class ResizableButtonFilePickerCtrl(wx.FilePickerCtrl):
         if self.GetPickerCtrl():
             return self.GetPickerCtrl().GetSize().GetWidth()
         return 0
-
-# ============================================================================
-#                               Class DownloadProgressWindow
-# ============================================================================
-class DownloadProgressWindow(wx.Frame):
-    def __init__(self, parent=None):
-        super().__init__(parent, title=_("Downloads Progress"), size=(800, 300))
-        self.downloads = {}  # {url: (gauge, cancel_button, panel)}
-        self.main_panel = wx.Panel(self)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.main_panel.SetSizer(self.sizer)
-        self.Bind(wx.EVT_CLOSE, self.on_close)
-
-        if parent:
-            self.CenterOnParent()
-        else:
-            self.Center()
-
-    def add_download(self, url, filename):
-        download_panel = wx.Panel(self.main_panel)
-        download_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        # File name label
-        name_label = wx.StaticText(download_panel, label=filename)
-        download_sizer.Add(name_label, 0, wx.ALL | wx.CENTER, 5)
-
-        # Progress bar
-        gauge = wx.Gauge(download_panel, range=100, size=(200, 25))
-        download_sizer.Add(gauge, 1, wx.ALL | wx.EXPAND, 5)
-
-        # Cancel button
-        cancel_button = wx.Button(download_panel, label=_("Cancel"), size=(70, 25))
-        download_sizer.Add(cancel_button, 0, wx.ALL, 5)
-
-        download_panel.SetSizer(download_sizer)
-        self.sizer.Add(download_panel, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.downloads[url] = (gauge, cancel_button, download_panel)
-        self.sizer.Layout()
-        self.Show()
-
-        return gauge, cancel_button
-
-    def remove_download(self, url):
-        if url in self.downloads:
-            gauge, cancel_button, panel = self.downloads[url]
-            panel.Destroy()
-            del self.downloads[url]
-            self.sizer.Layout()
-
-            # Hide window if no downloads
-            if not self.downloads:
-                self.Hide()
-
-    def on_close(self, event):
-        self.Hide()
 
 
 # ============================================================================

@@ -57,10 +57,6 @@ jobs:
     uses: ./.github/workflows/windows-arm64.yml
     secrets: inherit
 
-  build_windows_2019:
-    uses: ./.github/workflows/windows_2019.yml
-    secrets: inherit
-
   build_ubuntu_22_04:
     uses: ./.github/workflows/ubuntu_22_04.yml
     secrets: inherit
@@ -82,7 +78,7 @@ jobs:
     secrets: inherit
 
   deploy:
-    needs: [build_windows, build_windows_arm64, build_windows_2019, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac]
+    needs: [build_windows, build_windows_arm64, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac]
 
     runs-on: ubuntu-latest
 
@@ -111,14 +107,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: PixelFlasher-ARM64.exe Artifacts
-          path: release
-        continue-on-error: true
-
-      # Download the Windows-2019 artifact from the build_windows_2019 job
-      - name: Download Windows-2019 Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: PixelFlasher_Win_2019.exe Artifacts
           path: release
         continue-on-error: true
 

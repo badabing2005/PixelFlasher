@@ -100,7 +100,6 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - Enable / disable Magisk modules, this comes in handy to disable suspect modules before an upgrade.
   - Install Magisk module (zip selection).
   - Direct install common Magisk modules:
-    - Chiteroman [PlayIntegrityFix](https://github.com/chiteroman/PlayIntegrityFix)
     - osm0sis [PlayintegrityFork](https://github.com/osm0sis/PlayIntegrityFork)
     - [TrickyStore](https://github.com/5ec1cff/TrickyStore)
     - [ZygiskNext](https://github.com/Dr-TSNG/ZygiskNext)

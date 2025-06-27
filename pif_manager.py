@@ -1094,6 +1094,10 @@ class PifManager(wx.Dialog):
             # Check if self.beta_pif_version is a two digit number then set force_version to that (int)
             if self.beta_pif_version.isdigit() and len(self.beta_pif_version) == 2:
                 force_version = int(self.beta_pif_version)
+            else:
+                force_version = None
+                if self.rb_custom.GetValue():
+                    print(f"⚠️ WARNING! The requested Android beta version is not a valid two-digit number: {self.beta_pif_version}. Using latest version instead.")
             beta_pif = get_beta_pif(device_model, force_version)
             if beta_pif == -1:
                 wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
@@ -1140,7 +1144,7 @@ class PifManager(wx.Dialog):
             coord_dismiss = None
             if coords is None or clear_first:
                 if self.disable_uiautomator_checkbox.IsChecked():
-                    print(f"WARNING! You have disabled using UIAutomator.\nPlease uncheck Disable UIAutomator checkbox if you want to enable UIAutomator usage.")
+                    print(f"⚠️ WARNING! You have disabled using UIAutomator.\nPlease uncheck Disable UIAutomator checkbox if you want to enable UIAutomator usage.")
                     return
                 # For Play Store, we need to save multiple coordinates
                 if self.pi_option.StringSelection == 'Play Store':

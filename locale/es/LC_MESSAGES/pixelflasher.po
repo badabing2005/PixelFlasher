@@ -2607,3 +2607,24 @@ msgstr "Eliminar paquete de lista de denegación de Magisk"
 msgid "SU Permission ..."
 msgstr "Permisos SU ..."
 
+msgid "Before switching slots, please make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr "Antes de cambiar las ranuras, asegúrese de que su dispositivo no está sujeto a problemas de ARB.\n¿Está seguro de que desea continuar?"
+
+msgid "Switch Slot potential concerns"
+msgstr "Posibles problemas al cambiar de ranura"
+
+msgid "##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+msgstr "##⚠️ ADVERTENCIA: Ha seleccionado flashear ambas ranuras.<br/>\n"
+
+msgid "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
+msgstr "Por favor, asegúrese de que su dispositivo no está sujeto a problemas de ARB antes de hacer clic en continuar.<br/>\n"
+
+msgid "You have selected the flash option: Flash to both slots\nPlease make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr "Ha seleccionado la opción de flasheo: Flashear a ambas ranuras\nPor favor, asegúrese de que su dispositivo no está sujeto a problemas de ARB.\n¿Está seguro de que desea continuar?"
+
+msgid "Flash option: Flash to both slots"
+msgstr "Opción de flasheo: Flashear a ambas ranuras"
+
+msgid "✅ Flash to both slots is accepted."
+msgstr "✅ Flashear a ambas ranuras aceptado."
+

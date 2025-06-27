@@ -2570,10 +2570,129 @@ def format_memory_size(size_bytes):
 
 
 # ============================================================================
-#                 Function get_partial_gsi_data
+#                               Function parse_device_list_html
 # ============================================================================
-def get_partial_gsi_data():
+def parse_device_list_html(ul_content):
+    """
+    Parse HTML ul content of device names and return both model_list and product_list.
+
+    Args:
+        ul_content (str or Tag): HTML ul element with device names, can be a string or BeautifulSoup Tag
+
+    Returns:
+        tuple: (model_list, product_list)
+    """
+    # Load device data from android_devices.json
+    with open('android_devices.json', 'r') as f:
+        device_data = json.load(f)
+
+    # Create reverse lookup from display name to codename
+    device_to_product = {}
+    for product, info in device_data.items():
+        device_to_product[info['device'].lower()] = product
+
+    li_items = []
+
+    # Check if ul_content is a BeautifulSoup Tag
+    if hasattr(ul_content, 'find_all'):
+        # It's a BeautifulSoup Tag, use find_all to extract list items
+        li_tags = ul_content.find_all('li')
+        li_items = [li.get_text() for li in li_tags]
+    else:
+        # It's a string, use regex to extract list items
+        li_pattern = r'<li>(.*?)</li>'
+        li_items = re.findall(li_pattern, ul_content)
+
+    model_list = []
+    product_list = []
+
+    for item in li_items:
+        # Handle different list item formats
+        parts = []
+
+        # Example: "Pixel 9, 9 Pro, 9 Pro XL, and 9 Pro Fold" should be split into 4 devices
+        if ',' in item and ('and' in item or '&' in item):
+            # Split by commas first
+            comma_parts = [p.strip() for p in item.split(',')]
+            # Last part might contain "and" or "&"
+            last_part = comma_parts.pop()
+            if ' and ' in last_part:
+                and_parts = last_part.split(' and ')
+            elif 'and ' in last_part:
+                and_parts = last_part.split('and ')
+            elif ' & ' in last_part:
+                and_parts = last_part.split(' & ')
+            elif '& ' in last_part:
+                and_parts = last_part.split('& ')
+            else:
+                and_parts = [last_part]
+            # Remove empty parts from and_parts
+            and_parts = [part for part in and_parts if part.strip()]
+            # Combine comma parts with and parts
+            parts = comma_parts + and_parts
+
+        # Example: "Pixel 6 and 6 Pro" - no commas but has "and"
+        elif ' and ' in item or ' & ' in item:
+            if ' and ' in item:
+                and_parts = item.split(' and ')
+            else:
+                and_parts = item.split(' & ')
+
+            # Remove empty parts from and_parts
+            and_parts = [part for part in and_parts if part.strip()]
+            parts = and_parts
+
+        # Simple case example "Pixel 6a" and nothing else.
+        else:
+            parts = [item]
+
+        # Process all parts to add to model and product lists
+        for part in parts:
+            part = part.strip()
+
+            # Handle missing 'Pixel' like "9 Pro" -> "Pixel 9 Pro"
+            if not part.lower().startswith("pixel"):
+                # Find the prefix from the last full device name
+                for i in range(len(model_list) - 1, -1, -1):
+                    prev_model = model_list[i]
+                    if prev_model.lower().startswith("pixel"):
+                        prefix = prev_model.split(' ')[0]  # Example: "Pixel"
+                        part = f"{prefix} {part}"
+                        break
+
+            # Add to model list
+            model_list.append(part)
+
+            # Find matching product name
+            device_name = part.lower()
+            product = None
+
+            # Try exact match
+            if device_name in device_to_product:
+                product = device_to_product[device_name]
+            else:
+                # Try partial match for cases like "Pixel 6" -> "Google Pixel 6"
+                for display_name, prod_name in device_to_product.items():
+                    if device_name in display_name or display_name.endswith(device_name):
+                        product = prod_name
+                        break
+
+            if product:
+                product_list.append(f"{product}_beta")
+            else:
+                # Fallback for unrecognized devices as UNKNOWN
+                print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING! Could not find product name for {part}")
+                product_list.append(f"UNKNOWN")
+
+    return model_list, product_list
+
+
+# ============================================================================
+#                 Function get_gsi_data
+# ============================================================================
+def get_gsi_data(force_version=None):
     try:
+        error = False
         # URLs
         gsi_url = "https://developer.android.com/topic/generic-system-image/releases"
 
@@ -2581,40 +2700,46 @@ def get_partial_gsi_data():
         response = request_with_fallback('GET', gsi_url)
         if response == 'ERROR' or response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch GSI HTML")
-            return -1
+            return None, None
         gsi_html = response.text
 
         # Parse GSI HTML
         soup = BeautifulSoup(gsi_html, 'html.parser')
 
-        # Find the list item containing 'Beta'
-        beta_li = None
-        for li in soup.find_all('li'):
-            if 'Beta' in li.get_text():
-                beta_li = li
-                break
-        if beta_li:
-            beta_text = beta_li.get_text()
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Beta list item not found")
-            return -1
+        id_to_find = f"android-gsi-{force_version}"
+        # get the position of id_to_find
+        pos = gsi_html.find(id_to_find)
+        if pos == -1:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: GSI version {force_version} not found in HTML")
+            return None, None
+        # Move to that position
+        gsi_html = gsi_html[pos:]
+        # Parse the HTML again with the new gsi_html
+        soup = BeautifulSoup(gsi_html, 'html.parser')
+        # find the first <ul> tag in the new soup
+        ul_content = soup.find('ul')
+        # use it to extract model_list and product_list
+        model_list, product_list = parse_device_list_html(ul_content)
 
         # Find the anchor tag with the text 'corresponding Google Pixel builds'
         release = soup.find('a', string=lambda x: x and 'corresponding Google Pixel builds' in x)
-        if release:
-            href = release['href']
-            release_version = href.split('/')[3]
-        else:
+        if not release:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Release version not found")
-            return -1
+            return None, None
+
+        href = release['href']
+        release_version = href.split('/')[3]
+        if release_version != str(force_version):
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Fetched Release version {release_version} does not match requested version {force_version}")
 
         # Find the build ID inside <code> blocks
         build_id_text = None
         security_patch_level_text = None
+        google_play_services = None
         for code in soup.find_all('code'):
             code_text = code.get_text()
             if 'Build:' in code_text:
-                build_id_text = code.get_text()
+                build_id_text = code_text
                 if 'Security patch level:' in code_text:
                     security_patch_level_text = code_text
                 if 'Google Play Services:' in code_text:
@@ -2622,19 +2747,43 @@ def get_partial_gsi_data():
                 break
         if build_id_text:
             build_id = build_id_text.split('Build: ')[1].split()[0]
+            # Extract date portion from the build ID (typically in format like BP1A.250405.005.C1)
+            # The date part is in the middle segment (YYMMDD format, example: 250405 for April 5, 2025)
+            date_match = re.search(r'\.(\d{6})\.', build_id)
+            if date_match:
+                build_date_str = date_match.group(1)
+                build_year = 2000 + int(build_date_str[:2])
+                build_month = int(build_date_str[2:4])
+                build_day = int(build_date_str[4:6])
+                try:
+                    build_date = datetime(build_year, build_month, build_day)
+                except ValueError:
+                    # Invalid date in build ID
+                    print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Invalid date in build ID: {build_date_str}")
+                    build_date = None
+            else:
+                build_date = None
+                print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Could not extract date from build ID: {build_id}")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build ID not found")
-            return -1
+            return None, None
 
         if security_patch_level_text:
             security_patch_level_date = security_patch_level_text.split('Security patch level: ')[1].split('\n')[0]
             release_date = security_patch_level_text.split('Date: ')[1].split('\n')[0]
             beta_release_date = datetime.strptime(release_date, '%B %d, %Y').strftime('%Y-%m-%d')
+            # verify if the beta_release_date falls correctly within the build date with a 30-day margin
+            if build_date:
+                published_date = datetime.strptime(beta_release_date, '%Y-%m-%d')
+                delta_days = abs((published_date - build_date).days)
+                if delta_days > 30:
+                    print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Large discrepancy between published GSI release date ({release_date}) and build ID date ({build_date.strftime('%Y-%m-%d')}). Difference: {delta_days} days")
+                    error = True
             beta_expiry = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
             beta_expiry_date = beta_expiry.strftime('%Y-%m-%d')
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level date not found")
-            return -1
+            return None, None
 
         # Find the incremental value
         incremental = None
@@ -2643,26 +2792,34 @@ def get_partial_gsi_data():
             incremental = match.group(1)
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incremental not found")
-            return -1
-
+            return None, None
 
         devices = []
         table = soup.find('table')
-        rows = table.find_all('tr')[1:]  # Skip the header row
-        for row in rows:
-            cols = row.find_all('td')
-            device = cols[0].text.strip()
-            button = cols[1].find('button')
-            category = button['data-category']
-            zip_filename = button.text.strip()
-            hashcode = cols[1].find('code').text.strip()
-            devices.append({
-                'device': device,
-                'category': category,
-                'zip_filename': zip_filename,
-                'hash': hashcode,
-                'url': None  # Placeholder for URL
-            })
+        if table:
+            # Skip the header row
+            rows = table.find_all('tr')[1:]
+            for row in rows:
+                cols = row.find_all('td')
+                # Ensure we have at least 2 columns
+                if len(cols) >= 2:
+                    device = cols[0].text.strip()
+                    button = cols[1].find('button')
+                    if button and 'data-category' in button.attrs:
+                        category = button['data-category']
+                        zip_filename = button.text.strip()
+                        hashcode = cols[1].find('code')
+                        if hashcode:
+                            hashcode = hashcode.text.strip()
+                        else:
+                            hashcode = ""
+                        devices.append({
+                            'device': device,
+                            'category': category,
+                            'zip_filename': zip_filename,
+                            'hash': hashcode,
+                            'url': None  # Placeholder for URL
+                        })
 
         # Find all hrefs and match with zip_filename
         for a_tag in soup.find_all('a', href=True):
@@ -2674,111 +2831,18 @@ def get_partial_gsi_data():
 
         emulator_support = ""
         security_patch = ""
-        gsi_data = BetaData(release_date, build_id, emulator_support, security_patch_level_date, google_play_services, beta_expiry_date, incremental, security_patch, devices)
-        return gsi_data, release['href']
+        ret_obj = BetaData(release_date, build_id, emulator_support, security_patch_level_date, google_play_services, beta_expiry_date, incremental, security_patch, devices)
+        # append the model_list and product_list to ret_obj
+        ret_obj.model_list = model_list
+        ret_obj.product_list = product_list
+        # append the release['href] to ret_obj
+        ret_obj.release_href = release['href']
+        return ret_obj, error
 
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting partial GSI data.")
         traceback.print_exc()
-
-
-# ============================================================================
-#                 Function get_partial_gsi_data2
-# ============================================================================
-def get_partial_gsi_data2(release_href, security_patch_level_date):
-    try:
-        secbull_url = "https://source.android.com/docs/security/bulletin/pixel"
-        # Fetch Pixel GET HTML
-        pixel_get_url = "https://developer.android.com" + release_href
-        response = request_with_fallback('GET', pixel_get_url)
-        if response == 'ERROR' or response.status_code != 200:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel GET HTML")
-            return None, None, security_patch_level_date
-        pixel_get_html = response.text
-
-        # Fetch Pixel Beta HTML
-        soup = BeautifulSoup(pixel_get_html, 'html.parser')
-        beta_link = soup.find('a', string=lambda x: x and 'Factory images for Google Pixel' in x)
-        if not beta_link:
-            beta_link = soup.find('a', string=lambda x: x and 'Pixel downloads page' in x)
-        if beta_link:
-            pixel_beta_url = "https://developer.android.com" + beta_link['href']
-            response = request_with_fallback('GET', pixel_beta_url)
-            if response == 'ERROR' or response.status_code != 200:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Pixel Beta HTML")
-                return None, None, security_patch_level_date
-            pixel_beta_html = response.text
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Beta link not found")
-            return None, None, security_patch_level_date
-
-        # Parse Pixel Beta HTML
-        soup = BeautifulSoup(pixel_beta_html, 'html.parser')
-        pixel_data = []
-
-        # Iterate over each <tr> element
-        for tr in soup.find('table', id='images').find_all('tr'):
-            # Skip the header row
-            if tr.find('th'):
-                continue
-
-            model_td = tr.find('td')
-            button = tr.find('button')
-            code = tr.find('code')
-
-            if model_td and button and code:
-                model = model_td.get_text().strip()
-                release = button['data-category']
-                filename = button.get_text().strip()
-                ltr = code.get_text().strip()
-                product = filename.split('-')[0]
-
-                # Create the object and add it to the list
-                pixel_data.append({
-                    'model': model,
-                    'release': release,
-                    'filename': filename,
-                    'ltr': ltr,
-                    'product': product
-                })
-
-        model_list = [item['model'] for item in pixel_data]
-        product_list = [item['product'] for item in pixel_data]
-
-        # Fetch Security Bulletin HTML
-        response = request_with_fallback('GET', secbull_url)
-        if response == 'ERROR' or response.status_code != 200:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Security Bulletin HTML")
-            return None, None, security_patch_level_date
-        secbull_html = response.text
-
-        # Find the corresponding table row in the html
-        soup = BeautifulSoup(secbull_html, 'html.parser')
-        security_patch_row = soup.find(string=lambda x: x and security_patch_level_date in x)
-        if security_patch_row:
-            # Find the <tr> element containing the security patch level (the parent)
-            tr_element = security_patch_row.find_parent('tr')
-            if tr_element:
-                # Find all <td> elements within the <tr>
-                td_elements = tr_element.find_all('td')
-                if td_elements:
-                    # Get the last <td> element
-                    security_patch_level = td_elements[-1].get_text().strip()
-                    debug(f"Security Patch Level: {security_patch_level}")
-                else:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-                    return None, None, security_patch_level_date
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-                return None, None, security_patch_level_date
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level not found in Pixel Security Bulletin HTML")
-            return None, None, security_patch_level_date
-
-        return model_list, product_list, security_patch_level
-    except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting partial GSI data.")
-        traceback.print_exc()
+        return None, None
 
 
 # ============================================================================
@@ -2791,22 +2855,22 @@ def get_beta_links():
         ota_data = None
         factory_data = None
         if latest_version == -1:
-            return None, None
+            return None, None, None, None
 
 
         # Fetch OTA HTML
         ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
-        ota_data = get_beta_data(ota_url)
+        ota_data, ota_error = get_beta_data(ota_url)
 
         # Fetch Factory HTML
         factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
-        factory_data = get_beta_data(factory_url)
+        factory_data, factory_error = get_beta_data(factory_url)
 
-        return ota_data, factory_data
+        return ota_data, factory_data, ota_error, factory_error
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting beta links.")
         traceback.print_exc()
-        return None, None
+        return None, None, None, None
 
 
 # ============================================================================
@@ -2815,7 +2879,7 @@ def get_beta_links():
 def get_beta_pif(device_model='random', force_version=None):
     # Get the latest Android version
     latest_version, latest_version_url = get_latest_android_version(force_version)
-    debug(f"Selected Version:  {latest_version}")
+    print(f"Selected Version:         {latest_version}")
     if latest_version == -1:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get the latest Android version")
         return -1
@@ -2825,27 +2889,27 @@ def get_beta_pif(device_model='random', force_version=None):
     factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
 
     # Fetch OTA HTML
-    ota_data = get_beta_data(ota_url)
+    ota_data, ota_error = get_beta_data(ota_url)
     if not ota_data:
-        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or DP OTA data for Android {latest_version}")
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview OTA data for Android {latest_version}")
     # print(ota_data.__dict__)
 
     # Fetch Factory HTML
-    factory_data = get_beta_data(factory_url)
+    factory_data, factory_error = get_beta_data(factory_url)
     if not factory_data:
-        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or DP Factory data for Android {latest_version}")
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview Factory data for Android {latest_version}")
     # print(factory_data.__dict__)
 
     # Fetch GSI HTML
-    partial_gsi_data, release_href = get_partial_gsi_data()
-    if not partial_gsi_data:
-        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or DP GSI data for Android {latest_version}")
-    # print(partial_gsi_data.__dict__)
+    gsi_data, gsi_error = get_gsi_data(force_version=force_version or latest_version)
+    if not gsi_data:
+        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview GSI data for Android {latest_version}")
+    # print(gsi_data.__dict__)
 
-    if not ota_data and not factory_data and not partial_gsi_data:
+    if not ota_data and not factory_data and not gsi_data:
         return -1
     if not ota_data and not factory_data:
-        print(f"Getting beta print from latest GSI data, which will not necessarily match the requested Android version {latest_version} ...")
+        print(f"Getting beta print from GSI data, version {latest_version} ...")
 
     ota_date_object = None
     factory_date_object = None
@@ -2853,36 +2917,51 @@ def get_beta_pif(device_model='random', force_version=None):
     if ota_data:
         ota_date = ota_data.__dict__['release_date']
         ota_date_object = datetime.strptime(ota_date, "%B %d, %Y")
-        debug(f"Beta OTA Date:     {ota_date}")
+        if ota_error:
+            print(f"Beta OTA Date:            {ota_date} (❌ Problems with download links or hashes)")
+        else:
+            print(f"Beta OTA Date:            {ota_date}")
     else:
-        debug(f"Beta OTA:          Unavailable")
-
-    if partial_gsi_data:
-        gsi_date = partial_gsi_data.__dict__['release_date']
-        gsi_date_object = datetime.strptime(gsi_date, "%B %d, %Y")
-        debug(f"Beta GSI Date:     {gsi_date}")
-    else:
-        debug(f"Beta GSI:          Unavailable")
+        print(f"Beta OTA:                 Unavailable")
 
     if factory_data:
         factory_date = factory_data.__dict__['release_date']
         factory_date_object = datetime.strptime(factory_date, "%B %d, %Y")
-        debug(f"Beta Factory Date: {factory_date}")
+        if factory_error:
+            print(f"Beta Factory Date:        {factory_date} (❌ Problems with download links or hashes)")
+        else:
+            print(f"Beta Factory Date:        {factory_date}")
     else:
-        debug(f"Beta Factory:      Unavailable")
+        print(f"Beta Factory:             Unavailable")
+
+    if gsi_data:
+        gsi_date = gsi_data.__dict__['release_date']
+        gsi_date_object = datetime.strptime(gsi_date, "%B %d, %Y")
+        if gsi_error:
+            print(f"Beta GSI Date:            {gsi_date} (❌ Possible problems with GSI date)")
+        else:
+            print(f"Beta GSI Date:            {gsi_date}")
+    else:
+        print(f"Beta GSI:                 Unavailable")
 
     # Determine the latest date(s)
     newest_data = []
     dates = []
-    if ota_date_object:
+    if ota_date_object and not ota_error:
         dates.append((ota_date_object, 'ota'))
-    if factory_date_object:
+    if factory_date_object and not factory_error:
         dates.append((factory_date_object, 'factory'))
-    if gsi_date_object:
+    if gsi_date_object and not gsi_error:
         dates.append((gsi_date_object, 'gsi'))
+    if ota_date_object and ota_error:
+        dates.append((ota_date_object, 'ota_error'))
+    if factory_date_object and factory_error:
+        dates.append((factory_date_object, 'factory_error'))
+    if gsi_date_object and gsi_error:
+        dates.append((gsi_date_object, 'gsi_error'))
 
     # Sort dates in descending order
-    dates.sort(key=lambda x: (x[0], {'ota': 0, 'factory': 1, 'gsi': 2}[x[1]]), reverse=True)
+    dates.sort(key=lambda x: (x[0], {'ota': 0, 'factory': 1, 'gsi': 2, 'ota_error': 3, 'factory_error': 4, 'gsi_error': 5}[x[1]]), reverse=True)
 
     if not dates:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to determine the latest date")
@@ -2900,7 +2979,7 @@ def get_beta_pif(device_model='random', force_version=None):
     # Process groups in descending date order
     for date in sorted(date_groups.keys(), reverse=True):
         # Sort sources within each date group to maintain ota, factory, gsi order
-        sources = sorted(date_groups[date], key=lambda x: {'ota': 0, 'factory': 1, 'gsi': 2}[x])
+        sources = sorted(date_groups[date], key=lambda x: {'ota': 0, 'factory': 1, 'gsi': 2, 'ota_error': 3, 'factory_error': 4, 'gsi_error': 5}[x])
         newest_data.extend(sources)
 
     def get_model_and_prod_list(data):
@@ -2911,9 +2990,11 @@ def get_beta_pif(device_model='random', force_version=None):
             product_list.append(product)
         return model_list, product_list
 
+    fingerprint = None
+    security_patch = None
     for data in newest_data:
-        if data == 'ota' and ota_data:
-            debug("Extracting PIF from Beta OTA ...")
+        if data in ['ota', 'ota_error'] and ota_data:
+            print("  Extracting PIF from Beta OTA ...")
             # Grab fp and sp from OTA zip
             fingerprint, security_patch = url2fpsp(ota_data.__dict__['devices'][0]['url'], "ota")
             if fingerprint and security_patch:
@@ -2923,8 +3004,8 @@ def get_beta_pif(device_model='random', force_version=None):
                 expiry_date = ota_data.__dict__['beta_expiry_date']
                 if model_list and product_list:
                     break
-        elif data == 'factory' and factory_data:
-            debug("Extracting PIF from Beta Factory ...")
+        elif data in ['factory', 'factory_error'] and factory_data:
+            print("  Extracting PIF from Beta Factory ...")
             # Grab fp and sp from Factory zip
             fingerprint, security_patch = url2fpsp(factory_data.__dict__['devices'][0]['url'], "factory")
             if fingerprint and security_patch:
@@ -2934,27 +3015,64 @@ def get_beta_pif(device_model='random', force_version=None):
                 expiry_date = factory_data.__dict__['beta_expiry_date']
                 if model_list and product_list:
                     break
-        elif data == 'gsi' and partial_gsi_data:
-            debug("Extracting PIF from Beta GSI ...")
+        elif data in ['gsi', 'gsi_error'] and gsi_data:
+            # print("  Extracting PIF from Beta GSI ...")
+            print(f"  Extracting beta print from GSI data version {latest_version} ...")
             # Grab fp and sp from GSI zip
-            fingerprint, security_patch = url2fpsp(partial_gsi_data.__dict__['devices'][0]['url'], "gsi")
-            incremental = partial_gsi_data.__dict__['incremental']
-            expiry_date = partial_gsi_data.__dict__['beta_expiry_date']
-            # Get the latest GSI part2 data
-            model_list, product_list, security_patch_level = get_partial_gsi_data2(release_href, partial_gsi_data.__dict__['security_patch_level'])
+            fingerprint, security_patch = url2fpsp(gsi_data.__dict__['devices'][0]['url'], "gsi")
+            incremental = gsi_data.__dict__['incremental']
+            expiry_date = gsi_data.__dict__['beta_expiry_date']
+            model_list = gsi_data.__dict__['model_list']
+            product_list = gsi_data.__dict__['product_list']
+            security_patch_level = gsi_data.__dict__['security_patch_level']
+            if not model_list or not product_list:
+                model_list = []
+                product_list = []
+                if factory_data:
+                    model_list, product_list = get_model_and_prod_list(factory_data)
+            if not model_list or not product_list:
+                model_list = []
+                product_list = []
+                if ota_data:
+                    model_list, product_list = get_model_and_prod_list(ota_data)
             if model_list and product_list:
                 if not security_patch:
-                    security_patch = security_patch_level
+                    # Make sur security_patch_level to YYYY-MM-DD format
+                    try:
+                        if security_patch_level:
+                            # Handle month name format like "September 2020"
+                            try:
+                                date_obj = datetime.strptime(security_patch_level, "%B %Y")
+                                security_patch = date_obj.strftime("%Y-%m-05")
+                            except ValueError:
+                                # Try other common formats
+                                try:
+                                    # handle YYYY-MM format
+                                    if re.match(r'^\d{4}-\d{2}$', security_patch_level):
+                                        security_patch = f"{security_patch_level}-05"
+                                    # handle YYYY-MM-DD format already
+                                    elif re.match(r'^\d{4}-\d{2}-\d{2}$', security_patch_level):
+                                        security_patch = security_patch_level
+                                    else:
+                                        # fallback
+                                        security_patch = security_patch_level
+                                except:
+                                    security_patch = security_patch_level
+                        else:
+                            security_patch = ""
+                    except Exception as e:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to parse security patch level: {security_patch_level}")
+                        security_patch = security_patch_level  # Fallback to original value
                 if not fingerprint:
-                    build_id = partial_gsi_data.__dict__['build']
+                    build_id = gsi_data.__dict__['build']
                     fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{latest_version}/{build_id}/{incremental}:user/release-keys"
-                    if fingerprint and security_patch:
-                        break
+                if fingerprint and security_patch:
+                    break
 
     build_type = 'user'
     build_tags = 'release-keys'
     if fingerprint and security_patch:
-        debug(f"Security Patch:    {security_patch}")
+        print(f"Security Patch:           {security_patch}")
         # Extract props from fingerprint
         pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
         match = re.search(pattern, fingerprint)
@@ -3047,7 +3165,7 @@ def get_beta_data(url):
         response = requests.get(url)
         if response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {url}")
-            return None
+            return None, None
         ota_html = response.text
 
         soup = BeautifulSoup(ota_html, 'html.parser')
@@ -3055,13 +3173,13 @@ def get_beta_data(url):
         # check if the page has beta in it.
         if 'beta' not in soup.get_text().lower():
             # print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: 'Beta' not found For URL: {url}")
-            return None
+            return None, None
 
         # Extract information from the first table
         table = soup.find('table', class_='responsive fixed')
         if not table:
             # print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Required table is not found on the page.")
-            return None
+            return None, None
 
         rows = table.find_all('tr')
         data = {}
@@ -3084,13 +3202,13 @@ def get_beta_data(url):
         devices = []
         table = soup.find('table', id='images')
         rows = table.find_all('tr')[1:]  # Skip the header row
+        error = False
         for row in rows:
             cols = row.find_all('td')
             device = cols[0].text.strip()
             button = cols[1].find('button')
             category = button['data-category']
             zip_filename = button.text.strip()
-            error = False
             # Check if the build is present in the zip_filename, if not print a warning
             if build.lower() not in zip_filename.lower():
                 print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Build '{build}' not found in zip filename '{zip_filename}' for device '{device}'")
@@ -3119,10 +3237,11 @@ def get_beta_data(url):
         incremental = ""
         security_patch = ""
         beta_data = BetaData(release_date, build, emulator_support, security_patch_level, google_play_services, beta_expiry_date, incremental, security_patch, devices)
-        return beta_data
+        return beta_data, error
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_beta_data function")
         traceback.print_exc()
+        return None, None
 
 
 # ============================================================================
@@ -3174,7 +3293,7 @@ def url2fpsp(url, image_type):
                 fingerprint_match = re.search(r"post-build=(.+)", content)
                 security_patch_match = re.search(r"security-patch-level=(.+)", content)
             elif image_type == 'factory':
-                size_limit = 30000000
+                size_limit = 60000000
                 content = response.raw.read(size_limit).decode('utf-8', errors='ignore')
                 fingerprint_match = re.search(r"com.android.build.boot.fingerprint(.+?)\x00", content)
                 security_patch_match = re.search(r"com.android.build.boot.security_patch(.+?)\x00", content)
@@ -3186,12 +3305,15 @@ def url2fpsp(url, image_type):
                 response = requests.get(url, headers=headers, stream=True, verify=False)
                 end_content = response.content
                 content = partial_extract(end_content, "build.prop")
+                if content is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract build.prop from GSI content")
+                    return None, None
                 content_str = content.decode('utf-8', errors='ignore')
                 fingerprint_match = re.search(r"ro\.system\.build\.fingerprint=(.+)", content_str)
                 security_patch_match = re.search(r"ro\.build\.version\.security_patch=(.+)", content_str)
             else:
                 print(f"Invalid image type: {image_type}")
-                return -1
+                return None, None
 
             fingerprint = fingerprint_match.group(1).strip('\x00') if fingerprint_match else None
             security_patch = security_patch_match.group(1).strip('\x00') if security_patch_match else None
@@ -3202,7 +3324,7 @@ def url2fpsp(url, image_type):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in url2fpsp function")
         traceback.print_exc()
-        return -1
+        return None, None
 
 
 # ============================================================================
@@ -3273,7 +3395,7 @@ def get_google_images(save_to=None):
             save_to = os.path.join(get_config_path(), "google_images.json").strip()
 
         # Fetch the Beta OTA and Beta Factory image data
-        ota_beta_data, factory_beta_data = get_beta_links()
+        ota_beta_data, factory_beta_data, ota_error, factory_error = get_beta_links()
         if ota_beta_data.build:
             ota_build_id = ota_beta_data.build
         else:

@@ -117,7 +117,7 @@ LINKS_MENU_DATA = [
     None,  # Separator
     # GitHub repos
     (_("osm0sis's PlayIntegrityFork"), "github_24", "https://github.com/osm0sis/PlayIntegrityFork"),
-    (_("chiteroman's PlayIntegrityFix"), "github_24", "https://github.com/chiteroman/PlayIntegrityFix"),
+    # (_("chiteroman's PlayIntegrityFix"), "github_24", "https://github.com/chiteroman/PlayIntegrityFix"),
     (_("5ec1cff's TrickyStore"), "github_24", "https://github.com/5ec1cff/TrickyStore"),
     None,  # Separator
     # References
@@ -2402,6 +2402,7 @@ class PixelFlasher(wx.Frame):
         # device = get_phone(True)
         # if device:
         #     update_phones(device.id)
+        self.clear_device_selection()
 
     # -----------------------------------------------
     #                  _on_pi_analysis_report
@@ -3890,6 +3891,22 @@ class PixelFlasher(wx.Frame):
             self.clear_device_selection()
 
     # -----------------------------------------------
+    #                  switch_slot_alert
+    # -----------------------------------------------
+    def switch_slot_alert(self):
+        try:
+            dlg = wx.MessageDialog(None, _("Before switching slots, please make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"), _('Switch Slot potential concern'),wx.YES_NO | wx.ICON_EXCLAMATION)
+            result = dlg.ShowModal()
+            if result != wx.ID_YES:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled Switch Slot operation")
+                return False
+            print("User pressed ok to continue with Switch Slot operation")
+            return
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+            traceback.print_exc()
+
+    # -----------------------------------------------
     #                  _on_fastboot_force
     # -----------------------------------------------
     def _on_fastboot_force(self, event):
@@ -4776,9 +4793,12 @@ class PixelFlasher(wx.Frame):
             self._on_spin('start')
             if device.active_slot not in ['a', 'b']:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown slot, is your device dual slot?")
-                self._on_spin('stop')
                 return
             print(f"User clicked on Switch Slot: Current Slot: [{device.active_slot}]")
+            to_continue = self.switch_slot_alert()
+            if not to_continue:
+                print("Aborting ...\n")
+                return
             self.vbmeta_alert(show_alert=True)
             device.switch_slot()
             if device:
@@ -4792,8 +4812,9 @@ class PixelFlasher(wx.Frame):
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while switching slot")
             traceback.print_exc()
-        self.refresh_device()
-        self._on_spin('stop')
+        finally:
+            self.refresh_device()
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  _open_sdk_link

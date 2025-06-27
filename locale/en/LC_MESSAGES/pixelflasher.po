@@ -2570,3 +2570,25 @@ msgstr ""
 
 msgid "SU Permission ..."
 msgstr ""
+
+msgid "Before switching slots, please make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr ""
+
+msgid "Switch Slot potential concerns"
+msgstr ""
+
+msgid "##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+msgstr ""
+
+msgid "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
+msgstr ""
+
+msgid "You have selected the flash option: Flash to both slots\nPlease make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr ""
+
+msgid "Flash option: Flash to both slots"
+msgstr ""
+
+msgid "✅ Flash to both slots is accepted."
+msgstr ""
+

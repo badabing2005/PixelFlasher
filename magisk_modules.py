@@ -618,7 +618,7 @@ class MagiskModules(wx.Dialog):
             device = get_phone(True)
             if not device.rooted:
                 return
-            buttons_text = [_("osm0sis PlayIntegrityFork"), _("chiteroman PlayIntegrityFix"), "TrickyStore", _("Cancel")]
+            buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", _("Cancel")]
             dlg = MessageBoxEx(parent=self, title=_('PIF Module'), message=_("Select the module you want to install"), button_texts=buttons_text, default_button=1)
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -629,8 +629,6 @@ class MagiskModules(wx.Dialog):
             if result == 1:
                 module_update_url = OSM0SIS_PIF_UPDATE_URL
             elif result == 2:
-                module_update_url = PIF_UPDATE_URL
-            elif result == 3:
                 # module_update_url = TRICKYSTORE_UPDATE_URL
                 gh_latest_url = download_gh_latest_release_asset_regex('5ec1cff', 'TrickyStore', r'^Tricky\-Store.*\-release\.zip$', True)
             else:

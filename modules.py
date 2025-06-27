@@ -3973,6 +3973,10 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} {boot_img_path} file not found, Aborting ...")
                 puml("#red:{boot_img_path} file not found\n}\n")
                 return -1
+        if self.config.flash_both_slots:
+            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: You have selected to flash both slots, please make sure your device is not subject to anti-rollback (ARB) concerns.")
+            message += f"##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+            message += "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
 
         message += f"## Live/Flash Boot Options:\n\n"
         message += f"<pre>Option:                     {option}\n"
@@ -4268,6 +4272,17 @@ def flash_phone(self):
                 puml("#pink:User cancelled flashing;\n}\n")
                 return -1
             self.toast(_("Flash action"), _("✅ Force flag is accepted."))
+        # confirm for both slots flash
+        if self.config.flash_both_slots and self.config.flash_mode != 'OTA':
+            print("Flash Option: Flash to both slots")
+            dlg = wx.MessageDialog(None, _("You have selected the flash option: Flash to both slots\nPlease make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"), _("Flash option: Flash to both slots"), wx.YES_NO | wx.ICON_EXCLAMATION)
+            puml(f"note right\nDialog\n====\nYou have selected the flash option: Flash to both slots\nPlease make sure your device is not subject to ARB concerns.\nAre you sure want to continue?\nend note\n")
+            result = dlg.ShowModal()
+            if result != wx.ID_YES:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
+                puml("#pink:User cancelled flashing;\n}\n")
+                return -1
+            self.toast(_("Flash action"), _("✅ Flash to both slots is accepted."))
 
         # set some variables
         slot_before_flash = device.active_slot

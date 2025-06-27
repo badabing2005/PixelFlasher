@@ -2607,3 +2607,24 @@ msgstr "Supprimer le paquet de la liste de refus Magisk"
 msgid "SU Permission ..."
 msgstr "Permission SU ..."
 
+msgid "Before switching slots, please make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr "Avant de changer d'emplacement, assurez-vous que votre appareil n'est pas soumis à des problèmes d'ARB.\nÊtes-vous sûr de vouloir continuer?"
+
+msgid "Switch Slot potential concerns"
+msgstr "Problèmes potentiels de changement d'emplacement"
+
+msgid "##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+msgstr "##⚠️ AVERTISSEMENT: Vous avez choisi de flasher les deux emplacements.<br/>\n"
+
+msgid "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
+msgstr "Veuillez vous assurer que votre appareil n'est pas soumis à des problèmes d'ARB avant de cliquer sur continuer.<br/>\n"
+
+msgid "You have selected the flash option: Flash to both slots\nPlease make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr "Vous avez sélectionné l'option de flash: Flasher les deux emplacements\nVeuillez vous assurer que votre appareil n'est pas soumis à des problèmes d'ARB.\nÊtes-vous sûr de vouloir continuer?"
+
+msgid "Flash option: Flash to both slots"
+msgstr "Option de flash: Flasher les deux emplacements"
+
+msgid "✅ Flash to both slots is accepted."
+msgstr "✅ Flasher les deux emplacements est accepté."
+

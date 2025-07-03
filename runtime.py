@@ -3465,22 +3465,32 @@ def get_google_images(save_to=None):
                 for row in rows:
                     # Extract the fields from each <tr> element
                     columns = row.find_all('td')
-                    version = columns[0].text.strip()
+                    version = ''
+                    with contextlib.suppress(Exception):
+                        version = columns[0].text.strip()
 
                     # Different extraction is necessary per type
+                    download_url = ''
+                    sha256_checksum = ''
                     if image_type in ['ota', 'ota-watch'] or (marlin_flag and image_type == "factory"):
-                        sha256_checksum = columns[2].text.strip()
-                        download_url = columns[1].find('a')['href']
+                        with contextlib.suppress(Exception):
+                            sha256_checksum = columns[2].text.strip()
+                        with contextlib.suppress(Exception):
+                            download_url = columns[1].find('a')['href']
                     elif image_type in ['factory', 'factory-watch']:
-                        download_url = columns[2].find('a')['href']
-                        sha256_checksum = columns[3].text.strip()
+                        with contextlib.suppress(Exception):
+                            download_url = columns[2].find('a')['href']
+                        with contextlib.suppress(Exception):
+                            sha256_checksum = columns[3].text.strip()
 
-                    date_match = re.search(r'\b(\d{6})\b', version)
-                    date = None
-                    if date_match:
-                        date = date_match[1]
-                    else:
-                        date = extract_date_from_google_version(version)
+                    date = ''
+                    with contextlib.suppress(Exception):
+                        date_match = re.search(r'\b(\d{6})\b', version)
+                        date = None
+                        if date_match:
+                            date = date_match[1]
+                        else:
+                            date = extract_date_from_google_version(version)
 
                     # Create a dictionary for each download
                     download_info = {
@@ -6119,7 +6129,7 @@ def get_magisk_apks():
     if _magisk_apks is None:
         try:
             apks = []
-            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Canary', 'Magisk Debug', 'KitsuneMagisk Fork', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
+            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Debug', 'KitsuneMagisk Fork', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
             for i in mlist:
                 apk = get_magisk_apk_details(i)
                 if apk:

@@ -2176,7 +2176,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
 
         print("PixelFlasher patching script contents:")
-        print(f"___________________________________________________\n{data}")
+        print(f"___________________________________________________\n{data.replace('❌', '').replace('⚠️', '')}")
         print("___________________________________________________\n")
 
         # Transfer extraction script to the phone
@@ -2306,7 +2306,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
 
         print("PixelFlasher patching script contents:")
-        print(f"___________________________________________________\n{data}")
+        print(f"___________________________________________________\n{data.replace('❌', '').replace('⚠️', '')}")
         print("___________________________________________________\n")
 
         # Transfer extraction script to the phone
@@ -2475,7 +2475,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
 
         print("PixelFlasher patching script contents:")
-        print(f"___________________________________________________\n{data}")
+        print(f"___________________________________________________\n{data.replace('❌', '').replace('⚠️', '')}")
         print("___________________________________________________\n")
 
         # Transfer extraction script to the phone
@@ -2705,7 +2705,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             puml(f"note right\nPatch Script\n====\n{data}\nend note\n")
 
         print("PixelFlasher patching script contents:")
-        print(f"___________________________________________________\n{data}")
+        print(f"___________________________________________________\n{data.replace('❌', '').replace('⚠️', '')}")
         print("___________________________________________________\n")
 
         # Transfer extraction script to the phone

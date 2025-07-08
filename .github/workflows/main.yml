@@ -93,16 +93,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Get version
-      - name: Get version from tag
+      # Get version and build prefix
+      - name: Get version and build prefix
         id: get_version
         run: |
+          # Set version and prefix
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              # For tag pushes - use tag version
               version=${GITHUB_REF#refs/tags/v}
+              prefix="Release: "
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+              # For manual builds - use last tag with commit hash
+              git fetch --tags
+              lastTag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+              lastTag=${lastTag#v}
+              shortHash=$(git rev-parse --short HEAD)
+              version="${lastTag}-${shortHash}"
+              prefix="Manual Build: "
           else
-              version=0.0.0.${GITHUB_REF#refs/heads/}
+              # For PR builds and regular pushes - use short commit hash
+              shortHash=$(git rev-parse --short HEAD)
+              version="${shortHash}"
+              if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+                  prefix="CI Build PR: "
+              else
+                  prefix="CI Build: "
+              fi
           fi
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "prefix=${prefix}" >> "${GITHUB_OUTPUT}"
 
       # Download the Windows artifact from the build_windows job
       - name: Download Windows Artifact
@@ -171,7 +190,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ steps.get_version.outputs.version }}
-          name: Release v${{ steps.get_version.outputs.version }}
+          name: ${{ steps.get_version.outputs.prefix }}v${{ steps.get_version.outputs.version }}
           # body_path: RELEASE.md
           body: |
 

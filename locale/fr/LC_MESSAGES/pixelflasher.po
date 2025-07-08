@@ -2628,3 +2628,14 @@ msgstr "Option de flash: Flasher les deux emplacements"
 msgid "✅ Flash to both slots is accepted."
 msgstr "✅ Flasher les deux emplacements est accepté."
 
+msgid "Open URL on Device"
+msgstr "Ouvrir une URL sur l'appareil"
+
+msgid "Enter the URL to open on the device:"
+msgstr "Entrez l'URL à ouvrir sur l'appareil :"
+
+msgid "Open URL"
+msgstr "Ouvrir l'URL"
+
+msgid "Open a URL in the default browser"
+msgstr "Ouvrir une URL dans le navigateur par défaut"

@@ -183,6 +183,7 @@ command_lines = [
     "-a -F -i -n google-24 images/google-24.png images.py",
     "-a -F -i -n android-24 images/android-24.png images.py",
     "-a -F -i -n axml-24 images/axml-24.png images.py",
+    "-a -F -i -n open-url-24 images/open-url-24.png images.py",
 ]
 
 if __name__ == "__main__":

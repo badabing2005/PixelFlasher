@@ -1556,6 +1556,10 @@ class PixelFlasher(wx.Frame):
         self.pi_analysis_report_menu = device_menu.Append(wx.ID_ANY, _("PI Analysis Report"), _("Generate a report of PI Analysis"))
         self.pi_analysis_report_menu.SetBitmap(images.analyze_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pi_analysis_report, self.pi_analysis_report_menu)
+        # Open URL
+        self.open_url_menu = device_menu.Append(wx.ID_ANY, _("Open URL"), _("Open a URL in the default browser"))
+        self.open_url_menu.SetBitmap(images.open_url_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_open_url_on_device, self.open_url_menu)
         # separator
         device_menu.AppendSeparator()
         # Switch Slot
@@ -2405,6 +2409,35 @@ class PixelFlasher(wx.Frame):
         self.clear_device_selection()
 
     # -----------------------------------------------
+    #                  _on_open_url_on_device
+    # -----------------------------------------------
+    def _on_open_url_on_device(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Open URL on Device")
+        print("==============================================================================")
+        try:
+            device = get_phone(True)
+            if device:
+                # show a dialog to enter the URL
+                title = _("Open URL on Device")
+                message = _("Enter the URL to open on the device:")
+                dlg = wx.TextEntryDialog(self, message, title, "https://")
+                dlg.CentreOnParent(wx.BOTH)
+                if dlg.ShowModal() == wx.ID_OK:
+                    url = dlg.GetValue().strip()
+                    if not url:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: URL cannot be empty")
+                        self.toast(_("Open URL on Device"), _("❌ ERROR: URL cannot be empty."))
+                        return
+                    print(f"Opening URL on device: {url}")
+                    puml(f":Open URL on Device;\nnote right\n=== Open URL on Device\n[[{url}]]\nend note\n", True)
+                    res = device.perform_package_action(pkg=None, action='open-url', isSystem=False, url=url)
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening URL on device")
+            traceback.print_exc()
+            self.toast(_("Open URL on Device"), _("❌ ERROR: Failed to open URL on device."))
+
+    # -----------------------------------------------
     #                  _on_pi_analysis_report
     # -----------------------------------------------
     def _on_pi_analysis_report(self, event):
@@ -2760,6 +2793,7 @@ class PixelFlasher(wx.Frame):
                 # Menu items
                 self.partitions_menu.Enable(False)
                 self.pi_analysis_report_menu.Enable(False)
+                self.open_url_menu.Enable(False)
                 self.switch_slot_menu.Enable(False)
                 self.reboot_fastbootd_menu.Enable(False)
                 self.reboot_recovery_menu.Enable(False)
@@ -2806,6 +2840,7 @@ class PixelFlasher(wx.Frame):
                 # Menu items
                 self.partitions_menu.Enable(True)
                 self.pi_analysis_report_menu.Enable(True)
+                self.open_url_menu.Enable(True)
                 self.switch_slot_menu.Enable(True)
                 self.reboot_fastbootd_menu.Enable(True)
                 self.reboot_recovery_menu.Enable(True)
@@ -3446,6 +3481,7 @@ class PixelFlasher(wx.Frame):
                 self.install_magisk_menu:               ['device_attached'],
                 self.partitions_menu:                   ['device_attached', 'advanced_options'],
                 self.pi_analysis_report_menu:           ['device_attached', 'device_is_rooted'],
+                self.open_url_menu:                     ['device_attached'],
                 self.prep_downgrade_patch_menu:         ['boot_is_selected', 'boot_is_not_patched', 'boot_is_not_downgrade_patched'],
                 self.install_apk:                       ['device_attached'],
                 self.package_manager:                   ['device_attached'],

@@ -6904,3 +6904,15 @@ axml_24 = PyEmbeddedImage(
     b'j1Jq5t+pXP+Ooijkcjk+/Of7sYnE9MAzO7YP3Bn7ZXbNoWAw+N1GQ+z/JZvNSjAY/K7cc81d'
     b'Sr8t1dXV6+b641AUhXw+z8WLF7+empp6tbT/G7WHAI0Qf0gxAAAAAElFTkSuQmCC')
 
+#----------------------------------------------------------------------
+open_url_24 = PyEmbeddedImage(
+    b'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAW1JREFU'
+    b'SEu1VdFtg0AMfVaD1DHIJjBJm0maTlI2aTYpY1SCyuU1Z2SOg4NUROIjcH7v2c/2CQ7+ycH4'
+    b'+BfBM7TsgbKH3JaEPkRwglYCfDrQVoGmh7zHRLsJTtC3IegagFoAfCr730HOnmQXQQH9GABf'
+    b'CaDA1RSzVD/3jMrhaTrIxUg2E0TgdVz3QPLFjHwWmwhy4Ka2gDKLSoFRQJbAG+oDU11TQJlB'
+    b'+QScvyH0Jt+mFuTBg1IC1QZUQOkNPdpXogI6+Al0kDFbV7JbB6n53c7FWSZLRDUdpHHlGYEI'
+    b'5gwdiZlpahZmBEFdxU7wneHLERRPDDVRq4PmDTWjrDPi/k4ZmjJ+kkHKUJfFOEDO0Ik3Wwhm'
+    b'hlrNrVv2tO2kTZcm0auKltxkJWS36ZqhDH4EfDZorr/bhSFizCblyWUXbcW/UQ8b0s7vAk+u'
+    b'inBLvbidz3O8UC5rN1fWg/gAifjOumcJIPc+u01zALnvhxP8AlTmwRkLqBmoAAAAAElFTkSu'
+    b'QmCC')
+

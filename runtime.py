@@ -5246,7 +5246,6 @@ def check_kb(filename):
             if not device_id:
                 print("❌ ERROR: Keybox missing DeviceID attribute")
                 results.append('invalid_structure')
-                continue
             print(f"\nProcessing Keybox {k}/{expected_keyboxes} for Device ID: {device_id}")
 
             # 4. Verify both RSA and ECDSA algorithms are present
@@ -5543,7 +5542,7 @@ def check_kb(filename):
             print(f"\n❌❌❌ Keybox {filename} contains expired certificates!")
             results.append('expired')
         if is_sw_signed or not is_google_signed:
-            print(f"⚠️ Keybox {filename} is software signed! This is not a hardware-backed keybox!")
+            print(f"⚠️ Keybox {filename} is possibly software signed! This is not a hardware-backed keybox!")
             results.append('aosp')
         if expiring_soon:
             print(f"⚠️ Keybox {filename} contains certificates that are expiring soon!")

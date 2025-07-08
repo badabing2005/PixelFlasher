@@ -2628,3 +2628,15 @@ msgstr "Opción de flasheo: Flashear a ambas ranuras"
 msgid "✅ Flash to both slots is accepted."
 msgstr "✅ Flashear a ambas ranuras aceptado."
 
+msgid "Open URL on Device"
+msgstr "Abrir URL en el dispositivo"
+
+msgid "Enter the URL to open on the device:"
+msgstr "Ingrese la URL para abrir en el dispositivo:"
+
+msgid "Open URL"
+msgstr "Abrir URL"
+
+msgid "Open a URL in the default browser"
+msgstr "Abrir una URL en el navegador predeterminado"
+

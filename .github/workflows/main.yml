@@ -37,10 +37,18 @@ env:
 
 # Controls when the workflow will run
 on:
+  # Build on pushes to any branch
   push:
-    # Sequence of patterns matched against refs/tags
+    # Build on all branch pushes
+    branches:
+      - '**'
+    # And on tag pushes for releases
     tags:
-    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+  # Run on pull requests to main branch
+  pull_request:
+    branches: [ main ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -78,6 +86,8 @@ jobs:
     secrets: inherit
 
   deploy:
+    # Only run deploy job on tag push or manual workflow run, not on pull requests or regular pushes.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     needs: [build_windows, build_windows_arm64, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac]
 
     runs-on: ubuntu-latest

@@ -2592,3 +2592,15 @@ msgstr ""
 msgid "✅ Flash to both slots is accepted."
 msgstr ""
 
+msgid "Open URL on Device"
+msgstr ""
+
+msgid "Enter the URL to open on the device:"
+msgstr ""
+
+msgid "Open URL"
+msgstr ""
+
+msgid "Open a URL in the default browser"
+msgstr ""
+

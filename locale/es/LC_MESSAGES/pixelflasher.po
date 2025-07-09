@@ -1899,8 +1899,8 @@ msgstr "_Si no es así, por favor presione el botón cancelar._\n"
 msgid "If your device is waiting for user interaction which can not be programmatically invoked.\n"
 msgstr "Si su dispositivo está esperando una interacción del usuario que no puede ser invocada programáticamente.\n"
 
-msgid "- Using volume keys, scroll up and down and select **Reboot {action_text}**\n"
-msgstr "- Usando las teclas de volumen, desplácese arriba y abajo y seleccione **Reiniciar {action_text}**\n"
+msgid "- Using volume keys, scroll up and down and select **Reboot %s**\n"
+msgstr "- Usando las teclas de volumen, desplácese arriba y abajo y seleccione **Reiniciar %s**\n"
 
 msgid "- Press the power button to apply.\n"
 msgstr "- Presione el botón de encendido para aplicar.\n"

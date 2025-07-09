@@ -2430,11 +2430,13 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 if result == 1:
                     ksud_mount = "ksud_magic"
                     mountType = "magicmount"
+                    print("User selected MagicMount for dynamic module mount system.")
                 elif result == 2:
                     ksud_mount = "ksud_overlayfs"
                     mountType = "overlayfs"
+                    print("User selected OverlayFS for dynamic module mount system.")
                 if result == 3:
-                    print("Aborting ...")
+                    print("⚠️ User cancelled, Aborting ...")
                     return -1, ""
                 data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot {kmi_override} | tee temp_file\n"
             else:
@@ -5335,12 +5337,12 @@ def flash_phone(self):
                     message_en += "\n"
                     message_en += "If your device is waiting for user interaction which can not be programmatically invoked.\n"
                     message_en += "\n"
-                    message_en += "- Using volume keys, scroll up and down and select **Reboot {action_text}**\n"
+                    message_en += f"- Using volume keys, scroll up and down and select **Reboot {action_text}**\n"
                     message_en += "- Press the power button to apply.\n"
                     message_en += "\n"
-                    message_en += "When done, the device should reboot to {action_text} <br/>\n"
-                    message_en += "Wait for the device to fully boot to {action_text} <br/>\n\n"
-                    message_en += "Click on **Done rebooting to {action_text}, continue** button <br/>\n"
+                    message_en += f"When done, the device should reboot to {action_text} <br/>\n"
+                    message_en += f"Wait for the device to fully boot to {action_text} <br/>\n\n"
+                    message_en += f"Click on **Done rebooting to {action_text}, continue** button <br/>\n"
                     message_en += "or hit the **Cancel** button to abort.\n"
 
                     message = _("## Is your device waiting for interaction?\n")
@@ -5349,7 +5351,7 @@ def flash_phone(self):
                     message += "\n"
                     message += _("If your device is waiting for user interaction which can not be programmatically invoked.\n")
                     message += "\n"
-                    message += _("- Using volume keys, scroll up and down and select **Reboot {action_text}**\n")
+                    message += _("- Using volume keys, scroll up and down and select **Reboot %s**\n") % action_text
                     message += _("- Press the power button to apply.\n")
                     message += "\n"
                     message += _("When done, the device should reboot to %s <br/>\n") % action_text

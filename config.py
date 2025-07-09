@@ -166,6 +166,7 @@ class Config():
             'spoofProps': False,
             'spoofProvider': False,
             'spoofSignature': False,
+            'spoofVendingSdk': False,
         }
 
         self.scrcpy = {
@@ -409,6 +410,8 @@ class Config():
                         conf.pif['spoofProvider'] = pif_data['spoofProvider']
                     with contextlib.suppress(KeyError):
                         conf.pif['spoofSignature'] = pif_data['spoofSignature']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['spoofVendingSdk'] = pif_data['spoofVendingSdk']
 
                 # read the scrcpy section
                 scrcpy_folder = ''

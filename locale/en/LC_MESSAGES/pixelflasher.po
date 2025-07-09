@@ -1863,7 +1863,7 @@ msgstr ""
 msgid "If your device is waiting for user interaction which can not be programmatically invoked.\n"
 msgstr ""
 
-msgid "- Using volume keys, scroll up and down and select **Reboot {action_text}**\n"
+msgid "- Using volume keys, scroll up and down and select **Reboot %s**\n"
 msgstr ""
 
 msgid "- Press the power button to apply.\n"

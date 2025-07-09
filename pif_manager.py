@@ -199,6 +199,7 @@ class PifManager(wx.Dialog):
         self.spoofProps_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Props"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spoofProvider_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Provider"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spoofSignature_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Signature"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spoofVendingSdk_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Vending SDK"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
 
         # Console
         self.console_stc = stc.StyledTextCtrl(self)
@@ -401,6 +402,7 @@ class PifManager(wx.Dialog):
         self.vertical_cb_sizer2.Add(self.spoofProps_checkbox, 1, wx.ALL, 0)
         self.vertical_cb_sizer2.Add(self.spoofProvider_checkbox, 1, wx.ALL, 0)
         self.vertical_cb_sizer2.Add(self.spoofSignature_checkbox, 1, wx.ALL, 0)
+        self.vertical_cb_sizer2.Add(self.spoofVendingSdk_checkbox, 1, wx.ALL, 0)
 
         console_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         console_label_sizer.AddSpacer(10)
@@ -495,6 +497,7 @@ class PifManager(wx.Dialog):
         self.spoofProps_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofProps)
         self.spoofProvider_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofProvider)
         self.spoofSignature_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofSignature)
+        self.spoofVendingSdk_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofVendingSdk)
         self.auto_update_pif_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoUpdatePif)
         self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
         self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
@@ -549,6 +552,8 @@ class PifManager(wx.Dialog):
                 self.spoofProvider_checkbox.SetValue(self.config.pif['spoofProvider'])
             with contextlib.suppress(KeyError):
                 self.spoofSignature_checkbox.SetValue(self.config.pif['spoofSignature'])
+            with contextlib.suppress(KeyError):
+                self.spoofVendingSdk_checkbox.SetValue(self.config.pif['spoofVendingSdk'])
             with contextlib.suppress(KeyError):
                 self.auto_update_pif_checkbox.SetValue(self.config.pif['auto_update_pif_json'])
             with contextlib.suppress(KeyError):
@@ -711,11 +716,13 @@ class PifManager(wx.Dialog):
             self.spoofProps_checkbox.Enable(False)
             self.spoofProvider_checkbox.Enable(False)
             self.spoofSignature_checkbox.Enable(False)
+            self.spoofVendingSdk_checkbox.Enable(False)
         else:
             self.spoofBuild_checkbox.Enable(True)
             self.spoofProps_checkbox.Enable(True)
             self.spoofProvider_checkbox.Enable(True)
             self.spoofSignature_checkbox.Enable(True)
+            self.spoofVendingSdk_checkbox.Enable(True)
 
         selected_label = f"{selected_module.name} {selected_module.version}"
         print(f"Selected Module: {selected_label}")
@@ -1819,6 +1826,16 @@ class PifManager(wx.Dialog):
         status = self.spoofSignature_checkbox.GetValue()
         self.spoofSignature = status
         self.config.pif['spoofSignature'] = status
+
+
+    # -----------------------------------------------
+    #                  onSpoofVendingSdk
+    # -----------------------------------------------
+    def onSpoofVendingSdk(self, event):
+        self.spoofVendingSdk_checkbox = event.GetEventObject()
+        status = self.spoofVendingSdk_checkbox.GetValue()
+        self.spoofVendingSdk = status
+        self.config.pif['spoofVendingSdk'] = status
 
 
     # -----------------------------------------------

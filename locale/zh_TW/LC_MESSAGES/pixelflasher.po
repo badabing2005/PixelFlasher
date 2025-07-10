@@ -1896,8 +1896,8 @@ msgstr "_如果不是，請點擊取消按鈕。_\n"
 msgid "If your device is waiting for user interaction which can not be programmatically invoked.\n"
 msgstr "如果您的裝置正在等待無法以程式方式調用的使用者互動。\n"
 
-msgid "- Using volume keys, scroll up and down and select **Reboot {action_text}**\n"
-msgstr "使用音量鍵，上下滾動並選擇 **重新啟動 {action_text}**\n"
+msgid "- Using volume keys, scroll up and down and select **Reboot %s**\n"
+msgstr "使用音量鍵，上下滾動並選擇 **重新啟動 %s**\n"
 
 msgid "- Press the power button to apply.\n"
 msgstr "按下電源按鈕以套用。\n"

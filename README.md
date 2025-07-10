@@ -27,6 +27,7 @@
 - [Translations](#translations)
   - [Contributing Translations](#contributing-translations)
   - [Translation Limitations](#translation-limitations)
+  - [Available languages](#available-languages)
 - [Credits](#credits)
 - [Troubleshooting](#troubleshooting)
 - [Disclaimer](#disclaimer)
@@ -453,6 +454,12 @@ Please note the following about translations in PixelFlasher:
 - UI sizes and positions may be disrupted by languages that require more space (or much less space) for text elements - these UI adjustments won't be made to accommodate different languages.
 
 Your help improving translations is greatly appreciated!
+
+### Available languages
+
+- French `fr`, used online translation (it could be imperfect)
+- Spanish `es`, used online translation (it could be imperfect)
+- Traditional Chinese `zh-rTW`, thanks to [EdwardWu](https://github.com/bluehomewu)
 
 ## Credits
 

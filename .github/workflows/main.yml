@@ -69,6 +69,7 @@ jobs:
       build_mac_old: ${{ steps.check_artifacts.outputs.build_mac_old }}
       build_mac: ${{ steps.check_artifacts.outputs.build_mac }}
       build_appimage: ${{ steps.check_artifacts.outputs.build_appimage }}
+      artifact_runs: ${{ steps.check_artifacts.outputs.artifact_runs }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -167,6 +168,13 @@ jobs:
             if [[ "$ARTIFACT_FOUND" == "true" ]]; then
               # Skip building this job
               echo "${OUTPUT_VAR}=false" >> "${GITHUB_OUTPUT}"
+
+              # Remember where we found this artifact (in run_artifacts)
+              if [[ -z "$ARTIFACT_RUNS" ]]; then
+                ARTIFACT_RUNS="{\"$ARTIFACT_NAME\": $RUN_ID}"
+              else
+                ARTIFACT_RUNS=$(echo "$ARTIFACT_RUNS" | jq --arg name "$ARTIFACT_NAME" --arg id "$RUN_ID" '. + {($name): $id}')
+              fi
             else
               # Need to build this job
               echo "${OUTPUT_VAR}=true" >> "${GITHUB_OUTPUT}"
@@ -237,61 +245,118 @@ jobs:
           fi
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
-      # Download the Windows artifact from the build_windows job
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
+      # Checkout code to access workflow scripts
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          name: PixelFlasher.exe Artifacts
-          path: release
-        continue-on-error: true
+          fetch-depth: 0
 
-      # Download the Windows arm64 artifact from the build_windows_arm64 job
-      - name: Download Windows arm64 Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: PixelFlasher-ARM64.exe Artifacts
-          path: release
-        continue-on-error: true
+      # Set up for downloading artifacts from current or previous runs
+      - name: Create release directory
+        run: mkdir -p release
 
-      # Download the Ubuntu_22_04 artifact from the build_ubuntu_22_04 job
-      - name: Download Ubuntu_22_04 Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: PixelFlasher_Ubuntu_22_04 Artifacts
-          path: release
-        continue-on-error: true
+      - name: Download artifacts from current or previous runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ needs.check_artifacts.outputs.commit_sha }}
+        run: |
+          # Use the commit SHA from the check_artifacts job
+          echo "Using commit SHA: ${COMMIT_SHA}"
 
-      # Download the Ubuntu_24_04 artifact from the build_ubuntu_24_04 job
-      - name: Download Ubuntu_24_04 Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: PixelFlasher_Ubuntu_24_04 Artifacts
-          path: release
-        continue-on-error: true
+          # List of required artifacts - must match those in check_artifacts job
+          ARTIFACTS=(
+            "PixelFlasher.exe Artifacts"
+            "PixelFlasher-ARM64.exe Artifacts"
+            "PixelFlasher_Ubuntu_22_04 Artifacts"
+            "PixelFlasher_Ubuntu_24_04 Artifacts"
+            "PixelFlasher_MacOS_legacy.dmg Artifacts"
+            "PixelFlasher_MacOS.dmg Artifacts"
+            "PixelFlasher-x86_64.AppImage Artifacts"
+          )
 
-      # Download the macOS artifacts for Older macOS Version
-      - name: Download macOS Artifacts for Older macOS Versions
-        uses: actions/download-artifact@v4
-        with:
-          name: PixelFlasher_MacOS_legacy.dmg Artifacts
-          path: release
-        continue-on-error: true
+          # Get all workflow runs for this commit
+          WORKFLOW_RUNS=$(gh api \
+            -H "Accept: application/vnd.github.v3+json" \
+            "/repos/${{ github.repository }}/actions/runs?head_sha=${COMMIT_SHA}")
 
-      # Download the macOS artifacts from the build_mac job
-      - name: Download macOS Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: PixelFlasher_MacOS.dmg Artifacts
-          path: release
-        continue-on-error: true
+          # Get run IDs from workflow runs
+          RUN_IDS=$(echo "$WORKFLOW_RUNS" | jq -r '.workflow_runs[].id')
 
-      # Download the AppImage artifacts from the appimage-x86_64 job
-      - name: Download AppImage Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: PixelFlasher-x86_64.AppImage Artifacts
-          path: release
-        continue-on-error: true
+          # First try to download from current run
+          echo "Trying to download artifacts from current run..."
+          for ARTIFACT in "${ARTIFACTS[@]}"; do
+            echo "Downloading $ARTIFACT..."
+            gh run download --name "$ARTIFACT" --dir release || echo "Could not download $ARTIFACT from current run, will try from previous runs"
+          done
+
+          # For artifacts that failed to download, try using the information from check_artifacts
+          ARTIFACT_RUNS='${{ needs.check_artifacts.outputs.artifact_runs }}'
+          echo "Artifact runs from previous job: $ARTIFACT_RUNS"
+
+          for ARTIFACT in "${ARTIFACTS[@]}"; do
+            # Check if the artifact was already downloaded
+            ARTIFACT_FILES=$(find release -type f | grep -i "$(echo $ARTIFACT | cut -d' ' -f1)" || true)
+            if [[ -z "$ARTIFACT_FILES" ]]; then
+              echo "Need to find $ARTIFACT in previous runs..."
+
+              # First check if we have information from check_artifacts about this artifact
+              if [[ -n "$ARTIFACT_RUNS" && "$ARTIFACT_RUNS" != "null" ]]; then
+                RUN_ID=$(echo "$ARTIFACT_RUNS" | jq -r --arg name "$ARTIFACT" '.[$name] // empty')
+
+                if [[ -n "$RUN_ID" && "$RUN_ID" != "null" ]]; then
+                  echo "Using run ID $RUN_ID from check_artifacts for $ARTIFACT"
+                  TEMP_DIR=$(mktemp -d)
+                  if gh run download $RUN_ID --name "$ARTIFACT" --dir "$TEMP_DIR" 2>/dev/null; then
+                    echo "Found and downloaded $ARTIFACT from run $RUN_ID"
+                    cp -r $TEMP_DIR/* release/
+                    continue
+                  else
+                    echo "Failed to download from run ID provided by check_artifacts"
+                    rm -rf "$TEMP_DIR"
+                  fi
+                fi
+              fi
+
+              # If we couldn't download using check_artifacts info, try all runs
+              for RUN_ID in $RUN_IDS; do
+                if [[ "$RUN_ID" != "${{ github.run_id }}" ]]; then  # Skip current run
+                  echo "Checking run $RUN_ID for $ARTIFACT"
+
+                  # Try to download the artifact from this run
+                  TEMP_DIR=$(mktemp -d)
+                  if gh run download $RUN_ID --name "$ARTIFACT" --dir "$TEMP_DIR" 2>/dev/null; then
+                    echo "Found and downloaded $ARTIFACT from run $RUN_ID"
+                    cp -r $TEMP_DIR/* release/
+                    break
+                  else
+                    echo "Artifact not found in run $RUN_ID"
+                    rm -rf "$TEMP_DIR"
+                  fi
+                fi
+              done
+            else
+              echo "Already have $ARTIFACT from current run"
+            fi
+          done
+
+          # Show what we have
+          echo "Downloaded artifacts:"
+          ls -la release/
+
+          # If we're missing any required artifacts, fail the deploy
+          MISSING_ARTIFACTS=false
+          for ARTIFACT in "${ARTIFACTS[@]}"; do
+            ARTIFACT_FILES=$(find release -type f | grep -i "$(echo $ARTIFACT | cut -d' ' -f1)" || true)
+            if [[ -z "$ARTIFACT_FILES" ]]; then
+              echo "ERROR: Failed to find artifact: $ARTIFACT"
+              MISSING_ARTIFACTS=true
+            fi
+          done
+
+          if [[ "$MISSING_ARTIFACTS" == "true" ]]; then
+            echo "ERROR: Some required artifacts are missing. Release cannot be created."
+            exit 1
+          fi
 
       # List the artifacts downloaded
       - name: List contents of dist directory

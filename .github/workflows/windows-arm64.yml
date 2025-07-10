@@ -101,8 +101,8 @@ jobs:
           }
 
       - name: Sign Windows ARM64 Executable
-        # Only run this step when the secrets are available (not on PR from forks)
-        if: ${{ env.ACTIONS_RUNTIME_TOKEN != '' && secrets.CERTIFICATE != '' }}
+        # Skip signing for pull requests as secrets aren't available
+        if: ${{ github.event_name != 'pull_request' }}
         uses: skymatic/code-sign-action@v3
         with:
           certificate: '${{ secrets.CERTIFICATE }}'

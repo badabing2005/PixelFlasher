@@ -2625,3 +2625,15 @@ msgstr "刷寫選項：同時刷寫兩個槽位"
 msgid "✅ Flash to both slots is accepted."
 msgstr "✅ 同時刷寫兩個槽位已被接受。"
 
+msgid "Open URL on Device"
+msgstr "在裝置上打開 URL"
+
+msgid "Enter the URL to open on the device:"
+msgstr "輸入要在裝置上打開的 URL："
+
+msgid "Open URL"
+msgstr "打開 URL"
+
+msgid "Open a URL in the default browser"
+msgstr "在預設瀏覽器中打開 URL"
+

@@ -39,7 +39,7 @@ env:
 on:
   # Build on pushes to any branch
   push:
-    # Build on all branch pushes
+    # Build on branch pushes
     branches:
       - '**'
     # And on tag pushes for releases
@@ -57,38 +57,171 @@ on:
         description: 'Build tags'
 
 jobs:
+  # Check each build job individually to see which artifacts already exist
+  check_artifacts:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.get_sha.outputs.commit_sha }}
+      build_windows: ${{ steps.check_artifacts.outputs.build_windows }}
+      build_windows_arm64: ${{ steps.check_artifacts.outputs.build_windows_arm64 }}
+      build_ubuntu_22_04: ${{ steps.check_artifacts.outputs.build_ubuntu_22_04 }}
+      build_ubuntu_24_04: ${{ steps.check_artifacts.outputs.build_ubuntu_24_04 }}
+      build_mac_old: ${{ steps.check_artifacts.outputs.build_mac_old }}
+      build_mac: ${{ steps.check_artifacts.outputs.build_mac }}
+      build_appimage: ${{ steps.check_artifacts.outputs.build_appimage }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get commit SHA
+        id: get_sha
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
+            # For tag pushes, get the commit SHA that the tag points to
+            COMMIT_SHA=$(git rev-parse ${{ github.ref_name }}^{commit})
+          else
+            # For regular pushes, use the current commit SHA
+            COMMIT_SHA=${{ github.sha }}
+          fi
+          echo "commit_sha=${COMMIT_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check for existing artifacts
+        id: check_artifacts
+        run: |
+          # Define artifact names and their corresponding output variables
+          declare -A ARTIFACTS=(
+            ["PixelFlasher.exe Artifacts"]="build_windows"
+            ["PixelFlasher-ARM64.exe Artifacts"]="build_windows_arm64"
+            ["PixelFlasher_Ubuntu_22_04 Artifacts"]="build_ubuntu_22_04"
+            ["PixelFlasher_Ubuntu_24_04 Artifacts"]="build_ubuntu_24_04"
+            ["PixelFlasher_MacOS_legacy.dmg Artifacts"]="build_mac_old"
+            ["PixelFlasher_MacOS.dmg Artifacts"]="build_mac"
+            ["PixelFlasher-x86_64.AppImage Artifacts"]="build_appimage"
+          )
+
+          # For normal builds, set all jobs to run
+          if [[ "${{ github.event_name }}" != "push" || "${{ startsWith(github.ref, 'refs/tags/') }}" != "true" ]]; then
+            # For regular builds, run all jobs
+            for JOB in "${!ARTIFACTS[@]}"; do
+              OUTPUT_VAR="${ARTIFACTS[$JOB]}"
+              echo "${OUTPUT_VAR}=true" >> "${GITHUB_OUTPUT}"
+              echo "Regular build or PR: Will build $JOB"
+            done
+            exit 0
+          fi
+
+          # For tag pushes, check for existing artifacts and in-progress builds
+          COMMIT_SHA=$(git rev-parse ${{ github.ref_name }}^{commit})
+          echo "Checking for artifacts and in-progress builds for commit: ${COMMIT_SHA}"
+
+          # First check if there are any in-progress builds for this commit
+          IN_PROGRESS_RUNS=$(curl -s \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?status=in_progress&head_sha=${COMMIT_SHA}")
+
+          IN_PROGRESS_COUNT=$(echo "$IN_PROGRESS_RUNS" | jq '.total_count')
+
+          # If there are in-progress builds (excluding this one), wait for them to complete
+          if [[ "$IN_PROGRESS_COUNT" -gt 1 ]]; then
+            echo "There are in-progress builds for this commit. Will wait for them to complete before proceeding."
+            echo "This build will pause for 5 minutes to allow other builds to complete."
+
+            # Sleep for 5 minutes to allow in-progress builds to complete
+            sleep 300
+          fi
+
+          # Get all workflow runs for this commit (including completed ones)
+          WORKFLOW_RUNS=$(curl -s \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?head_sha=${COMMIT_SHA}")
+
+          # Get run IDs from workflow runs
+          RUN_IDS=$(echo "$WORKFLOW_RUNS" | jq -r '.workflow_runs[].id')
+
+          # Check each artifact
+          for ARTIFACT_NAME in "${!ARTIFACTS[@]}"; do
+            OUTPUT_VAR="${ARTIFACTS[$ARTIFACT_NAME]}"
+            ARTIFACT_FOUND=false
+
+            for RUN_ID in $RUN_IDS; do
+              # Get artifacts for this run
+              RUN_ARTIFACTS=$(curl -s \
+                -H "Accept: application/vnd.github.v3+json" \
+                -H "Authorization: Bearer ${{ github.token }}" \
+                "https://api.github.com/repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts")
+
+              # Check if current artifact exists in this run
+              ARTIFACT_EXISTS=$(echo "$RUN_ARTIFACTS" | jq --arg name "$ARTIFACT_NAME" '.artifacts[] | select(.name==$name) | .id')
+
+              if [[ -n "$ARTIFACT_EXISTS" ]]; then
+                echo "Found existing artifact: $ARTIFACT_NAME, no need to rebuild"
+                ARTIFACT_FOUND=true
+                break
+              fi
+            done
+
+            if [[ "$ARTIFACT_FOUND" == "true" ]]; then
+              # Skip building this job
+              echo "${OUTPUT_VAR}=false" >> "${GITHUB_OUTPUT}"
+            else
+              # Need to build this job
+              echo "${OUTPUT_VAR}=true" >> "${GITHUB_OUTPUT}"
+              echo "Did not find artifact: $ARTIFACT_NAME, will rebuild"
+            fi
+          done
+
   build_windows:
+    needs: check_artifacts
+    # Only build if this specific artifact doesn't exist for this commit
+    if: ${{ needs.check_artifacts.outputs.build_windows == 'true' }}
     uses: ./.github/workflows/windows.yml
     secrets: inherit
 
   build_windows_arm64:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_windows_arm64 == 'true' }}
     uses: ./.github/workflows/windows-arm64.yml
     secrets: inherit
 
   build_ubuntu_22_04:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_ubuntu_22_04 == 'true' }}
     uses: ./.github/workflows/ubuntu_22_04.yml
     secrets: inherit
 
   build_ubuntu_24_04:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_ubuntu_24_04 == 'true' }}
     uses: ./.github/workflows/ubuntu_24_04.yml
     secrets: inherit
 
   build_mac_old:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_mac_old == 'true' }}
     uses: ./.github/workflows/mac_old.yml
     secrets: inherit
 
   build_mac:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_mac == 'true' }}
     uses: ./.github/workflows/mac.yml
     secrets: inherit
 
   build_appimage:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_appimage == 'true' }}
     uses: ./.github/workflows/appimage-x86_64.yml
     secrets: inherit
 
   deploy:
-    # Only run deploy job on tag push or manual workflow run, not on pull requests or regular pushes.
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
-    needs: [build_windows, build_windows_arm64, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac]
+    # Make deploy conditional on the check_artifacts job and all build jobs
+    needs: [check_artifacts, build_windows, build_windows_arm64, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac, build_appimage]
+    # Run only on tag push or manual workflow run, and even if some builds are skipped
+    if: always() && (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
 
     runs-on: ubuntu-latest
 

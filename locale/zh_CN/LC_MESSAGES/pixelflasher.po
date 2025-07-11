@@ -1,0 +1,2647 @@
+# English translations for PixelFlasher.
+# Copyright (C) 2023-2024 Badabing2005
+# This file is distributed under the same license as the PixelFlasher package.
+msgid ""
+msgstr ""
+"Project-Id-Version: PixelFlasher\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-05-13 16:17+0000\n"
+"PO-Revision-Date: 2024-05-13 16:17+0000\n"
+"Last-Translator: Littlenine <Himwdsj@gmail.com>\n"
+"Language-Team: Simplified Chinese\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+##############################################################################
+# Common buttons
+##############################################################################
+msgid "Yes"
+msgstr "是"
+
+msgid "No"
+msgstr "否"
+
+msgid "OK"
+msgstr "确定"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Apply"
+msgstr "应用"
+
+# Main Menu items
+msgid "&File"
+msgstr "&文件"
+
+msgid "&Device"
+msgstr "&设备"
+
+msgid "Dev Tools"
+msgstr "开发者工具"
+
+msgid "&My Tools"
+msgstr "&我的工具"
+
+msgid "&Google Images"
+msgstr "&谷歌图像"
+
+msgid "&Toolbar"
+msgstr "&工具栏"
+
+msgid "&Language"
+msgstr "&语言"
+
+msgid "&Help"
+msgstr "&帮助"
+
+##############################################################################
+# Menu
+##############################################################################
+# -------------------------------------
+# File menu items
+# -------------------------------------
+msgid "Settings"
+msgstr "设置"
+
+msgid "Exit"
+msgstr "退出"
+
+msgid "E&xit\tCtrl-Q"
+msgstr "&退出\tCtrl-Q"
+
+msgid "Exit PixelFlasher"
+msgstr "退出 PixelFlasher"
+
+# -------------------------------------
+# Device menu items
+# -------------------------------------
+msgid "Install APK"
+msgstr "安装APK"
+
+msgid "Package Manager"
+msgstr "包管理"
+
+msgid "ADB Shell"
+msgstr "ADB SHELL"
+
+msgid "Scrcpy"
+msgstr "投屏"
+
+msgid "Device Info"
+msgstr "设备信息"
+
+msgid "Pif Print"
+msgstr "Pif Print"
+
+msgid "Props as Json"
+msgstr "Props as Json"
+
+msgid "Dump Screen XML"
+msgstr "导出 Screen XML"
+
+msgid "Cancel OTA Update"
+msgstr "取消OTA更新"
+
+msgid "Check otacerts"
+msgstr "检查otacerts"
+
+msgid "Partitions Manager"
+msgstr "分区管理"
+
+msgid "PI Analysis Report"
+msgstr "PI分析报告"
+
+msgid "Switch Slot"
+msgstr "切换槽位"
+
+msgid "Reboot"
+msgstr "重启"
+
+# -------------------------------------
+# Reboot sub-menu items
+# -------------------------------------
+msgid "System"
+msgstr "系统"
+
+msgid "Bootloader"
+msgstr "Bootloader"
+
+msgid "Fastbootd"
+msgstr "Fastbootd"
+
+msgid "Recovery"
+msgstr "Recovery"
+
+msgid "Interactive Recovery"
+msgstr "交互式Recovery"
+
+msgid "Safe Mode"
+msgstr "安全模式"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Sideload"
+msgstr "侧载"
+# ---
+
+msgid "Push file(s) to"
+msgstr "推送文件到"
+
+msgid "Magisk"
+msgstr "Magisk"
+
+msgid "Rooting App"
+msgstr "Root App"
+
+msgid "Magisk Backup Manager"
+msgstr "Magisk备份管理"
+
+msgid "Backup /data/adb"
+msgstr "备份/data/adb"
+
+msgid "Restore /data/adb"
+msgstr "恢复/data/adb"
+
+msgid "Clear /data/adb/*"
+msgstr "清除/data/adb"
+
+msgid "Start Shizuku"
+msgstr "启动Shizuku"
+
+msgid "Pif Manager"
+msgstr "Pif管理"
+
+msgid "SOS"
+msgstr "SOS"
+
+msgid "Lock Bootloader"
+msgstr "锁定Bootloader"
+
+msgid "Unlock Bootloader"
+msgstr "解锁Bootloader"
+
+# -------------------------------------
+# Dev Tools menu items
+# -------------------------------------
+msgid "Check keybox.xml"
+msgstr "检查keybox.xml"
+
+msgid "Decode Binary XML"
+msgstr "解码二进制XML"
+
+msgid "AVB - Get Image Info"
+msgstr "AVB - 获取镜像信息"
+
+msgid "AVB - Prepare Downgrade Patch"
+msgstr "AVB - 准备降级补丁"
+
+# -------------------------------------
+# My Tools menu items
+# -------------------------------------
+msgid "Customize My Tools"
+msgstr "个性化我的工具"
+
+# Google Images menu items
+msgid "Phones"
+msgstr "手机"
+
+msgid "Watches"
+msgstr "手表"
+
+msgid "Refresh images list"
+msgstr "刷新镜像列表"
+
+msgid "Show Progress Window"
+msgstr "显示进度窗口"
+
+# -------------------------------------
+# Toolbar menu items
+# -------------------------------------
+msgid "Top"
+msgstr "上"
+
+msgid "Left"
+msgstr "左"
+
+msgid "Right"
+msgstr "右"
+
+msgid "Bottom"
+msgstr "下"
+
+msgid "Show Button Text"
+msgstr "显示按钮文字"
+
+msgid "Show Button Icon"
+msgstr "显示按钮图标"
+
+msgid "Show / Hide Buttons"
+msgstr "显示/隐藏按钮"
+
+# -------------------------------------
+# Toolbar Show / Hide Button
+# sub-menu items share translations
+# from Device menu items
+# -------------------------------------
+msgid "Reboot to System"
+msgstr "重启到System"
+
+msgid "Reboot to Bootloader"
+msgstr "重启到Bootloader"
+
+msgid "Reboot to Fastbootd"
+msgstr "重启到Fastbootd"
+
+msgid "Reboot to Recovery"
+msgstr "重启到Recovery"
+
+msgid "Reboot to Interactive Recovery"
+msgstr "重启到交互式Recovery"
+
+msgid "Reboot to Safe Mode"
+msgstr "重启到安全模式"
+
+msgid "Reboot to Download"
+msgstr "重启到Download"
+
+msgid "Reboot to Sideload"
+msgstr "重启到侧载"
+
+msgid "Configuration"
+msgstr "配置设置"
+
+msgid "Support"
+msgstr "支持"
+
+# -------------------------------------
+# Help menu items
+# -------------------------------------
+msgid "Report an Issue"
+msgstr "反馈问题"
+
+msgid "Feature Request"
+msgstr "功能请求"
+
+msgid "PixelFlasher Project Page"
+msgstr "PixelFlasher 项目页面"
+
+msgid "PixelFlasher Community (Forum)"
+msgstr "PixelFlasher 社区（论坛）"
+
+msgid "Links"
+msgstr "链接"
+
+msgid "Open Configuration Folder"
+msgstr "打开配置文件夹"
+
+msgid "Open PixelFlasher Working Directory"
+msgstr "打开 PixelFlasher 工作文件夹"
+
+msgid "Create a Sanitized support.zip"
+msgstr "创建一个已清理的support.zip"
+
+msgid "Check for New Version"
+msgstr "检查更新"
+
+msgid "&About PixelFlasher"
+msgstr "&关于 PixelFlasher"
+
+msgid "About"
+msgstr "关于"
+
+# -------------------------------------
+# Links sub-menu items
+# -------------------------------------
+msgid "Homeboy76's Guide"
+msgstr "Homeboy76 的指南"
+
+msgid "V0latyle's Guide"
+msgstr "V0latyle 的指南"
+
+msgid "roirraW's Guide"
+msgstr "roirraW 的指南"
+
+msgid "osm0sis's PIF FAQ"
+msgstr "osm0sis 的 PIF 常见问题"
+
+msgid "V0latyle's PI API Info"
+msgstr "V0latyle 的 PI API 信息"
+
+msgid "Tricky Store (Support Thread)"
+msgstr "Tricky Store（支持帖）"
+
+msgid "osm0sis's PlayIntegrityFork"
+msgstr "osm0sis 的 PlayIntegrityFork"
+
+msgid "chiteroman's PlayIntegrityFix"
+msgstr "chiteroman 的 PlayIntegrityFix"
+
+msgid "5ec1cff's TrickyStore"
+msgstr "5ec1cff 的 TrickyStore"
+
+msgid "Get the Google USB Driver"
+msgstr "获取 Google USB 驱动程序"
+
+msgid "Android Security Update Bulletins"
+msgstr "Android 安全更新公告"
+
+msgid "Android Codenames, tags, and build numbers"
+msgstr "Android 代号、标签和构建编号"
+
+msgid "Full OTA Images for Pixel Phones / Tablets"
+msgstr "Pixel 手机 / 平板的完整 OTA 镜像"
+
+msgid "Factory Images for Pixel Phones / Tablets"
+msgstr "Pixel 手机 / 平板的工厂镜像"
+
+msgid "Full OTA Images for Pixel Watches"
+msgstr "Pixel 手表的完整 OTA 镜像"
+
+msgid "Factory Images for Pixel Watches"
+msgstr "Pixel 手表的工厂镜像"
+
+msgid "Full OTA Images for Pixel Beta 16"
+msgstr "Pixel Beta 16 的完整 OTA 镜像"
+
+msgid "Factory Images for Pixel Beta 16"
+msgstr "Pixel Beta 16 的工厂镜像"
+
+##############################################################################
+# Helper values
+##############################################################################
+msgid "Open adb shell to the device"
+msgstr "打开设备的 ADB shell"
+
+msgid "Launch Screen Copy"
+msgstr "启动屏幕复制"
+
+msgid "Dump Full Device Info"
+msgstr "导出完整设备信息"
+
+msgid "Get current device's Pif print (osm0sis fork v5 format)"
+msgstr "获取当前设备的 Pif 指纹（osm0sis 分支 v5 格式）"
+
+msgid "Get current device's properties in json format"
+msgstr "获取当前设备的属性（JSON 格式）"
+
+msgid "Use uiautomator to dump the screen view in xml"
+msgstr "使用 uiautomator 以 XML 格式导出屏幕视图"
+
+msgid "Cancels and Resets OTA updates by Google (Not PixelFlasher)"
+msgstr "取消并重置 Google 的 OTA 更新（非 PixelFlasher）"
+
+msgid "Used to see if ROM is signed or not."
+msgstr "用于查看 ROM 是否已签名"
+
+msgid "Backup / Erase Partitions"
+msgstr "备份 / 擦除分区"
+
+msgid "Generate a report of PI Analysis"
+msgstr "生成 PI 分析报告"
+
+msgid "Switch to the other slot"
+msgstr "切换到另一个分区槽"
+
+msgid "Manage Magisk modules and settings"
+msgstr "管理 Magisk 模块和设置"
+
+msgid "Download / Install rooting app like Magisk or KernelSU or APatch"
+msgstr "下载 / 安装如 Magisk、KernelSU 或 APatch 等 Root 应用"
+
+msgid "Manage Magisk Backups"
+msgstr "管理 Magisk 备份"
+
+msgid ""
+"Backs up /data/adb.\n"
+"This is useful for backing up Magisk modules.\n"
+"NOTE: If a module writes to anywhere other than /data/adb, those paths will not be backed up."
+msgstr ""
+"备份 /data/adb。\n"
+"这对备份 Magisk 模块很有用。\n"
+"注意：如果某个模块写入的位置不在 /data/adb，则这些路径不会被备份。"
+
+msgid ""
+"Restore /data/adb from a backup file.\n"
+"This is useful for restoring Magisk modules.\n"
+"NOTE: If a module writes to anywhere other than /data/adb, those items will not be restored."
+msgstr ""
+"从备份文件中还原 /data/adb。\n"
+"这对还原 Magisk 模块很有用。\n"
+"注意：如果某个模块写入的位置不在 /data/adb，则这些项目不会被还原。"
+
+msgid ""
+"Clear up /data/adb/ content (not the directory).\n"
+"This is useful when switching to different root flavor."
+msgstr ""
+"清除 /data/adb/ 的内容（不删除目录）。\n"
+"在切换不同的 Root 方案时很有用。"
+
+msgid "Starts Shizuku service on the device."
+msgstr "在设备上启动 Shizuku 服务"
+
+msgid "Disable Magisk Modules"
+msgstr "禁用 Magisk 模块"
+
+msgid "Unlock Bootloader (Will wipe data)"
+msgstr "解锁引导加载程序（将清除数据）"
+
+msgid "Get Android Verified Boot Image Info"
+msgstr "获取 Android 验证启动镜像信息"
+
+msgid "Create Downgrade Patch"
+msgstr "创建降级补丁"
+
+##############################################################################
+# Toast messages
+##############################################################################
+
+msgid "Download Successful"
+msgstr "下载成功"
+
+msgid "✅ File downloaded successfully: %s and saved to %s"
+msgstr "✅ 文件下载成功：%s，已保存到 %s"
+
+msgid "No Downloads"
+msgstr "无下载内容"
+
+msgid "ℹ️ No downloads are in progress."
+msgstr "ℹ️ 当前无下载任务进行中。"
+
+msgid "⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good."
+msgstr "⚠️ 警告！所选文件的 SHA256 校验值与文件名中的片段不匹配。\n请再次确认校验值是否正确。"
+
+msgid "APK Install"
+msgstr "APK 安装"
+
+msgid "❌ ERROR: Please select a device before attempting APK Installation."
+msgstr "❌ 错误：请在尝试安装 APK 之前选择设备。"
+
+msgid "❌ ERROR: No device selected"
+msgstr "❌ 错误：未选择任何设备"
+
+msgid "Check OTA Certs"
+msgstr "检查 OTA 证书"
+
+msgid "Device Analysis"
+msgstr "设备分析"
+
+msgid "❌ ERROR: /data/local/tmp is not accessible, this will affect some features."
+msgstr "❌ 错误：无法访问 /data/local/tmp，这将影响某些功能的使用。"
+
+msgid "vbmeta Warning!"
+msgstr "vbmeta 警告！"
+
+msgid "WARNING! Banned Kernel"
+msgstr "警告！内核已被禁止"
+
+msgid "⚠️ Kernel string: %s is known to be banned.\nPlay Integrity would possibly fail."
+msgstr "⚠️ 内核字符串：%s 已知被禁止。\n可能导致 Play Integrity 检测失败。"
+
+msgid "Scan"
+msgstr "扫描"
+
+msgid "⚠️ No devices are found.."
+msgstr "⚠️ 未发现任何设备。"
+
+msgid "✅ Select your device from the list of %s found devices."
+msgstr "✅ 请从发现的 %s 个设备中选择你的设备。"
+
+msgid "Firmware SHA256"
+msgstr "固件 SHA256"
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+msgstr "    ⚠️ 警告！警告！警告！分区槽 a 的校验与分区槽 b 不一致"
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+msgstr "    ⚠️ 警告！警告！警告！当前选中的 vbmeta 校验状态与设备的校验状态不一致\n"
+
+msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+msgstr "    ⚠️ 警告！警告！警告！当前选中的 vbmeta 验证状态与设备的验证状态不一致\n"
+
+msgid "                                     This has a device wipe implications, please double check.\n"
+msgstr "                                     这可能会导致设备被清除，请务必确认。\n"
+
+##############################################################################
+# Message dialogs
+##############################################################################
+
+msgid "Error"
+msgstr "错误"
+
+msgid "Warning"
+msgstr "警告"
+
+msgid "Information"
+msgstr "信息"
+
+msgid "Success"
+msgstr "成功"
+
+msgid "Click OK to accept and continue.\n"
+msgstr "点击“确定”以接受并继续。\n"
+
+msgid "or Hit CANCEL to abort."
+msgstr "或点击“取消”以中止操作。"
+
+msgid "Select Language"
+msgstr "选择语言"
+
+msgid "Language changed to %s. A restart is required for translations to apply."
+msgstr "语言已更改为 %s。需重启应用以应用翻译。"
+
+msgid "Language Changed"
+msgstr "语言已更改"
+
+msgid "Updates are available"
+msgstr "有可用更新"
+
+msgid "ℹ️ There are updates available for PixelFlasher.\n"
+msgstr "ℹ️ PixelFlasher 有可用更新。\n"
+
+msgid "Click OK to download and install the updates.\n"
+msgstr "点击“确定”下载并安装更新。\n"
+
+msgid "Select binary xml file to decode"
+msgstr "选择要解码的二进制 XML 文件"
+
+msgid "Select a file"
+msgstr "选择一个文件"
+
+msgid "Browse"
+msgstr "浏览"
+
+msgid "  Browse  "
+msgstr "  浏览  "
+
+msgid "Save File"
+msgstr "保存文件"
+
+msgid "ℹ️ There are updates available for your device.\nCheck Google Images menu.\n"
+msgstr "ℹ️ 您的设备有可用更新。\n请查看 Google 镜像菜单。\n"
+
+msgid "Select one or multiple APK file(s) to install"
+msgstr "选择一个或多个 APK 文件进行安装"
+
+msgid "Save support file"
+msgstr "保存支持文件"
+
+msgid "Dump Screen Xml"
+msgstr "导出屏幕 XML"
+
+msgid "Save device analysis"
+msgstr "保存设备分析"
+
+msgid "Select files to push"
+msgstr "选择要推送的文件"
+
+msgid "Save /data/adb backup file"
+msgstr "保存 /data/adb 备份文件"
+
+msgid "Select /data/adb backup file"
+msgstr "选择 /data/adb 备份文件"
+
+msgid "Select keybox to test"
+msgstr "选择要测试的 keybox"
+
+msgid "Add / Edit / Delete Custom menu items"
+msgstr "添加 / 编辑 / 删除自定义菜单项"
+
+msgid "Select Boot Image"
+msgstr "选择启动镜像"
+
+##############################################################################
+# Main UI
+##############################################################################
+
+msgid "Downloads Progress"
+msgstr "下载进度"
+
+msgid "Welcome to PixelFlasher %s by Badabing2005"
+msgstr "欢迎使用 PixelFlasher %s - 作者 Badabing2005"
+
+msgid "Install APK on the device"
+msgstr "在设备上安装 APK"
+
+msgid "App Manager"
+msgstr "应用管理器"
+
+msgid "Manage Apps / Packages"
+msgstr "管理应用 / 软件包"
+
+msgid "Open ADB shell to the device."
+msgstr "打开设备的 ADB shell"
+
+msgid "Partitions"
+msgstr "分区"
+
+msgid "Partition Manager"
+msgstr "分区管理器"
+
+msgid "Switch to the other Slot"
+msgstr "切换到另一个分区槽"
+
+msgid "Reboot to userspace fastboot (fastbootd)"
+msgstr "重启到用户空间 fastboot（fastbootd）"
+
+msgid "iRecovery"
+msgstr "iRecovery"
+
+msgid "Reboot to Download Mode"
+msgstr "重启到下载模式"
+
+msgid "Reboot to Sideload Mode"
+msgstr "重启到 Sideload 模式"
+
+msgid "Magisk Backup"
+msgstr "Magisk 备份"
+
+msgid ""
+"Remove Magisk Modules\n"
+"This button issues the following command:\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"This helps for cases where device bootloops due to incompatible magisk modules(YMMV).\n"
+msgstr ""
+"移除 Magisk 模块\n"
+"此按钮将执行以下命令：\n"
+"    adb wait-for-device shell magisk --remove-modules\n"
+"适用于因不兼容的 Magisk 模块导致设备陷入开机循环的情况（效果因人而异）。\n"
+
+msgid "Lock"
+msgstr "锁定"
+
+msgid "UnLock"
+msgstr "解锁"
+
+msgid "UnLock Bootloader\nCaution will wipe data\n"
+msgstr "解锁引导加载程序\n警告：这将清除数据\n"
+
+msgid "UnLock Bootloader"
+msgstr "解锁引导加载程序"
+
+msgid "Configuration Settings"
+msgstr "配置设置"
+
+msgid "Create Support file"
+msgstr "创建支持文件"
+
+msgid "APK installation options"
+msgstr "APK 安装选项"
+
+msgid "Install"
+msgstr "安装"
+
+msgid "Set ownership to Play Store Market"
+msgstr "设置为 Play 商店所有"
+
+msgid "Bypass low target sdk block"
+msgstr "绕过低目标 SDK 限制"
+
+msgid "ADB Connected Devices"
+msgstr "ADB 已连接设备"
+
+msgid "ADB Connected Devices\nCurrent Active Slot: [A]"
+msgstr "ADB 已连接设备\n当前活动分区槽：[A]"
+
+msgid "ADB Connected Devices\nCurrent Active Slot: [B]"
+msgstr "ADB 已连接设备\n当前活动分区槽：[B]"
+
+msgid "Android Platform Tools\nVersion %s"
+msgstr "Android 平台工具\n版本 %s"
+
+msgid "Android Platform Tools"
+msgstr "Android 平台工具"
+
+msgid "vbmeta issue."
+msgstr "vbmeta 问题。"
+
+msgid "Warning!\n%s\n"
+msgstr "警告！\n%s\n"
+
+msgid "❌ ERROR: You must first select a boot image"
+msgstr "❌ 错误：您必须先选择一个启动镜像"
+
+msgid "❌ ERROR: Downgrade patch file not found\nYou must first create a downgrade patch to enable this option.\n"
+msgstr "❌ 错误：未找到降级补丁文件\n您必须先创建一个降级补丁以启用此选项。\n"
+
+msgid "❌ ERROR: Wipe All Data is selected\nYou must first select another mode to enable this option.\n"
+msgstr "❌ 错误：当前选择了“清除所有数据”\n您必须先选择其他模式才能启用此选项。\n"
+
+msgid "No Wipe Downgrade"
+msgstr "无清除降级"
+
+msgid "                 WARNING!!! WARNING!!! WARNING!!!\n\n\n"
+msgstr "                 警告！！！警告！！！警告！！！\n\n\n"
+
+msgid "THIS IS AN EXPERIMENTAL FEATURE, NO ASSURANCES THAT IT WOULD WORK\n\n"
+msgstr "这是一个实验性功能，不保证可以正常工作\n\n"
+
+msgid "Do NOT enable this option if you are not downgrading!!!\n\n"
+msgstr "如果您不是在进行降级操作，请不要启用此选项！！！\n\n"
+
+msgid "Proceed only if you know what you're doing.\n\n\n"
+msgstr "仅在您清楚自己正在做什么时继续。\n\n\n"
+
+msgid "Do you want to continue to select the No Wipe Downgrade option?\n\n"
+msgstr "是否继续选择无清除降级选项？\n\n"
+
+msgid "       Press OK to continue or CANCEL to abort.\n\n"
+msgstr "       按“确定”继续或“取消”中止。\n\n"
+
+msgid "CANCEL"
+msgstr "取消"
+
+msgid "         WARNING!!! WARNING!!! WARNING!!!\n\n\n"
+msgstr "         警告！！！警告！！！警告！！！\n\n\n"
+
+msgid "NEVER, EVER LOCK THE BOOTLOADER WITHOUT REVERTING\n\n"
+msgstr "切勿在未恢复官方固件的情况下锁定引导加载程序\n\n"
+
+msgid "TO STOCK FIRMWARE OR YOUR PHONE WILL BE BRICKED!!!\n\n\n"
+msgstr "至原厂固件，否则您的设备将变砖！！！\n\n\n"
+
+msgid "       THIS WILL WIPE YOUR DEVICE DATA!!!\n\n\n"
+msgstr "       此操作将清除您的设备数据！！！\n\n\n"
+
+msgid "Do you want to continue to Lock the device bootloader?\n\n"
+msgstr "是否继续锁定设备引导加载程序？\n\n"
+
+msgid "WARNING!!! THIS WILL ERASE ALL USER DATA FROM THE DEVICE\n\n\n"
+msgstr "警告！！！此操作将清除设备上的所有用户数据\n\n\n"
+
+msgid "Make sure you first read either of the guides linked in the help menu.\n\n"
+msgstr "请确保您已阅读帮助菜单中链接的指南之一。\n\n"
+
+msgid "Failing to follow the proper steps could potentially brick your phone.\n\n"
+msgstr "未按正确步骤操作可能导致设备变砖。\n\n"
+
+msgid "\nNote: Pressing OK button will invoke a script that will utilize\n\n"
+msgstr "\n注意：点击“确定”将调用一个脚本，它将使用\n\n"
+
+msgid "fastboot commands, if your PC fastboot drivers are not properly setup,\n\n"
+msgstr "fastboot 命令，如果您的电脑未正确安装 fastboot 驱动，\n\n"
+
+msgid "fastboot will wait forever, and PixelFlasher will appear hung.\n\n"
+msgstr "fastboot 将一直等待，PixelFlasher 将看起来像是卡住了。\n\n"
+
+msgid "In such cases, killing the fastboot process will resume to normalcy.\n\n\n"
+msgstr "在此情况下，终止 fastboot 进程即可恢复正常。\n\n\n"
+
+msgid "      Do you want to continue to Lock the device bootloader?\n\n"
+msgstr "      是否继续锁定设备引导加载程序？\n\n"
+
+msgid "              Press OK to continue or CANCEL to abort.\n\n"
+msgstr "              按“确定”继续或“取消”中止。\n\n"
+
+msgid "      Do you want to continue to Unlock the device bootloader?\n\n"
+msgstr "      是否继续解锁设备引导加载程序？\n\n"
+
+msgid "WARNING!!! This is an experimental feature to attempt disabling magisk modules.\n\n\n"
+msgstr "警告！！！这是一个用于尝试禁用 Magisk 模块的实验性功能。\n\n\n"
+
+msgid "You would only need to do this if your device is bootlooping due to\n\n"
+msgstr "仅当您的设备因以下原因陷入开机循环时，您才需要执行此操作：\n\n"
+
+msgid "incompatible magisk modules, this is not guaranteed to work in all cases (YMMV).\n\n"
+msgstr "不兼容的 Magisk 模块，无法保证在所有情况下都有效（效果因人而异）。\n\n"
+
+msgid "\nNote: Pressing OK button will invoke a script that will wait forever to detect the device.\n\n"
+msgstr "\n注意：点击“确定”将运行一个脚本，该脚本会无限等待以检测设备。\n\n"
+
+msgid "If your device is not detected PixelFlasher will appear hung.\n\n"
+msgstr "如果未检测到设备，PixelFlasher 将看起来像是卡住了。\n\n"
+
+msgid "In such cases, killing the adb process will resume to normalcy.\n\n\n"
+msgstr "在此情况下，终止 adb 进程即可恢复正常。\n\n\n"
+
+msgid "                        Press OK to continue or CANCEL to abort.\n\n"
+msgstr "                        按“确定”继续或“取消”中止。\n\n"
+
+msgid "Clear /data/adb/ contents"
+msgstr "清除 /data/adb/ 内容"
+
+msgid "WARNING!!! This will the clear contents of /data/adb\n\n\n"
+msgstr "警告！！！这将清除 /data/adb 的所有内容\n\n\n"
+
+msgid "Do you want to continue to clear /data/adb/ contents?\n\n"
+msgstr "是否继续清除 /data/adb/ 内容？\n\n"
+
+msgid "      Press OK to continue or CANCEL to abort.\n\n"
+msgstr "      按“确定”继续或“取消”中止。\n\n"
+
+msgid "This will invoke the command adb kill-server.\nAre you sure want to continue?\n"
+msgstr "这将执行命令 adb kill-server。\n您确定要继续吗？\n"
+
+msgid "ADB Kill Server"
+msgstr "ADB 杀掉服务"
+
+msgid "Download Latest Android Platform-Tools"
+msgstr "下载最新 Android 平台工具"
+
+msgid "Select Android Platform-Tools Folder\nWhere adb and fastboot are located.\n"
+msgstr "选择 Android 平台工具文件夹\n（adb 和 fastboot 所在位置）\n"
+
+msgid "Double click this label to issue the command:\nadb kill-server"
+msgstr "双击此标签以执行命令：\nadb kill-server"
+
+msgid "Open wireless manager dialog."
+msgstr "打开无线管理器对话框。"
+
+msgid "[root status] [device mode] [device id] [device model] [device firmware]\n\n"
+msgstr "[Root 状态] [设备模式] [设备 ID] [设备型号] [设备固件版本]\n\n"
+
+msgid "✓ Rooted with Magisk.\n"
+msgstr "✓ 已通过 Magisk 获取 Root。\n"
+
+msgid "✗ Probably Not Root (Magisk Tools not found).\n"
+msgstr "✗ 可能未 Root（未找到 Magisk 工具）。\n"
+
+msgid "?  Unable to determine the root status.\n\n"
+msgstr "?  无法确定是否已 Root。\n\n"
+
+msgid "(adb) device is in adb mode\n"
+msgstr "（adb）设备处于 ADB 模式\n"
+
+msgid "(f.b) device is in fastboot mode\n"
+msgstr "（f.b）设备处于 Fastboot 模式\n"
+
+msgid "(sid) device is in sideload mode\n"
+msgstr "（sid）设备处于 Sideload 模式\n"
+
+msgid "(rec) device is in recovery mode\n"
+msgstr "（rec）设备处于恢复模式\n"
+
+msgid "Scan for Devices\nPlease manually select the device after the scan is completed."
+msgstr "扫描设备\n扫描完成后请手动选择设备。"
+
+msgid "Device Image"
+msgstr "设备镜像"
+
+msgid "Download image file for current Pixel device."
+msgstr "为当前 Pixel 设备下载镜像文件。"
+
+msgid "Select Pixel Firmware"
+msgstr "选择 Pixel 固件"
+
+msgid "Process"
+msgstr "处理"
+
+msgid "Process the firmware file and extract the boot.img"
+msgstr "处理固件文件并提取 boot.img"
+
+msgid "Apply Custom ROM"
+msgstr "应用自定义 ROM"
+
+msgid "Caution: Make sure you read the selected ROM documentation.\nThis might not work for your ROM"
+msgstr "注意：请务必阅读所选 ROM 的说明文档。\n这可能与你的 ROM 不兼容。"
+
+msgid "Select Custom ROM"
+msgstr "选择自定义 ROM"
+
+msgid "Process the ROM file and extract the boot.img"
+msgstr "处理 ROM 文件并提取 boot.img"
+
+msgid "Select a boot/init_boot"
+msgstr "选择 boot/init_boot"
+
+msgid "Show All boot/init_boot"
+msgstr "显示所有 boot/init_boot"
+
+msgid "Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM"
+msgstr "显示所有 boot/init_boot，即使它们不是所选固件或 ROM 的一部分"
+
+msgid "Source SHA1  "
+msgstr "源 SHA1  "
+
+msgid "Package Fingerprint  "
+msgstr "包指纹  "
+
+msgid "Patched with version "
+msgstr "修补版本 "
+
+msgid "Patch Method  "
+msgstr "修补方法  "
+
+msgid "Patched on Device  "
+msgstr "设备上的修补信息  "
+
+msgid "Date  "
+msgstr "日期  "
+
+msgid "Package Path  "
+msgstr "包路径  "
+
+msgid "Open Folder"
+msgstr "打开文件夹"
+
+msgid "Open boot files folder"
+msgstr "打开 boot 文件夹"
+
+msgid "Open Working Directory"
+msgstr "打开工作目录"
+
+msgid "Patch"
+msgstr "修补"
+
+msgid "Patch the selected item"
+msgstr "修补所选项"
+
+msgid "Patch with Magisk"
+msgstr "使用 Magisk 修补"
+
+msgid "Patch with KernelSU"
+msgstr "使用 KernelSU 修补"
+
+msgid "Patch with KernelSU LKM"
+msgstr "使用 KernelSU LKM 修补"
+
+msgid "Patch with KernelSU-Next"
+msgstr "使用 KernelSU-Next 修补"
+
+msgid "Patch with KernelSU-Next LKM"
+msgstr "使用 KernelSU-Next LKM 修补"
+
+msgid "Patch with APatch"
+msgstr "使用 APatch 修补"
+
+msgid "Patch with APatch Alternate"
+msgstr "使用 APatch 备用方式修补"
+
+msgid "Patch custom boot/init_boot"
+msgstr "修补自定义 boot/init_boot"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Delete the selected item"
+msgstr "删除所选项"
+
+msgid "Add a new boot item"
+msgstr "添加新的 boot 项"
+
+msgid "Info"
+msgstr "信息"
+
+msgid "Get information about the selected item"
+msgstr "获取所选项的信息"
+
+msgid "Live Boot"
+msgstr "实时启动"
+
+msgid "Live boot to the selected item"
+msgstr "实时启动到所选项"
+
+msgid "Flash Boot"
+msgstr "刷写启动镜像"
+
+msgid "Flash just the selected item"
+msgstr "仅刷写所选项"
+
+msgid "Flash Mode"
+msgstr "刷写模式"
+
+msgid "Keep Data"
+msgstr "保留数据"
+
+msgid "Data will be kept intact."
+msgstr "数据将保持不变。"
+
+msgid "WIPE all data"
+msgstr "清除所有数据"
+
+msgid "CAUTION: This will wipe your data"
+msgstr "警告：这将清除你的数据"
+
+msgid "Dry Run"
+msgstr "模拟运行"
+
+msgid ""
+"Dry Run, no flashing will be done.\n"
+"The phone will reboot to fastboot and then\n"
+"back to normal.\n"
+"This is for testing.\n"
+msgstr ""
+"模拟运行，不会进行刷写操作。\n"
+"手机将重启进入 fastboot 模式，然后再\n"
+"恢复正常模式。\n"
+"该操作用于测试。\n"
+
+msgid "Full OTA"
+msgstr "完整 OTA"
+
+msgid "Flash full OTA, and have the choice of flashing patched image(s)."
+msgstr "刷写完整 OTA，并可选择刷写已修补的镜像。"
+
+msgid "Custom Flash"
+msgstr "自定义刷写"
+
+msgid ""
+"Custom Flash, Advanced option to flash a single file.\n"
+"This will not flash the factory image.\n"
+"It will flash the single selected file.\n"
+msgstr ""
+"自定义刷写，高级选项用于刷写单个文件。\n"
+"这不会刷写出厂镜像，\n"
+"而是刷写所选择的单个文件。\n"
+
+msgid "Live Boot to selected boot / init_boot"
+msgstr "实时启动到所选 boot/init_boot"
+
+msgid "Flash"
+msgstr "刷写"
+
+msgid "Flashes the selected boot / init_boot"
+msgstr "刷写所选 boot/init_boot"
+
+msgid "Depending on the flash selection, paste the appropriate path as custom image."
+msgstr "根据所选刷写项，将相应路径粘贴为自定义镜像。"
+
+msgid "Flash Options"
+msgstr "刷写选项"
+
+msgid "Flash to inactive slot"
+msgstr "刷写到未激活分区槽"
+
+msgid "This option when checked will flash to the alternate slot (inactive).\nKeeping the current slot intact.\n"
+msgstr "启用此选项将刷写到备用（未激活）分区槽，\n当前分区槽将保持不变。\n"
+
+msgid "Flash to both slots"
+msgstr "刷写到两个分区槽"
+
+msgid "This option when checked will flash to both slots."
+msgstr "启用此选项将同时刷写两个分区槽。"
+
+msgid "Disable Verity"
+msgstr "禁用 Verity 校验"
+
+msgid "Disables Verity"
+msgstr "禁用 Verity 校验机制"
+
+msgid "Disable Verification"
+msgstr "禁用验证"
+
+msgid "Disables Verification"
+msgstr "禁用验证机制"
+
+msgid "Force"
+msgstr "强制执行"
+
+msgid "Force a flash operation that may be unsafe (will wipe your data)"
+msgstr "强制执行可能不安全的刷写操作（将清除你的数据）"
+
+msgid "Verbose"
+msgstr "详细模式"
+
+msgid "Set fastboot option to verbose"
+msgstr "设置 fastboot 为详细输出模式"
+
+msgid "Temporary Root"
+msgstr "临时 Root"
+
+msgid "Wipe"
+msgstr "清除"
+
+msgid ""
+"This option when enabled will not flash patched boot\n"
+"Instead it will flash unpatched boot.img, but boot to Live Patched boot\n"
+"Handy to test if Magisk will cause a bootloop.\n"
+"Please be aware that this temporary root will not survive a subsequent reboot.\n"
+"If you want to make this permanent, just Flash Boot the patched boot image.\n"
+msgstr ""
+"启用此选项时不会刷写已修补的 boot.img，\n"
+"而是刷写未修补的 boot.img，但启动到临时修补的 boot。\n"
+"适用于测试 Magisk 是否会导致开机循环。\n"
+"请注意，这种临时 Root 在重启后将失效。\n"
+"若需永久生效，请刷写已修补的 boot 镜像。\n"
+
+msgid "No reboot"
+msgstr "不重启"
+
+msgid "Do not reboot after flashing\nThis is useful if you want to perform other actions before reboot.\n"
+msgstr "刷写后不重启\n适用于你想在重启前执行其他操作的情况。\n"
+
+msgid "This will invoke data wipe operation at the end of custom flashing.\nOne use case would be when disabling verification for the first time.\n"
+msgstr "此操作将在自定义刷写完成后执行数据清除。\n适用于首次禁用验证时的场景。\n"
+
+msgid "WARNING!!! This is a highly experimental feature.\nThis will attempt to downgrade the device without needing a data wipe.\n\n"
+msgstr "警告！！！这是一个高度实验性的功能。\n此操作将尝试在不清除数据的情况下降级设备。\n\n"
+
+msgid "Flash Device"
+msgstr "刷写设备"
+
+msgid "Sideload OTA"
+msgstr "侧载 OTA"
+
+msgid "Custom Flash Device"
+msgstr "自定义刷写设备"
+
+msgid "Flashes the selected device with chosen flash options."
+msgstr "使用所选的刷写选项刷写设备。"
+
+msgid "Console"
+msgstr "控制台"
+
+msgid "Please be patient ..."
+msgstr "请耐心等待……"
+
+msgid ""
+"Create encrypted and optionally sanitized support.zip file\n"
+"When sanitized all sensitive data is redacted.\n\n"
+"This file is absolutely required when asking for help."
+msgstr ""
+"创建加密并可选清除敏感信息的 support.zip 文件。\n"
+"若启用清除功能，所有敏感数据将被隐藏。\n\n"
+"此文件在请求帮助时是必需的。"
+
+msgid "Debug"
+msgstr "调试"
+
+msgid "Enable Debug Messages in the console."
+msgstr "在控制台中启用调试信息。"
+
+msgid "Clear Console"
+msgstr "清空控制台"
+
+msgid "**APK installation options**<br/>\n"
+msgstr "**APK 安装选项**<br/>\n"
+
+msgid "This is a summary of available options.<br/>\n"
+msgstr "以下是可用选项的简要说明。<br/>\n"
+
+msgid "1. **Set ownership to Play Store Market** This option sets the ownership to Play Store (as if it was installed from Play Store).<br/>\n"
+msgstr "1. **设置归属为 Play 商店** 此选项将应用标记为来自 Play 商店安装。<br/>\n"
+
+msgid "   Android auto apps require that they be installed from the Play Market.<br/>\n"
+msgstr "   某些 Android Auto 应用要求必须通过 Play 商店安装。<br/>\n"
+
+msgid "2. Starting with Android 14, apps with a targetSdkVersion lower than 23 can't be installed.<br/>\n"
+msgstr "2. 从 Android 14 开始，目标 SDK 版本低于 23 的应用无法安装。<br/>\n"
+
+msgid "   Requiring apps to meet these minimum target API level requirements improves security and privacy for users.<br/><br/>\n"
+msgstr "   要求应用满足最低目标 API 级别，有助于提升用户的安全性和隐私保护。<br/><br/>\n"
+
+msgid "   Malware often targets older API levels in order to bypass security and privacy protections that have been introduced in newer Android versions.<br/>\n"
+msgstr "   恶意软件通常利用旧版本 API 来绕过新版本 Android 中引入的安全与隐私机制。<br/>\n"
+
+msgid "   For example, some malware apps use a `targetSdkVersion` of 22 to avoid being subjected to the runtime permission model\n"
+msgstr "   例如，一些恶意软件将 `targetSdkVersion` 设置为 22，以避开运行时权限管理机制\n"
+
+msgid "   introduced in 2015 by Android 6.0 Marshmallow (API level 23).<br/>\n"
+msgstr "   该机制由 Android 6.0（API 级别 23）在 2015 年引入。<br/>\n"
+
+msgid "   This Android 14 change makes it harder for malware to avoid security and privacy improvements.<br/>\n"
+msgstr "   Android 14 的这一更改让恶意软件更难绕过安全和隐私增强功能。<br/>\n"
+
+msgid "   Attempting to install an app targeting a lower API level will result in an installation failure.<br/><br/>\n"
+msgstr "   尝试安装目标 API 版本较低的应用将导致安装失败。<br/><br/>\n"
+
+msgid "   **Bypass low target sdk block** option bypasses that enforcement.\n"
+msgstr "   **绕过低目标 SDK 限制** 选项可跳过该限制。\n"
+
+msgid "_If you have selected multiple APKs to install, the options will apply to all APKs._\n"
+msgstr "_若你选择了多个 APK 进行安装，以上选项将应用于所有 APK。_\n"
+
+msgid "# ATTENTION!\n"
+msgstr "# 注意！\n"
+
+msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
+msgstr "**此功能将生成设备分析报告，你可以选择将其发布在线以获得关于 Play Integrity 相关问题的帮助。**<br/>\n"
+
+msgid "This report will inherently reveal sensitive information about your device such as:\n"
+msgstr "该报告将包含设备的敏感信息，例如：\n"
+
+msgid "- Device id and other device related details.\n"
+msgstr "- 设备ID及其他设备相关细节。\n"
+
+msgid "- Magisk (if available):\n"
+msgstr "- Magisk（如有）：\n"
+
+msgid "	- modules list.\n"
+msgstr "	- 模块列表。\n"
+
+msgid "	- denylist.\n"
+msgstr "	- 拒绝列表。\n"
+
+msgid "- TrickyStore (if available):\n"
+msgstr "- TrickyStore（如有）：\n"
+
+msgid "	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)\n"
+msgstr "	- `/data/adb/tricky_store/keybox.xml`（不包含内容，仅表示证书是否被吊销）\n"
+
+msgid "- PlayIntegrity Fork (if available):\n"
+msgstr "- PlayIntegrity Fork（如有）：\n"
+
+msgid "- PlayIntegrityFix (if available):\n"
+msgstr "- PlayIntegrityFix（如有）：\n"
+
+msgid "- Whether a testkey ROM is used or not.\n"
+msgstr "- 是否使用了 testkey ROM。\n"
+
+msgid "- logcat for PlayIntegrity and TrickyStore related logs.\n"
+msgstr "- PlayIntegrity 和 TrickyStore 相关的 logcat 日志。\n"
+
+msgid "- Droidguard VM list.\n"
+msgstr "- Droidguard 虚拟机列表。\n"
+
+msgid "- If any custom ROM injection apps are installed from:\n"
+msgstr "- 是否安装了任何自定义 ROM 注入应用：\n"
+
+msgid "- Check overlays (if contents of /debug_ramdisk is visible without root)\n"
+msgstr "- 检查 overlays（如果未获取 root 权限即可查看 /debug_ramdisk 内容）\n"
+
+msgid "**NOTE:**\n"
+msgstr "**注意：**\n"
+
+msgid "This report will be saved at a location of your choosing, and will **not** be part of PixelFlasher captured logs (even though you see it in the console), so rest assured, if you submit support.zip for PixelFlasher related issues, even if you had generated such report, it will never be included in the support.zip file.<br/>\n"
+msgstr "该报告将保存在你指定的位置，且**不会**包含在 PixelFlasher 采集的日志中（即使你在控制台中看到），请放心，如果你提交 PixelFlasher 相关问题的 support.zip，即使你生成了此报告，也不会包含在 support.zip 文件中。<br/>\n"
+
+msgid "Your privacy is yours to keep.<br/>\n"
+msgstr "你的隐私由你自行保管。<br/>\n"
+
+msgid "If you continue you'd only be generating the report, and not posting it online.<br/>\n"
+msgstr "继续操作仅会生成报告，并不会将其发布到网络上。<br/>\n"
+
+msgid "If you want to post it online, please make sure to remove any sensitive information from the report before posting it online.<br/>\n"
+msgstr "如果你想在线发布，请确保先从报告中删除所有敏感信息。<br/>\n"
+
+msgid "**Are you sure you want to continue?**<br/>\n"
+msgstr "**你确定要继续吗？**<br/>\n"
+
+##############################################################################
+# Advanced Settings
+##############################################################################
+
+msgid "Advanced Configuration Settings"
+msgstr "高级配置设置"
+
+msgid "WARNING!\n"
+msgstr "警告！\n"
+
+msgid "This is advanced configuration.\n"
+msgstr "这是高级配置。\n"
+
+msgid "Unless you know what you are doing,\n"
+msgstr "除非你知道自己在做什么，\n"
+
+msgid "you should not be enabling it.\n"
+msgstr "否则不应启用此选项。\n"
+
+msgid "YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n"
+msgstr "设备出现任何问题，责任完全由你本人承担。\n"
+
+msgid "THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n"
+msgstr "本工具假设你熟悉\n"
+
+msgid "ADB, MAGISK, ANDROID, AND ROOT.\n"
+msgstr "ADB、Magisk、Android 及 Root 权限。\n"
+
+msgid "IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n"
+msgstr "你有责任确保自己知道在做什么。\n"
+
+msgid "Enable Advanced Options"
+msgstr "启用高级选项"
+
+msgid "Expert mode"
+msgstr "专家模式"
+
+msgid "Magisk Package Name"
+msgstr "Magisk 包名"
+
+msgid "If you have hidden Magisk,\nset this to the hidden package name."
+msgstr "如果你隐藏了 Magisk，\n请设置为隐藏的包名。"
+
+msgid "Resets package name to default: %s"
+msgstr "重置包名为默认：%s"
+
+msgid "Linux File Explorer:"
+msgstr "Linux 文件浏览器："
+
+msgid "Set full path to File Explorer.\nDefault: Nautilus"
+msgstr "设置文件浏览器的完整路径。\n默认：Nautilus"
+
+msgid "Linux Shell:"
+msgstr "Linux 终端："
+
+msgid "Set full path to Linux Shell.\nDefault: gnome-terminal"
+msgstr "设置 Linux 终端的完整路径。\n默认：gnome-terminal"
+
+msgid "Offer Patch Methods"
+msgstr "提供补丁方式"
+
+msgid "When patching the choice of method is presented."
+msgstr "补丁时会提供方法选择。"
+
+msgid "Patching Recovery Partition"
+msgstr "修补 Recovery 分区"
+
+msgid ""
+"Enabling this will show an option to patch a recovery partition.\n"
+"This should be kept disabled unless you have an old device.\n"
+"(most A-only devices launched with Android 9, legacy SAR)"
+msgstr ""
+"启用后会显示修补 Recovery 分区的选项。\n"
+"除非你使用老设备，否则建议保持禁用。\n"
+"(大多数 Android 9 及之后的 A-only 设备为遗留 SAR 设备)"
+
+msgid "Use Busybox Shell"
+msgstr "使用 Busybox Shell"
+
+msgid "When creating a patch, if this is checked, busybox ash will be used as shell."
+msgstr "创建补丁时勾选此项，将使用 busybox ash 作为 shell。"
+
+msgid "System has low memory"
+msgstr "系统内存不足"
+
+msgid "Use this option to sacrifice speed in favor of memory."
+msgstr "启用此项可牺牲速度以节省内存。"
+
+msgid "Extra img extraction"
+msgstr "额外镜像提取"
+
+msgid "When checked and available in payload.bin\nAlso extract vendor_boot.img, vendor_kernel_boot.img, dtbo.img, super_empty.img"
+msgstr "勾选后（payload.bin 中存在时），\n还会提取 vendor_boot.img、vendor_kernel_boot.img、dtbo.img、super_empty.img。"
+
+msgid "Show notifications"
+msgstr "显示通知"
+
+msgid "When checked PixelFlasher will display system toast notifications."
+msgstr "勾选后 PixelFlasher 会显示系统吐司通知。"
+
+msgid "Always create boot.tar"
+msgstr "始终创建 boot.tar"
+
+msgid "When checked, PixelFlasher always creates boot.tar of the patched boot file.\nIf unchecked, only for Samsung firmware boot.tar will be created."
+msgstr "勾选后，PixelFlasher 始终为补丁后的 boot 文件创建 boot.tar。\n未勾选时仅三星固件会创建 boot.tar。"
+
+msgid "Check for updates"
+msgstr "检查更新"
+
+msgid "Checks for available updates on startup"
+msgstr "启动时检查可用更新"
+
+msgid "Check for Minimum Disk (5Gb)"
+msgstr "检查最小磁盘空间（5GB）"
+
+msgid "Enforces minimum disk space of 5 Gb to allow flashing.\nThis avoids storage related issues."
+msgstr "强制要求至少 5GB 可用空间才能刷机。\n避免存储相关问题。"
+
+msgid "Check for bootloader unlocked"
+msgstr "检查是否解锁 Bootloader"
+
+msgid "Checks to make sure bootloader is unlocked before flashing."
+msgstr "刷机前确认 Bootloader 已解锁。"
+
+msgid "Check for firmware hash validity"
+msgstr "检查固件哈希有效性"
+
+msgid "Checks for sha256 portion to be in the image filename to detect Pixel compatible image."
+msgstr "检查镜像文件名是否包含 sha256 字段以判定是否为 Pixel 兼容镜像。"
+
+msgid "Keep temporary support files"
+msgstr "保留临时支持文件"
+
+msgid "It keeps the temporary support files.\nUseful for inspecting what data is included in support.zip."
+msgstr "保留临时支持文件。\n方便检查 support.zip 中包含哪些数据。"
+
+msgid "Check Magisk modules for updates"
+msgstr "检查 Magisk 模块更新"
+
+msgid ""
+"It checks if the module has updates.\n"
+"Disable this if you don't want to check for updates or\n"
+" if some module update server has issues and delays the process."
+msgstr ""
+"检查模块是否有更新。\n"
+"如果你不想检查更新，或某些模块更新服务器有问题导致延迟，可禁用此项。"
+
+msgid "Show custom ROM options"
+msgstr "显示自定义 ROM 选项"
+
+msgid "Make sure you check if your ROM is supported."
+msgstr "请确保确认你的 ROM 是否被支持。"
+
+msgid "Sanitize (Redact) support files"
+msgstr "清理（脱敏）支持文件"
+
+msgid ""
+"The support files are always encrypted.\n"
+"This option redacts sensitive information from the support files.\n"
+"But impedes support and is not recommended."
+msgstr ""
+"支持文件始终加密。\n"
+"此选项会从支持文件中脱敏敏感信息。\n"
+"但会影响支持效果，不推荐使用。"
+
+msgid "Force codepage to"
+msgstr "强制代码页为"
+
+msgid "Uses specified code page instead of system code page"
+msgstr "使用指定代码页而非系统代码页"
+
+msgid "Delete bundled libs"
+msgstr "删除捆绑库"
+
+msgid "The listed libraries would be deleted from the PF bundle to allow system defined ones to be used."
+msgstr "将从 PF 捆绑包中删除列出的库，以使用系统自带库。"
+
+msgid "Example: libreadline.so.8, libgdk*"
+msgstr "示例：libreadline.so.8，libgdk*"
+
+msgid "Override KMI"
+msgstr "覆盖 KMI"
+
+msgid ""
+"This will override the Kernel Module Interface (KMI) to the specified value.\n"
+"This is useful for devices with custom kernels.\n"
+"The value will be passed to KernelSU as the KMI value."
+msgstr ""
+"此项会将内核模块接口（KMI）覆盖为指定值。\n"
+"适用于使用自定义内核的设备。\n"
+"该值会传递给 KernelSU 作为 KMI 值。"
+
+msgid "Example: 5.15.131-android14"
+msgstr "示例：5.15.131-android14"
+
+msgid "Use Custom Fontface"
+msgstr "使用自定义字体"
+
+msgid "Use custom font for monospace fonts\nMight require PixelFlasher restart to properly apply to the Console window."
+msgstr "为等宽字体使用自定义字体\n可能需要重启 PixelFlasher 以正确应用到控制台窗口。"
+
+msgid "Sample "
+msgstr "示例 "
+
+msgid "Select font size"
+msgstr "选择字体大小"
+
+msgid "scrcpy Path"
+msgstr "scrcpy 路径"
+
+msgid "Download scrcpy"
+msgstr "下载 scrcpy"
+
+msgid "Scrcpy executable (*.exe;*)|*.exe;*"
+msgstr "Scrcpy 可执行文件 (*.exe;*)|*.exe;*"
+
+msgid "Select scrcpy executable"
+msgstr "选择 scrcpy 可执行文件"
+
+msgid "Flags / Arguments (Example: --video-bit-rate 2M --max-fps=30 --max-size 1024)"
+msgstr "参数 / 选项（示例：--video-bit-rate 2M --max-fps=30 --max-size 1024）"
+
+msgid "Scrcpy settings"
+msgstr "Scrcpy 设置"
+
+msgid "Module update URL has issues, inform the module author: %s\nDo you want to skip checking updates for this module?"
+msgstr "模块更新 URL 出现问题，请通知模块作者：%s\n你想跳过该模块的更新检查吗？"
+
+msgid "You have an old or problematic Android platform Tools version %s \n"
+msgstr "你的 Android Platform Tools 版本 %s 已过时或存在问题\n"
+
+msgid "You are strongly advised to update before continuing.\n"
+msgstr "强烈建议你在继续之前先更新。\n"
+
+msgid "Are you sure you want to continue?"
+msgstr "你确定要继续吗？"
+
+msgid "Bad Android Platform Tools"
+msgstr "无效的 Android Platform Tools"
+
+msgid "Android SDK Version:    %s\n"
+msgstr "Android SDK 版本：    %s\n"
+
+msgid "Device:                 %s %s %s\n"
+msgstr "设备：                 %s %s %s\n"
+
+msgid "Factory Image:          %s\n"
+msgstr "官方固件：              %s\n"
+
+msgid "Custom Rom:             %s\n"
+msgstr "自定义 ROM：            %s\n"
+
+msgid "Custom Rom File:        %s\n"
+msgstr "自定义 ROM 文件：        %s\n"
+
+msgid "\nBoot image:             %s / %s \n"
+msgstr "\n启动镜像：              %s / %s \n"
+
+msgid "                        From: %s\n"
+msgstr "                        来源：%s\n"
+
+msgid "                        Patched with %s on %s method:        %s\n"
+msgstr "                        使用 %s 按 %s 方法补丁：        %s\n"
+
+msgid "                        Patched with %s on %s\n"
+msgstr "                        使用 %s 按 %s 补丁\n"
+
+msgid "\nFlash Mode:             %s\n"
+msgstr "\n刷写模式：              %s\n"
+
+msgid "SHA256 of %s%s matches the segment in the filename."
+msgstr "%s%s 的 SHA256 与文件名中的段匹配。"
+
+msgid "⚠️ Firmware SHA256 Mismatch"
+msgstr "⚠️ 固件 SHA256 不匹配"
+
+msgid "WARNING! SHA256 of %s%s does not match segments in the filename.\nPlease double check to make sure the checksum is good."
+msgstr "警告！%s%s 的 SHA256 与文件名中的段不匹配。\n请仔细核对以确保校验和正确。"
+
+msgid "Process action"
+msgstr "处理操作"
+
+msgid "❌ Could not extract %s"
+msgstr "❌ 无法提取 %s"
+
+msgid "Possibly extracted firmware."
+msgstr "可能已提取固件。"
+
+msgid "WARNING: It looks like you have extracted the firmware file.\nand selected the image zip from it.\n\n"
+msgstr "警告：看起来你已经解压了固件文件，\n并选择了其中的镜像压缩包。\n\n"
+
+msgid "You should not extract the file, please select the downloaded firmware file instead\n\n"
+msgstr "你不应该解压该文件，请直接选择下载的固件文件。\n\n"
+
+msgid "If this is not the case, and you want to continue with this selection\n"
+msgstr "如果不是这种情况，并且你想继续使用当前选择\n"
+
+msgid "❌ Could not unpack %s."
+msgstr "❌ 无法解包 %s。"
+
+msgid "❌ Could not extract %s."
+msgstr "❌ 无法提取 %s。"
+
+msgid "❌ Could not find %s."
+msgstr "❌ 找不到 %s。"
+
+msgid "⚠️ Detected unsupported firmware."
+msgstr "⚠️ 检测到不支持的固件。"
+
+msgid "❌ Could not extract payload.bin."
+msgstr "❌ 无法提取 payload.bin。"
+
+msgid "❌ The selected firmware is not valid."
+msgstr "❌ 选择的固件无效。"
+
+msgid "⚠️ Nothing to extract from %s"
+msgstr "⚠️ %s 中无可提取内容"
+
+msgid "✅ Process %s time: %s seconds"
+msgstr "✅ 处理 %s 用时：%s 秒"
+
+msgid "WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?"
+msgstr "警告：目标 boot.img 不是降级版本。\n你确定要继续吗？"
+
+msgid "Confirm"
+msgstr "确认"
+
+msgid "Display is Locked!"
+msgstr "屏幕已锁定！"
+
+msgid "ERROR: Your phone display is Locked.\n\n"
+msgstr "错误：你的手机屏幕已锁定。\n\n"
+
+msgid "Make sure you unlock your display\n"
+msgstr "请确保解锁屏幕\n"
+
+msgid "And set the display timeout to at least 1 minute.\n\n"
+msgstr "并将屏幕超时时间设置为至少 1 分钟。\n\n"
+
+msgid "After doing so, Click OK to accept and continue.\n"
+msgstr "完成后，点击确定以接受并继续。\n"
+
+msgid "Manual Patching"
+msgstr "手动补丁"
+
+msgid "Done creating the patch, continue"
+msgstr "补丁创建完成，继续"
+
+msgid "Magisk Manager is not detected."
+msgstr "未检测到 Magisk Manager。"
+
+msgid "WARNING: Magisk Manager [%s] is not found on the phone\n\n"
+msgstr "警告：未在手机上找到 Magisk Manager [%s]\n\n"
+
+msgid "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
+msgstr "可能是因为被隐藏，或未安装（极有可能未安装）\n\n"
+
+msgid "If it is installed and hidden, then you should abort and then unhide it.\n"
+msgstr "如果已安装但被隐藏，请先中止操作并取消隐藏。\n"
+
+msgid "If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n"
+msgstr "如果未安装 Magisk，PixelFlasher 可以帮你安装并用于补丁。\n\n"
+
+msgid "WARNING: Do not install Magisk again if it is currently hidden.\n"
+msgstr "警告：如果 Magisk 当前被隐藏，请勿重新安装。\n"
+
+msgid "Do you want PixelFlasher to download and install Magisk?\n"
+msgstr "你想让 PixelFlasher 下载并安装 Magisk 吗？\n"
+
+msgid "You will be given a choice of Magisk Version to install.\n\n"
+msgstr "你将可以选择安装的 Magisk 版本。\n\n"
+
+msgid "Click OK to continue with Magisk installation.\n"
+msgstr "点击确定继续安装 Magisk。\n"
+
+msgid "Kernel KMI Override"
+msgstr "内核 KMI 覆盖"
+
+msgid "Kernel KMI Override: %s\n\n"
+msgstr "内核 KMI 覆盖：%s\n\n"
+
+msgid "You have set a custom kernel KMI override.\n"
+msgstr "你已设置自定义内核 KMI 覆盖。\n"
+
+msgid "Are you sure you want to proceed with this override?\n"
+msgstr "你确定要继续使用该覆盖吗？\n"
+
+msgid "Click OK to proceed with the override.\n"
+msgstr "点击确定继续覆盖。\n"
+
+msgid "Boot Model Mismatch"
+msgstr "启动模型不匹配"
+
+msgid "APatch Manual Patching"
+msgstr "APatch 手动补丁"
+
+msgid "APatch Manual Patching requires CONFIG_KALLSYMS=y in the kernel config.\n"
+msgstr "APatch 手动补丁需要内核配置中启用 CONFIG_KALLSYMS=y。\n"
+
+msgid "APatch Manual Patching only supports kernel versions 3.18 - 6.1\n\n"
+msgstr "APatch 手动补丁仅支持内核版本 3.18 - 6.1\n\n"
+
+msgid "Do you want to continue regardless of not meeting the pre-requisites?\n\n"
+msgstr "你是否仍然希望继续，即使不满足前置条件？\n\n"
+
+msgid "Click Yes to continue with APatch Manual Patching\n"
+msgstr "点击“是”继续使用 APatch 手动补丁\n"
+
+msgid "or Hit No to abort."
+msgstr "或点击“否”中止操作。"
+
+msgid "Download Latest KernelPatch Tools"
+msgstr "下载最新 KernelPatch 工具"
+
+msgid "Latest KernelPatch Tools Pre-release Version: %s\n"
+msgstr "最新 KernelPatch 工具预发布版本：%s\n"
+
+msgid "Latest KernelPatch Tools Release Version: %s\n\n"
+msgstr "最新 KernelPatch 工具正式版本：%s\n\n"
+
+msgid "Do you want to download the latest kptools-android and kpimg-android that includes pre-release versions?\n\n"
+msgstr "你想下载包含预发布版本的最新 kptools-android 和 kpimg-android 吗？\n\n"
+
+msgid "Click Yes to download the latest pre-release versions: %s\n"
+msgstr "点击“是”下载最新预发布版本：%s\n"
+
+msgid "Click No to download the latest Release versions: %s\n"
+msgstr "点击“否”下载最新正式版本：%s\n"
+
+msgid "%s Boot"
+msgstr "%s 启动"
+
+msgid "ERROR: Your phone model is: %s\n\n"
+msgstr "错误：你的手机型号是：%s\n\n"
+
+msgid "The selected Boot is for: %s\n\n"
+msgstr "所选启动镜像适用于：%s\n\n"
+
+msgid "Unless you know what you are doing, if you continue flashing\n"
+msgstr "除非你知道自己在做什么，否则继续刷写\n"
+
+msgid "you risk bricking your device, proceed only if you are absolutely\n"
+msgstr "可能导致设备变砖，只有在完全确定的情况下才继续\n"
+
+msgid "certain that this is what you want, you have been warned.\n\n"
+msgstr "你确定这是你想要的，现已警告。\n\n"
+
+msgid "Flash action"
+msgstr "刷写操作"
+
+msgid "❌ Device is not detected."
+msgstr "❌ 未检测到设备。"
+
+msgid "❌ Bootloader is locked, cannot flash."
+msgstr "❌ Bootloader 锁定，无法刷写。"
+
+msgid "Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?"
+msgstr "你的 Bootloader 被锁定，或未授予 shell 进程 su 权限。\n你确定仍要继续吗？"
+
+msgid "❌ Android Platform Tools is not set."
+msgstr "❌ 未设置 Android Platform Tools。"
+
+msgid "❌ Valid device is not selected."
+msgstr "❌ 未选择有效设备。"
+
+msgid "❌ boot is not selected."
+msgstr "❌ 未选择启动镜像。"
+
+msgid "You can only sideload OTA that is equal or higher than the currently installed version.\n"
+msgstr "你只能侧载等于或高于当前安装版本的 OTA。\n"
+
+msgid "Alternatively, you can flash the full firmware image (with wipe data) to downgrade or patch the current boot image to allow a downgrade without wipe.\n"
+msgstr "或者，你可以刷写完整固件镜像（含数据清除）以降级，或补丁当前启动镜像以允许无清除降级。\n"
+
+msgid "See Menu item: Dev Tools | AVB Prepare Downgrade Patch for further details.\n\n"
+msgstr "详见菜单项：开发工具 | AVB 准备降级补丁。\n\n"
+
+msgid "If you still want to proceed, Click YES to accept and continue. or NO to Abort.\n"
+msgstr "如果你仍想继续，点击“是”接受并继续，点击“否”中止。\n"
+
+msgid "You have selected to WIPE data\nAre you sure want to continue?"
+msgstr "你选择了清除数据\n你确定要继续吗？"
+
+msgid "Wipe Data"
+msgstr "清除数据"
+
+msgid "✅ Wipe Data is accepted."
+msgstr "✅ 已接受清除数据选项。"
+
+msgid "You have selected the flash option: Wipe\nThis will wipe your data\nAre you sure want to continue?"
+msgstr "你选择了刷写选项：清除\n这将清除你的数据\n你确定要继续吗？"
+
+msgid "Flash option: Wipe"
+msgstr "刷写选项：清除"
+
+msgid "✅ Wipe is accepted."
+msgstr "✅ 已接受清除选项。"
+
+msgid "You have selected the flash option: Force\nThis will wipe your data\nAre you sure want to continue?"
+msgstr "你选择了刷写选项：强制\n这将清除你的数据\n你确定要继续吗？"
+
+msgid "Flash option: Force"
+msgstr "刷写选项：强制"
+
+msgid "✅ Force flag is accepted."
+msgstr "✅ 已接受强制标志。"
+
+msgid "❌ Not enough disk space."
+msgstr "❌ 磁盘空间不足。"
+
+msgid "❌ Full OTA or factory image must be selected."
+msgstr "❌ 必须选择完整 OTA 或官方固件。"
+
+msgid "Tensor device not on Android 13 or higher"
+msgstr "Tensor 设备未运行 Android 13 或更高版本"
+
+msgid "WARNING: Your phone OS version is lower than Android 13.\n\n"
+msgstr "警告：你的手机系统版本低于 Android 13。\n\n"
+
+msgid "If you are upgrading to Android 13 or newer,\n"
+msgstr "如果你要升级到 Android 13 或更高版本，\n"
+
+msgid "make sure you at least flash the bootloader to both slots.\n"
+msgstr "请确保至少对两个槽位刷入 Bootloader。\n"
+
+msgid "The Android 13 update for Pixel 6, Pixel 6 Pro, and the Pixel 6a contains\n"
+msgstr "Pixel 6、Pixel 6 Pro 和 Pixel 6a 的 Android 13 更新包含\n"
+
+msgid "a bootloader update that increments the anti-roll back version for the bootloader.\n"
+msgstr "针对 Bootloader 的更新，提升了防止回滚的版本号。\n"
+
+msgid "This prevents the device from rolling back to previous vulnerable versions of the bootloader.\n"
+msgstr "这可防止设备回滚至之前存在漏洞的 Bootloader 版本。\n"
+
+msgid "After flashing an Android 13 build on these devices\n"
+msgstr "在这些设备刷入 Android 13 构建后\n"
+
+msgid "you will not be able to flash and boot older Android 12 builds.\n\n"
+msgstr "你将无法刷入并启动旧版 Android 12 系统。\n\n"
+
+msgid "Selecting the option 'Flash to both slots'\n"
+msgstr "选择“刷写至两个槽位”选项\n"
+
+msgid "Will take care of that.\n\n"
+msgstr "即可解决此问题。\n\n"
+
+msgid "Click OK to continue as is.\n"
+msgstr "点击“确定”继续。\n"
+
+msgid "or Hit CANCEL to abort and change options."
+msgstr "或点击“取消”中止并修改选项。"
+
+msgid "✅ Anti rollback warning acknowledged and bypassed."
+msgstr "✅ 已确认并绕过防止回滚警告。"
+
+msgid "❌ downgrade_boot.img is not found."
+msgstr "❌ 未找到 downgrade_boot.img。"
+
+msgid "❌ Unable to replace boot.img in image.zip."
+msgstr "❌ 无法替换 image.zip 中的 boot.img。"
+
+msgid "⚠️ Live booting Pixel 7 or newer devices is not supported."
+msgstr "⚠️ 不支持 Pixel 7 或更新设备的实时启动。"
+
+msgid "❌ Image file is not selected."
+msgstr "❌ 未选择镜像文件。"
+
+msgid "❌ Boot file is not found."
+msgstr "❌ 未找到启动文件。"
+
+msgid "❌ ROM file is not found."
+msgstr "❌ 未找到 ROM 文件。"
+
+msgid "Device / Firmware Mismatch"
+msgstr "设备 / 固件不匹配"
+
+msgid "The selected firmware is for: %s\n\n"
+msgstr "所选固件适用于：%s\n\n"
+
+msgid "✅ Device / Firmware mismatch acknowledged."
+msgstr "✅ 已确认设备与固件不匹配。"
+
+msgid "❌ Encountered an error while rebooting to bootloader."
+msgstr "❌ 重启至 bootloader 时出错。"
+
+msgid "❌ Encountered an error while rebooting to sideload."
+msgstr "❌ 重启至 sideload 模式时出错。"
+
+msgid "❌ Encountered an error while rebooting to fastbootd."
+msgstr "❌ 重启至 fastbootd 时出错。"
+
+msgid "❌ Encountered an error while running the flash script."
+msgstr "❌ 执行刷写脚本时出错。"
+
+msgid "❌ Encountered an error while flashing the patch."
+msgstr "❌ 刷写补丁时出错。"
+
+msgid "❌ vbmeta flashing did not return the expected result."
+msgstr "❌ vbmeta 刷写未返回预期结果。"
+
+msgid "❌ It appears that OTA flashing did not properly switch slots."
+msgstr "❌ OTA 刷写似乎未正确切换槽位。"
+
+msgid "⚠️ Device is not found after rebooting to bootloader."
+msgstr "⚠️ 重启到 bootloader 后未找到设备。"
+
+msgid "✅ Flashing elapsed time: %s seconds"
+msgstr "✅ 刷写耗时：%s 秒"
+
+msgid "You have selected  WIPE option.\nAdb debugging will be reset and disabled\nHence patch or vbmeta flashing will be skipped."
+msgstr "你选择了清除数据选项。\nADB 调试将被重置并禁用，\n因此补丁或 vbmeta 刷写将被跳过。"
+
+msgid "%s %s \n"
+msgstr "%s %s \n"
+
+msgid "Device is not detected."
+msgstr "未检测到设备。"
+
+msgid "Done rebooting to bootloader, continue"
+msgstr "已完成重启至 bootloader，继续"
+
+msgid "Done rebooting to system, continue"
+msgstr "已完成重启至系统，继续"
+
+msgid "## Is your device waiting for interaction?\n"
+msgstr "## 你的设备是否等待用户操作？\n"
+
+msgid "_If it is not, please hit the cancel button._\n"
+msgstr "_如果不是，请点击取消按钮。_\n"
+
+msgid "If your device is waiting for user interaction which can not be programmatically invoked.\n"
+msgstr "如果设备正在等待无法程序化调用的用户操作。\n"
+
+msgid "- Using volume keys, scroll up and down and select **Reboot %s**\n"
+msgstr "- 使用音量键上下滚动并选择 **重启至 %s**\n"
+
+msgid "- Press the power button to apply.\n"
+msgstr "- 按下电源键确认操作。\n"
+
+msgid "When done, the device should reboot to %s <br/>\n"
+msgstr "操作完成后，设备应重启至 %s <br/>\n"
+
+msgid "Wait for the device to fully boot to %s <br/>\n"
+msgstr "等待设备完全启动至 %s <br/>\n"
+
+msgid "Click on **Done rebooting to %s, continue** button <br/>\n"
+msgstr "点击 **已完成重启至 %s，继续** 按钮 <br/>\n"
+
+msgid "or hit the **Cancel** button to abort.\n"
+msgstr "或点击 **取消** 按钮中止。\n"
+
+msgid "Waiting for user interaction"
+msgstr "等待用户操作"
+
+msgid "## Your watch should now be in Android Recovery\n"
+msgstr "## 你的手表现在应该处于 Android 恢复模式\n"
+
+msgid "The watch is waiting for user interaction which can not be programmatically invoked.\n"
+msgstr "手表正在等待无法程序化调用的用户操作。\n"
+
+msgid "- Using touch, scroll and select **Reboot to bootloader**\n"
+msgstr "- 使用触摸操作，滚动并选择 **重启至 bootloader**\n"
+
+msgid "- Press the side button to apply.\n"
+msgstr "- 按侧边键确认操作。\n"
+
+msgid "When done, the watch should reboot to bootloader mode <br/>\n"
+msgstr "操作完成后，手表应重启至 bootloader 模式 <br/>\n"
+
+msgid "Wait for the watch to indicate that it is in bootloader mode <br/>\n"
+msgstr "等待手表显示已进入 bootloader 模式 <br/>\n"
+
+msgid "Click on **Done rebooting to bootloader, continue** button <br/>\n"
+msgstr "点击 **已完成重启至 bootloader，继续** 按钮 <br/>\n"
+
+msgid "- Using touch, scroll and select **Reboot to system now**\n"
+msgstr "- 使用触摸操作，滚动并选择 **立即重启至系统**\n"
+
+msgid "When applied, the watch should reboot to system. <br/>\n"
+msgstr "操作完成后，手表应重启至系统。 <br/>\n"
+
+msgid "Click on **Done rebooting to system, continue** button when the watch OS fully loads.\n"
+msgstr "当手表系统完全加载后，点击 **已完成重启至系统，继续** 按钮。\n"
+
+##############################################################################
+# Pif Manager
+##############################################################################
+msgid "Active Pif"
+msgstr "激活的 Pif"
+
+msgid "Loaded Pif (from Device)"
+msgstr "已加载的 Pif（来自设备）"
+
+msgid "Active pif is not modified."
+msgstr "激活的 pif 未被修改。"
+
+msgid "Save Active pif content to a json file on disk."
+msgstr "将激活的 pif 内容保存为磁盘上的 json 文件。"
+
+msgid "Pif Module"
+msgstr "Pif 模块"
+
+msgid "Active pif is not saved in favorites."
+msgstr "激活的 pif 未保存至收藏。"
+
+msgid "Select a folder to import pif json files."
+msgstr "选择文件夹以导入 pif json 文件。"
+
+msgid "Output"
+msgstr "输出"
+
+msgid "Console Output:\nIt could be the json output of processed prop\nor it could be the Play Integrity Check result.\n\nThis is not what currently is on the device."
+msgstr "控制台输出：\n可能是已处理的属性的 json 输出\n或是 Play Integrity 检查结果。\n\n这不是设备当前的状态。"
+
+msgid "Smart Paste:\nSets First API to the set value if it is missing or forced.\nReprocesses the output window content to adapt to current module requirements.\nPastes to Active pif."
+msgstr "智能粘贴：\n若缺失或强制，设置首个 API 值。\n重新处理输出窗口内容以适应当前模块需求。\n粘贴至激活的 pif。"
+
+msgid "Paste the console window content to Active pif."
+msgstr "将控制台窗口内容粘贴至激活的 pif。"
+
+msgid "Paste the Active pif to console window."
+msgstr "将激活的 pif 粘贴至控制台窗口。"
+
+msgid "Reprocess current Active Pif window json.\nUseful if you changed module version which might require additional / different fields."
+msgstr "重新处理当前激活的 Pif 窗口 JSON。\n当更改模块版本可能需要额外或不同字段时很有用。"
+
+msgid "Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place."
+msgstr "重新处理一个或多个 JSON 文件\n当你更改模块版本，可能需要额外或不同字段时非常有用。\n如果选择单个文件，新 JSON 会输出到控制台。\n如果选择多个文件，选中的文件将被原地更新。"
+
+msgid "Convert console content from env (key=value) format to json"
+msgstr "将控制台内容从 env（key=value）格式转换为 JSON"
+
+msgid "Convert console content from json to env (key=value) format"
+msgstr "将控制台内容从 JSON 转换为 env（key=value）格式"
+
+msgid "Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n"
+msgstr "处理一个或多个 JSON 文件以生成 FrameworkPatcher 格式的代码片段。\n"
+
+msgid "Add missing Keys from device"
+msgstr "添加设备缺失的键"
+
+msgid "When Processing or Reprocessing, add missing fields from device."
+msgstr "处理或重新处理时，添加设备中缺失的字段。"
+
+msgid "Force First API to:"
+msgstr "强制首个 API 为："
+
+msgid "Forces First API value(s) to"
+msgstr "强制首个 API 值为"
+
+msgid "Sort Keys"
+msgstr "排序键"
+
+msgid "Sorts json keys"
+msgstr "对 JSON 键进行排序"
+
+msgid "Keep All keys"
+msgstr "保留所有键"
+
+msgid "Does not remove non standard / unrecognized keys"
+msgstr "不移除非标准或未识别的键"
+
+msgid "Spoof Build"
+msgstr "伪造 Build"
+
+msgid "Spoof Props"
+msgstr "伪造属性"
+
+msgid "Spoof Provider"
+msgstr "伪造提供者"
+
+msgid "Spoof Signature"
+msgstr "伪造签名"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "Create print"
+msgstr "创建打印"
+
+msgid "Create pif.json / spoof_build_vars"
+msgstr "创建 pif.json / spoof_build_vars"
+
+msgid "Push print, no validation"
+msgstr "推送打印，无验证"
+
+msgid "Pushes the print as is without performing any validation.\nThis is useful to retain comments."
+msgstr "按原样推送打印，且不进行任何验证。\n这对于保留注释非常有用。"
+
+msgid "Reload print"
+msgstr "重新加载打印"
+
+msgid "Reload pif.json / spoof_build_vars from device."
+msgstr "从设备重新加载 pif.json / spoof_build_vars。"
+
+msgid "Cleanup DG"
+msgstr "清理 Droidguard"
+
+msgid "Cleanup Droidguard Cache"
+msgstr "清理 Droidguard 缓存"
+
+msgid "Push keybox.xml"
+msgstr "推送 keybox.xml"
+
+msgid "Push a valid keybox.xml to device."
+msgstr "向设备推送有效的 keybox.xml 文件。"
+
+msgid "Edit TS Target"
+msgstr "编辑 Tricky Store target.txt"
+
+msgid "Edit Tricky Store target.txt file."
+msgstr "编辑 Tricky Store 的 target.txt 文件。"
+
+msgid "Edit TS SP"
+msgstr "编辑 Tricky Store security_patch.txt"
+
+msgid "Edit Tricky Store security_patch.txt file."
+msgstr "编辑 Tricky Store 的 security_patch.txt 文件。"
+
+msgid "Process build.prop(s)"
+msgstr "处理 build.prop 文件"
+
+msgid "Process build.prop to extract a compatible print."
+msgstr "处理 build.prop 以提取兼容的打印信息。"
+
+msgid "Process bulk props"
+msgstr "批量处理属性"
+
+msgid "Process a folder containing .prop files and convert then to .json files."
+msgstr "处理包含 .prop 文件的文件夹并转换为 .json 文件。"
+
+msgid "Process Image"
+msgstr "处理镜像"
+
+msgid "Process an image and get a print from it."
+msgstr "处理镜像并获取打印信息。"
+
+msgid "Auto Update print"
+msgstr "自动更新打印"
+
+msgid "After Processing build.props, the print is automatically pushed to the device and the GMS process is killed."
+msgstr "处理完 build.prop 后，打印会自动推送到设备并杀死 GMS 进程。"
+
+msgid "Auto Check Play Integrity"
+msgstr "自动检查 Play Integrity"
+
+msgid "After saving (pushing) print, automatically run Play Integrity Check."
+msgstr "保存（推送）打印后，自动运行 Play Integrity 检查。"
+
+msgid "Disable UIAutomator"
+msgstr "禁用 UIAutomator"
+
+msgid "Disables UIAutomator\nThis is useful for devices with buggy UIAutomator.\nNOTE: Create the coords.json file manually to make use of automated testing."
+msgstr "禁用 UIAutomator\n适用于 UIAutomator 有缺陷的设备。\n注意：需手动创建 coords.json 文件以使用自动测试功能。"
+
+msgid "Play Integrity Check"
+msgstr "Play Integrity 检查"
+
+msgid "Play Integrity API Checker\nNote: Need to install app from Play store."
+msgstr "Play Integrity API 检查器\n注意：需从 Play 商店安装应用。"
+
+msgid "Latest"
+msgstr "最新"
+
+msgid "Custom"
+msgstr "自定义"
+
+msgid "Select 'Latest' to get the latest Pixel beta pif (Includes Developer Preview).\nSelect 'Custom' to set a custom Android version code."
+msgstr "选择“最新”以获取最新的 Pixel 测试版 pif（含开发者预览）。\n选择“自定义”以设置自定义 Android 版本号。"
+
+msgid "Set a valid Android version code."
+msgstr "设置有效的 Android 版本代码。"
+
+msgid "Get Pixel Beta Pif"
+msgstr "获取 Pixel 测试版 pif"
+
+msgid "Get the latest Pixel beta pif."
+msgstr "获取最新的 Pixel 测试版 pif。"
+
+msgid "Get Xiaomi Pif"
+msgstr "获取小米 pif"
+
+msgid "Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own."
+msgstr "获取 Xiaomi.eu pif\n易于入门，但不推荐使用，因为容易被封禁。\n建议自行寻找。"
+
+msgid "Get TheFreeman193 Random Pif"
+msgstr "获取 TheFreeman193 随机 pif"
+
+msgid "Get a random pif from TheFreeman193 repository.\nNote: The pif might or might not work."
+msgstr "从 TheFreeman193 仓库获取随机 pif。\n注意：该 pif 可能可用也可能不可用。"
+
+msgid "No Device is selected.\nPif Manager features are set to limited mode."
+msgstr "未选择设备。\nPif 管理器功能设置为受限模式。"
+
+msgid "Device is not rooted or SU permissions to adb shell is not granted.\nPif Manager features are set to limited mode."
+msgstr "设备未获得 root 或未授予 adb shell 的 SU 权限。\nPif 管理器功能设置为受限模式。"
+
+msgid "Update print"
+msgstr "更新打印"
+
+msgid "Update pif.json / spoof_build_vars."
+msgstr "更新 pif.json / spoof_build_vars。"
+
+msgid "Create pif.json / spoof_build_vars."
+msgstr "创建 pif.json / spoof_build_vars。"
+
+msgid "Getting Pixel beta print ...\nPlease be patient this could take some time ..."
+msgstr "正在获取 Pixel 测试版打印信息...\n请耐心等待，可能需要一些时间..."
+
+msgid "Failed to get beta print."
+msgstr "获取测试版打印信息失败。"
+
+msgid "Active pif not in sync"
+msgstr "激活的 pif 未同步"
+
+msgid "⚠️ WARNING! Device pif is not in sync with Active Pif contents.\nThe result will not be reflective of the Active pif you're viewing."
+msgstr "⚠️ 警告！设备上的 pif 与激活的 pif 内容不同步。\n结果不会反映你当前查看的激活 pif。"
+
+msgid "Choose property files to open"
+msgstr "选择要打开的属性文件"
+
+msgid "Select a Device Image"
+msgstr "选择设备镜像"
+
+msgid "Processing %s ...\nPlease be patient this could take some time ..."
+msgstr "正在处理 %s ...\n请耐心等待，可能需要一些时间..."
+
+msgid "Image format not supported"
+msgstr "不支持的镜像格式"
+
+msgid "Select folder to bulk process props files"
+msgstr "选择文件夹批量处理属性文件"
+
+msgid "The contents is different than what is currently on the device.\nUpdate the print before testing."
+msgstr "内容与设备当前的不一致。\n测试前请更新打印信息。"
+
+msgid "Active pif is saved in favorites."
+msgstr "激活的 pif 已保存到收藏夹。"
+
+msgid "Select keybox to push"
+msgstr "选择要推送的 keybox"
+
+msgid "Choose one or multiple json files to reprocess"
+msgstr "选择一个或多个 JSON 文件重新处理"
+
+msgid "Save FP file"
+msgstr "保存 FP 文件"
+
+msgid "Enter a label:"
+msgstr "输入标签："
+
+msgid "Save Pif to Favorites"
+msgstr "将 Pif 保存到收藏夹"
+
+msgid "Select folder to Import Pifs"
+msgstr "选择文件夹导入 Pif 文件"
+
+##############################################################################
+# Magisk
+##############################################################################
+msgid "❌ ERROR: You must first select a valid device."
+msgstr "❌ 错误：你必须先选择一个有效设备。"
+
+msgid "Manage Magisk"
+msgstr "管理 Magisk"
+
+msgid "When you press the OK button, the Modules with checkbox selected will be enabled and the rest will be disabled."
+msgstr "点击确定后，勾选的模块将被启用，其余模块将被禁用。"
+
+msgid "Magisk Modules"
+msgstr "Magisk 模块"
+
+msgid "Enable / Disable Magisk modules"
+msgstr "启用 / 禁用 Magisk 模块"
+
+msgid "Install Module"
+msgstr "安装模块"
+
+msgid "Install magisk module."
+msgstr "安装 Magisk 模块。"
+
+msgid "Update Module"
+msgstr "更新模块"
+
+msgid "Update magisk module."
+msgstr "更新 Magisk 模块。"
+
+msgid "Uninstall Module"
+msgstr "卸载模块"
+
+msgid "Uninstall magisk module."
+msgstr "卸载 Magisk 模块。"
+
+msgid "Run Action"
+msgstr "执行操作"
+
+msgid "Run Module action.sh."
+msgstr "运行模块的 action.sh 脚本。"
+
+msgid "Install Pif / TS Module"
+msgstr "安装 Pif / Tricky Store 模块"
+
+msgid "Install Play Integrity Fix module."
+msgstr "安装 Play Integrity 修复模块。"
+
+msgid "Install ZygiskNext Module"
+msgstr "安装 ZygiskNext 模块"
+
+msgid "Install ZygiskNext module."
+msgstr "安装 ZygiskNext 模块。"
+
+msgid "Systemless Hosts"
+msgstr "无系统 Hosts"
+
+msgid "Add Systemless Hosts Module."
+msgstr "添加无系统 Hosts 模块。"
+
+msgid "Enable Zygisk"
+msgstr "启用 Zygisk"
+
+msgid "Enable Magisk zygisk (requires reboot)"
+msgstr "启用 Magisk Zygisk（需要重启）"
+
+msgid "Disable Zygisk"
+msgstr "禁用 Zygisk"
+
+msgid "Disable Magisk zygisk (requires reboot)"
+msgstr "禁用 Magisk Zygisk（需要重启）"
+
+msgid "Enable Denylist"
+msgstr "启用拒绝列表"
+
+msgid "Enable Magisk denylist"
+msgstr "启用 Magisk 拒绝列表"
+
+msgid "Disable Denylist"
+msgstr "禁用拒绝列表"
+
+msgid "Disable Magisk denylist"
+msgstr "禁用 Magisk 拒绝列表"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Refresh Magisk modules list."
+msgstr "刷新 Magisk 模块列表。"
+
+msgid "To manage denylist or to manage SU permissions, use PixelFlasher's App Manager feature."
+msgstr "要管理拒绝列表或 SU 权限，请使用 PixelFlasher 的应用管理功能。"
+
+msgid "Use Pixelflasher's App Manager functionality to add/remove items to denylist or su permissions."
+msgstr "使用 PixelFlasher 的应用管理功能添加或移除拒绝列表或 SU 权限项。"
+
+msgid "Restore Module"
+msgstr "恢复模块"
+
+msgid "## You need to reboot your device for the changes to take effect."
+msgstr "## 你需要重启设备以使更改生效。"
+
+msgid "osm0sis PlayIntegrityFork"
+msgstr "osm0sis PlayIntegrityFork"
+
+msgid "chiteroman PlayIntegrityFix"
+msgstr "chiteroman PlayIntegrityFix"
+
+msgid "PIF Module"
+msgstr "PIF 模块"
+
+msgid "Select the module you want to install"
+msgstr "选择你想安装的模块"
+
+msgid "## You need to reboot your device to complete the installation."
+msgstr "## 你需要重启设备以完成安装。"
+
+msgid "## You need to reboot your device to complete the update."
+msgstr "## 你需要重启设备以完成更新。"
+
+msgid "Copy"
+msgstr "复制"
+
+msgid "Select All"
+msgstr "全选"
+
+msgid "Superuser Access"
+msgstr "超级用户权限"
+
+msgid "Superuser Access (requires reboot)"
+msgstr "超级用户权限（需要重启）"
+
+msgid "Apps Only"
+msgstr "仅应用"
+
+msgid "ADB Only"
+msgstr "仅 ADB"
+
+msgid "Apps and ADB"
+msgstr "应用和 ADB"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+##############################################################################
+# Rooting App
+##############################################################################
+msgid "Download and Install Rooting Application"
+msgstr "下载并安装 Root 权限应用"
+
+msgid "Select rooting app to install."
+msgstr "选择要安装的 Root 应用。"
+
+msgid "Root App"
+msgstr "Root 应用"
+
+msgid "Version"
+msgstr "版本"
+
+msgid "VersionCode"
+msgstr "版本代码"
+
+msgid "URL"
+msgstr "下载地址"
+
+msgid "Package"
+msgstr "包名"
+
+msgid "WARNING! Do not install magisk if you already have a hidden (stub) Magisk installed.\nFirst unhide Magisk before attempting an install."
+msgstr "警告！如果你已经安装了隐藏的（stub）Magisk，请不要重复安装。\n请先取消隐藏 Magisk 后再尝试安装。"
+
+msgid "Download the rooting app."
+msgstr "下载 Root 应用。"
+
+msgid "Copy URL to Clipboard"
+msgstr "复制下载地址到剪贴板"
+
+msgid "Copy Package ID to Clipboard"
+msgstr "复制包名到剪贴板"
+
+msgid "Download Selected Rooting App"
+msgstr "下载选定的 Root 应用"
+
+msgid "Device Not Supported"
+msgstr "设备不支持"
+
+msgid "The selected Magisk is not supported for your device\n"
+msgstr "所选 Magisk 不支持你的设备\n"
+
+msgid "Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.\n\n"
+msgstr "当前仅支持 Pixel 7（panther）、Pixel 7 Pro（cheetah）、Pixel 7a（lynx）和 Pixel 平板（tangorpro）。\n\n"
+
+msgid "Unless you know what you are doing, if you choose to continue\n"
+msgstr "除非你非常清楚自己在做什么，否则如果继续操作，"
+
+msgid "you risk running into serious issues, proceed only if you are absolutely\n"
+msgstr "可能会遇到严重问题，请确保你绝对确定后再继续。\n"
+
+##############################################################################
+# Magisk Backup Manager
+##############################################################################
+msgid "Check / Uncheck All"
+msgstr "全选 / 取消全选"
+
+msgid "Delete checked backups"
+msgstr "删除选中的备份"
+
+msgid "Add Backup from Computer"
+msgstr "从电脑添加备份"
+
+msgid "Select a boot.img and create a backup from it.\nWARNING! No verification is done if the selected file is stock boot image or even for the correct device."
+msgstr "选择一个 boot.img 并从中创建备份。\n警告！不会验证所选文件是否为原厂启动镜像或适用于当前设备。"
+
+msgid "Auto Create Backup"
+msgstr "自动创建备份"
+
+msgid "Checks current boot partition,\nFf it is a Magisk Patched with SHA1\nand the boot.img is available, then it\nAutomatically creates a backup of boot image."
+msgstr "检测当前启动分区，\n如果是带有 SHA1 的 Magisk 修补且 boot.img 可用，\n则自动创建启动镜像备份。"
+
+msgid "Closes this dialog"
+msgstr "关闭此对话框"
+
+msgid "boot / init_boot image to create backup of."
+msgstr "用于创建备份的 boot / init_boot 镜像。"
+
+msgid "Delete Backup"
+msgstr "删除备份"
+
+msgid "Check All"
+msgstr "全选"
+
+msgid "UnCheck All"
+msgstr "取消全选"
+
+msgid "Copy to Clipboard"
+msgstr "复制到剪贴板"
+
+##############################################################################
+# App Manager
+##############################################################################
+msgid "Set SU Permission"
+msgstr "设置 SU 权限"
+
+msgid "Enter SU Permission details:"
+msgstr "输入 SU 权限详情："
+
+msgid "Enable Notification"
+msgstr "启用通知"
+
+msgid "Enable Logging"
+msgstr "启用日志"
+
+msgid "Forever"
+msgstr "永久"
+
+msgid "10 mins"
+msgstr "10 分钟"
+
+msgid "20 mins"
+msgstr "20 分钟"
+
+msgid "30 mins"
+msgstr "30 分钟"
+
+msgid "60 mins"
+msgstr "60 分钟"
+
+msgid "Allow"
+msgstr "允许"
+
+msgid "Deny"
+msgstr "拒绝"
+
+msgid "Revoke"
+msgstr "撤销"
+
+msgid "Manage Packages on the Device"
+msgstr "管理设备上的软件包"
+
+msgid "%s Packages"
+msgstr "%s 个软件包"
+
+msgid "Show System apps"
+msgstr "显示系统应用"
+
+msgid "Show 3rd Party apps"
+msgstr "显示第三方应用"
+
+msgid "Get All Application Names"
+msgstr "获取所有应用名称"
+
+msgid "Extracts App names, and caches them for faster loading in the future.\nNOTE: This could take a while."
+msgstr "提取应用名称并缓存，以便未来更快加载。\n注意：此过程可能需要一些时间。"
+
+msgid "Disable"
+msgstr "禁用"
+
+msgid "Disable checked packages"
+msgstr "禁用选中的软件包"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Enable checked packages"
+msgstr "启用选中的软件包"
+
+msgid "Uninstall"
+msgstr "卸载"
+
+msgid "Uninstall checked packages"
+msgstr "卸载选中的软件包"
+
+msgid "Add to Denylist"
+msgstr "添加到拒绝列表"
+
+msgid "Add package to Magisk Denylist"
+msgstr "将软件包添加到 Magisk 拒绝列表"
+
+msgid "Remove from Denylist"
+msgstr "从拒绝列表移除"
+
+msgid "Remove package from Magisk Denylist"
+msgstr "将软件包从 Magisk 拒绝列表中移除"
+
+msgid "Install an APK on the device"
+msgstr "在设备上安装 APK"
+
+msgid "Download APK"
+msgstr "下载 APK"
+
+msgid "Extract and download APK"
+msgstr "提取并下载 APK"
+
+msgid "Export List"
+msgstr "导出列表"
+
+msgid "Export the package list in CSV format"
+msgstr "以 CSV 格式导出软件包列表"
+
+msgid "%s / %s Packages"
+msgstr "%s / %s 个软件包"
+
+msgid "Export Package list"
+msgstr "导出软件包列表"
+
+msgid "Choose a directory where all apks should be saved."
+msgstr "选择保存所有 APK 的目录。"
+
+msgid "Download APK file"
+msgstr "下载 APK 文件"
+
+msgid "Disable Package"
+msgstr "禁用软件包"
+
+msgid "Enable Package"
+msgstr "启用软件包"
+
+msgid "Uninstall Package"
+msgstr "卸载软件包"
+
+msgid "Download Package"
+msgstr "下载软件包"
+
+msgid "Launch Package"
+msgstr "启动软件包"
+
+msgid "View Application Permissions"
+msgstr "查看应用权限"
+
+msgid "Kill Application"
+msgstr "强制停止应用"
+
+msgid "Clear Application Data"
+msgstr "清除应用数据"
+
+msgid "Add Package to Magisk Denylist"
+msgstr "将软件包添加到 Magisk 拒绝列表"
+
+msgid "Remove Package from Magisk Denylist"
+msgstr "将软件包从 Magisk 拒绝列表移除"
+
+msgid "SU Permission ..."
+msgstr "SU 权限 ..."
+
+msgid "Before switching slots, please make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr "切换分区前，请确保设备不受 ARB（反回滚）限制影响。\n你确定要继续吗？"
+
+msgid "Switch Slot potential concerns"
+msgstr "切换分区的潜在风险"
+
+msgid "##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+msgstr "##⚠️ 警告：你已选择对两个分区同时刷写。<br/>\n"
+
+msgid "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
+msgstr "请确保你的设备没有受到反回滚（ARB）限制，再点击继续。<br/>\n"
+
+msgid "You have selected the flash option: Flash to both slots\nPlease make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"
+msgstr "你已选择刷写选项：同时刷写两个分区\n请确保你的设备没有受到反回滚（ARB）限制。\n你确定要继续吗？"
+
+msgid "Flash option: Flash to both slots"
+msgstr "刷写选项：同时刷写两个分区"
+
+msgid "✅ Flash to both slots is accepted."
+msgstr "✅ 已接受同时刷写两个分区的操作。"
+
+msgid "Open URL on Device"
+msgstr "在设备上打开 URL"
+
+msgid "Enter the URL to open on the device:"
+msgstr "输入要在设备上打开的 URL："
+
+msgid "Open URL"
+msgstr "打开 URL"
+
+msgid "Open a URL in the default browser"
+msgstr "在默认浏览器中打开 URL"

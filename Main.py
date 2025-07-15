@@ -3937,7 +3937,7 @@ class PixelFlasher(wx.Frame):
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled Switch Slot operation")
                 return False
             print("User pressed ok to continue with Switch Slot operation")
-            return
+            return True
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
             traceback.print_exc()

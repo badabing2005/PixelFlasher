@@ -207,41 +207,48 @@
         "Codename": "Red Velvet Cake",
         "Version": "11",
         "Release date": "September 8, 2020",
-        "Latest update": "Present"
+        "Latest update": "February 2024"
     },
     "31": {
         "Name": "Android 12",
         "Codename": "Snow Cone ",
         "Version": "12",
         "Release date": "October 4, 2021",
-        "Latest update": "Present"
+        "Latest update": "March 2025"
     },
     "32": {
         "Name": "Android 12L",
         "Codename": "Snow Cone v2",
         "Version": "12.1",
         "Release date": "March 7, 2022",
-        "Latest update": "Present"
+        "Latest update": "March 2025"
     },
     "33": {
         "Name": "Android 13",
         "Codename": "Tiramisu",
         "Version": "13",
         "Release date": "August 15, 2022",
-        "Latest update": "Present"
+        "Latest update": "March 2025"
     },
     "34": {
         "Name": "Android 14",
         "Codename": "Upside Down Cake",
         "Version": "14",
-        "Release date": "Q3 2023",
+        "Release date": "October 4, 2023",
         "Latest update": "Present"
     },
     "35": {
         "Name": "Android 15",
         "Codename": "Vanilla Ice Cream",
         "Version": "15",
-        "Release date": "Q3 2024",
-        "Latest update": ""
+        "Release date": "September 3, 2024",
+        "Latest update": "Present"
+    },
+    "36": {
+        "Name": "Android 16",
+        "Codename": "Baklava",
+        "Version": "16",
+        "Release date": "June 10, 2025",
+        "Latest update": "Present"
     }
 }

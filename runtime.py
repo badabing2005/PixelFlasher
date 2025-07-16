@@ -1638,6 +1638,7 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
                             debug(f"Found: {name}\n")
                         return name
                     elif nested and name.endswith('.zip'):
+                        debug(f"Entering nested zip: {name}")
                         with zip_file.open(name, 'r') as nested_zip_file:
                             nested_zip_data = nested_zip_file.read()
                         with io.BytesIO(nested_zip_data) as nested_zip_stream:
@@ -1650,7 +1651,7 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
         except zipfile.BadZipFile:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {zip_file_path} is not a zip file or is corrupt, skipping this file ...")
             return ''
-        debug(f"file: {file_to_check} was NOT found\n")
+        debug(f"file: {file_to_check} was NOT found in checked zip on stack\n")
         return ''
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_zip_contains_file_fast. Reason: {e}")
@@ -2483,6 +2484,24 @@ def delete_all(dir):
 
 
 # ============================================================================
+#                               Function get_size_from_url
+# ============================================================================
+def get_size_from_url(url):
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=10)
+        if 'Content-Length' in response.headers:
+            file_size = int(response.headers['Content-Length'])
+            debug(f"Size of {url} is {file_size} bytes")
+            return file_size
+        else:
+            debug("Could not determine file size from headers")
+            return None
+    except Exception as e:
+        print(f"Error getting file size: {e}")
+        return None
+
+
+# ============================================================================
 #                               Function check_module_update
 # ============================================================================
 def check_module_update(url):
@@ -2872,6 +2891,73 @@ def get_beta_links():
 
 
 # ============================================================================
+#                 Function get_telegram_factory_images
+# ============================================================================
+def get_telegram_factory_images():
+    try:
+        telegram_url = "https://t.me/s/pixelfactoryimagestracker"
+        response = requests.get(telegram_url)
+        if response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {telegram_url}")
+            return -1
+        telegram_html = response.text
+        soup = BeautifulSoup(telegram_html, 'html.parser')
+        # Find all div class="tgme_widget_message_text js-message_text"
+        messages = soup.find_all('div', class_='tgme_widget_message_text js-message_text')
+        factory_images = []
+        # Process the messages in reverse order (latest entry is always the newest)
+        for message in reversed(messages):
+            # Check if this is a factory image announcement
+            if "New Pixel Factory Image Detected" in message.text:
+                device = None
+                image_type = None
+                build_id = None
+                download_url = None
+
+                # Extract device info
+                device_match = re.search(r'<b>Device:<\/b>\s*([^<]+)<br', str(message))
+                if device_match:
+                    device = device_match.group(1).strip()
+
+                # Extract type info
+                type_match = re.search(r'<b>Type:<\/b>\s*([^<]+)<br', str(message))
+                if type_match:
+                    image_type = type_match.group(1).strip()
+
+                # Extract build ID
+                build_id_match = re.search(r'<b>Build ID:<\/b>\s*<code>([^<]+)<\/code>', str(message))
+                if build_id_match:
+                    build_id = build_id_match.group(1).strip()
+
+                # Extract download URL
+                link = message.find('a', href=True)
+                if link:
+                    download_url = link['href']
+
+                # Add to our array if we have all required fields
+                if device and download_url:
+                    factory_images.append({
+                        "device": device,
+                        "type": image_type,
+                        "build_id": build_id,
+                        "url": download_url
+                    })
+        # save telegram factory_images to a file
+        if factory_images:
+            config_path = get_config_path()
+            telegram_factory_images_file = os.path.join(config_path, 'telegram_factory_images.json')
+            with open(telegram_factory_images_file, 'w', encoding='utf-8') as f:
+                json.dump(factory_images, f, indent=4, ensure_ascii=False)
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} No factory images found in Telegram channel.")
+        return factory_images
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Telegram factory images.")
+        traceback.print_exc()
+        return -1
+
+
+# ============================================================================
 #                 Function get_beta_pif
 # ============================================================================
 def get_beta_pif(device_model='random', force_version=None):
@@ -2880,6 +2966,20 @@ def get_beta_pif(device_model='random', force_version=None):
     print(f"Selected Version:         {latest_version}")
     if latest_version == -1:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get the latest Android version")
+        return -1
+
+    if force_version and str(force_version).startswith('CANARY'):
+        version_data = get_android_versions()
+        # Create reverse lookup from API version to Android version
+        version_to_api = {}
+        for api_version, info in version_data.items():
+            version_to_api[info['Version'].lower()] = api_version
+        api_version = version_to_api[str(latest_version)]
+        canary_url = f"https://dl.google.com/android/repository/sys-img/google_apis/arm64-v8a-{api_version}.0-{force_version}.zip"
+        debug(f"Using Canary URL: {canary_url}")
+        # Fetch Canary data
+        # fingerprint, security_patch = url2fpsp(canary_url, "canary")
+        # TODO : Implement url2fpsp for Canary builds
         return -1
 
     # set the url to the latest version
@@ -3261,7 +3361,7 @@ def get_latest_android_version(force_version=None):
         if href and re.match(r'https:\/\/developer\.android\.com\/about\/versions\/\d+', href):
             # capture the d+ part
             link_version = int(re.search(r'\d+', href).group())
-            if force_version:
+            if force_version and not str(force_version).startswith('CANARY'):
                 if link_version == force_version:
                     version = link_version
                     link_url = href
@@ -3270,6 +3370,156 @@ def get_latest_android_version(force_version=None):
                 version = link_version
                 link_url = href
     return version, link_url
+
+
+# ============================================================================
+#                Function get_fp_sp_from_incremental_remote_file
+# ============================================================================
+def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=8*1024*1024, overlap=200, fallback_size=60*1024*1024):
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+
+            # Get the file size
+            total_size = get_size_from_url(url)
+            if total_size is None:
+                print(f"⚠️ Could not determine file size for {url}.")
+                return None, None
+
+            fingerprint = None
+            security_patch = None
+
+            # Set up regex patterns based on image type, note: we won't be using the partial patterns here for now.
+            if image_type == 'ota':
+                fp_pattern_complete = r"post-build=(.+?)(\s|$)"
+                fp_pattern_partial = r"post-build=([^\s]*?)$"
+                sp_pattern_complete = r"security-patch-level=(.+?)(\s|$)"
+                sp_pattern_partial = r"security-patch-level=([^\s]*?)$"
+            elif image_type == 'factory':
+                fp_pattern_complete = r"com\.android\.build\.boot\.fingerprint(.+?)\x00"
+                fp_pattern_partial = r"com\.android\.build\.boot\.fingerprint([^\x00]*?)$"
+                sp_pattern_complete = r"com\.android\.build\.boot\.security_patch(.+?)\x00"
+                sp_pattern_partial = r"com\.android\.build\.boot\.security_patch([^\x00]*?)$"
+            else:
+                print(f"Unsupported image type for incremental reading: {image_type}")
+                return None, None
+
+            # First, try partial content requests (assume the server supports it)
+            supports_partial_content = True
+            debug(f"Starting chunked download with chunk_size=0x{chunk_size:x}, overlap=0x{overlap:x}")
+            i = 0
+            while fingerprint is None or security_patch is None:
+                # Calculate start and end ranges with overlap
+                start_range = i * chunk_size
+                end_range = ((i + 1) * chunk_size) + overlap
+
+                # Check if we've reached the end of the file
+                if start_range >= total_size:
+                    debug(f"Reached end of file at position {start_range}")
+                    break
+
+                # Adjust end_range if it exceeds file size
+                if end_range > total_size:
+                    end_range = total_size
+
+                # Request range of bytes
+                headers = {"Range": f"bytes={start_range}-{end_range - 1}"}
+                # debug(f"Fetching bytes {start_range} to {end_range - 1} from {url}")
+                debug(f"Fetching bytes 0x{start_range:x} to 0x{(end_range - 1):x}")
+                wx.Yield()
+
+                try:
+                    response = requests.get(url, headers=headers, stream=True, verify=False, timeout=30)
+
+                    if response.status_code == 206:  # Partial content success
+                        ## Optional save each binary chunk to file for debugging
+                        #
+                        # config_path = get_config_path()
+                        # debug_dir = os.path.join(config_path, 'debug_chunks')
+                        # os.makedirs(debug_dir, exist_ok=True)
+                        # chunk_filename = os.path.join(debug_dir, f"chunk_{start_range}_{end_range - 1}.bin")
+                        # with open(chunk_filename, 'wb') as chunk_file:
+                        #     chunk_file.write(response.content)
+                        # print(f"Saved chunk to {chunk_filename}")
+
+                        content = response.content.decode('utf-8', errors='ignore')
+
+                        # Search for fingerprint
+                        if fingerprint is None:
+                            fp_match = re.search(fp_pattern_complete, content)
+                            if fp_match:
+                                fingerprint = fp_match.group(1).strip('\x00')
+                                debug(f"Found fingerprint: {fingerprint}")
+                                wx.Yield()
+
+                        # Search for security patch
+                        if security_patch is None:
+                            sp_match = re.search(sp_pattern_complete, content)
+                            if sp_match:
+                                security_patch = sp_match.group(1).strip('\x00')
+                                debug(f"Found security patch: {security_patch}")
+                                wx.Yield()
+
+                        i += 1
+                    else:
+                        print(f"⚠️ Server doesn't support partial content, status: {response.status_code}")
+                        supports_partial_content = False
+                        break
+                except Exception as e:
+                    print(f"⚠️ Error fetching chunk: {str(e)}")
+                    # Try to continue with the next chunk
+                    i += 1
+                    # If we've gone too far, break out
+                    if i * chunk_size >= total_size:
+                        print("⚠️ Reached end of file or encountered too many errors, stopping chunked download")
+                        break
+
+            # If we couldn't find the patterns with partial content,
+            # or server doesn't support it, try a single larger request as fallback
+            if not supports_partial_content or (fingerprint is None or security_patch is None):
+                print(f"⚠️ Using fallback method: requesting file directly. This might take a while for large files...")
+                try:
+                    # For OTA files, limit to first few MB since metadata is usually at the beginning
+                    if image_type == 'ota':
+                        fallback_size = min(5*1024*1024, total_size)  # 5MB for OTA
+                        debug(f"Downloading first {fallback_size // (1024*1024)}MB of OTA file...")
+                        response = requests.get(url, stream=True, verify=False, timeout=60)
+                        content = response.raw.read(fallback_size).decode('utf-8', errors='ignore')
+                    else:
+                        # For factory images, we might need to download a larger portion
+                        fallback_size = min(fallback_size, total_size)  # 60MB for factory images
+                        debug(f"Downloading first {fallback_size // (1024*1024)}MB of file...")
+                        response = requests.get(url, stream=True, verify=False, timeout=90)
+                        content = response.raw.read(fallback_size).decode('utf-8', errors='ignore')
+
+                    # Search for patterns in the fallback content
+                    if fingerprint is None:
+                        fp_match = re.search(fp_pattern_complete, content)
+                        if fp_match:
+                            fingerprint = fp_match.group(1).strip('\x00')
+                            debug(f"Found fingerprint: {fingerprint}")
+                            wx.Yield()
+
+                    if security_patch is None:
+                        sp_match = re.search(sp_pattern_complete, content)
+                        if sp_match:
+                            security_patch = sp_match.group(1).strip('\x00')
+                            debug(f"Found security patch: {security_patch}")
+                            wx.Yield()
+
+                except Exception as e:
+                    print(f"⚠️ Fallback request failed: {str(e)}")
+
+                # If fallback approach failed and we still don't have the data,
+                if fingerprint is None or security_patch is None:
+                    print(f"⚠️ Could not extract required information from partial download.")
+
+            return fingerprint, security_patch
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_fp_sp_from_incremental_remote_file")
+        traceback.print_exc()
+        return None, None
 
 
 # ============================================================================
@@ -3282,19 +3532,14 @@ def url2fpsp(url, image_type):
 
             fingerprint = None
             security_patch = None
-            response = requests.get(url, stream=True, verify=False)
-            response.raise_for_status()
 
+            # For OTA and factory images, use incremental chunk fetching
             if image_type == 'ota':
-                size_limit = 2 * 1024
-                content = response.raw.read(size_limit).decode('utf-8', errors='ignore')
-                fingerprint_match = re.search(r"post-build=(.+)", content)
-                security_patch_match = re.search(r"security-patch-level=(.+)", content)
+                fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, 2*1024)
+
             elif image_type == 'factory':
-                size_limit = 60000000
-                content = response.raw.read(size_limit).decode('utf-8', errors='ignore')
-                fingerprint_match = re.search(r"com.android.build.boot.fingerprint(.+?)\x00", content)
-                security_patch_match = re.search(r"com.android.build.boot.security_patch(.+?)\x00", content)
+                fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, 8*1024*1024)
+
             elif image_type == 'gsi':
                 response = requests.head(url)
                 file_size = int(response.headers["Content-Length"])
@@ -3309,12 +3554,13 @@ def url2fpsp(url, image_type):
                 content_str = content.decode('utf-8', errors='ignore')
                 fingerprint_match = re.search(r"ro\.system\.build\.fingerprint=(.+)", content_str)
                 security_patch_match = re.search(r"ro\.build\.version\.security_patch=(.+)", content_str)
+
+                fingerprint = fingerprint_match.group(1).strip('\x00') if fingerprint_match else None
+                security_patch = security_patch_match.group(1).strip('\x00') if security_patch_match else None
+
             else:
                 print(f"Invalid image type: {image_type}")
                 return None, None
-
-            fingerprint = fingerprint_match.group(1).strip('\x00') if fingerprint_match else None
-            security_patch = security_patch_match.group(1).strip('\x00') if security_patch_match else None
 
             # debug("FINGERPRINT:", fingerprint)
             # debug("SECURITY_PATCH:", security_patch)
@@ -3998,8 +4244,8 @@ def process_pi_xml_piac(filename):
 
         # Specify the resource-ids to identify the nodes of interest
         resource_ids_list = [
-            'gr.nikolasspyr.integritycheck:id/device_integrity_icon',
             'gr.nikolasspyr.integritycheck:id/basic_integrity_icon',
+            'gr.nikolasspyr.integritycheck:id/device_integrity_icon',
             'gr.nikolasspyr.integritycheck:id/strong_integrity_icon'
         ]
 
@@ -5151,6 +5397,7 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False, no
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
     return response
+
 
 # ============================================================================
 #                               Function check_internet

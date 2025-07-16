@@ -656,6 +656,7 @@ def process_file(self, file_type):
         is_odin = False
         is_init_boot = False
         is_stock_boot = False
+        image_file_path = None
 
         is_payload_bin = False
         factory_images = os.path.join(config_path, 'factory_images')
@@ -713,6 +714,17 @@ def process_file(self, file_type):
                     print("Aborting ...\n")
                     self.toast(_("Process action"), "❌ Could not extract %s" % file_to_process)
                     return
+                if os.path.exists(image_file_path):
+                    print("Possibly the selected image is an official Pixel factory image.")
+                else:
+                    print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    print(f"⚠️ WARNING: Possibly the selected image is a Non-official Pixel factory image.")
+                    print("Please check the file you selected, it may not be a valid Pixel factory image.")
+                    print("If it is not an official Pixel factory image, please check the author's documentation for more information.")
+                    print("Do not flash this image if you are not sure how to proceed, it may brick your device!")
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                    puml("#orange:Possible Non-Pixel factory image found;\n")
+                    image_file_path = None
                 wx.Yield()
             elif found_boot_img or found_init_boot_img:
                 print(f"Detected Non Pixel firmware, with: {found_boot_img} {found_init_boot_img}")
@@ -966,7 +978,7 @@ def process_file(self, file_type):
         else:
             if is_odin:
                 shutil.copy(os.path.join(package_dir_full, 'boot.img'), os.path.join(tmp_dir_full, 'boot.img'), follow_symlinks=True)
-            if not os.path.exists(image_file_path):
+            if image_file_path and not os.path.exists(image_file_path):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The firmware file did not have the expected structure / contents.")
                 if file_type == 'firmware':
                     print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
@@ -995,44 +1007,48 @@ def process_file(self, file_type):
                     self.toast(_("Process action"), _("⚠️ Nothing to extract from %s") % file_type)
                     return
 
-                print(f"Extracting {files_to_extract} from {image_file_path} ...")
-                print("This could take some more time, please wait ...")
-                puml(f":Extract {files_to_extract};\n")
-                wx.Yield()
-                if file_ext in ['.tgz']:
-                    res = extract_from_nested_tgz(image_file_path, files_to_extract, tmp_dir_full)
-                    if not res:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-                        puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
-                        self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
-                        print("Aborting ...\n")
-                        return
-                else:
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
-                    debug(f"{theCmd}")
+                if image_file_path:
+                    print(f"Extracting {files_to_extract} from {image_file_path} ...")
+                    print("This could take some more time, please wait ...")
+                    puml(f":Extract {files_to_extract};\n")
                     wx.Yield()
-                    res = run_shell(theCmd)
-                    # expect ret 0
-                    if res and isinstance(res, subprocess.CompletedProcess):
-                        debug(f"Return Code: {res.returncode}")
-                        debug(f"Stdout: {res.stdout}")
-                        debug(f"Stderr: {res.stderr}")
-                        if res.returncode != 0:
+                    if file_ext in ['.tgz']:
+                        res = extract_from_nested_tgz(image_file_path, files_to_extract, tmp_dir_full)
+                        if not res:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
                             puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
                             self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
                             print("Aborting ...\n")
                             return
                     else:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-                        puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
-                        self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
-                        print("Aborting ...\n")
-                        return
+                        theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{tmp_dir_full}\" \"{image_file_path}\" {files_to_extract}"
+                        debug(f"{theCmd}")
+                        wx.Yield()
+                        res = run_shell(theCmd)
+                        # expect ret 0
+                        if res and isinstance(res, subprocess.CompletedProcess):
+                            debug(f"Return Code: {res.returncode}")
+                            debug(f"Stdout: {res.stdout}")
+                            debug(f"Stderr: {res.stderr}")
+                            if res.returncode != 0:
+                                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
+                                puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                                self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
+                                print("Aborting ...\n")
+                                return
+                        else:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
+                            puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                            self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
+                            print("Aborting ...\n")
+                            return
 
         # sometimes the return code is 0 but no file to extract, handle that case.
         # also handle the case of extraction from payload.bin
-        boot_img_file = os.path.join(tmp_dir_full, boot_file_name)
+        if image_file_path:
+            boot_img_file = os.path.join(tmp_dir_full, boot_file_name)
+        else:
+            boot_img_file = os.path.join(package_dir_full, boot_file_name)
         if not os.path.exists(boot_img_file):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}, ")
             print(f"Please make sure the file: {image_file_path} has {boot_file_name} in it.")
@@ -1061,11 +1077,15 @@ def process_file(self, file_type):
             print(f"Found a cached copy of {file_type} {boot_file_name} sha1={checksum}")
 
         # we need to copy boot.img for Pixel 7, 7P, 7a .. so that we can do live boot or KernelSu Patching.
-        if found_init_boot_img and os.path.exists(os.path.join(tmp_dir_full, 'boot.img')):
-            shutil.copy(os.path.join(tmp_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
-        # we copy vbmeta.img so that we can do selective vbmeta verity / verification patching.
-        if found_vbmeta_img and os.path.exists(package_dir_full):
-            shutil.copy(os.path.join(tmp_dir_full, 'vbmeta.img'), package_dir_full, follow_symlinks=True)
+        if image_file_path:
+            if found_init_boot_img and os.path.exists(os.path.join(tmp_dir_full, 'boot.img')):
+                shutil.copy(os.path.join(tmp_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
+            # we copy vbmeta.img so that we can do selective vbmeta verity / verification patching.
+            if found_vbmeta_img and os.path.exists(package_dir_full):
+                shutil.copy(os.path.join(tmp_dir_full, 'vbmeta.img'), package_dir_full, follow_symlinks=True)
+        else:
+            if found_init_boot_img and os.path.exists(os.path.join(package_dir_full, 'boot.img')):
+                shutil.copy(os.path.join(package_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
 
         # Let's see if we have a record for the firmware/rom being processed
         print(f"Checking DB entry for PACKAGE: {file_to_process}")
@@ -4167,6 +4187,7 @@ def flash_phone(self):
 
         puml("#cyan:Flash Firmware;\n", True)
         puml("partition \"**Flash Firmware**\" {\n")
+        temp_dir = None
 
         # -------------------------------------------------------------------------
         # 1 Do the necessary validations

@@ -128,10 +128,10 @@ jobs:
           # If there are in-progress builds (excluding this one), wait for them to complete
           if [[ "$IN_PROGRESS_COUNT" -gt 1 ]]; then
             echo "There are in-progress builds for this commit. Will wait for them to complete before proceeding."
-            echo "This build will pause for 5 minutes to allow other builds to complete."
+            echo "This build will pause for 10 minutes to allow other builds to complete."
 
-            # Sleep for 5 minutes to allow in-progress builds to complete
-            sleep 300
+            # Sleep for 10 minutes to allow in-progress builds to complete
+            sleep 600
           fi
 
           # Get all workflow runs for this commit (including completed ones)

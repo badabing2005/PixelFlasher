@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: PixelFlasher XDA Forum
+    url: https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/
+    about: Please ask general questions in the XDA forum thread
+  - name: Troubleshooting Guide
+    url: https://github.com/badabing2005/PixelFlasher#troubleshooting
+    about: Check the troubleshooting section in the README for common issues
+  - name: False Positive Virus Reports
+    url: https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/post-89090938
+    about: If you're concerned about antivirus detection, please read this post first

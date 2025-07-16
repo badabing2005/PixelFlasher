@@ -1,0 +1,57 @@
+# This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
+#
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Auto Close Issues Without Support Files
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  check_support_file:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.body, 'Support File Status') && contains(github.event.issue.body, 'Support File Attachment') && !contains(github.event.issue.body, 'I cannot generate a support file')
+    steps:
+      - name: Check for valid support file
+        id: check_support
+        run: |
+          body="${{ github.event.issue.body }}"
+          if echo "$body" | grep -q "Support_[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}_[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}.zip"; then
+            echo "has_support_file=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_support_file=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Close Issue if no support file
+        if: steps.check_support.outputs.has_support_file == 'false'
+        uses: peter-evans/close-issue@v3
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          comment: |
+            This issue has been automatically closed because it does not include a properly named support file.
+
+            ## Required Support File Format
+
+            An encrypted support file named in the format `Support_YYYY-MM-DD_hh-mm-ss.zip` is required to process your issue. This file is encrypted to protect your privacy.
+
+            ## How to Generate a Support File
+
+            1. Open PixelFlasher
+            2. Click the "Support" button or select it from the Help menu
+            3. Save the generated file (it will be automatically named correctly and encrypted for your privacy)
+            4. Attach this file to your issue
+
+            ## Next Steps
+
+            You may reopen this issue by:
+            1. Clicking the "Edit" button on your original issue
+            2. Attaching the properly named support file
+            3. Commenting that you've added the required file
+
+            Thank you for your understanding.
+          labels: "invalid"
+          close-reason: "not_planned"

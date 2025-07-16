@@ -309,6 +309,7 @@ class PifManager(wx.Dialog):
         # Custom version input
         self.custom_version = wx.TextCtrl(self, wx.ID_ANY, "15", size=(40, -1))
         self.custom_version.SetToolTip(_("Set a valid Android version code."))
+        # self.custom_version.SetToolTip(_("Set a valid two digit Android version code,\nor 'C' for Canary,\nor 'CANARY_rxx' for Canary release.\nExample: 15, 16, 17, C, CANARY_r01\nNote: The custom version is only used when 'Custom' is selected."))
         self.custom_version.Enable(False)
 
         # Get Beta Pif button
@@ -1043,34 +1044,36 @@ class PifManager(wx.Dialog):
     #                  onBetaRadioSelect
     # -----------------------------------------------
     def onBetaRadioSelect(self, event):
-        self.custom_version.Enable(self.rb_custom.GetValue())
+        is_custom = self.rb_custom.GetValue()
+        self.custom_version.Enable(is_custom)
+
         if self.rb_latest.GetValue():
             self.beta_pif_version = 'latest'
         else:
             # When switching to custom, validate existing text
             try:
-                value = int(self.custom_version.GetValue())
-                self.beta_pif_version = str(value)
+                value = self.custom_version.GetValue()
+                if value.isdigit() or value.lower() == 'c' or value.startswith('CANARY') or value.lower() == 't':
+                    self.beta_pif_version = str(value)
+                else:
+                    self.beta_pif_version = 'latest'
             except ValueError:
                 self.beta_pif_version = 'latest'
+
+            # Set focus to the custom version input and select all text
+            if is_custom:
+                self.custom_version.SetFocus()
+                self.custom_version.SetSelection(-1, -1)
 
     # -----------------------------------------------
     #                  onBetaVersionChange
     # -----------------------------------------------
     def onBetaVersionChange(self, event):
-        text = self.custom_version.GetValue()
-
-        # Only allow 2 digits
-        if len(text) > 2:
-            self.custom_version.SetValue(text[:2])
-            self.custom_version.SetInsertionPointEnd()
-            event.Skip(False)  # Prevent further processing
-            return
+        text = self.custom_version.GetValue().strip()
 
         try:
             if text:
-                value = int(text)
-                self.beta_pif_version = str(value)
+                self.beta_pif_version = str(text)
             else:
                 self.beta_pif_version = 'latest'
         except ValueError:
@@ -1101,10 +1104,73 @@ class PifManager(wx.Dialog):
             # Check if self.beta_pif_version is a two digit number then set force_version to that (int)
             if self.beta_pif_version.isdigit() and len(self.beta_pif_version) == 2:
                 force_version = int(self.beta_pif_version)
+            elif self.beta_pif_version.lower() == 'c':
+                force_version = ANDROID_CANARY_VERSION
+            elif self.beta_pif_version.lower().startswith('canary'):
+                # If it starts with 'canary', we assume it's a valid canary version
+                force_version = self.beta_pif_version.strip()
+            elif self.beta_pif_version.lower() == 't':
+                force_version = 't'
+                t_factory_images = get_telegram_factory_images()
+                if t_factory_images:
+                    selected_image = self.select_t_image(t_factory_images)
+                    if selected_image is None:
+                        force_version = None
+                        self.console_stc.SetValue(f"{self.console_stc.GetValue()}\n⚠️ WARNING! No valid Telegram factory image selected.")
+                        return
+                    else:
+                        print(f"Selected Telegram factory image: {selected_image}")
+                        # First try getting fingerprint without downloading
+                        fingerprint, security_patch = url2fpsp(selected_image, "factory")
+                        if fingerprint is None or security_patch is None:
+                            debug(f"Failed to get fingerprint and security patch from partial {selected_image}\nTrying the full image ...")
+                            override_size_limit = get_size_from_url(selected_image)
+                            self.console_stc.SetValue(f"{self.console_stc.GetValue()}\n⚠️ Downloading full Telegram factory image {override_size_limit} bytes ...\nThis may take quite a while ...")
+                            wx.Yield()
+                            if override_size_limit is not None:
+                                fingerprint, security_patch = url2fpsp(selected_image, "factory", override_size_limit)
+                        if fingerprint and security_patch:
+                            print(f"Security Patch:           {security_patch}")
+                            # Extract props from fingerprint
+                            pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
+                            match = re.search(pattern, fingerprint)
+                            if match and match.lastindex == 8:
+                                product = match[2]
+                                device = match[3]
+                                latest_version = match[4]
+                                build_id = match[5]
+                                incremental = match[6]
+                                build_type = match[7]
+                                build_tags = match[8]
+                                device_data = get_android_devices()
+                                model = None
+                                with contextlib.suppress(Exception):
+                                    model = device_data[device]['device']
+                                pif_data = {
+                                    "MANUFACTURER": "Google",
+                                    "MODEL": model,
+                                    "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
+                                    "PRODUCT": product,
+                                    "DEVICE": device,
+                                    "SECURITY_PATCH": security_patch,
+                                    "DEVICE_INITIAL_SDK_INT": "32"
+                                }
+                                json_string = json.dumps(pif_data, indent=4) + "\n"
+                                if json_string:
+                                    self.console_stc.SetValue(json_string)
+                                    print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
+                                    return
+                            print("⚠️ WARNING! Failed to create fingerprint from Telegram factory image.")
+                            wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
+                            return
+                else:
+                    force_version = None
+                    print(f"⚠️ WARNING! The requested Android beta / canary version is not valid: {self.beta_pif_version}. Using latest version instead.")
             else:
                 force_version = None
                 if self.rb_custom.GetValue():
-                    print(f"⚠️ WARNING! The requested Android beta version is not a valid two-digit number: {self.beta_pif_version}. Using latest version instead.")
+                    print(f"⚠️ WARNING! The requested Android beta / canary version is not valid: {self.beta_pif_version}. Using latest version instead.")
+
             beta_pif = get_beta_pif(device_model, force_version)
             if beta_pif == -1:
                 wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
@@ -1114,6 +1180,68 @@ class PifManager(wx.Dialog):
             traceback.print_exc()
         finally:
             self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  select_t_image
+    # -----------------------------------------------
+    def select_t_image(self, t_factory_images):
+        try:
+            if t_factory_images:
+                # Create a custom dialog with radio buttons for selection in a scrollable panel
+                select_dialog = wx.Dialog(self, title=_("Telegram Factory Images"), size=(800, 600))
+                scrolled_panel = wx.ScrolledWindow(select_dialog)
+                scrolled_panel.SetScrollRate(0, 10)
+                instruction_text = wx.StaticText(scrolled_panel, label=_("Select a factory image to use:"))
+                radio_sizer = wx.BoxSizer(wx.VERTICAL)
+                radio_sizer.Add(instruction_text, 0, wx.ALL, 10)
+
+                radio_buttons = []
+                for i, image in enumerate(t_factory_images):
+                    build_id_info = f" - {image['build_id']}" if 'build_id' in image and image['build_id'] else ""
+                    label = f"{image['device']} - {image['type'] if 'type' in image else 'Factory Image'}{build_id_info}"
+                    radio = wx.RadioButton(scrolled_panel, id=i, label=label, style=wx.RB_GROUP if i == 0 else 0)
+                    radio_buttons.append(radio)
+                    radio_sizer.Add(radio, 0, wx.ALL, 5)
+
+                scrolled_panel.SetSizer(radio_sizer)
+
+                # Add OK and Cancel buttons
+                btn_sizer = wx.StdDialogButtonSizer()
+                ok_button = wx.Button(select_dialog, wx.ID_OK)
+                cancel_button = wx.Button(select_dialog, wx.ID_CANCEL)
+                btn_sizer.AddButton(ok_button)
+                btn_sizer.AddButton(cancel_button)
+                btn_sizer.Realize()
+
+                # Disable OK button initially if no selection (should be enabled by default with first item selected)
+                ok_button.Enable(len(radio_buttons) > 0)
+
+                dialog_sizer = wx.BoxSizer(wx.VERTICAL)
+                dialog_sizer.Add(scrolled_panel, 1, wx.EXPAND | wx.ALL, 10)
+                dialog_sizer.Add(btn_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+
+                select_dialog.SetSizer(dialog_sizer)
+
+                selected_index = -1
+                # Show the dialog and get result
+                if select_dialog.ShowModal() == wx.ID_OK:
+                    # Find which radio button was selected
+                    for i, radio in enumerate(radio_buttons):
+                        if radio.GetValue():
+                            selected_index = i
+                            break
+
+                    if selected_index >= 0:
+                        selected_image = t_factory_images[selected_index]
+                        print(f"Selected factory image: {selected_image['device']} - {selected_image.get('type', 'Factory Image')}")
+                        print(f"URL: {selected_image['url']}")
+
+                select_dialog.Destroy()
+                return selected_image['url'] if selected_index >= 0 else None
+        except Exception as e:
+            print(f"Error selecting Telegram factory image: {e}")
+            traceback.print_exc()
+            return None
 
     # -----------------------------------------------
     #                  PlayIntegrityCheck
@@ -1353,7 +1481,6 @@ class PifManager(wx.Dialog):
                 res = device.delete("/data/local/tmp/pi.xml", device.rooted)
             self._on_spin('stop')
 
-
     # -----------------------------------------------
     #                  sort_prop
     # -----------------------------------------------
@@ -1403,7 +1530,6 @@ class PifManager(wx.Dialog):
         finally:
             self._on_spin('stop')
 
-
     # -----------------------------------------------
     #                  process_props
     # -----------------------------------------------
@@ -1448,7 +1574,6 @@ class PifManager(wx.Dialog):
             print(f"Cannot process file: '{pathname}'.")
             traceback.print_exc()
 
-
     # -----------------------------------------------
     #                  ProcessImg
     # -----------------------------------------------
@@ -1472,7 +1597,6 @@ class PifManager(wx.Dialog):
             traceback.print_exc()
         finally:
             self._on_spin('stop')
-
 
     # -----------------------------------------------
     #                  ProcessBuildPropFolder
@@ -1744,7 +1868,6 @@ class PifManager(wx.Dialog):
         self.console_stc.SetValue(self.active_pif_stc.GetValue())
         event.Skip()
 
-
     # -----------------------------------------------
     #                  onAutoFill
     # -----------------------------------------------
@@ -1753,7 +1876,6 @@ class PifManager(wx.Dialog):
         status = self.add_missing_keys_checkbox.GetValue()
         print(f"Add Missing Keys is set to: {status}")
         self.config.pif['auto_fill'] = status
-
 
     # -----------------------------------------------
     #                  onSortKeys
@@ -1764,7 +1886,6 @@ class PifManager(wx.Dialog):
         self.sort_keys = status
         self.config.pif['sort_keys'] = status
 
-
     # -----------------------------------------------
     #                  onKeepUnknown
     # -----------------------------------------------
@@ -1773,7 +1894,6 @@ class PifManager(wx.Dialog):
         status = self.keep_unknown_checkbox.GetValue()
         self.keep_unknown = status
         self.config.pif['keep_unknown'] = status
-
 
     # -----------------------------------------------
     #                  onSpoofBuild
@@ -1784,7 +1904,6 @@ class PifManager(wx.Dialog):
         self.spoofBuild = status
         self.config.pif['spoofBuild'] = status
 
-
     # -----------------------------------------------
     #                  onSpoofProps
     # -----------------------------------------------
@@ -1793,7 +1912,6 @@ class PifManager(wx.Dialog):
         status = self.spoofProps_checkbox.GetValue()
         self.spoofProps = status
         self.config.pif['spoofProps'] = status
-
 
     # -----------------------------------------------
     #                  onApiValueChange
@@ -1807,7 +1925,6 @@ class PifManager(wx.Dialog):
             # Handle the case where the input is not a valid integer
             pass
 
-
     # -----------------------------------------------
     #                  onSpoofProvider
     # -----------------------------------------------
@@ -1816,7 +1933,6 @@ class PifManager(wx.Dialog):
         status = self.spoofProvider_checkbox.GetValue()
         self.spoofProvider = status
         self.config.pif['spoofProvider'] = status
-
 
     # -----------------------------------------------
     #                  onSpoofSignature
@@ -1827,7 +1943,6 @@ class PifManager(wx.Dialog):
         self.spoofSignature = status
         self.config.pif['spoofSignature'] = status
 
-
     # -----------------------------------------------
     #                  onSpoofVendingSdk
     # -----------------------------------------------
@@ -1836,7 +1951,6 @@ class PifManager(wx.Dialog):
         status = self.spoofVendingSdk_checkbox.GetValue()
         self.spoofVendingSdk = status
         self.config.pif['spoofVendingSdk'] = status
-
 
     # -----------------------------------------------
     #                  onForceFirstAPI
@@ -1851,7 +1965,6 @@ class PifManager(wx.Dialog):
         else:
             self.first_api = None
 
-
     # -----------------------------------------------
     #                  onAutoUpdatePif
     # -----------------------------------------------
@@ -1861,7 +1974,6 @@ class PifManager(wx.Dialog):
         print(f"Auto Update print is set to: {status}")
         self.config.pif['auto_update_pif_json'] = status
 
-
     # -----------------------------------------------
     #                  onAutoCheckPlayIntegrity
     # -----------------------------------------------
@@ -1870,7 +1982,6 @@ class PifManager(wx.Dialog):
         status = self.auto_check_pi_checkbox.GetValue()
         print(f"Auto Check Play Integrity is set to: {status}")
         self.config.pif['auto_check_play_integrity'] = status
-
 
     # -----------------------------------------------
     #                  E2J
@@ -1884,7 +1995,6 @@ class PifManager(wx.Dialog):
         finally:
             self._on_spin('stop')
 
-
     # -----------------------------------------------
     #                  J2E
     # -----------------------------------------------
@@ -1896,7 +2006,6 @@ class PifManager(wx.Dialog):
             traceback.print_exc()
         finally:
             self._on_spin('stop')
-
 
     # -----------------------------------------------
     #                  P2J
@@ -1932,7 +2041,6 @@ class PifManager(wx.Dialog):
         except Exception:
             traceback.print_exc()
 
-
     # -----------------------------------------------
     #                  J2P
     # -----------------------------------------------
@@ -1957,7 +2065,6 @@ class PifManager(wx.Dialog):
         except Exception:
             traceback.print_exc()
 
-
     # -----------------------------------------------
     #                  edit_ts_target
     # -----------------------------------------------
@@ -1965,14 +2072,12 @@ class PifManager(wx.Dialog):
         self.edit_ts_file("/data/adb/tricky_store/target.txt")
         event.Skip()
 
-
     # -----------------------------------------------
     #                  edit_ts_security_patch
     # -----------------------------------------------
     def edit_ts_security_patch(self, event):
         self.edit_ts_file("/data/adb/tricky_store/security_patch.txt")
         event.Skip()
-
 
     # -----------------------------------------------
     #                  edit_ts_file
@@ -2030,7 +2135,6 @@ class PifManager(wx.Dialog):
         finally:
             self._on_spin('stop')
 
-
     # -----------------------------------------------
     #                  select_file_and_push
     # -----------------------------------------------
@@ -2059,7 +2163,6 @@ class PifManager(wx.Dialog):
         finally:
             self._on_spin('stop')
 
-
     # -----------------------------------------------
     #                  onDisableUIAutomator
     # -----------------------------------------------
@@ -2068,7 +2171,6 @@ class PifManager(wx.Dialog):
         status = self.disable_uiautomator_checkbox.GetValue()
         print(f"Disable UIAutomator is set to: {status}")
         self.config.pif['disable_uiautomator'] = status
-
 
     # -----------------------------------------------
     #                  load_json_with_rules
@@ -2118,7 +2220,6 @@ class PifManager(wx.Dialog):
             return modified_data
         except Exception:
             traceback.print_exc()
-
 
     # -----------------------------------------------
     #                  ReProcess

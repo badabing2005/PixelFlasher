@@ -1,0 +1,169 @@
+name: Bug Report
+description: Report a bug or issue with PixelFlasher
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |        # PixelFlasher Bug Report
+        Thank you for taking the time to fill out this bug report.
+
+        **IMPORTANT**: An encrypted support file generated from PixelFlasher is **REQUIRED**. This file is encrypted to protect your privacy. Issues without a valid support file will be automatically closed.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm you've completed these steps before submitting your issue.
+      options:
+        - label: I have searched existing issues to make sure this bug has not been reported before
+          required: true
+        - label: I have searched the [XDA Forums](https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/) to make sure this bug has not been reported before
+          required: true
+        - label: I have read the README documentation
+          required: true
+
+  - type: dropdown
+    id: virus_report
+    attributes:
+      label: Is this issue about reporting a virus or trojan detection?
+      description: If yes, please read the Troubleshooting section in the README about false positives first.
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the issue you encountered as clearly as possible.
+      placeholder: Tell us what you see when the issue occurs
+    validations:
+      required: true
+
+  - type: textarea
+    id: device-state
+    attributes:
+      label: Device state before issue
+      description: What was the state of your device prior to the issue?
+      placeholder: Describe the state of your device (e.g. unlocked bootloader, stock ROM, previous OS version, etc.)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Connect device to PC
+        2. Open PixelFlasher
+        3. Select ...
+        4. Click on ...
+        5. See error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: root_status
+    attributes:
+      label: Is your device rooted?
+      options:
+        - "No"
+        - "Yes, with Magisk"
+        - "Yes, with KernelSU"
+        - "Yes, with KernelSU-Next"
+        - "Yes, with Apatch"
+        - "Yes, with another method"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: shell_access
+    attributes:
+      label: If rooted, have you granted shell root access?
+      description: PixelFlasher needs shell root access to perform certain operations
+      options:
+        - "N/A (device not rooted)"
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: custom_rom
+    attributes:
+      label: Are you using a custom ROM or kernel?
+      options:
+        - "No, I'm using stock ROM and kernel"
+        - "Yes, I'm using a custom ROM"
+        - "Yes, I'm using a custom kernel"
+        - "Yes, I'm using both custom ROM and kernel"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: custom_rom_checks
+    attributes:
+      label: If using custom ROM/kernel, please confirm
+      description: If you selected that you're using custom ROM or kernel, please confirm the following
+      options:
+        - label: I have checked the custom ROM/kernel developer's documentation related to this issue
+          required: false
+        - label: I have checked if this issue has been reported to the ROM/kernel developer
+          required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: PixelFlasher Version
+      description: What version of PixelFlasher are you using?
+      placeholder: e.g. 8.2.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: OS Platform
+      description: Which operating system are you using?
+      placeholder: e.g. Windows 11, macOS Ventura, Ubuntu 22.04
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device Model
+      description: Which device model are you using?
+      placeholder: e.g. Pixel 8 Pro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: support_file_status
+    attributes:
+      label: Support File Status
+      description: An encrypted support file (Support_YYYY-MM-DD_hh-mm-ss.zip) is REQUIRED. The file is encrypted for your privacy. Issues without a proper support file will be closed.
+      options:
+        - "I have attached the encrypted support file generated by PixelFlasher (required naming format: Support_YYYY-MM-DD_hh-mm-ss.zip)"
+        - "I cannot generate a support file (please explain why in the additional notes section)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: support-file
+    attributes:
+      label: Support File Attachment
+      description: Please attach the encrypted support.zip file generated from PixelFlasher (Support button or Help menu). This file is encrypted to protect your privacy. Drag and drop the file directly into this text area. The file MUST follow the naming format Support_YYYY-MM-DD_hh-mm-ss.zip.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: Additional Notes
+      description: Add any other information that might be relevant to this issue.
+      placeholder: Any other details or context that might help us understand your issue better.

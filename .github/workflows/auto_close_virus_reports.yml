@@ -1,0 +1,39 @@
+# This file is part of PixelFlasher https://github.com/badabing2005/PixelFlasher
+#
+# Copyright (C) 2025 Badabing2005
+# SPDX-FileCopyrightText: 2025 Badabing2005
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Auto Close Virus Report Issues
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  close_virus_reports:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.body, 'Is this issue about reporting a virus or trojan detection?') && contains(github.event.issue.body, 'Yes')
+    steps:
+      - name: Close Issue
+        uses: peter-evans/close-issue@v3
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          comment: |
+            Thank you for your report. This issue has been automatically closed because it's identified as a virus/trojan report.
+
+            ## About antivirus false positives
+
+            If your anti-virus program is reporting PixelFlasher as malware, this is likely a false positive. Please check [this post](https://xdaforums.com/t/pixelflasher-a-gui-tool-for-flashing-updating-rooting-managing-pixel-phones.4415453/post-89090938) for more information about false positives.
+
+            The application is compiled using PyInstaller which sometimes triggers false positives in antivirus software.
+
+            ## Options
+
+            1. You can report the false positive to your antivirus vendor
+            2. You can build the application from source yourself following the instructions in the README
+            3. You can check the source code on GitHub to verify that it's safe
+
+            If you have other concerns not related to virus detection, please open a new issue with the appropriate template.
+          labels: "false positive"
+          close-reason: "not_planned"

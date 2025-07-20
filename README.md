@@ -460,6 +460,7 @@ Your help improving translations is greatly appreciated!
 - French `fr`, used online translation (it could be imperfect)
 - Spanish `es`, used online translation (it could be imperfect)
 - Traditional Chinese `zh-rTW`, thanks to [EdwardWu](https://github.com/bluehomewu)
+- Simplified Chinese `zh_CN`, thanks to [LittlenineEnnea](https://github.com/LittlenineEnnea)
 
 ## Credits
 

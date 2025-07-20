@@ -2640,3 +2640,155 @@ msgstr "Abrir URL"
 msgid "Open a URL in the default browser"
 msgstr "Abrir una URL en el navegador predeterminado"
 
+##############################################################################
+# Additions 2025-07-20
+##############################################################################
+msgid "Keep Temp Files"
+msgstr "Mantener archivos temporales"
+
+msgid "Enabling this will keep temporary files used for patching.\nThis is useful for debugging purposes.\nIt is recommended to keep this disabled."
+msgstr "Habilitar esto mantendrá los archivos temporales utilizados para el parcheado.\nEsto es útil para propósitos de depuración.\nSe recomienda mantener esto deshabilitado."
+
+msgid "Logcat"
+msgstr "Logcat"
+
+msgid "Logcat Viewer"
+msgstr "Visor de Logcat"
+
+msgid "Logcat filter: update_engine"
+msgstr "Filtro de Logcat: update_engine"
+
+msgid "Logcat filtered for update_engine to monitor OTA merging"
+msgstr "Logcat filtrado para update_engine para monitorear la fusión OTA"
+
+msgid "Bootloader Versions"
+msgstr "Versiones del Bootloader"
+
+msgid "Get Bootloader Versions"
+msgstr "Obtener versiones del Bootloader"
+
+msgid "Formatting Options"
+msgstr "Opciones de formato"
+
+msgid "Enable formatting (-v)"
+msgstr "Habilitar formato (-v)"
+
+msgid "Enable or disable formatting options for logcat output"
+msgstr "Habilitar o deshabilitar opciones de formato para la salida de logcat"
+
+msgid "Format Verbs"
+msgstr "Verbos de formato"
+
+msgid "Show priority, tag, and PID of the process issuing the message"
+msgstr "Mostrar prioridad, etiqueta y PID del proceso que emite el mensaje"
+
+msgid "Show all metadata fields and separate messages with blank lines"
+msgstr "Mostrar todos los campos de metadatos y separar mensajes con líneas en blanco"
+
+msgid "Show PID only"
+msgstr "Mostrar solo PID"
+
+msgid "Show the raw log message with no other metadata fields"
+msgstr "Mostrar el mensaje de registro sin procesar sin otros campos de metadatos"
+
+msgid "Show the priority and tag only"
+msgstr "Mostrar solo la prioridad y etiqueta"
+
+msgid "Show priority, PID, and TID of the thread issuing the message"
+msgstr "Mostrar prioridad, PID y TID del hilo que emite el mensaje"
+
+msgid "Show date, time, priority, tag, PID, and TID (default)"
+msgstr "Mostrar fecha, hora, prioridad, etiqueta, PID y TID (predeterminado)"
+
+msgid "Show date, time, priority, tag, and PID of the process"
+msgstr "Mostrar fecha, hora, prioridad, etiqueta y PID del proceso"
+
+msgid "Adverb Modifiers"
+msgstr "Modificadores de adverbio"
+
+msgid "Show each priority with a different color"
+msgstr "Mostrar cada prioridad con un color diferente"
+
+msgid "Show event descriptions from event-log-tags database"
+msgstr "Mostrar descripciones de eventos de la base de datos event-log-tags"
+
+msgid "Show time as seconds since 1970-01-01 (Unix epoch)"
+msgstr "Mostrar tiempo como segundos desde el 1 de enero de 1970 (época Unix)"
+
+msgid "Show time as CPU seconds since boot"
+msgstr "Mostrar tiempo como segundos de CPU desde el arranque"
+
+msgid "Ensure that any binary logging content is escaped"
+msgstr "Asegurar que cualquier contenido de registro binario sea escapado"
+
+msgid "Show UID or Android ID of logged process (if permitted)"
+msgstr "Mostrar UID o ID de Android del proceso registrado (si está permitido)"
+
+msgid "Show time with microsecond precision"
+msgstr "Mostrar tiempo con precisión de microsegundos"
+
+msgid "Filter Options"
+msgstr "Opciones de filtro"
+
+msgid "Tag Filter"
+msgstr "Filtro de etiqueta"
+
+msgid "Tag:"
+msgstr "Etiqueta:"
+
+msgid "Enter log component tag (or * for all)"
+msgstr "Ingresar etiqueta del componente de registro (o * para todos)"
+
+msgid "Priority Level"
+msgstr "Nivel de prioridad"
+
+msgid "Verbose (default for specific tag)"
+msgstr "Detallado (predeterminado para etiqueta específica)"
+
+msgid "Debug (default for *)"
+msgstr "Depuración (predeterminado para *)"
+
+msgid "Warn"
+msgstr "Advertencia"
+
+msgid "Fatal"
+msgstr "Fatal"
+
+msgid "Silent (suppress all output)"
+msgstr "Silencioso (suprimir toda salida)"
+
+msgid "Additional Filters"
+msgstr "Filtros adicionales"
+
+msgid "Regex Filter (-e):"
+msgstr "Filtro Regex (-e):"
+
+msgid "Enter ECMAScript regex to filter output"
+msgstr "Ingresar regex ECMAScript para filtrar salida"
+
+msgid "UIDs Filter (comma-separated):"
+msgstr "Filtro de UIDs (separados por comas):"
+
+msgid "Enter UIDs (numeric, comma-separated)"
+msgstr "Ingresar UIDs (numéricos, separados por comas)"
+
+msgid "View Logcat"
+msgstr "Ver Logcat"
+
+msgid "View logcat output with selected options"
+msgstr "Ver salida de logcat con opciones seleccionadas"
+
+msgid "Clear Logcat"
+msgstr "Limpiar Logcat"
+
+msgid "Clear logcat buffer"
+msgstr "Limpiar búfer de logcat"
+
+msgid "Close this panel"
+msgstr "Cerrar este panel"
+
+msgid "No device connected"
+msgstr "No hay dispositivo conectado"
+
+msgid "Logcat buffer cleared"
+msgstr "Búfer de logcat limpiado"

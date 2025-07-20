@@ -4081,6 +4081,53 @@ add_hosts_module
             return -1
 
     # ----------------------------------------------------------------------------
+    #                               Method open_update_engine_logcat
+    # ----------------------------------------------------------------------------
+    def open_update_engine_logcat(self):
+        try:
+            self.logcat(['-v', 'color', '-s', 'update_engine'])
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in open_update_engine_logcat.")
+            puml("#red:Encountered an error in open_update_engine_logcat.;\n")
+            traceback.print_exc()
+            return -1
+
+    # ----------------------------------------------------------------------------
+    #                               Method logcat
+    # ----------------------------------------------------------------------------
+    def logcat(self, args):
+        try:
+            config = get_config()
+            if self.mode == 'adb' and get_adb():
+                print(f"Opening logcat for device: {self.id} ...")
+                puml(":Opening logcat;\n", True)
+                args_str = " ".join(args) if isinstance(args, list) else args
+                theCmd = f"\"{get_adb()}\" -s {self.id} logcat {args_str}"
+                if sys.platform.startswith("win"):
+                    print(theCmd)
+                    subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, start_new_session=True, env=get_env_variables())
+                elif sys.platform.startswith("linux") and config.linux_shell:
+                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    print(theCmd)
+                    subprocess.Popen(theCmd, start_new_session=True)
+                elif sys.platform.startswith("darwin"):
+                    script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
+                    script_file.write(f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'.encode('utf-8'))
+                    script_file.close()
+                    os.chmod(script_file.name, 0o755)
+                    subprocess.Popen(['osascript', '-e', f'tell application "Terminal" to do script "{script_file.name}"'], start_new_session=True, env=get_env_variables())
+                return 0
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The Device: {self.id} is not in adb mode.")
+                puml("#red:ERROR: The Device: {self.id} is not in adb mode;\n", True)
+                return 1
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error logcat.")
+            puml("#red:Encountered an error in logcat.;\n")
+            traceback.print_exc()
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method scrcpy
     # ----------------------------------------------------------------------------
     def scrcpy(self):

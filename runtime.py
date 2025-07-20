@@ -2793,7 +2793,7 @@ def get_gsi_data(force_version=None):
             if build_date:
                 published_date = datetime.strptime(beta_release_date, '%Y-%m-%d')
                 delta_days = abs((published_date - build_date).days)
-                if delta_days > 30:
+                if delta_days > 60:
                     print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Large discrepancy between published GSI release date ({release_date}) and build ID date ({build_date.strftime('%Y-%m-%d')}). Difference: {delta_days} days")
                     error = True
             beta_expiry = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
@@ -3289,6 +3289,20 @@ def get_beta_data(url):
 
         release_date = data.get('release_date')
         build = data.get('build')
+        if not build:
+            debug(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Build not found in the data.")
+            debug("Looking for Builds")
+            build = data.get('builds')
+        if not build:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build not found in the data.")
+            return None, None
+        else:
+            print(f"ℹ️ Multiple Builds are found:\n{build}")
+            # we might get an output like this: 'BP31.250610.004\n      BP31.250610.004.A1 (Pixel 6, 6 Pro)'
+            # we need to extract the first build from it, but we also need to keep the other builds for later
+            # when we're extracting the devices, we need to match the build with the device.
+            build = build.split('\n')[0].strip()  # Take the first build only
+            print(f"Selected Build:           {build}")
         emulator_support = data.get('emulator_support')
         security_patch_level = data.get('security_patch_level')
         google_play_services = data.get('google_play_services')
@@ -3308,7 +3322,9 @@ def get_beta_data(url):
             category = button['data-category']
             zip_filename = button.text.strip()
             # Check if the build is present in the zip_filename, if not print a warning
-            if build.lower() not in zip_filename.lower():
+            if not build:
+                error = True
+            if build and build.lower() not in zip_filename.lower():
                 print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Build '{build}' not found in zip filename '{zip_filename}' for device '{device}'")
                 error = True
             hashcode = cols[1].find('code').text.strip()
@@ -6650,6 +6666,218 @@ This is a special Magisk build\n\n
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads links: {url} processing")
         traceback.print_exc()
         return
+
+
+# ============================================================================
+#                    Function parse_bootloader_version
+# ============================================================================
+def parse_bootloader_version(version):
+    # Parse version string in format "Major.minor-patch"
+    if not version:
+        return None
+    try:
+        major_minor, patch = version.split('-', 1)
+        major, minor = major_minor.split('.', 1)
+        return (int(major), int(minor), int(patch))
+    except (ValueError, AttributeError):
+        print(f"⚠️ Warning: Unable to parse bootloader version: {version}")
+        return None
+
+
+# ============================================================================
+#                    Function is_bootloader_version_older
+# ============================================================================
+def is_bootloader_version_older(version, min_version):
+    v1 = parse_bootloader_version(version)
+    v2 = parse_bootloader_version(min_version)
+    if not v1 or not v2:
+        # Can't determine, assume it's not older
+        return False
+
+    # Compare major.minor-patch components
+    return (v1[0] < v2[0] or
+            (v1[0] == v2[0] and v1[1] < v2[1]) or
+            (v1[0] == v2[0] and v1[1] == v2[1] and v1[2] < v2[2]))
+
+
+# ============================================================================
+#                    Function get_bootloader_versions
+# ============================================================================
+def get_bootloader_versions():
+    try:
+        device = get_phone()
+        if not device:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            return
+
+        if not device.rooted:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not rooted.")
+            puml("#red:Device is not rooted;\n}\n")
+            return
+
+        res = device.get_partitions()
+        if res == -1:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get partitions from the device, aborting ...")
+            puml("#red:Failed to get partitions from the device;\n}\n")
+            return
+
+
+        if 'abl_a' not in res or 'abl_b' not in res:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device does not have abl_a and/or abl_b partitions, aborting ...")
+            puml("#red:Device does not have abl_a and abl_b partitions;\n}\n")
+            return
+
+        # first delete existing abl_a and abl_b dumps if it exists on the phone
+        path = "/data/local/tmp/abl_a.img"
+        res = device.delete(path, True)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to delete old abl_a image from the phone;\n}\n")
+            return
+        path = "/data/local/tmp/abl_b.img"
+        res = device.delete(path, True)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to delete old abl_b image from the phone;\n}\n")
+            return
+
+        # dump abl_a and abl_b to the phone
+        res, file_path = device.dump_partition(partition='abl', slot='a')
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to dump abl_a partition to the phone;\n}\n")
+            return
+        res, file_path = device.dump_partition(partition='abl', slot='b')
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to dump abl_a partition to the phone;\n}\n")
+            return
+
+        # pull abl_a and abl_b from the phone
+        temp_dir = tempfile.mkdtemp(dir=tempfile.gettempdir())
+        path = "/data/local/tmp/abl_a.img"
+        res = device.pull_file(path, os.path.join(temp_dir, "abl_a.img"), False)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to pull abl_a image from the phone;\n}\n")
+            res = device.delete(path, True)
+            return
+        res = device.delete(path, True)
+        path = "/data/local/tmp/abl_b.img"
+        res = device.pull_file(path, os.path.join(temp_dir, "abl_b.img"), False)
+        if res != 0:
+            print("Aborting ...\n")
+            puml("#red:Failed to pull abl_b image from the phone;\n}\n")
+            res = device.delete(path, True)
+            return
+        res = device.delete(path, True)
+
+        # Open the bootloader versions from the dumped images
+        with open(os.path.join(temp_dir, "abl_a.img"), 'rb') as f:
+            abl_a_data = f.read()
+        with open(os.path.join(temp_dir, "abl_b.img"), 'rb') as f:
+            abl_b_data = f.read()
+
+        # Get the device codename(s)
+        android_device = get_android_devices()
+        device_codenames = None
+        if android_device:
+            device_codenames = f"{android_device[device.hardware]['bootloader_codename']}-"
+
+        # Convert single string codename to a list with one element if it's not already a list
+        if device_codenames is not None and not isinstance(device_codenames, list):
+            device_codenames = [device_codenames]
+
+        if device_codenames is None:
+            device_codenames = [
+                b"cloudripper-", b"slider-", b"bluejay-", b"ripcurrent-",
+                b"akita-", b"ripcurrentpro-"
+            ]
+        else:
+            # Convert string codenames to bytes for compatibility with binary data search
+            device_codenames = [codename.encode('utf-8') if isinstance(codename, str) else codename for codename in device_codenames]
+
+        # Process abl_a
+        abl_a_version = None
+        for codename in device_codenames:
+            pos = abl_a_data.find(codename)
+            if pos != -1:
+                prefix_len = len(codename)
+                pos += prefix_len
+                end_pos = abl_a_data.find(b'\x00', pos)
+                if end_pos != -1:
+                    abl_a_version = abl_a_data[pos:end_pos].decode('utf-8').strip('\x00')
+                    debug(f"Found bootloader version in abl_a.img with prefix {codename.decode()}")
+                    break
+        if abl_a_version is None:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find bootloader version in abl_a.img")
+            puml("#red:Could not find bootloader version in abl_a.img;\n}\n")
+            return
+
+        # Process abl_b
+        abl_b_version = None
+        for codename in device_codenames:
+            pos = abl_b_data.find(codename)
+            if pos != -1:
+                prefix_len = len(codename)
+                pos += prefix_len
+                end_pos = abl_b_data.find(b'\x00', pos)
+                if end_pos != -1:
+                    abl_b_version = abl_b_data[pos:end_pos].decode('utf-8').strip('\x00')
+                    debug(f"Found bootloader version in abl_b.img with prefix {codename.decode()}")
+                    break
+        if abl_b_version is None:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find bootloader version in abl_b.img")
+            puml("#red:Could not find bootloader version in abl_b.img;\n}\n")
+            return
+
+        # Define the minimum safe versions for different ARB effected devices
+        min_versions = {
+            "bluejay": "15.3-13239612",
+            "oriole": "15.3-13239612",
+            "raven": "15.3-13239612",
+            "akita": "15.3-13266201",
+            "shiba": "15.3-13272266",
+            "husky": "15.3-13272266"
+        }
+
+        print("\n=================================================")
+        print(f"Slot A Bootloader Version: {abl_a_version}")
+        print(f"Slot B Bootloader Version: {abl_b_version}")
+
+        # see if any of the devices are at risk of bricking due to Anti-Rollback Protection `ARB`
+        if device.hardware in min_versions:
+            min_safe_version = min_versions[device.hardware]
+
+            # Check slot A
+            if is_bootloader_version_older(abl_a_version, min_safe_version):
+                print(f"\n☠️ WARNING: Slot A bootloader version {abl_a_version} is older than the minimum safe version {min_safe_version}")
+                print(f"☠️ Your device may be at risk of bricking due to Anti-Rollback Protection (ARB)")
+                puml(f"note right #yellow\nWARNING: Slot A bootloader version {abl_a_version} is older than\nthe minimum safe version {min_safe_version}\nYour device may be at risk of bricking due to ARB\nend note\n")
+            else:
+                print(f"✅ Slot A bootloader version {abl_a_version} is safe because it is newer than the minimum safe version {min_safe_version}")
+
+            # Check slot B
+            if is_bootloader_version_older(abl_b_version, min_safe_version):
+                print(f"\n☠️ WARNING: Slot B bootloader version {abl_b_version} is older than the minimum safe version {min_safe_version}")
+                print(f"☠️ Your device may be at risk of bricking due to Anti-Rollback Protection (ARB)")
+                puml(f"note right #yellow\nWARNING: Slot B bootloader version {abl_b_version} is older than\nthe minimum safe version {min_safe_version}\nYour device may be at risk of bricking due to ARB\nend note\n")
+            else:
+                print(f"✅ Slot B bootloader version {abl_b_version} is safe because it is newer than the minimum safe version {min_safe_version}")
+        else:
+            print(f"\nℹ️ Info: Device hardware {device.hardware} is not currently in PixelFlasher's Anti-Rollback Protection (ARB) checks")
+            print("Please report this to the author if you think it should be included.")
+
+        print("=================================================\n")
+        puml(f"note right\nABL_A Version: {abl_a_version}\nABL_B Version: {abl_b_version}\nend note\n")
+
+    except IOError:
+        traceback.print_exc()
+    finally:
+        try:
+            shutil.rmtree(temp_dir)
+        except Exception as e:
+            debug(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: cleaning up temp directory: {str(e)}")
 
 
 # ============================================================================

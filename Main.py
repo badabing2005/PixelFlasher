@@ -88,6 +88,8 @@ from partition_manager import PartitionManager
 from phone import get_connected_devices, update_phones
 from runtime import *
 from my_tools import MyToolsDialog
+from logcat import LogcatDialog
+
 
 # For troubleshooting, set inspector = True
 inspector = False
@@ -991,7 +993,7 @@ class PixelFlasher(wx.Frame):
             wx.MessageBox(_("Language changed to %s. A restart is required for translations to apply.") %
                             self.get_language_name(lang_code), _("Language Changed"))
 
-            print(f"Language changed to {lang_code}, a reboot is required.")
+            print(f"Language changed to {lang_code}, a PixelFlasher restart is required.")
             return True
         return False
 
@@ -1552,6 +1554,18 @@ class PixelFlasher(wx.Frame):
         self.partitions_menu = device_menu.Append(wx.ID_ANY, _("Partitions Manager"), _("Backup / Erase Partitions"))
         self.partitions_menu.SetBitmap(images.partition_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_partition_manager, self.partitions_menu)
+        # Logcat
+        self.logcat_menu = device_menu.Append(wx.ID_ANY, _("Logcat"), _("Logcat Viewer"))
+        self.logcat_menu.SetBitmap(images.logcat_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_logcat, self.logcat_menu)
+        # update_engine Logcat
+        self.update_engine_logcat_menu = device_menu.Append(wx.ID_ANY, _("Logcat filter: update_engine"), _("Logcat filtered for update_engine to monitor OTA merging"))
+        self.update_engine_logcat_menu.SetBitmap(images.logcat_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_update_engine_logcat, self.update_engine_logcat_menu)
+        # Get bootloader versions
+        self.get_bootloader_versions_menu = device_menu.Append(wx.ID_ANY, _("Bootloader Versions"), _("Get Bootloader Versions"))
+        self.get_bootloader_versions_menu.SetBitmap(images.bootloader_versions_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_get_bootloader_versions, self.get_bootloader_versions_menu)
         # Pi Analysis Report
         self.pi_analysis_report_menu = device_menu.Append(wx.ID_ANY, _("PI Analysis Report"), _("Generate a report of PI Analysis"))
         self.pi_analysis_report_menu.SetBitmap(images.analyze_24.GetBitmap())
@@ -2792,6 +2806,9 @@ class PixelFlasher(wx.Frame):
                 self.paste_selection.Hide()
                 # Menu items
                 self.partitions_menu.Enable(False)
+                self.logcat_menu.Enable(False)
+                self.update_engine_logcat_menu.Enable(False)
+                self.get_bootloader_versions_menu.Enable(False)
                 self.pi_analysis_report_menu.Enable(False)
                 self.open_url_menu.Enable(False)
                 self.switch_slot_menu.Enable(False)
@@ -2839,6 +2856,9 @@ class PixelFlasher(wx.Frame):
                 self.paste_selection.Show()
                 # Menu items
                 self.partitions_menu.Enable(True)
+                self.logcat_menu.Enable(True)
+                self.update_engine_logcat_menu.Enable(True)
+                self.get_bootloader_versions_menu.Enable(True)
                 self.pi_analysis_report_menu.Enable(True)
                 self.open_url_menu.Enable(True)
                 self.switch_slot_menu.Enable(True)
@@ -3466,25 +3486,28 @@ class PixelFlasher(wx.Frame):
                 self.reboot_fastbootd_menu:             ['device_attached', 'advanced_options'],
                 self.reboot_system_menu:                ['device_attached'],
                 self.shell_menu_item:                   ['device_attached'],
-                self.scrcpy_menu_item:                  ['device_attached', 'scrcpy_path_is_set'],
+                self.scrcpy_menu_item:                  ['device_attached', 'scrcpy_path_is_set', 'device_mode_true_adb'],
                 self.device_info_menu_item:             ['device_attached'],
-                self.pif_info_menu_item:                ['device_attached'],
+                self.pif_info_menu_item:                ['device_attached', 'device_mode_true_adb'],
                 self.props_as_json_menu_item:           ['device_attached'],
-                self.xml_view_menu_item:                ['device_attached'],
+                self.xml_view_menu_item:                ['device_attached', 'device_mode_true_adb'],
                 self.cancel_ota_menu_item:              ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
                 self.check_otacerts_menu_item:          ['device_attached', 'device_mode_true_adb'],
-                self.push_menu:                         ['device_attached'],
-                self.push_file_to_tmp_menu:             ['device_attached'],
-                self.push_file_to_download_menu:        ['device_attached'],
+                self.push_menu:                         ['device_attached', 'device_mode_adb'],
+                self.push_file_to_tmp_menu:             ['device_attached', 'device_mode_adb'],
+                self.push_file_to_download_menu:        ['device_attached', 'device_mode_adb'],
                 self.bootloader_unlock_menu:            ['device_attached', 'advanced_options'],
                 self.bootloader_lock_menu:              ['device_attached', 'advanced_options'],
-                self.install_magisk_menu:               ['device_attached'],
+                self.install_magisk_menu:               ['device_attached', 'device_mode_true_adb'],
                 self.partitions_menu:                   ['device_attached', 'advanced_options'],
-                self.pi_analysis_report_menu:           ['device_attached', 'device_is_rooted'],
-                self.open_url_menu:                     ['device_attached'],
+                self.logcat_menu:                       ['device_attached', 'device_mode_true_adb'],
+                self.update_engine_logcat_menu:         ['device_attached', 'device_mode_true_adb'],
+                self.get_bootloader_versions_menu:      ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
+                self.pi_analysis_report_menu:           ['device_attached', 'device_is_rooted', 'device_mode_true_adb'],
+                self.open_url_menu:                     ['device_attached', 'device_mode_true_adb'],
                 self.prep_downgrade_patch_menu:         ['boot_is_selected', 'boot_is_not_patched', 'boot_is_not_downgrade_patched'],
-                self.install_apk:                       ['device_attached'],
-                self.package_manager:                   ['device_attached'],
+                self.install_apk:                       ['device_attached', 'device_mode_true_adb'],
+                self.package_manager:                   ['device_attached', 'device_mode_true_adb'],
                 self.no_reboot_checkBox:                ['device_attached'],
                 self.image_file_picker:                 ['custom_flash'],
                 self.image_choice:                      ['custom_flash'],
@@ -4813,6 +4836,75 @@ class PixelFlasher(wx.Frame):
         finally:
             if dlg is not None:
                 dlg.Destroy()
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_logcat
+    # -----------------------------------------------
+    def _on_logcat(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Logcat")
+        print("==============================================================================")
+        self._on_spin('start')
+        dlg = None
+        try:
+            try:
+                dlg = LogcatDialog(self)
+            except Exception:
+                traceback.print_exc()
+                return
+            if dlg is None:
+                return
+            # dlg.CentreOnParent(wx.BOTH)
+            self._on_spin('stop')
+            try:
+                result = dlg.ShowModal()
+                print("Closing Logcat ...\n")
+            except Exception:
+                traceback.print_exc()
+        finally:
+            if dlg is not None:
+                dlg.Destroy()
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_update_engine_logcat
+    # -----------------------------------------------
+    def _on_update_engine_logcat(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Logcat for Update Engine")
+        print("==============================================================================")
+        self._on_spin('start')
+        dlg = None
+        try:
+            try:
+                device = get_phone(True)
+                if device:
+                    device.open_update_engine_logcat()
+            except Exception:
+                traceback.print_exc()
+                return
+        finally:
+            if dlg is not None:
+                dlg.Destroy()
+            self._on_spin('stop')
+
+    # -----------------------------------------------
+    #          _on_get_bootloader_versions
+    # -----------------------------------------------
+    def _on_get_bootloader_versions(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Get Bootloader Versions")
+        print("==============================================================================")
+        self._on_spin('start')
+        dlg = None
+        try:
+            try:
+                get_bootloader_versions()
+            except Exception:
+                traceback.print_exc()
+                return
+        finally:
             self._on_spin('stop')
 
     # -----------------------------------------------

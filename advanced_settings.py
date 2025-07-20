@@ -131,6 +131,8 @@ class AdvancedSettings(wx.Dialog):
         self.patch_methods_checkbox.SetToolTip(_("When patching the choice of method is presented."))
         self.recovery_patch_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Patching Recovery Partition"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.recovery_patch_checkbox.SetToolTip(_("Enabling this will show an option to patch a recovery partition.\nThis should be kept disabled unless you have an old device.\n(most A-only devices launched with Android 9, legacy SAR)"))
+        self.keep_temp_files_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Keep Temp Files"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.keep_temp_files_checkbox.SetToolTip(_("Enabling this will keep temporary files used for patching.\nThis is useful for debugging purposes.\nIt is recommended to keep this disabled."))
 
         # Use Busybox Shell
         self.use_busybox_shell_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Use Busybox Shell"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
@@ -262,6 +264,7 @@ class AdvancedSettings(wx.Dialog):
         self.package_name.SetValue(self.Parent.config.magisk)
         self.patch_methods_checkbox.SetValue(self.Parent.config.offer_patch_methods)
         self.recovery_patch_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
+        self.keep_temp_files_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
         self.use_busybox_shell_checkbox.SetValue(self.Parent.config.use_busybox_shell)
         self.low_mem_checkbox.SetValue(self.Parent.config.low_mem)
         self.extra_img_extracts_checkbox.SetValue(self.Parent.config.extra_img_extracts)
@@ -297,6 +300,8 @@ class AdvancedSettings(wx.Dialog):
 
         fgs1.Add(self.patch_methods_checkbox, 0, wx.EXPAND)
         fgs1.Add(self.recovery_patch_checkbox, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+        fgs1.Add(self.keep_temp_files_checkbox, 0, wx.EXPAND)
 
         if sys.platform.startswith("linux"):
             # only add if we're on linux
@@ -491,6 +496,10 @@ class AdvancedSettings(wx.Dialog):
             if self.recovery_patch_checkbox.GetValue() != self.Parent.config.show_recovery_patching_option:
                 print(f"Setting Offer Patch Methods to: {self.recovery_patch_checkbox.GetValue()}")
             self.Parent.config.show_recovery_patching_option = self.recovery_patch_checkbox.GetValue()
+
+            if self.keep_temp_files_checkbox.GetValue() != self.Parent.config.keep_patch_temporary_files:
+                print(f"Setting Offer Patch Methods to: {self.keep_temp_files_checkbox.GetValue()}")
+            self.Parent.config.show_recovery_patching_option = self.keep_temp_files_checkbox.GetValue()
 
             if self.use_busybox_shell_checkbox.GetValue() != self.Parent.config.use_busybox_shell:
                 print(f"Setting Use Busybox Shell to: {self.use_busybox_shell_checkbox.GetValue()}")

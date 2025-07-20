@@ -3,228 +3,266 @@
         "device": "Google Pixel 9a",
         "android_version_end_date": "May 2032",
         "security_update_end_date": "May 2032",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "tegu"
     },
     "seluna": {
         "device": "Pixel Watch 3 (LTE)",
         "android_version_end_date": "October 2027",
         "security_update_end_date": "October 2029",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "seluna"
     },
     "solios": {
         "device": "Pixel Watch 3 (Bluetooth/Wi-Fi)",
         "android_version_end_date": "October 2027",
         "security_update_end_date": "October 2029",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "solios-seluna"
     },
     "comet": {
         "device": "Google Pixel 9 Pro Fold",
         "android_version_end_date": "September 2031",
         "security_update_end_date": "September 2031",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "ripcurrentpro"
     },
     "komodo": {
         "device": "Google Pixel 9 Pro XL",
         "android_version_end_date": "September 2031",
         "security_update_end_date": "September 2031",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "ripcurrentpro"
     },
     "caiman": {
         "device": "Google Pixel 9 Pro",
         "android_version_end_date": "September 2031",
         "security_update_end_date": "September 2031",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "ripcurrentpro"
     },
     "tokay": {
         "device": "Google Pixel 9",
         "android_version_end_date": "September 2031",
         "security_update_end_date": "September 2031",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "ripcurrentpro"
     },
     "akita": {
         "device": "Google Pixel 8a",
         "android_version_end_date": "May 2031",
         "security_update_end_date": "May 2031",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "akita"
     },
     "eos": {
         "device": "Google Pixel Watch 2 (LTE)",
         "android_version_end_date": "October 2026",
         "security_update_end_date": "October 2028",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "eos"
     },
     "aurora": {
         "device": "Google Pixel Watch 2 (Bluetooth/Wi-Fi)",
         "android_version_end_date": "October 2026",
         "security_update_end_date": "October 2028",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "aurora-eos"
     },
     "husky": {
         "device": "Pixel 8 Pro",
         "android_version_end_date": "October 2030",
         "security_update_end_date": "October 2030",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "ripcurrent"
     },
     "shiba": {
         "device": "Pixel 8",
         "android_version_end_date": "October 2030",
         "security_update_end_date": "October 2030",
-        "first_api_level": "34"
+        "first_api_level": "34",
+        "bootloader_codename": "ripcurrent"
     },
     "felix": {
         "device": "Pixel Fold",
         "android_version_end_date": "June 2026",
         "security_update_end_date": "June 2028",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "felix"
     },
     "tangorpro": {
         "device": "Pixel Tablet",
         "android_version_end_date": "June 2026",
         "security_update_end_date": "June 2028",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "tangorpro"
     },
     "lynx": {
         "device": "Pixel 7a",
         "android_version_end_date": "May 2026",
         "security_update_end_date": "May 2028",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "lynx"
     },
     "r11": {
         "device": "Google Pixel Watch (LTE)",
         "android_version_end_date": "October 2025",
         "security_update_end_date": "October 2026",
-        "first_api_level": "30"
+        "first_api_level": "30",
+        "bootloader_codename": "r11"
     },
     "r11btwifi": {
         "device": "Google Pixel Watch (Bluetooth/Wi-Fi)",
         "android_version_end_date": "October 2025",
         "security_update_end_date": "October 2026",
-        "first_api_level": "30"
+        "first_api_level": "30",
+        "bootloader_codename": "r11btwifi-r11"
     },
     "cheetah": {
         "device": "Pixel 7 Pro",
         "android_version_end_date": "October 2025",
         "security_update_end_date": "October 2027",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "cloudripper"
     },
     "panther": {
         "device": "Pixel 7",
         "android_version_end_date": "October 2025",
         "security_update_end_date": "October 2027",
-        "first_api_level": "33"
+        "first_api_level": "33",
+        "bootloader_codename": "cloudripper"
     },
     "bluejay": {
         "device": "Pixel 6a",
         "android_version_end_date": "June 2025",
         "security_update_end_date": "June 2027",
-        "first_api_level": "32"
+        "first_api_level": "32",
+        "bootloader_codename": "bluejay"
     },
     "oriole": {
         "device": "Pixel 6",
         "android_version_end_date": "October 2024",
         "security_update_end_date": "October 2026",
-        "first_api_level": "31"
+        "first_api_level": "31",
+        "bootloader_codename": "slider"
     },
     "raven": {
         "device": "Pixel 6 Pro",
         "android_version_end_date": "October 2024",
         "security_update_end_date": "October 2026",
-        "first_api_level": "31"
+        "first_api_level": "31",
+        "bootloader_codename": "slider"
     },
     "barbet": {
         "device": "Pixel 5a",
         "android_version_end_date": "August 2024",
         "security_update_end_date": "August 2024",
-        "first_api_level": "30"
+        "first_api_level": "30",
+        "bootloader_codename": "barbet-b9"
     },
     "redfin": {
         "device": "Pixel 5",
         "android_version_end_date": "October 2023",
         "security_update_end_date": "October 2023",
-        "first_api_level": "30"
+        "first_api_level": "30",
+        "bootloader_codename": "redfin"
     },
     "bramble": {
         "device": "Pixel 4a (5G)",
         "android_version_end_date": "November  2023",
         "security_update_end_date": "November  2023",
-        "first_api_level": "30"
+        "first_api_level": "30",
+        "bootloader_codename": "bramble-b5"
     },
     "sunfish": {
         "device": "Pixel 4a",
         "android_version_end_date": "August 2023",
         "security_update_end_date": "August 2023",
-        "first_api_level": "29"
+        "first_api_level": "29",
+        "bootloader_codename": "sunfish-s5"
     },
     "coral": {
         "device": "Pixel 4 XL",
         "android_version_end_date": "October 2022",
         "security_update_end_date": "October 2022",
-        "first_api_level": "29"
+        "first_api_level": "29",
+        "bootloader_codename": "coral"
     },
     "flame": {
         "device": "Pixel 4",
         "android_version_end_date": "October 2022",
         "security_update_end_date": "October 2022",
-        "first_api_level": "29"
+        "first_api_level": "29",
+        "bootloader_codename": "flame"
     },
     "bonito": {
         "device": "Pixel 3a XL",
         "android_version_end_date": "May 2022",
         "security_update_end_date": "May 2023",
-        "first_api_level": "28"
+        "first_api_level": "28",
+        "bootloader_codename": "bonito"
     },
     "sargo": {
         "device": "Pixel 3a",
         "android_version_end_date": "May 2022",
         "security_update_end_date": "May 2022",
-        "first_api_level": "28"
+        "first_api_level": "28",
+        "bootloader_codename": "sargo"
     },
     "crosshatch": {
         "device": "Pixel 3 XL",
         "android_version_end_date": "October 2021",
         "security_update_end_date": "October 2021",
-        "first_api_level": "28"
+        "first_api_level": "28",
+        "bootloader_codename": "crosshatch"
     },
     "blueline": {
         "device": "Pixel 3",
         "android_version_end_date": "October 2021",
         "security_update_end_date": "October 2021",
-        "first_api_level": "28"
+        "first_api_level": "28",
+        "bootloader_codename": "blueline-b1c1"
     },
     "taimen": {
         "device": "Pixel 2 XL",
         "android_version_end_date": "October 2020",
         "security_update_end_date": "October 2020",
-        "first_api_level": "26"
+        "first_api_level": "26",
+        "bootloader_codename": "taimen"
     },
     "walleye": {
         "device": "Pixel 2",
         "android_version_end_date": "October 2020",
         "security_update_end_date": "October 2020",
-        "first_api_level": "26"
+        "first_api_level": "26",
+        "bootloader_codename": "walleye"
     },
     "marlin": {
         "device": "Pixel XL",
         "android_version_end_date": "October 2018",
         "security_update_end_date": "October 2018",
-        "first_api_level": "25"
+        "first_api_level": "25",
+        "bootloader_codename": "marlin"
     },
     "sailfish": {
         "device": "Pixel",
         "android_version_end_date": "October 2019",
         "security_update_end_date": "October 2019",
-        "first_api_level": "25"
+        "first_api_level": "25",
+        "bootloader_codename": "sailfish"
     },
     "ryu": {
         "device": "Pixel C",
         "android_version_end_date": "October 2018",
         "security_update_end_date": "October 2018",
-        "first_api_level": "23"
+        "first_api_level": "23",
+        "bootloader_codename": "ryu"
     },
     "angler": {
         "device": "Nexus 6P",
         "android_version_end_date": "September 2018",
         "security_update_end_date": "September 2018",
-        "first_api_level": "23"
+        "first_api_level": "23",
+        "bootloader_codename": "angler"
     }
 }

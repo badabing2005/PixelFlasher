@@ -2604,3 +2604,155 @@ msgstr ""
 msgid "Open a URL in the default browser"
 msgstr ""
 
+##############################################################################
+# Additions 2025-07-20
+##############################################################################
+msgid "Keep Temp Files"
+msgstr ""
+
+msgid "Enabling this will keep temporary files used for patching.\nThis is useful for debugging purposes.\nIt is recommended to keep this disabled."
+msgstr ""
+
+msgid "Logcat"
+msgstr ""
+
+msgid "Logcat Viewer"
+msgstr ""
+
+msgid "Logcat filter: update_engine"
+msgstr ""
+
+msgid "Logcat filtered for update_engine to monitor OTA merging"
+msgstr ""
+
+msgid "Bootloader Versions"
+msgstr ""
+
+msgid "Get Bootloader Versions"
+msgstr ""
+
+msgid "Formatting Options"
+msgstr ""
+
+msgid "Enable formatting (-v)"
+msgstr ""
+
+msgid "Enable or disable formatting options for logcat output"
+msgstr ""
+
+msgid "Format Verbs"
+msgstr ""
+
+msgid "Show priority, tag, and PID of the process issuing the message"
+msgstr ""
+
+msgid "Show all metadata fields and separate messages with blank lines"
+msgstr ""
+
+msgid "Show PID only"
+msgstr ""
+
+msgid "Show the raw log message with no other metadata fields"
+msgstr ""
+
+msgid "Show the priority and tag only"
+msgstr ""
+
+msgid "Show priority, PID, and TID of the thread issuing the message"
+msgstr ""
+
+msgid "Show date, time, priority, tag, PID, and TID (default)"
+msgstr ""
+
+msgid "Show date, time, priority, tag, and PID of the process"
+msgstr ""
+
+msgid "Adverb Modifiers"
+msgstr ""
+
+msgid "Show each priority with a different color"
+msgstr ""
+
+msgid "Show event descriptions from event-log-tags database"
+msgstr ""
+
+msgid "Show time as seconds since 1970-01-01 (Unix epoch)"
+msgstr ""
+
+msgid "Show time as CPU seconds since boot"
+msgstr ""
+
+msgid "Ensure that any binary logging content is escaped"
+msgstr ""
+
+msgid "Show UID or Android ID of logged process (if permitted)"
+msgstr ""
+
+msgid "Show time with microsecond precision"
+msgstr ""
+
+msgid "Filter Options"
+msgstr ""
+
+msgid "Tag Filter"
+msgstr ""
+
+msgid "Tag:"
+msgstr ""
+
+msgid "Enter log component tag (or * for all)"
+msgstr ""
+
+msgid "Priority Level"
+msgstr ""
+
+msgid "Verbose (default for specific tag)"
+msgstr ""
+
+msgid "Debug (default for *)"
+msgstr ""
+
+msgid "Warn"
+msgstr ""
+
+msgid "Fatal"
+msgstr ""
+
+msgid "Silent (suppress all output)"
+msgstr ""
+
+msgid "Additional Filters"
+msgstr ""
+
+msgid "Regex Filter (-e):"
+msgstr ""
+
+msgid "Enter ECMAScript regex to filter output"
+msgstr ""
+
+msgid "UIDs Filter (comma-separated):"
+msgstr ""
+
+msgid "Enter UIDs (numeric, comma-separated)"
+msgstr ""
+
+msgid "View Logcat"
+msgstr ""
+
+msgid "View logcat output with selected options"
+msgstr ""
+
+msgid "Clear Logcat"
+msgstr ""
+
+msgid "Clear logcat buffer"
+msgstr ""
+
+msgid "Close this panel"
+msgstr ""
+
+msgid "No device connected"
+msgstr ""
+
+msgid "Logcat buffer cleared"
+msgstr ""

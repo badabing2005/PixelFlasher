@@ -19,7 +19,7 @@ jobs:
         id: check_support
         run: |
           body="${{ github.event.issue.body }}"
-          if echo "$body" | grep -q "Support_[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}_[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}.zip"; then
+          if echo "$body" | grep -q "Support_[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}_[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}\.zip"; then
             echo "has_support_file=true" >> $GITHUB_OUTPUT
           else
             echo "has_support_file=false" >> $GITHUB_OUTPUT
@@ -36,7 +36,7 @@ jobs:
 
             ## Required Support File Format
 
-            An encrypted support file named in the format `Support_YYYY-MM-DD_hh-mm-ss.zip` is required to process your issue. This file is encrypted to protect your privacy.
+            An encrypted support file named in the format Support_YYYY-MM-DD_hh-mm-ss.zip is required to process your issue. This file is encrypted to protect your privacy.
 
             ## How to Generate a Support File
 

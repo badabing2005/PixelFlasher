@@ -119,6 +119,7 @@ class Config():
         self.show_custom_rom_options = False
         self.sanitize_support_files = False
         self.language = 'en'
+        self.keep_patch_temporary_files = False
 
         self.toolbar = {
             'tb_position': 'top',
@@ -321,6 +322,8 @@ class Config():
                     conf.sanitize_support_files = data['sanitize_support_files']
                 with contextlib.suppress(KeyError):
                     conf.language = data['language']
+                with contextlib.suppress(KeyError):
+                    conf.keep_patch_temporary_files = data['keep_patch_temporary_files']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -518,6 +521,7 @@ class Config():
             'show_custom_rom_options': self.show_custom_rom_options,
             'sanitize_support_files': self.sanitize_support_files,
             'language': self.language,
+            'keep_patch_temporary_files': self.keep_patch_temporary_files
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

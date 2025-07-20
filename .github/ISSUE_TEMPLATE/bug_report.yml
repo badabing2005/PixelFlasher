@@ -4,7 +4,8 @@ labels: ["bug"]
 body:
   - type: markdown
     attributes:
-      value: |        # PixelFlasher Bug Report
+      value: |
+        # PixelFlasher Bug Report
         Thank you for taking the time to fill out this bug report.
 
         **IMPORTANT**: An encrypted support file generated from PixelFlasher is **REQUIRED**. This file is encrypted to protect your privacy. Issues without a valid support file will be automatically closed.
@@ -156,8 +157,15 @@ body:
   - type: textarea
     id: support-file
     attributes:
-      label: Support File Attachment
-      description: Please attach the encrypted support.zip file generated from PixelFlasher (Support button or Help menu). This file is encrypted to protect your privacy. Drag and drop the file directly into this text area. The file MUST follow the naming format Support_YYYY-MM-DD_hh-mm-ss.zip.
+      label: Support File Attachment (REQUIRED)
+      description: |
+        **THIS IS REQUIRED - Issues without a support file will be automatically closed.**
+
+        Please attach the encrypted support.zip file generated from PixelFlasher (Support button or Help menu).
+        This file is encrypted to protect your privacy. Drag and drop the file directly into this text area.
+        The file MUST follow the naming format Support_YYYY-MM-DD_hh-mm-ss.zip.
+
+        After attaching, you should see either a link to the file or the filename displayed in this section.
     validations:
       required: true
 

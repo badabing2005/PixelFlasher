@@ -2265,22 +2265,36 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # Sub Function       patch_kernelsu_script
     # ==========================================
     def patch_kernelsu_script(kernelsu_version):
+        if 'KernelSU-Next' in patch_flavor:
+            patch_label = "KernelSU-Next App"
+            ksu_path = device.ksu_next_path
+            with_version = device.get_uncached_ksu_next_app_version()
+            with_version_code = device.ksu_next_app_version_code
+        else:
+            patch_label = "KernelSU App"
+            ksu_path = device.ksu_path
+            with_version = device.get_uncached_ksu_app_version()
+            with_version_code = device.ksu_app_version_code
+        set_patched_with(with_version)
+
         print("Creating pf_patch.sh script ...")
         patch_label = patch_flavor
         script_path = "/data/local/tmp/pf_patch.sh"
         exec_cmd = f"\"{get_adb()}\" -s {device.id} shell \"cd /data/local/tmp; /data/local/tmp/pf_patch.sh\""
         perform_as_root = False
 
-        set_patched_with(kernelsu_version)
-        puml(f":Patching with {patch_label}: {kernelsu_version};\n", True)
+        puml(f":Patching with {patch_label}: {with_version};\n", True)
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             data = " #!/system/bin/sh\n"
             data += " ##############################################################################\n"
-            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {kernelsu_version}\n"
+            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
             data += " ##############################################################################\n"
-            data += f"KERNELSU_VERSION=\"{kernelsu_version}\"\n"
+            data += f"KSU_VERSION=\"{with_version_code}\"\n"
+            data += f"STOCK_SHA1={stock_sha1}\n"
+            data += f"KSU_PATH={ksu_path}\n"
+
             data += f"STOCK_SHA1={stock_sha1}\n"
 
             data += f"ARCH={device.architecture}\n\n"
@@ -2304,14 +2318,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
             data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
-            data += f"PATCH_FILENAME={patch_name}_${{KERNELSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
+            data += f"PATCH_FILENAME={patch_name}_${{KSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
 
             data += f"cp -f /data/local/tmp/pf/new-boot.img {self.config.phone_path}/${{PATCH_FILENAME}}\n"
 
             data += f"if [[ -s {self.config.phone_path}/${{PATCH_FILENAME}} ]]; then\n"
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
-            data += "	if [[ -n \"$KERNELSU_VERSION\" ]]; then echo $KERNELSU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
+            data += "	if [[ -n \"$KSU_VERSION\" ]]; then echo $KSU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
             data += "	echo \"❌ ERROR: Patching failed!\"\n"
             data += "fi\n\n"
@@ -2347,7 +2361,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         # Execute the pf_patch.sh script
         #------------------------------------
         print("Executing the pf_patch.sh script ...")
-        print(f"PixelFlasher Patching phone with {patch_label}: {kernelsu_version}")
+        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
         puml(":Executing the patch script;\n")
         debug(f"exec_cmd: {exec_cmd}")
         res = run_shell2(exec_cmd)
@@ -2381,20 +2395,55 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         if 'KernelSU-Next' in patch_flavor:
             patch_label = "KernelSU-Next App"
             ksu_path = device.ksu_next_path
+            with_version = device.get_uncached_ksu_next_app_version()
+            with_version_code = device.ksu_next_app_version_code
         else:
             patch_label = "KernelSU App"
             ksu_path = device.ksu_path
+            with_version = device.get_uncached_ksu_app_version()
+            with_version_code = device.ksu_app_version_code
         path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
         script_path = "/data/local/tmp/pf_patch.sh"
         exec_cmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
-        with_version = device.get_uncached_ksu_app_version()
-        with_version_code = device.ksu_app_version_code
         perform_as_root = False
 
         set_patched_with(with_version)
         puml(f":Patching with {patch_label}: {with_version};\n", True)
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
+        # Patch flavor based cmd selector
+        if patch_flavor == 'KernelSU-Next_LKM':
+            # show a question dialog to ask the user to select mount type MagicMount or OverlayFS
+            title = "Select dynamic module mount system"
+            buttons_text = ["MagicMount", "OverlayFS", "Cancel"]
+            message = f'''
+## Select dynamic module mount system MagicMount or OverlayFS
+
+According to the author, Magic Mount is more stable and compatible and is recommended.
+
+'''
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[650,200])
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            mountType = ""
+            if result == 1:
+                ksud_mount = "ksud_magic"
+                mountType = "magicmount"
+                print("User selected MagicMount for dynamic module mount system.")
+            elif result == 2:
+                ksud_mount = "ksud_overlayfs"
+                mountType = "overlayfs"
+                print("User selected OverlayFS for dynamic module mount system.")
+            if result == 3:
+                print("⚠️ User cancelled, Aborting ...")
+                return -1, ""
+        else:
+            ksud_mount = "ksud"
+
+        # Create the patch script
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             data = " #!/system/bin/sh\n"
             data += " ##############################################################################\n"
@@ -2419,7 +2468,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "    cp $FILE $NEWNAME\n"
             data += "done\n"
             data += "chmod 755 *\n"
-            data += "PATCHING_KSU_VERSION=$(/data/local/tmp/pf/assets/ksud -V)\n"
+            data += f"PATCHING_KSU_VERSION=$(/data/local/tmp/pf/assets/{ksud_mount} -V)\n"
             data += "echo \"PATCHING_KSU_VERSION: $PATCHING_KSU_VERSION\"\n"
 
             data += "echo -------------------------\n"
@@ -2430,37 +2479,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 kmi_override = f" --kmi {self.config.override_kmi}"
                 data += "echo \"Overriding KMI ...\"\n"
             data += "NEWEST_FILE1=$(ls -t | head -n 1)\n"
-            mountType = ""
-            if patch_flavor == 'KernelSU-Next_LKM':
-                # show a question dialog to ask the user to select mount type MagicMount or OverlayFS
-                title = "Select dynamic module mount system"
-                buttons_text = ["MagicMount", "OverlayFS", "Cancel"]
-                message = f'''
-## Select dynamic module mount system MagicMount or OverlayFS
+            data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot {kmi_override} | tee temp_file\n"
 
-According to the author, Magic Mount is more stable and compatible and is recommended.
-
-'''
-                print(f"\n*** Dialog ***\n{message}\n______________\n")
-                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[650,200])
-                dlg.CentreOnParent(wx.BOTH)
-                result = dlg.ShowModal()
-                dlg.Destroy()
-                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
-                if result == 1:
-                    ksud_mount = "ksud_magic"
-                    mountType = "magicmount"
-                    print("User selected MagicMount for dynamic module mount system.")
-                elif result == 2:
-                    ksud_mount = "ksud_overlayfs"
-                    mountType = "overlayfs"
-                    print("User selected OverlayFS for dynamic module mount system.")
-                if result == 3:
-                    print("⚠️ User cancelled, Aborting ...")
-                    return -1, ""
-                data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot {kmi_override} | tee temp_file\n"
-            else:
-                data += f"./ksud boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot {kmi_override} | tee temp_file\n"
             data += "OUTPUT_FILE=$(grep -o '/data/local/tmp/pf/assets/[^ ]*' \"temp_file\" | tail -n 1 | xargs basename)\n"
             data += "echo \"OUTPUT_FILE: [${OUTPUT_FILE}]\"\n"
             data += "rm -f temp_file\n"
@@ -2486,7 +2506,6 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             data += "        echo \"❌ ERROR: Patching failed!\"\n"
             data += "    fi\n"
             data += "fi\n\n"
-            delete_temp_files = False
             if delete_temp_files:
                 data += "echo \"Cleaning up ...\"\n"
                 data += "rm -f /data/local/tmp/pf_patch.sh /data/local/tmp/pf.zip /data/local/tmp/busybox\n"
@@ -2859,7 +2878,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
     #------------------
     # Start of function
     #------------------
-    delete_temp_files = True
+    delete_temp_files = not self.config.keep_patch_temporary_files
     recovery = 'false'
     custom_text = ""
     tmp_path = os.path.join(get_config_path(), 'tmp')
@@ -3996,9 +4015,10 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 puml("#red:{boot_img_path} file not found\n}\n")
                 return -1
         if self.config.flash_both_slots:
-            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: You have selected to flash both slots, please make sure your device is not subject to anti-rollback (ARB) concerns.")
+            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: You have selected to flash both slots, please make sure your device is not subject to anti-rollback (ARB) concerns.\nYou can check the bootloader versions from the Device menu.")
             message += f"##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
             message += "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
+            message += "You can check the bootloader versions from the Device menu.<br/>\n"
 
         message += f"## Live/Flash Boot Options:\n\n"
         message += f"<pre>Option:                     {option}\n"
@@ -5278,12 +5298,12 @@ def flash_phone(self):
         # Sub Function                refresh_and_done
         # ============================================
         def refresh_and_done():
-            nonlocal device
+            # nonlocal device
             print("Sleeping 10 seconds ...")
             puml(f":Sleeping 10 seconds;\n", True)
             time.sleep(10)
             self.refresh_device(device_id)
-            # device = get_phone()
+            device = get_phone()
             ### Done
             endFlash = time.time()
             print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
@@ -5293,6 +5313,20 @@ def flash_phone(self):
             self.toast(_("Flash action"), _("✅ Flashing elapsed time: %s seconds") % (math.ceil(endFlash - startFlash)))
             puml("}\n")
             os.chdir(cwd)
+            # if we're sideloading OTA, we should open logcat to show the merging of the OTA
+            if self.config.flash_mode == 'OTA':
+                if device:
+                    self.toast(_("⚠️ Wait for OTA Merging completion."), _("WARNING! Please wait for the OTA merging to complete.\nCheck the logcat window for the completion message.\nYou can close the logcat window when done."))
+                    print("\n==============================================================================")
+                    print("  Opening logcat to show the merging of the OTA progress.")
+                    print("  Please wait until the merging is complete.")
+                    print("  When the merging is complete, you should see a message:\nErrorCode::kSuccess")
+                    print("  You can close the logcat window when done.")
+                    print("  If logcat windows is closed before the merging is complete,")
+                    print("  (this can happen when you unlock the screen)")
+                    print("  you can open it again from PixelFlasher menu Device | Logcat.")
+                    print("==============================================================================\n")
+                    device.open_update_engine_logcat()
 
         # -------------------------------------------------------------------------
         # 5 Finish up Do the additional checks and flashing / rebooting

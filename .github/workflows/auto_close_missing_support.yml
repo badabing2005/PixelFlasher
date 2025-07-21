@@ -19,7 +19,7 @@ jobs:
         id: check_support
         run: |
           body="${{ github.event.issue.body }}"
-          if echo "$body" | grep -q "Support_[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}_[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}\.zip"; then
+          if echo "$body" | grep -qi "support_[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}_[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}\.zip"; then
             echo "has_support_file=true" >> $GITHUB_OUTPUT
           else
             echo "has_support_file=false" >> $GITHUB_OUTPUT

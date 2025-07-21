@@ -138,10 +138,13 @@ jobs:
 
       - name: Install AppImage tools
         run: |
-          # Download appimagetool but don't try to install it as executable
-          # We'll extract and run it directly to avoid FUSE dependency issues
-          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool.AppImage
+          # Download CI version of appimagetool but don't try to install it.
+          # Extract and run it directly to avoid FUSE dependency issues
+          echo "Downloading appimagetool..."
+          curl -L -o appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
+          echo "Downloaded appimagetool successfully"
+          ls -la appimagetool.AppImage
         shell: bash
 
       - name: Create AppImage structure

@@ -139,7 +139,8 @@ jobs:
       - name: Install AppImage tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget fuse
+          # Don't install fuse on GitHub Actions runners as it conflicts with the environment
+          # sudo apt-get install -y wget fuse
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           sudo mv appimagetool /usr/local/bin/

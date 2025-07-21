@@ -961,7 +961,7 @@ def process_file(self, file_type):
                 else:
                     print("Extracting files from payload.bin ...")
                     wx.Yield()
-                    extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot')
+                    extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,vendor_boot')
                     wx.Yield()
                 if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
                     boot_img_file = os.path.join(package_dir_full, 'boot.img')
@@ -975,6 +975,10 @@ def process_file(self, file_type):
                     boot_file_name = 'init_boot.img'
                     found_init_boot_img = 'True' # This is intentionally a string, all we care is for it to not evaluate to False
                     is_init_boot = True
+                if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
+                    boot_img_file = os.path.join(package_dir_full, 'vendor_boot.img')
+                    debug(f"Copying {boot_img_file}")
+                    shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'vendor_boot.img'), follow_symlinks=True)
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while processing payload.bin")
                 traceback.print_exc()
@@ -1092,9 +1096,12 @@ def process_file(self, file_type):
                 shutil.copy(os.path.join(tmp_dir_full, 'vbmeta.img'), package_dir_full, follow_symlinks=True)
             if found_vendor_boot_img and os.path.exists(package_dir_full):
                 shutil.copy(os.path.join(tmp_dir_full, 'vendor_boot.img'), package_dir_full, follow_symlinks=True)
+                shutil.copy(os.path.join(tmp_dir_full, 'vendor_boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
         else:
             if found_init_boot_img and os.path.exists(os.path.join(package_dir_full, 'boot.img')):
                 shutil.copy(os.path.join(package_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
+            if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
+                shutil.copy(os.path.join(package_dir_full, 'vendor_boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
 
         # Let's see if we have a record for the firmware/rom being processed
         print(f"Checking DB entry for PACKAGE: {file_to_process}")
@@ -3024,6 +3031,15 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             boot_path = boot_path.replace("init_boot.img", "boot.img")
             stock_sha1 = sha1(boot_path)[:8]
             print(f"Using boot.img for {patch_flavor} patching with SHA1 of {stock_sha1}")
+
+        # KernelSU_LKM (version_code 12109 or newer) and KernelSU-Next_LKM use vendor_boot.img for patching on Pixel 6a, bluejay
+        # https://github.com/KernelSU-Next/KernelSU-Next/issues/676
+        if ((patch_flavor == 'KernelSU_LKM' and int(device.ksu_app_version_code) >= 12109) or patch_flavor == 'KernelSU-Next_LKM') and (device.hardware in ['bluejay'] or 'bluejay' in boot.package_sig):
+            print(f"With {patch_flavor} patching, the vendor_boot.img will be used, instead of boot.img / init_boot.img")
+            boot_path = boot_path.replace("init_boot.img", "boot.img")
+            boot_path = boot_path.replace("boot.img", "vendor_boot.img")
+            stock_sha1 = sha1(boot_path)[:8]
+            print(f"Using vendor_boot.img for {patch_flavor} patching with SHA1 of {stock_sha1}")
 
         if patch_flavor in ['APatch', 'APatch_manual'] and "init_boot.img" in boot_path:
             print(f"With APatch patching, the boot.img will be used, instead of init_boot.img, however we might need ramdisk from init_boot.img for APatch app patching")

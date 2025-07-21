@@ -264,7 +264,7 @@ class AdvancedSettings(wx.Dialog):
         self.package_name.SetValue(self.Parent.config.magisk)
         self.patch_methods_checkbox.SetValue(self.Parent.config.offer_patch_methods)
         self.recovery_patch_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
-        self.keep_temp_files_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
+        self.keep_temp_files_checkbox.SetValue(self.Parent.config.keep_patch_temporary_files)
         self.use_busybox_shell_checkbox.SetValue(self.Parent.config.use_busybox_shell)
         self.low_mem_checkbox.SetValue(self.Parent.config.low_mem)
         self.extra_img_extracts_checkbox.SetValue(self.Parent.config.extra_img_extracts)
@@ -494,12 +494,12 @@ class AdvancedSettings(wx.Dialog):
             self.Parent.config.offer_patch_methods = self.patch_methods_checkbox.GetValue()
 
             if self.recovery_patch_checkbox.GetValue() != self.Parent.config.show_recovery_patching_option:
-                print(f"Setting Offer Patch Methods to: {self.recovery_patch_checkbox.GetValue()}")
+                print(f"Setting Patching Recovery Partition to: {self.recovery_patch_checkbox.GetValue()}")
             self.Parent.config.show_recovery_patching_option = self.recovery_patch_checkbox.GetValue()
 
             if self.keep_temp_files_checkbox.GetValue() != self.Parent.config.keep_patch_temporary_files:
-                print(f"Setting Offer Patch Methods to: {self.keep_temp_files_checkbox.GetValue()}")
-            self.Parent.config.show_recovery_patching_option = self.keep_temp_files_checkbox.GetValue()
+                print(f"Keep Temp Files to: {self.keep_temp_files_checkbox.GetValue()}")
+            self.Parent.config.keep_patch_temporary_files = self.keep_temp_files_checkbox.GetValue()
 
             if self.use_busybox_shell_checkbox.GetValue() != self.Parent.config.use_busybox_shell:
                 print(f"Setting Use Busybox Shell to: {self.use_busybox_shell_checkbox.GetValue()}")

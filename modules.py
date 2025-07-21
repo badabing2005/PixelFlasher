@@ -679,6 +679,8 @@ def process_file(self, file_type):
             wx.Yield()
             found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=True)
             wx.Yield()
+            found_vendor_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_boot.img", nested=True)
+            wx.Yield()
             found_boot_img_lz4 = ''
             set_firmware_has_init_boot(False)
             set_ota(self, False)
@@ -882,6 +884,9 @@ def process_file(self, file_type):
             found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=False)
             wx.Yield()
             found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=False)
+            wx.Yield()
+            found_vendor_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_boot.img", nested=False)
+            wx.Yield()
             set_rom_has_init_boot(False)
             if found_init_boot_img:
                 set_rom_has_init_boot(True)
@@ -997,6 +1002,8 @@ def process_file(self, file_type):
                 is_init_boot = True
             if found_vbmeta_img:
                 files_to_extract += 'vbmeta.img '
+            if found_vendor_boot_img:
+                files_to_extract += 'vendor_boot.img '
             files_to_extract = files_to_extract.strip()
 
             if not is_odin:
@@ -1083,6 +1090,8 @@ def process_file(self, file_type):
             # we copy vbmeta.img so that we can do selective vbmeta verity / verification patching.
             if found_vbmeta_img and os.path.exists(package_dir_full):
                 shutil.copy(os.path.join(tmp_dir_full, 'vbmeta.img'), package_dir_full, follow_symlinks=True)
+            if found_vendor_boot_img and os.path.exists(package_dir_full):
+                shutil.copy(os.path.join(tmp_dir_full, 'vendor_boot.img'), package_dir_full, follow_symlinks=True)
         else:
             if found_init_boot_img and os.path.exists(os.path.join(package_dir_full, 'boot.img')):
                 shutil.copy(os.path.join(package_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
@@ -2411,6 +2420,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         puml(f":Patching with {patch_label}: {with_version};\n", True)
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
+        mountType = ""
         # Patch flavor based cmd selector
         if patch_flavor == 'KernelSU-Next_LKM':
             # show a question dialog to ask the user to select mount type MagicMount or OverlayFS
@@ -2428,7 +2438,6 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             result = dlg.ShowModal()
             dlg.Destroy()
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
-            mountType = ""
             if result == 1:
                 ksud_mount = "ksud_magic"
                 mountType = "magicmount"

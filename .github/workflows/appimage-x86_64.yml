@@ -138,12 +138,10 @@ jobs:
 
       - name: Install AppImage tools
         run: |
-          sudo apt-get update
-          # Don't install fuse on GitHub Actions runners as it conflicts with the environment
-          # sudo apt-get install -y wget fuse
-          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
-          chmod +x appimagetool
-          sudo mv appimagetool /usr/local/bin/
+          # Download appimagetool but don't try to install it as executable
+          # We'll extract and run it directly to avoid FUSE dependency issues
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool.AppImage
+          chmod +x appimagetool.AppImage
         shell: bash
 
       - name: Create AppImage structure
@@ -189,9 +187,9 @@ jobs:
 
       - name: Build AppImage
         run: |
-          # Create AppImage
+          # Create AppImage using --appimage-extract-and-run to avoid FUSE dependency
           mkdir -p dist
-          ARCH=x86_64 /usr/local/bin/appimagetool AppDir dist/PixelFlasher-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool.AppImage --appimage-extract-and-run AppDir dist/PixelFlasher-x86_64.AppImage
 
           # Generate SHA256 checksum
           cd dist

@@ -2641,151 +2641,151 @@ msgstr "在預設瀏覽器中打開 URL"
 # Additions 2025-07-20
 ##############################################################################
 msgid "Keep Temp Files"
-msgstr ""
+msgstr "保留暫存檔案"
 
 msgid "Enabling this will keep temporary files used for patching.\nThis is useful for debugging purposes.\nIt is recommended to keep this disabled."
-msgstr ""
+msgstr "開啟此選項將保留用於修補的暫存檔案。\n這對於偵錯的目的很有用。\n建議保持此選項為停用狀態。"
 
 msgid "Logcat"
-msgstr ""
+msgstr "日誌"
 
 msgid "Logcat Viewer"
-msgstr ""
+msgstr "日誌檢視器"
 
 msgid "Logcat filter: update_engine"
-msgstr ""
+msgstr "日誌過濾器：update_engine"
 
 msgid "Logcat filtered for update_engine to monitor OTA merging"
-msgstr ""
+msgstr "日誌過濾器：update_engine\n用於監控 OTA 合併"
 
 msgid "Bootloader Versions"
-msgstr ""
+msgstr "Bootloader 版本"
 
 msgid "Get Bootloader Versions"
-msgstr ""
+msgstr "取得 Bootloader 版本"
 
 msgid "Formatting Options"
-msgstr ""
+msgstr "格式化選項"
 
 msgid "Enable formatting (-v)"
-msgstr ""
+msgstr "啟用格式化 (-v)"
 
 msgid "Enable or disable formatting options for logcat output"
-msgstr ""
+msgstr "啟用或停用 logcat 輸出的格式化選項"
 
 msgid "Format Verbs"
-msgstr ""
+msgstr "格式化詳細輸出"
 
 msgid "Show priority, tag, and PID of the process issuing the message"
-msgstr ""
+msgstr "顯示發出消息的處理程序的優先級、標籤和 PID"
 
 msgid "Show all metadata fields and separate messages with blank lines"
-msgstr ""
+msgstr "顯示所有 metadata 欄位，並用空行分隔訊息"
 
 msgid "Show PID only"
-msgstr ""
+msgstr "僅顯示 PID"
 
 msgid "Show the raw log message with no other metadata fields"
-msgstr ""
+msgstr "顯示原始日誌訊息，不包含其他 metadata 欄位"
 
 msgid "Show the priority and tag only"
-msgstr ""
+msgstr "僅顯示優先級和標籤"
 
 msgid "Show priority, PID, and TID of the thread issuing the message"
-msgstr ""
+msgstr "顯示發出消息的執行緒的優先級、PID 和 TID"
 
 msgid "Show date, time, priority, tag, PID, and TID (default)"
-msgstr ""
+msgstr "顯示日期、時間、優先級、標籤、PID 和 TID（預設）"
 
 msgid "Show date, time, priority, tag, and PID of the process"
-msgstr ""
+msgstr "顯示日期、時間、優先級、標籤和 PID（預設）"
 
 msgid "Adverb Modifiers"
-msgstr ""
+msgstr "Adverb 修飾符"
 
 msgid "Show each priority with a different color"
-msgstr ""
+msgstr "顯示每個優先級的不同顏色"
 
 msgid "Show event descriptions from event-log-tags database"
-msgstr ""
+msgstr "顯示來自 event-log-tags 資料庫的事件描述"
 
 msgid "Show time as seconds since 1970-01-01 (Unix epoch)"
-msgstr ""
+msgstr "顯示自 1970-01-01（Unix 紀元）以來的秒數"
 
 msgid "Show time as CPU seconds since boot"
-msgstr ""
+msgstr "顯示自啟動以來的 CPU 秒數"
 
 msgid "Ensure that any binary logging content is escaped"
-msgstr ""
+msgstr "確保任何二進位日誌內容都已轉義"
 
 msgid "Show UID or Android ID of logged process (if permitted)"
-msgstr ""
+msgstr "顯示已登錄處理程序的 UID 或 Android ID（如果允許）"
 
 msgid "Show time with microsecond precision"
-msgstr ""
+msgstr "顯示微秒精度的時間"
 
 msgid "Filter Options"
-msgstr ""
+msgstr "過濾器選項"
 
 msgid "Tag Filter"
-msgstr ""
+msgstr "標籤過濾器"
 
 msgid "Tag:"
-msgstr ""
+msgstr "標籤："
 
 msgid "Enter log component tag (or * for all)"
-msgstr ""
+msgstr "輸入日誌組件標籤（或 * 代表全部）"
 
 msgid "Priority Level"
-msgstr ""
+msgstr "優先級"
 
 msgid "Verbose (default for specific tag)"
-msgstr ""
+msgstr "詳細（特定標籤的預設）"
 
 msgid "Debug (default for *)"
-msgstr ""
+msgstr "偵錯（* 的預設）"
 
 msgid "Warn"
-msgstr ""
+msgstr "警告"
 
 msgid "Fatal"
-msgstr ""
+msgstr "致命"
 
 msgid "Silent (suppress all output)"
-msgstr ""
+msgstr "安靜（抑制所有輸出）"
 
 msgid "Additional Filters"
-msgstr ""
+msgstr "附加過濾器"
 
 msgid "Regex Filter (-e):"
-msgstr ""
+msgstr "正則表達式過濾器 (-e)："
 
 msgid "Enter ECMAScript regex to filter output"
-msgstr ""
+msgstr "輸入 ECMAScript 正則表達式以過濾輸出"
 
 msgid "UIDs Filter (comma-separated):"
-msgstr ""
+msgstr "UID 過濾器（以逗號分隔）："
 
 msgid "Enter UIDs (numeric, comma-separated)"
-msgstr ""
+msgstr "輸入 UIDs（數字，以逗號分隔）"
 
 msgid "View Logcat"
-msgstr ""
+msgstr "查看 Logcat"
 
 msgid "View logcat output with selected options"
-msgstr ""
+msgstr "查看 logcat 輸出，使用所選選項"
 
 msgid "Clear Logcat"
-msgstr ""
+msgstr "清除 Logcat"
 
 msgid "Clear logcat buffer"
-msgstr ""
+msgstr "清除 logcat 緩衝區"
 
 msgid "Close this panel"
-msgstr ""
+msgstr "關閉此面板"
 
 msgid "No device connected"
-msgstr ""
+msgstr "未連接裝置"
 
 msgid "Logcat buffer cleared"
-msgstr ""
+msgstr "logcat 緩衝區已清除"

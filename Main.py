@@ -2043,6 +2043,8 @@ class PixelFlasher(wx.Frame):
             # Rebuild the toolbar with the updated flags
             self._build_toolbar(self.toolbar_flags, True)
             self.update_widget_states()
+            # save config
+            self.config.save(get_config_file_path())
             # self.Thaw()
 
     # -----------------------------------------------
@@ -5093,6 +5095,10 @@ class PixelFlasher(wx.Frame):
                         result_categories[result_type]['count'] += 1
                         result_categories[result_type]['files'].append(selected_file)
 
+                # Keybox analysis output
+                if self.config.kb_index and total_keyboxes < 10:
+                    res = analyze_kb_file(filepath=selected_file)
+
         except Exception as e:
             print(f"Error: {e}")
             traceback.print_exc()
@@ -5372,6 +5378,10 @@ class PixelFlasher(wx.Frame):
 
                 # get boot image info
                 boot_img_info = get_boot_image_info(boot.boot_path)
+                if boot_img_info and boot_img_info['Partition Name']:
+                    set_selected_boot_partition(boot_img_info['Partition Name'])
+                else:
+                    set_selected_boot_partition(None)
                 if boot.is_init_boot == 0:
                     message += f"Init Boot:                False\n"
                     if boot_img_info and 'com.android.build.boot.security_patch' in boot_img_info:

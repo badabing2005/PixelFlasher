@@ -607,7 +607,8 @@ class PifManager(wx.Dialog):
         if modules:
             found_pif_module = False
             for module in modules:
-                if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store"):
+                # if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store"):
+                if module.state == 'enabled' and (module.id == "playintegrityfix" and "Play Integrity" in module.name):
                     self.pif_format = None
                     self.pif_path = None
                     if module.id == "playintegrityfix":

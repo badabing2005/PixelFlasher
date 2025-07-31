@@ -3032,9 +3032,9 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             stock_sha1 = sha1(boot_path)[:8]
             print(f"Using boot.img for {patch_flavor} patching with SHA1 of {stock_sha1}")
 
-        # KernelSU_LKM (version_code 12109 or newer) and KernelSU-Next_LKM use vendor_boot.img for patching on Pixel 6a, bluejay
+        # KernelSU_LKM (version_code 12109 or newer) and KernelSU-Next_LKM use vendor_boot.img for patching
         # https://github.com/KernelSU-Next/KernelSU-Next/issues/676
-        if ((patch_flavor == 'KernelSU_LKM' and int(device.ksu_app_version_code) >= 12109) or patch_flavor == 'KernelSU-Next_LKM') and (device.hardware in ['bluejay'] or 'bluejay' in boot.package_sig):
+        if ((patch_flavor == 'KernelSU_LKM' and int(device.ksu_app_version_code) >= 12109) or patch_flavor == 'KernelSU-Next_LKM'):
             print(f"With {patch_flavor} patching, the vendor_boot.img will be used, instead of boot.img / init_boot.img")
             boot_path = boot_path.replace("init_boot.img", "boot.img")
             boot_path = boot_path.replace("boot.img", "vendor_boot.img")
@@ -4021,20 +4021,25 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             partition = "init_boot"
         else:
             partition = "boot"
-        if option == 'Live' and boot.is_init_boot:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting init_boot partition is not supported, looking for stock boot.img")
+        selected_boot_partition = get_selected_boot_partition()
+        if selected_boot_partition:
+            partition = selected_boot_partition
+        # if option == 'Live' and boot.is_init_boot:
+        if option == 'Live' and partition != "boot":
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting {partition} partition is not supported, looking for stock boot.img")
             boot_img_path = os.path.join(boot_dir, 'boot.img')
             if os.path.exists(boot_img_path):
                 size = [960, 880]
                 boot_hash = sha1(boot_img_path)
-                partition = "boot"
                 print(f"✅ Found stock boot.img in {boot_dir} with SHA1: {boot_hash}")
-                message += f"##⚠️ Live Booting init_boot is not supported, stock boot.img will be used instead.<br/>\n"
+                message += f"##⚠️ Live Booting {partition} is not supported, stock boot.img will be used instead.<br/>\n"
                 message += "Depending on the selection, Live booting stock boot.img might not make a difference.<br/>\n"
                 message += "Magisk patches init_boot<br/>\n"
                 message += "Apatch patches boot<br/>\n"
                 message += "KernelSU (and Next) patches boot<br/>\n"
-                message += "KernelSU_LKM (and Next) patches init_boot<br/>\n\n"
+                message += "KernelSU_LKM (and Next) patches vendor_boot / init_boot<br/>\n\n"
+                # set it to boot partition for live booting
+                partition = "boot"
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} {boot_img_path} file not found, Aborting ...")
                 puml("#red:{boot_img_path} file not found\n}\n")
@@ -5176,13 +5181,15 @@ def flash_phone(self):
                         flash = "flash"
 
                     if boot.is_init_boot:
-                        print("Flashing patched init_boot ...")
-                        theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} init_boot \"{boot.boot_path}\"\n"
-                        is_init_boot = True
+                        partition = "init_boot"
                     else:
-                        print("Flashing patched boot ...")
-                        theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} boot \"{boot.boot_path}\"\n"
-                        is_init_boot = False
+                        partition = "boot"
+                    selected_boot_partition = get_selected_boot_partition()
+                    if selected_boot_partition:
+                        partition = selected_boot_partition
+
+                    print(f"Flashing patched {partition} ...")
+                    theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} {partition} \"{boot.boot_path}\"\n"
                     debug(theCmd)
                     res = run_shell(theCmd)
                     if res and isinstance(res, subprocess.CompletedProcess):

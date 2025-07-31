@@ -55,15 +55,16 @@ class AdvancedSettings(wx.Dialog):
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        warning_text = _('WARNING!\n')
-        warning_text += _('This is advanced configuration.\n')
-        warning_text += _('Unless you know what you are doing,\n')
-        warning_text += _('you should not be enabling it.\n')
-        warning_text += '\n'
-        warning_text += _('YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n')
-        warning_text += _('THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n')
-        warning_text += _('ADB, MAGISK, ANDROID, AND ROOT.\n')
-        warning_text += _('IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n')
+        blanksspace = 40
+        warning_text = " " * blanksspace + _('WARNING!\n')
+        warning_text += " " * blanksspace + _('This is advanced configuration.\n')
+        warning_text += " " * blanksspace + _('Unless you know what you are doing,\n')
+        warning_text += " " * blanksspace + _('you should not be enabling it.')
+        # warning_text += '\n\n'
+        # warning_text += _('YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n')
+        # warning_text += _('THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n')
+        # warning_text += _('ADB, MAGISK, ANDROID, AND ROOT.\n')
+        # warning_text += _('IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n')
 
         # warning label
         self.warning_label = wx.StaticText(parent=top_panel, id=wx.ID_ANY, label=warning_text, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.ALIGN_CENTER_HORIZONTAL)
@@ -187,6 +188,10 @@ class AdvancedSettings(wx.Dialog):
         self.sanitize_support_files = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Sanitize (Redact) support files"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.sanitize_support_files.SetToolTip(_("The support files are always encrypted.\nThis option redacts sensitive information from the support files.\nBut impedes support and is not recommended."))
 
+        # KB Indexing
+        self.kb_index_cb = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Keybox Index"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.kb_index_cb.SetToolTip(_("This will enable keybox indexing.\nThis is useful if you process multiple keyboxes.\nWhich can be used to analyze keyboxes and compare them to previously processed ones.\nThis can help in identifying duplicate keyboxes"))
+
         # Force codepage
         self.force_codepage_checkbox = wx.CheckBox(parent=scrolled_panel, id=wx.ID_ANY, label=_("Force codepage to"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.force_codepage_checkbox.SetToolTip(_("Uses specified code page instead of system code page"))
@@ -278,6 +283,7 @@ class AdvancedSettings(wx.Dialog):
         self.check_module_updates.SetValue(self.Parent.config.check_module_updates)
         self.show_custom_rom_options.SetValue(self.Parent.config.show_custom_rom_options)
         self.sanitize_support_files.SetValue(self.Parent.config.sanitize_support_files)
+        self.kb_index_cb.SetValue(self.Parent.config.kb_index)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.override_kmi.SetValue(self.Parent.config.override_kmi)
@@ -347,6 +353,9 @@ class AdvancedSettings(wx.Dialog):
         fgs1.Add((0, 0))
 
         fgs1.Add(self.sanitize_support_files, 0, wx.EXPAND)
+        fgs1.Add((0, 0))
+
+        fgs1.Add(self.kb_index_cb, 0, wx.EXPAND)
         fgs1.Add((0, 0))
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
@@ -553,6 +562,10 @@ class AdvancedSettings(wx.Dialog):
             if self.sanitize_support_files.GetValue() != self.Parent.config.sanitize_support_files:
                 print(f"Setting Sanitize Support Files options to: {self.sanitize_support_files.GetValue()}")
             self.Parent.config.sanitize_support_files = self.sanitize_support_files.GetValue()
+
+            if self.kb_index_cb.GetValue() != self.Parent.config.kb_index:
+                print(f"Setting Keybox Indexing options to: {self.kb_index_cb.GetValue()}")
+            self.Parent.config.kb_index = self.kb_index_cb.GetValue()
 
             if self.package_name.GetValue():
                 with contextlib.suppress(Exception):

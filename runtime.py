@@ -143,6 +143,7 @@ _unlocked_devices = []
 _window_shown = False
 _puml_enabled = True
 _magisk_apks = None
+_selected_boot_partition = None
 
 
 # ============================================================================
@@ -581,6 +582,22 @@ def get_a_only():
 def set_a_only(value):
     global _a_only
     _a_only = value
+
+
+# ============================================================================
+#                   Function get_selected_boot_partition
+# ============================================================================
+def get_selected_boot_partition():
+    global _selected_boot_partition
+    return _selected_boot_partition
+
+
+# ============================================================================
+#                   Function set_selected_boot_partition
+# ============================================================================
+def set_selected_boot_partition(value):
+    global _selected_boot_partition
+    _selected_boot_partition = value
 
 
 # ============================================================================
@@ -1408,11 +1425,59 @@ def open_folder(self, path, isFile = False):
             os.startfile(dir_path)
         # linux
         elif self.config.linux_file_explorer:
-            subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())
-        elif subprocess.call(["which", "xdg-open"], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
-            subprocess.Popen(["xdg-open", dir_path], env=get_env_variables())  # prefer xdg-open if available
+            try:
+                explorer_name = os.path.basename(self.config.linux_file_explorer.lower())
+
+                # Handle specific file managers that need special treatment
+                if explorer_name in ["dolphin", "nautilus"]:
+                    try:
+                        # Try with --new-window flag first
+                        subprocess.Popen([self.config.linux_file_explorer, "--new-window", dir_path], env=get_env_variables())
+                        return
+                    except:
+                        # Fallback to basic launch
+                        subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())
+                        return
+                else:
+                    try:
+                        # All other file managers work with just the path
+                        subprocess.Popen([self.config.linux_file_explorer, dir_path], env=get_env_variables())
+                        return
+                    except:
+                        # Fallback to --new-window launch
+                        subprocess.Popen([self.config.linux_file_explorer, "--new-window", dir_path], env=get_env_variables())
+                        return
+
+            except FileNotFoundError:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Configured file explorer '{self.config.linux_file_explorer}' not found.")
+                return
+            except Exception as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to launch configured file explorer: {e}")
+                return
         else:
-            subprocess.Popen(["nautilus", dir_path], env=get_env_variables())
+            # No file explorer configured, try automatic detection
+            # Try xdg-open first as it's the standard way
+            try:
+                subprocess.Popen(["xdg-open", dir_path], env=get_env_variables())
+            except FileNotFoundError:
+                # Fallback to common file managers with proper handling
+                file_managers = [
+                    ("dolphin", ["--new-window"]),
+                    ("nautilus", ["--new-window"]),
+                    ("thunar", []),
+                    ("pcmanfm", []),
+                    ("nemo", [])
+                ]
+                for fm, args in file_managers:
+                    try:
+                        cmd = [fm] + args + [dir_path]
+                        subprocess.Popen(cmd, env=get_env_variables())
+                        return  # Success, exit the function
+                    except FileNotFoundError:
+                        continue
+                # If all fail
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No suitable file explorer found. Please install xdg-utils or set linux_file_explorer in settings.")
+                return
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening a folder.")
         traceback.print_exc()
@@ -1432,9 +1497,39 @@ def open_terminal(self, path, isFile=False):
                 subprocess.Popen(["start", "cmd.exe", "/k", "cd", "/d", dir_path], shell=True, env=get_env_variables())
             elif sys.platform.startswith("linux"):
                 if self.config.linux_shell:
-                    subprocess.Popen([self.config.linux_shell, "--working-directory", dir_path], env=get_env_variables())
+                    # Handle different terminal applications with their specific arguments
+                    terminal_name = os.path.basename(self.config.linux_shell.lower())
+                    if terminal_name in ["konsole"]:
+                        subprocess.Popen([self.config.linux_shell, "--workdir", dir_path], env=get_env_variables())
+                    elif terminal_name in ["gnome-terminal", "xfce4-terminal", "terminator", "alacritty"]:
+                        subprocess.Popen([self.config.linux_shell, "--working-directory", dir_path], env=get_env_variables())
+                    elif terminal_name in ["kitty"]:
+                        subprocess.Popen([self.config.linux_shell, "--directory", dir_path], env=get_env_variables())
+                    else:
+                        # Fallback: try common arguments or just launch without directory
+                        try:
+                            subprocess.Popen([self.config.linux_shell, "--working-directory", dir_path], env=get_env_variables())
+                        except:
+                            try:
+                                subprocess.Popen([self.config.linux_shell, "--workdir", dir_path], env=get_env_variables())
+                            except:
+                                try:
+                                    subprocess.Popen([self.config.linux_shell, "--directory", dir_path], env=get_env_variables())
+                                except:
+                                    # Last resort: change directory then launch terminal
+                                    subprocess.Popen(f"cd '{dir_path}' && {self.config.linux_shell}", shell=True, env=get_env_variables())
                 else:
-                    subprocess.Popen(["gnome-terminal", "--working-directory", dir_path], env=get_env_variables())
+                    try:
+                        subprocess.Popen(["gnome-terminal", "--working-directory", dir_path], env=get_env_variables())
+                    except FileNotFoundError:
+                        try:
+                            subprocess.Popen(["konsole", "--workdir", dir_path], env=get_env_variables())
+                        except FileNotFoundError:
+                            try:
+                                subprocess.Popen(["xfce4-terminal", "--working-directory", dir_path], env=get_env_variables())
+                            except FileNotFoundError:
+                                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No suitable terminal found. Please set linux_shell in config.")
+                                return
             elif sys.platform.startswith("darwin"):
                 subprocess.Popen(["open", "-a", "Terminal", dir_path], env=get_env_variables())
     except Exception as e:
@@ -5431,8 +5526,35 @@ def check_internet():
 
 
 # ============================================================================
+#                               Function load_kb_index
+# ============================================================================
+def load_kb_index():
+    try:
+        kb_index_path = os.path.join(get_config_path(), 'kb_index.json')
+        if os.path.exists(kb_index_path):
+            with open(kb_index_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to load kb_index.json: {e}")
+        return {}
+
+
+# ============================================================================
+#                               Function save_kb_index
+# ============================================================================
+def save_kb_index(kb_index):
+    try:
+        kb_index_path = os.path.join(get_config_path(), 'kb_index.json')
+        with open(kb_index_path, 'w', encoding='utf-8') as f:
+            json.dump(kb_index, f, indent=2)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to save kb_index.json: {e}")
+
+
+# ============================================================================
 #                               Function check_kb
-# Credit to hldr4  for the original idea
+# Credit to hldr4  for the original suggestion
 # https://gist.github.com/hldr4/b933f584b2e2c3088bcd56eb056587f8
 # ============================================================================
 def check_kb(filename):
@@ -5441,21 +5563,72 @@ def check_kb(filename):
         'Cache-Control': 'no-cache, max-age=0',
         'Pragma': 'no-cache'
     }
+
     try:
-        # Get CRL data
-        crl = request_with_fallback(method='GET', url=url, headers=headers, nocache=True)
-        if crl is not None and crl != 'ERROR':
-            last_modified = crl.headers.get('last-modified', 'Unknown')
-            content_date = crl.headers.get('date', 'Unknown')
-            print("------------------------------------------------------------------------")
-            print(f"CRL Last Modified:     {last_modified}")
-            print(f"Server Response Date:  {content_date}")
-            crl = crl.json()
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not fetch CRL from {url}")
-            return ['invalid']
+        # Load kb_index
+        config = get_config()
+        if config.kb_index:
+            kb_index = load_kb_index()
+
+        # Check for cached CRL data first to avoid multiple network requests
+        config_path = get_config_path()
+        crl_cache_path = os.path.join(config_path, 'tmp', 'crl_cache.json')
+        crl_data = None
+        last_modified = 'Unknown'
+        content_date = 'Unknown'
+        use_cache = False
+
+        # Check if cached file exists and is fresh (less than 15 minutes old)
+        if os.path.exists(crl_cache_path):
+            cache_age = time.time() - os.path.getmtime(crl_cache_path)
+            if cache_age < 900:  # 15 minutes
+                try:
+                    with open(crl_cache_path, 'r', encoding='utf-8') as f:
+                        cached_data = json.load(f)
+                        crl_data = cached_data['crl_data']
+                        last_modified = cached_data.get('last_modified', 'Unknown')
+                        content_date = cached_data.get('content_date', 'Unknown')
+                        use_cache = True
+                        debug(f"Using cached CRL data (age: {cache_age:.1f} seconds)")
+                except (json.JSONDecodeError, KeyError, IOError) as e:
+                    debug(f"Failed to load cached CRL data: {e}")
+
+        # If no valid cache, fetch from server
+        if not use_cache:
+            crl = request_with_fallback(method='GET', url=url, headers=headers, nocache=True)
+            if crl is not None and crl != 'ERROR':
+                last_modified = crl.headers.get('last-modified', 'Unknown')
+                content_date = crl.headers.get('date', 'Unknown')
+                crl_data = crl.json()
+
+                # Cache the data
+                try:
+                    cache_data = {
+                        'crl_data': crl_data,
+                        'last_modified': last_modified,
+                        'content_date': content_date,
+                        'cached_at': datetime.now().isoformat()
+                    }
+                    with open(crl_cache_path, 'w', encoding='utf-8') as f:
+                        json.dump(cache_data, f, indent=2)
+                    debug("CRL data cached successfully")
+                except IOError as e:
+                    debug(f"Failed to cache CRL data: {e}")
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not fetch CRL from {url}")
+                return ['invalid']
+
+        # Display CRL info
+        print("------------------------------------------------------------------------")
+        print(f"CRL Last Modified:     {last_modified}")
+        print(f"Server Response Date:  {content_date}")
+        crl = crl_data
 
         print(f"\nChecking keybox: {filename} ...")
+
+        # Calculate file hash for kb_index
+        if config.kb_index:
+            file_hash = sha1(filename)
 
         shadow_banned_list = SHADOW_BANNED_ISSUERS
         is_sw_signed = False
@@ -5511,10 +5684,16 @@ def check_kb(filename):
                 results.append('invalid_structure')
             print(f"\nProcessing Keybox {k}/{expected_keyboxes} for Device ID: {device_id}")
 
+            if config.kb_index:
+                # Initialize keybox data collection for this specific keybox
+                keybox_data_collection = {}
+
             # 4. Verify both RSA and ECDSA algorithms are present
             required_algorithms = {'rsa', 'ecdsa'}
             found_algorithms = set()
 
+            ecdsa_chain = 'valid'
+            rsa_chain = 'valid'
             for key_element in keybox.findall('Key'):
                 wx.Yield()
                 algorithm = key_element.get('algorithm')
@@ -5591,6 +5770,9 @@ def check_kb(filename):
                         cert_text = cert.text.strip()
                         parsed_cert = x509.load_pem_x509_certificate(cert_text.encode())
                         cert_chain.append(parsed_cert)
+                        ecdsa_leaf = "valid"
+                        rsa_leaf = "valid"
+                        cert_status = "valid"
 
                         cert_sn, cert_issuer, cert_subject, sig_algo, expiry, key_usages, parsed, crl_distribution_points = parse_cert(cert.text)
 
@@ -5630,6 +5812,7 @@ def check_kb(filename):
 
                         if "Software Attestation" in cert_issuer:
                             is_sw_signed = True
+                            cert_status = "sw_signed"
 
                         if issuer_sn in ['f92009e853b6b045']:
                             is_google_signed = True
@@ -5637,6 +5820,7 @@ def check_kb(filename):
                         if expiry < datetime.now(timezone.utc):
                             is_expired = True
                             print(f"{tab_text}❌❌❌ Certificate is EXPIRED")
+                            cert_status = "expired"
                         elif expiry < datetime.now(timezone.utc) + timedelta(days=30):
                             expiring_soon = True
                             print(f"{tab_text}⚠️ Certificate is EXPIRING SOON")
@@ -5645,6 +5829,40 @@ def check_kb(filename):
                             print(f"{tab_text}❌❌❌ Certificate is REVOKED")
                             print(f"{tab_text}❌❌❌ Reason: {crl['entries'][cert_sn]['reason']} ***")
                             is_revoked = True
+                            cert_status = "revoked"
+
+                        # Collect status
+                        if algorithm == "ecdsa":
+                            if tab_text == "  ":
+                                ecdsa_leaf = cert_status
+                            else:
+                                if ecdsa_chain == 'valid':
+                                    ecdsa_chain = cert_status
+                        elif algorithm == "rsa":
+                            if tab_text == "  ":
+                                rsa_leaf = cert_status
+                            else:
+                                if rsa_chain == 'valid':
+                                    rsa_chain = cert_status
+
+                        if config.kb_index:
+                            # Add the leaf cert details to keybox_data_collection
+                            if algorithm == "ecdsa" and tab_text == "  ":
+                                keybox_data_collection["ecdsa_sn"] = cert_sn
+                                keybox_data_collection["ecdsa_issuer"] = formatted_issuer
+                                keybox_data_collection["ecdsa_leaf"] = ecdsa_leaf
+                                keybox_data_collection["ecdsa_not_before"] = parsed.not_valid_before_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+                                keybox_data_collection["ecdsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC")
+                            elif algorithm == "rsa" and tab_text == "  ":
+                                keybox_data_collection["rsa_sn"] = cert_sn
+                                keybox_data_collection["rsa_issuer"] = formatted_issuer
+                                keybox_data_collection["rsa_leaf"] = rsa_leaf
+                                keybox_data_collection["rsa_not_before"] = parsed.not_valid_before_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+                                keybox_data_collection["rsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+                    if config.kb_index:
+                        keybox_data_collection["ecdsa_chain"] = ecdsa_chain
+                        keybox_data_collection["rsa_chain"] = rsa_chain
 
                     # First is leaf, last is root
                     leaf_cert = cert_chain[0]
@@ -5793,6 +6011,53 @@ def check_kb(filename):
                 print(f"\n❌ Missing required algorithm chains: {', '.join(missing_algorithms)}")
                 results.append('missing_algorithms')
 
+            if config.kb_index:
+                # Update kb_index, use ECDSA serial number as the key.
+                file_key = filename
+                if len(keyboxes) > 1:
+                    file_key = f"{filename}__{k}"
+
+                ecdsa_sn = keybox_data_collection.get("ecdsa_sn")
+                if ecdsa_sn:
+                    # Initialize or update
+                    if ecdsa_sn not in kb_index:
+                        kb_index[ecdsa_sn] = {
+                            "ecdsa_sn": ecdsa_sn,
+                            "files": []
+                        }
+
+                    # Update certificate details
+                    kb_index[ecdsa_sn].update({
+                        "ecdsa_issuer": keybox_data_collection.get("ecdsa_issuer"),
+                        "ecdsa_leaf": keybox_data_collection.get("ecdsa_leaf"),
+                        "ecdsa_chain": keybox_data_collection.get("ecdsa_chain"),
+                        "ecdsa_not_before": keybox_data_collection.get("ecdsa_not_before"),
+                        "ecdsa_not_after": keybox_data_collection.get("ecdsa_not_after"),
+                        "rsa_sn": keybox_data_collection.get("rsa_sn"),
+                        "rsa_issuer": keybox_data_collection.get("rsa_issuer"),
+                        "rsa_leaf": keybox_data_collection.get("rsa_leaf"),
+                        "rsa_chain": keybox_data_collection.get("rsa_chain"),
+                        "rsa_not_before": keybox_data_collection.get("rsa_not_before"),
+                        "rsa_not_after": keybox_data_collection.get("rsa_not_after"),
+                        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+
+                    # Check if current file is already in the files list
+                    file_exists = False
+                    for i, file_entry in enumerate(kb_index[ecdsa_sn]["files"]):
+                        if file_entry["path"] == file_key:
+                            # Update existing file entry
+                            kb_index[ecdsa_sn]["files"][i]["hash"] = file_hash
+                            file_exists = True
+                            break
+
+                    # Add new file entry if it doesn't exist
+                    if not file_exists:
+                        kb_index[ecdsa_sn]["files"].append({
+                            "path": file_key,
+                            "hash": file_hash
+                        })
+
             k += 1
 
         if is_revoked:
@@ -5817,6 +6082,11 @@ def check_kb(filename):
             print(f"\n❌❌❌ Keybox {filename} has certificate(s) issued by an authority in shadow banned list!")
             results.append('shadow_banned')
         print('')
+
+        # Save kb_index if it was used
+        if config.kb_index:
+            save_kb_index(kb_index)
+
         return results
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in check_kb function")
@@ -5943,7 +6213,8 @@ def format_dn(dn):
         # Split the DN string by commas not preceded by a backslash (escape character)
         parts = re.split(r'(?<!\\),', dn)
         for part in parts:
-            part = part.replace("\\,", ",")  # Replace escaped commas with actual commas
+            # Replace escaped commas with actual commas
+            part = part.replace("\\,", ",")
             if part.startswith("2.5.4.5="):
                 sn = part.split("=")[1]
                 formatted.insert(0, sn)
@@ -5958,6 +6229,426 @@ def format_dn(dn):
         print(e)
         traceback.print_exc()
         return "UNKNOWN", sn
+
+
+# ============================================================================
+#                               Function analyze_kb_file
+# ============================================================================
+def analyze_kb_file(filepath=None, ecdsa_sn=None, ecdsa_issuer=None, rsa_sn=None, rsa_issuer=None, verbose=False):
+    try:
+        kb_index = load_kb_index()
+        if not kb_index:
+            print("No kb_index.json data found or file is empty.")
+            return
+
+        target_ecdsa_sn = None
+        target_data = None
+
+        # Direct lookup by ECDSA SN
+        if ecdsa_sn and ecdsa_sn in kb_index:
+            target_ecdsa_sn = ecdsa_sn
+            target_data = kb_index[ecdsa_sn]
+
+        # Search by filepath if ECDSA SN not provided
+        elif filepath:
+            for ecdsa_serial, data in kb_index.items():
+                files = data.get('files', [])
+                for file_entry in files:
+                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                    if file_path == filepath:
+                        target_ecdsa_sn = ecdsa_serial
+                        target_data = data
+                        break
+                if target_data:
+                    break
+
+        # Fallback search by other criteria
+        elif ecdsa_issuer or rsa_sn or rsa_issuer:
+            for ecdsa_serial, data in kb_index.items():
+                if ((ecdsa_issuer and data.get('ecdsa_issuer') == ecdsa_issuer) or
+                    (rsa_sn and data.get('rsa_sn') == rsa_sn) or
+                    (rsa_issuer and data.get('rsa_issuer') == rsa_issuer)):
+                    target_ecdsa_sn = ecdsa_serial
+                    target_data = data
+                    break
+
+        if not target_data:
+            print("❌ ERROR: No keybox found matching the specified criteria.")
+            return
+
+        target_files = target_data.get('files', [])
+
+        if verbose:
+            print("=" * 80)
+            print("KEYBOX FILE ANALYSIS REPORT")
+            print("=" * 80)
+            if filepath:
+                print(f"Target File: {filepath}")
+            print(f"Target ECDSA SN: {target_ecdsa_sn}")
+            print("-" * 80)
+
+            # Display keybox information
+            print(f"ECDSA SN:     {target_ecdsa_sn}")
+            print(f"RSA SN:       {target_data.get('rsa_sn', 'N/A')}")
+            print(f"ECDSA Issuer: {target_data.get('ecdsa_issuer', 'N/A')}")
+            print(f"RSA Issuer:   {target_data.get('rsa_issuer', 'N/A')}")
+            print(f"ECDSA Leaf:   {target_data.get('ecdsa_leaf', 'N/A')}")
+            print(f"ECDSA Chain:  {target_data.get('ecdsa_chain', 'N/A')}")
+            print(f"RSA Leaf:     {target_data.get('rsa_leaf', 'N/A')}")
+            print(f"RSA Chain:    {target_data.get('rsa_chain', 'N/A')}")
+            print(f"Files Count:  {len(target_files)}")
+            print("Files:")
+            for file_entry in target_files:
+                file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                file_hash = file_entry.get('hash', 'N/A') if isinstance(file_entry, dict) else 'N/A'
+                if file_hash != 'N/A':
+                    print(f"  - {file_path} (hash: {file_hash})")
+                else:
+                    print(f"  - {file_path}")
+
+        # Find matches with other keyboxes
+        hash_matches = []
+        rsa_sn_matches = []
+        ecdsa_issuer_matches = []
+        rsa_issuer_matches = []
+
+        # Get target hashes for comparison
+        target_hashes = set()
+        for file_entry in target_files:
+            file_hash = file_entry.get('hash', '') if isinstance(file_entry, dict) else ''
+            if file_hash:
+                target_hashes.add(file_hash)
+
+        # Compare with other keyboxes
+        for ecdsa_serial, data in kb_index.items():
+            if ecdsa_serial == target_ecdsa_sn:
+                # If we're analyzing the same ECDSA serial number, we need to check for hash matches within the same group
+                # but exclude the target file if analyzing a specific file
+                files = data.get('files', [])
+                for file_entry in files:
+                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                    file_hash = file_entry.get('hash', '') if isinstance(file_entry, dict) else ''
+
+                    # Only include if it's not the target file we're analyzing AND has matching hash
+                    if file_hash in target_hashes and (not filepath or file_path != filepath):
+                        hash_matches.append(file_path)
+                continue
+
+            files = data.get('files', [])
+
+            # Check for matching hashes
+            for file_entry in files:
+                file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                file_hash = file_entry.get('hash', '') if isinstance(file_entry, dict) else ''
+                if file_hash in target_hashes:
+                    hash_matches.append(file_path)
+
+            # Check for matching RSA SN
+            if target_data.get('rsa_sn', 'N/A') != 'N/A' and data.get('rsa_sn') == target_data.get('rsa_sn'):
+                rsa_sn_matches.extend([f.get('path', '') if isinstance(f, dict) else f for f in files])
+
+            # Check for matching ECDSA Issuer
+            if target_data.get('ecdsa_issuer', 'N/A') != 'N/A' and data.get('ecdsa_issuer') == target_data.get('ecdsa_issuer'):
+                ecdsa_issuer_matches.extend([f.get('path', '') if isinstance(f, dict) else f for f in files])
+
+            # Check for matching RSA Issuer
+            if target_data.get('rsa_issuer', 'N/A') != 'N/A' and data.get('rsa_issuer') == target_data.get('rsa_issuer'):
+                rsa_issuer_matches.extend([f.get('path', '') if isinstance(f, dict) else f for f in files])
+
+        to_print = f"  FILES WITH IDENTICAL HASH (hash: {list(target_hashes)[0] if target_hashes else 'N/A'}):"
+        print("  " + "." * (len(to_print) -2))
+        print(to_print)
+        if hash_matches:
+            for file_path in hash_matches:
+                print(f"    - {file_path}")
+        else:
+            print("    No other files with identical hash found.")
+
+        to_print = f"  FILES WITH IDENTICAL ECDSA SERIAL NUMBER ({target_data.get('ecdsa_sn', 'N/A')}):"
+        print("  " + "." * (len(to_print) -2))
+        print(to_print)
+
+        # Get all files with the same ECDSA serial number (excluding the target file if analyzing a specific file)
+        ecdsa_sn_matches = []
+        target_files = target_data.get('files', [])
+
+        if filepath:
+            # If analyzing a specific file, exclude it from the list
+            for file_entry in target_files:
+                file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                if file_path != filepath:
+                    ecdsa_sn_matches.append(file_path)
+        else:
+            # If searching by ECDSA SN directly, show all files
+            for file_entry in target_files:
+                file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                ecdsa_sn_matches.append(file_path)
+
+        if ecdsa_sn_matches:
+            for file_path in ecdsa_sn_matches:
+                print(f"    - {file_path}")
+        else:
+            print("    No other files with identical ECDSA serial number found.")
+
+        to_print = f"  FILES WITH IDENTICAL RSA SERIAL NUMBER ({target_data.get('rsa_sn', 'N/A')}):"
+        print("  " + "." * (len(to_print) -2))
+        print(to_print)
+        if rsa_sn_matches:
+            for file_path in rsa_sn_matches:
+                print(f"    - {file_path}")
+        else:
+            print("    No other files with identical RSA serial number found.")
+
+        to_print = f"  FILES WITH SAME ECDSA ISSUER ({target_data.get('ecdsa_issuer', 'N/A')}):"
+        print("  " + "." * (len(to_print) -2))
+        print(to_print)
+        if ecdsa_issuer_matches:
+            for file_path in ecdsa_issuer_matches:
+                print(f"    - {file_path}")
+        else:
+            print("    No other files with same ECDSA issuer found.")
+
+        to_print = f"  FILES WITH SAME RSA ISSUER ({target_data.get('rsa_issuer', 'N/A')}):"
+        print("  " + "." * (len(to_print) -2))
+        print(to_print)
+        if rsa_issuer_matches:
+            for file_path in rsa_issuer_matches:
+                print(f"    - {file_path}")
+        else:
+            print("    No other files with same RSA issuer found.")
+
+        print("  -------")
+        print("  SUMMARY")
+        print("  -------")
+        print(f"  Hash matches:                      {len(hash_matches)}")
+        print(f"  ECDSA SN matches:                  {len(ecdsa_sn_matches)}")
+        print(f"  RSA SN matches:                    {len(rsa_sn_matches)}")
+        print(f"  ECDSA Issuer matches:              {len(ecdsa_issuer_matches)}")
+        print(f"  RSA Issuer matches:                {len(rsa_issuer_matches)}")
+
+        all_matches = set(hash_matches + ecdsa_sn_matches + rsa_sn_matches + ecdsa_issuer_matches + rsa_issuer_matches)
+        print(f"  Total unique files with any match: {len(all_matches)}")
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in analyze_kb_file function")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                               Function analyze_valid_keyboxes
+# ============================================================================
+def analyze_valid_keyboxes(include_rsa_check=False, verbose=False):
+    try:
+        kb_index = load_kb_index()
+        if not kb_index:
+            print("No kb_index.json data found or file is empty.")
+            return
+
+        print("=" * 80)
+        print("VALID KEYBOXES ANALYSIS REPORT")
+        print("=" * 80)
+
+        # Filter entries based on criteria
+        valid_entries = {}
+        total_files = 0
+
+        for ecdsa_sn, data in kb_index.items():
+            # Check basic ECDSA criteria
+            ecdsa_leaf = data.get('ecdsa_leaf', '')
+            ecdsa_chain = data.get('ecdsa_chain', '')
+
+            # Check if ECDSA requirements are met
+            ecdsa_valid = (ecdsa_leaf == 'valid' and ecdsa_chain == 'valid')
+
+            # Check RSA criteria if requested
+            rsa_valid = True
+            if include_rsa_check:
+                rsa_leaf = data.get('rsa_leaf', '')
+                rsa_chain = data.get('rsa_chain', '')
+                rsa_valid = (rsa_leaf == 'valid' and rsa_chain == 'valid')
+
+            # Include entry if it meets all criteria
+            if ecdsa_valid and rsa_valid:
+                files = data.get('files', [])
+                valid_entries[ecdsa_sn] = data.copy()
+                total_files += len(files)
+
+        # Display results
+        print(f"Filtering criteria:")
+        print(f"  - ECDSA Leaf: valid")
+        print(f"  - ECDSA Chain: valid")
+        if include_rsa_check:
+            print(f"  - RSA Leaf: valid")
+            print(f"  - RSA Chain: valid")
+
+        print(f"\nResults:")
+        print(f"  - Total valid files found: {total_files}")
+        print(f"  - Unique ECDSA serial numbers: {len(valid_entries)}")
+
+        if verbose:
+            print("\n" + "=" * 80)
+            print("VALID KEYBOXES GROUPED BY ECDSA SERIAL NUMBER")
+            print("=" * 80)
+
+            # Sort by ECDSA SN for consistent output
+            for ecdsa_sn in sorted(valid_entries.keys()):
+                entry = valid_entries[ecdsa_sn]
+                files = entry.get('files', [])
+
+                print(f"\nECDSA Serial Number: {ecdsa_sn}")
+                debug(f"Number of files: {len(files)}")
+                debug(f"ECDSA Issuer: {entry.get('ecdsa_issuer', 'N/A')}")
+                debug(f"RSA Serial Number: {entry.get('rsa_sn', 'N/A')}")
+                debug(f"RSA Issuer: {entry.get('rsa_issuer', 'N/A')}")
+                print("Files:")
+                for file_entry in files:
+                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                    print(f"  - {file_path}")
+
+            print("\n" + "=" * 80)
+            print("SUMMARY")
+            print("=" * 80)
+            print(f"Total valid keybox files: {total_files}")
+            print(f"Unique ECDSA serial numbers: {len(valid_entries)}")
+
+            # Count duplicates
+            duplicate_count = 0
+            duplicate_files = 0
+            for entry in valid_entries.values():
+                files = entry.get('files', [])
+                if len(files) > 1:
+                    duplicate_count += 1
+                    duplicate_files += len(files)
+
+            print(f"ECDSA serial numbers with multiple files: {duplicate_count}")
+            print(f"Total files involved in duplicates: {duplicate_files}")
+
+            print("\n" + "=" * 80)
+            print("END OF REPORT")
+            print("=" * 80)
+
+        return valid_entries
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in analyze_valid_keyboxes function")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                 Function: analyze_revoked_chain_keyboxes
+# ============================================================================
+# Analyzes kb_index.json to find entries with valid ECDSA leaf certificates
+# but revoked ECDSA certificate chains, this is only useful for research.
+# ============================================================================
+def analyze_revoked_chain_keyboxes(verbose=False):
+    try:
+        kb_index = load_kb_index()
+        if not kb_index:
+            print("❌ ERROR: No kb_index.json data found or file is empty.")
+            print("Please ensure keybox files have been processed first.")
+            return None
+
+        print(f"\n" + "=" * 80)
+        print("ANALYZING REVOKED CHAIN KEYBOXES")
+        print("=" * 80)
+
+        print(f"Loaded {len(kb_index)} entries")
+
+        # Initialize results
+        results = {
+            'total_entries': len(kb_index),
+            'valid_leaf_revoked_chain': [],
+            'valid_leaf_revoked_chain_count': 0,
+            'other_categories': {
+                'valid_leaf_valid_chain': 0,
+                'invalid_leaf': 0,
+                'missing_ecdsa_data': 0,
+                'error_parsing': 0
+            }
+        }
+
+        # Analyze each entry
+        for ecdsa_sn, entry in kb_index.items():
+            try:
+                # Check if ECDSA data exists
+                if 'ecdsa_leaf' not in entry or 'ecdsa_chain' not in entry:
+                    results['other_categories']['missing_ecdsa_data'] += 1
+                    continue
+
+                ecdsa_leaf_valid = entry.get('ecdsa_leaf', '') == 'valid'
+                ecdsa_chain_valid = entry.get('ecdsa_chain', '') == 'valid'
+
+                # Check for valid leaf but revoked chain
+                if ecdsa_leaf_valid and not ecdsa_chain_valid:
+                    files = entry.get('files', [])
+                    results['valid_leaf_revoked_chain'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'files': files,
+                        'last_updated': entry.get('last_updated', 'Unknown'),
+                        'ecdsa_leaf': entry.get('ecdsa_leaf', 'Unknown'),
+                        'ecdsa_chain': entry.get('ecdsa_chain', 'Unknown'),
+                        'rsa_leaf': entry.get('rsa_leaf', 'Unknown'),
+                        'rsa_chain': entry.get('rsa_chain', 'Unknown'),
+                        'ecdsa_issuer': entry.get('ecdsa_issuer', 'Unknown'),
+                        'rsa_issuer': entry.get('rsa_issuer', 'Unknown')
+                    })
+                    results['valid_leaf_revoked_chain_count'] += 1
+                elif ecdsa_leaf_valid and ecdsa_chain_valid:
+                    results['other_categories']['valid_leaf_valid_chain'] += 1
+                elif not ecdsa_leaf_valid:
+                    results['other_categories']['invalid_leaf'] += 1
+
+            except Exception as e:
+                print(f"⚠️ Warning: Error processing entry {ecdsa_sn}: {e}")
+                results['other_categories']['error_parsing'] += 1
+                continue
+
+        # Print summary
+        print(f"\n" + "=" * 60)
+        print("ANALYSIS SUMMARY")
+        print("=" * 60)
+        print(f"Total entries analyzed:                    {results['total_entries']}")
+        print(f"Valid ECDSA leaf + Revoked ECDSA chain:    {results['valid_leaf_revoked_chain_count']}")
+        print(f"Valid ECDSA leaf + Valid ECDSA chain:      {results['other_categories']['valid_leaf_valid_chain']}")
+        print(f"Invalid ECDSA leaf:                        {results['other_categories']['invalid_leaf']}")
+        print(f"Missing ECDSA data:                        {results['other_categories']['missing_ecdsa_data']}")
+        print(f"Parsing errors:                            {results['other_categories']['error_parsing']}")
+
+        if verbose:
+            # Print detailed results for valid leaf + revoked chain
+            if results['valid_leaf_revoked_chain_count'] > 0:
+                print(f"\n" + "=" * 60)
+                print(f"DETAILED RESULTS: VALID ECDSA LEAF + REVOKED ECDSA CHAIN ({results['valid_leaf_revoked_chain_count']} entries)")
+                print("=" * 60)
+
+                for i, entry in enumerate(results['valid_leaf_revoked_chain'], 1):
+                    print(f"\n{i}. ECDSA Serial Number: {entry['ecdsa_sn']}")
+                    print(f"   Last Updated: {entry['last_updated']}")
+                    print(f"   ECDSA Leaf: {entry['ecdsa_leaf']}")
+                    print(f"   ECDSA Chain: {entry['ecdsa_chain']}")
+                    print(f"   RSA Leaf: {entry['rsa_leaf']}")
+                    print(f"   RSA Chain: {entry['rsa_chain']}")
+                    print(f"   ECDSA Issuer: {entry['ecdsa_issuer']}")
+                    print(f"   RSA Issuer: {entry['rsa_issuer']}")
+
+                    files = entry['files']
+                    print(f"   File Count: {len(files)}")
+                    for file_entry in files:
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                        print(f"     - {file_path}")
+            else:
+                print(f"\n✅ No keyboxes found with valid ECDSA leaf but revoked ECDSA chain.")
+
+            print(f"\n" + "=" * 80)
+            print("ANALYSIS COMPLETE")
+            print("=" * 80)
+
+        return results
+
+    except Exception as e:
+        print(f"❌ ERROR: Unexpected error during analysis: {e}")
+        traceback.print_exc()
+        return None
 
 
 # ============================================================================

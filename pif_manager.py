@@ -607,8 +607,7 @@ class PifManager(wx.Dialog):
         if modules:
             found_pif_module = False
             for module in modules:
-                # if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store"):
-                if module.state == 'enabled' and (module.id == "playintegrityfix" and "Play Integrity" in module.name):
+                if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store"):
                     self.pif_format = None
                     self.pif_path = None
                     if module.id == "playintegrityfix":
@@ -646,7 +645,8 @@ class PifManager(wx.Dialog):
                     self.pi_checker_button.Enable(True)
                     self.enable_buttons = True
                     module_label = f"{module.name} {module.version} {module.versionCode}"
-                    self.pif_selection_combo.Append(module_label)
+                    if module.id != "tricky_store":
+                        self.pif_selection_combo.Append(module_label)
 
         if found_pif_module:
             # Make the selection in priority order: Play Integrity, Trickystore

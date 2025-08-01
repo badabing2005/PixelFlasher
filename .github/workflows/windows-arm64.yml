@@ -54,9 +54,9 @@ jobs:
           ./python-arm64.exe /quiet InstallAllUsers=1 PrependPath=1
 
       - name: Install Windows SDK
-        uses: GuillaumeFalourd/setup-windows10-sdk-action@v1
+        uses: GuillaumeFalourd/setup-windows10-sdk-action@v2.4
         with:
-          sdk-version: 22621
+          sdk-version: 26100
 
       - name: Create virtual environment
         shell: pwsh

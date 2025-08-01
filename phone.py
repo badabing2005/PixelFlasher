@@ -4108,9 +4108,9 @@ add_hosts_module
                     print(theCmd)
                     subprocess.Popen(theCmd, creationflags=subprocess.CREATE_NEW_CONSOLE, start_new_session=True, env=get_env_variables())
                 elif sys.platform.startswith("linux") and config.linux_shell:
-                    theCmd = f"{get_linux_shell()} -- /bin/bash -c {theCmd}"
+                    theCmd = f"{get_linux_shell()} -- /bin/bash -c '{theCmd}'"
                     print(theCmd)
-                    subprocess.Popen(theCmd, start_new_session=True)
+                    subprocess.Popen(theCmd, shell=True, start_new_session=True)
                 elif sys.platform.startswith("darwin"):
                     script_file = tempfile.NamedTemporaryFile(delete=False, suffix='.sh')
                     script_file.write(f'#!/bin/bash\n{theCmd}\nrm "{script_file.name}"'.encode('utf-8'))

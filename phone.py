@@ -3937,8 +3937,9 @@ add_hosts_module
                 print(f"Installing magisk module {module} ...")
                 puml(":Install magisk module;\n", True)
                 puml(f"note right:{module};\n")
-                module_name = os.path.basename(module)
-                res = self.push_file(f"\"{module}\"", f"/sdcard/Download/{module_name}", with_su=False)
+                sanitized_module = sanitize_filename(module)
+                module_name = os.path.basename(sanitized_module)
+                res = self.push_file(f"\"{sanitized_module}\"", f"/sdcard/Download/{module_name}", with_su=False)
                 if res != 0:
                     puml("#red:Failed to transfer the module file to the phone;\n")
                     print("Aborting ...\n}\n")

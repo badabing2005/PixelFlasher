@@ -2445,6 +2445,59 @@ def create_support_zip():
 
 
 # ============================================================================
+#                               Function sanitize
+# ============================================================================
+def sanitize_filename(filepath, split=False):
+    try:
+        # Check if the file exists
+        if not os.path.exists(filepath):
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {filepath} does not exist.")
+            if split:
+                return None, None
+            else:
+                return None
+
+        # Split directory and filename
+        directory = os.path.dirname(filepath)
+        filename = os.path.basename(filepath)
+
+        # Define characters that need sanitization
+        suspect_chars = '<>:"|?*()&;'
+
+        # Check if filename needs sanitization
+        needs_sanitization = any(char in filename for char in suspect_chars)
+
+        if not needs_sanitization:
+            if split:
+                return directory, filename
+            else:
+                return filepath
+
+        # Create sanitized filename by replacing suspect chars with underscore
+        sanitized_filename = filename
+        for char in suspect_chars:
+            sanitized_filename = sanitized_filename.replace(char, '_')
+
+        # Create temp file in system temp directory
+        temp_dir = tempfile.gettempdir()
+        temp_filepath = os.path.join(temp_dir, sanitized_filename)
+
+        # Copy the original file to temp location with sanitized name
+        # Use copy2 to preserve timestamps and metadata
+        shutil.copy2(filepath, temp_filepath)
+
+        if split:
+            return temp_dir, sanitized_filename
+        else:
+            return temp_filepath
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while sanitizing filepath {filepath}")
+        traceback.print_exc()
+        return None, None
+
+
+# ============================================================================
 #                               Function sanitize_file
 # ============================================================================
 def sanitize_file(filename):
@@ -6019,12 +6072,57 @@ def check_kb(filename):
 
                 ecdsa_sn = keybox_data_collection.get("ecdsa_sn")
                 if ecdsa_sn:
-                    # Initialize or update
-                    if ecdsa_sn not in kb_index:
+                    # Check if this is a new keybox or existing one
+                    is_new_keybox = ecdsa_sn not in kb_index
+                    is_new_file = True
+
+                    if is_new_keybox:
+                        # Initialize new keybox entry
                         kb_index[ecdsa_sn] = {
                             "ecdsa_sn": ecdsa_sn,
                             "files": []
                         }
+                        print(f"  🆕 New keybox detected with ECDSA SN: {ecdsa_sn}")
+                    else:
+                        # Check if current file is already in the files list
+                        for file_entry in kb_index[ecdsa_sn]["files"]:
+                            if file_entry["path"] == file_key:
+                                is_new_file = False
+                                break
+
+                        if is_new_file:
+                            print(f"  🔄 Duplicate keybox detected - same ECDSA SN ({ecdsa_sn}) but new file: {file_key}")
+
+                    # Track changes in root level values for existing keyboxes
+                    changes_detected = []
+                    if not is_new_keybox:
+                        # Compare current values with existing ones
+                        fields_to_check = [
+                            ("ecdsa_issuer", "ECDSA Issuer"),
+                            ("ecdsa_leaf", "ECDSA Leaf Status"),
+                            ("ecdsa_chain", "ECDSA Chain Status"),
+                            ("ecdsa_not_before", "ECDSA Not Before"),
+                            ("ecdsa_not_after", "ECDSA Not After"),
+                            ("rsa_sn", "RSA Serial Number"),
+                            ("rsa_issuer", "RSA Issuer"),
+                            ("rsa_leaf", "RSA Leaf Status"),
+                            ("rsa_chain", "RSA Chain Status"),
+                            ("rsa_not_before", "RSA Not Before"),
+                            ("rsa_not_after", "RSA Not After")
+                        ]
+
+                        for field_key, field_name in fields_to_check:
+                            old_value = kb_index[ecdsa_sn].get(field_key)
+                            new_value = keybox_data_collection.get(field_key)
+
+                            if old_value != new_value:
+                                changes_detected.append(f"       - {field_name}: '{old_value}' → '{new_value}'")
+
+                    # Report changes if any were detected
+                    if changes_detected:
+                        print(f"  🔑 Changes detected for ECDSA SN {ecdsa_sn}:")
+                        for change in changes_detected:
+                            print(change)
 
                     # Update certificate details
                     kb_index[ecdsa_sn].update({
@@ -6042,21 +6140,18 @@ def check_kb(filename):
                         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     })
 
-                    # Check if current file is already in the files list
-                    file_exists = False
-                    for i, file_entry in enumerate(kb_index[ecdsa_sn]["files"]):
-                        if file_entry["path"] == file_key:
-                            # Update existing file entry
-                            kb_index[ecdsa_sn]["files"][i]["hash"] = file_hash
-                            file_exists = True
-                            break
-
                     # Add new file entry if it doesn't exist
-                    if not file_exists:
+                    if is_new_file:
                         kb_index[ecdsa_sn]["files"].append({
                             "path": file_key,
                             "hash": file_hash
                         })
+                    else:
+                        # Update existing file entry hash
+                        for i, file_entry in enumerate(kb_index[ecdsa_sn]["files"]):
+                            if file_entry["path"] == file_key:
+                                kb_index[ecdsa_sn]["files"][i]["hash"] = file_hash
+                                break
 
             k += 1
 

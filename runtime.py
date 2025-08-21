@@ -2445,7 +2445,7 @@ def create_support_zip():
 
 
 # ============================================================================
-#                               Function sanitize
+#                               Function sanitize_filename
 # ============================================================================
 def sanitize_filename(filepath, split=False):
     try:
@@ -2457,11 +2457,9 @@ def sanitize_filename(filepath, split=False):
             else:
                 return None
 
-        # Split directory and filename
         directory = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
 
-        # Define characters that need sanitization
         suspect_chars = '<>:"|?*()&;'
 
         # Check if filename needs sanitization
@@ -3015,6 +3013,8 @@ def get_gsi_data(force_version=None):
 # ============================================================================
 def get_beta_links():
     try:
+        url_base = "https://developer.android.com/about/versions"
+
         # Get the latest Android version
         latest_version, latest_version_url = get_latest_android_version(None)
         ota_data = None
@@ -3024,11 +3024,15 @@ def get_beta_links():
 
 
         # Fetch OTA HTML
-        ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
+        ota_url = f"{url_base}/{latest_version}/download-ota"
+        if latest_version_url:
+            ota_url = f"{latest_version_url}/download-ota"
         ota_data, ota_error = get_beta_data(ota_url)
 
         # Fetch Factory HTML
-        factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
+        factory_url = f"{url_base}/{latest_version}/download"
+        if latest_version_url:
+            factory_url = f"{latest_version_url}/download"
         factory_data, factory_error = get_beta_data(factory_url)
 
         return ota_data, factory_data, ota_error, factory_error
@@ -3041,64 +3045,217 @@ def get_beta_links():
 # ============================================================================
 #                 Function get_telegram_factory_images
 # ============================================================================
-def get_telegram_factory_images():
+def get_telegram_factory_images(max_pages=3):
     try:
-        telegram_url = "https://t.me/s/pixelfactoryimagestracker"
-        response = requests.get(telegram_url)
-        if response.status_code != 200:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {telegram_url}")
-            return -1
-        telegram_html = response.text
-        soup = BeautifulSoup(telegram_html, 'html.parser')
-        # Find all div class="tgme_widget_message_text js-message_text"
-        messages = soup.find_all('div', class_='tgme_widget_message_text js-message_text')
+        base_url = "https://t.me/s/pixelfactoryimagestracker"
+        config_path = get_config_path()
+        telegram_factory_images_file = os.path.join(config_path, 'telegram_factory_images.json')
+
+        # Load existing cached data
+        cached_images = []
+        cached_message_ids = set()
+        if os.path.exists(telegram_factory_images_file):
+            try:
+                with open(telegram_factory_images_file, 'r', encoding='utf-8') as f:
+                    cached_data = json.load(f)
+                    cached_images = cached_data
+                    debug(f"Loaded {len(cached_images)} cached factory images")
+                    for image in cached_images:
+                        # Create a unique identifier from device, build_id, and url
+                        unique_id = f"{image.get('device', '')}|{image.get('build_id', '')}|{image.get('url', '')}"
+                        cached_message_ids.add(unique_id)
+            except (json.JSONDecodeError, KeyError) as e:
+                debug(f"Could not load cached data: {e}, starting fresh")
+                cached_images = []
+                cached_message_ids = set()
+
         factory_images = []
-        # Process the messages in reverse order (latest entry is always the newest)
-        for message in reversed(messages):
-            # Check if this is a factory image announcement
-            if "New Pixel Factory Image Detected" in message.text:
-                device = None
-                image_type = None
-                build_id = None
-                download_url = None
+        all_message_ids = set()
+        found_cached_content = False
+        new_images_count = 0
 
-                # Extract device info
-                device_match = re.search(r'<b>Device:<\/b>\s*([^<]+)<br', str(message))
-                if device_match:
-                    device = device_match.group(1).strip()
+        # Start with the first page
+        current_url = base_url
+        page_count = 0
 
-                # Extract type info
-                type_match = re.search(r'<b>Type:<\/b>\s*([^<]+)<br', str(message))
-                if type_match:
-                    image_type = type_match.group(1).strip()
+        while page_count < max_pages:
+            debug(f"Fetching page {page_count + 1} from Telegram channel...")
 
-                # Extract build ID
-                build_id_match = re.search(r'<b>Build ID:<\/b>\s*<code>([^<]+)<\/code>', str(message))
-                if build_id_match:
-                    build_id = build_id_match.group(1).strip()
+            response = requests.get(current_url)
+            if response.status_code != 200:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {current_url}")
+                break
 
-                # Extract download URL
-                link = message.find('a', href=True)
-                if link:
-                    download_url = link['href']
+            telegram_html = response.text
+            soup = BeautifulSoup(telegram_html, 'html.parser')
 
-                # Add to our array if we have all required fields
-                if device and download_url:
-                    factory_images.append({
-                        "device": device,
-                        "type": image_type,
-                        "build_id": build_id,
-                        "url": download_url
-                    })
-        # save telegram factory_images to a file
-        if factory_images:
-            config_path = get_config_path()
-            telegram_factory_images_file = os.path.join(config_path, 'telegram_factory_images.json')
+            # Find all message containers
+            message_containers = soup.find_all('div', class_='tgme_widget_message')
+            if not message_containers:
+                debug(f"No more messages found on page {page_count + 1}")
+                break
+
+            page_has_new_messages = False
+            for container in message_containers:
+                # Get message ID to avoid duplicates
+                message_id = container.get('data-post')
+                if message_id in all_message_ids:
+                    continue
+
+                all_message_ids.add(message_id)
+
+                # Find the message text within this container
+                message_text_div = container.find('div', class_='tgme_widget_message_text')
+                if not message_text_div:
+                    continue
+
+                # Check if we've reached content that's already in our cache
+                # Create unique identifier for this message
+                current_unique_id = None
+                if "New Pixel Factory Image Detected" in message_text_div.get_text():
+                    # Extract basic info to create unique identifier
+                    device_match = re.search(r'<b>Device:<\/b>\s*([^<]+)<br', str(message_text_div))
+                    build_id_match = re.search(r'<b>Build ID:<\/b>\s*<code>([^<]+)<\/code>', str(message_text_div))
+                    link = message_text_div.find('a', href=True)
+
+                    if device_match and link:
+                        device = device_match.group(1).strip()
+                        build_id = build_id_match.group(1).strip() if build_id_match else ''
+                        download_url = link['href']
+                        current_unique_id = f"{device}|{build_id}|{download_url}"
+
+                        # Check if this content is already cached
+                        if current_unique_id in cached_message_ids:
+                            found_cached_content = True
+                            debug(f"Found cached content for {device}, stopping new content fetch")
+                            break
+
+                page_has_new_messages = True
+
+                # Check if this is a factory image announcement
+                if "New Pixel Factory Image Detected" in message_text_div.get_text():
+                    device = None
+                    image_type = None
+                    build_id = None
+                    download_url = None
+
+                    # Extract device info
+                    device_match = re.search(r'<b>Device:<\/b>\s*([^<]+)<br', str(message_text_div))
+                    if device_match:
+                        device = device_match.group(1).strip()
+
+                    # Extract type info
+                    type_match = re.search(r'<b>Type:<\/b>\s*([^<]+)<br', str(message_text_div))
+                    if type_match:
+                        image_type = type_match.group(1).strip()
+
+                    # Extract build ID
+                    build_id_match = re.search(r'<b>Build ID:<\/b>\s*<code>([^<]+)<\/code>', str(message_text_div))
+                    if build_id_match:
+                        build_id = build_id_match.group(1).strip()
+
+                    # Extract download URL
+                    link = message_text_div.find('a', href=True)
+                    if link:
+                        download_url = link['href']
+
+                    # Add to the array if we have all the required fields
+                    if device and download_url:
+                        factory_images.append({
+                            "device": device,
+                            "type": image_type,
+                            "build_id": build_id,
+                            "url": download_url,
+                            "message_id": message_id
+                        })
+                        new_images_count += 1
+
+            # If we found cached content or no new messages, break
+            if found_cached_content or not page_has_new_messages:
+                if found_cached_content:
+                    debug(f"Stopped fetching at page {page_count + 1} due to reaching cached content")
+                else:
+                    debug(f"No new messages found on page {page_count + 1}, stopping pagination")
+                break
+
+            # Look for "Load more" link or pagination
+            next_page_url = None
+
+            # Method 1: Look for "before" parameter in existing links
+            before_links = soup.find_all('a', href=True)
+            for link in before_links:
+                href = link['href']
+                if 'before=' in href and 'pixelfactoryimagestracker' in href:
+                    next_page_url = href
+                    if not next_page_url.startswith('http'):
+                        next_page_url = f"https://t.me{next_page_url}"
+                    break
+
+            # Method 2: If no pagination link is found, try to construct one using the oldest message ID
+            if not next_page_url and message_containers:
+                oldest_message = message_containers[-1]
+                oldest_message_id = oldest_message.get('data-post')
+                if oldest_message_id:
+                    # Extract just the message number part
+                    message_num = oldest_message_id.split('/')[-1] if '/' in oldest_message_id else oldest_message_id
+                    next_page_url = f"{base_url}?before={message_num}"
+
+            if not next_page_url:
+                debug(f"No pagination link found on page {page_count + 1}, stopping")
+                break
+
+            current_url = next_page_url
+            page_count += 1
+
+            # Add a small delay to be respectful to the server
+            time.sleep(1)
+
+        # Merge new images with cached images
+        # New images go first (they're newer), then cached images
+        combined_images = factory_images + cached_images
+
+        # Remove duplicates based on unique identifier while preserving order
+        seen_unique_ids = set()
+        deduplicated_images = []
+        for image in combined_images:
+            # Create unique identifier for deduplication
+            unique_id = f"{image.get('device', '')}|{image.get('build_id', '')}|{image.get('url', '')}"
+            if unique_id not in seen_unique_ids:
+                seen_unique_ids.add(unique_id)
+                deduplicated_images.append(image)
+
+        # Sort all images by message_id in descending order (newest first)
+        # Handle both regular message IDs and entries without message_id
+        def sort_key(image):
+            msg_id = image.get('message_id')
+            if not msg_id:
+                # For entries without message_id (cached entries), use a very low number
+                return 0
+            try:
+                return int(msg_id.split('/')[-1])
+            except (ValueError, AttributeError):
+                return 0
+
+        deduplicated_images.sort(key=sort_key, reverse=True)
+
+        # Remove message_id from final output as it's just for sorting
+        for image in deduplicated_images:
+            image.pop('message_id', None)
+
+        # Save merged telegram factory_images to file
+        if deduplicated_images:
             with open(telegram_factory_images_file, 'w', encoding='utf-8') as f:
-                json.dump(factory_images, f, indent=4, ensure_ascii=False)
+                json.dump(deduplicated_images, f, indent=4, ensure_ascii=False)
+
+            if new_images_count > 0:
+                debug(f"Found {new_images_count} new factory images, merged with {len(cached_images)} cached images")
+                debug(f"Total {len(deduplicated_images)} factory images saved to cache")
+            else:
+                debug(f"No new images found, using {len(cached_images)} cached factory images")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} No factory images found in Telegram channel.")
-        return factory_images
+
+        return deduplicated_images
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Telegram factory images.")
         traceback.print_exc()
@@ -3133,6 +3290,9 @@ def get_beta_pif(device_model='random', force_version=None):
     # set the url to the latest version
     ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
     factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
+    if not force_version and latest_version_url:
+        ota_url = f"{latest_version_url}/download-ota"
+        factory_url = f"{latest_version_url}/download"
 
     # Fetch OTA HTML
     ota_data, ota_error = get_beta_data(ota_url)
@@ -3514,13 +3674,26 @@ def get_latest_android_version(force_version=None):
     response = request_with_fallback('GET', versions_url)
     if response == 'ERROR' or response.status_code != 200:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch VERSIONS HTML")
-        return -1
+        return -1, ''
     versions_html = response.text
 
     soup = BeautifulSoup(versions_html, 'html.parser')
     version = 0
-    link_url = ''
+    beta_link_url = ''
+
     for link in soup.find_all('a'):
+        # Look for Android Beta link
+        span = link.find('span', class_='devsite-nav-text')
+        if span and span.get_text(strip=True) == 'Android Beta':
+            beta_href = link.get('href')
+            if beta_href:
+                # Convert relative URL to absolute if needed
+                if beta_href.startswith('/'):
+                    beta_link_url = f"https://developer.android.com{beta_href}"
+                else:
+                    beta_link_url = beta_href
+
+        # Look for version links
         href = link.get('href')
         if href and re.match(r'https:\/\/developer\.android\.com\/about\/versions\/\d+', href):
             # capture the d+ part
@@ -3528,12 +3701,57 @@ def get_latest_android_version(force_version=None):
             if force_version and not str(force_version).startswith('CANARY'):
                 if link_version == force_version:
                     version = link_version
-                    link_url = href
+            else:
+                if link_version > version:
+                    version = link_version
+
+    # Resolve any redirects in the beta_link_url
+    if beta_link_url:
+        beta_link_url = resolve_url_redirects(beta_link_url)
+
+    return version, beta_link_url
+
+
+# ============================================================================
+#                               Function resolve_url_redirects
+# ============================================================================
+def resolve_url_redirects(url, max_redirects=5):
+    try:
+        if not url:
+            return url
+
+        current_url = url
+        redirect_count = 0
+
+        while redirect_count < max_redirects:
+            response = request_with_fallback('HEAD', current_url)
+            if response == 'ERROR':
+                debug(f"Failed to check redirects for URL: {current_url}")
+                return current_url
+
+            if response.history:
+                # There was a redirect, use the final URL
+                new_url = response.url
+                debug(f"URL redirected from {current_url} to: {new_url}")
+
+                # Check if we've reached a stable URL (no more redirects)
+                if new_url == current_url:
                     break
-            if link_version > version:
-                version = link_version
-                link_url = href
-    return version, link_url
+
+                current_url = new_url
+                redirect_count += 1
+            else:
+                # No redirect, we've found the final URL
+                break
+
+        if redirect_count >= max_redirects:
+            debug(f"Maximum redirect limit ({max_redirects}) reached for URL: {url}")
+
+        return current_url
+
+    except Exception as e:
+        debug(f"Failed to resolve redirects for URL {url}: {e}")
+        return url
 
 
 # ============================================================================
@@ -5398,24 +5616,94 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
 # ============================================================================
 #                 Function download_gh_latest_release_asset_regex
 # ============================================================================
-def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern, just_url_info=False, include_prerelease=False):
+def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
     try:
-        url = f"https://api.github.com/repos/{user}/{repo}/releases"
-        response = request_with_fallback(method='GET', url=url)
-        releases = response.json()
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False)
+        if release_object is None:
+            print(f"No releases found for {user}/{repo}")
+            return None
+        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=True)
+        if asset:
+            print(f"Downloaded asset: {asset}")
+            return asset
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
+            return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_gh_latest_release_asset_regex function")
+        traceback.print_exc()
+        return None
 
-        # Filter releases based on the include_prerelease flag
-        if not include_prerelease:
-            releases = [release for release in releases if not release['prerelease']]
 
-        # Get the latest release
-        latest_release = releases[0] if releases else None
-
-        if not latest_release:
+# ============================================================================
+#                 Function get_gh_latest_release_asset_regex
+# ============================================================================
+def get_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
+    try:
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False)
+        if release_object is None:
             print(f"No releases found for {user}/{repo}")
             return
+        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=False)
+        if asset:
+            print(f"Found asset: {asset}")
+            return asset
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_asset_regex function")
+        traceback.print_exc()
 
-        assets = latest_release.get('assets', [])
+
+# ============================================================================
+#                 Function download_gh_pre_release_asset_regex
+# ============================================================================
+def download_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
+    try:
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=True)
+        if release_object is None:
+            print(f"No releases found for {user}/{repo}")
+            return
+        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=True)
+        if asset:
+            print(f"Downloaded asset: {asset}")
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest pre-release of {user}/{repo}")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_gh_pre_release_asset_regex function")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                 Function get_gh_pre_release_asset_regex
+# ============================================================================
+def get_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
+    try:
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=True)
+        if release_object is None:
+            print(f"No releases found for {user}/{repo}")
+            return
+        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=False)
+        if asset:
+            print(f"Found asset: {asset}")
+            return asset
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest pre-release of {user}/{repo}")
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_pre_release_asset_regex function")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                 Function gh_asset_utility
+# ============================================================================
+def gh_asset_utility(release_object, asset_name_pattern, download):
+    try:
+        if not release_object:
+            print(f"No release object provided.")
+            return
+
+        assets = release_object.get('assets', [])
 
         # Prepare the regular expression pattern
         pattern = re.compile(asset_name_pattern)
@@ -5430,15 +5718,15 @@ def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern, just_
 
         if best_match:
             print(f"Found match: {best_match['name']}")
-            if just_url_info:
+            if not download:
                 return best_match['browser_download_url']
             download_file(best_match['browser_download_url'])
             print(f"Downloaded {best_match['name']}")
             return best_match['name']
         else:
-            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of the provided release object")
     except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_gh_latest_release_asset_regex function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in gh_asset_utility function")
         traceback.print_exc()
 
 
@@ -5486,6 +5774,34 @@ def get_gh_latest_release_version(user, repo, include_prerelease=False):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_version function")
         traceback.print_exc()
         return ''
+
+
+# ============================================================================
+#                   Function get_gh_release_object
+# ============================================================================
+def get_gh_release_object(user, repo, include_prerelease=False):
+    try:
+        # Get all releases
+        url = f"https://api.github.com/repos/{user}/{repo}/releases"
+        response = request_with_fallback(method='GET', url=url)
+        releases = response.json()
+
+        # Filter releases based on the include_prerelease flag
+        if not include_prerelease:
+            releases = [release for release in releases if not release['prerelease']]
+
+        # Get the latest release
+        latest_release = releases[0] if releases else None
+
+        if not latest_release:
+            print(f"No releases found for {user}/{repo}")
+            return None
+
+        return latest_release
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_release_object function")
+        traceback.print_exc()
+        return None
 
 
 # ============================================================================
@@ -6530,220 +6846,557 @@ def analyze_kb_file(filepath=None, ecdsa_sn=None, ecdsa_issuer=None, rsa_sn=None
 
 
 # ============================================================================
-#                               Function analyze_valid_keyboxes
+#                 Function: kb_stats
 # ============================================================================
-def analyze_valid_keyboxes(include_rsa_check=False, verbose=False):
-    try:
-        kb_index = load_kb_index()
-        if not kb_index:
-            print("No kb_index.json data found or file is empty.")
-            return
-
-        print("=" * 80)
-        print("VALID KEYBOXES ANALYSIS REPORT")
-        print("=" * 80)
-
-        # Filter entries based on criteria
-        valid_entries = {}
-        total_files = 0
-
-        for ecdsa_sn, data in kb_index.items():
-            # Check basic ECDSA criteria
-            ecdsa_leaf = data.get('ecdsa_leaf', '')
-            ecdsa_chain = data.get('ecdsa_chain', '')
-
-            # Check if ECDSA requirements are met
-            ecdsa_valid = (ecdsa_leaf == 'valid' and ecdsa_chain == 'valid')
-
-            # Check RSA criteria if requested
-            rsa_valid = True
-            if include_rsa_check:
-                rsa_leaf = data.get('rsa_leaf', '')
-                rsa_chain = data.get('rsa_chain', '')
-                rsa_valid = (rsa_leaf == 'valid' and rsa_chain == 'valid')
-
-            # Include entry if it meets all criteria
-            if ecdsa_valid and rsa_valid:
-                files = data.get('files', [])
-                valid_entries[ecdsa_sn] = data.copy()
-                total_files += len(files)
-
-        # Display results
-        print(f"Filtering criteria:")
-        print(f"  - ECDSA Leaf: valid")
-        print(f"  - ECDSA Chain: valid")
-        if include_rsa_check:
-            print(f"  - RSA Leaf: valid")
-            print(f"  - RSA Chain: valid")
-
-        print(f"\nResults:")
-        print(f"  - Total valid files found: {total_files}")
-        print(f"  - Unique ECDSA serial numbers: {len(valid_entries)}")
-
-        if verbose:
-            print("\n" + "=" * 80)
-            print("VALID KEYBOXES GROUPED BY ECDSA SERIAL NUMBER")
-            print("=" * 80)
-
-            # Sort by ECDSA SN for consistent output
-            for ecdsa_sn in sorted(valid_entries.keys()):
-                entry = valid_entries[ecdsa_sn]
-                files = entry.get('files', [])
-
-                print(f"\nECDSA Serial Number: {ecdsa_sn}")
-                debug(f"Number of files: {len(files)}")
-                debug(f"ECDSA Issuer: {entry.get('ecdsa_issuer', 'N/A')}")
-                debug(f"RSA Serial Number: {entry.get('rsa_sn', 'N/A')}")
-                debug(f"RSA Issuer: {entry.get('rsa_issuer', 'N/A')}")
-                print("Files:")
-                for file_entry in files:
-                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
-                    print(f"  - {file_path}")
-
-            print("\n" + "=" * 80)
-            print("SUMMARY")
-            print("=" * 80)
-            print(f"Total valid keybox files: {total_files}")
-            print(f"Unique ECDSA serial numbers: {len(valid_entries)}")
-
-            # Count duplicates
-            duplicate_count = 0
-            duplicate_files = 0
-            for entry in valid_entries.values():
-                files = entry.get('files', [])
-                if len(files) > 1:
-                    duplicate_count += 1
-                    duplicate_files += len(files)
-
-            print(f"ECDSA serial numbers with multiple files: {duplicate_count}")
-            print(f"Total files involved in duplicates: {duplicate_files}")
-
-            print("\n" + "=" * 80)
-            print("END OF REPORT")
-            print("=" * 80)
-
-        return valid_entries
-
-    except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in analyze_valid_keyboxes function")
-        traceback.print_exc()
-
-
-# ============================================================================
-#                 Function: analyze_revoked_chain_keyboxes
-# ============================================================================
-# Analyzes kb_index.json to find entries with valid ECDSA leaf certificates
-# but revoked ECDSA certificate chains, this is only useful for research.
-# ============================================================================
-def analyze_revoked_chain_keyboxes(verbose=False):
+def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, list_non_common_entries=False, target_path=None, check_file_existence=False, list_non_existent=False, remove_non_existent=False):
     try:
         kb_index = load_kb_index()
         if not kb_index:
             print("❌ ERROR: No kb_index.json data found or file is empty.")
-            print("Please ensure keybox files have been processed first.")
+            print("Please ensure keybox files have been processed first and KB indexing is enabled.")
             return None
 
         print(f"\n" + "=" * 80)
-        print("ANALYZING REVOKED CHAIN KEYBOXES")
+        print("KEYBOX STATISTICS ANALYSIS")
         print("=" * 80)
 
-        print(f"Loaded {len(kb_index)} entries")
-
-        # Initialize results
-        results = {
+        # Initialize counters
+        stats = {
             'total_entries': len(kb_index),
-            'valid_leaf_revoked_chain': [],
-            'valid_leaf_revoked_chain_count': 0,
-            'other_categories': {
-                'valid_leaf_valid_chain': 0,
-                'invalid_leaf': 0,
-                'missing_ecdsa_data': 0,
-                'error_parsing': 0
-            }
+            'total_files': 0,
+            'unique_file_entries': 0,
+            'unique_valid_ecdsa_only': 0,
+            'unique_valid_all_chains': 0,
+            'entries_valid_ecdsa': 0,
+            'entries_valid_all_chains': 0,
+            'entries_valid_ecdsa_revoked_chain': 0,
+            'revoked_ecdsa_leaf': 0,
+            'expired_ecdsa_leaf': 0,
+            'valid_ecdsa_chain': 0,
+            'revoked_ecdsa_chain': 0,
+            'unique_ecdsa_issuers': set(),
+            'unique_rsa_issuers': set(),
+            'non_common_keyboxes_path': {
+                'valid_ecdsa': [],
+                'invalid': [],
+                'valid_count': 0,
+                'invalid_count': 0
+            },
+            'non_existent_files': [],
+            'non_existent_count': 0,
+            'valid_ecdsa_revoked_chain_entries': [],
+            'unique_file_list': [],
+            'valid_ecdsa_entries': [],
+            'valid_all_chains_entries': [],
+            'parsing_errors': 0
         }
+
+        # Track entries to remove if requested
+        entries_to_update = []
 
         # Analyze each entry
         for ecdsa_sn, entry in kb_index.items():
             try:
-                # Check if ECDSA data exists
-                if 'ecdsa_leaf' not in entry or 'ecdsa_chain' not in entry:
-                    results['other_categories']['missing_ecdsa_data'] += 1
-                    continue
+                # Count total files
+                files = entry.get('files', [])
+                stats['total_files'] += len(files)
 
-                ecdsa_leaf_valid = entry.get('ecdsa_leaf', '') == 'valid'
-                ecdsa_chain_valid = entry.get('ecdsa_chain', '') == 'valid'
+                # Check file existence if requested
+                if check_file_existence:
+                    existing_files = []
+                    for file_entry in files:
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                        if os.path.exists(file_path):
+                            existing_files.append(file_entry)
+                        else:
+                            stats['non_existent_files'].append({
+                                'ecdsa_sn': ecdsa_sn,
+                                'file_path': file_path,
+                                'file_entry': file_entry
+                            })
+                            stats['non_existent_count'] += 1
 
-                # Check for valid leaf but revoked chain
-                if ecdsa_leaf_valid and not ecdsa_chain_valid:
-                    files = entry.get('files', [])
-                    results['valid_leaf_revoked_chain'].append({
+                    # Update the files list if we're removing non-existent files
+                    if remove_non_existent and len(existing_files) != len(files):
+                        entries_to_update.append({
+                            'ecdsa_sn': ecdsa_sn,
+                            'existing_files': existing_files
+                        })
+
+                # Get validation statuses
+                ecdsa_leaf = entry.get('ecdsa_leaf', '')
+                ecdsa_chain = entry.get('ecdsa_chain', '')
+                rsa_leaf = entry.get('rsa_leaf', '')
+                rsa_chain = entry.get('rsa_chain', '')
+
+                ecdsa_leaf_valid = ecdsa_leaf == 'valid'
+                ecdsa_chain_valid = ecdsa_chain == 'valid'
+                rsa_leaf_valid = rsa_leaf == 'valid'
+                rsa_chain_valid = rsa_chain == 'valid'
+
+                # Check for single file entries
+                if len(files) == 1:
+                    stats['unique_file_entries'] += 1
+                    stats['unique_file_list'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'file': files[0],
+                        'ecdsa_leaf': ecdsa_leaf,
+                        'ecdsa_chain': ecdsa_chain,
+                        'rsa_leaf': rsa_leaf,
+                        'rsa_chain': rsa_chain
+                    })
+
+                    # Count unique file entries with valid certificates
+                    if ecdsa_leaf_valid and ecdsa_chain_valid:
+                        stats['unique_valid_ecdsa_only'] += 1
+                    if ecdsa_leaf_valid and ecdsa_chain_valid and rsa_leaf_valid and rsa_chain_valid:
+                        stats['unique_valid_all_chains'] += 1
+
+                # Count certificate statuses
+                if ecdsa_leaf == 'revoked':
+                    stats['revoked_ecdsa_leaf'] += 1
+                if ecdsa_leaf == 'expired':
+                    stats['expired_ecdsa_leaf'] += 1
+                if ecdsa_chain_valid:
+                    stats['valid_ecdsa_chain'] += 1
+                if ecdsa_chain == 'revoked':
+                    stats['revoked_ecdsa_chain'] += 1
+
+                # Count entries with valid certificates
+                if ecdsa_leaf_valid and ecdsa_chain_valid:
+                    stats['entries_valid_ecdsa'] += 1
+                    stats['valid_ecdsa_entries'].append({
                         'ecdsa_sn': ecdsa_sn,
                         'files': files,
-                        'last_updated': entry.get('last_updated', 'Unknown'),
-                        'ecdsa_leaf': entry.get('ecdsa_leaf', 'Unknown'),
-                        'ecdsa_chain': entry.get('ecdsa_chain', 'Unknown'),
-                        'rsa_leaf': entry.get('rsa_leaf', 'Unknown'),
-                        'rsa_chain': entry.get('rsa_chain', 'Unknown'),
-                        'ecdsa_issuer': entry.get('ecdsa_issuer', 'Unknown'),
-                        'rsa_issuer': entry.get('rsa_issuer', 'Unknown')
+                        'file_count': len(files),
+                        'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
+                        'rsa_issuer': entry.get('rsa_issuer', ''),
+                        'rsa_leaf': rsa_leaf,
+                        'rsa_chain': rsa_chain
                     })
-                    results['valid_leaf_revoked_chain_count'] += 1
-                elif ecdsa_leaf_valid and ecdsa_chain_valid:
-                    results['other_categories']['valid_leaf_valid_chain'] += 1
-                elif not ecdsa_leaf_valid:
-                    results['other_categories']['invalid_leaf'] += 1
+
+                # Count entries with valid ECDSA leaf but revoked ECDSA chain
+                if ecdsa_leaf_valid and ecdsa_chain == 'revoked':
+                    stats['entries_valid_ecdsa_revoked_chain'] += 1
+                    stats['valid_ecdsa_revoked_chain_entries'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'files': files,
+                        'file_count': len(files),
+                        'ecdsa_leaf': ecdsa_leaf,
+                        'ecdsa_chain': ecdsa_chain,
+                        'rsa_leaf': rsa_leaf,
+                        'rsa_chain': rsa_chain,
+                        'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
+                        'rsa_issuer': entry.get('rsa_issuer', '')
+                    })
+
+                if ecdsa_leaf_valid and ecdsa_chain_valid and rsa_leaf_valid and rsa_chain_valid:
+                    stats['entries_valid_all_chains'] += 1
+                    stats['valid_all_chains_entries'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'files': files,
+                        'file_count': len(files),
+                        'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
+                        'rsa_issuer': entry.get('rsa_issuer', '')
+                    })
+
+                # Collect unique issuers
+                ecdsa_issuer = entry.get('ecdsa_issuer', '')
+                rsa_issuer = entry.get('rsa_issuer', '')
+                if ecdsa_issuer:
+                    stats['unique_ecdsa_issuers'].add(ecdsa_issuer)
+                if rsa_issuer:
+                    stats['unique_rsa_issuers'].add(rsa_issuer)
+
+                # Check for entries not in target path - only if target_path is specified
+                if target_path:
+                    has_common_path = False
+                    for file_entry in files:
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                        # Normalize path separators for cross-platform comparison
+                        if os.path.normpath(target_path).lower() in os.path.normpath(file_path).lower():
+                            has_common_path = True
+                            break
+
+                    if not has_common_path:
+                        entry_info = {
+                            'ecdsa_sn': ecdsa_sn,
+                            'files': files,
+                            'file_count': len(files),
+                            'ecdsa_leaf': ecdsa_leaf,
+                            'ecdsa_chain': ecdsa_chain,
+                            'rsa_leaf': rsa_leaf,
+                            'rsa_chain': rsa_chain,
+                            'ecdsa_issuer': ecdsa_issuer,
+                            'rsa_issuer': rsa_issuer
+                        }
+
+                        if ecdsa_leaf_valid and ecdsa_chain_valid:
+                            stats['non_common_keyboxes_path']['valid_ecdsa'].append(entry_info)
+                            stats['non_common_keyboxes_path']['valid_count'] += 1
+                        else:
+                            stats['non_common_keyboxes_path']['invalid'].append(entry_info)
+                            stats['non_common_keyboxes_path']['invalid_count'] += 1
 
             except Exception as e:
                 print(f"⚠️ Warning: Error processing entry {ecdsa_sn}: {e}")
-                results['other_categories']['error_parsing'] += 1
+                stats['parsing_errors'] += 1
                 continue
 
-        # Print summary
-        print(f"\n" + "=" * 60)
-        print("ANALYSIS SUMMARY")
-        print("=" * 60)
-        print(f"Total entries analyzed:                    {results['total_entries']}")
-        print(f"Valid ECDSA leaf + Revoked ECDSA chain:    {results['valid_leaf_revoked_chain_count']}")
-        print(f"Valid ECDSA leaf + Valid ECDSA chain:      {results['other_categories']['valid_leaf_valid_chain']}")
-        print(f"Invalid ECDSA leaf:                        {results['other_categories']['invalid_leaf']}")
-        print(f"Missing ECDSA data:                        {results['other_categories']['missing_ecdsa_data']}")
-        print(f"Parsing errors:                            {results['other_categories']['error_parsing']}")
+        # Update kb_index if removing non-existent files
+        if remove_non_existent and entries_to_update:
+            for entry_update in entries_to_update:
+                ecdsa_sn = entry_update['ecdsa_sn']
+                existing_files = entry_update['existing_files']
 
-        if verbose:
-            # Print detailed results for valid leaf + revoked chain
-            if results['valid_leaf_revoked_chain_count'] > 0:
-                print(f"\n" + "=" * 60)
-                print(f"DETAILED RESULTS: VALID ECDSA LEAF + REVOKED ECDSA CHAIN ({results['valid_leaf_revoked_chain_count']} entries)")
-                print("=" * 60)
+                if len(existing_files) == 0:
+                    # Remove entire entry if no files exist
+                    del kb_index[ecdsa_sn]
+                    print(f"  Removed entire entry for ECDSA SN: {ecdsa_sn} (no existing files)")
+                else:
+                    # Update files list with only existing files
+                    kb_index[ecdsa_sn]['files'] = existing_files
+                    print(f"  Updated files list for ECDSA SN: {ecdsa_sn} ({len(existing_files)} files remain)")
 
-                for i, entry in enumerate(results['valid_leaf_revoked_chain'], 1):
-                    print(f"\n{i}. ECDSA Serial Number: {entry['ecdsa_sn']}")
-                    print(f"   Last Updated: {entry['last_updated']}")
-                    print(f"   ECDSA Leaf: {entry['ecdsa_leaf']}")
-                    print(f"   ECDSA Chain: {entry['ecdsa_chain']}")
-                    print(f"   RSA Leaf: {entry['rsa_leaf']}")
-                    print(f"   RSA Chain: {entry['rsa_chain']}")
-                    print(f"   ECDSA Issuer: {entry['ecdsa_issuer']}")
-                    print(f"   RSA Issuer: {entry['rsa_issuer']}")
+            # Save updated kb_index
+            save_kb_index(kb_index)
+            print(f"Updated kb_index.json with {len(entries_to_update)} entries modified")
 
-                    files = entry['files']
-                    print(f"   File Count: {len(files)}")
-                    for file_entry in files:
-                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
-                        print(f"     - {file_path}")
-            else:
-                print(f"\n✅ No keyboxes found with valid ECDSA leaf but revoked ECDSA chain.")
+        # Print results with better formatting
+        print(f"Total entries (keys):                                    {stats['total_entries']:>8,}")
+        print(f"Total files:                                             {stats['total_files']:>8,}")
+        print()
+        print(f"Unique file entries (single file per key) total:         {stats['unique_file_entries']:>8,}")
+        print(f"  - Entries with valid ECDSA leaf & chain:               {stats['unique_valid_ecdsa_only']:>8,}")
+        print(f"  - Entries with all valid chains (ECDSA + RSA):         {stats['unique_valid_all_chains']:>8,}")
+        print()
+        print(f"Entries with valid ECDSA leaf & chain:                   {stats['entries_valid_ecdsa']:>8,}")
+        print(f"Entries with all valid chains (ECDSA + RSA):             {stats['entries_valid_all_chains']:>8,}")
+        print(f"Entries with valid ECDSA leaf but revoked ECDSA chain:   {stats['entries_valid_ecdsa_revoked_chain']:>8,}")
+        print()
+        print(f"Revoked ECDSA leaf certificates:                         {stats['revoked_ecdsa_leaf']:>8,}")
+        print(f"Expired ECDSA leaf certificates:                         {stats['expired_ecdsa_leaf']:>8,}")
+        print(f"Valid ECDSA certificate chains:                          {stats['valid_ecdsa_chain']:>8,}")
+        print(f"Revoked ECDSA certificate chains:                        {stats['revoked_ecdsa_chain']:>8,}")
+        print()
+        print(f"Unique ECDSA issuers:                                    {len(stats['unique_ecdsa_issuers']):>8,}")
+        print(f"Unique RSA issuers:                                      {len(stats['unique_rsa_issuers']):>8,}")
 
+        if target_path:
+            print()
+            print(f"Entries NOT in '{target_path}':")
+            print(f"  Valid ECDSA (leaf & chain):                            {stats['non_common_keyboxes_path']['valid_count']:>8,}")
+            print(f"  Invalid/Other:                                         {stats['non_common_keyboxes_path']['invalid_count']:>8,}")
+
+        if check_file_existence:
+            print()
+            print(f"Non-existent files:                                      {stats['non_existent_count']:>8,}")
+
+        if stats['parsing_errors'] > 0:
+            print(f"\nParsing errors encountered:                            {stats['parsing_errors']:>8,}")
+
+        # List unique files if requested
+        if list_unique_files and stats['unique_file_list']:
             print(f"\n" + "=" * 80)
-            print("ANALYSIS COMPLETE")
+            print(f"UNIQUE FILE ENTRIES LIST ({len(stats['unique_file_list'])} entries)")
+            print("=" * 80)
+            for i, entry in enumerate(stats['unique_file_list'], 1):
+                file_path = entry['file'].get('path', '') if isinstance(entry['file'], dict) else str(entry['file'])
+                print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
+                print(f"     Status: ECDSA({entry['ecdsa_leaf']}/{entry['ecdsa_chain']}) RSA({entry['rsa_leaf']}/{entry['rsa_chain']})")
+                print(f"     File: {file_path}")
+                print()
+
+        # List valid entries if requested
+        if list_valid_entries:
+            if stats['valid_ecdsa_entries']:
+                print(f"\n" + "=" * 80)
+                print(f"ENTRIES WITH VALID ECDSA LEAF & CHAIN ({len(stats['valid_ecdsa_entries'])} entries)")
+                print("=" * 80)
+                for i, entry in enumerate(stats['valid_ecdsa_entries'], 1):
+                    print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
+                    print(f"     RSA Status: {entry['rsa_leaf']}/{entry['rsa_chain']}")
+                    print(f"     ECDSA Issuer: {entry['ecdsa_issuer']}")
+                    if entry['rsa_issuer']:
+                        print(f"     RSA Issuer: {entry['rsa_issuer']}")
+                    print(f"     Files: {entry['file_count']}")
+                    # List the actual files
+                    kb_entry = kb_index.get(entry['ecdsa_sn'], {})
+                    files = kb_entry.get('files', [])
+                    for j, file_entry in enumerate(files, 1):
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                        # print(f"       {j}. {file_path}")
+                        print(f"       - {file_path}")
+                    print()
+
+            if stats['valid_all_chains_entries']:
+                print(f"\n" + "=" * 80)
+                print(f"ENTRIES WITH ALL VALID CHAINS ({len(stats['valid_all_chains_entries'])} entries)")
+                print("=" * 80)
+                for i, entry in enumerate(stats['valid_all_chains_entries'], 1):
+                    print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
+                    print(f"     ECDSA Issuer: {entry['ecdsa_issuer']}")
+                    print(f"     RSA Issuer: {entry['rsa_issuer']}")
+                    print(f"     Files: {entry['file_count']}")
+                    # List the actual files
+                    kb_entry = kb_index.get(entry['ecdsa_sn'], {})
+                    files = kb_entry.get('files', [])
+                    for j, file_entry in enumerate(files, 1):
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                        # print(f"       {j}. {file_path}")
+                        print(f"       - {file_path}")
+                    print()
+
+        # List non-existent files if requested
+        if list_non_existent and stats['non_existent_files']:
+            print(f"\n" + "=" * 80)
+            print(f"NON-EXISTENT FILES ({len(stats['non_existent_files'])} files)")
             print("=" * 80)
 
-        return results
+            # Group non-existent files by ECDSA SN to show existing files for context
+            grouped_missing = {}
+            for file_info in stats['non_existent_files']:
+                ecdsa_sn = file_info['ecdsa_sn']
+                if ecdsa_sn not in grouped_missing:
+                    grouped_missing[ecdsa_sn] = []
+                grouped_missing[ecdsa_sn].append(file_info['file_path'])
+
+            counter = 1
+            for ecdsa_sn, missing_files in grouped_missing.items():
+                print(f"{counter:3d}. ECDSA SN: {ecdsa_sn}")
+
+                # Get all files for this ECDSA SN from kb_index
+                entry = kb_index.get(ecdsa_sn, {})
+                all_files = entry.get('files', [])
+
+                # Separate existing and missing files
+                existing_files = []
+                for file_entry in all_files:
+                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                    if file_path not in missing_files and os.path.exists(file_path):
+                        existing_files.append(file_path)
+
+                # Print missing files
+                for missing_file in missing_files:
+                    print(f"     Missing: {missing_file}")
+
+                # Print existing files
+                if existing_files:
+                    for existing_file in existing_files:
+                        print(f"     Present: {existing_file}")
+                else:
+                    print(f"     Present: None")
+
+                print()
+                counter += 1
+
+        # List non-common path entries if requested
+        if list_non_common_entries:
+            if stats['non_common_keyboxes_path']['valid_ecdsa']:
+                print(f"\n" + "=" * 80)
+                print(f"ENTRIES WITH VALID ECDSA NOT IN COMMON PATH ({len(stats['non_common_keyboxes_path']['valid_ecdsa'])} entries)")
+                print("=" * 80)
+                for i, entry in enumerate(stats['non_common_keyboxes_path']['valid_ecdsa'], 1):
+                    print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
+                    print(f"     Status: ECDSA({entry['ecdsa_leaf']}/{entry['ecdsa_chain']}) RSA({entry['rsa_leaf']}/{entry['rsa_chain']})")
+                    print(f"     Files: {entry['file_count']}")
+                    for j, file_entry in enumerate(entry['files'][:3], 1):  # Show first 3 files
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                        print(f"     {j}. {file_path}")
+                    if len(entry['files']) > 3:
+                        print(f"     ... and {len(entry['files']) - 3} more files")
+                    print()
+
+            if stats['non_common_keyboxes_path']['invalid']:
+                print(f"\n" + "=" * 80)
+                print(f"ENTRIES WITH INVALID/OTHER STATUS NOT IN COMMON PATH ({len(stats['non_common_keyboxes_path']['invalid'])} entries)")
+                print("=" * 80)
+                for i, entry in enumerate(stats['non_common_keyboxes_path']['invalid'], 1):
+                    print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
+                    print(f"     Status: ECDSA({entry['ecdsa_leaf']}/{entry['ecdsa_chain']}) RSA({entry['rsa_leaf']}/{entry['rsa_chain']})")
+                    print(f"     Files: {entry['file_count']}")
+                    for j, file_entry in enumerate(entry['files'][:2], 1):  # Show first 2 files
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                        print(f"     {j}. {file_path}")
+                    if len(entry['files']) > 2:
+                        print(f"     ... and {len(entry['files']) - 2} more files")
+                    print()
+
+        # Verbose output
+        if verbose:
+            print(f"\n" + "=" * 80)
+            print("DETAILED BREAKDOWN")
+            print("=" * 80)
+
+            if stats['unique_ecdsa_issuers']:
+                print(f"\nUnique ECDSA Issuers ({len(stats['unique_ecdsa_issuers'])}):")
+                for issuer in sorted(stats['unique_ecdsa_issuers']):
+                    print(f"  - {issuer}")
+
+            if stats['unique_rsa_issuers']:
+                print(f"\nUnique RSA Issuers ({len(stats['unique_rsa_issuers'])}):")
+                for issuer in sorted(stats['unique_rsa_issuers']):
+                    print(f"  - {issuer}")
+
+        print("=" * 80)
+        return stats
 
     except Exception as e:
         print(f"❌ ERROR: Unexpected error during analysis: {e}")
         traceback.print_exc()
         return None
+
+
+# ============================================================================
+#                               Function update_kb_index_with_crl
+# ============================================================================
+def update_kb_index_with_crl():
+    try:
+        url = "https://android.googleapis.com/attestation/status"
+        headers = {
+            'Cache-Control': 'no-cache, max-age=0',
+            'Pragma': 'no-cache'
+        }
+
+        print("Fetching Certificate Revocation List...")
+
+        # Fetch CRL from server
+        crl = request_with_fallback(method='GET', url=url, headers=headers, nocache=True)
+        if crl is None or crl == 'ERROR':
+            print(f"❌ ERROR: Could not fetch CRL from {url}")
+            return {'error': 'Failed to fetch CRL'}
+
+        crl_data = crl.json()
+
+        # Load kb_index
+        kb_index = load_kb_index()
+        if not kb_index:
+            print("❌ ERROR: No kb_index.json data found or file is empty.")
+            return {'error': 'No kb_index data found'}
+
+        # Extract revoked entries from CRL
+        revoked_entries = set()
+        if 'entries' in crl_data:
+            for entry_key in crl_data['entries'].keys():
+                revoked_entries.add(entry_key.strip().lower())
+
+        print(f"Processing {len(kb_index)} keybox entries against {len(revoked_entries)} revoked certificates...")
+
+        # Track changes
+        changes_summary = {
+            'total_entries_checked': len(kb_index),
+            'entries_modified': 0,
+            'ecdsa_leaf_revoked': [],
+            'ecdsa_chain_revoked': [],
+            'rsa_leaf_revoked': [],
+            'rsa_chain_revoked': [],
+            'total_changes': 0
+        }
+
+        # Process each entry in kb_index
+        for ecdsa_sn, entry in kb_index.items():
+            entry_modified = False
+            changes_for_entry = []
+
+            # Check ECDSA serial number (leaf certificate)
+            if entry.get('ecdsa_sn'):
+                ecdsa_sn_check = entry['ecdsa_sn'].strip().lower()
+                if ecdsa_sn_check in revoked_entries and entry.get('ecdsa_leaf') != 'revoked':
+                    old_value = entry.get('ecdsa_leaf', 'unknown')
+                    entry['ecdsa_leaf'] = 'revoked'
+                    changes_for_entry.append(f"ecdsa_leaf: '{old_value}' → 'revoked'")
+                    changes_summary['ecdsa_leaf_revoked'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'old_value': old_value
+                    })
+                    entry_modified = True
+
+            # Check ECDSA issuer (certificate chain)
+            if entry.get('ecdsa_issuer'):
+                ecdsa_issuer_check = entry['ecdsa_issuer'].strip().lower()
+                if ecdsa_issuer_check in revoked_entries and entry.get('ecdsa_chain') != 'revoked':
+                    old_value = entry.get('ecdsa_chain', 'unknown')
+                    entry['ecdsa_chain'] = 'revoked'
+                    changes_for_entry.append(f"ecdsa_chain: '{old_value}' → 'revoked'")
+                    changes_summary['ecdsa_chain_revoked'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'ecdsa_issuer': ecdsa_issuer_check,
+                        'old_value': old_value
+                    })
+                    entry_modified = True
+
+            # Check RSA serial number (leaf certificate)
+            if entry.get('rsa_sn'):
+                rsa_sn_check = entry['rsa_sn'].strip().lower()
+                if rsa_sn_check in revoked_entries and entry.get('rsa_leaf') != 'revoked':
+                    old_value = entry.get('rsa_leaf', 'unknown')
+                    entry['rsa_leaf'] = 'revoked'
+                    changes_for_entry.append(f"rsa_leaf: '{old_value}' → 'revoked'")
+                    changes_summary['rsa_leaf_revoked'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'rsa_sn': rsa_sn_check,
+                        'old_value': old_value
+                    })
+                    entry_modified = True
+
+            # Check RSA issuer (certificate chain)
+            if entry.get('rsa_issuer'):
+                rsa_issuer_check = entry['rsa_issuer'].strip().lower()
+                if rsa_issuer_check in revoked_entries and entry.get('rsa_chain') != 'revoked':
+                    old_value = entry.get('rsa_chain', 'unknown')
+                    entry['rsa_chain'] = 'revoked'
+                    changes_for_entry.append(f"rsa_chain: '{old_value}' → 'revoked'")
+                    changes_summary['rsa_chain_revoked'].append({
+                        'ecdsa_sn': ecdsa_sn,
+                        'rsa_issuer': rsa_issuer_check,
+                        'old_value': old_value
+                    })
+                    entry_modified = True
+
+            # Update last_updated timestamp if entry was modified
+            if entry_modified:
+                entry['last_updated'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                changes_summary['entries_modified'] += 1
+                changes_summary['total_changes'] += len(changes_for_entry)
+                print(f"🏷️ Updated ECDSA SN {ecdsa_sn}:")
+                for change in changes_for_entry:
+                    print(f"    - {change}")
+
+                # Show files associated with this keybox
+                files = entry.get('files', [])
+                print(f"    Files ({len(files)}):")
+                for file_entry in files:
+                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                    print(f"      - {file_path}")
+                print()
+
+        # Save updated kb_index if there were changes
+        if changes_summary['entries_modified'] > 0:
+            save_kb_index(kb_index)
+            print(f"\n✅ Updated kb_index.json with {changes_summary['entries_modified']} modified entries")
+        else:
+            print("\n✅ No entries needed to be updated based on current CRL")
+
+        # Print summary report
+        print("\n" + "=" * 80)
+        print("KEYBOX INDEX CRL UPDATE SUMMARY")
+        print("=" * 80)
+        print(f"Total entries checked:            {changes_summary['total_entries_checked']:>8,}")
+        print(f"Entries modified:                 {changes_summary['entries_modified']:>8,}")
+        print(f"Total individual changes:         {changes_summary['total_changes']:>8,}")
+        print()
+        print(f"ECDSA leaf certificates revoked:  {len(changes_summary['ecdsa_leaf_revoked']):>8,}")
+        print(f"ECDSA chain certificates revoked: {len(changes_summary['ecdsa_chain_revoked']):>8,}")
+        print(f"RSA leaf certificates revoked:    {len(changes_summary['rsa_leaf_revoked']):>8,}")
+        print(f"RSA chain certificates revoked:   {len(changes_summary['rsa_chain_revoked']):>8,}")
+        print("=" * 80)
+
+        return changes_summary
+
+    except Exception as e:
+        print(f"❌ ERROR: Encountered an error in update_kb_index_with_crl function")
+        traceback.print_exc()
+        return {'error': str(e)}
 
 
 # ============================================================================
@@ -7177,7 +7830,7 @@ def get_magisk_apks():
     if _magisk_apks is None:
         try:
             apks = []
-            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Debug', 'KitsuneMagisk Fork', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
+            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Debug', 'Magisk Release', 'Magisk Pre-Release', 'KitsuneMagisk Fork', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
             for i in mlist:
                 apk = get_magisk_apk_details(i)
                 if apk:
@@ -7236,34 +7889,96 @@ def get_magisk_apk_details(channel):
     elif channel == 'Magisk Delta Debug':
         url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/debug.json"
 
+    elif channel == 'Magisk Release':
+        try:
+            # https://github.com/topjohnwu/Magisk/releases
+            release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=False)
+            release_version = release['tag_name']
+            release_notes = release['body']
+            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Magisk.*\.apk$', download=False)
+            if release_notes is None:
+                release_version = "No release notes available"
+            if release_url is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Release APK")
+                return
+            match = re.search(r'_([0-9]+)-', release_url)
+            if match:
+                release_versionCode =  match.group(1)
+            else:
+                if release_version:
+                    release_versionCode = f"{release_version.replace('v', '').replace('.', '')}00"
+                else:
+                    release_versionCode = 0
+            setattr(ma, 'version', release_version)
+            setattr(ma, 'versionCode', release_versionCode)
+            setattr(ma, 'link', release_url)
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', MAGISK_PKG_NAME)
+            setattr(ma, 'release_notes', release_notes)
+            return ma
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk Release processing")
+            traceback.print_exc()
+            return
+
+    elif channel == 'Magisk Pre-Release':
+        try:
+            # https://github.com/topjohnwu/Magisk/releases
+            release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=True)
+            release_version = release['tag_name']
+            release_notes = release['body']
+            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Magisk.*\.apk$', download=False)
+            if release_notes is None:
+                release_version = "No release notes available"
+            if release_url is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Release APK")
+                return
+            match = re.search(r'_([0-9]+)-', release_url)
+            if match:
+                release_versionCode =  match.group(1)
+            else:
+                if release_version:
+                    release_versionCode = release_versionCode = f"{release_version.replace('v', '').replace('.', '')}00"
+                else:
+                    release_versionCode = 0
+            setattr(ma, 'version', release_version)
+            setattr(ma, 'versionCode', release_versionCode)
+            setattr(ma, 'link', release_url)
+            setattr(ma, 'note_link', "note_link")
+            setattr(ma, 'package', MAGISK_PKG_NAME)
+            setattr(ma, 'release_notes', release_notes)
+            return ma
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk Release processing")
+            traceback.print_exc()
+            return
+
     elif channel == 'KernelSU':
         try:
             # https://github.com/tiann/KernelSU/releases
-            kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
-            kernelsu_release_notes = get_gh_latest_release_notes('tiann', 'KernelSU')
-            kernelsu_url = download_gh_latest_release_asset_regex('tiann', 'KernelSU', r'^KernelSU.*\.apk$', True)
-            if kernelsu_url is None:
+            release = get_gh_release_object(user='tiann', repo='KernelSU', include_prerelease=False)
+            release_version = release['tag_name']
+            release_notes = release['body']
+            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU.*\.apk$', download=False)
+            if release_notes is None:
+                release_version = "No release notes available"
+            if release_url is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU APK")
                 return
-            match = re.search(r'_([0-9]+)-', kernelsu_url)
+            match = re.search(r'_([0-9]+)-', release_url)
             if match:
-                kernelsu_versionCode =  match.group(1)
+                release_versionCode =  match.group(1)
             else:
-                if kernelsu_version:
-                    kernelsu_versionCode = kernelsu_version
+                if release_version:
+                    release_versionCode = release_version
                 else:
-                    # parts = version.split('.')
-                    # a = int(parts[0])
-                    # b = int(parts[1])
-                    # c = int(parts[2])
-                    # kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
-                    kernelsu_versionCode = 0
-            setattr(ma, 'version', kernelsu_version)
-            setattr(ma, 'versionCode', kernelsu_versionCode)
-            setattr(ma, 'link', kernelsu_url)
+                    release_versionCode = 0
+            setattr(ma, 'version', release_version)
+            setattr(ma, 'versionCode', release_versionCode)
+            setattr(ma, 'link', release_url)
             setattr(ma, 'note_link', "note_link")
             setattr(ma, 'package', KERNEL_SU_PKG_NAME)
-            setattr(ma, 'release_notes', kernelsu_release_notes)
+            setattr(ma, 'release_notes', release_notes)
             return ma
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU processing")
@@ -7273,70 +7988,67 @@ def get_magisk_apk_details(channel):
     elif channel == 'KernelSU-Next':
         try:
             # https://github.com/rifsxd/KernelSU-Next/releases
-            kernelsu_next_version = get_gh_latest_release_version('rifsxd', 'KernelSU-Next')
-            kernelsu_next_release_notes = get_gh_latest_release_notes('rifsxd', 'KernelSU-Next')
-            kernelsu_next_url = download_gh_latest_release_asset_regex('rifsxd', 'KernelSU-Next', r'^KernelSU_Next.*\.apk$', True)
-            if kernelsu_next_url is None:
+            release = get_gh_release_object(user='rifsxd', repo='KernelSU-Next', include_prerelease=False)
+            release_version = release['tag_name']
+            release_notes = release['body']
+            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next.*\.apk$', download=False)
+            if release_notes is None:
+                release_version = "No release notes available"
+            if release_url is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU-Next APK")
                 return
-            match = re.search(r'_([0-9]+)-', kernelsu_next_url)
+            match = re.search(r'_([0-9]+)-', release_url)
             if match:
-                kernelsu_next_versionCode =  match.group(1)
+                release_versionCode =  match.group(1)
             else:
-                if kernelsu_next_version:
-                    kernelsu_next_versionCode = kernelsu_next_version
+                if release_version:
+                    release_versionCode = release_version
                 else:
-                    # parts = version.split('.')
-                    # a = int(parts[0])
-                    # b = int(parts[1])
-                    # c = int(parts[2])
-                    # kernelsu_next_versionCode = (a * 256 * 256) + (b * 256) + c
-                    kernelsu_next_versionCode = 0
-            setattr(ma, 'version', kernelsu_next_version)
-            setattr(ma, 'versionCode', kernelsu_next_versionCode)
-            setattr(ma, 'link', kernelsu_next_url)
+                    release_versionCode = 0
+            setattr(ma, 'version', release_version)
+            setattr(ma, 'versionCode', release_versionCode)
+            setattr(ma, 'link', release_url)
             setattr(ma, 'note_link', "note_link")
             setattr(ma, 'package', KSU_NEXT_PKG_NAME)
-            setattr(ma, 'release_notes', kernelsu_next_release_notes)
+            setattr(ma, 'release_notes', release_notes)
             return ma
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU Next processing")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU-Next processing")
             traceback.print_exc()
             return
 
     elif channel == 'APatch':
         try:
             # https://github.com/bmax121/APatch/releases
-            apatch_version = get_gh_latest_release_version('bmax121', 'APatch')
-            apatch_release_notes = get_gh_latest_release_notes('bmax121', 'APatch')
-            apatch_url = download_gh_latest_release_asset_regex('bmax121', 'APatch', r'^APatch_.*\.apk$', True)
-            if apatch_url is None:
+            release = get_gh_release_object(user='bmax121', repo='APatch', include_prerelease=False)
+            release_version = release['tag_name']
+            release_notes = release['body']
+            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^APatch_.*\.apk$', download=False)
+            if release_notes is None:
+                release_version = "No release notes available"
+            if release_url is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch APK")
                 return
-            match = re.search(r'_([0-9]+)-', apatch_url)
+            match = re.search(r'_([0-9]+)-', release_url)
             if match:
-                apatch_versionCode =  match.group(1)
+                release_versionCode =  match.group(1)
             else:
-                if apatch_version:
-                    apatch_versionCode = apatch_version
+                if release_version:
+                    release_versionCode = release_version
                 else:
-                    # parts = version.split('.')
-                    # a = int(parts[0])
-                    # b = int(parts[1])
-                    # c = int(parts[2])
-                    # apatch_versionCode = (a * 256 * 256) + (b * 256) + c
-                    apatch_versionCode = 0
-            setattr(ma, 'version', apatch_version)
-            setattr(ma, 'versionCode', apatch_versionCode)
-            setattr(ma, 'link', apatch_url)
+                    release_versionCode = 0
+            setattr(ma, 'version', release_version)
+            setattr(ma, 'versionCode', release_versionCode)
+            setattr(ma, 'link', release_url)
             setattr(ma, 'note_link', "note_link")
             setattr(ma, 'package', APATCH_PKG_NAME)
-            setattr(ma, 'release_notes', apatch_release_notes)
+            setattr(ma, 'release_notes', release_notes)
             return ma
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during APatch processing")
             traceback.print_exc()
             return
+
     elif channel == 'Magisk zygote64_32 stable':
         url = "https://raw.githubusercontent.com/Namelesswonder/magisk-files/main/stable.json"
 

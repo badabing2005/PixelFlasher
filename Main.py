@@ -81,7 +81,7 @@ from pif_manager import PifManager
 from message_box_ex import MessageBoxEx
 from modules import (adb_kill_server, auto_resize_boot_list,
     check_platform_tools, flash_phone, live_flash_boot_phone,
-    patch_boot_img, populate_boot_list, process_file,
+    patch_boot_img, populate_boot_list, process_file, kb_stats_ui,
     select_firmware, set_flash_button_state, setup_for_downgrade)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
@@ -3526,7 +3526,7 @@ class PixelFlasher(wx.Frame):
                 self.live_boot_button:                  ['device_attached', 'boot_is_selected'],
                 self.flash_boot_button:                 ['device_attached', 'boot_is_selected'],
                 self.paste_selection:                   ['device_attached','custom_flash', 'valid_paste'],
-                self.patch_custom_boot_button:          ['device_attached', 'device_mode_true_adb'],
+                # self.patch_custom_boot_button:          ['device_attached', 'device_mode_true_adb'],
                 self.reboot_download_menu:              ['device_attached', 'device_mode_adb', 'advanced_options'],
                 self.reboot_sideload_menu:              ['device_attached', 'advanced_options'],
                 self.switch_slot_menu:                  ['device_attached', 'dual_slot', 'advanced_options'],
@@ -5053,6 +5053,15 @@ class PixelFlasher(wx.Frame):
         try:
             # Select keybox files
             total_keyboxes = None
+
+            if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):
+                kb_stats_ui(self)
+                return
+
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                update_kb_index_with_crl()
+                return
+
             with wx.FileDialog(self, _("Select keybox to test"), '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled keybox.xml check.")
@@ -6031,7 +6040,7 @@ class PixelFlasher(wx.Frame):
         self.patch_kernelsu_next_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next LKM"), lambda: self._on_kernelsu_next_lkm_patch_boot(None), images.kernelsu_next_24.GetBitmap())
         self.patch_apatch_button = self.patch_button.AddFunction(_("Patch with APatch"), lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
         self.patch_apatch_manual_button = self.patch_button.AddFunction(_("Patch with APatch Alternate"), lambda: self._on_apatch_manual_patch_boot(None), images.apatch_24.GetBitmap(), False)
-        self.patch_custom_boot_button = self.patch_button.AddFunction(_("Patch custom boot/init_boot"), lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
+        # self.patch_custom_boot_button = self.patch_button.AddFunction(_("Patch custom boot/init_boot with Magisk"), lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())
         self.patch_downgrade_button = self.patch_button.AddFunction(_("Create Downgrade Patch"), lambda: self._on_prep_downgrade_patch(None), images.downgrade_24.GetBitmap(), False)
         #
         self.delete_boot_button = DropDownButton(parent=panel, id=wx.ID_ANY, bitmap=images.delete_24.GetBitmap(), label=_("Delete"), pos=wx.DefaultPosition, size=self.folders_button.BestSize, style=0)

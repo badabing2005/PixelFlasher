@@ -1185,26 +1185,40 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     #                  select_t_image
     # -----------------------------------------------
+    # Create a custom dialog with tree control for selection
     def select_t_image(self, t_factory_images):
         try:
             if t_factory_images:
-                # Create a custom dialog with radio buttons for selection in a scrollable panel
                 select_dialog = wx.Dialog(self, title=_("Telegram Factory Images"), size=(800, 600))
-                scrolled_panel = wx.ScrolledWindow(select_dialog)
-                scrolled_panel.SetScrollRate(0, 10)
-                instruction_text = wx.StaticText(scrolled_panel, label=_("Select a factory image to use:"))
-                radio_sizer = wx.BoxSizer(wx.VERTICAL)
-                radio_sizer.Add(instruction_text, 0, wx.ALL, 10)
 
-                radio_buttons = []
+                instruction_text = wx.StaticText(select_dialog, label=_("Select a factory image to use:"))
+
+                # Create tree control
+                tree_ctrl = wx.TreeCtrl(select_dialog, style=wx.TR_DEFAULT_STYLE | wx.TR_SINGLE)
+                root = tree_ctrl.AddRoot("Factory Images")
+
+                # Group images by build_id
+                build_groups = {}
                 for i, image in enumerate(t_factory_images):
-                    build_id_info = f" - {image['build_id']}" if 'build_id' in image and image['build_id'] else ""
-                    label = f"{image['device']} - {image['type'] if 'type' in image else 'Factory Image'}{build_id_info}"
-                    radio = wx.RadioButton(scrolled_panel, id=i, label=label, style=wx.RB_GROUP if i == 0 else 0)
-                    radio_buttons.append(radio)
-                    radio_sizer.Add(radio, 0, wx.ALL, 5)
+                    build_id = image.get('build_id', 'Unknown Build')
+                    if build_id not in build_groups:
+                        build_groups[build_id] = []
+                    build_groups[build_id].append((i, image))
 
-                scrolled_panel.SetSizer(radio_sizer)
+                # Add build groups to tree (collapsed by default)
+                build_items = {}
+                for build_id, images in build_groups.items():
+                    build_item = tree_ctrl.AppendItem(root, build_id)
+                    build_items[build_id] = build_item
+
+                    for image_index, image in images:
+                        device_type = f"{image['device']} - {image.get('type', 'Factory Image')}"
+                        image_item = tree_ctrl.AppendItem(build_item, device_type)
+                        # Store the original index in the item data
+                        tree_ctrl.SetItemData(image_item, image_index)
+
+                # Expand root but keep build groups collapsed
+                tree_ctrl.Expand(root)
 
                 # Add OK and Cancel buttons
                 btn_sizer = wx.StdDialogButtonSizer()
@@ -1214,11 +1228,23 @@ class PifManager(wx.Dialog):
                 btn_sizer.AddButton(cancel_button)
                 btn_sizer.Realize()
 
-                # Disable OK button initially if no selection (should be enabled by default with first item selected)
-                ok_button.Enable(len(radio_buttons) > 0)
+                # Initially disable OK button
+                ok_button.Enable(False)
+
+                def on_tree_selection(event):
+                    selected_item = tree_ctrl.GetSelection()
+                    if selected_item and selected_item != root:
+                        # Check if it's a leaf node (has data)
+                        item_data = tree_ctrl.GetItemData(selected_item)
+                        ok_button.Enable(item_data is not None)
+                    else:
+                        ok_button.Enable(False)
+
+                tree_ctrl.Bind(wx.EVT_TREE_SEL_CHANGED, on_tree_selection)
 
                 dialog_sizer = wx.BoxSizer(wx.VERTICAL)
-                dialog_sizer.Add(scrolled_panel, 1, wx.EXPAND | wx.ALL, 10)
+                dialog_sizer.Add(instruction_text, 0, wx.ALL, 10)
+                dialog_sizer.Add(tree_ctrl, 1, wx.EXPAND | wx.ALL, 10)
                 dialog_sizer.Add(btn_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
 
                 select_dialog.SetSizer(dialog_sizer)
@@ -1226,16 +1252,16 @@ class PifManager(wx.Dialog):
                 selected_index = -1
                 # Show the dialog and get result
                 if select_dialog.ShowModal() == wx.ID_OK:
-                    # Find which radio button was selected
-                    for i, radio in enumerate(radio_buttons):
-                        if radio.GetValue():
-                            selected_index = i
-                            break
+                    selected_item = tree_ctrl.GetSelection()
+                    if selected_item and selected_item != root:
+                        item_data = tree_ctrl.GetItemData(selected_item)
+                        if item_data is not None:
+                            selected_index = item_data
 
-                    if selected_index >= 0:
-                        selected_image = t_factory_images[selected_index]
-                        print(f"Selected factory image: {selected_image['device']} - {selected_image.get('type', 'Factory Image')}")
-                        print(f"URL: {selected_image['url']}")
+                if selected_index >= 0:
+                    selected_image = t_factory_images[selected_index]
+                    print(f"Selected factory image: {selected_image['device']} - {selected_image.get('type', 'Factory Image')}")
+                    print(f"URL: {selected_image['url']}")
 
                 select_dialog.Destroy()
                 return selected_image['url'] if selected_index >= 0 else None

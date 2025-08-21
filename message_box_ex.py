@@ -43,7 +43,7 @@ import wx.html
 from runtime import *
 
 class MessageBoxEx(wx.Dialog):
-    def __init__(self, *args, title=None, message=None, button_texts=None, default_button=None, disable_buttons=None, is_md=False, size=(800, 600), checkbox_labels=None, checkbox_initial_values=None, **kwargs):
+    def __init__(self, *args, title=None, message=None, button_texts=None, default_button=None, disable_buttons=None, is_md=False, size=(800, 600), checkbox_labels=None, checkbox_initial_values=None, vertical_checkboxes=False, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs)
         self.SetTitle(title)
         self.button_texts = button_texts
@@ -93,7 +93,11 @@ class MessageBoxEx(wx.Dialog):
         vSizer.Add(message_sizer, 1, wx.EXPAND, 5)
 
         if checkbox_labels is not None:
-            checkbox_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY), wx.HORIZONTAL)
+            if vertical_checkboxes:
+                orientation = wx.VERTICAL
+            else:
+                orientation = wx.HORIZONTAL
+            checkbox_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY), orientation)
             for i in range(len(checkbox_labels)):
                 checkbox_label = checkbox_labels[i]
                 checkbox = wx.CheckBox(self, wx.ID_ANY, checkbox_label, wx.DefaultPosition, wx.DefaultSize, 0)

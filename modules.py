@@ -1582,6 +1582,45 @@ def avbtool_get_info(self, boot_file_path):
 
 
 # ============================================================================
+#                               Function kb_stats_ui
+# ============================================================================
+def kb_stats_ui(self):
+    try:
+        title = "KB Stats"
+        buttons_text = ["Process KB Index", "Cancel"]
+        checkboxes = ["Verbose", "List Unique Files", "List Valid Entries", "List Unmarked Entries ...", "Check File Exists", "List Missing Files", "Remove Missing Entries from kb_index"]
+        checkbox_initial_values = [False, True, False, True, True, True, True]
+        message = _("**KB Stats Options**<br/>\n")
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=None, is_md=True, size=[400,40], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_initial_values, vertical_checkboxes=True)
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        if result == 2:
+            print("Aborting ...\n")
+            return
+        print("Selected options:")
+        checkbox_values = get_dlg_checkbox_values()
+        if checkbox_values is not None:
+            for i in range(len(checkboxes)):
+                print(f"{checkboxes[i]}: {bool(checkbox_values[i])}")
+            print("\n")
+            target_path = None
+            if checkbox_values[3]:
+                with wx.DirDialog(self, "Select reference marking folder", style=wx.DD_DEFAULT_STYLE) as dirDialog:
+                    if dirDialog.ShowModal() == wx.ID_OK:
+                        target_path = dirDialog.GetPath()
+                        print(f"Selected reference folder: {target_path}")
+                    else:
+                        print("Aborting ...\n")
+                        return
+            kb_stats(verbose=checkbox_values[0], list_unique_files=checkbox_values[1], list_valid_entries=checkbox_values[2], list_non_common_entries=checkbox_values[3], target_path=target_path, check_file_existence=checkbox_values[4], list_non_existent=checkbox_values[5], remove_non_existent=checkbox_values[6])
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing kb_stats_ui")
+        puml("#red:Encountered an error while processing kb_stats_ui;\n")
+        traceback.print_exc()
+
+
+# ============================================================================
 #                               Function drive_magisk (TODO)
 # ============================================================================
 def drive_magisk(self, boot_file_name):
@@ -3025,36 +3064,183 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             return -1
 
         boot_path = boot.boot_path
-        stock_sha1 = boot.boot_hash[:8]
-        if patch_flavor in ['KernelSU', 'KernelSU-Next'] and "init_boot.img" in boot_path:
-            print(f"With {patch_flavor} patching, the boot.img will be used, instead of init_boot.img")
-            boot_path = boot_path.replace("init_boot.img", "boot.img")
-            stock_sha1 = sha1(boot_path)[:8]
-            print(f"Using boot.img for {patch_flavor} patching with SHA1 of {stock_sha1}")
+        boot_directory = os.path.dirname(boot_path)
+        boot_exists = False
+        init_boot_exists = False
+        vendor_boot_exists = False
+        disabled_buttons = []
 
-        # KernelSU_LKM (version_code 12109 or newer) and KernelSU-Next_LKM use vendor_boot.img for patching
-        # https://github.com/KernelSU-Next/KernelSU-Next/issues/676
-        if ((patch_flavor == 'KernelSU_LKM' and int(device.ksu_app_version_code) >= 12109) or patch_flavor == 'KernelSU-Next_LKM'):
-            print(f"With {patch_flavor} patching, the vendor_boot.img will be used, instead of boot.img / init_boot.img")
-            boot_path = boot_path.replace("init_boot.img", "boot.img")
-            boot_path = boot_path.replace("boot.img", "vendor_boot.img")
-            stock_sha1 = sha1(boot_path)[:8]
-            print(f"Using vendor_boot.img for {patch_flavor} patching with SHA1 of {stock_sha1}")
+        # check if
+        if os.path.exists(os.path.join(boot_directory, 'boot.img')):
+            boot_exists = True
+        else:
+            disabled_buttons.append(1) # "boot.img"
+        if os.path.exists(os.path.join(boot_directory, 'init_boot.img')):
+            init_boot_exists = True
+            init_boot_path = os.path.join(boot_directory, 'init_boot.img')
+            stock_init_sha1 = sha1(init_boot_path)[:8]
+        else:
+            disabled_buttons.append(2) # "init_boot.img"
+        if os.path.exists(os.path.join(boot_directory, 'vendor_boot.img')):
+            vendor_boot_exists = True
+        else:
+            disabled_buttons.append(3) # "vendor_boot.img"
 
-        if patch_flavor in ['APatch', 'APatch_manual'] and "init_boot.img" in boot_path:
-            print(f"With APatch patching, the boot.img will be used, instead of init_boot.img, however we might need ramdisk from init_boot.img for APatch app patching")
-            init_boot_path = boot_path
-            boot_path = boot_path.replace("init_boot.img", "boot.img")
-            if not os.path.exists(boot_path):
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img file [{boot_path}] is not found.")
-                puml("#red:ERROR: boot.img file [{boot_path}] is not found;\n")
+        # Determine the recommendation based on the patch flavor and available images
+        if patch_flavor == 'Magisk':
+            app_version = device.get_uncached_magisk_app_version()
+            app_name = "Magisk"
+            if init_boot_exists:
+                recommendation = 2 # "init_boot.img"
+            elif boot_exists:
+                recommendation = 1 # "boot.img"
+            else:
+                recommendation = 4 # "Custom"
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img or init_boot.img is not found in the selected boot directory.")
+                puml("#red:boot.img or init_boot.img is not found;\n")
+                print("You can select custom option and provide a file to be patched.\n\n")
+
+        elif patch_flavor in ['KernelSU', 'KernelSU-Next']:
+            if patch_flavor == 'KernelSU-Next':
+                app_name = "KernelSU-Next"
+                app_version = device.get_uncached_ksu_next_app_version()
+            else:
+                app_name = "KernelSU"
+                app_version = device.get_uncached_ksu_app_version()
+            if boot_exists:
+                recommendation = 1 # "boot.img"
+            else:
+                recommendation = 4 # "Custom"
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found in the selected boot directory.")
+                puml("#red:boot.img is not found;\n")
+                print("You can select custom option and provide a file to be patched.\n\n")
+
+        elif patch_flavor in ['KernelSU_LKM', 'KernelSU-Next_LKM']:
+            if patch_flavor == 'KernelSU-Next_LKM':
+                app_name = "KernelSU-Next_LKM"
+                app_version = device.get_uncached_ksu_next_app_version()
+            else:
+                app_name = "KernelSU_LKM"
+                app_version = device.get_uncached_ksu_app_version()
+            recommendation = None
+            if boot_exists:
+                recommendation = 1 # "boot.img"
+            if vendor_boot_exists:
+                if ((patch_flavor == 'KernelSU_LKM' and (device.ksu_app_version_code and int(device.ksu_app_version_code) >= 12109)) or patch_flavor == 'KernelSU-Next_LKM'):
+                    recommendation = 3 # "vendor_boot.img"
+            if init_boot_exists:
+                recommendation = 2 # "init_boot.img"
+            else:
+                recommendation = 4 # "Custom"
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vendor_boot.img, init_boot.img or boot.img is not found in the selected boot directory.")
+                puml("#red:vendor_boot.img, init_boot.img or boot.img is not found;\n")
+                print("You can select custom option and provide a file to be patched.\n\n")
+            if not recommendation:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine which image to patch for {patch_flavor}.")
+                puml("#red:Unable to determine which image to patch;\n")
                 print("Aborting ...\n}\n")
                 return -1
-            stock_init_sha1 = sha1(init_boot_path)[:8]
-            stock_sha1 = sha1(boot_path)[:8]
-            print(f"Using boot.img for {patch_flavor} patching with SHA1 of {stock_sha1}")
-            if patch_flavor == 'APatch':
-                print(f"Also using init_boot.img for {patch_flavor} patching (to extract Ramdisk) with SHA1 of {stock_init_sha1}")
+
+        elif patch_flavor in ['APatch', 'APatch_manual']:
+            app_name = "APatch"
+            app_version = device.get_uncached_apatch_app_version()
+            if boot_exists:
+                recommendation = 1 # "boot.img"
+            else:
+                recommendation = 4 # "Custom"
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found in the selected boot directory.")
+                puml("#red:boot.img is not found;\n")
+                print("You can select custom option and provide a file to be patched.\n\n")
+
+        # Determine the patch image based on the recommendation
+        if self.config.offer_patch_methods:
+            title = "Patching decision"
+            buttons_text = ["Use boot.img", "Use init_boot.img", "Use vendor_boot", "Custom", "Cancel"]
+            buttons_text[recommendation -1] += " (Recommended)"
+
+            message = '''
+**PixelFlasher** can create a patch by using different extracted images.<br/>
+
+This is a summary of what each rooting system typically patches.<br/>
+
+- **Magisk** patches the ramdisk in `init_boot` if it exists, otherwise it patches Ramdisk in `boot`.<br/>
+
+- **Apatch** patches the kernel in `boot`.<br/>
+
+- **KernelSU** and **KernelSU-Next** (non LKM options) patches the kernel in `boot`.<br/>
+
+- **KernelSU LKM** and **KernelSU-Next LKM** patches the ramdisk in the following priority order:
+  `vendor_boot/ramdisk`, `vendor_boot/init_boot`, `init_boot/ramdisk`, `boot/ramdisk`<br/>
+  _**Note:** Due to a bug in KSUN which fails to detect root, for the time being PixelFlasher_
+  _will prioritize init_boot over vendor_boot until the issue is addressed in KSUN._<br/>
+
+- **Custom** allows you to select any image to patch.<br/>
+
+Depending on the selected rooting option,
+PixelFlasher will offer available choices and recommend the best image for patching.<br/>
+Unless you know what you're doing, it is recommended that you choose the default suggested selection.
+'''
+            app_name_padding = max(0, 31 - len(f"{app_name} Version:"))
+            message += f"<pre>{app_name} Version:{' ' * app_name_padding}{app_version}\n"
+            message += f"Recommended Patch image:       {buttons_text[recommendation -1]}</pre>\n"
+            clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
+            print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
+            puml(":Dialog;\n", True)
+            puml(f"note right\n{clean_message}\nend note\n")
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=recommendation, disable_buttons=disabled_buttons, is_md=True, size=[800,600])
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            puml(f":User Pressed {buttons_text[result - 1]};\n")
+
+            if result == 1:
+                # User selected boot.img
+                print("Using boot.img for patching.")
+                puml(":Using boot.img for patching;\n")
+                boot_path = os.path.join(boot_directory, 'boot.img')
+                # init_boot_path = boot_path
+            elif result == 2:
+                # User selected init_boot.img
+                print("Using init_boot.img for patching.")
+                puml(":Using init_boot.img for patching;\n")
+                boot_path = os.path.join(boot_directory, 'init_boot.img')
+                # init_boot_path = boot_path
+            elif result == 3:
+                # User selected vendor_boot.img
+                print("Using vendor_boot.img for patching.")
+                puml(":Using vendor_boot.img for patching;\n")
+                boot_path = os.path.join(boot_directory, 'vendor_boot.img')
+                # init_boot_path = boot_path
+            elif result == 4:
+                # User selected Custom
+                print("User selected Custom patching.")
+                puml(":User selected Custom patching;\n")
+                with wx.FileDialog(self, "boot / init_boot / vendor_boot image to create patch from.", '', '', wildcard="Images (*.*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
+                    puml(":Select image to patch;\n")
+                    if fileDialog.ShowModal() == wx.ID_CANCEL:
+                        print("User cancelled image selection.")
+                        puml("#pink:User Cancelled;\n}\n")
+                        return -1
+                    # save the current contents in the file
+                    boot_path = fileDialog.GetPath()
+                    file_sha1 = sha1(boot_path)
+                    print(f"\nSelected {boot_path} for patching with SHA1 of {file_sha1}")
+                    puml(f"note right\nSelected {boot_path} for patching with SHA1 of {file_sha1}\nend note\n")
+
+            elif result == 5:
+                # User selected Cancel
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel, out of patching decision dialog.")
+                puml(":User Pressed Cancel;\n}\n")
+                print("Aborting ...\n")
+                return -1
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Invalid selection in patching decision dialog.")
+                puml("#red:Invalid selection in patching decision dialog;\n}\n")
+                print("Aborting ...\n")
+                return -1
+
+        stock_sha1 = sha1(boot_path)[:8]
         boot_file_name = os.path.basename(boot_path)
         filename, unused = os.path.splitext(boot_file_name)
         boot_img = f"{filename}_{stock_sha1}.img"
@@ -3268,8 +3454,15 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         if not kernelsu_app_path:
             print("KernelSU app not found on the phone.\n Trying to download and install it ...\n")
             # download and install it https://github.com/tiann/KernelSU/releases
-            kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
-            kernelsu_url = download_gh_latest_release_asset_regex('tiann', 'KernelSU', r'^KernelSU.*\.apk$', True)
+            release = get_gh_release_object(user='tiann', repo='KernelSU', include_prerelease=False)
+            if release is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU release.")
+                puml("#red:Could not find KernelSU release;\n")
+                print("Aborting ...\n}\n")
+                return
+            kernelsu_version = release['tag_name']
+            kernelsu_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU.*\.apk$', download=False)
+
             if kernelsu_url is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install KernelSU.\n Aborting ...")
                 return
@@ -3305,8 +3498,15 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         if not kernelsu_next_app_path:
             print("KernelSU Next app not found on the phone.\n Trying to download and install it ...\n")
             # download and install it https://github.com/rifsxd/KernelSU-Next/releases
-            kernelsu_version = get_gh_latest_release_version('rifsxd', 'KernelSU-Next')
-            kernelsu_url = download_gh_latest_release_asset_regex('rifsxd', 'KernelSU-Next', r'^KernelSU_Next.*\.apk$', True)
+            release = get_gh_release_object(user='rifsxd', repo='KernelSU-Next', include_prerelease=False)
+            if release is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU-Next release.")
+                puml("#red:Could not find KernelSU-Next release;\n")
+                print("Aborting ...\n}\n")
+                return
+            kernelsu_version = release['tag_name']
+            kernelsu_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next.*\.apk$', download=False)
+
             if kernelsu_url is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install KernelSU Next.\n Aborting ...")
                 return
@@ -3342,8 +3542,14 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         if not apatch_app_path:
             print("APatch app not found on the phone.\n Trying to download and install it ...\n")
             # download and install it https://github.com/bmax121/APatch/releases
-            apatch_version = get_gh_latest_release_version('bmax121', 'APatch')
-            apatch_url = download_gh_latest_release_asset_regex('bmax121', 'APatch', r'^APatch_.*\.apk$', True)
+            release = get_gh_release_object(user='bmax121', repo='APatch', include_prerelease=False)
+            if release is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch release.")
+                puml("#red:Could not find APatch release;\n")
+                print("Aborting ...\n}\n")
+                return
+            apatch_version = release['tag_name']
+            apatch_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^APatch_.*\.apk$', download=False)
             if apatch_url is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install APatch.\n Aborting ...")
                 return
@@ -3467,25 +3673,31 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         dlg = wx.MessageDialog(None, message, title, wx.YES_NO | wx.CANCEL | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
         if result == wx.ID_YES:
+            # include_prerelease = True
             print(f"User chose to download pre-release version: {kernel_patch_version_prerelease}")
             puml(":User chose to download pre-release version;\n")
-            include_prerelease = True
             kernel_patch_version = kernel_patch_version_prerelease
+            kptools_android_file = download_gh_pre_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kptools-android')
+            kpimg_android_file = download_gh_pre_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kpimg-android')
         elif result == wx.ID_NO:
+            # include_prerelease = False
             print(f"User chose to download release version: {kernel_patch_version_release}")
             puml(":User chose to download release version;\n")
-            include_prerelease = False
             kernel_patch_version = kernel_patch_version_release
+            kptools_android_file = download_gh_latest_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kptools-android')
+            kpimg_android_file = download_gh_latest_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kpimg-android')
         else:
             print(f"User pressed Cancel")
             puml(":User Pressed Cancel;\n")
             print("Aborting ...\n")
             return -1
 
-        # download the latest kptools-android
-        kptools_android_file = download_gh_latest_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kptools-android', just_url_info=False, include_prerelease=include_prerelease)
         if not kptools_android_file:
             print("ERROR: Could not find matching kptools-android file\nAborting ...\n")
+            return
+
+        if not kpimg_android_file:
+            print("ERROR: Could not find matching kpimg-android file\nAborting ...\n")
             return
 
         # transfer kptools-android to the phone
@@ -3493,12 +3705,6 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         if res != 0:
             print("Aborting ...\n")
             puml("#red:Failed to transfer kptools-android to the phone;\n")
-            return
-
-        # download the latest kpimg-android
-        kpimg_android_file = download_gh_latest_release_asset_regex(user='bmax121', repo='KernelPatch', asset_name_pattern='kpimg-android', just_url_info=False, include_prerelease=include_prerelease)
-        if not kpimg_android_file:
-            print("ERROR: Could not find matching kpimg-android file\nAborting ...\n")
             return
 
         # transfer kpimg-android to the phone

@@ -630,7 +630,7 @@ class MagiskModules(wx.Dialog):
                 module_update_url = OSM0SIS_PIF_UPDATE_URL
             elif result == 2:
                 # module_update_url = TRICKYSTORE_UPDATE_URL
-                gh_latest_url = download_gh_latest_release_asset_regex('5ec1cff', 'TrickyStore', r'^Tricky\-Store.*\-release\.zip$', True)
+                gh_latest_url = get_gh_latest_release_asset_regex('5ec1cff', 'TrickyStore', r'^Tricky\-Store.*\-release\.zip$')
             else:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting ...\n")

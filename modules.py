@@ -295,8 +295,19 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
                 self.list.SetItem(index, 5, hardware)                          # hardware
                 self.list.SetItem(index, 6, boot_date)                         # boot_date
                 self.list.SetItem(index, 7, package_path)                      # package_path
-                if row[3]:
-                    self.list.SetItemColumnImage(i, 0, 0)
+                img_index = -1
+                if patch_method in ['root', 'app']:
+                    img_index = 0  # magisk image index
+                elif 'apatch' in patch_method:
+                    img_index = 1  # apatch image index
+                elif 'kernelsu-next' in patch_method:
+                    img_index = 2  # kernelsu-next image index
+                elif 'kernelsu' in patch_method:
+                    img_index = 3  # kernelsu image index
+                elif "downgrade" in patch_method:
+                    img_index = 4  # downgrade image index
+                if row[3] and img_index != -1:
+                    self.list.SetItemColumnImage(i, 0, img_index)
                 else:
                     self.list.SetItemColumnImage(i, 0, -1)
                 self.list.SetItemData(i, boot_id)  # Store boot_id for later reference

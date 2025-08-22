@@ -5987,10 +5987,18 @@ class PixelFlasher(wx.Frame):
         # list control
         if self.CharHeight > 20:
             self.il = wx.ImageList(24, 24)
-            self.idx1 = self.il.Add(images.patched_24.GetBitmap())
+            self.idx_magisk = self.il.Add(images.magisk_24.GetBitmap())                 # index 0 - magisk
+            self.idx_apatch = self.il.Add(images.apatch_24.GetBitmap())                 # index 1 - apatch
+            self.idx_kernelsu_next = self.il.Add(images.kernelsu_next_24.GetBitmap())   # index 2 - kernelsu-next
+            self.idx_kernelsu = self.il.Add(images.kernelsu_24.GetBitmap())             # index 3 - kernelsu
+            self.idx_downgrade = self.il.Add(images.downgrade_24.GetBitmap())           # index 4 - downgrade
         else:
             self.il = wx.ImageList(16, 16)
-            self.idx1 = self.il.Add(images.patched_16.GetBitmap())
+            self.idx_magisk = self.il.Add(images.magisk_16.GetBitmap())                 # index 0 - magisk
+            self.idx_apatch = self.il.Add(images.apatch_16.GetBitmap())                 # index 1 - apatch
+            self.idx_kernelsu_next = self.il.Add(images.kernelsu_next_16.GetBitmap())   # index 2 - kernelsu-next
+            self.idx_kernelsu = self.il.Add(images.kernelsu_16.GetBitmap())             # index 3 - kernelsu
+            self.idx_downgrade = self.il.Add(images.downgrade_16.GetBitmap())           # index 4 - downgrade
         self.list = wx.ListCtrl(parent=panel, id=-1, size=(-1, self.CharHeight * 6), style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)

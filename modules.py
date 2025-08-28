@@ -296,7 +296,7 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
                 self.list.SetItem(index, 6, boot_date)                         # boot_date
                 self.list.SetItem(index, 7, package_path)                      # package_path
                 img_index = -1
-                if patch_method in ['root', 'app']:
+                if patch_method in ['root', 'app', 'other']:
                     img_index = 0  # magisk image index
                 elif 'apatch' in patch_method:
                     img_index = 1  # apatch image index
@@ -5573,7 +5573,7 @@ def flash_phone(self):
                     print("  You can close the logcat window when done.")
                     print("  If logcat windows is closed before the merging is complete,")
                     print("  (this can happen when you unlock the screen)")
-                    print("  you can open it again from PixelFlasher menu Device | Logcat.")
+                    print("  you can open it again from PixelFlasher menu Device | Logcat filter: update_engine")
                     print("==============================================================================\n")
                     device.open_update_engine_logcat()
 

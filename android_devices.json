@@ -1,9 +1,30 @@
 {
+    "blazer": {
+        "device": "Google Pixel 10 Pro",
+        "android_version_end_date": "August 2032",
+        "security_update_end_date": "August 2032",
+        "first_api_level": "36",
+        "bootloader_codename": "deepspace"
+    },
+    "frankel": {
+        "device": "Google Pixel 10",
+        "android_version_end_date": "August 2032",
+        "security_update_end_date": "August 2032",
+        "first_api_level": "36",
+        "bootloader_codename": "deepspace"
+    },
+    "mustang": {
+        "device": "Google Pixel 10 Pro XL",
+        "android_version_end_date": "August 2032",
+        "security_update_end_date": "August 2032",
+        "first_api_level": "36",
+        "bootloader_codename": "deepspace"
+    },
     "tegu": {
         "device": "Google Pixel 9a",
         "android_version_end_date": "May 2032",
         "security_update_end_date": "May 2032",
-        "first_api_level": "34",
+        "first_api_level": "35",
         "bootloader_codename": "tegu"
     },
     "seluna": {

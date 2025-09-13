@@ -44,7 +44,7 @@ from datetime import datetime
 from runtime import *
 from file_editor import FileEditor
 from i18n import _
-
+from package_manager import PackageManager
 
 # ============================================================================
 #                               Class PifModule
@@ -89,6 +89,7 @@ class PifManager(wx.Dialog):
         self.current_pif_module = {}
         self._last_call_was_on_spin = False
         self.beta_pif_version = 'latest'
+        self._tf_targets_loaded = False
 
         # Active pif label
         self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_("Active Pif"))
@@ -106,6 +107,13 @@ class PifManager(wx.Dialog):
         # Module version label
         self.pif_selection_combo = wx.ComboBox(self, choices=[], style=wx.CB_READONLY)
         self.pif_selection_combo.SetToolTip(_("Pif Module"))
+        # TF Targets
+        self.tf_targets_combo = wx.ComboBox(self, choices=[_("TF Targets")], style=wx.CB_READONLY)
+        self.tf_targets_combo.SetToolTip(_("TargetedFix Targets"))
+        self.tf_targets_combo.SetSelection(0)
+        self.tf_targets_combo.SetForegroundColour(wx.Colour(128, 128, 128))  # Gray placeholder text
+        self.tf_targets_combo.SetMinSize((130, -1))
+        self.tf_targets_combo.Enable(False)
         # Favorite button
         self.favorite_pif_button = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
@@ -137,6 +145,36 @@ class PifManager(wx.Dialog):
         self.active_pif_stc.SetIndent(4)
         self.active_pif_stc.SetMarginType(1, stc.STC_MARGIN_NUMBER)
         self.active_pif_stc.SetMarginWidth(1, 30)
+
+        # TargetedFix button row (initially hidden)
+        self.tf_add_target_button = wx.Button(self, wx.ID_ANY, _("Add TF Target"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.tf_add_target_button.SetToolTip(_("Add a new TargetedFix target by selecting from package list on device"))
+
+        self.tf_delete_target_button = wx.Button(self, wx.ID_ANY, _("Delete TF Target"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.tf_delete_target_button.SetToolTip(_("Delete the selected TargetedFix target"))
+        self.tf_delete_target_button.Enable(False)
+
+        self.tf_edit_targets_button = wx.Button(self, wx.ID_ANY, _("Edit TF Targets"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.tf_edit_targets_button.SetToolTip(_("Edit TargetedFix targets file"))
+        # self.tf_edit_targets_button.Enable(False)
+
+        self.tf_push_json_button = wx.Button(self, wx.ID_ANY, _("Push TF Json"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.tf_push_json_button.SetToolTip(_("Push Active pif content as JSON to the selected TargetedFix target"))
+        self.tf_push_json_button.Enable(False)
+
+        # TargetedFix button row sizer (initially hidden)
+        self.tf_buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.tf_buttons_sizer.Add(self.tf_add_target_button, 0, wx.ALL, 5)
+        self.tf_buttons_sizer.Add(self.tf_delete_target_button, 0, wx.ALL, 5)
+        self.tf_buttons_sizer.Add(self.tf_edit_targets_button, 0, wx.ALL, 5)
+        self.tf_buttons_sizer.Add(self.tf_push_json_button, 0, wx.ALL, 5)
+        self.tf_buttons_sizer.AddStretchSpacer()
+
+        # Hide the TargetedFix buttons initially
+        self.tf_add_target_button.Show(False)
+        self.tf_delete_target_button.Show(False)
+        self.tf_edit_targets_button.Show(False)
+        self.tf_push_json_button.Show(False)
 
         # Console label
         self.console_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_("Output"))
@@ -200,6 +238,7 @@ class PifManager(wx.Dialog):
         self.spoofProvider_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Provider"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spoofSignature_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Signature"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.spoofVendingSdk_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Vending SDK"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.spoofVendingFinger_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Spoof Vending Fingerprint"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
 
         # Console
         self.console_stc = stc.StyledTextCtrl(self)
@@ -288,6 +327,11 @@ class PifManager(wx.Dialog):
         self.auto_check_pi_checkbox.SetToolTip(_("After saving (pushing) print, automatically run Play Integrity Check."))
         self.auto_check_pi_checkbox.Enable(False)
 
+        # Auto Run migrate script
+        self.auto_run_migrate_checkbox = wx.CheckBox(parent=self, id=wx.ID_ANY, label=_("Auto run migrate.sh"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.auto_run_migrate_checkbox.SetToolTip(_("After saving (pushing) print, automatically run migrate.sh"))
+        self.auto_run_migrate_checkbox.Enable(False)
+
         # option button PI Selection
         self.pi_choices = ["Play Integrity API Checker", "Simple Play Integrity Checker", "Android Integrity Checker", "Play Store"]
         self.pi_option = wx.RadioBox(self, choices=self.pi_choices, style=wx.RA_VERTICAL)
@@ -338,6 +382,7 @@ class PifManager(wx.Dialog):
         self.process_img_button.SetMinSize((button_width, -1))
         self.auto_update_pif_checkbox.SetMinSize((button_width, -1))
         self.auto_check_pi_checkbox.SetMinSize((button_width, -1))
+        self.auto_run_migrate_checkbox.SetMinSize((button_width, -1))
         self.disable_uiautomator_checkbox.SetMinSize((button_width, -1))
         self.pi_checker_button.SetMinSize((button_width, -1))
         self.xiaomi_pif_button.SetMinSize((button_width, -1))
@@ -373,6 +418,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.process_img_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.auto_update_pif_checkbox, 0, wx.ALL, 5)
         v_buttons_sizer.Add(self.auto_check_pi_checkbox, 0, wx.ALL, 5)
+        v_buttons_sizer.Add(self.auto_run_migrate_checkbox, 0, wx.ALL, 5)
         v_buttons_sizer.Add(self.pi_option, 0, wx.TOP, 5)
         v_buttons_sizer.Add(self.disable_uiautomator_checkbox, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.pi_checker_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
@@ -404,6 +450,7 @@ class PifManager(wx.Dialog):
         self.vertical_cb_sizer2.Add(self.spoofProvider_checkbox, 1, wx.ALL, 0)
         self.vertical_cb_sizer2.Add(self.spoofSignature_checkbox, 1, wx.ALL, 0)
         self.vertical_cb_sizer2.Add(self.spoofVendingSdk_checkbox, 1, wx.ALL, 0)
+        self.vertical_cb_sizer2.Add(self.spoofVendingFinger_checkbox, 1, wx.ALL, 0)
 
         console_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
         console_label_sizer.AddSpacer(10)
@@ -423,6 +470,7 @@ class PifManager(wx.Dialog):
 
         stc_sizer = wx.BoxSizer(wx.VERTICAL)
         stc_sizer.Add(self.active_pif_stc, 1, wx.EXPAND | wx.ALL, 10)
+        stc_sizer.Add(self.tf_buttons_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
         stc_sizer.Add(console_label_sizer, 0, wx.TOP, 10)
         stc_sizer.Add(self.console_stc, 1, wx.EXPAND | wx.ALL, 10)
 
@@ -437,9 +485,11 @@ class PifManager(wx.Dialog):
         active_pif_label_sizer.Add(self.pif_modified_image, 0, wx.ALIGN_CENTER_VERTICAL)
         active_pif_label_sizer.AddSpacer(10)
         active_pif_label_sizer.Add(self.save_pif_button, 0, wx.ALIGN_CENTER_VERTICAL)
-        active_pif_label_sizer.AddSpacer(100)
-        active_pif_label_sizer.Add(self.pif_selection_combo, 1, wx.EXPAND)
-        active_pif_label_sizer.AddSpacer(100)
+        active_pif_label_sizer.AddSpacer(50)
+        active_pif_label_sizer.Add(self.pif_selection_combo, 0, wx.ALIGN_CENTER_VERTICAL, 5)
+        active_pif_label_sizer.AddSpacer(10)
+        active_pif_label_sizer.Add(self.tf_targets_combo, 0, wx.ALIGN_CENTER_VERTICAL, 5)
+        active_pif_label_sizer.AddSpacer(50)
         active_pif_label_sizer.Add(self.favorite_pif_button, 0, wx.ALIGN_CENTER_VERTICAL)
         active_pif_label_sizer.AddSpacer(10)
         active_pif_label_sizer.Add(self.pif_combo_box, 1, wx.EXPAND)
@@ -452,7 +502,9 @@ class PifManager(wx.Dialog):
         vSizer.Add(h_buttons_sizer, 0, wx.EXPAND, 10)
 
         self.SetSizer(vSizer)
-        self.SetMinSize((400, 240))
+        min_width = 800
+        min_height = 500
+        self.SetMinSize((min_width, min_height))
         self.Layout()
 
         # Connect Events
@@ -488,6 +540,7 @@ class PifManager(wx.Dialog):
         self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
         self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
         self.pif_selection_combo.Bind(wx.EVT_COMBOBOX, self.onPifSelectionComboBox)
+        self.tf_targets_combo.Bind(wx.EVT_COMBOBOX, self.onTFTargetSelectionComboBox)
         self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.onPifComboBox)
         self.import_pif_button.Bind(wx.EVT_BUTTON, self.ImportFavorites)
         self.add_missing_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoFill)
@@ -499,13 +552,19 @@ class PifManager(wx.Dialog):
         self.spoofProvider_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofProvider)
         self.spoofSignature_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofSignature)
         self.spoofVendingSdk_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofVendingSdk)
+        self.spoofVendingFinger_checkbox.Bind(wx.EVT_CHECKBOX, self.onspoofVendingFinger)
         self.auto_update_pif_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoUpdatePif)
         self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
+        self.auto_run_migrate_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoRunMigrate)
         self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
         self.api_value_input.Bind(wx.EVT_TEXT, self.onApiValueChange)
         self.rb_latest.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
         self.rb_custom.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
         self.custom_version.Bind(wx.EVT_TEXT, self.onBetaVersionChange)
+        self.tf_add_target_button.Bind(wx.EVT_BUTTON, self.onTFAddTarget)
+        self.tf_delete_target_button.Bind(wx.EVT_BUTTON, self.onTFDeleteTarget)
+        self.tf_edit_targets_button.Bind(wx.EVT_BUTTON, self.edit_tf_targets)
+        self.tf_push_json_button.Bind(wx.EVT_BUTTON, self.onTFPushJson)
 
         # init button states
         self.init()
@@ -556,9 +615,13 @@ class PifManager(wx.Dialog):
             with contextlib.suppress(KeyError):
                 self.spoofVendingSdk_checkbox.SetValue(self.config.pif['spoofVendingSdk'])
             with contextlib.suppress(KeyError):
+                self.spoofVendingFinger_checkbox.SetValue(self.config.pif['spoofVendingFinger'])
+            with contextlib.suppress(KeyError):
                 self.auto_update_pif_checkbox.SetValue(self.config.pif['auto_update_pif_json'])
             with contextlib.suppress(KeyError):
                 self.auto_check_pi_checkbox.SetValue(self.config.pif['auto_check_play_integrity'])
+            with contextlib.suppress(KeyError):
+                self.auto_run_migrate_checkbox.SetValue(self.config.pif['auto_run_migrate'])
             with contextlib.suppress(KeyError):
                 selected_index = self.config.pif['test_app_index']
                 if selected_index >= len(self.pi_choices):
@@ -599,7 +662,14 @@ class PifManager(wx.Dialog):
         self.edit_security_patch_button.Show(False)
         self.auto_update_pif_checkbox.Enable(False)
         self.auto_check_pi_checkbox.Enable(False)
+        self.auto_run_migrate_checkbox.Enable(False)
         self.pi_checker_button.Enable(False)
+        self.tf_targets_combo.Enable(False)
+        self.tf_targets_combo.Clear()
+        self.tf_targets_combo.Append(_("TF Targets"))
+        self.tf_targets_combo.SetSelection(0)
+        self.tf_targets_combo.SetForegroundColour(wx.Colour(128, 128, 128))
+        # self.tf_targets_combo.Show(False)
         self.enable_buttons = False
         self.pif_selection_combo.Clear()
         self.pif_modules = []
@@ -607,7 +677,7 @@ class PifManager(wx.Dialog):
         if modules:
             found_pif_module = False
             for module in modules:
-                if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store"):
+                if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store" or module.id == "targetedfix"):
                     self.pif_format = None
                     self.pif_path = None
                     if module.id == "playintegrityfix":
@@ -621,6 +691,8 @@ class PifManager(wx.Dialog):
                                 self.pif_path = '/data/adb/modules/playintegrityfix/pif.json'
                             else:
                                 self.pif_path = '/data/adb/pif.json'
+                        self.auto_check_pi_checkbox.Enable(True)
+                        self.auto_run_migrate_checkbox.Enable(True)
 
                     if module.id == "tricky_store":
                         self.pif_format = 'prop'
@@ -631,6 +703,7 @@ class PifManager(wx.Dialog):
                         self.edit_ts_target_button.Show(True)
                         self.edit_security_patch_button.Enable(True)
                         self.edit_security_patch_button.Show(True)
+                        self.auto_run_migrate_checkbox.Enable(False)
 
                     flavor = module.name.replace(" ", "").lower()
                     self.pif_flavor = f"{flavor}_{module.versionCode}"
@@ -641,20 +714,35 @@ class PifManager(wx.Dialog):
                     self.reload_pif_button.Enable(True)
                     self.cleanup_dg_button.Enable(True)
                     self.auto_update_pif_checkbox.Enable(True)
-                    self.auto_check_pi_checkbox.Enable(True)
                     self.pi_checker_button.Enable(True)
                     self.enable_buttons = True
                     module_label = f"{module.name} {module.version} {module.versionCode}"
                     if module.id != "tricky_store":
                         self.pif_selection_combo.Append(module_label)
 
+                    if module.id == "targetedfix":
+                        self.pif_format = 'json'
+                        self.tf_target_path = '/data/adb/modules/targetedfix/target.txt'
+                        self.tf_targets_combo.Enable(True)
+                        self.auto_run_migrate_checkbox.Enable(False)
+                        self.create_pif_button.Enable(False)
+                        self.push_pif_button.Enable(False)
+                        self.reload_pif_button.Enable(False)
+                        self.auto_update_pif_checkbox.Enable(False)
+                        self.enable_buttons = False
+
         if found_pif_module:
-            # Make the selection in priority order: Play Integrity, Trickystore
+            # Update combo box size based on content
+            self.update_combo_size(self.pif_selection_combo)
+
+            # Make the selection in priority order: Play Integrity, Trickystore, TargetedFix
             for i in range(self.pif_selection_combo.GetCount()):
                 if "Play Integrity" in self.pif_selection_combo.GetString(i):
                     self.pif_selection_combo.SetSelection(i)
                     break
                 elif "Tricky" in self.pif_selection_combo.GetString(i):
+                    self.pif_selection_combo.SetSelection(i)
+                elif "TargetedFix" in self.pif_selection_combo.GetString(i):
                     self.pif_selection_combo.SetSelection(i)
             # If nothing is selected and there are items, select the first item
             if self.pif_selection_combo.GetSelection() == wx.NOT_FOUND and self.pif_selection_combo.GetCount() > 0:
@@ -671,6 +759,15 @@ class PifManager(wx.Dialog):
         if not device.rooted:
             return
         # check for presence of pif.json
+        if self.pif_path is None:
+            self.pif_exists = False
+            self.create_pif_button.Enable(False)
+            self.push_pif_button.Enable(False)
+            self.reload_pif_button.Enable(False)
+            self.cleanup_dg_button.Enable(False)
+            self.create_pif_button.SetLabel(_("Create print"))
+            self.create_pif_button.SetToolTip(_("Create pif.json / spoof_build_vars."))
+            return
         res, unused = device.check_file(self.pif_path, True)
         if res == 1:
             self.pif_exists = True
@@ -719,16 +816,223 @@ class PifManager(wx.Dialog):
             self.spoofProvider_checkbox.Enable(False)
             self.spoofSignature_checkbox.Enable(False)
             self.spoofVendingSdk_checkbox.Enable(False)
+            self.spoofVendingFinger_checkbox.Enable(False)
+            self.auto_run_migrate_checkbox.Enable(False)
         else:
             self.spoofBuild_checkbox.Enable(True)
             self.spoofProps_checkbox.Enable(True)
             self.spoofProvider_checkbox.Enable(True)
             self.spoofSignature_checkbox.Enable(True)
             self.spoofVendingSdk_checkbox.Enable(True)
+            self.spoofVendingFinger_checkbox.Enable(True)
+            if selected_module.id == "targetedfix":
+                # Show TargetedFix buttons
+                self.tf_add_target_button.Show(True)
+                self.tf_delete_target_button.Show(True)
+                self.tf_edit_targets_button.Show(True)
+                self.tf_push_json_button.Show(True)
+                self.auto_run_migrate_checkbox.Enable(False)
+                self.tf_targets_combo.Enable(True)
+            else:
+                # Play Integrity Fix selected
+                self.auto_run_migrate_checkbox.Enable(True)
+                # Hide TargetedFix buttons
+                self.tf_add_target_button.Show(False)
+                self.tf_delete_target_button.Show(False)
+                self.tf_edit_targets_button.Show(False)
+                self.tf_push_json_button.Show(False)
+                self.tf_targets_combo.Enable(False)
+                self.tf_targets_combo.Clear()
+                self.tf_targets_combo.Append(_("TF Targets"))
+                self.tf_targets_combo.SetSelection(0)
+                self.tf_targets_combo.SetForegroundColour(wx.Colour(128, 128, 128))
+
+        self.Layout()
 
         selected_label = f"{selected_module.name} {selected_module.version}"
-        print(f"Selected Module: {selected_label}")
-        self.LoadReload(None)
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} Loading selected Module: {selected_label}")
+        print("==============================================================================")
+        if selected_module.id == "targetedfix":
+            # For TargetedFix, check if we have targets loaded, if not load them
+            if self.tf_targets_combo.GetCount() <= 1 and self.tf_targets_combo.GetString(0) == _("TF Targets"):
+                # No targets loaded yet, load them now and only once
+                targets = self.load_tf_targets()
+
+            # Select the first target
+            if self.tf_targets_combo.GetCount() > 0:
+                first_item = self.tf_targets_combo.GetString(0)
+                if first_item != _("TF Targets"):
+                    self.tf_targets_combo.SetSelection(0)  # Select first actual target
+                    self.onTFTargetSelectionComboBox(None)
+                else:
+                    self.active_pif_stc.SetValue("{}")
+                    self.console_stc.SetText("// No Target selected")
+            else:
+                self.active_pif_stc.SetValue("{}")
+                self.console_stc.SetText("// No Target selected")
+        else:
+            self.LoadPif(self.pif_path)
+
+
+    # -----------------------------------------------
+    #                  load_tf_targets
+    # -----------------------------------------------
+    def load_tf_targets(self):
+        try:
+            device = get_phone(True)
+            if not device.rooted:
+                self.populate_tf_targets([])
+                return []
+
+            config_path = get_config_path()
+            local_target_file = os.path.join(config_path, 'tmp', 'tf_target.txt')
+
+            if not self._tf_targets_loaded:
+                res, unused = device.check_file(self.tf_target_path, True)
+                if res == 1:
+                    self.tf_target_exists = True
+
+                    # Pull the target.txt file to local as tf_target.txt
+                    res = device.pull_file(self.tf_target_path, local_target_file, True, quiet=True)
+                    if res != 0:
+                        # File doesn't exist, create empty local file
+                        with open(local_target_file, 'w', encoding='utf-8') as f:
+                            f.write('')
+                        targets = []
+                    else:
+                        self._tf_targets_loaded = True
+                else:
+                    self.tf_target_exists = False
+                    # Create empty local file
+                    with open(local_target_file, 'w', encoding='utf-8') as f:
+                        f.write('')
+                    self.populate_tf_targets([])
+                    return []
+
+            # check for presence of tf targets file
+            if self.tf_target_path is None:
+                self.tf_target_exists = False
+                self.populate_tf_targets([])
+                return []
+
+            else:
+                # Read targets from local file
+                with open(local_target_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                targets = [target.strip() for target in content.strip().splitlines() if target.strip()]
+
+                # Only pull JSON files that don't exist locally
+                for target in targets:
+                    local_json_file = os.path.join(config_path, 'tmp', f'{target}.json')
+                    if not os.path.exists(local_json_file) or not self._tf_targets_loaded:
+                        remote_json_file = f"/data/adb/modules/targetedfix/{target}.json"
+                        res = device.pull_file(remote_json_file, local_json_file, True, quiet=True)
+                        # If pull fails, create empty JSON file
+                        if res != 0:
+                            with open(local_json_file, 'w', encoding='utf-8') as f:
+                                f.write('{}')
+
+                self.populate_tf_targets(targets)
+                return targets
+
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: loading TargetedFix targets")
+            traceback.print_exc()
+            self.populate_tf_targets([])
+            return []
+
+    # -----------------------------------------------
+    #                  populate_tf_targets
+    # -----------------------------------------------
+    def populate_tf_targets(self, targets):
+        try:
+            self.tf_targets_combo.Clear()
+
+            if targets and len(targets) > 0:
+                # Add all targets to the combo box
+                for target in targets:
+                    self.tf_targets_combo.Append(target)
+
+                # Select the first target
+                self.tf_targets_combo.SetSelection(0)
+
+                # Set normal text color (black)
+                self.tf_targets_combo.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
+
+                # Update combo box size based on content
+                self.update_combo_size(self.tf_targets_combo)
+
+                # Update button states based on selection
+                self.update_tf_button_states()
+
+                print(f"Populated TF targets combo with {len(targets)} targets")
+            else:
+                # No targets found, add placeholder
+                self.tf_targets_combo.Append(_("TF Targets"))
+                self.tf_targets_combo.SetSelection(0)
+                self.tf_targets_combo.Enabled = False
+
+                # Set gray placeholder text color
+                self.tf_targets_combo.SetForegroundColour(wx.Colour(128, 128, 128))
+
+                # Update button states
+                self.update_tf_button_states()
+
+                print("No TF targets found, showing placeholder")
+
+            # Force layout refresh
+            self.Layout()
+
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: populating TF targets")
+            traceback.print_exc()
+            # On error, show placeholder
+            self.tf_targets_combo.Clear()
+            self.tf_targets_combo.Append(_("TF Targets"))
+            self.tf_targets_combo.SetSelection(0)
+            self.tf_targets_combo.SetForegroundColour(wx.Colour(128, 128, 128))
+
+    # -----------------------------------------------
+    #                  onTFTargetSelectionComboBox
+    # -----------------------------------------------
+    def onTFTargetSelectionComboBox(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User made a TargetedFix target selection.")
+        print("==============================================================================")
+        selection_index = self.tf_targets_combo.GetSelection()
+        selected_text = self.tf_targets_combo.GetStringSelection()
+
+        # Handle placeholder text selection
+        if selected_text == _("TF Targets"):
+            # Keep the gray color for placeholder
+            self.update_tf_button_states()
+            return
+
+        # Handle actual target selection
+        self.tf_targets_combo.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
+        print(f"Selected target: {selected_text}")
+        self.update_tf_button_states()
+
+        if selected_text:
+            # Load from local file instead of device
+            config_path = get_config_path()
+            local_json_file = os.path.join(config_path, 'tmp', f'{selected_text}.json')
+
+            if os.path.exists(local_json_file):
+                try:
+                    with open(local_json_file, 'r', encoding='utf-8') as f:
+                        contents = f.read()
+                    self.device_pif = contents
+                    self.active_pif_stc.SetValue(contents)
+                except Exception as e:
+                    print(f"Error reading local JSON file: {e}")
+                    self.active_pif_stc.SetValue("{}")
+            else:
+                # Create empty JSON if file doesn't exist
+                with open(local_json_file, 'w', encoding='utf-8') as f:
+                    f.write('{}')
+                self.active_pif_stc.SetValue("{}")
 
     # -----------------------------------------------
     #                  TestSelection
@@ -807,6 +1111,13 @@ class PifManager(wx.Dialog):
     #                  LoadReload
     # -----------------------------------------------
     def LoadReload(self, e):
+        if self.pif_path:
+            self.LoadPif(self.pif_path)
+
+    # -----------------------------------------------
+    #                  LoadReload
+    # -----------------------------------------------
+    def LoadPif(self, file_path):
         try:
             device = get_phone(True)
             if not device.rooted:
@@ -815,11 +1126,11 @@ class PifManager(wx.Dialog):
             config_path = get_config_path()
             self.check_pif_json()
             pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
-            if self.reload_pif_button.Enabled:
+            if self.reload_pif_button.Enabled or "targetedfix" in file_path:
                 # pull the file
-                res = device.pull_file(remote_file=self.pif_path, local_file=pif_prop, with_su=True, quiet=True)
+                res = device.pull_file(remote_file=file_path, local_file=pif_prop, with_su=True, quiet=True)
                 if res != 0:
-                    print(f"File: {self.pif_path} not found.")
+                    print(f"File: {file_path} not found.")
                     self.active_pif_stc.SetValue("")
                     # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
                     self._on_spin('stop')
@@ -836,7 +1147,7 @@ class PifManager(wx.Dialog):
             self.active_pif_stc.SetValue(contents)
 
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip Load process.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Load {file_path} process.")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -852,6 +1163,210 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def PushPif(self, e):
         self.create_update_pif(just_push=True)
+
+    # -----------------------------------------------
+    #                  onTFAddTarget
+    # -----------------------------------------------
+    def onTFAddTarget(self, e):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Add Target process")
+            print("==============================================================================")
+            device = get_phone(True)
+            if not device or not device.rooted:
+                print("Error: Device not available or not rooted")
+                return
+
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Add TF Target")
+
+            # Create a simplified package manager dialog
+            self._on_spin('start')
+            # load labels if not already loaded
+            if not get_labels() and os.path.exists(get_labels_file_path()):
+                with open(get_labels_file_path(), "r", encoding='ISO-8859-1', errors="replace") as f:
+                    set_labels(json.load(f))
+            dlg = PackageManager(self, title="Select Package for TargetedFix Target", simplified_mode=True)
+            self._on_spin('stop')
+            result = dlg.ShowModal()
+
+            if result == wx.ID_OK:
+                selected_package = dlg.GetSelectedPackage()
+                if selected_package:
+                    print(f"Selected package: {selected_package}")
+
+                    # Validate target name (package names are already valid)
+                    target_name = selected_package
+
+                    # Check if target already exists in local file
+                    config_path = get_config_path()
+                    local_target_file = os.path.join(config_path, 'tmp', 'tf_target.txt')
+                    existing_targets = []
+                    if os.path.exists(local_target_file):
+                        with open(local_target_file, 'r', encoding='utf-8') as f:
+                            existing_targets = [line.strip() for line in f.readlines() if line.strip()]
+
+                    if target_name in existing_targets:
+                        wx.MessageBox(f"Target '{target_name}' already exists in the list.", "Target Exists", wx.OK | wx.ICON_WARNING)
+                        dlg.Destroy()
+                        return
+
+                    # Add to target list file locally and push to device
+                    if self.add_target_to_device(target_name):
+                        # Just update the combo box locally instead of reloading everything
+                        self.tf_targets_combo.Append(target_name)
+                        target_index = self.tf_targets_combo.FindString(target_name)
+                        if target_index != wx.NOT_FOUND:
+                            self.tf_targets_combo.SetSelection(target_index)
+                            self.tf_targets_combo.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
+                            self.onTFTargetSelectionComboBox(None)
+
+                        # Update combo box size and button states
+                        self.update_combo_size(self.tf_targets_combo)
+                        self.update_tf_button_states()
+
+                        print(f"Successfully added target: {target_name}")
+                    else:
+                        wx.MessageBox(f"Failed to add target '{target_name}' to device.", "Error", wx.OK | wx.ICON_ERROR)
+
+            dlg.Destroy()
+
+        except Exception as ex:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during TF add target process.")
+            traceback.print_exc()
+
+    # -----------------------------------------------
+    #                  add_target_to_device
+    # -----------------------------------------------
+    def add_target_to_device(self, target_name):
+        try:
+            config_path = get_config_path()
+            local_target_file = os.path.join(config_path, 'tmp', 'tf_target.txt')
+
+            # Read existing targets from local file
+            if os.path.exists(local_target_file):
+                with open(local_target_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                targets = [target.strip() for target in content.strip().splitlines() if target.strip()]
+            else:
+                targets = []
+
+            # Add new target if not already present
+            if target_name not in targets:
+                targets.append(target_name)
+
+                # Write back to local file
+                with open(local_target_file, 'w', encoding='utf-8') as f:
+                    f.write('\n'.join(targets) + '\n')
+
+                # Create empty local JSON file for the target
+                local_json_file = os.path.join(config_path, 'tmp', f'{target_name}.json')
+                with open(local_json_file, 'w', encoding='utf-8') as f:
+                    f.write('{}')
+
+                device = get_phone(True)
+                if device and device.rooted:
+                    # Push target.txt (using original name on device)
+                    res = device.push_file(local_target_file, self.tf_target_path, True)
+                    if res != 0:
+                        print(f"Failed to push target.txt to device")
+                        return False
+                    return True
+            return True
+
+        except Exception as ex:
+            print(f"Error adding target locally: {ex}")
+            traceback.print_exc()
+            return False
+
+    # -----------------------------------------------
+    #                  onTFDeleteTarget
+    # -----------------------------------------------
+    def onTFDeleteTarget(self, e):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Delete Target process")
+        print("==============================================================================")
+        # if no target selected, do nothing
+        selected_index = self.tf_targets_combo.GetSelection()
+        selected_text = self.tf_targets_combo.GetStringSelection()
+        if selected_text == _("TF Targets") or selected_index == wx.NOT_FOUND:
+            return
+        # confirm deletion
+        dlg = wx.MessageDialog(self, f"Are you sure you want to delete the target '{selected_text}'?\nThis will remove the target and its associated JSON file from the device.", "Confirm Deletion", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+        if dlg.ShowModal() == wx.ID_YES:
+            try:
+                config_path = get_config_path()
+                local_target_file = os.path.join(config_path, 'tmp', 'tf_target.txt')
+                local_json_file = os.path.join(config_path, 'tmp', f'{selected_text}.json')
+
+                print(f"Deleting target: {selected_text}")
+
+                # Remove from local target.txt file
+                if os.path.exists(local_target_file):
+                    with open(local_target_file, 'r', encoding='utf-8') as f:
+                        targets = [line.strip() for line in f.readlines() if line.strip()]
+
+                    # Remove the selected target
+                    targets = [target for target in targets if target != selected_text]
+
+                    # Write back to local file
+                    with open(local_target_file, 'w', encoding='utf-8') as f:
+                        f.write('\n'.join(targets) + '\n' if targets else '')
+
+                # Remove local JSON file
+                if os.path.exists(local_json_file):
+                    os.remove(local_json_file)
+
+                # Push updated files to device
+                device = get_phone(True)
+                if device and device.rooted:
+                    # Push updated target.txt (using original name on device)
+                    res = device.push_file(local_target_file, self.tf_target_path, True)
+                    if res != 0:
+                        print(f"Failed to update target list file: {self.tf_target_path}")
+                        return
+
+                    # Delete the JSON file from device
+                    json_file_path = f"/data/adb/modules/targetedfix/{selected_text}.json"
+                    res = device.delete(json_file_path, with_su=True, dir=False)
+                    if res != 0:
+                        print(f"Failed to delete JSON file: {json_file_path}")
+                        return
+
+                    print(f"Target '{selected_text}' and its JSON file have been deleted.")
+
+                    # Refresh the targets combo box
+                    targets = self.load_tf_targets()
+                    if targets and len(targets) > 0:
+                        self.tf_targets_combo.SetSelection(0)
+                        self.onTFTargetSelectionComboBox(None)
+                    else:
+                        self.console_stc.SetText("// No Target selected")
+            except Exception as ex:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during TF target deletion process.")
+                traceback.print_exc()
+
+    # -----------------------------------------------
+    #                  onTFPushJson
+    # -----------------------------------------------
+    def onTFPushJson(self, e):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Push Target JSON process")
+        print("==============================================================================")
+        # Get the selected target and update the local JSON file first
+        selected_text = self.tf_targets_combo.GetStringSelection()
+        if selected_text and selected_text != _("TF Targets"):
+            config_path = get_config_path()
+            local_json_file = os.path.join(config_path, 'tmp', f'{selected_text}.json')
+
+            # Save current content to local file
+            content = self.active_pif_stc.GetValue()
+            with open(local_json_file, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+            # Now push the local file to device
+            remote_filepath = f"/data/adb/modules/targetedfix/{selected_text}.json"
+            print(f"Pushing JSON for target '{selected_text}' to device...")
+            self.create_update_pif(just_push=True, filepath=remote_filepath)
 
     # -----------------------------------------------
     #                  CleanupDG
@@ -873,7 +1388,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     #                  create_update_pif
     # -----------------------------------------------
-    def create_update_pif(self, just_push=False):
+    def create_update_pif(self, just_push=False, filepath=None):
         try:
             device = get_phone(True)
             if not device.rooted:
@@ -917,7 +1432,9 @@ class PifManager(wx.Dialog):
                         json.dump(data, f, indent=4, sort_keys=self.sort_keys)
 
             # push the file
-            res = device.push_file(pif_prop, self.pif_path, True)
+            if not filepath:
+                filepath = self.pif_path
+            res = device.push_file(pif_prop, filepath, True)
             if res != 0:
                 print("Aborting ...\n")
                 # puml("#red:Failed to push pif.json from the phone;\n}\n")
@@ -945,7 +1462,12 @@ class PifManager(wx.Dialog):
 
             if not just_push:
                 self.check_pif_json()
-            self.LoadReload(None)
+            self.LoadPif(filepath)
+
+            # Auto run migrate if enabled
+            if self.auto_run_migrate_checkbox.IsEnabled() and self.auto_run_migrate_checkbox.IsChecked():
+                print("Auto Running Migrate ...")
+                self.runMigrate()
 
             # Auto test Play Integrity
             if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
@@ -1113,7 +1635,7 @@ class PifManager(wx.Dialog):
             elif self.beta_pif_version.lower() == 't':
                 force_version = 't'
                 t_factory_images = get_telegram_factory_images()
-                if t_factory_images:
+                if t_factory_images and isinstance(t_factory_images, list):
                     selected_image = self.select_t_image(t_factory_images)
                     if selected_image is None:
                         force_version = None
@@ -1188,7 +1710,7 @@ class PifManager(wx.Dialog):
     # Create a custom dialog with tree control for selection
     def select_t_image(self, t_factory_images):
         try:
-            if t_factory_images:
+            if t_factory_images and isinstance(t_factory_images, list):
                 select_dialog = wx.Dialog(self, title=_("Telegram Factory Images"), size=(800, 600))
 
                 instruction_text = wx.StaticText(select_dialog, label=_("Select a factory image to use:"))
@@ -1592,7 +2114,13 @@ class PifManager(wx.Dialog):
                 self.active_pif_stc.SetValue(self.console_stc.GetValue())
                 self.UpdatePifJson(None)
 
-                # Auto test Play Integrity
+            # Auto run migrate if enabled
+            if self.auto_run_migrate_checkbox.IsEnabled() and self.auto_run_migrate_checkbox.IsChecked():
+                print("Auto Migrating ...")
+                self.runMigrate()
+
+            # Auto test Play Integrity
+            if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
                     print("Auto Testing Play Integrity ...")
                     self.PlayIntegrityCheck(None)
@@ -1755,14 +2283,15 @@ class PifManager(wx.Dialog):
                     json.loads(json_data)
                     self.paste_down.Enable(True)
                     self.reprocess.Enable(True)
-                    self.create_pif_button.Enable(True)
-                    self.push_pif_button.Enable(True)
+                    if "Targeted Fix" not in self.pif_selection_combo.StringSelection:
+                        self.create_pif_button.Enable(True)
+                        self.push_pif_button.Enable(True)
                     self.favorite_pif_button.Enable(True)
                     self.save_pif_button.Enable(True)
                 except Exception:
                     try:
                         json5.loads(json_data)
-                        self.paste_down.Enable(False)
+                        self.paste_down.Enable(True)
                         self.reprocess.Enable(True)
                         self.create_pif_button.Enable(True)
                         self.push_pif_button.Enable(True)
@@ -1806,6 +2335,10 @@ class PifManager(wx.Dialog):
                 else:
                     self.favorite_pif_button.SetBitmap(images.heart_gray_24.GetBitmap())
                     self.favorite_pif_button.SetToolTip(_("Active pif is not saved in favorites."))
+
+            # Update TargetedFix button states if applicable
+            if hasattr(self, 'current_pif_module') and self.current_pif_module and getattr(self.current_pif_module, 'id', None) == "targetedfix":
+                self.update_tf_button_states()
 
         except Exception:
             traceback.print_exc()
@@ -1869,7 +2402,13 @@ class PifManager(wx.Dialog):
             if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 self.UpdatePifJson(None)
 
-                # Auto test Play Integrity
+                # Auto run migrate if enabled
+                if self.auto_run_migrate_checkbox.IsEnabled() and self.auto_run_migrate_checkbox.IsChecked():
+                    print("Auto Migrating ...")
+                    self.runMigrate()
+
+            # Auto test Play Integrity
+            if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
                     print("Auto Testing Play Integrity ...")
                     self.PlayIntegrityCheck(None)
@@ -1980,6 +2519,15 @@ class PifManager(wx.Dialog):
         self.config.pif['spoofVendingSdk'] = status
 
     # -----------------------------------------------
+    #                  onspoofVendingFinger
+    # -----------------------------------------------
+    def onspoofVendingFinger(self, event):
+        self.spoofVendingFinger_checkbox = event.GetEventObject()
+        status = self.spoofVendingFinger_checkbox.GetValue()
+        self.spoofVendingFinger = status
+        self.config.pif['spoofVendingFinger'] = status
+
+    # -----------------------------------------------
     #                  onForceFirstAPI
     # -----------------------------------------------
     def onForceFirstAPI(self, event):
@@ -2009,6 +2557,38 @@ class PifManager(wx.Dialog):
         status = self.auto_check_pi_checkbox.GetValue()
         print(f"Auto Check Play Integrity is set to: {status}")
         self.config.pif['auto_check_play_integrity'] = status
+
+    # -----------------------------------------------
+    #                  onAutoRunMigrate
+    # -----------------------------------------------
+    def onAutoRunMigrate(self, event):
+        self.auto_run_migrate_checkbox = event.GetEventObject()
+        status = self.auto_run_migrate_checkbox.GetValue()
+        print(f"Auto run migrate.sh is set to: {status}")
+        self.config.pif['auto_run_migrate'] = status
+
+    # -----------------------------------------------
+    #                  runMigrate
+    # -----------------------------------------------
+    def runMigrate(self):
+        try:
+            print("Migrating pif to the latest Pifork format ...")
+            device = get_phone(True)
+            if not device.rooted:
+                return
+            if device:
+                exec_cmd = "/data/adb/modules/playintegrityfix/migrate.sh -f"
+                debug(f"exec_cmd: {exec_cmd}")
+                res = device.exec_cmd(exec_cmd, True)
+                if res:
+                    print(res)
+
+                self.LoadPif(self.pif_path)
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: device is not accessible.")
+                return
+        except Exception:
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  E2J
@@ -2093,23 +2673,92 @@ class PifManager(wx.Dialog):
             traceback.print_exc()
 
     # -----------------------------------------------
+    #                  edit_tf_targets
+    # -----------------------------------------------
+    def edit_tf_targets(self, event):
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated editing TargetedFix target.txt file.")
+        print("==============================================================================")
+        if self.tf_target_path:
+            # Use the local tf_target.txt file instead of pulling from device
+            config_path = get_config_path()
+            local_target_file = os.path.join(config_path, 'tmp', 'tf_target.txt')
+
+            # Ensure local file exists
+            if not os.path.exists(local_target_file):
+                with open(local_target_file, 'w', encoding='utf-8') as f:
+                    f.write('')
+
+            res = self.edit_local_file(local_target_file, self.tf_target_path)
+            if res == 0:
+                self.load_tf_targets()
+        if event:
+            event.Skip()
+
+    # -----------------------------------------------
     #                  edit_ts_target
     # -----------------------------------------------
     def edit_ts_target(self, event):
-        self.edit_ts_file("/data/adb/tricky_store/target.txt")
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated editing Tricky Store target.txt file.")
+        print("==============================================================================")
+        self.edit_file("/data/adb/tricky_store/target.txt")
         event.Skip()
 
     # -----------------------------------------------
     #                  edit_ts_security_patch
     # -----------------------------------------------
     def edit_ts_security_patch(self, event):
-        self.edit_ts_file("/data/adb/tricky_store/security_patch.txt")
+        print("\n==============================================================================")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated editing Tricky Store security_patch.txt file.")
+        print("==============================================================================")
+        self.edit_file("/data/adb/tricky_store/security_patch.txt")
         event.Skip()
 
     # -----------------------------------------------
-    #                  edit_ts_file
+    #                  edit_local_file
     # -----------------------------------------------
-    def edit_ts_file(self, filename):
+    def edit_local_file(self, local_file_path, remote_file_path):
+        try:
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit local file: {local_file_path}.")
+
+            # Show the file in the editor
+            dlg = FileEditor(self, local_file_path, "text", width=1500, height=600)
+            dlg.CenterOnParent()
+            result = dlg.ShowModal()
+            dlg.Destroy()
+
+            if result == wx.ID_OK:
+                # get the contents of modified file
+                with open(local_file_path, 'r', encoding='utf-8') as f:
+                    contents = f.read()
+
+                # push the file back to the device
+                device = get_phone(True)
+                if device and device.rooted:
+                    res = device.push_file(local_file_path, remote_file_path, True)
+                    if res != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing the updated {remote_file_path} file. ...\n")
+                        return -1
+
+                    print(f"\nTargetedFix {remote_file_path} file has been modified!")
+                    print(f"The updated file:")
+                    print(f"___________________________________________________\n{contents}")
+                    print("___________________________________________________\n")
+                    return 0
+            else:
+                print(f"User cancelled editing {local_file_path} file.")
+                return -1
+
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function edit_local_file.")
+            traceback.print_exc()
+            return -1
+
+    # -----------------------------------------------
+    #                  edit_file
+    # -----------------------------------------------
+    def edit_file(self, filename):
         try:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Tricky Store file: {filename}.")
             device = get_phone(True)
@@ -2157,7 +2806,7 @@ class PifManager(wx.Dialog):
                 print(f"User cancelled editing Tricky Store {filename} file.")
                 return -1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function edit_ts_file.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function edit_file.")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -2556,3 +3205,90 @@ class PifManager(wx.Dialog):
             notification.SetIcon(images.Icon_dark_256.GetIcon())
             notification.Show()
 
+    # -----------------------------------------------
+    #                  calculate_combo_width
+    # -----------------------------------------------
+    def calculate_combo_width(self, combo_box):
+        try:
+            if combo_box.GetCount() == 0:
+                # Let wx handle default size
+                return -1
+
+            # Get the device context to measure text
+            dc = wx.ClientDC(combo_box)
+            dc.SetFont(combo_box.GetFont())
+
+            max_width = 0
+            # Measure each item in the combo box
+            for i in range(combo_box.GetCount()):
+                text = combo_box.GetString(i)
+                text_width, _ = dc.GetTextExtent(text)
+                max_width = max(max_width, text_width)
+
+            # Add some padding for the dropdown arrow and margins
+            # Typical padding: 20px for dropdown arrow + 20px for margins
+            optimal_width = max_width + 40
+
+            # Set a reasonable minimum (80px) and maximum (400px)
+            optimal_width = max(80, min(optimal_width, 400))
+
+            return optimal_width
+        except Exception:
+            return -1  # Fallback to default sizing
+
+    # -----------------------------------------------
+    #                  update_combo_size
+    # -----------------------------------------------
+    def update_combo_size(self, combo_box):
+        try:
+            width = self.calculate_combo_width(combo_box)
+            if width > 0:
+                current_size = combo_box.GetSize()
+                combo_box.SetMinSize((width, current_size.height))
+                combo_box.SetSize((width, current_size.height))
+                # Force layout update
+                self.Layout()
+        except Exception:
+            # Ignore errors, keep default sizing
+            pass
+
+    # -----------------------------------------------
+    #                  update_tf_button_states
+    # -----------------------------------------------
+    def update_tf_button_states(self):
+        try:
+            selected_text = self.tf_targets_combo.GetStringSelection()
+            has_valid_target = selected_text and selected_text != _("TF Targets")
+            has_targets = self.tf_targets_combo.GetCount() > 0 and not (self.tf_targets_combo.GetCount() == 1 and self.tf_targets_combo.GetString(0) == _("TF Targets"))
+
+            self.tf_add_target_button.Enable(True)
+            self.tf_delete_target_button.Enable(has_valid_target)
+            self.tf_edit_targets_button.Enable(True)
+
+            # Push Json enabled when target selected and active_pif has valid content
+            if has_valid_target:
+                active_data = self.active_pif_stc.GetValue().strip()
+                has_valid_json = False
+                if active_data:
+                    try:
+                        if self.pif_format == 'prop':
+                            json_data = self.P2J(active_data)
+                        else:
+                            json_data = active_data
+                        if json_data:
+                            json.loads(json_data)
+                            has_valid_json = True
+                    except:
+                        try:
+                            json5.loads(json_data if 'json_data' in locals() else active_data)
+                            has_valid_json = True
+                        except:
+                            has_valid_json = False
+                self.tf_push_json_button.Enable(has_valid_json)
+            else:
+                self.tf_push_json_button.Enable(False)
+
+        except Exception:
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')

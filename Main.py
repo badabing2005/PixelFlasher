@@ -2489,6 +2489,9 @@ class PixelFlasher(wx.Frame):
         message += "	- `/data/adb/modules/playintegrityfix/custom.pif.json`\n"
         message += "	- `/data/adb/modules/playintegrityfix/custom.app_replace.list`\n"
         message += "	- `/data/adb/modules/playintegrityfix/scripts-only-mode`\n"
+        message += _("- TargetedFix (if available):\n")
+        message += "	- `/data/adb/modules/targetedfix/target.txt`\n"
+        message += "	- Contents of every app json configuration referenced in target.txt\n"
         message += _("- PlayIntegrityFix (if available):\n")
         message += "	- `/data/adb/modules/playintegrityfix/pif.json`\n"
         message += "	- `/data/adb/pif.json`\n"
@@ -2681,6 +2684,21 @@ class PixelFlasher(wx.Frame):
                     print("scripts-only-mode is enabled")
                 else:
                     print("scripts-only-mode is disabled")
+
+                # TargetedFix target.txt
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking TargetedFix target.txt ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/modules/targetedfix/target.txt", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+                    for line in res.splitlines():
+                        if line:
+                            target = device.file_content(f"/data/adb/modules/targetedfix/{line.strip()}.json", True)
+                            if target != -1:
+                                print(f"--------------------\n{line.strip()}\n--------------------")
+                            else:
+                                print(f"--------------------\n{line.strip()} - Not found\n--------------------")
 
                 # PlayIntegrityFix - pif.json
                 print("\n==============================================================================")
@@ -5062,11 +5080,33 @@ class PixelFlasher(wx.Frame):
                 update_kb_index_with_crl()
                 return
 
-            with wx.FileDialog(self, _("Select keybox to test"), '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
-                if fileDialog.ShowModal() == wx.ID_CANCEL:
-                    print("User cancelled keybox.xml check.")
+            if wx.GetKeyState(wx.WXK_SHIFT):
+                # Directory selection mode - get all xml files recursively
+                with wx.DirDialog(self, _("Select directory containing keybox files")) as dirDialog:
+                    if dirDialog.ShowModal() == wx.ID_CANCEL:
+                        print("User cancelled keybox directory selection.")
+                        return
+                    selected_directory = dirDialog.GetPath()
+
+                # Find all .xml files recursively in the selected directory
+                selected_files = []
+                for root, dirs, files in os.walk(selected_directory):
+                    for file in files:
+                        if file.lower().endswith('.xml'):
+                            selected_files.append(os.path.join(root, file))
+
+                if not selected_files:
+                    print("No XML files found in the selected directory.")
                     return
-                selected_files = fileDialog.GetPaths()
+
+                print(f"Found {len(selected_files)} XML files in directory: {selected_directory}")
+            else:
+                # Multi-File selection mode (default)
+                with wx.FileDialog(self, _("Select keybox to test"), '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
+                    if fileDialog.ShowModal() == wx.ID_CANCEL:
+                        print("User cancelled keybox.xml check.")
+                        return
+                    selected_files = fileDialog.GetPaths()
 
             # Define all possible result categories
             result_categories = {

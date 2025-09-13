@@ -2265,7 +2265,7 @@ msgstr "執行模組 action.sh。"
 msgid "Install Pif / TS Module"
 msgstr "安裝 Pif / TS 模組"
 
-msgid "Install Play Integrity Fix module."
+msgid "Install Play Integrity Fix related modules."
 msgstr "安裝 Play Integrity Fix 模組。"
 
 msgid "Install ZygiskNext Module"
@@ -2789,3 +2789,57 @@ msgstr "未連接裝置"
 
 msgid "Logcat buffer cleared"
 msgstr "logcat 緩衝區已清除"
+
+##############################################################################
+# Additions 2025-09-08
+##############################################################################
+msgid "Select Package for TargetedFix Target"
+msgstr ""
+
+msgid "Add Target"
+msgstr ""
+
+msgid "Add selected package as TargetedFix target"
+msgstr ""
+
+msgid "Get Application Names"
+msgstr ""
+
+msgid "TF Targets"
+msgstr ""
+
+msgid "TargetedFix Targets"
+msgstr ""
+
+msgid "Add TF Target"
+msgstr ""
+
+msgid "Add a new TargetedFix target by selecting from package list on device"
+msgstr ""
+
+msgid "Delete TF Target"
+msgstr ""
+
+msgid "Delete the selected TargetedFix target"
+msgstr ""
+
+msgid "Edit TF Targets"
+msgstr ""
+
+msgid "Edit TargetedFix targets file"
+msgstr ""
+
+msgid "Push TF Json"
+msgstr ""
+
+msgid "Push Active pif content as JSON to the selected TargetedFix target"
+msgstr ""
+
+msgid "Auto run migrate.sh"
+msgstr ""
+
+msgid "After saving (pushing) print, automatically run migrate.sh"
+msgstr ""
+
+msgid "	- Contents of every app json configuration referenced in target.txt\n"
+msgstr ""

@@ -156,8 +156,8 @@ class MagiskModules(wx.Dialog):
         self.run_action_button.Enable(False)
 
         # Play Integrity Fix Install button
-        self.pif_install_button = wx.Button(self, wx.ID_ANY, _("Install Pif / TS Module"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.pif_install_button.SetToolTip(_("Install Play Integrity Fix module."))
+        self.pif_install_button = wx.Button(self, wx.ID_ANY, _("Install Pif / TS / TargetedFix Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.pif_install_button.SetToolTip(_("Install Play Integrity Fix related modules."))
 
         # ZygiskNext Install button
         self.zygisk_next_install_button = wx.Button(self, wx.ID_ANY, _("Install ZygiskNext Module"), wx.DefaultPosition, wx.DefaultSize, 0)
@@ -198,7 +198,7 @@ class MagiskModules(wx.Dialog):
         self.cancel_button = wx.Button(self, wx.ID_ANY, _("Cancel"), wx.DefaultPosition, wx.DefaultSize, 0)
 
         # Make the buttons the same size
-        button_width = self.zygisk_next_install_button.GetSize()[0] + 10
+        button_width = self.pif_install_button.GetSize()[0] + 10
         self.install_module_button.SetMinSize((button_width, -1))
         self.update_module_button.SetMinSize((button_width, -1))
         self.uninstall_module_button.SetMinSize((button_width, -1))
@@ -454,9 +454,9 @@ class MagiskModules(wx.Dialog):
         self.html.SetPage('')
         if self.module.updateAvailable:
             self.update_module_button.Enable(True)
-            if self.module.updateDetails.changelog:
-                changelog_md = f"# Change Log:\n{self.module.updateDetails.changelog}"
-                self.outputMessage(changelog_md)
+        if self.module.updateDetails and self.module.updateDetails.changelog:
+            changelog_md = f"# Change Log:\n{self.module.updateDetails.changelog}"
+            self.outputMessage(changelog_md)
         else:
             self.update_module_button.Enable(False)
         # if module has has_action then enable run action button
@@ -618,7 +618,7 @@ class MagiskModules(wx.Dialog):
             device = get_phone(True)
             if not device.rooted:
                 return
-            buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", _("Cancel")]
+            buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", "TargetedFix", _("Cancel")]
             dlg = MessageBoxEx(parent=self, title=_('PIF Module'), message=_("Select the module you want to install"), button_texts=buttons_text, default_button=1)
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -631,14 +631,19 @@ class MagiskModules(wx.Dialog):
             elif result == 2:
                 # module_update_url = TRICKYSTORE_UPDATE_URL
                 gh_latest_url = get_gh_latest_release_asset_regex('5ec1cff', 'TrickyStore', r'^Tricky\-Store.*\-release\.zip$')
+            elif result == 3:
+                module_update_url = TARGETEDFIX_UPDATE_URL
+                # gh_latest_url = get_gh_latest_release_asset_regex('VisionR1', 'TargetedFix', r'^TargetedFix.*\.zip$')
+                # gh_latest_url = get_gh_pre_release_asset_regex('VisionR1', 'TargetedFix', r'^TargetedFix.*\.zip$')
             else:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting ...\n")
                 return -1
 
+            url = None
             if gh_latest_url is not None:
                 url = gh_latest_url
-            else:
+            elif module_update_url is not None:
                 url_obj = check_module_update(module_update_url)
                 url = url_obj.zipUrl
             if url is None or url == '':

@@ -2178,6 +2178,9 @@ def json_hexdigest(json_string):
 # ============================================================================
 def sha1(fname):
     try:
+        if not fname or not os.path.exists(fname):
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File [{fname}] does not exist, cannot compute sha1")
+            return "NA Error"
         hash_sha1 = hashlib.sha1()
         with open(fname, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
@@ -2293,7 +2296,7 @@ def which(program):
 #                               Function remove_quotes
 # ============================================================================
 def remove_quotes(string):
-    if string.startswith('"') and string.endswith('"'):
+    if string and string.startswith('"') and string.endswith('"'):
         # Remove existing double quotes
         string = string[1:-1]
     return string
@@ -3124,11 +3127,12 @@ def get_telegram_factory_images(max_pages=3):
                         download_url = link['href']
                         current_unique_id = f"{device}|{build_id}|{download_url}"
 
-                        # Check if this content is already cached
+                        # Check if this content is already cached, but don't break yet
+                        # Continue processing the rest of the page since newest entries are at the bottom
                         if current_unique_id in cached_message_ids:
                             found_cached_content = True
-                            debug(f"Found cached content for {device}, stopping new content fetch")
-                            break
+                            debug(f"Found cached content for {device}, but continuing to process rest of page")
+                            continue
 
                 page_has_new_messages = True
 
@@ -3171,11 +3175,11 @@ def get_telegram_factory_images(max_pages=3):
                         new_images_count += 1
 
             # If we found cached content or no new messages, break
-            if found_cached_content or not page_has_new_messages:
-                if found_cached_content:
-                    debug(f"Stopped fetching at page {page_count + 1} due to reaching cached content")
-                else:
-                    debug(f"No new messages found on page {page_count + 1}, stopping pagination")
+            if not page_has_new_messages:
+                debug(f"No new messages found on page {page_count + 1}, stopping pagination")
+                break
+            elif found_cached_content and new_images_count == 0:
+                debug(f"Stopped fetching at page {page_count + 1} due to reaching only cached content")
                 break
 
             # Look for "Load more" link or pagination
@@ -4556,6 +4560,8 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
                 donor_data["spoofSignature"] = "1" if spoofSignature_value else "0"
                 spoofVendingSdk_value = config.pif.get('spoofVendingSdk', False)
                 donor_data["spoofVendingSdk"] = "1" if spoofVendingSdk_value else "0"
+                spoofVendingFinger_value = config.pif.get('spoofVendingFinger', False)
+                donor_data["spoofVendingFinger"] = "1" if spoofVendingFinger_value else "0"
             if module_versionCode > 7000 and module_flavor != 'trickystore':
                 donor_data["verboseLogs"] = "0"
             # donor_data["*.vndk_version"] = ro_vndk_version
@@ -5650,9 +5656,11 @@ def get_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
             return asset
         else:
             print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
+            return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_asset_regex function")
         traceback.print_exc()
+        return None
 
 
 # ============================================================================
@@ -5667,11 +5675,14 @@ def download_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
         asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=True)
         if asset:
             print(f"Downloaded asset: {asset}")
+            return asset
         else:
             print(f"No asset matches the pattern {asset_name_pattern} in the latest pre-release of {user}/{repo}")
+            return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_gh_pre_release_asset_regex function")
         traceback.print_exc()
+        return None
 
 
 # ============================================================================
@@ -5689,9 +5700,11 @@ def get_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
             return asset
         else:
             print(f"No asset matches the pattern {asset_name_pattern} in the latest pre-release of {user}/{repo}")
+            return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_pre_release_asset_regex function")
         traceback.print_exc()
+        return None
 
 
 # ============================================================================
@@ -5761,6 +5774,8 @@ def get_gh_latest_release_version(user, repo, include_prerelease=False):
         # Filter releases based on the include_prerelease flag
         if not include_prerelease:
             releases = [release for release in releases if not release['prerelease']]
+        else:
+            releases = [release for release in releases if release['prerelease']]
 
         # Get the latest release
         latest_release = releases[0] if releases else None
@@ -5789,6 +5804,8 @@ def get_gh_release_object(user, repo, include_prerelease=False):
         # Filter releases based on the include_prerelease flag
         if not include_prerelease:
             releases = [release for release in releases if not release['prerelease']]
+        else:
+            releases = [release for release in releases if release['prerelease']]
 
         # Get the latest release
         latest_release = releases[0] if releases else None
@@ -6008,6 +6025,8 @@ def check_kb(filename):
         is_shadow_banned = False
         long_chain = False
         results = []
+        ecdsa_root_ca_sn = None
+        rsa_root_ca_sn = None
 
         # Parse keybox XML
         try:
@@ -6108,6 +6127,9 @@ def check_kb(filename):
                     results.append('invalid_chain')
                     continue
 
+                # Store chain length for kb_index
+                chain_length = len(certs)
+
                 # Validate certificate chain
                 try:
                     cert_chain = []
@@ -6207,12 +6229,16 @@ def check_kb(filename):
                             else:
                                 if ecdsa_chain == 'valid':
                                     ecdsa_chain = cert_status
+                            if is_google_signed:
+                                ecdsa_root_ca_sn = cert_sn
                         elif algorithm == "rsa":
                             if tab_text == "  ":
                                 rsa_leaf = cert_status
                             else:
                                 if rsa_chain == 'valid':
                                     rsa_chain = cert_status
+                            if is_google_signed:
+                                rsa_root_ca_sn = cert_sn
 
                         if config.kb_index:
                             # Add the leaf cert details to keybox_data_collection
@@ -6220,12 +6246,14 @@ def check_kb(filename):
                                 keybox_data_collection["ecdsa_sn"] = cert_sn
                                 keybox_data_collection["ecdsa_issuer"] = formatted_issuer
                                 keybox_data_collection["ecdsa_leaf"] = ecdsa_leaf
+                                keybox_data_collection["ecdsa_length"] = chain_length
                                 keybox_data_collection["ecdsa_not_before"] = parsed.not_valid_before_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
                                 keybox_data_collection["ecdsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC")
                             elif algorithm == "rsa" and tab_text == "  ":
                                 keybox_data_collection["rsa_sn"] = cert_sn
                                 keybox_data_collection["rsa_issuer"] = formatted_issuer
                                 keybox_data_collection["rsa_leaf"] = rsa_leaf
+                                keybox_data_collection["rsa_length"] = chain_length
                                 keybox_data_collection["rsa_not_before"] = parsed.not_valid_before_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
                                 keybox_data_collection["rsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -6417,12 +6445,14 @@ def check_kb(filename):
                             ("ecdsa_issuer", "ECDSA Issuer"),
                             ("ecdsa_leaf", "ECDSA Leaf Status"),
                             ("ecdsa_chain", "ECDSA Chain Status"),
+                            ("ecdsa_length", "ECDSA Chain Length"),
                             ("ecdsa_not_before", "ECDSA Not Before"),
                             ("ecdsa_not_after", "ECDSA Not After"),
                             ("rsa_sn", "RSA Serial Number"),
                             ("rsa_issuer", "RSA Issuer"),
                             ("rsa_leaf", "RSA Leaf Status"),
                             ("rsa_chain", "RSA Chain Status"),
+                            ("rsa_length", "RSA Chain Length"),
                             ("rsa_not_before", "RSA Not Before"),
                             ("rsa_not_after", "RSA Not After")
                         ]
@@ -6445,12 +6475,14 @@ def check_kb(filename):
                         "ecdsa_issuer": keybox_data_collection.get("ecdsa_issuer"),
                         "ecdsa_leaf": keybox_data_collection.get("ecdsa_leaf"),
                         "ecdsa_chain": keybox_data_collection.get("ecdsa_chain"),
+                        "ecdsa_length": keybox_data_collection.get("ecdsa_length"),
                         "ecdsa_not_before": keybox_data_collection.get("ecdsa_not_before"),
                         "ecdsa_not_after": keybox_data_collection.get("ecdsa_not_after"),
                         "rsa_sn": keybox_data_collection.get("rsa_sn"),
                         "rsa_issuer": keybox_data_collection.get("rsa_issuer"),
                         "rsa_leaf": keybox_data_collection.get("rsa_leaf"),
                         "rsa_chain": keybox_data_collection.get("rsa_chain"),
+                        "rsa_length": keybox_data_collection.get("rsa_length"),
                         "rsa_not_before": keybox_data_collection.get("rsa_not_before"),
                         "rsa_not_after": keybox_data_collection.get("rsa_not_after"),
                         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -6460,13 +6492,17 @@ def check_kb(filename):
                     if is_new_file:
                         kb_index[ecdsa_sn]["files"].append({
                             "path": file_key,
-                            "hash": file_hash
+                            "hash": file_hash,
+                            "ecdsa_root_ca_sn": ecdsa_root_ca_sn,
+                            "rsa_root_ca_sn": rsa_root_ca_sn
                         })
                     else:
                         # Update existing file entry hash
                         for i, file_entry in enumerate(kb_index[ecdsa_sn]["files"]):
                             if file_entry["path"] == file_key:
                                 kb_index[ecdsa_sn]["files"][i]["hash"] = file_hash
+                                kb_index[ecdsa_sn]["files"][i]["ecdsa_root_ca_sn"] = ecdsa_root_ca_sn
+                                kb_index[ecdsa_sn]["files"][i]["rsa_root_ca_sn"] = rsa_root_ca_sn
                                 break
 
             k += 1
@@ -6876,6 +6912,8 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
             'revoked_ecdsa_chain': 0,
             'unique_ecdsa_issuers': set(),
             'unique_rsa_issuers': set(),
+            'unique_ecdsa_root_ca_sns': {},
+            'unique_rsa_root_ca_sns': {},
             'non_common_keyboxes_path': {
                 'valid_ecdsa': [],
                 'invalid': [],
@@ -6977,18 +7015,20 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
 
                 # Count entries with valid ECDSA leaf but revoked ECDSA chain
                 if ecdsa_leaf_valid and ecdsa_chain == 'revoked':
-                    stats['entries_valid_ecdsa_revoked_chain'] += 1
-                    stats['valid_ecdsa_revoked_chain_entries'].append({
-                        'ecdsa_sn': ecdsa_sn,
-                        'files': files,
-                        'file_count': len(files),
-                        'ecdsa_leaf': ecdsa_leaf,
-                        'ecdsa_chain': ecdsa_chain,
-                        'rsa_leaf': rsa_leaf,
-                        'rsa_chain': rsa_chain,
-                        'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
-                        'rsa_issuer': entry.get('rsa_issuer', '')
-                    })
+                    ecdsa_length = entry.get('ecdsa_length', 0)
+                    if ecdsa_length <= 3:
+                        stats['entries_valid_ecdsa_revoked_chain'] += 1
+                        stats['valid_ecdsa_revoked_chain_entries'].append({
+                            'ecdsa_sn': ecdsa_sn,
+                            'files': files,
+                            'file_count': len(files),
+                            'ecdsa_leaf': ecdsa_leaf,
+                            'ecdsa_chain': ecdsa_chain,
+                            'rsa_leaf': rsa_leaf,
+                            'rsa_chain': rsa_chain,
+                            'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
+                            'rsa_issuer': entry.get('rsa_issuer', '')
+                        })
 
                 if ecdsa_leaf_valid and ecdsa_chain_valid and rsa_leaf_valid and rsa_chain_valid:
                     stats['entries_valid_all_chains'] += 1
@@ -7007,6 +7047,24 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                     stats['unique_ecdsa_issuers'].add(ecdsa_issuer)
                 if rsa_issuer:
                     stats['unique_rsa_issuers'].add(rsa_issuer)
+
+                # Collect unique root CA serial numbers from files
+                for file_entry in files:
+                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+
+                    # Process ECDSA root CA serial numbers
+                    ecdsa_root_ca_sn = file_entry.get('ecdsa_root_ca_sn', '') if isinstance(file_entry, dict) else ''
+                    if ecdsa_root_ca_sn:
+                        if ecdsa_root_ca_sn not in stats['unique_ecdsa_root_ca_sns']:
+                            stats['unique_ecdsa_root_ca_sns'][ecdsa_root_ca_sn] = []
+                        stats['unique_ecdsa_root_ca_sns'][ecdsa_root_ca_sn].append(file_path)
+
+                    # Process RSA root CA serial numbers
+                    rsa_root_ca_sn = file_entry.get('rsa_root_ca_sn', '') if isinstance(file_entry, dict) else ''
+                    if rsa_root_ca_sn:
+                        if rsa_root_ca_sn not in stats['unique_rsa_root_ca_sns']:
+                            stats['unique_rsa_root_ca_sns'][rsa_root_ca_sn] = []
+                        stats['unique_rsa_root_ca_sns'][rsa_root_ca_sn].append(file_path)
 
                 # Check for entries not in target path - only if target_path is specified
                 if target_path:
@@ -7062,7 +7120,7 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
             save_kb_index(kb_index)
             print(f"Updated kb_index.json with {len(entries_to_update)} entries modified")
 
-        # Print results with better formatting
+        # Print results
         print(f"Total entries (keys):                                    {stats['total_entries']:>8,}")
         print(f"Total files:                                             {stats['total_files']:>8,}")
         print()
@@ -7081,6 +7139,8 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
         print()
         print(f"Unique ECDSA issuers:                                    {len(stats['unique_ecdsa_issuers']):>8,}")
         print(f"Unique RSA issuers:                                      {len(stats['unique_rsa_issuers']):>8,}")
+        print(f"Unique ECDSA root CA serial numbers:                     {len(stats['unique_ecdsa_root_ca_sns']):>8,}")
+        print(f"Unique RSA root CA serial numbers:                       {len(stats['unique_rsa_root_ca_sns']):>8,}")
 
         if target_path:
             print()
@@ -7147,6 +7207,26 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                         print(f"       - {file_path}")
                     print()
 
+        # List valid entries with revoked chains if verbose
+        if verbose and stats['valid_ecdsa_revoked_chain_entries']:
+            print(f"\n" + "=" * 80)
+            print(f"ENTRIES WITH VALID ECDSA LEAF BUT REVOKED CHAIN ({len(stats['valid_ecdsa_revoked_chain_entries'])} entries)")
+            print("=" * 80)
+            for i, entry in enumerate(stats['valid_ecdsa_revoked_chain_entries'], 1):
+                print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
+                print(f"     Status: ECDSA({entry['ecdsa_leaf']}/{entry['ecdsa_chain']}) RSA({entry['rsa_leaf']}/{entry['rsa_chain']})")
+                print(f"     ECDSA Issuer: {entry['ecdsa_issuer']}")
+                if entry['rsa_issuer']:
+                    print(f"     RSA Issuer: {entry['rsa_issuer']}")
+                print(f"     Files: {entry['file_count']}")
+                # List the actual files
+                kb_entry = kb_index.get(entry['ecdsa_sn'], {})
+                files = kb_entry.get('files', [])
+                for j, file_entry in enumerate(files, 1):
+                    file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                    print(f"       {j}. {file_path}")
+                print()
+
         # List non-existent files if requested
         if list_non_existent and stats['non_existent_files']:
             print(f"\n" + "=" * 80)
@@ -7200,11 +7280,12 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                     print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
                     print(f"     Status: ECDSA({entry['ecdsa_leaf']}/{entry['ecdsa_chain']}) RSA({entry['rsa_leaf']}/{entry['rsa_chain']})")
                     print(f"     Files: {entry['file_count']}")
-                    for j, file_entry in enumerate(entry['files'][:3], 1):  # Show first 3 files
+                    n = 5  # Number of files to show
+                    for j, file_entry in enumerate(entry['files'][:n], 1):  # Show first n files
                         file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
                         print(f"     {j}. {file_path}")
-                    if len(entry['files']) > 3:
-                        print(f"     ... and {len(entry['files']) - 3} more files")
+                    if len(entry['files']) > n:
+                        print(f"     ... and {len(entry['files']) - n} more files")
                     print()
 
             if stats['non_common_keyboxes_path']['invalid']:
@@ -7215,11 +7296,12 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                     print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
                     print(f"     Status: ECDSA({entry['ecdsa_leaf']}/{entry['ecdsa_chain']}) RSA({entry['rsa_leaf']}/{entry['rsa_chain']})")
                     print(f"     Files: {entry['file_count']}")
-                    for j, file_entry in enumerate(entry['files'][:2], 1):  # Show first 2 files
+                    n = 5 # Number of files to show
+                    for j, file_entry in enumerate(entry['files'][:n], 1):  # Show first n files
                         file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
                         print(f"     {j}. {file_path}")
-                    if len(entry['files']) > 2:
-                        print(f"     ... and {len(entry['files']) - 2} more files")
+                    if len(entry['files']) > n:
+                        print(f"     ... and {len(entry['files']) - n} more files")
                     print()
 
         # Verbose output
@@ -7237,6 +7319,20 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                 print(f"\nUnique RSA Issuers ({len(stats['unique_rsa_issuers'])}):")
                 for issuer in sorted(stats['unique_rsa_issuers']):
                     print(f"  - {issuer}")
+
+            if stats['unique_ecdsa_root_ca_sns']:
+                print(f"\nUnique ECDSA Root CA Serial Numbers ({len(stats['unique_ecdsa_root_ca_sns'])}):")
+                for ecdsa_root_ca_sn in sorted(stats['unique_ecdsa_root_ca_sns'].keys()):
+                    print(f"  - {ecdsa_root_ca_sn} ({len(stats['unique_ecdsa_root_ca_sns'][ecdsa_root_ca_sn])} files):")
+                    for file_path in sorted(stats['unique_ecdsa_root_ca_sns'][ecdsa_root_ca_sn]):
+                        print(f"    - {file_path}")
+
+            if stats['unique_rsa_root_ca_sns']:
+                print(f"\nUnique RSA Root CA Serial Numbers ({len(stats['unique_rsa_root_ca_sns'])}):")
+                for rsa_root_ca_sn in sorted(stats['unique_rsa_root_ca_sns'].keys()):
+                    print(f"  - {rsa_root_ca_sn} ({len(stats['unique_rsa_root_ca_sns'][rsa_root_ca_sn])} files):")
+                    for file_path in sorted(stats['unique_rsa_root_ca_sns'][rsa_root_ca_sn]):
+                        print(f"    - {file_path}")
 
         print("=" * 80)
         return stats

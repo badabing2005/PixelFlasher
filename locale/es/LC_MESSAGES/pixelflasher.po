@@ -2268,7 +2268,7 @@ msgstr "Ejecutar action.sh del módulo."
 msgid "Install Pif / TS Module"
 msgstr "Instalar módulo Pif / TS"
 
-msgid "Install Play Integrity Fix module."
+msgid "Install Play Integrity Fix related modules."
 msgstr "Instalar módulo Play Integrity Fix."
 
 msgid "Install ZygiskNext Module"
@@ -2792,3 +2792,58 @@ msgstr "No hay dispositivo conectado"
 
 msgid "Logcat buffer cleared"
 msgstr "Búfer de logcat limpiado"
+
+##############################################################################
+# Additions 2025-09-08
+##############################################################################
+msgid "Select Package for TargetedFix Target"
+msgstr "Seleccionar paquete para objetivo TargetedFix"
+
+msgid "Add Target"
+msgstr "Añadir objetivo"
+
+msgid "Add selected package as TargetedFix target"
+msgstr "Añadir paquete seleccionado como objetivo TargetedFix"
+
+msgid "Get Application Names"
+msgstr "Obtener nombres de aplicaciones"
+
+msgid "TF Targets"
+msgstr "Objetivos TF"
+
+msgid "TargetedFix Targets"
+msgstr "Objetivos TargetedFix"
+
+msgid "Add TF Target"
+msgstr "Añadir objetivo TF"
+
+msgid "Add a new TargetedFix target by selecting from package list on device"
+msgstr "Añadir un nuevo objetivo TargetedFix seleccionando de la lista de paquetes en el dispositivo"
+
+msgid "Delete TF Target"
+msgstr "Eliminar objetivo TF"
+
+msgid "Delete the selected TargetedFix target"
+msgstr "Eliminar el objetivo TargetedFix seleccionado"
+
+msgid "Edit TF Targets"
+msgstr "Editar objetivos TF"
+
+msgid "Edit TargetedFix targets file"
+msgstr "Editar archivo de objetivos TargetedFix"
+
+msgid "Push TF Json"
+msgstr "Enviar JSON TF"
+
+msgid "Push Active pif content as JSON to the selected TargetedFix target"
+msgstr "Enviar contenido del pif activo como JSON al objetivo TargetedFix seleccionado"
+
+msgid "Auto run migrate.sh"
+msgstr "Ejecutar migrate.sh automáticamente"
+
+msgid "After saving (pushing) print, automatically run migrate.sh"
+msgstr "Después de guardar (enviar) la impresión, ejecutar migrate.sh automáticamente"
+
+msgid "	- Contents of every app json configuration referenced in target.txt\n"
+msgstr "    - Contenido de cada configuración json de la aplicación referenciada en target.txt\n"
+

@@ -36,6 +36,7 @@
 import json
 import math
 import time
+import os
 
 import pyperclip
 import darkdetect
@@ -181,9 +182,15 @@ class SuPermissionDialog(wx.Dialog):
 #                               Class PackageManager
 # ============================================================================
 class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, simplified_mode=False, **kwargs):
         wx.Dialog.__init__(self, *args, **kwargs, style = wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
-        self.SetTitle(_("Manage Packages on the Device"))
+        self.simplified_mode = simplified_mode
+
+        if simplified_mode:
+            self.SetTitle(_("Select Package for TargetedFix Target"))
+            self.selected_package = None
+        else:
+            self.SetTitle(_("Manage Packages on the Device"))
         self.package_count = 0
         self.all_cb_clicked = False
         self.download_folder = None
@@ -191,6 +198,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.show_system_apps = True
         self.show_user_apps = True
         self.device = get_phone(True)
+        self.aapt2_pushed_this_session = False
 
         if not self.device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
@@ -198,7 +206,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.Close()
             return
 
-        res = self.device.get_detailed_packages()
+        res = self.device.get_detailed_packages(simplified=self.simplified_mode)
         if res == 0:
             self.packages = self.device.packages
             self.package_count = len(self.packages)
@@ -238,9 +246,13 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.system_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, _("Show System apps"), wx.DefaultPosition, wx.DefaultSize)
         self.system_apps_checkbox.SetValue(True)
         self.user_apps_checkbox = wx.CheckBox(panel1, wx.ID_ANY, _("Show 3rd Party apps"), wx.DefaultPosition, wx.DefaultSize)
-        self.user_apps_checkbox.SetValue(True)
+        if self.simplified_mode:
+            self.user_apps_checkbox.SetValue(False)
+            self.show_user_apps = False
+        else:
+            self.user_apps_checkbox.SetValue(True)
 
-        self.button_get_names = wx.Button( panel1, wx.ID_ANY, _("Get All Application Names"), wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.button_get_names = wx.Button( panel1, wx.ID_ANY, _("Get Application Names"), wx.DefaultPosition, wx.DefaultSize, 0 )
         self.button_get_names.SetToolTip(_("Extracts App names, and caches them for faster loading in the future.\nNOTE: This could take a while."))
         hSizer1.Add( (10, 0), 0, wx.EXPAND, 5 )
         hSizer1.Add(self.all_checkbox, 0, wx.EXPAND, 5)
@@ -283,45 +295,55 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
 
-        self.disable_button = wx.Button(panel2, wx.ID_ANY, _("Disable"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.disable_button.SetToolTip(_("Disable checked packages"))
-        self.disable_button.Enable(False)
-        buttons_sizer.Add(self.disable_button, 0, wx.ALL, 20)
+        if self.simplified_mode:
+            # Simplified mode: only Add Target and Cancel buttons
+            self.add_target_button = wx.Button(panel2, wx.ID_OK, _("Add Target"))
+            self.add_target_button.SetToolTip(_("Add selected package as TargetedFix target"))
+            self.add_target_button.Enable(False)
+            buttons_sizer.Add(self.add_target_button, 0, wx.ALL, 20)
 
-        self.enable_button = wx.Button(panel2, wx.ID_ANY, _("Enable"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.enable_button.SetToolTip(_("Enable checked packages"))
-        self.enable_button.Enable(False)
-        buttons_sizer.Add(self.enable_button, 0, wx.ALL, 20)
+            self.close_button = wx.Button(panel2, wx.ID_CANCEL, _("Cancel"))
+        else:
+            # Full mode: all the original buttons
+            self.disable_button = wx.Button(panel2, wx.ID_ANY, _("Disable"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.disable_button.SetToolTip(_("Disable checked packages"))
+            self.disable_button.Enable(False)
+            buttons_sizer.Add(self.disable_button, 0, wx.ALL, 20)
 
-        self.uninstall_button = wx.Button(panel2, wx.ID_ANY, _("Uninstall"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.uninstall_button.SetToolTip(_("Uninstall checked packages"))
-        self.uninstall_button.Enable(False)
-        buttons_sizer.Add(self.uninstall_button, 0, wx.ALL, 20)
+            self.enable_button = wx.Button(panel2, wx.ID_ANY, _("Enable"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.enable_button.SetToolTip(_("Enable checked packages"))
+            self.enable_button.Enable(False)
+            buttons_sizer.Add(self.enable_button, 0, wx.ALL, 20)
 
-        self.add_to_deny_button = wx.Button(panel2, wx.ID_ANY, _("Add to Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.add_to_deny_button.SetToolTip(_("Add package to Magisk Denylist"))
-        self.add_to_deny_button.Enable(False)
-        buttons_sizer.Add(self.add_to_deny_button, 0, wx.ALL, 20)
+            self.uninstall_button = wx.Button(panel2, wx.ID_ANY, _("Uninstall"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.uninstall_button.SetToolTip(_("Uninstall checked packages"))
+            self.uninstall_button.Enable(False)
+            buttons_sizer.Add(self.uninstall_button, 0, wx.ALL, 20)
 
-        self.rm_from_deny_button = wx.Button(panel2, wx.ID_ANY, _("Remove from Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.rm_from_deny_button.SetToolTip(_("Remove package from Magisk Denylist"))
-        self.rm_from_deny_button.Enable(False)
-        buttons_sizer.Add(self.rm_from_deny_button, 0, wx.ALL, 20)
+            self.add_to_deny_button = wx.Button(panel2, wx.ID_ANY, _("Add to Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.add_to_deny_button.SetToolTip(_("Add package to Magisk Denylist"))
+            self.add_to_deny_button.Enable(False)
+            buttons_sizer.Add(self.add_to_deny_button, 0, wx.ALL, 20)
 
-        self.install_apk_button = wx.Button(panel2, wx.ID_ANY, _("Install APK"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.install_apk_button.SetToolTip(_("Install an APK on the device"))
-        buttons_sizer.Add(self.install_apk_button, 0, wx.ALL, 20)
+            self.rm_from_deny_button = wx.Button(panel2, wx.ID_ANY, _("Remove from Denylist"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.rm_from_deny_button.SetToolTip(_("Remove package from Magisk Denylist"))
+            self.rm_from_deny_button.Enable(False)
+            buttons_sizer.Add(self.rm_from_deny_button, 0, wx.ALL, 20)
 
-        self.download_apk_button = wx.Button(panel2, wx.ID_ANY, _("Download APK"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.download_apk_button.SetToolTip(_("Extract and download APK"))
-        self.download_apk_button.Enable(False)
-        buttons_sizer.Add(self.download_apk_button, 0, wx.ALL, 20)
+            self.install_apk_button = wx.Button(panel2, wx.ID_ANY, _("Install APK"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.install_apk_button.SetToolTip(_("Install an APK on the device"))
+            buttons_sizer.Add(self.install_apk_button, 0, wx.ALL, 20)
 
-        self.export_list_button = wx.Button(panel2, wx.ID_ANY, _("Export List"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.export_list_button.SetToolTip(_("Export the package list in CSV format"))
-        buttons_sizer.Add(self.export_list_button, 0, wx.ALL, 20)
+            self.download_apk_button = wx.Button(panel2, wx.ID_ANY, _("Download APK"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.download_apk_button.SetToolTip(_("Extract and download APK"))
+            self.download_apk_button.Enable(False)
+            buttons_sizer.Add(self.download_apk_button, 0, wx.ALL, 20)
 
-        self.close_button = wx.Button(panel2, wx.ID_ANY, _("Close"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.export_list_button = wx.Button(panel2, wx.ID_ANY, _("Export List"), wx.DefaultPosition, wx.DefaultSize, 0)
+            self.export_list_button.SetToolTip(_("Export the package list in CSV format"))
+            buttons_sizer.Add(self.export_list_button, 0, wx.ALL, 20)
+
+            self.close_button = wx.Button(panel2, wx.ID_ANY, _("Close"), wx.DefaultPosition, wx.DefaultSize, 0)
         self.close_button.SetToolTip(_("Closes this dialog"))
         buttons_sizer.Add(self.close_button, 0, wx.ALL, 20)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
@@ -343,26 +365,40 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.searchCtrl.Bind(wx.EVT_TEXT_ENTER, self.OnSearch)
         self.searchCtrl.Bind(wx.EVT_SEARCH, self.OnSearch)
         self.searchCtrl.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.OnCancel)
-        self.button_get_names.Bind(wx.EVT_BUTTON, self.OnGetAllNames)
-        self.disable_button.Bind(wx.EVT_BUTTON, self.OnDisable)
-        self.enable_button.Bind(wx.EVT_BUTTON, self.OnEnable)
-        self.uninstall_button.Bind(wx.EVT_BUTTON, self.OnUninstall)
-        self.add_to_deny_button.Bind(wx.EVT_BUTTON, self.OnAddToDeny)
-        self.rm_from_deny_button.Bind(wx.EVT_BUTTON, self.OnRmFromDeny)
-        self.install_apk_button.Bind(wx.EVT_BUTTON, self.OnInstallApk)
-        self.download_apk_button.Bind(wx.EVT_BUTTON, self.OnDownloadApk)
-        self.export_list_button.Bind(wx.EVT_BUTTON, self.OnExportList)
+        self.button_get_names.Bind(wx.EVT_BUTTON, self.OnGetAppNames)
+
+        if not self.simplified_mode:
+            # Full mode event bindings
+            self.disable_button.Bind(wx.EVT_BUTTON, self.OnDisable)
+            self.enable_button.Bind(wx.EVT_BUTTON, self.OnEnable)
+            self.uninstall_button.Bind(wx.EVT_BUTTON, self.OnUninstall)
+            self.add_to_deny_button.Bind(wx.EVT_BUTTON, self.OnAddToDeny)
+            self.rm_from_deny_button.Bind(wx.EVT_BUTTON, self.OnRmFromDeny)
+            self.install_apk_button.Bind(wx.EVT_BUTTON, self.OnInstallApk)
+            self.download_apk_button.Bind(wx.EVT_BUTTON, self.OnDownloadApk)
+            self.export_list_button.Bind(wx.EVT_BUTTON, self.OnExportList)
+            # Enable checkboxes for full mode
+            self.list.EnableCheckBoxes(enable=True)
+            self.list.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnItemCheck)
+            self.list.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnItemUncheck)
+            self.all_checkbox.Bind(wx.EVT_CHECKBOX, self.OnAllCheckbox)
+        else:
+            # Simplified mode: disable checkboxes, enable double-click
+            self.list.EnableCheckBoxes(enable=False)
+            self.list.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
+            # Hide the "Check/Uncheck All" checkbox in simplified mode
+            self.all_checkbox.Show(False)
+            # Add missing packages for simplified mode
+            self.add_missing_packages_for_simplified_mode("gms")
+
         self.close_button.Bind(wx.EVT_BUTTON, self.OnClose)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected, self.list)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick, self.list)
         self.list.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
-        self.list.Bind(wx.EVT_LIST_ITEM_CHECKED, self.OnItemCheck)
-        self.list.Bind(wx.EVT_LIST_ITEM_UNCHECKED, self.OnItemUncheck)
         # for wxMSW
         self.list.Bind(wx.EVT_COMMAND_RIGHT_CLICK, self.OnRightClick)
         # for wxGTK
         self.list.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
-        self.all_checkbox.Bind(wx.EVT_CHECKBOX, self.OnAllCheckbox)
         self.system_apps_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSystemAppsCheckbox)
         self.user_apps_checkbox.Bind(wx.EVT_CHECKBOX, self.OnUserAppsCheckbox)
 
@@ -443,7 +479,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                     # hide image
                     self.list.SetItemColumnImage(i, 0, -1)
                     i += 1
-            res = self.device.push_aapt2()
+            res = self.push_aapt2_if_needed()
             self.message_label.Label = _("%s / %s Packages") % (str(i), self.package_count)
         self.list.SetColumnWidth(0, -2)
         grow_column(self.list, 0, 20)
@@ -656,7 +692,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             res = self.device.delete("/data/local/tmp/aapt2", self.device.rooted)
         except Exception:
             traceback.print_exc()
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to properly close the window.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to properly close the window.")
         finally:
             self.EndModal(wx.ID_CANCEL)
 
@@ -718,31 +754,74 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.Parent._on_install_apk(None)
 
     # -----------------------------------------------
-    #                  OnGetAllNames
+    #                  OnGetAppNames
     # -----------------------------------------------
-    def OnGetAllNames(self, e):
+    def OnGetAppNames(self, e):
         self._on_spin('start')
         start = time.time()
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Get All Application Names")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Get Application Names")
         labels = get_labels()
+
+        # Check if any packages are selected (checked)
+        selected_packages = []
         for i in range(self.list.GetItemCount()):
-            pkg = self.list.GetItemText(i)
-            package = self.device.packages[pkg]
-            if package.label == '':
-                if package.path == '':
-                    pkg_path = self.device.get_package_path(pkg, True)
-                    if pkg_path == -1:
-                        continue
-                    package.path = pkg_path
-                label, icon = self.device.get_package_label(pkg, package.path)
-                if label != -1:
-                    package.label = label
-                    package.icon = icon
-                    self.list.SetItem(i, 7, label)
-                    row_as_list = list(self.itemDataMap[i + 1])
-                    row_as_list[7] = label
-                    self.itemDataMap[i + 1] = row_as_list
-                    labels[pkg] = label
+            if self.list.IsItemChecked(i):
+                pkg = self.list.GetItemText(i)
+                package = self.device.packages[pkg]
+                selected_packages.append((i, pkg, package))
+
+        if selected_packages:
+            # Process only selected packages (even if they already have labels)
+            packages_to_process = selected_packages
+            print(f"\nProcessing {len(packages_to_process)} selected packages (including those with existing labels)...")
+        else:
+            # Process only packages without labels
+            packages_to_process = []
+            for i in range(self.list.GetItemCount()):
+                pkg = self.list.GetItemText(i)
+                package = self.device.packages[pkg]
+                if package.label == '':
+                    packages_to_process.append((i, pkg, package))
+            print(f"\nNo selection made - processing {len(packages_to_process)} packages without labels...")
+
+        if not packages_to_process:
+            print("All packages already have labels")
+            self._on_spin('stop')
+            return
+
+        total_packages = len(packages_to_process)
+        for idx, (i, pkg, package) in enumerate(packages_to_process):
+            print(f"Processing package {idx + 1}/{total_packages}: {pkg}")
+            if idx % 5 == 0:  # Update UI every 5 packages to keep it responsive
+                wx.YieldIfNeeded()
+
+            if package.path == '':
+                pkg_path = self.device.get_package_path(pkg, True)
+                if pkg_path == -1:
+                    continue
+                package.path = pkg_path
+
+            label, icon = self.device.get_package_label(pkg, package.path)
+            if label != -1 and label != '':
+                package.label = label
+                package.icon = icon
+                self.list.SetItem(i, 7, label)
+                row_as_list = list(self.itemDataMap[i + 1])
+                row_as_list[7] = label
+                self.itemDataMap[i + 1] = row_as_list
+                labels[pkg] = label
+            else:
+                # Set a placeholder label to avoid reprocessing this package in future runs
+                placeholder_label = "N/A"
+                package.label = placeholder_label
+                package.icon = ""
+                self.list.SetItem(i, 7, placeholder_label)
+                row_as_list = list(self.itemDataMap[i + 1])
+                row_as_list[7] = placeholder_label
+                self.itemDataMap[i + 1] = row_as_list
+                labels[pkg] = placeholder_label
+                print(f"  -> Using placeholder label: {placeholder_label}")
+
         set_labels(labels)
         end = time.time()
         print(f"App names extraction time: {math.ceil(end - start)} seconds")
@@ -837,7 +916,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
                 self.device.pull_file(path, pathname)
         except IOError:
             traceback.print_exc()
-            wx.LogError(f"Cannot save apk file '{pathname}'.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to save the apk file '{pathname}'.")
 
     # -----------------------------------------------
     #                  GetListCtrl
@@ -886,6 +965,11 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         #                     self.getColumnText(self.currentItem, 4),
         #                     self.getColumnText(self.currentItem, 5)))
         self.GetPackageDetails(self.list.GetItemText(self.currentItem))
+        if self.simplified_mode:
+            # In simplified mode, enable the Add Target button when item is selected
+            self.selected_package = self.list.GetItemText(self.currentItem)
+            if hasattr(self, 'add_target_button'):
+                self.add_target_button.Enable(True)
         event.Skip()
 
     # -----------------------------------------------
@@ -1225,3 +1309,173 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         else:
             self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
             self.Parent._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  OnItemActivated
+    # -----------------------------------------------
+    def OnItemActivated(self, event):
+        if self.simplified_mode and hasattr(self, 'selected_package'):
+            # Double-click in simplified mode acts as OK
+            self.EndModal(wx.ID_OK)
+        event.Skip()
+
+    # -----------------------------------------------
+    #                  GetSelectedPackage
+    # -----------------------------------------------
+    def GetSelectedPackage(self):
+        if self.simplified_mode:
+            return getattr(self, 'selected_package', None)
+        return None
+
+    # -----------------------------------------------
+    #          Function add_missing_packages_for_simplified_mode
+    # -----------------------------------------------
+    def add_missing_packages_for_simplified_mode(self, process_filter=None):
+        try:
+            if not self.device or not self.device.rooted:
+                return
+
+            # Get running processes
+            running_packages = self._get_running_packages(process_filter)
+
+            # Define some well-known package labels
+            known_labels = {
+                'com.google.android.gms': 'Google Play Services',
+                'com.google.android.gms.ui': 'Google Play Services UI',
+                'com.google.android.gms.unstable': 'Google Play Services (Unstable)',
+                'com.google.android.gms.learning': 'Google Play Services Learning',
+                'com.google.android.gms.persistent': 'Google Play Services (Persistent)',
+                'app.revanced.android.gms': 'ReVanced GMS',
+                'com.android.vending': 'Google Play Store',
+                'com.google.android.webview': 'Android System WebView',
+                'com.google.android.tts': 'Google Text-to-Speech',
+                'com.google.android.packageinstaller': 'Package Installer'
+            }
+
+            added_count = 0
+            for pkg_name in running_packages:
+                if pkg_name and pkg_name not in self.packages:
+                    # Create a minimal package object for missing packages
+                    class SimplePackage:
+                        def __init__(self):
+                            self.package = ""
+                            self.type = ""
+                            self.installed = True
+                            self.enabled = True
+                            self.user0 = False
+                            self.magisk_denylist = False
+                            self.uid = ""
+                            self.label = ""
+                            self.details = ""
+                            self.path = ""
+                            self.path2 = ""
+                            self.icon = ""
+
+                    new_package = SimplePackage()
+                    new_package.package = pkg_name
+                    new_package.type = 'System'
+                    new_package.installed = True
+                    new_package.enabled = True
+                    new_package.user0 = False
+                    new_package.magisk_denylist = False
+                    new_package.uid = ''
+                    new_package.details = ''
+                    new_package.path = ''
+                    new_package.path2 = ''
+                    new_package.icon = ''
+
+                    # Set label if known
+                    if pkg_name in known_labels:
+                        new_package.label = known_labels[pkg_name]
+                    else:
+                        new_package.label = ''
+
+                    self.packages[pkg_name] = new_package
+                    added_count += 1
+
+            if added_count > 0:
+                print(f"Added {added_count} missing packages from running processes (filter: '{process_filter or 'all'}')")
+                # Update package count
+                self.package_count = len(self.packages)
+
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adding missing packages for simplified mode")
+
+    # -----------------------------------------------
+    #          Function _get_running_packages
+    # -----------------------------------------------
+    def _get_running_packages(self, process_filter=None):
+        running_packages = set()
+
+        try:
+            if process_filter:
+                ps_cmd = f"ps -A | grep {process_filter}"
+            else:
+                ps_cmd = "ps -A"
+            ps_output = self.device.exec_cmd(ps_cmd, True)
+            if ps_output:
+                for line in ps_output.strip().split('\n'):
+                    if line.strip():
+                        parts = line.strip().split()
+                        if len(parts) >= 9:  # Valid ps output line format
+                            process_name = parts[8]
+                            # Remove anything with colon (like :persistent, :ui, etc.)
+                            if ':' in process_name:
+                                process_name = process_name.split(':')[0]
+                            # Only add if it looks like a valid Android package name
+                            if self._is_valid_package_name(process_name):
+                                running_packages.add(process_name)
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: getting running processes")
+
+        return running_packages
+
+    # -----------------------------------------------
+    #          Function _is_valid_package_name
+    # -----------------------------------------------
+    def _is_valid_package_name(self, name):
+        if not name or len(name) < 3:
+            return False
+
+        # Must contain at least one dot (package structure)
+        if '.' not in name:
+            return False
+
+        # Should not contain spaces or special characters (except dots and underscores)
+        import re
+        if not re.match(r'^[a-zA-Z0-9_.]+$', name):
+            return False
+
+        # Should have at least 2 parts separated by dots
+        parts = name.split('.')
+        if len(parts) < 2:
+            return False
+
+        # Each part should not be empty and should start with a letter
+        for part in parts:
+            if not part or not part[0].isalpha():
+                return False
+
+        return True
+
+    # -----------------------------------------------
+    #              Function push_aapt2_if_needed
+    # -----------------------------------------------
+    def push_aapt2_if_needed(self):
+        if self.aapt2_pushed_this_session:
+            return 0
+        try:
+            print("Pushing aapt2 to device...")
+            res = self.device.push_aapt2()
+            if res == 0:
+                self.aapt2_pushed_this_session = True
+                print("aapt2 pushed successfully")
+            else:
+                print("Failed to push aapt2")
+            return res
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: pushing aapt2")
+            return -1

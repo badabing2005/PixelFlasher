@@ -157,6 +157,7 @@ class Config():
         self.pif = {
             'auto_update_pif_json': False,
             'auto_check_play_integrity': False,
+            'auto_run_migrate': False,
             'test_app_index': 0,
             'disable_uiautomator': False,
             'auto_fill': False,
@@ -169,6 +170,7 @@ class Config():
             'spoofProvider': False,
             'spoofSignature': False,
             'spoofVendingSdk': False,
+            'spoofVendingFinger': False,
         }
 
         self.scrcpy = {
@@ -395,6 +397,8 @@ class Config():
                     with contextlib.suppress(KeyError):
                         conf.pif['auto_check_play_integrity'] = pif_data['auto_check_play_integrity']
                     with contextlib.suppress(KeyError):
+                        conf.pif['auto_run_migrate'] = pif_data['auto_run_migrate']
+                    with contextlib.suppress(KeyError):
                         conf.pif['test_app_index'] = pif_data['test_app_index']
                     with contextlib.suppress(KeyError):
                         conf.pif['disable_uiautomator'] = pif_data['disable_uiautomator']
@@ -418,6 +422,8 @@ class Config():
                         conf.pif['spoofSignature'] = pif_data['spoofSignature']
                     with contextlib.suppress(KeyError):
                         conf.pif['spoofVendingSdk'] = pif_data['spoofVendingSdk']
+                    with contextlib.suppress(KeyError):
+                        conf.pif['spoofVendingFinger'] = pif_data['spoofVendingFinger']
 
                 # read the scrcpy section
                 scrcpy_folder = ''

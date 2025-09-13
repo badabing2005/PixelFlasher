@@ -3163,6 +3163,13 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 puml("#red:boot.img is not found;\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
 
+        if recommendation == 1:
+            boot_path = os.path.join(boot_directory, 'boot.img')
+        elif recommendation == 2:
+            boot_path = os.path.join(boot_directory, 'init_boot.img')
+        elif recommendation == 3:
+            boot_path = os.path.join(boot_directory, 'vendor_boot.img')
+
         # Determine the patch image based on the recommendation
         if self.config.offer_patch_methods:
             title = "Patching decision"
@@ -3210,19 +3217,16 @@ Unless you know what you're doing, it is recommended that you choose the default
                 print("Using boot.img for patching.")
                 puml(":Using boot.img for patching;\n")
                 boot_path = os.path.join(boot_directory, 'boot.img')
-                # init_boot_path = boot_path
             elif result == 2:
                 # User selected init_boot.img
                 print("Using init_boot.img for patching.")
                 puml(":Using init_boot.img for patching;\n")
                 boot_path = os.path.join(boot_directory, 'init_boot.img')
-                # init_boot_path = boot_path
             elif result == 3:
                 # User selected vendor_boot.img
                 print("Using vendor_boot.img for patching.")
                 puml(":Using vendor_boot.img for patching;\n")
                 boot_path = os.path.join(boot_directory, 'vendor_boot.img')
-                # init_boot_path = boot_path
             elif result == 4:
                 # User selected Custom
                 print("User selected Custom patching.")
@@ -5566,15 +5570,19 @@ def flash_phone(self):
             if self.config.flash_mode == 'OTA':
                 if device:
                     self.toast(_("⚠️ Wait for OTA Merging completion."), _("WARNING! Please wait for the OTA merging to complete.\nCheck the logcat window for the completion message.\nYou can close the logcat window when done."))
-                    print("\n==============================================================================")
+                    print("\n===================================================================")
                     print("  Opening logcat to show the merging of the OTA progress.")
                     print("  Please wait until the merging is complete.")
-                    print("  When the merging is complete, you should see a message:\nErrorCode::kSuccess")
+                    print("  When the merging is complete, you should see a message:")
+                    print("      ActionProcessor: finished ... ErrorCode::kSuccess")
                     print("  You can close the logcat window when done.")
                     print("  If logcat windows is closed before the merging is complete,")
                     print("  (this can happen when you unlock the screen)")
-                    print("  you can open it again from PixelFlasher menu Device | Logcat filter: update_engine")
-                    print("==============================================================================\n")
+                    print("  you can open it again from PixelFlasher menu:")
+                    print("      Device | Logcat filter: update_engine")
+                    print("  If you get a blank logcat, this could happen, just play it safe")
+                    print("  and wait 10 minutes before you reboot again.")
+                    print("===================================================================\n")
                     device.open_update_engine_logcat()
 
         # -------------------------------------------------------------------------

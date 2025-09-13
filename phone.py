@@ -1789,6 +1789,9 @@ add_hosts_module
         if self.true_mode != 'adb':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}. Device is not in ADB mode.")
             return -1, None
+        if not file_path or file_path.isspace():
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check empty file path.")
+            return -1, None
         try:
             file_path = remove_quotes(file_path)
             if with_su:
@@ -4334,7 +4337,7 @@ add_hosts_module
     def exec_cmd(self, cmd, with_su = False):
         if self.true_mode != 'adb':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not execute command: {cmd}. Device is not in ADB mode.")
-            return -1, None
+            return None
         if cmd and self.mode == 'adb':
             try:
                 if with_su:
@@ -4355,6 +4358,7 @@ add_hosts_module
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while performing exec_cmd")
                 puml("#red:Encountered an error while performing exec_cmd;\n")
                 traceback.print_exc()
+                return None
 
     # ----------------------------------------------------------------------------
     #                               method perform_package_action
@@ -4436,6 +4440,9 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -s --user 0"
             elif state == 'uid':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -U"
+            else:
+                # Default to all packages if no state specified
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages"
 
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
@@ -4454,7 +4461,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               method get_detailed_packages
     # ----------------------------------------------------------------------------
-    def get_detailed_packages(self):
+    def get_detailed_packages(self, simplified=False):
         if self.true_mode != 'adb':
             return -1
         try:
@@ -4509,22 +4516,23 @@ add_hosts_module
                     if item and item in self.packages:
                         self.packages[item].user0 = True
 
-            # Get magisk denylist packages
-            list = self.get_magisk_denylist()
-            if list:
-                for item in list:
-                    if item and item in self.packages:
-                        self.packages[item].magisk_denylist = True
+            if not simplified:
+                # Get magisk denylist packages
+                list = self.get_magisk_denylist()
+                if list:
+                    for item in list:
+                        if item and item in self.packages:
+                            self.packages[item].magisk_denylist = True
 
-            # Get package UIDs
-            list = self.get_package_list('uid')
-            if list:
-                for item in list.split("\n"):
-                    if item:
-                        package, uid = item.split(" ", 1)
-                        uid = uid.replace("uid:", "")
-                        if package in self.packages:
-                            self.packages[package].uid = uid
+                # Get package UIDs
+                list = self.get_package_list('uid')
+                if list:
+                    for item in list.split("\n"):
+                        if item:
+                            package, uid = item.split(" ", 1)
+                            uid = uid.replace("uid:", "")
+                            if package in self.packages:
+                                self.packages[package].uid = uid
 
         except Exception as e:
             traceback.print_exc()

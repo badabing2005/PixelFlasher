@@ -2491,7 +2491,7 @@ class PixelFlasher(wx.Frame):
         message += "	- `/data/adb/modules/playintegrityfix/scripts-only-mode`\n"
         message += _("- TargetedFix (if available):\n")
         message += "	- `/data/adb/modules/targetedfix/target.txt`\n"
-        message += "	- Contents of every app json configuration referenced in target.txt\n"
+        message += _("	- Contents of every app json configuration referenced in target.txt\n")
         message += _("- PlayIntegrityFix (if available):\n")
         message += "	- `/data/adb/modules/playintegrityfix/pif.json`\n"
         message += "	- `/data/adb/pif.json`\n"

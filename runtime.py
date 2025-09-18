@@ -4995,6 +4995,13 @@ def axml2xml(inputfile, outputfile=None):
         buff = ""
         if path.exists(inputfile):
             ap = apk.AXMLPrinter(open(inputfile, "rb").read())
+            if ap is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to parse the AXML file {inputfile}.")
+                return
+            # Check if the buffer is empty (happens for Android packages binary format)
+            if not ap.get_buff():
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to decode {inputfile} - unsupported format.")
+                return
             buff = ap.get_xml_obj().toprettyxml()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: XML input file {inputfile} is not found.")

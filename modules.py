@@ -2100,6 +2100,62 @@ def is_device_unlocked(self, device):
 # ============================================================================
 def patch_boot_img(self, patch_flavor = 'Magisk'):
     # ==========================================
+    # Sub Function  ensure_root_app_installed
+    # ==========================================
+    def ensure_root_app_installed(app_type='KernelSU'):
+        config_path = get_config_path()
+
+        if app_type == 'KernelSU-Next':
+            repo_user = 'rifsxd'
+            repo_name = 'KernelSU-Next'
+            pattern = r'^KernelSU_Next.*\.apk$'
+            path_getter = lambda: device.ksu_next_path
+            app_name = "KernelSU-Next"
+        elif app_type == 'APatch':
+            repo_user = 'bmax121'
+            repo_name = 'APatch'
+            pattern = r'^APatch_.*\.apk$'
+            path_getter = lambda: device.apatch_path
+            app_name = "APatch"
+        else:  # KernelSU
+            repo_user = 'tiann'
+            repo_name = 'KernelSU'
+            pattern = r'^KernelSU.*\.apk$'
+            path_getter = lambda: device.ksu_path
+            app_name = "KernelSU"
+
+        # Check if already installed
+        app_path = path_getter()
+        if app_path:
+            return True, app_path, None
+
+        # Install the app
+        print(f"{app_name} does not appear to be installed. Installing it now ...")
+        try:
+            release = get_gh_release_object(user=repo_user, repo=repo_name, include_prerelease=False)
+            if not release:
+                return False, None, f"Could not find {app_name} release"
+
+            apk_file = gh_asset_utility(release_object=release, asset_name_pattern=pattern, download=True)
+            if not apk_file:
+                return False, None, f"Could not download {app_name} APK"
+
+            app = os.path.join(config_path, 'tmp', apk_file)
+            res = device.install_apk(app)
+            if res != 0:
+                return False, None, f"Failed to install {app_name}"
+
+            # Check if installation was successful
+            app_path = path_getter()
+            if not app_path:
+                return False, None, f"Failed to find {app_name} after installation"
+
+            return True, app_path, None
+
+        except Exception as e:
+            return False, None, f"Exception during {app_name} installation: {str(e)}"
+
+    # ==========================================
     # Sub Function       patch_script
     # ==========================================
     def patch_magisk_script(patch_method):
@@ -2333,12 +2389,22 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     def patch_kernelsu_script(kernelsu_version):
         if 'KernelSU-Next' in patch_flavor:
             patch_label = "KernelSU-Next App"
-            ksu_path = device.ksu_next_path
+            success, ksu_path, error_msg = ensure_root_app_installed('KernelSU-Next')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1
             with_version = device.get_uncached_ksu_next_app_version()
             with_version_code = device.ksu_next_app_version_code
         else:
             patch_label = "KernelSU App"
-            ksu_path = device.ksu_path
+            success, ksu_path, error_msg = ensure_root_app_installed('KernelSU')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1
             with_version = device.get_uncached_ksu_app_version()
             with_version_code = device.ksu_app_version_code
         set_patched_with(with_version)
@@ -2460,12 +2526,22 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     def patch_kernelsu_lkm_script():
         if 'KernelSU-Next' in patch_flavor:
             patch_label = "KernelSU-Next App"
-            ksu_path = device.ksu_next_path
+            success, ksu_path, error_msg = ensure_root_app_installed('KernelSU-Next')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1, ""
             with_version = device.get_uncached_ksu_next_app_version()
             with_version_code = device.ksu_next_app_version_code
         else:
             patch_label = "KernelSU App"
-            ksu_path = device.ksu_path
+            success, ksu_path, error_msg = ensure_root_app_installed('KernelSU')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1, ""
             with_version = device.get_uncached_ksu_app_version()
             with_version_code = device.ksu_app_version_code
         path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
@@ -3465,87 +3541,25 @@ Unless you know what you're doing, it is recommended that you choose the default
         # check if KernelSU app is installed
         print("Checking to see if KernelSU app is installed ...")
         puml(":Checking KernelSU App;\n")
-        kernelsu_app_path = device.ksu_path
-        if not kernelsu_app_path:
-            print("KernelSU app not found on the phone.\n Trying to download and install it ...\n")
-            # download and install it https://github.com/tiann/KernelSU/releases
-            release = get_gh_release_object(user='tiann', repo='KernelSU', include_prerelease=False)
-            if release is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU release.")
-                puml("#red:Could not find KernelSU release;\n")
-                print("Aborting ...\n}\n")
-                return
-            kernelsu_version = release['tag_name']
-            kernelsu_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU.*\.apk$', download=False)
-
-            if kernelsu_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install KernelSU.\n Aborting ...")
-                return
-            match = re.search(r'_([0-9]+)-', kernelsu_url)
-            if match:
-                kernelsu_versionCode =  match.group(1)
-            else:
-                if kernelsu_version:
-                    kernelsu_versionCode = kernelsu_version
-                else:
-                    # parts = version.split('.')
-                    # a = int(parts[0])
-                    # b = int(parts[1])
-                    # c = int(parts[2])
-                    # kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
-                    kernelsu_versionCode = 0
-            filename = f"KernelSU_{kernelsu_version}_{kernelsu_versionCode}.apk"
-            download_file(kernelsu_url, filename)
-            # install the apk
-            res = device.install_apk(os.path.join(tmp_path, filename))
-            kernelsu_app_path = device.ksu_path
-            if not kernelsu_app_path:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not install KernelSU.\n Aborting ...")
-                return
+        success, kernelsu_app_path, error_msg = ensure_root_app_installed('KernelSU')
+        if not success:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+            puml(f"#red:{error_msg};\n")
+            print("Aborting ...\n}\n")
+            return
 
     # KernelSU_Next_LKM
     elif patch_flavor == 'KernelSU-Next_LKM':
         method = 83
-        # check if KernelSU app is installed
-        print("Checking to see if KernelSU Next app is installed ...")
-        puml(":Checking KernelSU Next App;\n")
-        kernelsu_next_app_path = device.ksu_next_path
-        if not kernelsu_next_app_path:
-            print("KernelSU Next app not found on the phone.\n Trying to download and install it ...\n")
-            # download and install it https://github.com/rifsxd/KernelSU-Next/releases
-            release = get_gh_release_object(user='rifsxd', repo='KernelSU-Next', include_prerelease=False)
-            if release is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU-Next release.")
-                puml("#red:Could not find KernelSU-Next release;\n")
-                print("Aborting ...\n}\n")
-                return
-            kernelsu_version = release['tag_name']
-            kernelsu_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next.*\.apk$', download=False)
-
-            if kernelsu_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install KernelSU Next.\n Aborting ...")
-                return
-            match = re.search(r'_([0-9]+)-', kernelsu_url)
-            if match:
-                kernelsu_versionCode =  match.group(1)
-            else:
-                if kernelsu_version:
-                    kernelsu_versionCode = kernelsu_version
-                else:
-                    # parts = version.split('.')
-                    # a = int(parts[0])
-                    # b = int(parts[1])
-                    # c = int(parts[2])
-                    # kernelsu_versionCode = (a * 256 * 256) + (b * 256) + c
-                    kernelsu_versionCode = 0
-            filename = f"KernelSU-Next_{kernelsu_version}_{kernelsu_versionCode}.apk"
-            download_file(kernelsu_url, filename)
-            # install the apk
-            res = device.install_apk(os.path.join(tmp_path, filename))
-            kernelsu_next_app_path = device.ksu_next_path
-            if not kernelsu_next_app_path:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not install KernelSU.\n Aborting ...")
-                return
+        # check if KernelSU-Next app is installed
+        print("Checking to see if KernelSU-Next app is installed ...")
+        puml(":Checking KernelSU-Next App;\n")
+        success, kernelsu_next_app_path, error_msg = ensure_root_app_installed('KernelSU-Next')
+        if not success:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+            puml(f"#red:{error_msg};\n")
+            print("Aborting ...\n}\n")
+            return
 
     # APatch
     elif patch_flavor == 'APatch':
@@ -3553,42 +3567,12 @@ Unless you know what you're doing, it is recommended that you choose the default
         # check if APatch app is installed
         print("Checking to see if APatch app is installed ...")
         puml(":Checking APatch App;\n")
-        apatch_app_path = device.apatch_path
-        if not apatch_app_path:
-            print("APatch app not found on the phone.\n Trying to download and install it ...\n")
-            # download and install it https://github.com/bmax121/APatch/releases
-            release = get_gh_release_object(user='bmax121', repo='APatch', include_prerelease=False)
-            if release is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch release.")
-                puml("#red:Could not find APatch release;\n")
-                print("Aborting ...\n}\n")
-                return
-            apatch_version = release['tag_name']
-            apatch_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^APatch_.*\.apk$', download=False)
-            if apatch_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find or install APatch.\n Aborting ...")
-                return
-            match = re.search(r'_([0-9]+)-', apatch_url)
-            if match:
-                apatch_versionCode =  match.group(1)
-            else:
-                if apatch_version:
-                    apatch_versionCode = apatch_version
-                else:
-                    # parts = version.split('.')
-                    # a = int(parts[0])
-                    # b = int(parts[1])
-                    # c = int(parts[2])
-                    # apatch_versionCode = (a * 256 * 256) + (b * 256) + c
-                    apatch_versionCode = 0
-            filename = f"APatch_{apatch_version}_{apatch_versionCode}.apk"
-            download_file(apatch_url, filename)
-            # install the apk
-            res = device.install_apk(os.path.join(tmp_path, filename))
-            apatch_app_path = device.apatch_path
-            if not apatch_app_path:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not install APatch.\n Aborting ...")
-                return
+        success, apatch_app_path, error_msg = ensure_root_app_installed('APatch')
+        if not success:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+            puml(f"#red:{error_msg};\n")
+            print("Aborting ...\n}\n")
+            return
 
     # APatch Alternate
     elif patch_flavor == 'APatch_manual':
@@ -3639,6 +3623,12 @@ Unless you know what you're doing, it is recommended that you choose the default
                 return -1
 
         method = 91
+        success, apatch_app_path, error_msg = ensure_root_app_installed('APatch')
+        if not success:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+            puml(f"#red:{error_msg};\n")
+            print("Aborting ...\n}\n")
+            return
         magiskboot_created = False
         if is_rooted:
             res, unused = device.check_file("/data/adb/magisk/magiskboot", True)

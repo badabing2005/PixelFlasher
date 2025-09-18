@@ -19,6 +19,7 @@
 import io
 from struct import pack, unpack
 from xml.sax.saxutils import escape
+from datetime import datetime
 
 from xml.dom import minidom
 
@@ -234,14 +235,70 @@ END_TAG                     = 3
 TEXT                        = 4
 
 
+# Utility functions for handling different XML formats
+def is_axml_format(raw_buff):
+    """Check if the buffer contains AXML binary format"""
+    if len(raw_buff) < 8:
+        return False
+    try:
+        magic = unpack('<L', raw_buff[:4])[0]
+        return magic == CHUNK_AXML_FILE
+    except:
+        return False
+
+def is_plain_xml(raw_buff):
+    """Check if the buffer contains plain text XML"""
+    try:
+        # Try to decode as UTF-8 and check for XML declaration or root element
+        text = raw_buff.decode('utf-8', errors='ignore')
+        return text.strip().startswith('<?xml') or text.strip().startswith('<')
+    except:
+        return False
+
+def is_android_packages_binary(raw_buff):
+    """Check if this is Android's binary packages.xml format"""
+    try:
+        # Check for characteristic patterns in Android packages binary format
+        text = raw_buff.decode('utf-8', errors='ignore')
+        # Look for key indicators of the binary packages format
+        indicators = ['packages', 'version', 'keysets', 'keyset', 'key-id']
+        found_indicators = sum(1 for indicator in indicators if indicator in text)
+
+        # If we find multiple indicators but it's not plain XML, it's likely binary packages format
+        if found_indicators >= 2 and not text.strip().startswith('<?xml') and not text.strip().startswith('<'):
+            return True
+        return False
+    except:
+        return False
+
+def detect_xml_format(raw_buff):
+    """Detect the format of XML data"""
+    if is_axml_format(raw_buff):
+        return 'axml'
+    elif is_plain_xml(raw_buff):
+        return 'xml'
+    elif is_android_packages_binary(raw_buff):
+        return 'android_packages_binary'
+    else:
+        return 'unknown'
+
 class AXMLParser:
     def __init__(self, raw_buff):
         self.reset()
 
         self.buff = BuffHandle(raw_buff)
 
-        self.buff.read(4)
-        self.buff.read(4)
+        # Check if this is actually an AXML file by verifying magic header
+        if len(raw_buff) < 8:
+            raise ValueError("File too small to be AXML format")
+
+        magic = self.buff.read(4)
+        file_size = self.buff.read(4)
+
+        # AXML files start with magic number 0x00080003 (CHUNK_AXML_FILE)
+        magic_int = unpack('<L', magic)[0]
+        if magic_int != CHUNK_AXML_FILE:
+            raise ValueError(f"Not an AXML file - invalid magic header: 0x{magic_int:08X}")
 
         self.sb = StringBlock(self.buff)
 
@@ -502,9 +559,33 @@ COMPLEX_UNIT_MASK        =   15
 
 class AXMLPrinter:
     def __init__(self, raw_buff):
-        self.axml = AXMLParser(raw_buff)
-        self.xmlns = False
+        # First detect the format of the input
+        format_type = detect_xml_format(raw_buff)
 
+        if format_type == 'xml':
+            print("\nℹ️ This appears to be plain xml format.\nNo conversion needed.")
+            # Already plain text XML, just store it
+            self.buff = raw_buff.decode('utf-8') if isinstance(raw_buff, bytes) else raw_buff
+            self.xmlns = False
+            # No AXML parser needed for plain XML
+            self.axml = None
+            return
+        elif format_type == 'android_packages_binary':
+            # This is Android's binary packages format - cannot be parsed as XML
+            print("\nℹ️ This appears to be Android's binary packages.xml format, which cannot be converted to readable XML.\nThis is a proprietary binary format used by Android's package manager.")
+            # Empty buffer since we can't parse this format
+            self.buff = ""
+            self.xmlns = False
+            # No AXML parser needed
+            self.axml = None
+            return
+        elif format_type == 'axml':
+            # Process AXML binary format
+            self.axml = AXMLParser(raw_buff)
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR Unknown XML format - not AXML binary, plain XML, or recognized Android binary format")
+
+        self.xmlns = False
         self.buff = ''
 
         while True:
@@ -552,9 +633,13 @@ class AXMLPrinter:
         return self.buff
 
     def get_xml(self):
+        if not self.buff:
+            return ""
         return minidom.parseString(self.get_buff()).toprettyxml()
 
     def get_xml_obj(self):
+        if not self.buff:
+            return None
         return minidom.parseString(self.get_buff())
 
     def getPrefix(self, prefix):
@@ -564,6 +649,10 @@ class AXMLPrinter:
         return f'{prefix}:'
 
     def getAttributeValue(self, index):
+        # Only process if we have an AXML parser (not plain XML)
+        if not self.axml:
+            return ""
+
         _type = self.axml.getAttributeValueType(index)
         _data = self.axml.getAttributeValueData(index)
 

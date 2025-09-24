@@ -1206,17 +1206,11 @@ msgstr "   **绕过低目标 SDK 限制** 选项可跳过该限制。\n"
 msgid "_If you have selected multiple APKs to install, the options will apply to all APKs._\n"
 msgstr "_若你选择了多个 APK 进行安装，以上选项将应用于所有 APK。_\n"
 
-msgid "# ATTENTION!\n"
-msgstr "# 注意！\n"
-
 msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
 msgstr "**此功能将生成设备分析报告，你可以选择将其发布在线以获得关于 Play Integrity 相关问题的帮助。**<br/>\n"
 
-msgid "This report will inherently reveal sensitive information about your device such as:\n"
-msgstr "该报告将包含设备的敏感信息，例如：\n"
-
-msgid "- Device id and other device related details.\n"
-msgstr "- 设备ID及其他设备相关细节。\n"
+msgid "- Device state and other device related details.\n"
+msgstr "- 设备状态及其他相关详情。\n"
 
 msgid "- Magisk (if available):\n"
 msgstr "- Magisk（如有）：\n"
@@ -2852,3 +2846,31 @@ msgstr ""
 
 msgid "	- Contents of every app json configuration referenced in target.txt\n"
 msgstr ""
+
+##############################################################################
+# Additions 2025-09-24
+##############################################################################
+msgid "There will be two versions created.<br/>\n"
+msgstr ""
+
+msgid "1. Unfiltered version, that would have some sensitive information such as Device ID.\n"
+msgstr ""
+
+msgid "2. Sanitized version which will filter out sensitive information<br/>\n"
+msgstr ""
+
+msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` so that the keybox information is included in the report.<br/>\n"
+msgstr ""
+
+msgid "If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
+msgstr ""
+
+msgid "**This report will include the following details:**<br/>\n"
+msgstr ""
+
+msgid "- Playstore Versions.\n"
+msgstr ""
+
+msgid "Redact Keybox details"
+msgstr ""
+

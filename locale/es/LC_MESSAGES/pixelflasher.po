@@ -1197,17 +1197,11 @@ msgstr "   La opción **Omitir bloqueo de SDK objetivo bajo** evita esa restricc
 msgid "_If you have selected multiple APKs to install, the options will apply to all APKs._\n"
 msgstr "_Si ha seleccionado múltiples APKs para instalar, las opciones se aplicarán a todos los APKs._\n"
 
-msgid "# ATTENTION!\n"
-msgstr "# ¡ATENCIÓN!\n"
-
 msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
 msgstr "**Esta función generará un informe de análisis del dispositivo que opcionalmente podría publicar en línea para obtener ayuda con problemas relacionados con Play Integrity.**<br/>\n"
 
-msgid "This report will inherently reveal sensitive information about your device such as:\n"
-msgstr "Este informe revelará inherentemente información sensible sobre su dispositivo como:\n"
-
-msgid "- Device id and other device related details.\n"
-msgstr "- ID del dispositivo y otros detalles relacionados con el dispositivo.\n"
+msgid "- Device state and other device related details.\n"
+msgstr "- Estado del dispositivo y otros detalles relacionados con el dispositivo.\n"
 
 msgid "- Magisk (if available):\n"
 msgstr "- Magisk (si está disponible):\n"
@@ -2846,4 +2840,31 @@ msgstr "Después de guardar (enviar) la impresión, ejecutar migrate.sh automát
 
 msgid "	- Contents of every app json configuration referenced in target.txt\n"
 msgstr "    - Contenido de cada configuración json de la aplicación referenciada en target.txt\n"
+
+##############################################################################
+# Additions 2025-09-24
+##############################################################################
+msgid "There will be two versions created.<br/>\n"
+msgstr "Se crearán dos versiones.<br/>\n"
+
+msgid "1. Unfiltered version, that would have some sensitive information such as Device ID.\n"
+msgstr "1. Versión sin filtrar, que tendría alguna información sensible como ID del dispositivo.\n"
+
+msgid "2. Sanitized version which will filter out sensitive information<br/>\n"
+msgstr "2. Versión saneada que filtrará información sensible<br/>\n"
+
+msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` so that the keybox information is included in the report.<br/>\n"
+msgstr "**Nota:** Si está utilizando un keybox compartido públicamente, mantenga la casilla `Redactar detalles del Keybox` para que la información del keybox se incluya en el informe.<br/>\n"
+
+msgid "If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
+msgstr "Si está utilizando un keybox privado, seleccione la casilla `Redactar detalles del Keybox` para redactar los detalles del keybox.<br/>\n"
+
+msgid "**This report will include the following details:**<br/>\n"
+msgstr "**Este informe incluirá los siguientes detalles:**<br/>\n"
+
+msgid "- Playstore Versions.\n"
+msgstr "- Versiones de Playstore.\n"
+
+msgid "Redact Keybox details"
+msgstr "Redactar detalles del Keybox"
 

@@ -1173,13 +1173,7 @@ msgstr ""
 msgid "_If you have selected multiple APKs to install, the options will apply to all APKs._\n"
 msgstr ""
 
-msgid "# ATTENTION!\n"
-msgstr ""
-
 msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
-msgstr ""
-
-msgid "This report will inherently reveal sensitive information about your device such as:\n"
 msgstr ""
 
 msgid "- Device id and other device related details.\n"
@@ -2809,5 +2803,32 @@ msgid "After saving (pushing) print, automatically run migrate.sh"
 msgstr ""
 
 msgid "	- Contents of every app json configuration referenced in target.txt\n"
+msgstr ""
+
+##############################################################################
+# Additions 2025-09-24
+##############################################################################
+msgid "There will be two versions created.<br/>\n"
+msgstr ""
+
+msgid "1. Unfiltered version, that would have some sensitive information such as Device ID.\n"
+msgstr ""
+
+msgid "2. Sanitized version which will filter out sensitive information<br/>\n"
+msgstr ""
+
+msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` so that the keybox information is included in the report.<br/>\n"
+msgstr ""
+
+msgid "If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
+msgstr ""
+
+msgid "**This report will include the following details:**<br/>\n"
+msgstr ""
+
+msgid "- Playstore Versions.\n"
+msgstr ""
+
+msgid "Redact Keybox details"
 msgstr ""
 

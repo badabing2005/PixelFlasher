@@ -2462,6 +2462,7 @@ class PixelFlasher(wx.Frame):
         print("==============================================================================")
         timestr = time.strftime('%Y-%m-%d_%H-%M-%S')
         device = get_phone(True)
+        current_debug = get_verbose()
 
         if not device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No device selected")
@@ -2471,12 +2472,19 @@ class PixelFlasher(wx.Frame):
             return -1
 
         title = "Device Analysis Report"
-        message = _("# ATTENTION!\n")
-        message += _("**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n")
+        message = _("**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n")
         message += "\n"
-        message += _("This report will inherently reveal sensitive information about your device such as:\n")
+        message += _("There will be two versions created.<br/>\n")
         message += "\n"
-        message += _("- Device id and other device related details.\n")
+        message += _("1. Unfiltered version, that would have some sensitive information such as Device ID.\n")
+        message += _("2. Sanitized version which will filter out sensitive information<br/>\n")
+        message += "\n"
+        message += _("**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` so that the keybox information is included in the report.<br/>\n")
+        message += _("If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n")
+        message += "\n"
+        message += _("**This report will include the following details:**<br/>\n")
+        message += "\n"
+        message += _("- Device state and other device related details.\n")
         message += _("- Magisk (if available):\n")
         message += _("	- modules list.\n")
         message += _("	- denylist.\n")
@@ -2497,6 +2505,7 @@ class PixelFlasher(wx.Frame):
         message += "	- `/data/adb/pif.json`\n"
         message += _("- Whether a testkey ROM is used or not.\n")
         message += _("- logcat for PlayIntegrity and TrickyStore related logs.\n")
+        message += _("- Playstore Versions.\n")
         message += _("- Droidguard VM list.\n")
         message += _("- If any custom ROM injection apps are installed from:\n")
         message += "    - Xiaomi.eu\n"
@@ -2516,7 +2525,9 @@ class PixelFlasher(wx.Frame):
         message += "\n"
         message += _("**Are you sure you want to continue?**<br/>\n")
 
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('Yes'), _('No')], default_button=1, is_md=True, size=[915,700])
+        checkboxes = [_("Redact Keybox details")]
+        checkbox_initial_values = [False]
+        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('Yes'), _('No')], default_button=1, disable_buttons=None, is_md=True, size=[915,700], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_initial_values, vertical_checkboxes=False)
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -2529,6 +2540,15 @@ class PixelFlasher(wx.Frame):
             return -1
         # option 1 - Yes
         elif option == 1:
+            checkbox_values = get_dlg_checkbox_values()
+            if checkbox_values is not None:
+                for i in range(len(checkboxes)):
+                    print(f"{checkboxes[i]}: {bool(checkbox_values[i])}")
+                print("\n")
+                # enable / disable redaction based on checkbox
+                redact_keybox = checkbox_values[0]
+                set_verbose(not redact_keybox)
+
             set_puml_state(False)
             if device and device.hardware:
                 hardware = device.hardware
@@ -2716,6 +2736,13 @@ class PixelFlasher(wx.Frame):
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
+                # Playstore versions
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Playstore versions ...")
+                print("==============================================================================")
+                res = device.exec_cmd("dumpsys package com.android.vending | grep -e versionName -e codePath", True)
+                print(res)
+
                 # Check for conflicting custom ROM injection apps
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Check for custom ROM injection apps ...")
@@ -2790,8 +2817,18 @@ class PixelFlasher(wx.Frame):
                 traceback.print_exc()
             finally:
                 print(f"Device Analysis Complete, saved to {logfile}")
+                sanitized_logfile = logfile.replace('.log', '_sanitized.log')
+                if os.path.exists(logfile):
+                    try:
+                        import shutil
+                        shutil.copy2(logfile, sanitized_logfile)
+                        sanitize_file(sanitized_logfile)
+                        print(f"Sanitized copy saved to: {sanitized_logfile}")
+                    except Exception as e:
+                        print(f"❌ Error creating sanitized copy: {e}")
                 set_puml_state(True)
                 self.reset_logfile()
+                set_verbose(current_debug)
                 print(f"End Device Analysis.\n")
                 self._on_spin('stop')
 

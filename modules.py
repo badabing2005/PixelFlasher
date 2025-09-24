@@ -1615,12 +1615,17 @@ def kb_stats_ui(self):
             for i in range(len(checkboxes)):
                 print(f"{checkboxes[i]}: {bool(checkbox_values[i])}")
             print("\n")
-            target_path = None
+            target_path = ""
             if checkbox_values[3]:
-                with wx.DirDialog(self, "Select reference marking folder", style=wx.DD_DEFAULT_STYLE) as dirDialog:
+                if self.config.unmarked_entries_path and os.path.exists(self.config.unmarked_entries_path):
+                    target_path = self.config.unmarked_entries_path
+
+                with wx.DirDialog(self, "Select reference marking folder", defaultPath=target_path, style=wx.DD_DEFAULT_STYLE) as dirDialog:
                     if dirDialog.ShowModal() == wx.ID_OK:
                         target_path = dirDialog.GetPath()
                         print(f"Selected reference folder: {target_path}")
+                        self.config.unmarked_entries_path = target_path
+                        self.config.save(get_config_file_path())
                     else:
                         print("Aborting ...\n")
                         return
@@ -2108,7 +2113,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         if app_type == 'KernelSU-Next':
             repo_user = 'rifsxd'
             repo_name = 'KernelSU-Next'
-            pattern = r'^KernelSU_Next.*\.apk$'
+            pattern = r'^KernelSU_Next(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_next_path
             app_name = "KernelSU-Next"
         elif app_type == 'APatch':
@@ -2120,7 +2125,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
-            pattern = r'^KernelSU.*\.apk$'
+            pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_path
             app_name = "KernelSU"
 

@@ -121,6 +121,7 @@ class Config():
         self.language = 'en'
         self.keep_patch_temporary_files = False
         self.kb_index = False
+        self.unmarked_entries_path = None
 
         self.toolbar = {
             'tb_position': 'top',
@@ -329,6 +330,8 @@ class Config():
                     conf.keep_patch_temporary_files = data['keep_patch_temporary_files']
                 with contextlib.suppress(KeyError):
                     conf.kb_index = data['kb_index']
+                with contextlib.suppress(KeyError):
+                    conf.unmarked_entries_path = data['unmarked_entries_path']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -531,7 +534,8 @@ class Config():
             'sanitize_support_files': self.sanitize_support_files,
             'language': self.language,
             'keep_patch_temporary_files': self.keep_patch_temporary_files,
-            'kb_index': self.kb_index
+            'kb_index': self.kb_index,
+            'unmarked_entries_path': self.unmarked_entries_path
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

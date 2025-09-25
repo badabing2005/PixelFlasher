@@ -2479,7 +2479,7 @@ class PixelFlasher(wx.Frame):
         message += _("1. Unfiltered version, that would have some sensitive information such as Device ID.\n")
         message += _("2. Sanitized version which will filter out sensitive information<br/>\n")
         message += "\n"
-        message += _("**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` so that the keybox information is included in the report.<br/>\n")
+        message += _("**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` unchecked so that the keybox information is included in the report.<br/>\n")
         message += _("If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n")
         message += "\n"
         message += _("**This report will include the following details:**<br/>\n")

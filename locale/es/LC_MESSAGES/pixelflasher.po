@@ -2853,11 +2853,11 @@ msgstr "1. Versión sin filtrar, que tendría alguna información sensible como 
 msgid "2. Sanitized version which will filter out sensitive information<br/>\n"
 msgstr "2. Versión saneada que filtrará información sensible<br/>\n"
 
-msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` so that the keybox information is included in the report.<br/>\n"
-msgstr "**Nota:** Si está utilizando un keybox compartido públicamente, mantenga la casilla `Redactar detalles del Keybox` para que la información del keybox se incluya en el informe.<br/>\n"
+msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` unticked so that the keybox information is included in the report.<br/>\n"
+msgstr "**Nota:** Si está utilizando un keybox compartido públicamente, mantenga la casilla `Redactar detalles del Keybox` sin marcar para que la información del keybox se incluya en el informe.<br/>\n"
 
-msgid "If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
-msgstr "Si está utilizando un keybox privado, seleccione la casilla `Redactar detalles del Keybox` para redactar los detalles del keybox.<br/>\n"
+msgid "If you're using a private keybox, please tick the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
+msgstr "Si está utilizando un keybox privado, marque la casilla `Redactar detalles del Keybox` para redactar los detalles del keybox.<br/>\n"
 
 msgid "**This report will include the following details:**<br/>\n"
 msgstr "**Este informe incluirá los siguientes detalles:**<br/>\n"

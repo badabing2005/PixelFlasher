@@ -2817,10 +2817,10 @@ msgstr ""
 msgid "2. Sanitized version which will filter out sensitive information<br/>\n"
 msgstr ""
 
-msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` so that the keybox information is included in the report.<br/>\n"
+msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` unticked so that the keybox information is included in the report.<br/>\n"
 msgstr ""
 
-msgid "If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
+msgid "If you're using a private keybox, please tick the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
 msgstr ""
 
 msgid "**This report will include the following details:**<br/>\n"

@@ -722,7 +722,7 @@ class PifManager(wx.Dialog):
 
                     if module.id == "targetedfix":
                         self.pif_format = 'json'
-                        self.tf_target_path = '/data/adb/modules/targetedfix/target.txt'
+                        self.tf_target_path = f"{TARGETEDFIX_CONFIG_PATH}/target.txt"
                         self.tf_targets_combo.Enable(True)
                         self.auto_run_migrate_checkbox.Enable(False)
                         self.create_pif_button.Enable(False)
@@ -926,7 +926,7 @@ class PifManager(wx.Dialog):
                 for target in targets:
                     local_json_file = os.path.join(config_path, 'tmp', f'{target}.json')
                     if not os.path.exists(local_json_file) or not self._tf_targets_loaded:
-                        remote_json_file = f"/data/adb/modules/targetedfix/{target}.json"
+                        remote_json_file = f"{TARGETEDFIX_CONFIG_PATH}/{target}.json"
                         res = device.pull_file(remote_json_file, local_json_file, True, quiet=True)
                         # If pull fails, create empty JSON file
                         if res != 0:
@@ -1326,7 +1326,7 @@ class PifManager(wx.Dialog):
                         return
 
                     # Delete the JSON file from device
-                    json_file_path = f"/data/adb/modules/targetedfix/{selected_text}.json"
+                    json_file_path = f"{TARGETEDFIX_CONFIG_PATH}/{selected_text}.json"
                     res = device.delete(json_file_path, with_su=True, dir=False)
                     if res != 0:
                         print(f"Failed to delete JSON file: {json_file_path}")
@@ -1364,7 +1364,7 @@ class PifManager(wx.Dialog):
                 f.write(content)
 
             # Now push the local file to device
-            remote_filepath = f"/data/adb/modules/targetedfix/{selected_text}.json"
+            remote_filepath = f"{TARGETEDFIX_CONFIG_PATH}/{selected_text}.json"
             print(f"Pushing JSON for target '{selected_text}' to device...")
             self.create_update_pif(just_push=True, filepath=remote_filepath)
 

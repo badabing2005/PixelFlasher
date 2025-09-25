@@ -2479,8 +2479,8 @@ class PixelFlasher(wx.Frame):
         message += _("1. Unfiltered version, that would have some sensitive information such as Device ID.\n")
         message += _("2. Sanitized version which will filter out sensitive information<br/>\n")
         message += "\n"
-        message += _("**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` unchecked so that the keybox information is included in the report.<br/>\n")
-        message += _("If you're using a private keybox, please select the checkbox `Redact Keybox details` to redact keybox details.<br/>\n")
+        message += _("**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` unticked so that the keybox information is included in the report.<br/>\n")
+        message += _("If you're using a private keybox, please tick the checkbox `Redact Keybox details` to redact keybox details.<br/>\n")
         message += "\n"
         message += _("**This report will include the following details:**<br/>\n")
         message += "\n"
@@ -2498,7 +2498,7 @@ class PixelFlasher(wx.Frame):
         message += "	- `/data/adb/modules/playintegrityfix/custom.app_replace.list`\n"
         message += "	- `/data/adb/modules/playintegrityfix/scripts-only-mode`\n"
         message += _("- TargetedFix (if available):\n")
-        message += "	- `/data/adb/modules/targetedfix/target.txt`\n"
+        message += f"	- `{TARGETEDFIX_CONFIG_PATH}/target.txt`\n"
         message += _("	- Contents of every app json configuration referenced in target.txt\n")
         message += _("- PlayIntegrityFix (if available):\n")
         message += "	- `/data/adb/modules/playintegrityfix/pif.json`\n"
@@ -2709,12 +2709,12 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking TargetedFix target.txt ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/targetedfix/target.txt", True)
+                res = device.file_content(f"{TARGETEDFIX_CONFIG_PATH}/target.txt", True)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
                     for line in res.splitlines():
                         if line:
-                            target = device.file_content(f"/data/adb/modules/targetedfix/{line.strip()}.json", True)
+                            target = device.file_content(f"{TARGETEDFIX_CONFIG_PATH}/{line.strip()}.json", True)
                             if target != -1:
                                 print(f"--------------------\n{line.strip()}\n--------------------")
                             else:

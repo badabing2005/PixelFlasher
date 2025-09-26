@@ -309,7 +309,24 @@ class MagiskModules(wx.Dialog):
     #              Function PopulateList
     # -----------------------------------------------
     def PopulateList(self, refresh=False):
-        modules = self.device.get_magisk_detailed_modules(refresh)
+        if "apatch" in self.device.su_version.lower():
+            modules = self.device.get_apatch_detailed_modules(refresh)
+            self.enable_zygisk_button.Enable(False)
+            self.disable_zygisk_button.Enable(False)
+            self.systemless_hosts_button.Enable(False)
+            self.enable_denylist_button.Enable(False)
+            self.disable_denylist_button.Enable(False)
+            self.superuser_access_button.Enable(False)
+        elif "kernelsu" in self.device.su_version.lower():
+            modules = self.device.get_ksu_detailed_modules(refresh)
+            self.enable_zygisk_button.Enable(False)
+            self.disable_zygisk_button.Enable(False)
+            self.systemless_hosts_button.Enable(False)
+            self.enable_denylist_button.Enable(False)
+            self.disable_denylist_button.Enable(False)
+            self.superuser_access_button.Enable(False)
+        else:
+            modules = self.device.get_magisk_detailed_modules(refresh)
 
         self.pif_install_button.Enable(True)
 
@@ -449,7 +466,12 @@ class MagiskModules(wx.Dialog):
         # puml(f":Select Magisk Module {self.list.GetItemText(self.currentItem)};\n")
 
         # Get the module object for the selected item
-        modules = device.get_magisk_detailed_modules(refresh=False)
+        if "apatch" in self.device.su_version.lower():
+            modules = device.get_apatch_detailed_modules(refresh=False)
+        elif "kernelsu" in self.device.su_version.lower():
+            modules = device.get_ksu_detailed_modules(refresh=False)
+        else:
+            modules = device.get_magisk_detailed_modules(refresh=False)
         self.module = modules[self.currentItem]
         self.html.SetPage('')
         if self.module.updateAvailable:
@@ -460,7 +482,7 @@ class MagiskModules(wx.Dialog):
         else:
             self.update_module_button.Enable(False)
         # if module has has_action then enable run action button
-        if self.module.hasAction == 'True':
+        if self.module.hasAction == 'True' or "apatch" in self.device.su_version.lower() or "kernelsu" in self.device.su_version.lower():
             self.run_action_button.Enable(True)
         else:
             self.run_action_button.Enable(False)
@@ -719,7 +741,12 @@ class MagiskModules(wx.Dialog):
                 return
             id = self.list.GetItem(self.currentItem, 0).Text
             name = self.list.GetItem(self.currentItem, 1).Text
-            modules = device.get_magisk_detailed_modules()
+            if "apatch" in self.device.su_version.lower():
+                modules = device.get_apatch_detailed_modules()
+            elif "kernelsu" in self.device.su_version.lower():
+                modules = device.get_ksu_detailed_modules()
+            else:
+                modules = device.get_magisk_detailed_modules()
             self._on_spin('start')
             for i in range(0, self.list.ItemCount, 1):
                 if modules[i].dirname == id:
@@ -756,14 +783,14 @@ class MagiskModules(wx.Dialog):
             if self.module and self.module.updateAvailable and self.module.updateDetails and (self.module.id and self.module.id == id) and (self.module.name and self.module.name == name):
                 url = self.module.updateDetails.zipUrl
                 self._on_spin('start')
-                print(f"Downloading Magisk Module: {name} URL: {url} ...")
+                print(f"Downloading Module: {name} URL: {url} ...")
                 downloaded_file_path = download_file(url)
                 res = device.magisk_install_module(downloaded_file_path)
                 if res == 0:
                     self.outputMessage(_("## You need to reboot your device to complete the update."))
             self.refresh_modules()
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules update")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during modules update")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -828,7 +855,12 @@ class MagiskModules(wx.Dialog):
         if not device.rooted:
             self.EndModal(wx.ID_OK)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
-        modules = device.get_magisk_detailed_modules()
+        if "apatch" in self.device.su_version.lower():
+            modules = device.get_apatch_detailed_modules()
+        elif "kernelsu" in self.device.su_version.lower():
+            modules = device.get_ksu_detailed_modules()
+        else:
+            modules = device.get_magisk_detailed_modules()
         for i in range(0, self.list.ItemCount, 1):
             if modules[i].state == 'enabled':
                 module_state = True

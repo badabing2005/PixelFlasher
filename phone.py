@@ -38,6 +38,8 @@ import re
 import subprocess
 import time
 import traceback
+import sqlite3
+import json
 from datetime import datetime
 from urllib.parse import urlparse
 from packaging.version import parse
@@ -139,10 +141,16 @@ class Device():
         self._get_magisk_detailed_modules = None
         self._magisk_modules_summary = None
         self._magisk_config_path = None
+        self._get_apatch_detailed_modules = None
+        self._apatch_modules_summary = None
+        self._apatch_version = None
+        self._apatch_version_code = None
         self._apatch_app_version = None
         self._apatch_app_version_code = None
         self._apatch_next_app_version = None
         self._apatch_next_app_version_code = None
+        self._get_ksu_detailed_modules = None
+        self._ksu_modules_summary = None
         self._ksu_version = None
         self._ksu_app_version = None
         self._ksu_version_code = None
@@ -151,6 +159,8 @@ class Device():
         self._ksu_next_app_version = None
         self._ksu_next_version_code = None
         self._ksu_next_app_version_code = None
+        self._get_lsposed_detailed_modules = None
+        self._lsposed_modules_summary = None
         self._has_init_boot = None
         self._kernel = None
         self._magisk_denylist_enforced = None
@@ -756,6 +766,85 @@ class Device():
         return self._magisk_version
 
     # ----------------------------------------------------------------------------
+    #                               method _get_root_solution_version
+    # ----------------------------------------------------------------------------
+    def _get_root_solution_version(self, solution_type):
+        if solution_type == 'apatch':
+            cmd_name = 'apd'
+            primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd -V\'\""
+            fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/apd -V\'\""
+        elif solution_type == 'ksu':
+            cmd_name = 'ksud'
+            primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud -V\'\""
+            fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/ksud -V\'\""
+        else:
+            return None, None
+
+        try:
+            res = run_shell(primary_cmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                # Both APatch and KSU return format like "apd 10930" or "ksud 12345"
+                output = res.stdout.strip('\n')
+                parts = output.split()
+                if len(parts) >= 2 and parts[0] == cmd_name:
+                    version_code = parts[1]
+                    version = f"{cmd_name}:{version_code}"
+                    return version, version_code
+                else:
+                    # Fallback to original parsing for compatibility in case it changes to Magisk style
+                    regex = re.compile(r"(.*?):.*\((.*?)\)")
+                    m = re.findall(regex, output)
+                    if m:
+                        version = f"{m[0][0]}:{m[0][1]}"
+                        version_code = f"{m[0][1]}"
+                        return version, version_code
+                    else:
+                        version = output
+                        version_code = output.strip(':')
+                        return version, version_code
+        except Exception:
+            try:
+                res = run_shell(fallback_cmd)
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                    output = res.stdout.strip('\n')
+                    parts = output.split()
+                    if len(parts) >= 2 and parts[0] == cmd_name:
+                        version_code = parts[1]
+                        version = f"{cmd_name}:{version_code}"
+                        return version, version_code
+                    else:
+                        version = output
+                        version_code = output.strip(':')
+                        return version, version_code
+            except Exception:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get {cmd_name} version, assuming that it is not rooted.")
+                traceback.print_exc()
+                self._rooted = None
+                self._su_version = ''
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
+
+        return None, None
+
+    # ----------------------------------------------------------------------------
+    #                               property apatch_version
+    # ----------------------------------------------------------------------------
+    @property
+    def apatch_version(self):
+        if self._apatch_version is None and self.true_mode == 'adb' and self.rooted:
+            self._apatch_version, self._apatch_version_code = self._get_root_solution_version('apatch')
+        return self._apatch_version
+
+    # ----------------------------------------------------------------------------
+    #                               property ksu_version
+    # ----------------------------------------------------------------------------
+    @property
+    def ksu_version(self):
+        if self._ksu_version is None and self.true_mode == 'adb' and self.rooted:
+            self._ksu_version, self._ksu_version_code = self._get_root_solution_version('ksu')
+        return self._ksu_version
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_version_code
     # ----------------------------------------------------------------------------
     @property
@@ -764,6 +853,26 @@ class Device():
             return ''
         else:
             return self._magisk_version_code
+
+    # ----------------------------------------------------------------------------
+    #                               property apatch_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def apatch_version_code(self):
+        if self._apatch_version_code is None:
+            return ''
+        else:
+            return self._apatch_version_code
+
+    # ----------------------------------------------------------------------------
+    #                               property ksu_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def ksu_version_code(self):
+        if self._ksu_version_code is None:
+            return ''
+        else:
+            return self._ksu_version_code
 
     # ----------------------------------------------------------------------------
     #                               property magisk_config_path
@@ -2683,6 +2792,111 @@ add_hosts_module
             traceback.print_exc()
 
     # ----------------------------------------------------------------------------
+    #                               method _get_json_modules_common
+    # ----------------------------------------------------------------------------
+    def _get_json_modules_common(self, solution_name):
+        try:
+            config = get_config()
+            if self.true_mode != 'adb' or not self.rooted:
+                return []
+
+            if solution_name == 'APatch':
+                cmd = 'apd'
+            elif solution_name == 'KernelSU':
+                cmd = 'ksud'
+            else:
+                return []
+
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/{cmd} module list\'\""
+            res = run_shell(theCmd, encoding='utf-8')
+
+            if not (res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0):
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error when processing {solution_name} Modules.")
+                print(f"Return Code: {res.returncode}")
+                print(f"Stdout: {res.stdout}")
+                print(f"Stderr: {res.stderr}")
+                return []
+
+            modules = []
+            try:
+                module_data = json.loads(res.stdout)
+
+                for item in module_data:
+                    if not item:
+                        continue
+
+                    # Create Magisk module object to maintain compatibility with existing code
+                    module_id = item.get('id', '')
+                    m = Magisk(module_id)
+
+                    # Map JSON fields to Magisk object attributes
+                    setattr(m, 'id', module_id)
+                    setattr(m, 'name', item.get('name', ''))
+                    setattr(m, 'version', item.get('version', ''))
+                    setattr(m, 'versionCode', item.get('versionCode', ''))
+                    setattr(m, 'author', item.get('author', ''))
+                    setattr(m, 'description', item.get('description', ''))
+                    setattr(m, 'updateJson', item.get('updateJson', ''))
+                    setattr(m, 'updateDetails', {})
+                    setattr(m, 'updateAvailable', False)
+                    setattr(m, 'updateIssue', False)
+
+                    # Map specific fields to match Magisk structure
+                    enabled = item.get('enabled', 'false')
+                    remove = item.get('remove', 'false')
+                    action = item.get('action', 'false')
+
+                    # Convert string boolean to actual state
+                    if remove == 'true':
+                        m.state = 'remove'
+                    elif enabled == 'false':
+                        m.state = 'disabled'
+                    else:
+                        m.state = 'enabled'
+
+                    # Set hasAction based on action field
+                    setattr(m, 'hasAction', action == 'true')
+
+                    # Check for module updates if enabled in config
+                    if m.updateJson and config.check_module_updates:
+                        setattr(m, 'updateDetails', check_module_update(m.updateJson))
+
+                    # Check if update is available
+                    with contextlib.suppress(Exception):
+                        if m.versionCode and m.updateDetails and m.updateDetails.versionCode and int(m.updateDetails.versionCode) > int(m.versionCode):
+                            m.updateAvailable = True
+
+                    modules.append(m)
+
+                return modules
+
+            except json.JSONDecodeError as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to parse {solution_name} module JSON response")
+                print(f"JSON Error: {e}")
+                return []
+
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during {solution_name} modules processing")
+            traceback.print_exc()
+            return []
+
+    # ----------------------------------------------------------------------------
+    #                               method get_apatch_detailed_modules
+    # ----------------------------------------------------------------------------
+    def get_apatch_detailed_modules(self, refresh=False):
+        if self._get_apatch_detailed_modules is None or refresh == True:
+            self._get_apatch_detailed_modules = self._get_json_modules_common('APatch')
+        return self._get_apatch_detailed_modules
+
+    # ----------------------------------------------------------------------------
+    #                               method get_ksu_detailed_modules
+    # ----------------------------------------------------------------------------
+    def get_ksu_detailed_modules(self, refresh=False):
+        if self._get_ksu_detailed_modules is None or refresh == True:
+            self._get_ksu_detailed_modules = self._get_json_modules_common('KernelSU')
+        return self._get_ksu_detailed_modules
+
+    # ----------------------------------------------------------------------------
     #                               method get_magisk_detailed_modules
     # ----------------------------------------------------------------------------
     def  get_magisk_detailed_modules(self, refresh=False):
@@ -2830,6 +3044,134 @@ add_hosts_module
             else:
                 self._magisk_modules_summary = ''
         return self._magisk_modules_summary
+
+    # ----------------------------------------------------------------------------
+    #                               property apatch_modules_summary
+    # ----------------------------------------------------------------------------
+    @property
+    def apatch_modules_summary(self):
+        if self._apatch_modules_summary is None:
+            if self.get_apatch_detailed_modules():
+                summary = ''
+                for module in self.get_apatch_detailed_modules():
+                    with contextlib.suppress(Exception):
+                        updateText = ''
+                        if module.updateAvailable:
+                            updateText = "\t [Update Available]"
+                        summary += f"        {module.name:<36}{module.state:<10}{module.version}{updateText}\n"
+                self._apatch_modules_summary = summary
+            else:
+                self._apatch_modules_summary = ''
+        return self._apatch_modules_summary
+
+    # ----------------------------------------------------------------------------
+    #                               property ksu_modules_summary
+    # ----------------------------------------------------------------------------
+    @property
+    def ksu_modules_summary(self):
+        if self._ksu_modules_summary is None:
+            if self.get_ksu_detailed_modules():
+                summary = ''
+                for module in self.get_ksu_detailed_modules():
+                    with contextlib.suppress(Exception):
+                        updateText = ''
+                        if module.updateAvailable:
+                            updateText = "\t [Update Available]"
+                        summary += f"        {module.name:<36}{module.state:<10}{module.version}{updateText}\n"
+                self._ksu_modules_summary = summary
+            else:
+                self._ksu_modules_summary = ''
+        return self._ksu_modules_summary
+
+    # ----------------------------------------------------------------------------
+    #                               method get_lsposed_modules
+    # ----------------------------------------------------------------------------
+    def get_lsposed_modules(self, refresh=False):
+        if self._get_lsposed_detailed_modules is None or refresh:
+            self._get_lsposed_detailed_modules = self._fetch_lsposed_modules()
+        return self._get_lsposed_detailed_modules
+
+    # ----------------------------------------------------------------------------
+    #                               method _fetch_lsposed_modules
+    # ----------------------------------------------------------------------------
+    def _fetch_lsposed_modules(self):
+        try:
+            if self.true_mode != 'adb' or not self.rooted:
+                return []
+
+            config_path = get_config_path()
+            tmp_dir = os.path.join(config_path, 'tmp')
+            os.makedirs(tmp_dir, exist_ok=True)
+
+            local_db_path = os.path.join(tmp_dir, 'lsposed_modules.db')
+            device_db_path = '/data/adb/lspd/config/modules_config.db'
+
+            # Check if database exists on device
+            res, _ = self.check_file(device_db_path, with_su=True)
+            if res != 1:
+                print("LSPosed modules database not found on device")
+                return []
+
+            # Pull database file from device
+            print("Fetching LSPosed modules database...")
+            pull_res = self.pull_file(device_db_path, local_db_path, with_su=True, quiet=True)
+            if pull_res != 0:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch LSPosed database")
+                return []
+
+            # Parse SQLite database
+            modules = []
+            try:
+                conn = sqlite3.connect(local_db_path)
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT mid, module_pkg_name, apk_path, enabled, auto_include
+                    FROM modules
+                """)
+                rows = cursor.fetchall()
+                for row in rows:
+                    mid, module_pkg_name, apk_path, enabled, auto_include = row
+                    module = {
+                        'id': str(mid),
+                        'name': module_pkg_name or '',
+                        'package_name': module_pkg_name or '',
+                        'apk_path': apk_path or '',
+                        'enabled': bool(enabled),
+                        'auto_include': bool(auto_include)
+                    }
+                    modules.append(module)
+
+                conn.close()
+                print(f"Found {len(modules)} LSPosed modules")
+
+            except sqlite3.Error as e:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: SQLite error: {e}")
+                return []
+
+            return modules
+
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during LSPosed modules fetch")
+            traceback.print_exc()
+            return []
+
+    # ----------------------------------------------------------------------------
+    #                               property lsposed_modules_summary
+    # ----------------------------------------------------------------------------
+    @property
+    def lsposed_modules_summary(self):
+        if self._lsposed_modules_summary is None:
+            modules = self.get_lsposed_modules()
+            if modules:
+                summary = ''
+                for module in modules:
+                    with contextlib.suppress(Exception):
+                        enabled_text = 'enabled' if module.get('enabled', False) else 'disabled'
+                        summary += f"        {module.get('name', ''):<36}{enabled_text:<10}\n"
+                self._lsposed_modules_summary = summary
+            else:
+                self._lsposed_modules_summary = ''
+        return self._lsposed_modules_summary
 
     # ----------------------------------------------------------------------------
     #                               property su_version
@@ -3983,7 +4325,12 @@ add_hosts_module
                 print(f"Running magisk module action for {dirname} ...")
                 puml(":Run magisk module action;\n", True)
                 puml(f"note right:{dirname};\n")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/magisk/busybox sh -o standalone /data/adb/modules/{dirname}/action.sh\'\""
+                res, unused = self.check_file(f"/data/adb/modules/{dirname}/action.sh", True)
+                if res != 1:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module {dirname} does not have action script\nAborting ...\n")
+                    puml("#red:Module does not have action script;\n}\n")
+                    return -1
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'busybox sh -o standalone /data/adb/modules/{dirname}/action.sh\'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res and isinstance(res, subprocess.CompletedProcess):

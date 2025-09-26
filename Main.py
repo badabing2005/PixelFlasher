@@ -3063,7 +3063,7 @@ class PixelFlasher(wx.Frame):
                 if m_app_version:
                     message += f"    Magisk Manager Version:          {m_app_version}\n"
                     # message += f"    Magisk Path:                     {device.magisk_path}\n"
-                    message += f"        Checked for Package:         {self.config.magisk}\n"
+                    message += f"      Checked for Package:           {self.config.magisk}\n"
                 k_app_version = device.ksu_app_version
                 if k_app_version:
                     message += f"    KernelSU App Version:            {k_app_version}\n"
@@ -3091,13 +3091,31 @@ class PixelFlasher(wx.Frame):
             message += f"    PF Bootloader Status:            {device.get_bl_status().upper()}\n"
         if device.rooted:
             message += f"    Device Rooted with:              {device.su_version}\n"
-            m_version = device.magisk_version
-            message += f"    Magisk Version:                  {m_version}\n"
-            message += f"    Magisk Config SHA1:              {device.magisk_sha1}\n"
-            message += f"    Magisk Denylist enforced:        {device.magisk_denylist_enforced}\n"
-            message += f"    Magisk Zygisk enabled:           {device.magisk_zygisk_enabled}\n"
-            message += "    Magisk Modules:\n"
-            message += f"{device.magisk_modules_summary}\n"
+            if "apatch" in device.su_version.lower():
+                a_version = device.apatch_version
+                message += f"      APatch Version:                {a_version}\n"
+                message += "      Apatch Modules:\n"
+                modules = device.apatch_modules_summary
+                message += f"{modules}"
+            elif "kernelsu" in device.su_version.lower():
+                k_version = device.ksu_version
+                message += f"      KSUd Version:                  {k_version}\n"
+                message += "      KSUd Modules:\n"
+                modules = device.ksu_modules_summary
+                message += f"{modules}"
+            else:
+                m_version = device.magisk_version
+                message += f"      Magisk Version:                {m_version}\n"
+                message += f"      Magisk Config SHA1:            {device.magisk_sha1}\n"
+                message += f"      Magisk Denylist enforced:      {device.magisk_denylist_enforced}\n"
+                message += f"      Magisk Zygisk enabled:         {device.magisk_zygisk_enabled}\n"
+                message += "      Magisk Modules:\n"
+                modules = device.magisk_modules_summary
+                message += f"{modules}"
+            if "lsposed" in modules.lower():
+                message += "      LSPosed Modules:\n"
+                message += f"{device.lsposed_modules_summary}"
+            message += "\n"
             message += f"{device.get_battery_details()}\n"
         else:
             print('')
@@ -4288,8 +4306,9 @@ class PixelFlasher(wx.Frame):
             errored_files = []
             if device:
                 for selected_file in selected_files:
+                    filename = ntpath.basename(selected_file)
                     # push the file
-                    res = device.push_file(selected_file, destination, False)
+                    res = device.push_file(selected_file, f"{destination}/filename", False)
                     if res != 0:
                         print(f"Return Code: {res.returncode}")
                         print(f"Stdout: {res.stdout}")

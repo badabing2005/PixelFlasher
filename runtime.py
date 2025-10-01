@@ -142,7 +142,7 @@ _config_file_path = ''
 _unlocked_devices = []
 _window_shown = False
 _puml_enabled = True
-_magisk_apks = None
+_rooting_app_apks = None
 _selected_boot_partition = None
 
 
@@ -5574,17 +5574,23 @@ def bootloader_issue_message():
 # ============================================================================
 #                 Function download_ksu_latest_release_asset
 # ============================================================================
-def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True):
+def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True, custom_kernel=None):
     try:
-        url = f"https://api.github.com/repos/{user}/{repo}/releases/latest"
+        # For ShirkNeko and other custom kernels that might use pre-releases, check pre-releases first
+        include_prerelease = custom_kernel in ['ShirkNeko', 'MiRinFork']
+
         if asset_name:
             look_for = asset_name
         else:
             look_for = "[all entries]"
-        print(f"Fetching latest release from {url} matching {look_for} ...")
-        response = request_with_fallback(method='GET', url=url)
-        assets = response.json().get('assets', [])
 
+        debug(f"Fetching latest release from {user}/{repo} matching {look_for} (include_prerelease: {include_prerelease})...")
+        response_data = get_gh_release_object(user=user, repo=repo, include_prerelease=include_prerelease)
+        if response_data is None:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch release data from {user}/{repo}")
+            return None
+
+        assets = response_data.get('assets', [])
         if not asset_name:
             return assets
 
@@ -5598,29 +5604,64 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
 
         # Prepare the regular expression pattern
         if anykernel:
-            pattern = re.compile(rf"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\.zip$")
+            if custom_kernel:
+                if custom_kernel in ["MiRinFork", 'ShirkNeko']:
+                    pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
+                    debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
+                else:
+                    # Fallback pattern for other custom kernels
+                    pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
+                    debug(f"Using fallback pattern for {custom_kernel}: {pattern.pattern}")
+            else:
+                pattern = re.compile(rf"^AnyKernel3-{base_name}-{fixed_version}\.([0-9]+)(_.*|)\.zip$")
+                debug(f"Using AnyKernel pattern: {pattern.pattern}")
         else:
             pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\.img\.gz$")
+            debug(f"Using boot.img pattern: {pattern.pattern}")
 
         # Find the best match
         best_match = None
         best_version = -1
+        matching_assets = []
+        fallback_match = None
+        fallback_version = float('inf')
+
         for asset in assets:
             match = pattern.match(asset['name'])
             if match:
                 asset_version = int(match[1])
+                matching_assets.append((asset['name'], asset_version))
+
+                # First priority: find highest version <= requested version
                 if asset_version <= variable_version and asset_version > best_version:
                     best_match = asset
                     best_version = asset_version
                     if asset_version == variable_version:
                         break
+
+                # Fallback: track lowest version > requested version
+                elif asset_version > variable_version and asset_version < fallback_version:
+                    fallback_match = asset
+                    fallback_version = asset_version
+
+        # If no version <= requested found, use the closest higher version
+        if not best_match and fallback_match:
+            best_match = fallback_match
+            best_version = fallback_version
+            print(f"⚠️ No version <= {variable_version} found, using closest higher version: {fallback_version}")
+
+        if matching_assets:
+            debug(f"Pattern matched {len(matching_assets)} assets:")
+            for name, version in matching_assets:
+                debug(f"  - {name} (version: {version})")
+
         if best_match:
             print(f"Found best match KernelSU: {best_match['name']}")
             download_file(best_match['browser_download_url'])
             print(f"Downloaded {best_match['name']}")
             return best_match['name']
         else:
-            print(f"Asset {asset_name} not found in the latest release of {user}/{repo}")
+            print(f"A good match for asset {asset_name} not found in the latest release of {user}/{repo}")
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_ksu_latest_release_asset function")
         traceback.print_exc()
@@ -7928,28 +7969,43 @@ def insert_package_boot_record(package_id, boot_id):
 # ============================================================================
 #                               Function magisk_apks
 # ============================================================================
-def get_magisk_apks():
-    global _magisk_apks
-    if _magisk_apks is None:
+def get_rooting_app_apks():
+    global _rooting_app_apks
+    if _rooting_app_apks is None:
         try:
             apks = []
-            mlist = ['Magisk Stable', 'Magisk Beta', 'Magisk Debug', 'Magisk Release', 'Magisk Pre-Release', 'KitsuneMagisk Fork', "KernelSU", 'KernelSU-Next', 'APatch', "Magisk zygote64_32 canary", "Magisk special 27001", "Magisk special 26401", 'Magisk special 25203']
+            mlist = [
+                'Magisk Stable',
+                'Magisk Beta',
+                'Magisk Debug',
+                'Magisk Release',
+                'Magisk Pre-Release',
+                'KitsuneMagisk Fork',
+                "KernelSU",
+                'KernelSU-Next',
+                'APatch',
+                "SukiSU",
+                "Magisk zygote64_32 canary",
+                "Magisk special 27001",
+                "Magisk special 26401",
+                'Magisk special 25203'
+            ]
             for i in mlist:
-                apk = get_magisk_apk_details(i)
+                apk = get_rooting_app_details(i)
                 if apk:
                     apks.append(apk)
-            _magisk_apks = apks
+            _rooting_app_apks = apks
         except Exception as e:
-            _magisk_apks is None
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk downloads link: {i} processing")
+            _rooting_app_apks is None
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Rooting App downloads link: {i} processing")
             traceback.print_exc()
-    return _magisk_apks
+    return _rooting_app_apks
 
 
 # ============================================================================
-#                               Function get_magisk_apk_details
+#                               Function get_rooting_app_details
 # ============================================================================
-def get_magisk_apk_details(channel):
+def get_rooting_app_details(channel):
     ma = MagiskApk(channel)
     if channel == 'Magisk Stable':
         url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/stable.json"
@@ -7996,29 +8052,33 @@ def get_magisk_apk_details(channel):
         try:
             # https://github.com/topjohnwu/Magisk/releases
             release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=False)
-            release_version = release['tag_name']
-            release_notes = release['body']
-            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Magisk.*\.apk$', download=False)
-            if release_notes is None:
-                release_version = "No release notes available"
-            if release_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Release APK")
-                return
-            match = re.search(r'_([0-9]+)-', release_url)
-            if match:
-                release_versionCode =  match.group(1)
-            else:
-                if release_version:
-                    release_versionCode = f"{release_version.replace('v', '').replace('.', '')}00"
+            if release:
+                release_version = release['tag_name']
+                release_notes = release['body']
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Magisk.*\.apk$', download=False)
+                if release_notes is None:
+                    release_version = "No release notes available"
+                if release_url is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Release APK")
+                    return
+                match = re.search(r'_([0-9]+)-', release_url)
+                if match:
+                    release_versionCode =  match.group(1)
                 else:
-                    release_versionCode = 0
-            setattr(ma, 'version', release_version)
-            setattr(ma, 'versionCode', release_versionCode)
-            setattr(ma, 'link', release_url)
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', MAGISK_PKG_NAME)
-            setattr(ma, 'release_notes', release_notes)
-            return ma
+                    if release_version:
+                        release_versionCode = f"{release_version.replace('v', '').replace('.', '')}00"
+                    else:
+                        release_versionCode = 0
+                setattr(ma, 'version', release_version)
+                setattr(ma, 'versionCode', release_versionCode)
+                setattr(ma, 'link', release_url)
+                setattr(ma, 'note_link', "note_link")
+                setattr(ma, 'package', MAGISK_PKG_NAME)
+                setattr(ma, 'release_notes', release_notes)
+                return ma
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {channel} on GitHub")
+                return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk Release processing")
             traceback.print_exc()
@@ -8028,29 +8088,33 @@ def get_magisk_apk_details(channel):
         try:
             # https://github.com/topjohnwu/Magisk/releases
             release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=True)
-            release_version = release['tag_name']
-            release_notes = release['body']
-            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Magisk.*\.apk$', download=False)
-            if release_notes is None:
-                release_version = "No release notes available"
-            if release_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Release APK")
-                return
-            match = re.search(r'_([0-9]+)-', release_url)
-            if match:
-                release_versionCode =  match.group(1)
-            else:
-                if release_version:
-                    release_versionCode = release_versionCode = f"{release_version.replace('v', '').replace('.', '')}00"
+            if release:
+                release_version = release['tag_name']
+                release_notes = release['body']
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Magisk.*\.apk$', download=False)
+                if release_notes is None:
+                    release_version = "No release notes available"
+                if release_url is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Release APK")
+                    return
+                match = re.search(r'_([0-9]+)-', release_url)
+                if match:
+                    release_versionCode =  match.group(1)
                 else:
-                    release_versionCode = 0
-            setattr(ma, 'version', release_version)
-            setattr(ma, 'versionCode', release_versionCode)
-            setattr(ma, 'link', release_url)
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', MAGISK_PKG_NAME)
-            setattr(ma, 'release_notes', release_notes)
-            return ma
+                    if release_version:
+                        release_versionCode = release_versionCode = f"{release_version.replace('v', '').replace('.', '')}00"
+                    else:
+                        release_versionCode = 0
+                setattr(ma, 'version', release_version)
+                setattr(ma, 'versionCode', release_versionCode)
+                setattr(ma, 'link', release_url)
+                setattr(ma, 'note_link', "note_link")
+                setattr(ma, 'package', MAGISK_PKG_NAME)
+                setattr(ma, 'release_notes', release_notes)
+                return ma
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {channel} on GitHub")
+                return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk Release processing")
             traceback.print_exc()
@@ -8060,29 +8124,33 @@ def get_magisk_apk_details(channel):
         try:
             # https://github.com/tiann/KernelSU/releases
             release = get_gh_release_object(user='tiann', repo='KernelSU', include_prerelease=False)
-            release_version = release['tag_name']
-            release_notes = release['body']
-            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU.*\.apk$', download=False)
-            if release_notes is None:
-                release_version = "No release notes available"
-            if release_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU APK")
-                return
-            match = re.search(r'_([0-9]+)-', release_url)
-            if match:
-                release_versionCode =  match.group(1)
-            else:
-                if release_version:
-                    release_versionCode = release_version
+            if release:
+                release_version = release['tag_name']
+                release_notes = release['body']
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU.*\.apk$', download=False)
+                if release_notes is None:
+                    release_version = "No release notes available"
+                if release_url is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU APK")
+                    return
+                match = re.search(r'_([0-9]+)-', release_url)
+                if match:
+                    release_versionCode =  match.group(1)
                 else:
-                    release_versionCode = 0
-            setattr(ma, 'version', release_version)
-            setattr(ma, 'versionCode', release_versionCode)
-            setattr(ma, 'link', release_url)
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', KERNEL_SU_PKG_NAME)
-            setattr(ma, 'release_notes', release_notes)
-            return ma
+                    if release_version:
+                        release_versionCode = release_version
+                    else:
+                        release_versionCode = 0
+                setattr(ma, 'version', release_version)
+                setattr(ma, 'versionCode', release_versionCode)
+                setattr(ma, 'link', release_url)
+                setattr(ma, 'note_link', "note_link")
+                setattr(ma, 'package', KERNEL_SU_PKG_NAME)
+                setattr(ma, 'release_notes', release_notes)
+                return ma
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {channel} on GitHub")
+                return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU processing")
             traceback.print_exc()
@@ -8092,31 +8160,71 @@ def get_magisk_apk_details(channel):
         try:
             # https://github.com/rifsxd/KernelSU-Next/releases
             release = get_gh_release_object(user='rifsxd', repo='KernelSU-Next', include_prerelease=False)
-            release_version = release['tag_name']
-            release_notes = release['body']
-            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next.*\.apk$', download=False)
-            if release_notes is None:
-                release_version = "No release notes available"
-            if release_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU-Next APK")
-                return
-            match = re.search(r'_([0-9]+)-', release_url)
-            if match:
-                release_versionCode =  match.group(1)
-            else:
-                if release_version:
-                    release_versionCode = release_version
+            if release:
+                release_version = release['tag_name']
+                release_notes = release['body']
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next.*\.apk$', download=False)
+                if release_notes is None:
+                    release_version = "No release notes available"
+                if release_url is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find KernelSU-Next APK")
+                    return
+                match = re.search(r'_([0-9]+)-', release_url)
+                if match:
+                    release_versionCode =  match.group(1)
                 else:
-                    release_versionCode = 0
-            setattr(ma, 'version', release_version)
-            setattr(ma, 'versionCode', release_versionCode)
-            setattr(ma, 'link', release_url)
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', KSU_NEXT_PKG_NAME)
-            setattr(ma, 'release_notes', release_notes)
-            return ma
+                    if release_version:
+                        release_versionCode = release_version
+                    else:
+                        release_versionCode = 0
+                setattr(ma, 'version', release_version)
+                setattr(ma, 'versionCode', release_versionCode)
+                setattr(ma, 'link', release_url)
+                setattr(ma, 'note_link', "note_link")
+                setattr(ma, 'package', KSU_NEXT_PKG_NAME)
+                setattr(ma, 'release_notes', release_notes)
+                return ma
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {channel} on GitHub")
+                return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during KernelSU-Next processing")
+            traceback.print_exc()
+            return
+
+    elif channel == 'SukiSU':
+        try:
+            # https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases
+            release = get_gh_release_object(user='SukiSU-Ultra', repo='SukiSU-Ultra', include_prerelease=False)
+            if release:
+                release_version = release['tag_name']
+                release_notes = release['body']
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^SukiSU.*\.apk$', download=False)
+                if release_notes is None:
+                    release_version = "No release notes available"
+                if release_url is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find SukiSU APK")
+                    return
+                match = re.search(r'_([0-9]+)-', release_url)
+                if match:
+                    release_versionCode =  match.group(1)
+                else:
+                    if release_version:
+                        release_versionCode = release_version
+                    else:
+                        release_versionCode = 0
+                setattr(ma, 'version', release_version)
+                setattr(ma, 'versionCode', release_versionCode)
+                setattr(ma, 'link', release_url)
+                setattr(ma, 'note_link', "note_link")
+                setattr(ma, 'package', SUKISU_PKG_NAME)
+                setattr(ma, 'release_notes', release_notes)
+                return ma
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {channel} on GitHub")
+                return
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during SukiSU processing")
             traceback.print_exc()
             return
 
@@ -8124,29 +8232,33 @@ def get_magisk_apk_details(channel):
         try:
             # https://github.com/bmax121/APatch/releases
             release = get_gh_release_object(user='bmax121', repo='APatch', include_prerelease=False)
-            release_version = release['tag_name']
-            release_notes = release['body']
-            release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^APatch_.*\.apk$', download=False)
-            if release_notes is None:
-                release_version = "No release notes available"
-            if release_url is None:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch APK")
-                return
-            match = re.search(r'_([0-9]+)-', release_url)
-            if match:
-                release_versionCode =  match.group(1)
-            else:
-                if release_version:
-                    release_versionCode = release_version
+            if release:
+                release_version = release['tag_name']
+                release_notes = release['body']
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^APatch_.*\.apk$', download=False)
+                if release_notes is None:
+                    release_version = "No release notes available"
+                if release_url is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find APatch APK")
+                    return
+                match = re.search(r'_([0-9]+)-', release_url)
+                if match:
+                    release_versionCode =  match.group(1)
                 else:
-                    release_versionCode = 0
-            setattr(ma, 'version', release_version)
-            setattr(ma, 'versionCode', release_versionCode)
-            setattr(ma, 'link', release_url)
-            setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', APATCH_PKG_NAME)
-            setattr(ma, 'release_notes', release_notes)
-            return ma
+                    if release_version:
+                        release_versionCode = release_version
+                    else:
+                        release_versionCode = 0
+                setattr(ma, 'version', release_version)
+                setattr(ma, 'versionCode', release_versionCode)
+                setattr(ma, 'link', release_url)
+                setattr(ma, 'note_link', "note_link")
+                setattr(ma, 'package', APATCH_PKG_NAME)
+                setattr(ma, 'release_notes', release_notes)
+                return ma
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {channel} on GitHub")
+                return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during APatch processing")
             traceback.print_exc()

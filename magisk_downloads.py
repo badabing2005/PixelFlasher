@@ -115,7 +115,7 @@ class MagiskDownloads(wx.Dialog):
             print("You can still download the rooting app, but you will not be able to install it.")
             self.Parent.clear_device_selection()
 
-        apks = get_magisk_apks()
+        apks = get_rooting_app_apks()
 
         max_url_column_width = 600
         self.list.InsertColumn(0, _('Root App'), width = -1)
@@ -335,7 +335,7 @@ class MagiskDownloads(wx.Dialog):
             self.filename = os.path.basename(urlparse(self.url).path)
             self.package = self.list.GetItemText(row, col=4)
             device = get_phone()
-            apks = get_magisk_apks()
+            apks = get_rooting_app_apks()
             self.download_button.Enable(True)
             release_notes = apks[row].release_notes
             # convert markdown to html

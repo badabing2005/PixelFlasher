@@ -170,6 +170,8 @@ command_lines = [
     "-a -F -i -n kernelsu-24 images/kernelsu-24.png images.py",
     "-a -F -i -n kernelsu-next-16 images/kernelsu-next-16.png images.py",
     "-a -F -i -n kernelsu-next-24 images/kernelsu-next-24.png images.py",
+    "-a -F -i -n sukisu-16 images/sukisu-16.png images.py",
+    "-a -F -i -n sukisu-24 images/sukisu-24.png images.py",
     "-a -F -i -n apatch-16 images/apatch-16.png images.py",
     "-a -F -i -n apatch-24 images/apatch-24.png images.py",
     "-a -F -i -n cert-24 images/cert-24.png images.py",

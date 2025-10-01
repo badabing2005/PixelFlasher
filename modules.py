@@ -306,6 +306,8 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
                     img_index = 3  # kernelsu image index
                 elif "downgrade" in patch_method:
                     img_index = 4  # downgrade image index
+                elif 'sukisu' in patch_method:
+                    img_index = 5  # sukisu image index
                 if row[3] and img_index != -1:
                     self.list.SetItemColumnImage(i, 0, img_index)
                 else:
@@ -2122,6 +2124,12 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             pattern = r'^APatch_.*\.apk$'
             path_getter = lambda: device.apatch_path
             app_name = "APatch"
+        elif app_type == 'SukiSU':
+            repo_user = 'SukiSU-Ultra'
+            repo_name = 'SukiSU-Ultra'
+            pattern = r'^SukiSU_(?!.*spoofed).*\.apk$'
+            path_getter = lambda: device.sukisu_path
+            app_name = "SukiSU"
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
@@ -2234,6 +2242,9 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             else:
                 magisk_path = device.magisk_path
             data += f"MAGISK_PATH={magisk_path}\n"
+            data += f"if [ -f\"/data/local/tmp/pf_patch.log\" ]; then\n"
+            data += f"    rm -f \"/data/local/tmp/pf_patch.log\"\n"
+            data += "fi\n"
 
             if patch_method in ["app", "other"]:
                 data += f"ARCH={device.architecture}\n"
@@ -2402,6 +2413,16 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 return -1
             with_version = device.get_uncached_ksu_next_app_version()
             with_version_code = device.ksu_next_app_version_code
+        elif 'SukiSU' in patch_flavor:
+            patch_label = "SukiSU App"
+            success, sukisu_path, error_msg = ensure_root_app_installed('SukiSU')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1
+            with_version = device.get_uncached_sukisu_app_version()
+            with_version_code = device.sukisu_app_version_code
         else:
             patch_label = "KernelSU App"
             success, ksu_path, error_msg = ensure_root_app_installed('KernelSU')
@@ -2428,14 +2449,19 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += " ##############################################################################\n"
             data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
             data += " ##############################################################################\n"
-            data += f"KSU_VERSION=\"{with_version_code}\"\n"
-            data += f"STOCK_SHA1={stock_sha1}\n"
-            data += f"KSU_PATH={ksu_path}\n"
-
+            if 'SukiSU' in patch_flavor:
+                data += f"SUKISU_VERSION=\"{with_version_code}\"\n"
+                data += f"SUKISU_PATH={sukisu_path}\n"
+            else:
+                data += f"KSU_VERSION=\"{with_version_code}\"\n"
+                data += f"KSU_PATH={ksu_path}\n"
             data += f"STOCK_SHA1={stock_sha1}\n"
 
             data += f"ARCH={device.architecture}\n\n"
             data += "cd /data/local/tmp\n"
+            data += f"if [ -f\"/data/local/tmp/pf_patch.log\" ]; then\n"
+            data += f"    rm -f \"/data/local/tmp/pf_patch.log\"\n"
+            data += "fi\n"
             data += "rm -rf pf || { echo 'ERROR: Failed to remove directory pf'; exit 1; }\n"
             data += "mkdir pf || { echo 'ERROR: Failed to create directory pf'; exit 1; }\n"
             data += "cd pf\n"
@@ -2455,14 +2481,20 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
             data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
-            data += f"PATCH_FILENAME={patch_name}_${{KSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
+            if 'SukiSU' in patch_flavor:
+                data += f"PATCH_FILENAME={patch_name}_${{SUKISU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
+            else:
+                data += f"PATCH_FILENAME={patch_name}_${{KSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
 
             data += f"cp -f /data/local/tmp/pf/new-boot.img {self.config.phone_path}/${{PATCH_FILENAME}}\n"
 
             data += f"if [[ -s {self.config.phone_path}/${{PATCH_FILENAME}} ]]; then\n"
             data += "	echo $PATCH_FILENAME > /data/local/tmp/pf_patch.log\n"
-            data += "	if [[ -n \"$KSU_VERSION\" ]]; then echo $KSU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
+            if 'SukiSU' in patch_flavor:
+                data += "	if [[ -n \"$SUKISU_VERSION\" ]]; then echo $SUKISU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
+            else:
+                data += "	if [[ -n \"$KSU_VERSION\" ]]; then echo $KSU_VERSION >> /data/local/tmp/pf_patch.log; fi\n"
             data += "else\n"
             data += "	echo \"❌ ERROR: Patching failed!\"\n"
             data += "fi\n\n"
@@ -2539,6 +2571,16 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 return -1, ""
             with_version = device.get_uncached_ksu_next_app_version()
             with_version_code = device.ksu_next_app_version_code
+        elif 'SukiSU' in patch_flavor:
+            patch_label = "SukiSU App"
+            success, ksu_path, error_msg = ensure_root_app_installed('SukiSU')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1, ""
+            with_version = device.get_uncached_sukisu_app_version()
+            with_version_code = device.sukisu_app_version_code
         else:
             patch_label = "KernelSU App"
             success, ksu_path, error_msg = ensure_root_app_installed('KernelSU')
@@ -2561,6 +2603,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         mountType = ""
         # Patch flavor based cmd selector
         if patch_flavor == 'KernelSU-Next_LKM':
+            magiskboot = "magiskboot"
             # show a question dialog to ask the user to select mount type MagicMount or OverlayFS
             title = "Select dynamic module mount system"
             buttons_text = ["MagicMount", "OverlayFS", "Cancel"]
@@ -2587,8 +2630,12 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             if result == 3:
                 print("⚠️ User cancelled, Aborting ...")
                 return -1, ""
+        elif patch_flavor == 'SukiSU_LKM':
+            ksud_mount = "zakozako"
+            magiskboot = "zakoboot"
         else:
             ksud_mount = "ksud"
+            magiskboot = "magiskboot"
 
         # Create the patch script
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
@@ -2603,6 +2650,9 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             data += f"ARCH={device.architecture}\n"
             data += f"cp {ksu_path} /data/local/tmp/pf.zip\n"
             data += "cd /data/local/tmp\n"
+            data += f"if [ -f\"/data/local/tmp/pf_patch.log\" ]; then\n"
+            data += f"    rm -f \"/data/local/tmp/pf_patch.log\"\n"
+            data += "fi\n"
             data += "rm -rf pf || { echo 'ERROR: Failed to remove directory pf'; exit 1; }\n"
             data += "mkdir pf || { echo 'ERROR: Failed to create directory pf'; exit 1; }\n"
             data += "cd pf\n"
@@ -2626,7 +2676,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 kmi_override = f" --kmi {self.config.override_kmi}"
                 data += "echo \"Overriding KMI ...\"\n"
             data += "NEWEST_FILE1=$(ls -t | head -n 1)\n"
-            data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot magiskboot {kmi_override} | tee temp_file\n"
+            data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot {magiskboot} {kmi_override} | tee temp_file\n"
 
             data += "OUTPUT_FILE=$(grep -o '/data/local/tmp/pf/assets/[^ ]*' \"temp_file\" | tail -n 1 | xargs basename)\n"
             data += "echo \"OUTPUT_FILE: [${OUTPUT_FILE}]\"\n"
@@ -2637,7 +2687,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             data += "    echo \"       NEWEST_FILE:    [${NEWEST_FILE2}]\"\n"
             data += "else\n"
             data += "    echo \"Found ${NEWEST_FILE2} continuing ...\"\n"
-            data += "    PATCH_SHA1=$(./magiskboot sha1 ${NEWEST_FILE2} | cut -c-8)\n"
+            data += f"    PATCH_SHA1=$(./{magiskboot} sha1 ${{NEWEST_FILE2}} | cut -c-8)\n"
             data += "    echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"    PATCH_FILENAME={patch_name}_${{KSU_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "    echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
@@ -2807,6 +2857,9 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             data += f"STOCK_SHA1={stock_sha1}\n"
             apatch_path = device.apatch_path
             data += f"APATCH_PATH={apatch_path}\n"
+            data += f"if [ -f\"/data/local/tmp/pf_patch.log\" ]; then\n"
+            data += f"    rm -f \"/data/local/tmp/pf_patch.log\"\n"
+            data += "fi\n"
 
             if patch_method == "app":
                 data += f"ARCH={device.architecture}\n"
@@ -3047,7 +3100,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         print(f"Patching on hardware: {device.hardware}")
 
     # If patch_flavor is KernelSU* check if the device is a Pixel device and if the kernel is KMI
-    if patch_flavor in ['KernelSU', 'KernelSU_LKM','KernelSU-Next', 'KernelSU_Next_LKM' ]:
+    if patch_flavor in ['KernelSU', 'KernelSU_LKM','KernelSU-Next', 'KernelSU_Next_LKM', 'SukiSU', 'SukiSU_LKM' ]:
         if self.config.override_kmi:
             title = _("Kernel KMI Override")
             message_en = f"Kernel KMI Override: {self.config.override_kmi}\n\n"
@@ -3095,9 +3148,9 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         if device.hardware in pixel_devices:
             anykernel = True
         else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: KernelSU (Next) patching in PixelFlasher is only supported on Pixel devices")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: KernelSU (Next) / SukiSU patching in PixelFlasher is only supported on Pixel devices")
             print("Aborting ...\n")
-            puml("#red:KernelSU (Next) is only supported on Pixel Devices;\n}\n")
+            puml("#red:KernelSU (Next) / SukiSU is only supported on Pixel Devices;\n}\n")
             return
 
     if patch_flavor == 'Custom':
@@ -3192,10 +3245,13 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 puml("#red:boot.img or init_boot.img is not found;\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
 
-        elif patch_flavor in ['KernelSU', 'KernelSU-Next']:
+        elif patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU']:
             if patch_flavor == 'KernelSU-Next':
                 app_name = "KernelSU-Next"
                 app_version = device.get_uncached_ksu_next_app_version()
+            elif patch_flavor == 'SukiSU':
+                app_name = "SukiSU"
+                app_version = device.get_uncached_sukisu_app_version()
             else:
                 app_name = "KernelSU"
                 app_version = device.get_uncached_ksu_app_version()
@@ -3207,10 +3263,13 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 puml("#red:boot.img is not found;\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
 
-        elif patch_flavor in ['KernelSU_LKM', 'KernelSU-Next_LKM']:
+        elif patch_flavor in ['KernelSU_LKM', 'KernelSU-Next_LKM', 'SukiSU_LKM']:
             if patch_flavor == 'KernelSU-Next_LKM':
                 app_name = "KernelSU-Next_LKM"
                 app_version = device.get_uncached_ksu_next_app_version()
+            elif patch_flavor == 'SukiSU_LKM':
+                app_name = "SukiSU_LKM"
+                app_version = device.get_uncached_sukisu_app_version()
             else:
                 app_name = "KernelSU_LKM"
                 app_version = device.get_uncached_ksu_app_version()
@@ -3218,7 +3277,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             if boot_exists:
                 recommendation = 1 # "boot.img"
             if vendor_boot_exists:
-                if ((patch_flavor == 'KernelSU_LKM' and (device.ksu_app_version_code and int(device.ksu_app_version_code) >= 12109)) or patch_flavor == 'KernelSU-Next_LKM'):
+                if ((patch_flavor == 'KernelSU_LKM' and (device.ksu_app_version_code and int(device.ksu_app_version_code) >= 12109)) or patch_flavor == 'KernelSU-Next_LKM' or patch_flavor == 'SukiSU_LKM'):
                     recommendation = 3 # "vendor_boot.img"
             if init_boot_exists:
                 recommendation = 2 # "init_boot.img"
@@ -3266,9 +3325,9 @@ This is a summary of what each rooting system typically patches.<br/>
 
 - **Apatch** patches the kernel in `boot`.<br/>
 
-- **KernelSU** and **KernelSU-Next** (non LKM options) patches the kernel in `boot`.<br/>
+- **KernelSU**, **KernelSU-Next** and **SukiSU** (non LKM options) patches the kernel in `boot`.<br/>
 
-- **KernelSU LKM** and **KernelSU-Next LKM** patches the ramdisk in the following priority order:
+- **KernelSU LKM**, **KernelSU-Next LKM** and **SukiSU LKM** patches the ramdisk in the following priority order:
   `vendor_boot/ramdisk`, `vendor_boot/init_boot`, `init_boot/ramdisk`, `boot/ramdisk`<br/>
   _**Note:** Due to a bug in KSUN which fails to detect root, for the time being PixelFlasher_
   _will prioritize init_boot over vendor_boot until the issue is addressed in KSUN._<br/>
@@ -3463,11 +3522,13 @@ Unless you know what you're doing, it is recommended that you choose the default
     is_rooted = device.rooted
 
     # KernelSU
-    if patch_flavor in ['KernelSU', 'KernelSU-Next']:
+    if patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU']:
         if patch_flavor == 'KernelSU':
             method = 80
         elif patch_flavor == 'KernelSU-Next':
             method = 82
+        elif patch_flavor == 'SukiSU':
+            method = 84
         magiskboot_created = False
         if is_rooted:
             res, unused = device.check_file("/data/adb/magisk/magiskboot", True)
@@ -3480,7 +3541,7 @@ Unless you know what you're doing, it is recommended that you choose the default
 
         if not magiskboot_created:
             # Find latest Magisk to download
-            apk = get_magisk_apk_details('Magisk Stable')
+            apk = get_rooting_app_details('Magisk Stable')
             if apk is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Stable version.")
                 puml("#red:Could not find Magisk Stable version;\n")
@@ -3513,11 +3574,47 @@ Unless you know what you're doing, it is recommended that you choose the default
             kernel_su_gz_file = download_ksu_latest_release_asset(user='rifsxd', repo='KernelSU-Next', asset_name=look_for_kernelsu, anykernel=anykernel)
             if kernel_su_gz_file:
                 kernelsu_version = get_gh_latest_release_version('rifsxd', 'KernelSU-Next')
+        elif patch_flavor == 'SukiSU':
+            sukisu_flavor = ''
+            # show a question dialog to ask the user to select pre-built Kernel flavor
+            title = _("Select a pre-built kernel flavor")
+            buttons_text = [_("ShirkNeko flavor kernel"), _("MiRinFork flavored kernel"), _("Cancel")]
+            message = f'''
+## Select a pre-built kernel flavor
+
+According to the author:
+
+- ShirkNeko flavored kernel (adds ZRAM compression algorithm patch, susfs, KPM. Works on many devices.)
+
+- MiRinFork flavored kernel (adds susfs, KPM. Closest kernel to GKI, works on most devices.)
+
+'''
+            print(f"\n*** Dialog ***\n{message}\n______________\n")
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=2, disable_buttons=[], is_md=True, size=[800,230])
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            if result == 1:
+                print("User selected ShirkNeko pre-built kernel flavor.")
+                sukisu_flavor = '_ShirkNeko'
+                kernel_su_gz_file = download_ksu_latest_release_asset(user='ShirkNeko', repo='GKI_KernelSU_SUSFS', asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel='ShirkNeko')
+                if kernel_su_gz_file:
+                    kernelsu_version = get_gh_latest_release_version('ShirkNeko', 'GKI_KernelSU_SUSFS')
+            elif result == 2:
+                print("User selected MiRinFork pre-built kernel flavor.")
+                sukisu_flavor = '_MiRinFork'
+                kernel_su_gz_file = download_ksu_latest_release_asset(user='MiRinFork', repo='GKI_SukiSU_SUSFS', asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel='MiRinFork')
+                if kernel_su_gz_file:
+                    kernelsu_version = get_gh_latest_release_version('MiRinFork', 'GKI_SukiSU_SUSFS')
+            elif result == 3:
+                print("⚠️ User cancelled, Aborting ...")
+                return -1, ""
         if not kernel_su_gz_file:
-            print("ERROR: Could not find matching KernelSU generic image\nAborting ...\n")
+            print("ERROR: Could not find matching generic kernel image\nAborting ...\n")
             return
         if isinstance(kernel_su_gz_file, list):
-            print("ERROR: Could not find matching KernelSU generic image\nAborting ...\n")
+            print("ERROR: Could not find matching generic kernel image\nAborting ...\n")
             return
 
         # extract the kernelsu image
@@ -3560,6 +3657,19 @@ Unless you know what you're doing, it is recommended that you choose the default
         print("Checking to see if KernelSU-Next app is installed ...")
         puml(":Checking KernelSU-Next App;\n")
         success, kernelsu_next_app_path, error_msg = ensure_root_app_installed('KernelSU-Next')
+        if not success:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+            puml(f"#red:{error_msg};\n")
+            print("Aborting ...\n}\n")
+            return
+
+    # SukiSU_LKM
+    elif patch_flavor == 'SukiSU_LKM':
+        method = 85
+        # check if SukiSU app is installed
+        print("Checking to see if SukiSU app is installed ...")
+        puml(":Checking SukiSU App;\n")
+        success, sukisu_app_path, error_msg = ensure_root_app_installed('SukiSU')
         if not success:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
             puml(f"#red:{error_msg};\n")
@@ -3646,7 +3756,7 @@ Unless you know what you're doing, it is recommended that you choose the default
 
         if not magiskboot_created:
             # Find latest Magisk to download
-            apk = get_magisk_apk_details('Magisk Stable')
+            apk = get_rooting_app_details('Magisk Stable')
             filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
             download_file(apk.link, filename)
             magisk_apk = os.path.join(tmp_path, filename)
@@ -3899,6 +4009,16 @@ Unless you know what you're doing, it is recommended that you take the default s
         # set_patched_with(ksu_app_version)
         patched_img, mountType = patch_kernelsu_lkm_script()
         patch_method = f"{patch_method}_{mountType}"
+    elif method == 84:
+        # KernelSU
+        patch_method = f'sukisu{sukisu_flavor.lower()}'
+        set_patched_with(kernelsu_version)
+        patched_img = patch_kernelsu_script(kernelsu_version)
+    elif method == 85:
+        # SukiSU_LKM
+        patch_method = 'sukisu_lkm'
+        # set_patched_with(sukisu_app_version)
+        patched_img, mountType = patch_kernelsu_lkm_script()
     elif method == 90:
         # APatch
         patch_method = 'apatch'
@@ -4077,7 +4197,7 @@ Unless you know what you're doing, it is recommended that you take the default s
             return None
         cursor = con.cursor()
         is_init_boot = 1 if boot.is_init_boot else 0
-        if patch_flavor in ['KernelSU', 'KernelSU-Next', 'APatch', 'APatch_manual']:
+        if patch_flavor in ['KernelSU', 'KernelSU-Next', 'APatch', 'APatch_manual', 'SukiSU']:
             is_init_boot = 0
         sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
         data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False, False, is_init_boot, boot_sha1_long)
@@ -4134,6 +4254,8 @@ Unless you know what you're doing, it is recommended that you take the default s
         print(f"\nMagisk Version:   {get_patched_with()}")
     elif patch_flavor in ["KernelSU", "KernelSU_LKM"]:
         print(f"\nKernelSU Version: {get_patched_with()}")
+    elif patch_flavor in ["SukiSU", "SukiSU_LKM"]:
+        print(f"\nSukiSU Version: {get_patched_with()}")
     elif patch_flavor in ["KernelSU-Next", "KernelSU-Next_LKM"]:
         print(f"\nKernelSU-Next Version: {get_patched_with()}")
     elif patch_flavor == "APatch":
@@ -4252,8 +4374,8 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 message += "Depending on the selection, Live booting stock boot.img might not make a difference.<br/>\n"
                 message += "Magisk patches init_boot<br/>\n"
                 message += "Apatch patches boot<br/>\n"
-                message += "KernelSU (and Next) patches boot<br/>\n"
-                message += "KernelSU_LKM (and Next) patches vendor_boot / init_boot<br/>\n\n"
+                message += "KernelSU (and Next) / SukiSU patches boot<br/>\n"
+                message += "KernelSU_LKM (and Next) / SukiSU_LKM patches vendor_boot / init_boot<br/>\n\n"
                 # set it to boot partition for live booting
                 partition = "boot"
             else:
@@ -4280,6 +4402,8 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 message += f"Patch Source SHA1:          {boot.patch_source_sha1}\n"
             if boot.patch_method in ["kernelsu", "kernelsu_lkm"]:
                 message += f"Patched With KernelSU:      {boot.magisk_version}\n"
+            if boot.patch_method in ["sukisu", "sukisu_lkm"]:
+                message += f"Patched With SukiSU:      {boot.magisk_version}\n"
             if "kernelsu-next" in boot.patch_method:
                 message += f"Patched With KSU-Next:      {boot.magisk_version}\n"
             elif "apatch" in boot.patch_method:

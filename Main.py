@@ -1127,7 +1127,7 @@ class PixelFlasher(wx.Frame):
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=40)
 
             # PI Analysis Report
-            if self.config.toolbar['visible']['pi_analysis_report'] and self.config.advanced_options:
+            if self.config.toolbar['visible']['pi_analysis_report']:
                 tb.AddTool(toolId=50, label=_("PI Analysis Report"), bitmap=images.analyze_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("PI Analysis Report"), longHelp=_("PI Analysis Report"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=50)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=50)
@@ -1205,7 +1205,7 @@ class PixelFlasher(wx.Frame):
 
             # Download and Install Magisk Manager
             if self.config.toolbar['visible']['install_magisk']:
-                tb.AddTool(toolId=210, label=_("Rooting App"), bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Download / Install rooting app like Magisk or KernelSU or APatch"), longHelp=_("Download / Install rooting app like Magisk or KernelSU or APatch"), clientData=None)
+                tb.AddTool(toolId=210, label=_("Rooting App"), bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"), longHelp=_("Download / Install rooting app like Magisk or KernelSU or APatch or SukiSU"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=210)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=210)
 
@@ -1627,7 +1627,7 @@ class PixelFlasher(wx.Frame):
         self.magisk_menu.SetBitmap(images.magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk, self.magisk_menu)
         # Install Magisk
-        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, _("Rooting App"), _("Download / Install rooting app like Magisk or KernelSU or APatch"))
+        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, _("Rooting App"), _("Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"))
         self.install_magisk_menu.SetBitmap(images.install_magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_rooting_app, self.install_magisk_menu)
         # Magisk Backup Manager
@@ -2866,7 +2866,6 @@ class PixelFlasher(wx.Frame):
                 self.logcat_menu.Enable(False)
                 self.update_engine_logcat_menu.Enable(False)
                 self.get_bootloader_versions_menu.Enable(False)
-                self.pi_analysis_report_menu.Enable(False)
                 self.open_url_menu.Enable(False)
                 self.switch_slot_menu.Enable(False)
                 self.reboot_fastbootd_menu.Enable(False)
@@ -2916,7 +2915,6 @@ class PixelFlasher(wx.Frame):
                 self.logcat_menu.Enable(True)
                 self.update_engine_logcat_menu.Enable(True)
                 self.get_bootloader_versions_menu.Enable(True)
-                self.pi_analysis_report_menu.Enable(True)
                 self.open_url_menu.Enable(True)
                 self.switch_slot_menu.Enable(True)
                 self.reboot_fastbootd_menu.Enable(True)
@@ -3067,6 +3065,9 @@ class PixelFlasher(wx.Frame):
                 k_app_version = device.ksu_app_version
                 if k_app_version:
                     message += f"    KernelSU App Version:            {k_app_version}\n"
+                s_app_version = device.sukisu_app_version
+                if s_app_version:
+                    message += f"    SukiSU App Version:              {s_app_version}\n"
                 k_next_app_version = device.ksu_next_app_version
                 if k_next_app_version:
                     message += f"    KernelSU Next App Version:       {k_next_app_version}\n"
@@ -3629,6 +3630,8 @@ class PixelFlasher(wx.Frame):
                 self.patch_kernelsu_next_lkm_button:    ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_apatch_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 self.patch_apatch_manual_button:        ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
+                self.patch_sukisu_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_sukisu_lkm_button:           ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_downgrade_button:            ['boot_is_selected', 'boot_is_not_patched', 'boot_is_not_downgrade_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
@@ -4308,7 +4311,7 @@ class PixelFlasher(wx.Frame):
                 for selected_file in selected_files:
                     filename = ntpath.basename(selected_file)
                     # push the file
-                    res = device.push_file(selected_file, f"{destination}/filename", False)
+                    res = device.push_file(selected_file, f"{destination}/{filename}", False)
                     if res != 0:
                         print(f"Return Code: {res.returncode}")
                         print(f"Stdout: {res.stdout}")
@@ -5465,6 +5468,8 @@ class PixelFlasher(wx.Frame):
                         message += f"Patched With KernelSU:    {boot.magisk_version}\n"
                     if "kernelsu-next" in boot.patch_method:
                         message += f"Patched With KSU-Next:    {boot.magisk_version}\n"
+                    elif "sukisu" in boot.patch_method:
+                        message += f"Patched With SukiSU:      {boot.magisk_version}\n"
                     elif "apatch" in boot.patch_method:
                         message += f"Patched With Apatch:      {boot.magisk_version}\n"
                     else:
@@ -5751,6 +5756,22 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_sukisu_patch_boot
+    # -----------------------------------------------
+    def _on_sukisu_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated SukiSU Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'SukiSU')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with SukiSU")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_kernelsu_lkm_patch_boot
     # -----------------------------------------------
     def _on_kernelsu_lkm_patch_boot(self, event):
@@ -5763,6 +5784,22 @@ class PixelFlasher(wx.Frame):
             self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching KernelSU LKM")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_sukisu_lkm_patch_boot
+    # -----------------------------------------------
+    def _on_sukisu_lkm_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated SukiSU LKM Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'SukiSU_LKM')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching SukiSU LKM")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -6088,6 +6125,7 @@ class PixelFlasher(wx.Frame):
             self.idx_kernelsu_next = self.il.Add(images.kernelsu_next_24.GetBitmap())   # index 2 - kernelsu-next
             self.idx_kernelsu = self.il.Add(images.kernelsu_24.GetBitmap())             # index 3 - kernelsu
             self.idx_downgrade = self.il.Add(images.downgrade_24.GetBitmap())           # index 4 - downgrade
+            self.idx_sukisu = self.il.Add(images.sukisu_24.GetBitmap())                 # index 5 - sukisu
         else:
             self.il = wx.ImageList(16, 16)
             self.idx_magisk = self.il.Add(images.magisk_16.GetBitmap())                 # index 0 - magisk
@@ -6095,6 +6133,7 @@ class PixelFlasher(wx.Frame):
             self.idx_kernelsu_next = self.il.Add(images.kernelsu_next_16.GetBitmap())   # index 2 - kernelsu-next
             self.idx_kernelsu = self.il.Add(images.kernelsu_16.GetBitmap())             # index 3 - kernelsu
             self.idx_downgrade = self.il.Add(images.downgrade_16.GetBitmap())           # index 4 - downgrade
+            self.idx_sukisu = self.il.Add(images.sukisu_16.GetBitmap())                 # index 5 - sukisu
         self.list = wx.ListCtrl(parent=panel, id=-1, size=(-1, self.CharHeight * 6), style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
@@ -6142,6 +6181,8 @@ class PixelFlasher(wx.Frame):
         self.patch_kernelsu_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU LKM"), lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_kernelsu_next_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next"), lambda: self._on_kernelsu_next_patch_boot(None), images.kernelsu_next_24.GetBitmap())
         self.patch_kernelsu_next_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next LKM"), lambda: self._on_kernelsu_next_lkm_patch_boot(None), images.kernelsu_next_24.GetBitmap())
+        self.patch_sukisu_button = self.patch_button.AddFunction(_("Patch with SukiSU"), lambda: self._on_sukisu_patch_boot(None), images.sukisu_24.GetBitmap())
+        self.patch_sukisu_lkm_button = self.patch_button.AddFunction(_("Patch with SukiSU LKM"), lambda: self._on_sukisu_lkm_patch_boot(None), images.sukisu_24.GetBitmap())
         self.patch_apatch_button = self.patch_button.AddFunction(_("Patch with APatch"), lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
         self.patch_apatch_manual_button = self.patch_button.AddFunction(_("Patch with APatch Alternate"), lambda: self._on_apatch_manual_patch_boot(None), images.apatch_24.GetBitmap(), False)
         # self.patch_custom_boot_button = self.patch_button.AddFunction(_("Patch custom boot/init_boot with Magisk"), lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())

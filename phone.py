@@ -159,6 +159,12 @@ class Device():
         self._ksu_next_app_version = None
         self._ksu_next_version_code = None
         self._ksu_next_app_version_code = None
+        self._get_sukisu_detailed_modules = None
+        self._sukisu_modules_summary = None
+        self._sukisu_version = None
+        self._sukisu_version_code = None
+        self._sukisu_app_version = None
+        self._sukisu_app_version_code = None
         self._get_lsposed_detailed_modules = None
         self._lsposed_modules_summary = None
         self._has_init_boot = None
@@ -710,6 +716,26 @@ class Device():
         return None
 
     # ----------------------------------------------------------------------------
+    #                               property sukisu_path
+    # ----------------------------------------------------------------------------
+    @property
+    def sukisu_path(self):
+        try:
+            if self.true_mode == 'adb':
+                res = self.get_package_path(SUKISU_PKG_NAME, True)
+                if res != -1:
+                    return res
+                self._rooted = None
+                self._su_version = ''
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
+                return None
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get SukiSU path")
+            traceback.print_exc()
+        return None
+
+    # ----------------------------------------------------------------------------
     #                               property apatch_path
     # ----------------------------------------------------------------------------
     @property
@@ -774,6 +800,10 @@ class Device():
             primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd -V\'\""
             fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/apd -V\'\""
         elif solution_type == 'ksu':
+            cmd_name = 'ksud'
+            primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud -V\'\""
+            fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/ksud -V\'\""
+        elif solution_type == 'sukisu':
             cmd_name = 'ksud'
             primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud -V\'\""
             fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/ksud -V\'\""
@@ -845,6 +875,15 @@ class Device():
         return self._ksu_version
 
     # ----------------------------------------------------------------------------
+    #                               property sukisu_version
+    # ----------------------------------------------------------------------------
+    @property
+    def sukisu_version(self):
+        if self._sukisu_version is None and self.true_mode == 'adb' and self.rooted:
+            self._sukisu_version, self._sukisu_version_code = self._get_root_solution_version('sukisu')
+        return self._sukisu_version
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_version_code
     # ----------------------------------------------------------------------------
     @property
@@ -873,6 +912,16 @@ class Device():
             return ''
         else:
             return self._ksu_version_code
+
+    # ----------------------------------------------------------------------------
+    #                               property sukisu_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def sukisu_version_code(self):
+        if self._sukisu_version_code is None:
+            return ''
+        else:
+            return self._sukisu_version_code
 
     # ----------------------------------------------------------------------------
     #                               property magisk_config_path
@@ -2550,6 +2599,15 @@ add_hosts_module
         return self._ksu_next_app_version
 
     # ----------------------------------------------------------------------------
+    #                               property sukisu_app_version
+    # ----------------------------------------------------------------------------
+    @property
+    def sukisu_app_version(self):
+        if self._sukisu_app_version is None and self.true_mode == 'adb':
+            self._sukisu_app_version, self._sukisu_app_version_code = self.get_app_version(SUKISU_PKG_NAME)
+        return self._sukisu_app_version
+
+    # ----------------------------------------------------------------------------
     #                               property apatch_app_version
     # ----------------------------------------------------------------------------
     @property
@@ -2709,6 +2767,16 @@ add_hosts_module
             return self._ksu_next_app_version_code
 
     # ----------------------------------------------------------------------------
+    #                               property sukisu_app_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def sukisu_app_version_code(self):
+        if self._sukisu_app_version_code is None:
+            return ''
+        else:
+            return self._sukisu_app_version_code
+
+    # ----------------------------------------------------------------------------
     #                               Method get_uncached_magisk_app_version
     # ----------------------------------------------------------------------------
     def get_uncached_magisk_app_version(self):
@@ -2728,6 +2796,13 @@ add_hosts_module
     def get_uncached_ksu_next_app_version(self):
         self._ksu_next_app_version = None
         return self.ksu_next_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_uncached_sukisu_app_version
+    # ----------------------------------------------------------------------------
+    def get_uncached_sukisu_app_version(self):
+        self._sukisu_app_version = None
+        return self.sukisu_app_version
 
     # ----------------------------------------------------------------------------
     #                               Method get_uncached_apatch_app_version
@@ -2803,6 +2878,8 @@ add_hosts_module
             if solution_name == 'APatch':
                 cmd = 'apd'
             elif solution_name == 'KernelSU':
+                cmd = 'ksud'
+            elif solution_name == 'SukiSU':
                 cmd = 'ksud'
             else:
                 return []
@@ -2895,6 +2972,14 @@ add_hosts_module
         if self._get_ksu_detailed_modules is None or refresh == True:
             self._get_ksu_detailed_modules = self._get_json_modules_common('KernelSU')
         return self._get_ksu_detailed_modules
+
+    # ----------------------------------------------------------------------------
+    #                               method get_sukisu_detailed_modules
+    # ----------------------------------------------------------------------------
+    def get_sukisu_detailed_modules(self, refresh=False):
+        if self._get_sukisu_detailed_modules is None or refresh == True:
+            self._get_sukisu_detailed_modules = self._get_json_modules_common('SukiSU')
+        return self._get_sukisu_detailed_modules
 
     # ----------------------------------------------------------------------------
     #                               method get_magisk_detailed_modules
@@ -3082,6 +3167,25 @@ add_hosts_module
             else:
                 self._ksu_modules_summary = ''
         return self._ksu_modules_summary
+
+    # ----------------------------------------------------------------------------
+    #                               property sukisu_modules_summary
+    # ----------------------------------------------------------------------------
+    @property
+    def sukisu_modules_summary(self):
+        if self._sukisu_modules_summary is None:
+            if self.get_sukisu_detailed_modules():
+                summary = ''
+                for module in self.get_sukisu_detailed_modules():
+                    with contextlib.suppress(Exception):
+                        updateText = ''
+                        if module.updateAvailable:
+                            updateText = "\t [Update Available]"
+                        summary += f"        {module.name:<36}{module.state:<10}{module.version}{updateText}\n"
+                self._sukisu_modules_summary = summary
+            else:
+                self._sukisu_modules_summary = ''
+        return self._sukisu_modules_summary
 
     # ----------------------------------------------------------------------------
     #                               method get_lsposed_modules
@@ -4291,6 +4395,8 @@ add_hosts_module
                     return -1
                 if "kernelsu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
+                elif "sukisu" in self.su_version.lower():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
                 elif "apatch" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd module install /sdcard/Download/{module_name}\'\""
                 else:
@@ -4535,6 +4641,8 @@ add_hosts_module
                 puml(":Uninstall magisk module;\n", True)
                 puml(f"note right:{dirname};\n")
                 if "kernelsu" in self.su_version.lower():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module uninstall {dirname}\'\""
+                if "sukisu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module uninstall {dirname}\'\""
                 elif "apatch" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd module uninstall {dirname}\'\""

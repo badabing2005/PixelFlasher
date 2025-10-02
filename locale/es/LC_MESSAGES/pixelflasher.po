@@ -411,9 +411,6 @@ msgstr "Cambiar a la otra ranura"
 msgid "Manage Magisk modules and settings"
 msgstr "Administrar módulos y configuración de Magisk"
 
-msgid "Download / Install rooting app like Magisk or KernelSU or APatch"
-msgstr "Descargar / Instalar app de root como Magisk, KernelSU o APatch"
-
 msgid "Manage Magisk Backups"
 msgstr "Administrar copias de seguridad de Magisk"
 
@@ -2867,4 +2864,28 @@ msgstr "- Versiones de Playstore.\n"
 
 msgid "Redact Keybox details"
 msgstr "Redactar detalles del Keybox"
+
+##############################################################################
+# Additions 2025-10-01
+##############################################################################
+msgid "Patch with SukiSU"
+msgstr "Parchear con SukiSU"
+
+msgid "Patch with SukiSU LKM"
+msgstr "Parchear con SukiSU LKM"
+
+msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"
+msgstr "Descargar / Instalar aplicación de root como Magisk o KernelSU* o APatch o SukiSU"
+
+msgid "Select a pre-built kernel flavor"
+msgstr "Seleccionar un sabor de kernel preconstruido"
+
+msgid "ShirkNeko flavor kernel"
+msgstr "Kernel con sabor ShirkNeko"
+
+msgid "MiRinFork flavored kernel"
+msgstr "Kernel con sabor MiRinFork"
+
+msgid "WildKernels"
+msgstr "WildKernels"
 

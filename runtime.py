@@ -5577,7 +5577,7 @@ def bootloader_issue_message():
 def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True, custom_kernel=None):
     try:
         # For ShirkNeko and other custom kernels that might use pre-releases, check pre-releases first
-        include_prerelease = custom_kernel in ['ShirkNeko', 'MiRinFork']
+        include_prerelease = custom_kernel in ['ShirkNeko', 'MiRinFork', 'WildKernels']
 
         if asset_name:
             look_for = asset_name
@@ -5606,7 +5606,13 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
         if anykernel:
             if custom_kernel:
                 if custom_kernel in ["MiRinFork", 'ShirkNeko']:
+                    # MiRinFork format: android14-6.1.145-2025-08-AnyKernel3.zip
+                    # ShirkNeko format:  android14-6.1.124-2025-02-AnyKernel3.zip
                     pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
+                    debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
+                elif custom_kernel == "WildKernels":
+                    # WKSU format: WKSU-13861-android14-6.1.124-2025-02-AnyKernel3.zip
+                    pattern = re.compile(rf"^WKSU-[0-9]+-{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
                     debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
                 else:
                     # Fallback pattern for other custom kernels

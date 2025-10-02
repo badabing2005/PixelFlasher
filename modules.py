@@ -3578,7 +3578,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             sukisu_flavor = ''
             # show a question dialog to ask the user to select pre-built Kernel flavor
             title = _("Select a pre-built kernel flavor")
-            buttons_text = [_("ShirkNeko flavor kernel"), _("MiRinFork flavored kernel"), _("Cancel")]
+            buttons_text = [_("ShirkNeko flavor kernel"), _("MiRinFork flavored kernel"), _("WildKernels"), _("Cancel")]
             message = f'''
 ## Select a pre-built kernel flavor
 
@@ -3608,6 +3608,12 @@ According to the author:
                 if kernel_su_gz_file:
                     kernelsu_version = get_gh_latest_release_version('MiRinFork', 'GKI_SukiSU_SUSFS')
             elif result == 3:
+                print("User selected WildKernels.")
+                sukisu_flavor = '_WildKernels'
+                kernel_su_gz_file = download_ksu_latest_release_asset(user='WildKernels', repo='GKI_KernelSU_SUSFS', asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel='WildKernels')
+                if kernel_su_gz_file:
+                    kernelsu_version = get_gh_latest_release_version('WildKernels', 'GKI_KernelSU_SUSFS')
+            elif result == 4:
                 print("⚠️ User cancelled, Aborting ...")
                 return -1, ""
         if not kernel_su_gz_file:

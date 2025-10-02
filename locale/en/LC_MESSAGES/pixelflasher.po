@@ -411,9 +411,6 @@ msgstr ""
 msgid "Manage Magisk modules and settings"
 msgstr ""
 
-msgid "Download / Install rooting app like Magisk or KernelSU or APatch"
-msgstr ""
-
 msgid "Manage Magisk Backups"
 msgstr ""
 
@@ -2844,9 +2841,6 @@ msgstr ""
 msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"
 msgstr ""
 
-msgid "Download / Install rooting app like Magisk or KernelSU or APatch or SukiSU"
-msgstr ""
-
 msgid "Select a pre-built kernel flavor"
 msgstr ""
 
@@ -2855,3 +2849,7 @@ msgstr ""
 
 msgid "MiRinFork flavored kernel"
 msgstr ""
+
+msgid "WildKernels"
+msgstr ""
+

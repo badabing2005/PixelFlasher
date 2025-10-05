@@ -1986,12 +1986,6 @@ msgstr "Reprocesar el json de la ventana Pif activa actual.\nÚtil si cambió la
 msgid "Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place."
 msgstr "Reprocesar uno o varios archivo(s) json\nÚtil si cambió la versión del módulo que podría requerir campos adicionales / diferentes.\nSi se selecciona un solo archivo, el nuevo json se enviará a la salida de la consola\nSin embargo, si se seleccionan varios archivos, el archivo seleccionado se actualizará en su lugar."
 
-msgid "Convert console content from env (key=value) format to json"
-msgstr "Convertir contenido de consola de formato env (clave=valor) a json"
-
-msgid "Convert console content from json to env (key=value) format"
-msgstr "Convertir contenido de consola de json a formato env (clave=valor)"
-
 msgid "Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n"
 msgstr "Procesar uno o varios archivo(s) json para generar los extractos de código formateados de FrameworkPatcher.\n"
 
@@ -2888,4 +2882,13 @@ msgstr "Kernel con sabor MiRinFork"
 
 msgid "WildKernels"
 msgstr "WildKernels"
+
+##############################################################################
+# Additions 2025-10-05
+##############################################################################
+msgid "Convert console content from env (key=value) prop format to json"
+msgstr "Convertir contenido de consola de formato env (clave=valor) a json"
+
+msgid "Convert console content from json to env (key=value) prop format"
+msgstr "Convertir contenido de consola de json a formato env (clave=valor)"
 

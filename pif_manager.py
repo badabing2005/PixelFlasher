@@ -90,6 +90,7 @@ class PifManager(wx.Dialog):
         self._last_call_was_on_spin = False
         self.beta_pif_version = 'latest'
         self._tf_targets_loaded = False
+        self._validation_timer = None  # Timer for debounced validation
 
         # Active pif label
         self.active_pif_label = wx.StaticText(parent=self, id=wx.ID_ANY, label=_("Active Pif"))
@@ -128,14 +129,7 @@ class PifManager(wx.Dialog):
 
         # Active Pif
         self.active_pif_stc = stc.StyledTextCtrl(self)
-        self.active_pif_stc.SetLexer(stc.STC_LEX_JSON)
-        self.active_pif_stc.StyleSetSpec(stc.STC_JSON_DEFAULT, "fore:#000000")
-        self.active_pif_stc.StyleSetSpec(stc.STC_JSON_NUMBER, "fore:#007F7F")
-        self.active_pif_stc.StyleSetSpec(stc.STC_JSON_STRING, "fore:#7F007F")
-        self.active_pif_stc.StyleSetSpec(stc.STC_JSON_PROPERTYNAME, "fore:#007F00")
-        self.active_pif_stc.StyleSetSpec(stc.STC_JSON_ESCAPESEQUENCE, "fore:#7F7F00")
-        self.active_pif_stc.StyleSetSpec(stc.STC_JSON_KEYWORD, "fore:#00007F,bold")
-        self.active_pif_stc.StyleSetSpec(stc.STC_JSON_OPERATOR, "fore:#7F0000")
+        self.setup_syntax_highlighting(self.active_pif_stc)
         self.active_pif_stc.SetCaretForeground(wx.BLACK)
         font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.active_pif_stc.StyleSetFont(wx.stc.STC_STYLE_DEFAULT, font)
@@ -208,11 +202,11 @@ class PifManager(wx.Dialog):
         # Env to Json
         self.e2j = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.e2j.SetBitmap(images.e2j_24.GetBitmap())
-        self.e2j.SetToolTip(_("Convert console content from env (key=value) format to json"))
+        self.e2j.SetToolTip(_("Convert console content from env (key=value) prop format to json"))
         # Json to Env
         self.j2e = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.j2e.SetBitmap(images.j2e_24.GetBitmap())
-        self.j2e.SetToolTip(_("Convert console content from json to env (key=value) format"))
+        self.j2e.SetToolTip(_("Convert console content from json to env (key=value) prop format"))
         # Get FP Code
         self.get_fp_code = wx.BitmapButton(parent=self, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
         self.get_fp_code.SetBitmap(images.java_24.GetBitmap())
@@ -242,14 +236,7 @@ class PifManager(wx.Dialog):
 
         # Console
         self.console_stc = stc.StyledTextCtrl(self)
-        self.console_stc.SetLexer(stc.STC_LEX_JSON)
-        self.console_stc.StyleSetSpec(stc.STC_JSON_DEFAULT, "fore:#000000")
-        self.console_stc.StyleSetSpec(stc.STC_JSON_NUMBER, "fore:#007F7F")
-        self.console_stc.StyleSetSpec(stc.STC_JSON_STRING, "fore:#7F007F")
-        self.console_stc.StyleSetSpec(stc.STC_JSON_PROPERTYNAME, "fore:#007F00")
-        self.console_stc.StyleSetSpec(stc.STC_JSON_ESCAPESEQUENCE, "fore:#7F7F00")
-        self.console_stc.StyleSetSpec(stc.STC_JSON_KEYWORD, "fore:#00007F,bold")
-        self.console_stc.StyleSetSpec(stc.STC_JSON_OPERATOR, "fore:#7F0000")
+        self.setup_syntax_highlighting(self.console_stc)
         self.console_stc.SetCaretForeground(wx.BLACK)
         font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.console_stc.StyleSetFont(wx.stc.STC_STYLE_DEFAULT, font)
@@ -576,6 +563,69 @@ class PifManager(wx.Dialog):
         print("\nOpening Pif Manager ...")
 
     # -----------------------------------------------
+    #              setup_syntax_highlighting
+    # -----------------------------------------------
+    def setup_syntax_highlighting(self, stc_ctrl, format_type=None):
+        if format_type is None:
+            format_type = getattr(self, 'pif_format', 'json')
+
+        # Set font for all styles
+        font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+        bold_font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+        italic_font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL)
+
+        if format_type == 'prop':
+            # Properties format (key=value with comments)
+            stc_ctrl.SetLexer(stc.STC_LEX_PROPERTIES)
+
+            # Set up properties syntax highlighting with proper fonts
+            stc_ctrl.StyleSetSpec(stc.STC_PROPS_DEFAULT, "fore:#7F007F")  # Default/values (purple)
+            stc_ctrl.StyleSetFont(stc.STC_PROPS_DEFAULT, font)
+
+            # stc_ctrl.StyleSetSpec(stc.STC_PROPS_COMMENT, "fore:#008000")  # Comments (green)
+            stc_ctrl.StyleSetSpec(stc.STC_PROPS_COMMENT, "fore:#808080")  # Comments (gray)
+            stc_ctrl.StyleSetFont(stc.STC_PROPS_COMMENT, italic_font)
+
+            stc_ctrl.StyleSetSpec(stc.STC_PROPS_SECTION, "fore:#0000FF")  # Section headers
+            stc_ctrl.StyleSetFont(stc.STC_PROPS_SECTION, bold_font)
+
+            stc_ctrl.StyleSetSpec(stc.STC_PROPS_ASSIGNMENT, "fore:#FF0000")  # = sign (red, bold)
+            stc_ctrl.StyleSetFont(stc.STC_PROPS_ASSIGNMENT, bold_font)
+
+            stc_ctrl.StyleSetSpec(stc.STC_PROPS_DEFVAL, "fore:#7F007F")  # Values (purple)
+            stc_ctrl.StyleSetFont(stc.STC_PROPS_DEFVAL, font)
+
+            # stc_ctrl.StyleSetSpec(stc.STC_PROPS_KEY, "fore:#000080")  # Keys (dark blue, bold)
+            # stc_ctrl.StyleSetFont(stc.STC_PROPS_KEY, bold_font)
+            stc_ctrl.StyleSetSpec(stc.STC_PROPS_KEY, "fore:#007F00")  # Keys (green)
+            stc_ctrl.StyleSetFont(stc.STC_PROPS_KEY, font)
+
+        else:
+            # JSON format
+            stc_ctrl.SetLexer(stc.STC_LEX_JSON)
+            stc_ctrl.StyleSetSpec(stc.STC_JSON_DEFAULT, "fore:#000000")
+            stc_ctrl.StyleSetSpec(stc.STC_JSON_NUMBER, "fore:#007F7F")
+            stc_ctrl.StyleSetSpec(stc.STC_JSON_STRING, "fore:#7F007F")
+            stc_ctrl.StyleSetSpec(stc.STC_JSON_PROPERTYNAME, "fore:#007F00")
+            stc_ctrl.StyleSetSpec(stc.STC_JSON_ESCAPESEQUENCE, "fore:#7F7F00")
+            stc_ctrl.StyleSetSpec(stc.STC_JSON_KEYWORD, "fore:#00007F,bold")
+            stc_ctrl.StyleSetSpec(stc.STC_JSON_OPERATOR, "fore:#7F0000")
+
+    # -----------------------------------------------
+    #              update_syntax_highlighting
+    # -----------------------------------------------
+    def update_syntax_highlighting(self):
+        if hasattr(self, 'active_pif_stc') and hasattr(self, 'pif_format'):
+            self.setup_syntax_highlighting(self.active_pif_stc, self.pif_format)
+            # Force refresh of highlighting
+            self.active_pif_stc.Refresh()
+
+        # Also update console syntax highlighting to match
+        if hasattr(self, 'console_stc') and hasattr(self, 'pif_format'):
+            self.setup_syntax_highlighting(self.console_stc, self.pif_format)
+            self.console_stc.Refresh()
+
+    # -----------------------------------------------
     #              Function onShow
     # -----------------------------------------------
     def onShow(self, event):
@@ -686,6 +736,13 @@ class PifManager(wx.Dialog):
                             self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
                             if int(module.versionCode) > 4000:
                                 print("Advanced props support enabled.")
+                                res, unused = device.check_file('/data/adb/modules/playintegrityfix/example.pif.prop', True)
+                                if res == 1:
+                                    res, unused = device.check_file('/data/adb/modules/playintegrityfix/custom.pif.prop', True)
+                                    if res == 1:
+                                        self.pif_format = 'prop'
+                                        self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.prop'
+                                        print("ℹ️ custom.pif.prop detected, switching to prop format.")
                         else:
                             if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
                                 self.pif_path = '/data/adb/modules/playintegrityfix/pif.json'
@@ -848,6 +905,8 @@ class PifManager(wx.Dialog):
                 self.tf_targets_combo.SetForegroundColour(wx.Colour(128, 128, 128))
 
         self.Layout()
+
+        self.update_syntax_highlighting()
 
         selected_label = f"{selected_module.name} {selected_module.version}"
         print("\n==============================================================================")
@@ -1094,6 +1153,10 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def onClose(self, e):
         try:
+            # Clean up the validation timer
+            if self._validation_timer is not None:
+                self._validation_timer.Stop()
+
             dialog_size = self.GetSize()
             dialog_x, dialog_y = dialog_size.GetWidth(), dialog_size.GetHeight()
             config = get_config()
@@ -2257,8 +2320,12 @@ class PifManager(wx.Dialog):
         if event:
             event.Skip()
 
-        # defer the execution of the code that processes the updated value to make sure that the value is updated.
-        wx.CallAfter(self.process_active_pif_updated_value)
+        # Use debounced validation to avoid performance issues during typing
+        if self._validation_timer is not None:
+            self._validation_timer.Stop()
+
+        # Delay validation by 500ms to allow for smooth typing
+        self._validation_timer = wx.CallLater(500, self.process_active_pif_updated_value)
 
     # -----------------------------------------------
     #                  ActivePifStcChange
@@ -2622,7 +2689,7 @@ class PifManager(wx.Dialog):
             if prop_str == '':
                 return ''
             if is_valid_json(prop_str):
-                debug(f"Contents is already in json format.")
+                # debug(f"Contents is already in json format.")
                 return prop_str
             if sort_keys is None:
                 sort_keys = self.sort_keys

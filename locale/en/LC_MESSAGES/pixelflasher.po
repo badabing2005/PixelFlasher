@@ -1950,12 +1950,6 @@ msgstr ""
 msgid "Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place."
 msgstr ""
 
-msgid "Convert console content from env (key=value) format to json"
-msgstr ""
-
-msgid "Convert console content from json to env (key=value) format"
-msgstr ""
-
 msgid "Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n"
 msgstr ""
 
@@ -2851,5 +2845,14 @@ msgid "MiRinFork flavored kernel"
 msgstr ""
 
 msgid "WildKernels"
+msgstr ""
+
+##############################################################################
+# Additions 2025-10-05
+##############################################################################
+msgid "Convert console content from env (key=value) prop format to json"
+msgstr ""
+
+msgid "Convert console content from json to env (key=value) prop format"
 msgstr ""
 

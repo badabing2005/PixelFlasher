@@ -165,6 +165,12 @@ class Device():
         self._sukisu_version_code = None
         self._sukisu_app_version = None
         self._sukisu_app_version_code = None
+        self._get_wild_ksu_detailed_modules = None
+        self._wild_ksu_modules_summary = None
+        self._wild_ksu_version = None
+        self._wild_ksu_version_code = None
+        self._wild_ksu_app_version = None
+        self._wild_ksu_app_version_code = None
         self._get_lsposed_detailed_modules = None
         self._lsposed_modules_summary = None
         self._has_init_boot = None
@@ -736,6 +742,26 @@ class Device():
         return None
 
     # ----------------------------------------------------------------------------
+    #                               property wild_ksu_path
+    # ----------------------------------------------------------------------------
+    @property
+    def wild_ksu_path(self):
+        try:
+            if self.true_mode == 'adb':
+                res = self.get_package_path(WILD_KSU_PKG_NAME, True)
+                if res != -1:
+                    return res
+                self._rooted = None
+                self._su_version = ''
+                self._magisk_denylist_enforced = None
+                self._magisk_zygisk_enabled = None
+                return None
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Wild_KSU path")
+            traceback.print_exc()
+        return None
+
+    # ----------------------------------------------------------------------------
     #                               property apatch_path
     # ----------------------------------------------------------------------------
     @property
@@ -804,6 +830,10 @@ class Device():
             primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud -V\'\""
             fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/ksud -V\'\""
         elif solution_type == 'sukisu':
+            cmd_name = 'ksud'
+            primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud -V\'\""
+            fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/ksud -V\'\""
+        elif solution_type == 'wild_ksu':
             cmd_name = 'ksud'
             primary_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud -V\'\""
             fallback_cmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'/data/adb/ksud -V\'\""
@@ -884,6 +914,15 @@ class Device():
         return self._sukisu_version
 
     # ----------------------------------------------------------------------------
+    #                               property wild_ksu_version
+    # ----------------------------------------------------------------------------
+    @property
+    def wild_ksu_version(self):
+        if self._wild_ksu_version is None and self.true_mode == 'adb' and self.rooted:
+            self._wild_ksu_version, self._wild_ksu_version_code = self._get_root_solution_version('wild_ksu')
+        return self._wild_ksu_version
+
+    # ----------------------------------------------------------------------------
     #                               property magisk_version_code
     # ----------------------------------------------------------------------------
     @property
@@ -922,6 +961,16 @@ class Device():
             return ''
         else:
             return self._sukisu_version_code
+
+    # ----------------------------------------------------------------------------
+    #                               property wild_ksu_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def wild_ksu_version_code(self):
+        if self._wild_ksu_version_code is None:
+            return ''
+        else:
+            return self._wild_ksu_version_code
 
     # ----------------------------------------------------------------------------
     #                               property magisk_config_path
@@ -2608,6 +2657,15 @@ add_hosts_module
         return self._sukisu_app_version
 
     # ----------------------------------------------------------------------------
+    #                               property wild_ksu_app_version
+    # ----------------------------------------------------------------------------
+    @property
+    def wild_ksu_app_version(self):
+        if self._wild_ksu_app_version is None and self.true_mode == 'adb':
+            self._wild_ksu_app_version, self._wild_ksu_app_version_code = self.get_app_version(WILD_KSU_PKG_NAME)
+        return self._wild_ksu_app_version
+
+    # ----------------------------------------------------------------------------
     #                               property apatch_app_version
     # ----------------------------------------------------------------------------
     @property
@@ -2777,6 +2835,16 @@ add_hosts_module
             return self._sukisu_app_version_code
 
     # ----------------------------------------------------------------------------
+    #                               property wild_ksu_app_version_code
+    # ----------------------------------------------------------------------------
+    @property
+    def wild_ksu_app_version_code(self):
+        if self._wild_ksu_app_version_code is None:
+            return ''
+        else:
+            return self._wild_ksu_app_version_code
+
+    # ----------------------------------------------------------------------------
     #                               Method get_uncached_magisk_app_version
     # ----------------------------------------------------------------------------
     def get_uncached_magisk_app_version(self):
@@ -2803,6 +2871,13 @@ add_hosts_module
     def get_uncached_sukisu_app_version(self):
         self._sukisu_app_version = None
         return self.sukisu_app_version
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_uncached_wild_ksu_app_version
+    # ----------------------------------------------------------------------------
+    def get_uncached_wild_ksu_app_version(self):
+        self._wild_ksu_app_version = None
+        return self.wild_ksu_app_version
 
     # ----------------------------------------------------------------------------
     #                               Method get_uncached_apatch_app_version
@@ -2880,6 +2955,8 @@ add_hosts_module
             elif solution_name == 'KernelSU':
                 cmd = 'ksud'
             elif solution_name == 'SukiSU':
+                cmd = 'ksud'
+            elif solution_name == 'Wild_KSU':
                 cmd = 'ksud'
             else:
                 return []
@@ -2980,6 +3057,14 @@ add_hosts_module
         if self._get_sukisu_detailed_modules is None or refresh == True:
             self._get_sukisu_detailed_modules = self._get_json_modules_common('SukiSU')
         return self._get_sukisu_detailed_modules
+
+    # ----------------------------------------------------------------------------
+    #                               method get_wild_ksu_detailed_modules
+    # ----------------------------------------------------------------------------
+    def get_wild_ksu_detailed_modules(self, refresh=False):
+        if self._get_wild_ksu_detailed_modules is None or refresh == True:
+            self._get_wild_ksu_detailed_modules = self._get_json_modules_common('Wild_KSU')
+        return self._get_wild_ksu_detailed_modules
 
     # ----------------------------------------------------------------------------
     #                               method get_magisk_detailed_modules
@@ -3186,6 +3271,25 @@ add_hosts_module
             else:
                 self._sukisu_modules_summary = ''
         return self._sukisu_modules_summary
+
+    # ----------------------------------------------------------------------------
+    #                               property wild_ksu_modules_summary
+    # ----------------------------------------------------------------------------
+    @property
+    def wild_ksu_modules_summary(self):
+        if self._wild_ksu_modules_summary is None:
+            if self.get_wild_ksu_detailed_modules():
+                summary = ''
+                for module in self.get_wild_ksu_detailed_modules():
+                    with contextlib.suppress(Exception):
+                        updateText = ''
+                        if module.updateAvailable:
+                            updateText = "\t [Update Available]"
+                        summary += f"        {module.name:<36}{module.state:<10}{module.version}{updateText}\n"
+                self._wild_ksu_modules_summary = summary
+            else:
+                self._wild_ksu_modules_summary = ''
+        return self._wild_ksu_modules_summary
 
     # ----------------------------------------------------------------------------
     #                               method get_lsposed_modules
@@ -4397,6 +4501,8 @@ add_hosts_module
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
                 elif "sukisu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
+                elif "wild_ksu" in self.su_version.lower():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module install /sdcard/Download/{module_name}\'\""
                 elif "apatch" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd module install /sdcard/Download/{module_name}\'\""
                 else:
@@ -4643,6 +4749,8 @@ add_hosts_module
                 if "kernelsu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module uninstall {dirname}\'\""
                 if "sukisu" in self.su_version.lower():
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module uninstall {dirname}\'\""
+                if "wild_ksu" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ksud module uninstall {dirname}\'\""
                 elif "apatch" in self.su_version.lower():
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'apd module uninstall {dirname}\'\""

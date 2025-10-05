@@ -1205,7 +1205,7 @@ class PixelFlasher(wx.Frame):
 
             # Download and Install Magisk Manager
             if self.config.toolbar['visible']['install_magisk']:
-                tb.AddTool(toolId=210, label=_("Rooting App"), bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"), longHelp=_("Download / Install rooting app like Magisk or KernelSU or APatch or SukiSU"), clientData=None)
+                tb.AddTool(toolId=210, label=_("Rooting App"), bitmap=images.install_magisk_64.GetBitmap(), bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU or Wild_KSU"), longHelp=_("Download / Install rooting app like Magisk or KernelSU or APatch or SukiSU or Wild_KSU"), clientData=None)
                 self.Bind(wx.EVT_TOOL, self.OnToolClick, id=210)
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=210)
 
@@ -1627,7 +1627,7 @@ class PixelFlasher(wx.Frame):
         self.magisk_menu.SetBitmap(images.magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_magisk, self.magisk_menu)
         # Install Magisk
-        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, _("Rooting App"), _("Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"))
+        self.install_magisk_menu = device_menu.Append(wx.ID_ANY, _("Rooting App"), _("Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU or Wild_KSU"))
         self.install_magisk_menu.SetBitmap(images.install_magisk_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_rooting_app, self.install_magisk_menu)
         # Magisk Backup Manager
@@ -2495,6 +2495,7 @@ class PixelFlasher(wx.Frame):
         message += "	- `/data/adb/tricky_store/security_patch.txt`\n"
         message += _("- PlayIntegrity Fork (if available):\n")
         message += "	- `/data/adb/modules/playintegrityfix/custom.pif.json`\n"
+        message += "	- `/data/adb/modules/playintegrityfix/custom.pif.prop`\n"
         message += "	- `/data/adb/modules/playintegrityfix/custom.app_replace.list`\n"
         message += "	- `/data/adb/modules/playintegrityfix/scripts-only-mode`\n"
         message += _("- TargetedFix (if available):\n")
@@ -2687,11 +2688,27 @@ class PixelFlasher(wx.Frame):
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
+                # PlayIntegrity Fork - custom.pif.prop
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.prop ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.prop", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
                 # PlayIntegrity Fork - custom.app_replace.list
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace.list", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # PlayIntegrity Fork - custom.app_replace_list.txt
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace_list.txt ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace_list.txt", True)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -3068,6 +3085,9 @@ class PixelFlasher(wx.Frame):
                 s_app_version = device.sukisu_app_version
                 if s_app_version:
                     message += f"    SukiSU App Version:              {s_app_version}\n"
+                w_app_version = device.wild_ksu_app_version
+                if w_app_version:
+                    message += f"    Wild_KSU App Version:            {s_app_version}\n"
                 k_next_app_version = device.ksu_next_app_version
                 if k_next_app_version:
                     message += f"    KernelSU Next App Version:       {k_next_app_version}\n"
@@ -3632,6 +3652,8 @@ class PixelFlasher(wx.Frame):
                 self.patch_apatch_manual_button:        ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 self.patch_sukisu_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_sukisu_lkm_button:           ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_wild_ksu_button:             ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_wild_ksu_lkm_button:         ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_downgrade_button:            ['boot_is_selected', 'boot_is_not_patched', 'boot_is_not_downgrade_patched'],
                 # Special handling of non-singular widgets
                 'mode_radio_button.OTA':                ['firmware_selected', 'firmware_is_ota'],
@@ -5470,6 +5492,8 @@ class PixelFlasher(wx.Frame):
                         message += f"Patched With KSU-Next:    {boot.magisk_version}\n"
                     elif "sukisu" in boot.patch_method:
                         message += f"Patched With SukiSU:      {boot.magisk_version}\n"
+                    elif "wild_ksu" in boot.patch_method:
+                        message += f"Patched With Wild_KSU:      {boot.magisk_version}\n"
                     elif "apatch" in boot.patch_method:
                         message += f"Patched With Apatch:      {boot.magisk_version}\n"
                     else:
@@ -5772,6 +5796,22 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #                  _on_wild_ksu_patch_boot
+    # -----------------------------------------------
+    def _on_wild_ksu_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Wild_KSU Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'Wild_KSU')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with Wild_KSU")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_kernelsu_lkm_patch_boot
     # -----------------------------------------------
     def _on_kernelsu_lkm_patch_boot(self, event):
@@ -5800,6 +5840,22 @@ class PixelFlasher(wx.Frame):
             self.update_widget_states()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching SukiSU LKM")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  _on_wild_ksu_lkm_patch_boot
+    # -----------------------------------------------
+    def _on_wild_ksu_lkm_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Wild_KSU LKM Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'Wild_KSU_LKM')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching Wild_KSU LKM")
             traceback.print_exc()
         self._on_spin('stop')
 
@@ -6126,6 +6182,7 @@ class PixelFlasher(wx.Frame):
             self.idx_kernelsu = self.il.Add(images.kernelsu_24.GetBitmap())             # index 3 - kernelsu
             self.idx_downgrade = self.il.Add(images.downgrade_24.GetBitmap())           # index 4 - downgrade
             self.idx_sukisu = self.il.Add(images.sukisu_24.GetBitmap())                 # index 5 - sukisu
+            self.idx_wild_ksu = self.il.Add(images.wild_ksu_24.GetBitmap())             # index 6 - wild_ksu
         else:
             self.il = wx.ImageList(16, 16)
             self.idx_magisk = self.il.Add(images.magisk_16.GetBitmap())                 # index 0 - magisk
@@ -6134,6 +6191,7 @@ class PixelFlasher(wx.Frame):
             self.idx_kernelsu = self.il.Add(images.kernelsu_16.GetBitmap())             # index 3 - kernelsu
             self.idx_downgrade = self.il.Add(images.downgrade_16.GetBitmap())           # index 4 - downgrade
             self.idx_sukisu = self.il.Add(images.sukisu_16.GetBitmap())                 # index 5 - sukisu
+            self.idx_wild_ksu = self.il.Add(images.wild_ksu_16.GetBitmap())             # index 6 - wild_ksu
         self.list = wx.ListCtrl(parent=panel, id=-1, size=(-1, self.CharHeight * 6), style=wx.LC_REPORT | wx.BORDER_SUNKEN)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
         self.list.InsertColumn(0, 'SHA1  ', wx.LIST_FORMAT_LEFT, width=-1)
@@ -6183,6 +6241,8 @@ class PixelFlasher(wx.Frame):
         self.patch_kernelsu_next_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next LKM"), lambda: self._on_kernelsu_next_lkm_patch_boot(None), images.kernelsu_next_24.GetBitmap())
         self.patch_sukisu_button = self.patch_button.AddFunction(_("Patch with SukiSU"), lambda: self._on_sukisu_patch_boot(None), images.sukisu_24.GetBitmap())
         self.patch_sukisu_lkm_button = self.patch_button.AddFunction(_("Patch with SukiSU LKM"), lambda: self._on_sukisu_lkm_patch_boot(None), images.sukisu_24.GetBitmap())
+        self.patch_wild_ksu_button = self.patch_button.AddFunction(_("Patch with Wild_KSU"), lambda: self._on_wild_ksu_patch_boot(None), images.wild_ksu_24.GetBitmap())
+        self.patch_wild_ksu_lkm_button = self.patch_button.AddFunction(_("Patch with Wild_KSU LKM"), lambda: self._on_wild_ksu_lkm_patch_boot(None), images.wild_ksu_24.GetBitmap())
         self.patch_apatch_button = self.patch_button.AddFunction(_("Patch with APatch"), lambda: self._on_apatch_patch_boot(None), images.apatch_24.GetBitmap(), False)
         self.patch_apatch_manual_button = self.patch_button.AddFunction(_("Patch with APatch Alternate"), lambda: self._on_apatch_manual_patch_boot(None), images.apatch_24.GetBitmap(), False)
         # self.patch_custom_boot_button = self.patch_button.AddFunction(_("Patch custom boot/init_boot with Magisk"), lambda: self._on_patch_custom_boot(None), images.custom_patch_24.GetBitmap())

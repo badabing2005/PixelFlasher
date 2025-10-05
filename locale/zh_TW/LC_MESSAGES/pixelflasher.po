@@ -1983,12 +1983,6 @@ msgstr "重新處理目前啟用的 Pif 窗口 json。\n如果您更改了模組
 msgid "Reprocess one or many json file(s)\nUseful if you changed module version which might require additional / different fields.\nIf a single file is selected, the new json will output to console output\nHowever if multiple files are selected, the selected file will be updated in place."
 msgstr "重新處理一個或多個 json 文件\n如果您更改了模組版本，可能需要額外/不同的欄位，這將很有用。\n如果選擇了單個文件，新的 json 將輸出到控制台輸出\n但是如果選擇了多個文件，則選定的文件將就地更新。"
 
-msgid "Convert console content from env (key=value) format to json"
-msgstr "轉換控制台內容從 env（key=value）格式到 json"
-
-msgid "Convert console content from json to env (key=value) format"
-msgstr "轉換控制台內容從 json 到 env（key=value）格式"
-
 msgid "Process one or many json file(s) to generate the FrameworkPatcher formatted code excerpts.\n"
 msgstr "處理一個或多個 json 文件以生成 FrameworkPatcher 格式的代碼摘錄。\n"
 
@@ -2885,4 +2879,13 @@ msgstr ""
 
 msgid "WildKernels"
 msgstr ""
+
+##############################################################################
+# Additions 2025-10-05
+##############################################################################
+msgid "Convert console content from env (key=value) prop format to json"
+msgstr "轉換控制台內容從 env（key=value）prop 格式到 json"
+
+msgid "Convert console content from json to env (key=value) prop format"
+msgstr "轉換控制台內容從 json 到 env（key=value）prop 格式"
 

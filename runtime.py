@@ -4067,16 +4067,38 @@ def get_google_images(save_to=None):
             # Iterate through the device elements
             for device_element in device_elements:
                 # Check if the text of the <h2> element should be skipped
-                if device_element.text.strip() in ["Terms and conditions", "Updating instructions", "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Use Android Flash Tool", "Flashing instructions", "Special instructions for updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time", "Manual flashing instructions", "Special instructions for updating Pixel devices to the May 2025 monthly release"]:
+                if device_element.text.strip() in [
+                        "Terms and conditions",
+                        "Updating instructions",
+                        "Updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time",
+                        "Use Android Flash Tool",
+                        "Flashing instructions",
+                        "Special instructions for updating Pixel 6, Pixel 6 Pro, and Pixel 6a devices to Android 13 for the first time",
+                        "Manual flashing instructions",
+                        "Special instructions for updating Pixel devices to the May 2025 monthly release"
+                    ]:
                     continue
 
                 # Extract the device name from the 'id' attribute
                 device_id = device_element.get('id')
 
+                # Skip if device_id is None or empty or one of the known invalid ids
+                if not device_id or device_id in [
+                        "key-takeaways-panel-title"
+                    ]:
+                    continue
+
+                                # Extract the device name from the 'id' attribute
+                device_class = device_element.get('class')
+                if device_class and ("no-link" in device_class or "hide-from-toc" in device_class):
+                    # debug(f"Skipping element with class: {device_class} and id: {device_id}")
+                    continue
+
                 # Extract the device label from the text and strip "id", if it fails, skip it
                 try:
                     device_label = device_element.get('data-text').strip('"').split('" for ')[1]
-                except IndexError:
+                except Exception as e:
+                    print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Skipping element [{device_id}] with unexpected device format: {device_element.get('data-text')}")
                     continue
 
                 # Initialize a dictionary to store the device's downloads for both OTA and Factory
@@ -6833,6 +6855,15 @@ def analyze_kb_file(filepath=None, ecdsa_sn=None, ecdsa_issuer=None, rsa_sn=None
                     # Only include if it's not the target file we're analyzing AND has matching hash
                     if file_hash in target_hashes and (not filepath or file_path != filepath):
                         hash_matches.append(file_path)
+
+                # Also check for RSA SN matches within the same group
+                if target_data.get('rsa_sn', 'N/A') != 'N/A' and data.get('rsa_sn') == target_data.get('rsa_sn'):
+                    for file_entry in files:
+                        file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else file_entry
+                        # Only include if it's not the target file we're analyzing
+                        if not filepath or file_path != filepath:
+                            rsa_sn_matches.append(file_path)
+
                 continue
 
             files = data.get('files', [])
@@ -7991,12 +8022,14 @@ def get_rooting_app_apks():
                 'KernelSU-Next',
                 'APatch',
                 "SukiSU",
+                "Wild_KSU",
                 "Magisk zygote64_32 canary",
                 "Magisk special 27001",
                 "Magisk special 26401",
                 'Magisk special 25203'
             ]
             for i in mlist:
+                wx.Yield()
                 apk = get_rooting_app_details(i)
                 if apk:
                     apks.append(apk)
@@ -8169,7 +8202,7 @@ def get_rooting_app_details(channel):
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
-                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next.*\.apk$', download=False)
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next(?!.*spoofed).*\.apk$', download=False)
                 if release_notes is None:
                     release_version = "No release notes available"
                 if release_url is None:
@@ -8231,6 +8264,42 @@ def get_rooting_app_details(channel):
                 return
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during SukiSU processing")
+            traceback.print_exc()
+            return
+
+    elif channel == 'Wild_KSU':
+        try:
+            # https://github.com/WildKernels/Wild_KSU/releases
+            release = get_gh_release_object(user='WildKernels', repo='Wild_KSU', include_prerelease=False)
+            if release:
+                release_version = release['tag_name']
+                release_notes = release['body']
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Wild_KSU(?!.*spoofed).*\.apk$', download=False)
+                if release_notes is None:
+                    release_version = "No release notes available"
+                if release_url is None:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Wild_KSU APK")
+                    return
+                match = re.search(r'_([0-9]+)-', release_url)
+                if match:
+                    release_versionCode =  match.group(1)
+                else:
+                    if release_version:
+                        release_versionCode = release_version
+                    else:
+                        release_versionCode = 0
+                setattr(ma, 'version', release_version)
+                setattr(ma, 'versionCode', release_versionCode)
+                setattr(ma, 'link', release_url)
+                setattr(ma, 'note_link', "note_link")
+                setattr(ma, 'package', WILD_KSU_PKG_NAME)
+                setattr(ma, 'release_notes', release_notes)
+                return ma
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {channel} on GitHub")
+                return
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Wild_KSU processing")
             traceback.print_exc()
             return
 

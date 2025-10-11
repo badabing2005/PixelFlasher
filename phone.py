@@ -682,6 +682,23 @@ class Device():
         return None
 
     # ----------------------------------------------------------------------------
+    #                               property root_version
+    # ----------------------------------------------------------------------------
+    @property
+    def root_version(self):
+        try:
+            if self.true_mode == 'adb' and self.rooted:
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'su -v\'\""
+                res = run_shell(theCmd)
+                if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                    root_version = res.stdout.strip('\n')
+                    return root_version
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get root_version")
+            traceback.print_exc()
+        return ''
+
+    # ----------------------------------------------------------------------------
     #                               property ksu_path
     # ----------------------------------------------------------------------------
     @property
@@ -5250,18 +5267,22 @@ def get_connected_devices():
                 if res.stdout:
                     # debug(f"fastboot devices:\n{res.stdout}")
                     for device in res.stdout.split('\n'):
-                        if 'no permissions' in device:
-                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
-                            puml("#red:No permissions to access fastboot device;\n", True)
-                            continue
-                        if 'fastboot' in device:
-                            d_id = device.split("\t")
-                            d_id = d_id[0].strip()
-                            device = Device(d_id, 'f.b')
-                            device.init('f.b')
-                            device_details = device.get_device_details()
-                            devices.append(device_details)
-                            phones.append(device)
+                        try:
+                            if 'no permissions' in device:
+                                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No permissions to access fastboot device\nsee [http://developer.android.com/tools/device.html]")
+                                puml("#red:No permissions to access fastboot device;\n", True)
+                                continue
+                            if 'fastboot' in device:
+                                d_id = device.split("\t")
+                                d_id = d_id[0].strip()
+                                device = Device(d_id, 'f.b')
+                                device.init('f.b')
+                                device_details = device.get_device_details()
+                                devices.append(device_details)
+                                phones.append(device)
+                        except Exception as e:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting fastboot devices.")
+                            traceback.print_exc()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting fastboot devices.")
 

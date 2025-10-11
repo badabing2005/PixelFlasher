@@ -2856,3 +2856,8 @@ msgstr ""
 msgid "Convert console content from json to env (key=value) prop format"
 msgstr ""
 
+msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU or Wild_KSU"
+msgstr ""
+
+msgid "Push TF Prop"
+msgstr ""

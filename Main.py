@@ -3087,7 +3087,7 @@ class PixelFlasher(wx.Frame):
                     message += f"    SukiSU App Version:              {s_app_version}\n"
                 w_app_version = device.wild_ksu_app_version
                 if w_app_version:
-                    message += f"    Wild_KSU App Version:            {s_app_version}\n"
+                    message += f"    Wild_KSU App Version:            {w_app_version}\n"
                 k_next_app_version = device.ksu_next_app_version
                 if k_next_app_version:
                     message += f"    KernelSU Next App Version:       {k_next_app_version}\n"
@@ -3112,6 +3112,7 @@ class PixelFlasher(wx.Frame):
             message += f"    PF Bootloader Status:            {device.get_bl_status().upper()}\n"
         if device.rooted:
             message += f"    Device Rooted with:              {device.su_version}\n"
+            message += f"    SU Version:                      {device.root_version}\n"
             if "apatch" in device.su_version.lower():
                 a_version = device.apatch_version
                 message += f"      APatch Version:                {a_version}\n"

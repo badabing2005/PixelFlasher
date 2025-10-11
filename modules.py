@@ -587,11 +587,13 @@ def select_firmware(self):
         filename, extension = os.path.splitext(firmware)
         extension = extension.lower()
         if extension in ['.zip', '.tgz', '.tar']:
-            print(f"The following firmware is selected:\n{firmware}")
+            print(f"The following firmware is selected: {firmware}")
 
             if self.config.check_for_firmware_hash_validity:
+                print("Calculating SHA-256 checksum of the selected firmware, please wait ...")
+                wx.Yield()
                 firmware_hash = sha256(self.config.firmware_path)
-                print(f"Selected Firmware {firmware} SHA-256: {firmware_hash}")
+                print(f"SHA-256: {firmware_hash}")
                 puml(f"note right\n{firmware}\nSHA-256: {firmware_hash}\nend note\n")
 
                 # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
@@ -680,6 +682,17 @@ def process_file(self, file_type):
             file_to_process = self.config.firmware_path
             file_ext = os.path.splitext(file_to_process)[1].lower()
             print(f"Factory File:          {file_to_process}")
+            file_size = os.path.getsize(file_to_process)
+            file_size_gb = file_size / (1024 * 1024 * 1024)
+            print(f"File Size:             {file_size_gb:.2f} GB")
+            if file_size_gb > 3:
+                print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print("⚠️ WARNING: The selected firmware file is larger than 3GB.")
+                print("This could take a while to process, please be patient.")
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                puml("#orange:Large firmware file detected;\n")
+                wx.Yield()
+
             puml(f"note right:{file_to_process}\n")
             package_sig = get_firmware_id()
             package_dir_full = os.path.join(factory_images, package_sig)
@@ -893,6 +906,16 @@ def process_file(self, file_type):
             file_to_process = self.config.custom_rom_path
             file_ext = os.path.splitext(file_to_process)[1].lower()
             print(f"ROM File:              {file_to_process}")
+            file_size = os.path.getsize(file_to_process)
+            file_size_gb = file_size / (1024 * 1024 * 1024)
+            print(f"File Size:             {file_size_gb:.2f} GB")
+            if file_size_gb > 3:
+                print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                print("⚠️ WARNING: The selected ROM file is larger than 3GB.")
+                print("This could take a while to process, please be patient.")
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                puml("#orange:Large firmware file detected;\n")
+                wx.Yield()
             wx.Yield()
             found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
             wx.Yield()
@@ -2103,6 +2126,23 @@ def is_device_unlocked(self, device):
             return 0
         print("Bootloader is unlocked:")
     return 1
+
+# ============================================================================
+#                               Function message_after_flashing
+# ============================================================================
+def message_after_flashing(self):
+    # Inform the user that we're done flashing.
+    print("\n\n\n===================================================================")
+    print("  If you just rooted or changed rooting solution,")
+    print("  please launch the root app on the device to complete the process.")
+    print("  Afterwards you would need to scan for the device")
+    print("  to see the updated device information.")
+    print("\n")
+    print("  Please be patient and wait for the device to fully boot.")
+    print("  If you had selected to wipe data, you will have to set up the")
+    print("  device again as it is now like a brand new device.")
+    print("===================================================================\n")
+    return 0
 
 # ============================================================================
 #                               Function patch_boot_img
@@ -4478,11 +4518,11 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 message += f"Patch Source SHA1:          {boot.patch_source_sha1}\n"
             if boot.patch_method in ["kernelsu", "kernelsu_lkm"]:
                 message += f"Patched With KernelSU:      {boot.magisk_version}\n"
-            if boot.patch_method in ["sukisu", "sukisu_lkm"]:
+            elif boot.patch_method in ["sukisu", "sukisu_lkm"]:
                 message += f"Patched With SukiSU:      {boot.magisk_version}\n"
-            if boot.patch_method in ["wild_ksu", "wild_ksu_lkm"]:
+            elif boot.patch_method in ["wild_ksu", "wild_ksu_lkm"]:
                 message += f"Patched With Wild_KSU:      {boot.magisk_version}\n"
-            if "kernelsu-next" in boot.patch_method:
+            elif "kernelsu-next" in boot.patch_method:
                 message += f"Patched With KSU-Next:      {boot.magisk_version}\n"
             elif "apatch" in boot.patch_method:
                 message += f"Patched With Apatch:        {boot.magisk_version}\n"
@@ -4598,7 +4638,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                     fastboot_options += '--verbose '
             fastboot_options += 'flash '
         theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {partition} \"{boot_img_path}\""
-        debug(theCmd)
+        print(f"\nℹ️ Flashing phone: {theCmd} ...")
         res = run_shell(theCmd)
         if res and isinstance(res, subprocess.CompletedProcess):
             debug(f"Return Code: {res.returncode}")
@@ -4625,6 +4665,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             res = device.adb_wait_for(timeout=60, wait_for='device')
             update_phones(device.id)
             self.refresh_device(device_id)
+            message_after_flashing(True)
             return
         elif option == 'Flash' and not self.config.no_reboot:
             puml(":Reboot to System;\n")
@@ -4639,6 +4680,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         puml(f"note right:Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds\n")
     puml("}\n")
     self.refresh_device(device_id)
+    message_after_flashing(True)
     return
 
 
@@ -5537,7 +5579,7 @@ def flash_phone(self):
         # -------------------------------------------------------------------------
         # 4 Run the script
         # -------------------------------------------------------------------------
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Flashing device: {device_id} ...")
+        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Flashing device: {device_id} ...")
         puml(f":Flashing device: {device_id};\n", True)
         theCmd = flash_pf_file
         os.chdir(package_dir_full)
@@ -5747,7 +5789,7 @@ def flash_phone(self):
         # ============================================
         # Sub Function                refresh_and_done
         # ============================================
-        def refresh_and_done():
+        def refresh_and_done(final_message=False):
             # nonlocal device
             print("Sleeping 10 seconds ...")
             puml(f":Sleeping 10 seconds;\n", True)
@@ -5781,6 +5823,8 @@ def flash_phone(self):
                     print("  and wait 10 minutes before you reboot again.")
                     print("===================================================================\n")
                     device.open_update_engine_logcat()
+            if final_message:
+                message_after_flashing()
 
         # -------------------------------------------------------------------------
         # 5 Finish up Do the additional checks and flashing / rebooting
@@ -5894,7 +5938,7 @@ def flash_phone(self):
                             refresh_and_done()
                             return -1
                         if action_text == 'system':
-                            refresh_and_done()
+                            refresh_and_done(True)
                             return 0
                 # reboot to bootloader if flashing is necessary
                 res = reboot_device_to_bootloader()
@@ -6048,7 +6092,7 @@ def flash_phone(self):
         # !!!!!!!!!!!!
         # Done
         # !!!!!!!!!!!!
-        refresh_and_done()
+        refresh_and_done(True)
         return 0
 
     finally:

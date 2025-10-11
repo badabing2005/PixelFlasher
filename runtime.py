@@ -6019,7 +6019,7 @@ def save_kb_index(kb_index):
 # Credit to hldr4  for the original suggestion
 # https://gist.github.com/hldr4/b933f584b2e2c3088bcd56eb056587f8
 # ============================================================================
-def check_kb(filename):
+def check_kb(filename, force_fresh=False):
     url = "https://android.googleapis.com/attestation/status"
     headers = {
         'Cache-Control': 'no-cache, max-age=0',
@@ -6040,8 +6040,8 @@ def check_kb(filename):
         content_date = 'Unknown'
         use_cache = False
 
-        # Check if cached file exists and is fresh (less than 15 minutes old)
-        if os.path.exists(crl_cache_path):
+        # Check if cached file exists and is fresh (less than 15 minute old), unless force_fresh is True
+        if not force_fresh and os.path.exists(crl_cache_path):
             cache_age = time.time() - os.path.getmtime(crl_cache_path)
             if cache_age < 900:  # 15 minutes
                 try:
@@ -6057,7 +6057,21 @@ def check_kb(filename):
 
         # If no valid cache, fetch from server
         if not use_cache:
-            crl = request_with_fallback(method='GET', url=url, headers=headers, nocache=True)
+            # Add timestamp to URL to ensure fresh data
+            timestamp = int(time.time())
+            cache_bust_url = f"{url}?_t={timestamp}"
+
+            # Enhanced cache-busting headers
+            fresh_headers = headers.copy()
+            fresh_headers.update({
+                'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+                'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
+                'Accept-Encoding': 'identity'
+            })
+
+            crl = request_with_fallback(method='GET', url=cache_bust_url, headers=fresh_headers, nocache=True)
             if crl is not None and crl != 'ERROR':
                 last_modified = crl.headers.get('last-modified', 'Unknown')
                 content_date = crl.headers.get('date', 'Unknown')
@@ -7441,8 +7455,23 @@ def update_kb_index_with_crl():
 
         print("Fetching Certificate Revocation List...")
 
+        # Add timestamp to URL to ensure fresh data
+        timestamp = int(time.time())
+        cache_bust_url = f"{url}?_t={timestamp}"
+
+        # Enhanced cache-busting headers
+        fresh_headers = headers.copy()
+        fresh_headers.update({
+            'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
+            'Accept-Encoding': 'identity'
+        })
+
         # Fetch CRL from server
-        crl = request_with_fallback(method='GET', url=url, headers=headers, nocache=True)
+        crl = request_with_fallback(method='GET', url=cache_bust_url, headers=fresh_headers, nocache=True)
+
         if crl is None or crl == 'ERROR':
             print(f"❌ ERROR: Could not fetch CRL from {url}")
             return {'error': 'Failed to fetch CRL'}

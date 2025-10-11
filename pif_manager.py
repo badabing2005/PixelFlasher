@@ -551,7 +551,7 @@ class PifManager(wx.Dialog):
         self.tf_add_target_button.Bind(wx.EVT_BUTTON, self.onTFAddTarget)
         self.tf_delete_target_button.Bind(wx.EVT_BUTTON, self.onTFDeleteTarget)
         self.tf_edit_targets_button.Bind(wx.EVT_BUTTON, self.edit_tf_targets)
-        self.tf_push_json_button.Bind(wx.EVT_BUTTON, self.onTFPushJson)
+        self.tf_push_json_button.Bind(wx.EVT_BUTTON, self.onTFPushPropJson)
 
         # init button states
         self.init()
@@ -730,6 +730,7 @@ class PifManager(wx.Dialog):
                 if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store" or module.id == "targetedfix"):
                     self.pif_format = None
                     self.pif_path = None
+                    # playintegrityfix
                     if module.id == "playintegrityfix":
                         self.pif_format = 'json'
                         if "Play Integrity Fork" in module.name:
@@ -743,6 +744,16 @@ class PifManager(wx.Dialog):
                                         self.pif_format = 'prop'
                                         self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.prop'
                                         print("ℹ️ custom.pif.prop detected, switching to prop format.")
+                                    elif res == 0:
+                                        res, unused = device.check_file('/data/adb/modules/playintegrityfix/custom.pif.json', True)
+                                        if res == 1:
+                                            self.pif_format = 'json'
+                                            self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                                            print("ℹ️ custom.pif.json detected, switching to json format.")
+                                        else:
+                                            self.pif_format = 'prop'
+                                            self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.prop'
+                                            print("⚠️ custom.pif.prop and custom.pif.json not found, defaulting to prop format.")
                         else:
                             if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
                                 self.pif_path = '/data/adb/modules/playintegrityfix/pif.json'
@@ -751,7 +762,8 @@ class PifManager(wx.Dialog):
                         self.auto_check_pi_checkbox.Enable(True)
                         self.auto_run_migrate_checkbox.Enable(True)
 
-                    if module.id == "tricky_store":
+                    # tricky_store
+                    elif module.id == "tricky_store":
                         self.pif_format = 'prop'
                         self.pif_path = '/data/adb/tricky_store/spoof_build_vars'
                         self.push_kb_button.Enable(True)
@@ -762,9 +774,25 @@ class PifManager(wx.Dialog):
                         self.edit_security_patch_button.Show(True)
                         self.auto_run_migrate_checkbox.Enable(False)
 
+                    # targetedfix
+                    elif module.id == "targetedfix":
+                        self.pif_format = 'json'
+                        self.tf_target_path = f"{TARGETEDFIX_CONFIG_PATH}/target.txt"
+                        self.tf_targets_combo.Enable(True)
+                        self.auto_run_migrate_checkbox.Enable(False)
+                        self.create_pif_button.Enable(False)
+                        self.push_pif_button.Enable(False)
+                        self.reload_pif_button.Enable(False)
+                        self.auto_update_pif_checkbox.Enable(False)
+                        self.enable_buttons = False
+                        if int(module.versionCode) >= 300:
+                            print("ℹ️ Detected newer TargetedFix, switching to prop format.")
+                            self.pif_format = 'prop'
+                            self.tf_push_json_button.SetLabelText(_("Push TF Prop"))
+
                     flavor = module.name.replace(" ", "").lower()
                     self.pif_flavor = f"{flavor}_{module.versionCode}"
-                    self.pif_modules.append(PifModule(module.id, module.name, module.version, module.versionCode, self.pif_format, self.pif_path, self.pif_flavor))
+                    self.pif_modules.append(PifModule(id=module.id, name=module.name, version=module.version, version_code=module.versionCode, format=self.pif_format, path=self.pif_path, flavor=self.pif_flavor))
                     found_pif_module = True
                     self.create_pif_button.Enable(True)
                     self.push_pif_button.Enable(True)
@@ -776,17 +804,6 @@ class PifManager(wx.Dialog):
                     module_label = f"{module.name} {module.version} {module.versionCode}"
                     if module.id != "tricky_store":
                         self.pif_selection_combo.Append(module_label)
-
-                    if module.id == "targetedfix":
-                        self.pif_format = 'json'
-                        self.tf_target_path = f"{TARGETEDFIX_CONFIG_PATH}/target.txt"
-                        self.tf_targets_combo.Enable(True)
-                        self.auto_run_migrate_checkbox.Enable(False)
-                        self.create_pif_button.Enable(False)
-                        self.push_pif_button.Enable(False)
-                        self.reload_pif_button.Enable(False)
-                        self.auto_update_pif_checkbox.Enable(False)
-                        self.enable_buttons = False
 
         if found_pif_module:
             # Update combo box size based on content
@@ -925,11 +942,17 @@ class PifManager(wx.Dialog):
                     self.tf_targets_combo.SetSelection(0)  # Select first actual target
                     self.onTFTargetSelectionComboBox(None)
                 else:
-                    self.active_pif_stc.SetValue("{}")
-                    self.console_stc.SetText("// No Target selected")
+                    if self.pif_format == 'json':
+                        self.active_pif_stc.SetValue("{}")
+                    else:
+                        self.active_pif_stc.SetValue("")
+                    self.console_stc.SetText("No Target selected")
             else:
-                self.active_pif_stc.SetValue("{}")
-                self.console_stc.SetText("// No Target selected")
+                if self.pif_format == 'json':
+                    self.active_pif_stc.SetValue("{}")
+                else:
+                    self.active_pif_stc.SetValue("")
+                self.console_stc.SetText("No Target selected")
         else:
             self.LoadPif(self.pif_path)
 
@@ -981,16 +1004,19 @@ class PifManager(wx.Dialog):
                     content = f.read()
                 targets = [target.strip() for target in content.strip().splitlines() if target.strip()]
 
-                # Only pull JSON files that don't exist locally
+                # Only pull files that don't exist locally
                 for target in targets:
-                    local_json_file = os.path.join(config_path, 'tmp', f'{target}.json')
-                    if not os.path.exists(local_json_file) or not self._tf_targets_loaded:
-                        remote_json_file = f"{TARGETEDFIX_CONFIG_PATH}/{target}.json"
-                        res = device.pull_file(remote_json_file, local_json_file, True, quiet=True)
+                    local_tf_target_file = os.path.join(config_path, 'tmp', f'{target}.{self.pif_format}')
+                    if not os.path.exists(local_tf_target_file) or not self._tf_targets_loaded:
+                        remote_tf_target_file = f"{TARGETEDFIX_CONFIG_PATH}/{target}.{self.pif_format}"
+                        res = device.pull_file(remote_tf_target_file, local_tf_target_file, True, quiet=True)
                         # If pull fails, create empty JSON file
                         if res != 0:
-                            with open(local_json_file, 'w', encoding='utf-8') as f:
-                                f.write('{}')
+                            with open(local_tf_target_file, 'w', encoding='utf-8') as f:
+                                if self.pif_format == 'json':
+                                    f.write('{}')
+                                else:
+                                    f.write('')
 
                 self.populate_tf_targets(targets)
                 return targets
@@ -1076,22 +1102,31 @@ class PifManager(wx.Dialog):
         if selected_text:
             # Load from local file instead of device
             config_path = get_config_path()
-            local_json_file = os.path.join(config_path, 'tmp', f'{selected_text}.json')
+            local_tf_target_file = os.path.join(config_path, 'tmp', f'{selected_text}.{self.pif_format}')
 
-            if os.path.exists(local_json_file):
+            if os.path.exists(local_tf_target_file):
                 try:
-                    with open(local_json_file, 'r', encoding='utf-8') as f:
+                    with open(local_tf_target_file, 'r', encoding='utf-8') as f:
                         contents = f.read()
                     self.device_pif = contents
                     self.active_pif_stc.SetValue(contents)
                 except Exception as e:
-                    print(f"Error reading local JSON file: {e}")
-                    self.active_pif_stc.SetValue("{}")
+                    print(f"Error reading local {self.pif_format} file: {e}")
+                    if self.pif_format == 'prop':
+                        self.active_pif_stc.SetValue("")
+                    else:
+                        self.active_pif_stc.SetValue("{}")
             else:
-                # Create empty JSON if file doesn't exist
-                with open(local_json_file, 'w', encoding='utf-8') as f:
-                    f.write('{}')
-                self.active_pif_stc.SetValue("{}")
+                # Create empty {self.pif_format} if file doesn't exist
+                with open(local_tf_target_file, 'w', encoding='utf-8') as f:
+                    if self.pif_format == 'json':
+                        f.write('{}')
+                    else:
+                        f.write('')
+                if self.pif_format == 'prop':
+                    self.active_pif_stc.SetValue("")
+                else:
+                    self.active_pif_stc.SetValue("{}")
 
     # -----------------------------------------------
     #                  TestSelection
@@ -1288,6 +1323,7 @@ class PifManager(wx.Dialog):
                         self.update_tf_button_states()
 
                         print(f"Successfully added target: {target_name}")
+                        self.console_stc.SetText(f"Added target: {target_name}")
                     else:
                         wx.MessageBox(f"Failed to add target '{target_name}' to device.", "Error", wx.OK | wx.ICON_ERROR)
 
@@ -1321,10 +1357,13 @@ class PifManager(wx.Dialog):
                 with open(local_target_file, 'w', encoding='utf-8') as f:
                     f.write('\n'.join(targets) + '\n')
 
-                # Create empty local JSON file for the target
-                local_json_file = os.path.join(config_path, 'tmp', f'{target_name}.json')
-                with open(local_json_file, 'w', encoding='utf-8') as f:
-                    f.write('{}')
+                # Create empty local {self.pif_format} file for the target
+                local_tf_target_file = os.path.join(config_path, 'tmp', f'{target_name}.{self.pif_format}')
+                with open(local_tf_target_file, 'w', encoding='utf-8') as f:
+                    if self.pif_format == 'prop':
+                        f.write('')
+                    else:
+                        f.write('{}')
 
                 device = get_phone(True)
                 if device and device.rooted:
@@ -1354,12 +1393,12 @@ class PifManager(wx.Dialog):
         if selected_text == _("TF Targets") or selected_index == wx.NOT_FOUND:
             return
         # confirm deletion
-        dlg = wx.MessageDialog(self, f"Are you sure you want to delete the target '{selected_text}'?\nThis will remove the target and its associated JSON file from the device.", "Confirm Deletion", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+        dlg = wx.MessageDialog(self, f"Are you sure you want to delete the target '{selected_text}'?\nThis will remove the target and its associated {self.pif_format} file from the device.", "Confirm Deletion", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
         if dlg.ShowModal() == wx.ID_YES:
             try:
                 config_path = get_config_path()
                 local_target_file = os.path.join(config_path, 'tmp', 'tf_target.txt')
-                local_json_file = os.path.join(config_path, 'tmp', f'{selected_text}.json')
+                local_tf_target_file = os.path.join(config_path, 'tmp', f'{selected_text}.{self.pif_format}')
 
                 print(f"Deleting target: {selected_text}")
 
@@ -1375,9 +1414,9 @@ class PifManager(wx.Dialog):
                     with open(local_target_file, 'w', encoding='utf-8') as f:
                         f.write('\n'.join(targets) + '\n' if targets else '')
 
-                # Remove local JSON file
-                if os.path.exists(local_json_file):
-                    os.remove(local_json_file)
+                # Remove local {self.pif_format} file
+                if os.path.exists(local_tf_target_file):
+                    os.remove(local_tf_target_file)
 
                 # Push updated files to device
                 device = get_phone(True)
@@ -1388,14 +1427,15 @@ class PifManager(wx.Dialog):
                         print(f"Failed to update target list file: {self.tf_target_path}")
                         return
 
-                    # Delete the JSON file from device
-                    json_file_path = f"{TARGETEDFIX_CONFIG_PATH}/{selected_text}.json"
-                    res = device.delete(json_file_path, with_su=True, dir=False)
+                    # Delete the {self.pif_format} file from device
+                    remote_tf_target_file = f"{TARGETEDFIX_CONFIG_PATH}/{selected_text}.{self.pif_format}"
+                    res = device.delete(remote_tf_target_file, with_su=True, dir=False)
                     if res != 0:
-                        print(f"Failed to delete JSON file: {json_file_path}")
+                        print(f"Failed to delete {self.pif_format} file: {remote_tf_target_file}")
                         return
 
-                    print(f"Target '{selected_text}' and its JSON file have been deleted.")
+                    print(f"Target '{selected_text}' and its {self.pif_format} file have been deleted.")
+                    self.console_stc.SetText(f"Deleted target: {selected_text}")
 
                     # Refresh the targets combo box
                     targets = self.load_tf_targets()
@@ -1403,32 +1443,32 @@ class PifManager(wx.Dialog):
                         self.tf_targets_combo.SetSelection(0)
                         self.onTFTargetSelectionComboBox(None)
                     else:
-                        self.console_stc.SetText("// No Target selected")
+                        self.console_stc.AppendText("\nNo Target selected")
             except Exception as ex:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during TF target deletion process.")
                 traceback.print_exc()
 
     # -----------------------------------------------
-    #                  onTFPushJson
+    #                  onTFPushPropJson
     # -----------------------------------------------
-    def onTFPushJson(self, e):
+    def onTFPushPropJson(self, e):
         print("\n==============================================================================")
-        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Push Target JSON process")
+        print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Push Target {self.pif_format} process")
         print("==============================================================================")
-        # Get the selected target and update the local JSON file first
+        # Get the selected target and update the local PROP / JSON file first
         selected_text = self.tf_targets_combo.GetStringSelection()
         if selected_text and selected_text != _("TF Targets"):
             config_path = get_config_path()
-            local_json_file = os.path.join(config_path, 'tmp', f'{selected_text}.json')
+            local_tf_target_file = os.path.join(config_path, 'tmp', f'{selected_text}.{self.pif_format}')
 
             # Save current content to local file
             content = self.active_pif_stc.GetValue()
-            with open(local_json_file, 'w', encoding='utf-8') as f:
+            with open(local_tf_target_file, 'w', encoding='utf-8') as f:
                 f.write(content)
 
             # Now push the local file to device
-            remote_filepath = f"{TARGETEDFIX_CONFIG_PATH}/{selected_text}.json"
-            print(f"Pushing JSON for target '{selected_text}' to device...")
+            remote_filepath = f"{TARGETEDFIX_CONFIG_PATH}/{selected_text}.{self.pif_format}"
+            print(f"Pushing {self.pif_format} for target '{selected_text}' to device...")
             self.create_update_pif(just_push=True, filepath=remote_filepath)
 
     # -----------------------------------------------
@@ -2392,7 +2432,16 @@ class PifManager(wx.Dialog):
                 self.pif_modified_image.SetToolTip(_("Active pif is not modified."))
                 self.insync = True
 
-            if self.create_pif_button.Enabled and self.favorite_pif_button.Enabled:
+            # Check if we should update favorite status (either create button enabled or TargetedFix module)
+            is_pif_create_update_enabled = self.create_pif_button.Enabled
+            is_targetedfix_module = (
+                                        hasattr(self, 'current_pif_module') and
+                                        self.current_pif_module and
+                                        getattr(self.current_pif_module, 'id', None) == "targetedfix"
+                                    )
+            is_favorite_enabled = self.favorite_pif_button.Enabled
+
+            if (is_pif_create_update_enabled or is_targetedfix_module) and is_favorite_enabled:
                 sorted_json_data = json.dumps(json5.loads(json_data), indent=4, sort_keys=True)
                 pif_hash = json_hexdigest(sorted_json_data)
                 if pif_hash in self.favorite_pifs:
@@ -2404,7 +2453,7 @@ class PifManager(wx.Dialog):
                     self.favorite_pif_button.SetToolTip(_("Active pif is not saved in favorites."))
 
             # Update TargetedFix button states if applicable
-            if hasattr(self, 'current_pif_module') and self.current_pif_module and getattr(self.current_pif_module, 'id', None) == "targetedfix":
+            if is_targetedfix_module:
                 self.update_tf_button_states()
 
         except Exception:

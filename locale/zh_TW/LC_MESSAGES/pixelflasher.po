@@ -2865,9 +2865,6 @@ msgstr "使用 SukiSU 打補丁"
 msgid "Patch with SukiSU LKM"
 msgstr "使用 SukiSU LKM 打補丁"
 
-msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"
-msgstr "下載 / 安裝 Rooting 應用程式，如 Magisk 或 KernelSU* 或 APatch 或 SukiSU"
-
 msgid "Select a pre-built kernel flavor"
 msgstr "選擇預建的內核風味"
 
@@ -2888,4 +2885,13 @@ msgstr "轉換控制台內容從 env（key=value）prop 格式到 json"
 
 msgid "Convert console content from json to env (key=value) prop format"
 msgstr "轉換控制台內容從 json 到 env（key=value）prop 格式"
+
+##############################################################################
+# Additions 2025-10-11
+##############################################################################
+msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU or Wild_KSU"
+msgstr "下載 / 安裝 Rooting 應用程式，如 Magisk 或 KernelSU* 或 APatch 或 SukiSU 或 Wild_KSU"
+
+msgid "Push TF Prop"
+msgstr "推送針對性修正 Prop"
 

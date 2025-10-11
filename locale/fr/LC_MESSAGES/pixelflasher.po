@@ -2867,9 +2867,6 @@ msgstr "Patch avec SukiSU"
 msgid "Patch with SukiSU LKM"
 msgstr "Patch avec SukiSU LKM"
 
-msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"
-msgstr "Télécharger / Installer une application de rootage comme Magisk ou KernelSU* ou APatch ou SukiSU"
-
 msgid "Select a pre-built kernel flavor"
 msgstr "Sélectionner une saveur de noyau pré-construite"
 
@@ -2890,4 +2887,13 @@ msgstr "Convertir le contenu de la console du format env (clé=valeur) en json"
 
 msgid "Convert console content from json to env (key=value) prop format"
 msgstr "Convertir le contenu de la console du format json en format env (clé=valeur)"
+
+##############################################################################
+# Additions 2025-10-11
+##############################################################################
+msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU or Wild_KSU"
+msgstr "Télécharger / Installer une application de rootage comme Magisk ou KernelSU* ou APatch ou SukiSU ou Wild_KSU"
+
+msgid "Push TF Prop"
+msgstr "Envoyer TF Prop"
 

@@ -2832,9 +2832,6 @@ msgstr ""
 msgid "Patch with SukiSU LKM"
 msgstr ""
 
-msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"
-msgstr ""
-
 msgid "Select a pre-built kernel flavor"
 msgstr ""
 
@@ -2856,8 +2853,12 @@ msgstr ""
 msgid "Convert console content from json to env (key=value) prop format"
 msgstr ""
 
+##############################################################################
+# Additions 2025-10-11
+##############################################################################
 msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU or Wild_KSU"
 msgstr ""
 
 msgid "Push TF Prop"
 msgstr ""
+

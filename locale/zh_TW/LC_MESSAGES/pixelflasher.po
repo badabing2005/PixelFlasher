@@ -2251,7 +2251,7 @@ msgid "Install Pif / TS Module"
 msgstr "安裝 Pif / TS 模組"
 
 msgid "Install Play Integrity Fix related modules."
-msgstr "安裝 Play Integrity Fix 模組。"
+msgstr "安裝 Play Integrity Fix 相關模組。"
 
 msgid "Install ZygiskNext Module"
 msgstr "安裝 ZygiskNext 模組。"
@@ -2779,106 +2779,106 @@ msgstr "logcat 緩衝區已清除"
 # Additions 2025-09-08
 ##############################################################################
 msgid "Select Package for TargetedFix Target"
-msgstr ""
+msgstr "為針對性修正目標選擇套件"
 
 msgid "Add Target"
-msgstr ""
+msgstr "新增目標"
 
 msgid "Add selected package as TargetedFix target"
-msgstr ""
+msgstr "將選定的套件新增為針對性修正目標"
 
 msgid "Get Application Names"
-msgstr ""
+msgstr "取得應用程式名稱"
 
 msgid "TF Targets"
-msgstr ""
+msgstr "針對性修正目標"
 
 msgid "TargetedFix Targets"
-msgstr ""
+msgstr "針對性修正目標"
 
 msgid "Add TF Target"
-msgstr ""
+msgstr "新增針對性修正目標"
 
 msgid "Add a new TargetedFix target by selecting from package list on device"
-msgstr ""
+msgstr "從裝置上的套件列表中選擇，新增一個新的針對性修正目標"
 
 msgid "Delete TF Target"
-msgstr ""
+msgstr "刪除針對性修正目標"
 
 msgid "Delete the selected TargetedFix target"
-msgstr ""
+msgstr "刪除選定的針對性修正目標"
 
 msgid "Edit TF Targets"
-msgstr ""
+msgstr "編輯針對性修正目標"
 
 msgid "Edit TargetedFix targets file"
-msgstr ""
+msgstr "編輯針對性修正目標檔案"
 
 msgid "Push TF Json"
-msgstr ""
+msgstr "推送針對性修正 Json"
 
 msgid "Push Active pif content as JSON to the selected TargetedFix target"
-msgstr ""
+msgstr "將活動 pif 內容作為 JSON 推送到選定的針對性修正目標"
 
 msgid "Auto run migrate.sh"
-msgstr ""
+msgstr "自動執行 migrate.sh"
 
 msgid "After saving (pushing) print, automatically run migrate.sh"
-msgstr ""
+msgstr "在儲存（推送）輸出後，自動執行 migrate.sh"
 
 msgid "	- Contents of every app json configuration referenced in target.txt\n"
-msgstr ""
+msgstr "	- 每個在 target.txt 中引用的應用程式 json 配置的內容\n"
 
 ##############################################################################
 # Additions 2025-09-24
 ##############################################################################
 msgid "There will be two versions created.<br/>\n"
-msgstr ""
+msgstr "將會建立兩個版本。<br/>\n"
 
 msgid "1. Unfiltered version, that would have some sensitive information such as Device ID.\n"
-msgstr ""
+msgstr "1. 未過濾的版本，將包含一些敏感資訊，例如裝置 ID。\n"
 
 msgid "2. Sanitized version which will filter out sensitive information<br/>\n"
-msgstr ""
+msgstr "2. 已清理的版本，將過濾掉敏感資訊<br/>\n"
 
 msgid "**Note:** If you're using publicly shared keybox, keep the checkbox `Redact Keybox details` unticked so that the keybox information is included in the report.<br/>\n"
-msgstr ""
+msgstr "**注意：** 如果您使用的是公開共享的 keybox，請保持 `Redact Keybox details` 核取方塊未選中，以便在報告中包含 keybox 資訊。<br/>\n"
 
 msgid "If you're using a private keybox, please tick the checkbox `Redact Keybox details` to redact keybox details.<br/>\n"
-msgstr ""
+msgstr "**注意：** 如果您使用的是私人 keybox，請勾選 `Redact Keybox details` 核取方塊以隱藏 keybox 詳細資訊。<br/>\n"
 
 msgid "**This report will include the following details:**<br/>\n"
-msgstr ""
+msgstr "**此報告將包含以下詳細資訊：**<br/>\n"
 
 msgid "- Playstore Versions.\n"
-msgstr ""
+msgstr "- Playstore 版本。\n"
 
 msgid "Redact Keybox details"
-msgstr ""
+msgstr "隱藏 Keybox 詳細資訊"
 
 ##############################################################################
 # Additions 2025-10-01
 ##############################################################################
 msgid "Patch with SukiSU"
-msgstr ""
+msgstr "使用 SukiSU 打補丁"
 
 msgid "Patch with SukiSU LKM"
-msgstr ""
+msgstr "使用 SukiSU LKM 打補丁"
 
 msgid "Download / Install rooting app like Magisk or KernelSU* or APatch or SukiSU"
-msgstr ""
+msgstr "下載 / 安裝 Rooting 應用程式，如 Magisk 或 KernelSU* 或 APatch 或 SukiSU"
 
 msgid "Select a pre-built kernel flavor"
-msgstr ""
+msgstr "選擇預建的內核風味"
 
 msgid "ShirkNeko flavor kernel"
-msgstr ""
+msgstr "ShirkNeko 風味內核"
 
 msgid "MiRinFork flavored kernel"
-msgstr ""
+msgstr "MiRinFork 風味內核"
 
 msgid "WildKernels"
-msgstr ""
+msgstr "WildKernels"
 
 ##############################################################################
 # Additions 2025-10-05

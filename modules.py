@@ -2130,7 +2130,7 @@ def is_device_unlocked(self, device):
 # ============================================================================
 #                               Function message_after_flashing
 # ============================================================================
-def message_after_flashing(self):
+def message_after_flashing():
     # Inform the user that we're done flashing.
     print("\n\n\n===================================================================")
     print("  If you just rooted or changed rooting solution,")
@@ -4665,7 +4665,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             res = device.adb_wait_for(timeout=60, wait_for='device')
             update_phones(device.id)
             self.refresh_device(device_id)
-            message_after_flashing(True)
+            message_after_flashing()
             return
         elif option == 'Flash' and not self.config.no_reboot:
             puml(":Reboot to System;\n")
@@ -4680,7 +4680,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         puml(f"note right:Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds\n")
     puml("}\n")
     self.refresh_device(device_id)
-    message_after_flashing(True)
+    message_after_flashing()
     return
 
 

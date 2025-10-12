@@ -495,63 +495,74 @@ class PifManager(wx.Dialog):
         self.Layout()
 
         # Connect Events
-        self.close_button.Bind(wx.EVT_BUTTON, self.onClose)
-        self.Bind(wx.EVT_CLOSE, self.onClose)
-        self.create_pif_button.Bind(wx.EVT_BUTTON, self.CreatePifJson)
-        self.push_pif_button.Bind(wx.EVT_BUTTON, self.PushPif)
-        self.reload_pif_button.Bind(wx.EVT_BUTTON, self.LoadReload)
-        self.cleanup_dg_button.Bind(wx.EVT_BUTTON, self.CleanupDG)
-        self.push_kb_button.Bind(wx.EVT_BUTTON, self.select_file_and_push)
-        self.edit_ts_target_button.Bind(wx.EVT_BUTTON, self.edit_ts_target)
-        self.edit_security_patch_button.Bind(wx.EVT_BUTTON, self.edit_ts_security_patch)
-        self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildProp)
-        self.process_bulk_prop_button.Bind(wx.EVT_BUTTON, self.ProcessBuildPropFolder)
-        self.process_img_button.Bind(wx.EVT_BUTTON, self.ProcessImg)
-        self.pi_checker_button.Bind(wx.EVT_BUTTON, self.PlayIntegrityCheck)
-        self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.XiaomiPif)
-        self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.FreemanPif)
-        self.beta_pif_button.Bind(wx.EVT_BUTTON, self.BetaPif)
-        self.pi_option.Bind(wx.EVT_RADIOBOX, self.TestSelection)
-        self.Bind(wx.EVT_SIZE, self.onResize)
-        self.Bind(wx.EVT_SHOW, self.onShow)
-        self.smart_paste_up.Bind(wx.EVT_BUTTON, self.SmartPasteUp)
-        self.paste_up.Bind(wx.EVT_BUTTON, self.PasteUp)
-        self.paste_down.Bind(wx.EVT_BUTTON, self.PasteDown)
-        self.reprocess.Bind(wx.EVT_BUTTON, self.ReProcess)
-        self.reprocess_json_file.Bind(wx.EVT_BUTTON, self.ReProcessJsonFile)
-        self.get_fp_code.Bind(wx.EVT_BUTTON, self.GetFPCode)
-        self.e2j.Bind(wx.EVT_BUTTON, self.E2J)
-        self.j2e.Bind(wx.EVT_BUTTON, self.J2E)
-        self.save_pif_button.Bind(wx.EVT_BUTTON, self.SavePif)
-        self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.Favorite)
-        self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
-        self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
+        self.save_pif_button.Bind(wx.EVT_BUTTON, self.onSavePif)
         self.pif_selection_combo.Bind(wx.EVT_COMBOBOX, self.onPifSelectionComboBox)
         self.tf_targets_combo.Bind(wx.EVT_COMBOBOX, self.onTFTargetSelectionComboBox)
-        self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.onPifComboBox)
-        self.import_pif_button.Bind(wx.EVT_BUTTON, self.ImportFavorites)
-        self.add_missing_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoFill)
+        self.favorite_pif_button.Bind(wx.EVT_BUTTON, self.onSaveToFavorites)
+        self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.onFavoritesComboBox)
+        self.import_pif_button.Bind(wx.EVT_BUTTON, self.onImportFavorites)
+        #
+        self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
+        self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
+        #
+        self.create_pif_button.Bind(wx.EVT_BUTTON, self.onUpdatePrint)
+        self.push_pif_button.Bind(wx.EVT_BUTTON, self.onPushPrint)
+        self.reload_pif_button.Bind(wx.EVT_BUTTON, self.onReloadPrint)
+        self.cleanup_dg_button.Bind(wx.EVT_BUTTON, self.onCleanupDG)
+        self.push_kb_button.Bind(wx.EVT_BUTTON, self.onPushKeybox)
+        self.edit_ts_target_button.Bind(wx.EVT_BUTTON, self.onEditTSTarget)
+        self.edit_security_patch_button.Bind(wx.EVT_BUTTON, self.onEditTSSP)
+        #
+        self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.onProcessBuildProps)
+        self.process_bulk_prop_button.Bind(wx.EVT_BUTTON, self.onProcessBulkProps)
+        self.process_img_button.Bind(wx.EVT_BUTTON, self.onProcessImage)
+        self.auto_update_pif_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoUpdatePrint)
+        self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
+        self.auto_run_migrate_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoRunMigrate)
+        #
+        self.pi_option.Bind(wx.EVT_RADIOBOX, self.onTestPIAppOptionSelect)
+        #
+        self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
+        self.pi_checker_button.Bind(wx.EVT_BUTTON, self.onPlayIntegrityCheck)
+        #
+        self.rb_latest.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
+        self.rb_custom.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
+        self.custom_version.Bind(wx.EVT_TEXT, self.onBetaVersionChange)
+        self.beta_pif_button.Bind(wx.EVT_BUTTON, self.onGetPixelBetaPif)
+        self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.onGetXiaomiPif)
+        self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.onGetFreemanPif)
+        #
+        self.smart_paste_up.Bind(wx.EVT_BUTTON, self.onSmartPasteUp)
+        self.reprocess.Bind(wx.EVT_BUTTON, self.onReProcess)
+        self.paste_up.Bind(wx.EVT_BUTTON, self.onPasteUp)
+        self.paste_down.Bind(wx.EVT_BUTTON, self.onPasteDown)
+        self.reprocess_json_file.Bind(wx.EVT_BUTTON, self.onReProcessJsonFiles)
+        self.j2e.Bind(wx.EVT_BUTTON, self.onJ2E)
+        self.e2j.Bind(wx.EVT_BUTTON, self.onE2J)
+        self.get_fp_code.Bind(wx.EVT_BUTTON, self.onGetFrameworkPatcherCode)
+        #
+        self.add_missing_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onAddMissingKeysFromDevice)
         self.force_first_api_checkbox.Bind(wx.EVT_CHECKBOX, self.onForceFirstAPI)
+        self.api_value_input.Bind(wx.EVT_TEXT, self.onApiValueChange)
         self.sort_keys_checkbox.Bind(wx.EVT_CHECKBOX, self.onSortKeys)
-        self.keep_unknown_checkbox.Bind(wx.EVT_CHECKBOX, self.onKeepUnknown)
+        self.keep_unknown_checkbox.Bind(wx.EVT_CHECKBOX, self.onKeepAllKeys)
+        #
         self.spoofBuild_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofBuild)
         self.spoofProps_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofProps)
         self.spoofProvider_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofProvider)
         self.spoofSignature_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofSignature)
         self.spoofVendingSdk_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofVendingSdk)
-        self.spoofVendingFinger_checkbox.Bind(wx.EVT_CHECKBOX, self.onspoofVendingFinger)
-        self.auto_update_pif_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoUpdatePif)
-        self.auto_check_pi_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoCheckPlayIntegrity)
-        self.auto_run_migrate_checkbox.Bind(wx.EVT_CHECKBOX, self.onAutoRunMigrate)
-        self.disable_uiautomator_checkbox.Bind(wx.EVT_CHECKBOX, self.onDisableUIAutomator)
-        self.api_value_input.Bind(wx.EVT_TEXT, self.onApiValueChange)
-        self.rb_latest.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
-        self.rb_custom.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
-        self.custom_version.Bind(wx.EVT_TEXT, self.onBetaVersionChange)
-        self.tf_add_target_button.Bind(wx.EVT_BUTTON, self.onTFAddTarget)
-        self.tf_delete_target_button.Bind(wx.EVT_BUTTON, self.onTFDeleteTarget)
-        self.tf_edit_targets_button.Bind(wx.EVT_BUTTON, self.edit_tf_targets)
-        self.tf_push_json_button.Bind(wx.EVT_BUTTON, self.onTFPushPropJson)
+        self.spoofVendingFinger_checkbox.Bind(wx.EVT_CHECKBOX, self.onSpoofVendingFinger)
+        #
+        self.tf_add_target_button.Bind(wx.EVT_BUTTON, self.onAddTFTarget)
+        self.tf_delete_target_button.Bind(wx.EVT_BUTTON, self.onDeleteTFTarget)
+        self.tf_edit_targets_button.Bind(wx.EVT_BUTTON, self.onEditTFTargets)
+        self.tf_push_json_button.Bind(wx.EVT_BUTTON, self.onPushTFProp)
+        #
+        self.close_button.Bind(wx.EVT_BUTTON, self.onClose)
+        self.Bind(wx.EVT_CLOSE, self.onClose)
+        self.Bind(wx.EVT_SIZE, self.onResize)
+        self.Bind(wx.EVT_SHOW, self.onShow)
 
         # init button states
         self.init()
@@ -855,9 +866,9 @@ class PifManager(wx.Dialog):
             self.create_pif_button.SetToolTip(_("Create pif.json / spoof_build_vars."))
 
     # -----------------------------------------------
-    #                  onPifComboBox
+    #                  onFavoritesComboBox
     # -----------------------------------------------
-    def onPifComboBox(self, event):
+    def onFavoritesComboBox(self, event):
         selected_index = event.GetSelection()
         pif_list = list(self.favorite_pifs.values())
 
@@ -1129,9 +1140,9 @@ class PifManager(wx.Dialog):
                     self.active_pif_stc.SetValue("{}")
 
     # -----------------------------------------------
-    #                  TestSelection
+    #                  onTestPIAppOptionSelect
     # -----------------------------------------------
-    def TestSelection(self, event):
+    def onTestPIAppOptionSelect(self, event):
         option = event.GetString()
         self.pi_selection(option)
 
@@ -1206,14 +1217,14 @@ class PifManager(wx.Dialog):
             self.Destroy()
 
     # -----------------------------------------------
-    #                  LoadReload
+    #                  onReloadPrint
     # -----------------------------------------------
-    def LoadReload(self, e):
+    def onReloadPrint(self, e):
         if self.pif_path:
             self.LoadPif(self.pif_path)
 
     # -----------------------------------------------
-    #                  LoadReload
+    #                  LoadPif
     # -----------------------------------------------
     def LoadPif(self, file_path):
         try:
@@ -1251,21 +1262,21 @@ class PifManager(wx.Dialog):
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  CreatePifJson
+    #                  onUpdatePrint
     # -----------------------------------------------
-    def CreatePifJson(self, e):
+    def onUpdatePrint(self, e):
         self.create_update_pif(just_push=False)
 
     # -----------------------------------------------
-    #                  PushPif
+    #                  onPushPrint
     # -----------------------------------------------
-    def PushPif(self, e):
+    def onPushPrint(self, e):
         self.create_update_pif(just_push=True)
 
     # -----------------------------------------------
-    #                  onTFAddTarget
+    #                  onAddTFTarget
     # -----------------------------------------------
-    def onTFAddTarget(self, e):
+    def onAddTFTarget(self, e):
         try:
             print("\n==============================================================================")
             print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Add Target process")
@@ -1376,14 +1387,14 @@ class PifManager(wx.Dialog):
             return True
 
         except Exception as ex:
-            print(f"Error adding target locally: {ex}")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: adding target locally: {ex}")
             traceback.print_exc()
             return False
 
     # -----------------------------------------------
-    #                  onTFDeleteTarget
+    #                  onDeleteTFTarget
     # -----------------------------------------------
-    def onTFDeleteTarget(self, e):
+    def onDeleteTFTarget(self, e):
         print("\n==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Delete Target process")
         print("==============================================================================")
@@ -1449,9 +1460,9 @@ class PifManager(wx.Dialog):
                 traceback.print_exc()
 
     # -----------------------------------------------
-    #                  onTFPushPropJson
+    #                  onPushTFProp
     # -----------------------------------------------
-    def onTFPushPropJson(self, e):
+    def onPushTFProp(self, e):
         print("\n==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Push Target {self.pif_format} process")
         print("==============================================================================")
@@ -1472,9 +1483,9 @@ class PifManager(wx.Dialog):
             self.create_update_pif(just_push=True, filepath=remote_filepath)
 
     # -----------------------------------------------
-    #                  CleanupDG
+    #                  onCleanupDG
     # -----------------------------------------------
-    def CleanupDG(self, e):
+    def onCleanupDG(self, e):
         device = get_phone()
         if not device or not device.rooted:
             return
@@ -1575,7 +1586,7 @@ class PifManager(wx.Dialog):
             # Auto test Play Integrity
             if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
                 print("Auto Testing Play Integrity ...")
-                self.PlayIntegrityCheck(None)
+                self.onPlayIntegrityCheck(None)
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during pip Create process.")
             traceback.print_exc()
@@ -1628,26 +1639,31 @@ class PifManager(wx.Dialog):
                 if child == 'dismiss':
                     return device.ui_action('/data/local/tmp/pi.xml', pi_app_xml, "Dismiss", False)
 
-        except Exception:
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in get_pi_app_coords function")
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  XiaomiPif
+    #                  onGetXiaomiPif
     # -----------------------------------------------
-    def XiaomiPif(self, e):
+    def onGetXiaomiPif(self, e):
         try:
             self._on_spin('start')
             xiaomi_pif = get_xiaomi_pif()
-            self.console_stc.SetValue(xiaomi_pif)
+            if self.pif_format == 'prop':
+                self.console_stc.SetValue(self.J2P(xiaomi_pif))
+            else:
+                self.console_stc.SetValue(xiaomi_pif)
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onGetXiaomiPif function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  FreemanPif
+    #                  onGetFreemanPif
     # -----------------------------------------------
-    def FreemanPif(self, e):
+    def onGetFreemanPif(self, e):
         try:
             device = get_phone()
             if not device:
@@ -1660,8 +1676,12 @@ class PifManager(wx.Dialog):
                 abilist = get_first_match(device.props.property, keys)
 
             freeman_pif = get_freeman_pif(abilist)
-            self.console_stc.SetValue(freeman_pif)
+            if self.pif_format == 'prop':
+                self.console_stc.SetValue(self.J2P(freeman_pif))
+            else:
+                self.console_stc.SetValue(freeman_pif)
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onGetFreemanPif function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -1712,9 +1732,9 @@ class PifManager(wx.Dialog):
         event.Skip()
 
     # -----------------------------------------------
-    #                  BetaPif
+    #                  onGetPixelBetaPif
     # -----------------------------------------------
-    def BetaPif(self, e):
+    def onGetPixelBetaPif(self, e):
         try:
             self._on_spin('start')
             wx.CallAfter(self.console_stc.SetValue, _("Getting Pixel beta print ...\nPlease be patient this could take some time ..."))
@@ -1783,7 +1803,10 @@ class PifManager(wx.Dialog):
                                 }
                                 json_string = json.dumps(pif_data, indent=4) + "\n"
                                 if json_string:
-                                    self.console_stc.SetValue(json_string)
+                                    if self.pif_format == 'prop':
+                                        self.console_stc.SetValue(self.J2P(json_string))
+                                    else:
+                                        self.console_stc.SetValue(json_string)
                                     print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
                                     return
                             print("⚠️ WARNING! Failed to create fingerprint from Telegram factory image.")
@@ -1801,8 +1824,13 @@ class PifManager(wx.Dialog):
             if beta_pif == -1:
                 wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
                 return
-            self.console_stc.SetValue(beta_pif)
+            if self.pif_format == 'prop':
+                self.console_stc.SetValue(self.J2P(beta_pif))
+            else:
+                self.console_stc.SetValue(beta_pif)
+
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onGetPixelBetaPif function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -1896,9 +1924,9 @@ class PifManager(wx.Dialog):
             return None
 
     # -----------------------------------------------
-    #                  PlayIntegrityCheck
+    #                  onPlayIntegrityCheck
     # -----------------------------------------------
-    def PlayIntegrityCheck(self, e):
+    def onPlayIntegrityCheck(self, e):
         try:
             device = get_phone(True)
             if not device:
@@ -2127,6 +2155,7 @@ class PifManager(wx.Dialog):
                     self.console_stc.SetValue(res)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Play Integrity API Check process.")
             traceback.print_exc()
         finally:
             if device:
@@ -2156,9 +2185,9 @@ class PifManager(wx.Dialog):
             return 999
 
     # -----------------------------------------------
-    #                  ProcessBuildProp
+    #                  onProcessBuildProps
     # -----------------------------------------------
-    def ProcessBuildProp(self, e):
+    def onProcessBuildProps(self, e):
         # sourcery skip: dict-assign-update-to-union
         try:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.prop")
@@ -2178,6 +2207,7 @@ class PifManager(wx.Dialog):
             self._on_spin('start')
             self.process_props(sorted_paths)
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onProcessBuildProps function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -2209,7 +2239,10 @@ class PifManager(wx.Dialog):
                     processed_dict[k] = v.strip()
 
             donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, keep_all=self.keep_unknown)
-            self.console_stc.SetValue(donor_json_string)
+            if self.pif_format == 'prop':
+                self.console_stc.SetValue(self.J2P(donor_json_string))
+            else:
+                self.console_stc.SetValue(donor_json_string)
             # print(donor_json_string)
 
             # Auto Update print
@@ -2226,16 +2259,16 @@ class PifManager(wx.Dialog):
             if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
                     print("Auto Testing Play Integrity ...")
-                    self.PlayIntegrityCheck(None)
+                    self.onPlayIntegrityCheck(None)
 
         except Exception:
             print(f"Cannot process file: '{pathname}'.")
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  ProcessImg
+    #                  onProcessImage
     # -----------------------------------------------
-    def ProcessImg(self, e):
+    def onProcessImage(self, e):
         try:
             file_dialog = wx.FileDialog(self, _("Select a Device Image"), wildcard="Device image files (*.img;*.zip)|*.img;*.zip")
             if file_dialog.ShowModal() == wx.ID_OK:
@@ -2252,14 +2285,15 @@ class PifManager(wx.Dialog):
                     self.console_stc.Refresh()
                     self.console_stc.Update()
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onProcessImage function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  ProcessBuildPropFolder
+    #                  onProcessBulkProps
     # -----------------------------------------------
-    def ProcessBuildPropFolder(self, e):
+    def onProcessBulkProps(self, e):
         # sourcery skip: dict-assign-update-to-union
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process build.props Folder")
 
@@ -2348,6 +2382,7 @@ class PifManager(wx.Dialog):
                 self.paste_up.Enable(False)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in ConsoleStcChange function")
             traceback.print_exc()
         if event:
             event.Skip()
@@ -2368,7 +2403,7 @@ class PifManager(wx.Dialog):
         self._validation_timer = wx.CallLater(500, self.process_active_pif_updated_value)
 
     # -----------------------------------------------
-    #                  ActivePifStcChange
+    #          process_active_pif_updated_value
     # -----------------------------------------------
     def process_active_pif_updated_value(self):
         try:
@@ -2457,6 +2492,7 @@ class PifManager(wx.Dialog):
                 self.update_tf_button_states()
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in ActivePifStcChange function")
             traceback.print_exc()
 
     # -----------------------------------------------
@@ -2483,12 +2519,13 @@ class PifManager(wx.Dialog):
             self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in update_combo_box function")
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  SmartPasteUp
+    #                  onSmartPasteUp
     # -----------------------------------------------
-    def SmartPasteUp(self, event):
+    def onSmartPasteUp(self, event):
         try:
             print("Smart pasting up the console content ...")
             self._on_spin('start')
@@ -2527,9 +2564,10 @@ class PifManager(wx.Dialog):
             if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
                 if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
                     print("Auto Testing Play Integrity ...")
-                    self.PlayIntegrityCheck(None)
+                    self.onPlayIntegrityCheck(None)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onSmartPasteUp function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -2537,23 +2575,23 @@ class PifManager(wx.Dialog):
                 event.Skip()
 
     # -----------------------------------------------
-    #                  PasteUp
+    #                  onPasteUp
     # -----------------------------------------------
-    def PasteUp(self, event):
+    def onPasteUp(self, event):
         self.active_pif_stc.SetValue(self.console_stc.GetValue())
         event.Skip()
 
     # -----------------------------------------------
-    #                  PasteDown
+    #                  onPasteDown
     # -----------------------------------------------
-    def PasteDown(self, event):
+    def onPasteDown(self, event):
         self.console_stc.SetValue(self.active_pif_stc.GetValue())
         event.Skip()
 
     # -----------------------------------------------
-    #                  onAutoFill
+    #                  onAddMissingKeysFromDevice
     # -----------------------------------------------
-    def onAutoFill(self, event):
+    def onAddMissingKeysFromDevice(self, event):
         self.add_missing_keys_checkbox = event.GetEventObject()
         status = self.add_missing_keys_checkbox.GetValue()
         print(f"Add Missing Keys is set to: {status}")
@@ -2569,9 +2607,9 @@ class PifManager(wx.Dialog):
         self.config.pif['sort_keys'] = status
 
     # -----------------------------------------------
-    #                  onKeepUnknown
+    #                  onKeepAllKeys
     # -----------------------------------------------
-    def onKeepUnknown(self, event):
+    def onKeepAllKeys(self, event):
         self.keep_unknown_checkbox = event.GetEventObject()
         status = self.keep_unknown_checkbox.GetValue()
         self.keep_unknown = status
@@ -2635,9 +2673,9 @@ class PifManager(wx.Dialog):
         self.config.pif['spoofVendingSdk'] = status
 
     # -----------------------------------------------
-    #                  onspoofVendingFinger
+    #                  onSpoofVendingFinger
     # -----------------------------------------------
-    def onspoofVendingFinger(self, event):
+    def onSpoofVendingFinger(self, event):
         self.spoofVendingFinger_checkbox = event.GetEventObject()
         status = self.spoofVendingFinger_checkbox.GetValue()
         self.spoofVendingFinger = status
@@ -2657,9 +2695,9 @@ class PifManager(wx.Dialog):
             self.first_api = None
 
     # -----------------------------------------------
-    #                  onAutoUpdatePif
+    #                  onAutoUpdatePrint
     # -----------------------------------------------
-    def onAutoUpdatePif(self, event):
+    def onAutoUpdatePrint(self, event):
         self.auto_update_pif_checkbox = event.GetEventObject()
         status = self.auto_update_pif_checkbox.GetValue()
         print(f"Auto Update print is set to: {status}")
@@ -2704,28 +2742,31 @@ class PifManager(wx.Dialog):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: device is not accessible.")
                 return
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in runMigrate function")
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  E2J
+    #                  onE2J
     # -----------------------------------------------
-    def E2J(self, event):
+    def onE2J(self, event):
         try:
             self._on_spin('start')
             self.console_stc.SetValue(self.P2J(self.console_stc.GetValue()))
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onE2J function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  J2E
+    #                  onJ2E
     # -----------------------------------------------
-    def J2E(self, event):
+    def onJ2E(self, event):
         try:
             self._on_spin('start')
             self.console_stc.SetValue(self.J2P(self.console_stc.GetValue()))
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onJ2E function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -2786,12 +2827,13 @@ class PifManager(wx.Dialog):
             key_value_format = "\n".join(contentList) + "\n"
             return key_value_format
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in J2P function")
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  edit_tf_targets
+    #                  onEditTFTargets
     # -----------------------------------------------
-    def edit_tf_targets(self, event):
+    def onEditTFTargets(self, event):
         print("\n==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated editing TargetedFix target.txt file.")
         print("==============================================================================")
@@ -2812,9 +2854,9 @@ class PifManager(wx.Dialog):
             event.Skip()
 
     # -----------------------------------------------
-    #                  edit_ts_target
+    #                  onEditTSTarget
     # -----------------------------------------------
-    def edit_ts_target(self, event):
+    def onEditTSTarget(self, event):
         print("\n==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated editing Tricky Store target.txt file.")
         print("==============================================================================")
@@ -2822,9 +2864,9 @@ class PifManager(wx.Dialog):
         event.Skip()
 
     # -----------------------------------------------
-    #                  edit_ts_security_patch
+    #                  onEditTSSP
     # -----------------------------------------------
-    def edit_ts_security_patch(self, event):
+    def onEditTSSP(self, event):
         print("\n==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated editing Tricky Store security_patch.txt file.")
         print("==============================================================================")
@@ -2928,9 +2970,9 @@ class PifManager(wx.Dialog):
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  select_file_and_push
+    #                  onPushKeybox
     # -----------------------------------------------
-    def select_file_and_push(self, event):
+    def onPushKeybox(self, event):
         try:
             with wx.FileDialog(self, _("Select keybox to push"), '', '', wildcard="Keybox files (*.xml)|*.xml", style=wx.FD_OPEN) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -2950,7 +2992,7 @@ class PifManager(wx.Dialog):
                     print("Aborting ...\n")
                     return -1
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function select_file_and_push.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function onPushKeybox.")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -3011,12 +3053,13 @@ class PifManager(wx.Dialog):
 
             return modified_data
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in load_json_with_rules function")
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  ReProcess
+    #                  onReProcess
     # -----------------------------------------------
-    def ReProcess(self, event):
+    def onReProcess(self, event):
         try:
             print("Reprocessing Active Pif content ...")
             self._on_spin('start')
@@ -3029,6 +3072,7 @@ class PifManager(wx.Dialog):
                 self.console_stc.SetValue(donor_json_string)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onReProcess function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -3036,9 +3080,9 @@ class PifManager(wx.Dialog):
                 event.Skip()
 
     # -----------------------------------------------
-    #                  ReProcessJsonFile
+    #                  onReProcessJsonFiles
     # -----------------------------------------------
-    def ReProcessJsonFile(self, event):
+    def onReProcessJsonFiles(self, event):
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed ReProcess Json File(s)")
         wildcard = "Property files (*.json)|*.json|All files (*.*)|*.*"
         dialog = wx.FileDialog(self, _("Choose one or multiple json files to reprocess"), wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
@@ -3069,6 +3113,7 @@ class PifManager(wx.Dialog):
                         f.write(reprocessed_json_string)
                         wx.YieldIfNeeded
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onReProcessJsonFiles function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -3076,10 +3121,10 @@ class PifManager(wx.Dialog):
                 event.Skip()
 
     # -----------------------------------------------
-    #                  GetFPCode
+    #                  onGetFrameworkPatcherCode
     # -----------------------------------------------
-    def GetFPCode(self, event):
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed GetFPCode Json File(s)")
+    def onGetFrameworkPatcherCode(self, event):
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User pressed onGetFrameworkPatcherCode Json File(s)")
         wildcard = "Property files (*.json)|*.json|All files (*.*)|*.*"
         dialog = wx.FileDialog(self, _("Choose one or multiple json files to reprocess"), wildcard=wildcard, style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
@@ -3115,9 +3160,13 @@ class PifManager(wx.Dialog):
 
             all_output_lines.append("// -------------------------------------------------------------------------------------------------------")
             final_output_text = "\n".join(all_output_lines)
-            self.console_stc.SetValue(final_output_text)
+            if self.pif_format == 'prop':
+                self.console_stc.SetValue(self.J2P(final_output_text))
+            else:
+                self.console_stc.SetValue(final_output_text)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onGetFrameworkPatcherCode function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -3125,9 +3174,9 @@ class PifManager(wx.Dialog):
                 event.Skip()
 
     # -----------------------------------------------
-    #                  SavePif
+    #                  onSavePif
     # -----------------------------------------------
-    def SavePif(self, event):
+    def onSavePif(self, event):
         active_data = self.active_pif_stc.GetValue()
         pif_string = None
         if active_data:
@@ -3166,9 +3215,9 @@ class PifManager(wx.Dialog):
                 json.dump(pif_json, f, indent=4)
 
     # -----------------------------------------------
-    #                  Favorite
+    #                  onSaveToFavorites
     # -----------------------------------------------
-    def Favorite(self, event):
+    def onSaveToFavorites(self, event):
         try:
             active_data = self.active_pif_stc.GetValue()
             active_pif = None
@@ -3223,14 +3272,15 @@ class PifManager(wx.Dialog):
             self.ActivePifStcChange(None)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onSaveToFavorites function")
             traceback.print_exc()
         if event:
             event.Skip()
 
     # -----------------------------------------------
-    #                  ImportFavorites
+    #                  onImportFavorites
     # -----------------------------------------------
-    def ImportFavorites(self, e):
+    def onImportFavorites(self, e):
         try:
             with wx.DirDialog(self, _("Select folder to Import Pifs"), style=wx.DD_DEFAULT_STYLE) as folderDialog:
                 if folderDialog.ShowModal() == wx.ID_CANCEL:
@@ -3277,6 +3327,7 @@ class PifManager(wx.Dialog):
             self.update_combo_box(None)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onImportFavorites function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -3405,6 +3456,7 @@ class PifManager(wx.Dialog):
                 self.tf_push_json_button.Enable(False)
 
         except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in update_tf_button_states function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')

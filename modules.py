@@ -5052,7 +5052,7 @@ def flash_phone(self):
                     elif image_mode == 'boot' and self.live_boot_radio_button.Value:
                         action = "boot"
                         msg  = "\nLive Boot to:           "
-                        if device.hardware in KNOWN_INIT_BOOT_DEVICES:
+                        if has_init_boot(device.hardware):
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported.")
                             puml("#orange:Live booting Pixel 7 or newer are not supported;\n}\n")
                             self.toast(_("Flash action"), _("⚠️ Live booting Pixel 7 or newer devices is not supported."))
@@ -5871,7 +5871,7 @@ def flash_phone(self):
             #     print("Aborting ...\n")
             #     return -1
             # if Device is a Phone
-            if device.hardware is None or device.hardware == "" or device.hardware not in PIXEL_WATCHES:
+            if device.hardware is None or device.hardware == "" or not is_pixel_watch(device.hardware):
                 res = get_device_mode(expect_bootloader=False)
                 if res == -1:
                     # On Android 15, sometimes the device is not detected after sideloading the OTA

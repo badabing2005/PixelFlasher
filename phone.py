@@ -401,9 +401,7 @@ class Device():
                 self.props = device_props
 
             # set has_init_boot
-            self._has_init_boot = False
-            if self.hardware in KNOWN_INIT_BOOT_DEVICES:
-                self._has_init_boot = True
+            self._has_init_boot = has_init_boot(self.hardware)
             partitions = self.get_partitions()
             if partitions != -1 and ('init_boot' in partitions or 'init_boot_a' in partitions or 'init_boot_b' in partitions):
                 self._has_init_boot = True
@@ -1931,7 +1929,7 @@ add_hosts_module
                 if slot not in ['a', 'b']:
                     slot = self.active_slot
                 # decide on boot.img or init_boot.img
-                if self.hardware in KNOWN_INIT_BOOT_DEVICES:
+                if has_init_boot(self.hardware):
                     partition = 'init_boot'
                 else:
                     partition = 'boot'

@@ -1089,6 +1089,32 @@ def get_downgrade_boot_path():
 
 
 # ============================================================================
+#                               Function has_init_boot
+# ============================================================================
+def has_init_boot(device_codename):
+    try:
+        android_devices = get_android_devices()
+        if not android_devices or device_codename not in android_devices:
+            return False
+        return android_devices[device_codename]['has_init_boot']
+    except Exception as e:
+        return False
+
+
+# ============================================================================
+#                               Function is_pixel_watch
+# ============================================================================
+def is_pixel_watch(device_codename):
+    try:
+        android_devices = get_android_devices()
+        if not android_devices or device_codename not in android_devices:
+            return False
+        return android_devices[device_codename]['is_pixel_watch']
+    except Exception as e:
+        return False
+
+
+# ============================================================================
 #                               Function puml
 # ============================================================================
 def puml(message='', left_ts = False, mode='a'):

@@ -2898,3 +2898,31 @@ msgstr "Descargar / Instalar aplicación de root como Magisk o KernelSU* o APatc
 msgid "Push TF Prop"
 msgstr "Enviar prop TF"
 
+##############################################################################
+# Additions 2025-10-18
+##############################################################################
+msgid "Select Device"
+msgstr "Seleccionar dispositivo"
+
+msgid "Select a device:"
+msgstr "Seleccionar un dispositivo:"
+
+msgid "Unknown"
+msgstr "Desconocido"
+
+msgid "PixelFlasher guessed Kernel KMI"
+msgstr "Kernel KMI adivinado por PixelFlasher"
+
+msgid "Your device kernel KMI is unknown probably because you're using\n"
+msgstr "El KMI del kernel de su dispositivo es desconocido probablemente porque está utilizando\n"
+
+msgid "a custom kernel which has stripped out the Android build tag.\n\n"
+msgstr "un kernel personalizado que ha eliminado la etiqueta de compilación de Android.\n\n"
+
+msgid "PixelFlasher has guessed the Kernel KMI to be: %s\n\n"
+msgstr "PixelFlasher ha adivinado que el Kernel KMI es: %s\n\n"
+
+msgid "Are you sure you want to proceed with this guessed KMI?\n"
+msgstr "¿Está seguro de que desea continuar con este KMI adivinado?\n"
+
+

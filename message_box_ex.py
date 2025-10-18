@@ -43,7 +43,23 @@ import wx.html
 from runtime import *
 
 class MessageBoxEx(wx.Dialog):
-    def __init__(self, *args, title=None, message=None, button_texts=None, default_button=None, disable_buttons=None, is_md=False, size=(800, 600), checkbox_labels=None, checkbox_initial_values=None, vertical_checkboxes=False, **kwargs):
+    def __init__(
+            self,
+            *args,
+            title=None,
+            message=None,
+            button_texts=None,
+            default_button=None,
+            disable_buttons=None,
+            is_md=False,
+            size=(800, 600),
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            vertical_checkboxes=False,
+            radio_labels=None,
+            radio_initial_value=None,
+            **kwargs
+        ):
         wx.Dialog.__init__(self, *args, **kwargs)
         self.SetTitle(title)
         self.button_texts = button_texts
@@ -52,6 +68,9 @@ class MessageBoxEx(wx.Dialog):
         self.return_value = None
         self.checkboxes = []
         self.checkbox_labels = checkbox_labels
+        self.radio_buttons = []
+        self.radio_labels = radio_labels
+        self.radio_initial_value = radio_initial_value
         if checkbox_initial_values is not None:
             self.checkbox_initial_values = checkbox_initial_values
         else:
@@ -107,6 +126,20 @@ class MessageBoxEx(wx.Dialog):
                 checkbox_sizer.Add(checkbox, 0, wx.ALL, 5)
             vSizer.Add(checkbox_sizer, 0, wx.EXPAND | wx.ALL, 10)
 
+        if radio_labels is not None:
+            radio_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select Option"), wx.HORIZONTAL)
+            for i, radio_label in enumerate(radio_labels):
+                # First radio button should have RB_GROUP style to start a new group
+                style = wx.RB_GROUP if i == 0 else 0
+                radio_button = wx.RadioButton(self, wx.ID_ANY, radio_label, wx.DefaultPosition, wx.DefaultSize, style)
+                if self.radio_initial_value is not None and self.radio_initial_value == i:
+                    radio_button.SetValue(True)
+                elif self.radio_initial_value is None and i == 0:
+                    radio_button.SetValue(True)  # Default to first option
+                self.radio_buttons.append(radio_button)
+                radio_sizer.Add(radio_button, 0, wx.ALL, 5)
+            vSizer.Add(radio_sizer, 0, wx.EXPAND | wx.ALL, 10)
+
         buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         buttons_sizer.Add((0, 0), 1, wx.EXPAND, 5)
         # do this to not have any focus on the buttons, if default_button is set, then the corresponding button will have focus
@@ -138,10 +171,19 @@ class MessageBoxEx(wx.Dialog):
 
     def _onButtonClick(self, e, button_index):
         button_value = button_index + 1
+        self.return_value = {'button': button_value}
+
         if self.checkbox_labels is not None:
             checkbox_values = [checkbox.IsChecked() for checkbox in self.checkboxes]
             set_dlg_checkbox_values(checkbox_values)
-            self.return_value = {'button': button_value, 'checkboxes': checkbox_values}
+            self.return_value['checkboxes'] = checkbox_values
+
+        if self.radio_labels is not None:
+            for i, radio_button in enumerate(self.radio_buttons):
+                if radio_button.GetValue():
+                    self.return_value['radio'] = i
+                    break
+
         self.EndModal(button_value)
 
     def _onLinkClicked(self, event):

@@ -179,6 +179,12 @@ class Config():
             'flags': ''
         }
 
+        # KSU Asset Selection Mode
+        # 0 = Equal or highest lower, if not matched, lowest higher (default)
+        # 1 = Highest Available
+        # 2 = User selectable based on matches found
+        self.ksu_asset_selection_mode = 0
+
     @classmethod
     def load(cls, file_path):
         conf = cls()
@@ -332,6 +338,8 @@ class Config():
                     conf.kb_index = data['kb_index']
                 with contextlib.suppress(KeyError):
                     conf.unmarked_entries_path = data['unmarked_entries_path']
+                with contextlib.suppress(KeyError):
+                    conf.ksu_asset_selection_mode = data['ksu_asset_selection_mode']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -535,7 +543,8 @@ class Config():
             'language': self.language,
             'keep_patch_temporary_files': self.keep_patch_temporary_files,
             'kb_index': self.kb_index,
-            'unmarked_entries_path': self.unmarked_entries_path
+            'unmarked_entries_path': self.unmarked_entries_path,
+            'ksu_asset_selection_mode': self.ksu_asset_selection_mode
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

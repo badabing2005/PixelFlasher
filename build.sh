@@ -32,7 +32,7 @@
 # <https://www.gnu.org/licenses/>.
 
 rm -rf build dist
-VERSION=8.8.2.3
+VERSION=8.9.0.0
 NAME="PixelFlasher"
 DIST_NAME="PixelFlasher"
 

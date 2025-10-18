@@ -227,7 +227,7 @@ jobs:
 
   deploy:
     # Make deploy conditional on the check_artifacts job and all build jobs
-    needs: [check_artifacts, build_windows, build_windows_arm64, build_ubuntu_22_04, build_ubuntu_24_04, build_mac_old, build_mac, build_appimage]
+    needs: [check_artifacts, build_windows, build_windows_arm64, build_ubuntu_22_04, build_ubuntu_24_04, build_mac, build_appimage]
     # Run only on tag push or manual workflow run, and even if some builds are skipped
     if: always() && (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
 

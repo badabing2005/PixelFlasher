@@ -617,6 +617,7 @@ class Device():
                 res = run_shell(theCmd)
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                     self._kernel = res.stdout.strip('\n')
+                    # self._kernel = 'Linux localhost 6.1.124-Wild+ #1 SMP PREEMPT Tue Aug 12 05:32:09 UTC 2025 aarch64 Toybox' # for testing
                     match = re.search(r"\b(\d+\.\d+\.\d+-android\d+)\b", self._kernel)
                     if match:
                         self._kmi = match[1]
@@ -642,6 +643,57 @@ class Device():
                 return match[1]
             else:
                 return ''
+        except Exception:
+            return ''
+
+    # ----------------------------------------------------------------------------
+    #                               property kmi_guessed
+    # ----------------------------------------------------------------------------
+    @property
+    def kmi_guessed(self):
+        """
+        Guess KMI version for custom kernels that have stripped android build tag.
+        Maps kernel major.minor versions to Android versions:
+        5.10/5.15 -> Android 13
+        6.1 -> Android 14
+        6.6 -> Android 15
+        6.10 -> Android 16
+        """
+        try:
+            # First try to get the actual KMI if available
+            actual_kmi = self.kmi
+            if actual_kmi:
+                return actual_kmi
+
+            # If no actual KMI, try to guess from kernel version
+            if not self.kernel:
+                return ''
+
+            # Extract kernel version (e.g., "6.1.124" from the kernel string)
+            version_match = re.search(r"\b(\d+)\.(\d+)\.(\d+)", self.kernel)
+            if not version_match:
+                return ''
+
+            major = int(version_match[1])
+            minor = int(version_match[2])
+            patch = version_match[3]
+
+            # Map kernel versions to Android versions
+            android_version = None
+            if major == 5 and minor in [10, 15]:
+                android_version = "13"
+            elif major == 6 and minor == 1:
+                android_version = "14"
+            elif major == 6 and minor == 6:
+                android_version = "15"
+            elif major == 6 and minor == 10:
+                android_version = "16"
+
+            if android_version:
+                return f"{major}.{minor}.{patch}-android{android_version}"
+            else:
+                return ''
+
         except Exception:
             return ''
 

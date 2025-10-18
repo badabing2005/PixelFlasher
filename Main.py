@@ -3049,6 +3049,8 @@ class PixelFlasher(wx.Frame):
                 message += f"    Device Kernel:                   {device.kernel}\n"
                 message += f"    Device Kernel Version:           {device.get_prop('ro.kernel.version')}\n"
                 message += f"    Device KMI:                      {device.kmi}\n"
+                if not device.kmi:
+                    message += f"    Guessed KMI:                     {device.kmi_guessed}\n"
                 message += f"    CONFIG_KALLSYMS:                 {device.config_kallsyms}\n"
                 message += f"    CONFIG_KALLSYMS_ALL:             {device.config_kallsyms_all}\n"
                 message += f"    Page Size:                       {device.get_page_size()}\n"

@@ -2862,3 +2862,30 @@ msgstr ""
 msgid "Push TF Prop"
 msgstr ""
 
+##############################################################################
+# Additions 2025-10-18
+##############################################################################
+msgid "Select Device"
+msgstr ""
+
+msgid "Select a device:"
+msgstr ""
+
+msgid "Unknown"
+msgstr ""
+
+msgid "PixelFlasher guessed Kernel KMI"
+msgstr ""
+
+msgid "Your device kernel KMI is unknown probably because you're using\n"
+msgstr ""
+
+msgid "a custom kernel which has stripped out the Android build tag.\n\n"
+msgstr ""
+
+msgid "PixelFlasher has guessed the Kernel KMI to be: %s\n\n"
+msgstr ""
+
+msgid "Are you sure you want to proceed with this guessed KMI?\n"
+msgstr ""
+

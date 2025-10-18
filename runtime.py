@@ -1717,6 +1717,7 @@ def replace_file_in_zip_with_7zip(zip_path, file_to_replace, new_file_path):
 def check_archive_contains_file(archive_file_path, file_to_check, nested=False, is_recursive=False):
     try:
         debug(f"Looking for {file_to_check} in file {archive_file_path} with nested: {nested}")
+        wx.Yield()
 
         file_ext = os.path.splitext(archive_file_path)[1].lower()
 
@@ -1751,6 +1752,7 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
     try:
         if not is_recursive:
             debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested}")
+            wx.Yield()
         try:
             with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
                 for name in zip_file.namelist():
@@ -1847,6 +1849,7 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
     try:
         if not is_recursive:
             debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested} Low Memory version.")
+            wx.Yield()
 
         stack = [(zip_file_path, '')]
         temp_files = []
@@ -1909,6 +1912,7 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
     try:
         if not is_recursive:
             debug(f"Looking for {file_to_check} in tarfile {tar_file_path} with tar-nested: {nested}")
+            wx.Yield()
         with tarfile.open(tar_file_path, 'r') as tar_file:
             for member in tar_file.getmembers():
                 if member.name.endswith(f'/{file_to_check}') or member.name == file_to_check:
@@ -2887,6 +2891,7 @@ def get_gsi_data(force_version=None):
         error = False
         # URLs
         gsi_url = "https://developer.android.com/topic/generic-system-image/releases"
+        debug(f"Fetching GSI data from {gsi_url} ...")
 
         # Fetch GSI HTML
         response = request_with_fallback('GET', gsi_url)
@@ -3431,8 +3436,43 @@ def get_beta_pif(device_model='random', force_version=None):
     for data in newest_data:
         if data in ['ota', 'ota_error'] and ota_data:
             print("  Extracting PIF from Beta OTA ...")
-            # Grab fp and sp from OTA zip
-            fingerprint, security_patch = url2fpsp(ota_data.__dict__['devices'][0]['url'], "ota")
+            selected_url = None
+            if device_model == '_select_':
+                try:
+                    from device_selector import show_device_selector
+                    devices = ota_data.__dict__['devices']
+                    selected_device = show_device_selector(
+                        parent=None,
+                        devices=devices,
+                        title="Select OTA Device",
+                        message="Select an OTA device:"
+                    )
+
+                    if selected_device:
+                        selected_url = selected_device['url']
+                        # Extract codename from zip filename (format: codename-buildid-*.zip)
+                        zip_filename = selected_device['zip_filename']
+                        device_model = zip_filename.split('-')[0]
+                        device_model = device_model.lower().replace('_beta', '').replace('beta_', '')
+                        print(f"  Selected: {selected_device['device']} - {selected_device['zip_filename']}")
+                    else:
+                        print("Selection cancelled.")
+                        return "Selection cancelled."
+                except ImportError:
+                    selected_url = None
+            elif device_model != 'random':
+                # Try to find a device that matches the requested device model
+                for device in ota_data.__dict__['devices']:
+                    if device_model.lower() in device['zip_filename'].lower():
+                        selected_url = device['url']
+                        debug(f"  Found matching OTA device: {device['zip_filename']}")
+                        break
+            # Fall back to last device if no match found or if random was requested
+            if selected_url is None:
+                selected_url = ota_data.__dict__['devices'][-1]['url']
+                debug(f"  Using last OTA device: {ota_data.__dict__['devices'][-1]['zip_filename']}")
+            # Grab fp and sp from selected OTA zip
+            fingerprint, security_patch = url2fpsp(selected_url, "ota")
             if fingerprint and security_patch:
                 model_list = []
                 product_list = []
@@ -3442,8 +3482,42 @@ def get_beta_pif(device_model='random', force_version=None):
                     break
         elif data in ['factory', 'factory_error'] and factory_data:
             print("  Extracting PIF from Beta Factory ...")
-            # Grab fp and sp from Factory zip
-            fingerprint, security_patch = url2fpsp(factory_data.__dict__['devices'][0]['url'], "factory")
+            selected_url = None
+            if device_model == '_select_':
+                try:
+                    from device_selector import show_device_selector
+                    devices = factory_data.__dict__['devices']
+                    selected_device = show_device_selector(
+                        parent=None,
+                        devices=devices,
+                        title="Select Factory Device",
+                        message="Select a Factory device:"
+                    )
+                    if selected_device:
+                        selected_url = selected_device['url']
+                        # Extract codename from zip filename (format: codename-buildid-*.zip)
+                        zip_filename = selected_device['zip_filename']
+                        device_model = zip_filename.split('-')[0]
+                        device_model = device_model.lower().replace('_beta', '').replace('beta_', '')
+                        print(f"  Selected: {selected_device['device']} - {selected_device['zip_filename']}")
+                    else:
+                        print("Selection cancelled.")
+                        return "Selection cancelled."
+                except ImportError:
+                    selected_url = None
+            elif device_model != 'random':
+                # Try to find a device that matches the requested model
+                for device in factory_data.__dict__['devices']:
+                    if device_model.lower() in device['zip_filename'].lower():
+                        selected_url = device['url']
+                        debug(f"  Found matching Factory device: {device['zip_filename']}")
+                        break
+            # Fall back to last device if no match found or if random was requested
+            if selected_url is None:
+                selected_url = factory_data.__dict__['devices'][-1]['url']
+                debug(f"  Using last Factory device: {factory_data.__dict__['devices'][-1]['zip_filename']}")
+            # Grab fp and sp from selected Factory zip
+            fingerprint, security_patch = url2fpsp(selected_url, "factory")
             if fingerprint and security_patch:
                 model_list = []
                 product_list = []
@@ -3452,9 +3526,7 @@ def get_beta_pif(device_model='random', force_version=None):
                 if model_list and product_list:
                     break
         elif data in ['gsi', 'gsi_error'] and gsi_data:
-            # print("  Extracting PIF from Beta GSI ...")
             print(f"  Extracting beta print from GSI data version {latest_version} ...")
-            # Grab fp and sp from GSI zip
             fingerprint, security_patch = url2fpsp(gsi_data.__dict__['devices'][0]['url'], "gsi")
             incremental = gsi_data.__dict__['incremental']
             expiry_date = gsi_data.__dict__['beta_expiry_date']
@@ -3598,6 +3670,7 @@ def get_beta_pif(device_model='random', force_version=None):
 # ============================================================================
 def get_beta_data(url):
     try:
+        debug(f"Fetching beta data from URL: {url}")
         response = requests.get(url)
         if response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {url}")
@@ -3628,19 +3701,24 @@ def get_beta_data(url):
         release_date = data.get('release_date')
         build = data.get('build')
         if not build:
-            debug(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Build not found in the data.")
-            debug("Looking for Builds")
+            wx.Yield()
+            # try again to get the build, this time looking for builds
             build = data.get('builds')
         if not build:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build not found in the data.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build(s) not found in the data.")
             return None, None
         else:
-            print(f"ℹ️ Multiple Builds are found:\n{build}")
             # we might get an output like this: 'BP31.250610.004\n      BP31.250610.004.A1 (Pixel 6, 6 Pro)'
             # we need to extract the first build from it, but we also need to keep the other builds for later
             # when we're extracting the devices, we need to match the build with the device.
-            build = build.split('\n')[0].strip()  # Take the first build only
-            print(f"Selected Build:           {build}")
+            builds = build.split('\n')
+            if len(builds) > 1:
+                print(f"ℹ️ Multiple Builds are found, selecting the first one: {builds[0].strip()}")
+                build = builds[0].strip()  # Take the first build only
+                print(f"ℹ️ Selected Build:           {build}")
+            else:
+                print(f"ℹ️ Single Build is found: {builds[0].strip()}")
+                build = builds[0].strip()
         emulator_support = data.get('emulator_support')
         security_patch_level = data.get('security_patch_level')
         google_play_services = data.get('google_play_services')
@@ -5622,7 +5700,7 @@ def bootloader_issue_message():
 # ============================================================================
 #                 Function download_ksu_latest_release_asset
 # ============================================================================
-def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True, custom_kernel=None):
+def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True, custom_kernel=None, include_prerelease = False, latest_any=False, version_choice=False):
     try:
         # For ShirkNeko and other custom kernels that might use pre-releases, check pre-releases first
         include_prerelease = custom_kernel in ['ShirkNeko', 'MiRinFork', 'WildKernels']
@@ -5633,7 +5711,8 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
             look_for = "[all entries]"
 
         debug(f"Fetching latest release from {user}/{repo} matching {look_for} (include_prerelease: {include_prerelease})...")
-        response_data = get_gh_release_object(user=user, repo=repo, include_prerelease=include_prerelease)
+        wx.Yield()
+        response_data = get_gh_release_object(user=user, repo=repo, include_prerelease=include_prerelease, latest_any=latest_any)
         if response_data is None:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch release data from {user}/{repo}")
             return None
@@ -5673,24 +5752,34 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
             pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)(_.*|)-boot\.img\.gz$")
             debug(f"Using boot.img pattern: {pattern.pattern}")
 
-        # Find the best match
+        # Find the best match based on configuration
+        config = get_config()
+        selection_mode = getattr(config, 'ksu_asset_selection_mode', 0)
+        if version_choice:
+            selection_mode = 2  # Force user selectable mode
+
         best_match = None
         best_version = -1
         matching_assets = []
         fallback_match = None
         fallback_version = float('inf')
+        all_matching_assets = []
 
         for asset in assets:
             match = pattern.match(asset['name'])
             if match:
                 asset_version = int(match[1])
                 matching_assets.append((asset['name'], asset_version))
+                all_matching_assets.append({
+                    'asset': asset,
+                    'version': asset_version
+                })
 
                 # First priority: find highest version <= requested version
                 if asset_version <= variable_version and asset_version > best_version:
                     best_match = asset
                     best_version = asset_version
-                    if asset_version == variable_version:
+                    if asset_version == variable_version and selection_mode == 0:
                         break
 
                 # Fallback: track lowest version > requested version
@@ -5698,19 +5787,62 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
                     fallback_match = asset
                     fallback_version = asset_version
 
-        # If no version <= requested found, use the closest higher version
-        if not best_match and fallback_match:
-            best_match = fallback_match
-            best_version = fallback_version
-            print(f"⚠️ No version <= {variable_version} found, using closest higher version: {fallback_version}")
+        # Apply selection logic based on mode
+        if selection_mode == 1:  # Highest Available
+            if all_matching_assets:
+                highest_asset = max(all_matching_assets, key=lambda x: x['version'])
+                best_match = highest_asset['asset']
+                best_version = highest_asset['version']
+                print(f"ℹ️ Using highest available version: {best_version}")
+        elif selection_mode == 2:  # User selectable
+            if all_matching_assets:
+                try:
+                    from ksu_asset_selector import show_ksu_asset_selector
+                    # Sort assets by version (highest first) for better display
+                    sorted_assets = sorted(all_matching_assets, key=lambda x: x['version'], reverse=True)
+                    asset_list = [item['asset'] for item in sorted_assets]
+
+                    # Determine suggested asset (current logic)
+                    suggested_asset = best_match if best_match else fallback_match
+
+                    selected_asset = show_ksu_asset_selector(
+                        parent=None,
+                        assets=asset_list,
+                        title="Select KernelSU Asset",
+                        message=f"Multiple KernelSU assets found for {base_name}-{fixed_version}.x\nRequested version: {variable_version}",
+                        suggested_asset=suggested_asset
+                    )
+
+                    if selected_asset:
+                        best_match = selected_asset
+                        # Extract version from selected asset
+                        match = pattern.match(selected_asset['name'])
+                        if match:
+                            best_version = int(match[1])
+                        print(f"ℹ️ User selected version: {best_version}")
+                    else:
+                        print("ℹ️ User cancelled selection, using suggested asset, aborting ...")
+                        return None
+                except ImportError:
+                    print("⚠️ Asset selector not available, falling back to default selection")
+
+        wx.Yield()
+        # Default mode (0) or fallback logic
+        if selection_mode == 0 or (selection_mode == 2 and not best_match):
+            # If no version <= requested found, use the closest higher version
+            if not best_match and fallback_match:
+                best_match = fallback_match
+                best_version = fallback_version
+                print(f"⚠️ No version <= {variable_version} found, using closest higher version: {fallback_version}")
 
         if matching_assets:
-            debug(f"Pattern matched {len(matching_assets)} assets:")
+            print(f"Assets matched {len(matching_assets)} assets:")
             for name, version in matching_assets:
-                debug(f"  - {name} (version: {version})")
+                print(f"  - {name} (version: {version})")
+                wx.Yield()
 
         if best_match:
-            print(f"Found best match KernelSU: {best_match['name']}")
+            print(f"Selected best match KernelSU: {best_match['name']}")
             download_file(best_match['browser_download_url'])
             print(f"Downloaded {best_match['name']}")
             return best_match['name']
@@ -5722,11 +5854,33 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
 
 
 # ============================================================================
+#                 Function download_gh_pre_release_asset_regex
+# ============================================================================
+def download_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
+    try:
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=True, latest_any=False)
+        if release_object is None:
+            print(f"No releases found for {user}/{repo}")
+            return
+        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=True)
+        if asset:
+            print(f"Downloaded asset: {asset}")
+            return asset
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest pre-release of {user}/{repo}")
+            return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_gh_pre_release_asset_regex function")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
 #                 Function download_gh_latest_release_asset_regex
 # ============================================================================
 def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
     try:
-        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False)
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False, latest_any=False)
         if release_object is None:
             print(f"No releases found for {user}/{repo}")
             return None
@@ -5744,33 +5898,11 @@ def download_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
 
 
 # ============================================================================
-#                 Function get_gh_latest_release_asset_regex
+#                 Function download_gh_latest_any_asset_regex
 # ============================================================================
-def get_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
+def download_gh_latest_any_asset_regex(user, repo, asset_name_pattern):
     try:
-        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False)
-        if release_object is None:
-            print(f"No releases found for {user}/{repo}")
-            return
-        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=False)
-        if asset:
-            print(f"Found asset: {asset}")
-            return asset
-        else:
-            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
-            return None
-    except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_asset_regex function")
-        traceback.print_exc()
-        return None
-
-
-# ============================================================================
-#                 Function download_gh_pre_release_asset_regex
-# ============================================================================
-def download_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
-    try:
-        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=True)
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=True, latest_any=True)
         if release_object is None:
             print(f"No releases found for {user}/{repo}")
             return
@@ -5792,7 +5924,7 @@ def download_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
 # ============================================================================
 def get_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
     try:
-        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=True)
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=True, latest_any=False)
         if release_object is None:
             print(f"No releases found for {user}/{repo}")
             return
@@ -5805,6 +5937,50 @@ def get_gh_pre_release_asset_regex(user, repo, asset_name_pattern):
             return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_pre_release_asset_regex function")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#                 Function get_gh_latest_release_asset_regex
+# ============================================================================
+def get_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
+    try:
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False, latest_any=False)
+        if release_object is None:
+            print(f"No releases found for {user}/{repo}")
+            return
+        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=False)
+        if asset:
+            print(f"Found asset: {asset}")
+            return asset
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
+            return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_asset_regex function")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#                 Function get_gh_latest_any_asset_regex
+# ============================================================================
+def get_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
+    try:
+        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False, latest_any=True)
+        if release_object is None:
+            print(f"No releases found for {user}/{repo}")
+            return
+        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=False)
+        if asset:
+            print(f"Found asset: {asset}")
+            return asset
+        else:
+            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
+            return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_asset_regex function")
         traceback.print_exc()
         return None
 
@@ -5896,24 +6072,28 @@ def get_gh_latest_release_version(user, repo, include_prerelease=False):
 # ============================================================================
 #                   Function get_gh_release_object
 # ============================================================================
-def get_gh_release_object(user, repo, include_prerelease=False):
+def get_gh_release_object(user, repo, include_prerelease=False, latest_any=False):
     try:
         # Get all releases
         url = f"https://api.github.com/repos/{user}/{repo}/releases"
         response = request_with_fallback(method='GET', url=url)
         releases = response.json()
 
-        # Filter releases based on the include_prerelease flag
-        if not include_prerelease:
-            releases = [release for release in releases if not release['prerelease']]
+        # Filter releases based on the flags
+        if latest_any:
+            # Don't filter - use all releases to pick the absolute latest
+            filtered_releases = releases
+        elif not include_prerelease:
+            filtered_releases = [release for release in releases if not release['prerelease']]
         else:
-            releases = [release for release in releases if release['prerelease']]
+            filtered_releases = [release for release in releases if release['prerelease']]
 
         # Get the latest release
-        latest_release = releases[0] if releases else None
+        latest_release = filtered_releases[0] if filtered_releases else None
 
         if not latest_release:
-            print(f"No releases found for {user}/{repo}")
+            release_type = "any releases" if latest_any else ("pre-releases" if include_prerelease else "releases")
+            print(f"No {release_type} found for {user}/{repo}")
             return None
 
         return latest_release
@@ -8145,7 +8325,7 @@ def get_rooting_app_details(channel):
     elif channel == 'Magisk Release':
         try:
             # https://github.com/topjohnwu/Magisk/releases
-            release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=False)
+            release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=False, latest_any=False)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
@@ -8181,7 +8361,7 @@ def get_rooting_app_details(channel):
     elif channel == 'Magisk Pre-Release':
         try:
             # https://github.com/topjohnwu/Magisk/releases
-            release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=True)
+            release = get_gh_release_object(user='topjohnwu', repo='Magisk', include_prerelease=True, latest_any=True)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
@@ -8217,7 +8397,7 @@ def get_rooting_app_details(channel):
     elif channel == 'KernelSU':
         try:
             # https://github.com/tiann/KernelSU/releases
-            release = get_gh_release_object(user='tiann', repo='KernelSU', include_prerelease=False)
+            release = get_gh_release_object(user='tiann', repo='KernelSU', include_prerelease=False, latest_any=False)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
@@ -8253,7 +8433,7 @@ def get_rooting_app_details(channel):
     elif channel == 'KernelSU-Next':
         try:
             # https://github.com/rifsxd/KernelSU-Next/releases
-            release = get_gh_release_object(user='rifsxd', repo='KernelSU-Next', include_prerelease=False)
+            release = get_gh_release_object(user='rifsxd', repo='KernelSU-Next', include_prerelease=False, latest_any=False)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
@@ -8289,7 +8469,7 @@ def get_rooting_app_details(channel):
     elif channel == 'SukiSU':
         try:
             # https://github.com/SukiSU-Ultra/SukiSU-Ultra/releases
-            release = get_gh_release_object(user='SukiSU-Ultra', repo='SukiSU-Ultra', include_prerelease=False)
+            release = get_gh_release_object(user='SukiSU-Ultra', repo='SukiSU-Ultra', include_prerelease=False, latest_any=False)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
@@ -8325,7 +8505,7 @@ def get_rooting_app_details(channel):
     elif channel == 'Wild_KSU':
         try:
             # https://github.com/WildKernels/Wild_KSU/releases
-            release = get_gh_release_object(user='WildKernels', repo='Wild_KSU', include_prerelease=False)
+            release = get_gh_release_object(user='WildKernels', repo='Wild_KSU', include_prerelease=False, latest_any=False)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
@@ -8361,7 +8541,7 @@ def get_rooting_app_details(channel):
     elif channel == 'APatch':
         try:
             # https://github.com/bmax121/APatch/releases
-            release = get_gh_release_object(user='bmax121', repo='APatch', include_prerelease=False)
+            release = get_gh_release_object(user='bmax121', repo='APatch', include_prerelease=False, latest_any=False)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']

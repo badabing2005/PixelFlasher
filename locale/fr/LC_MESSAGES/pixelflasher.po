@@ -2897,3 +2897,30 @@ msgstr "Télécharger / Installer une application de rootage comme Magisk ou Ker
 msgid "Push TF Prop"
 msgstr "Envoyer TF Prop"
 
+##############################################################################
+# Additions 2025-10-18
+##############################################################################
+msgid "Select Device"
+msgstr "Sélectionner l'appareil"
+
+msgid "Select a device:"
+msgstr "Sélectionner un appareil :"
+
+msgid "Unknown"
+msgstr "Inconnu"
+
+msgid "PixelFlasher guessed Kernel KMI"
+msgstr "Kernel KMI deviné par PixelFlasher"
+
+msgid "Your device kernel KMI is unknown probably because you're using\n"
+msgstr "Le KMI du noyau de votre appareil est inconnu probablement parce que vous utilisez\n"
+
+msgid "a custom kernel which has stripped out the Android build tag.\n\n"
+msgstr "un noyau personnalisé qui a supprimé la balise de build Android.\n\n"
+
+msgid "PixelFlasher has guessed the Kernel KMI to be: %s\n\n"
+msgstr "PixelFlasher a deviné que le KMI du noyau est : %s\n\n"
+
+msgid "Are you sure you want to proceed with this guessed KMI?\n"
+msgstr "Êtes-vous sûr de vouloir continuer avec ce KMI deviné?\n"
+

@@ -1402,7 +1402,7 @@ def setup_for_downgrade(self):
             device_is_rooted = False
 
         title = "Downgrade Patch Creation"
-        buttons_text = ["Option 1", "Option 2", "option 3", "Cancel"]
+        buttons_text = ["Option 1", "Option 2", "Option 3", "Cancel"]
         buttons_text[option -1] += " (Recommended)"
         checkboxes=["Patch com.android.build.boot.security_patch", "Patch com.android.build.boot.fingerprint"]
         checkbox_values=[True, False]
@@ -2143,6 +2143,86 @@ def message_after_flashing():
     print("  device again as it is now like a brand new device.")
     print("===================================================================\n")
     return 0
+
+# ============================================================================
+#                               Function kernel_flavors
+# ============================================================================
+def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendation):
+    title = "Select the kernel flavor"
+    button_texts = ["KernelSU", "KernelSU-Next", "WildKernels", "ShirkNeko", "MiRinFork", "Manual", "Cancel"]
+    if default_button < 1 or default_button > len(button_texts):
+        default_button = 1
+    button_texts[default_button -1] += " (Recommended)"
+    radio_labels=["Latest Release", "Latest Pre-Release", "Latest Release or Pre-Release"]
+    checkbox_labels=["Let me choose the kernel version from a matching list."]
+    checkbox_initial_values=[False]
+
+    message = '''
+# Available kernel flavors<br/>
+  - **KernelSU:** Sourced from `tiann/KernelSU` repository and recommended for use with `KernelSU`.
+  - **KernelSU-Next:** Sourced from `KernelSU-Next/KernelSU-Next` repository and recommended for use with `KernelSU-Next`.
+  - **WildKernels:** Sourced from `WildKernels/GKI_KernelSU_SUSFS` repository and recommended for use with `WildKSU`.
+  - **ShirkNeko:** Sourced from `ShirkNeko/GKI_KernelSU_SUSFS` repository and recommended for use with SukiSU.
+  - **MiRinFork:** Sourced from `MiRinFork/GKI_SukiSU_SUSFS` repository and recommended for use with SukiSU.
+  - **Manual:** User provides the kernel (Not recommended for beginers).
+
+## Select Option
+  - **Latest Release:** Picks the latest stable release of the selected kernel flavor.
+  - **Latest Pre-Release:** Picks the latest pre-release of the selected kernel flavor.
+  - **Latest Release or Pre-Release:** Picks the latest available release, whether stable or pre-release.
+
+Depending on the selected rooting app option,
+PixelFlasher will offer available choices and recommend a suitable kernel flavor.<br/>
+However you're free to choose the kernel of your choice.
+'''
+
+    message += f"<pre>Recommended kernel flavor:      {kernel_recommendation}</pre>\n"
+    clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
+    print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
+    puml(":Dialog;\n", True)
+    puml(f"note right\n{clean_message}\nend note\n")
+    dlg = MessageBoxEx(
+        parent=self,
+        title=title,
+        message=message,
+        button_texts=button_texts,
+        default_button=default_button,
+        disable_buttons=None,
+        is_md=True,
+        size=[930,640],
+        checkbox_labels=checkbox_labels,
+        checkbox_initial_values=checkbox_initial_values,
+        vertical_checkboxes=False,
+        radio_labels=radio_labels,
+        radio_initial_value=radio_initial_value
+    )
+    dlg.CentreOnParent(wx.BOTH)
+    result = dlg.ShowModal()
+
+    # Get the radio button selection from the dialog
+    selected_radio_index = None
+    if hasattr(dlg, 'return_value') and dlg.return_value and 'radio' in dlg.return_value:
+        selected_radio_index = dlg.return_value['radio']
+
+    # Get checkbox values before destroying the dialog
+    checkbox_values = get_dlg_checkbox_values()
+
+    dlg.Destroy()
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result -1]}")
+    if selected_radio_index is not None:
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Selected Radio Option: {radio_labels[selected_radio_index]}")
+    if checkbox_values:
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Selected Checkboxes: {checkbox_values}")
+    puml(f":User Pressed {button_texts[result - 1]};\n")
+
+    # Return both the button selection and radio choice
+    return {
+        'button': result,
+        'button_text': button_texts[result - 1] if result <= len(button_texts) else 'Unknown',
+        'radio_selection': selected_radio_index,
+        'radio_text': radio_labels[selected_radio_index] if selected_radio_index is not None else None,
+        'checkbox_values': checkbox_values
+    }
 
 # ============================================================================
 #                               Function patch_boot_img
@@ -3207,10 +3287,44 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         else:
             kmi = device.kmi
         if not kmi:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unsupported Kernel KMI [{kmi}]")
-            print("Aborting ...\n")
-            puml("#red:Unsupported Kernel KMI [{kmi}];\n}\n")
-            return
+            # See if have guessed kmi
+            kmi_guessed = device.kmi_guessed
+            if kmi_guessed:
+                title = _("PixelFlasher guessed Kernel KMI")
+                message_en = "Your device kernel KMI is unknown probably because you're using\n"
+                message_en += "a custom kernel which has stripped out the Android build tag.\n\n"
+                message_en += f"PixelFlasher has guessed the Kernel KMI to be: {kmi_guessed}\n\n"
+                message_en += "Are you sure you want to proceed with this guessed KMI?\n"
+                message_en += "Click OK to proceed with the override.\n"
+                message_en += "or Hit CANCEL to abort."
+                message = _("Your device kernel KMI is unknown probably because you're using\n")
+                message += _("a custom kernel which has stripped out the Android build tag.\n\n")
+                message += _("PixelFlasher has guessed the Kernel KMI to be: %s\n\n") % kmi_guessed
+                message += _("Are you sure you want to proceed with this guessed KMI?\n")
+                message += _("Click OK to proceed with the override.\n")
+                message += _("or Hit CANCEL to abort.")
+                print(f"\n*** Dialog ***\n{message_en}\n______________\n")
+                puml(f"note right\nDialog\n====\n{message_en}\nend note\n")
+                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+                result = dlg.ShowModal()
+                if result == wx.ID_OK:
+                    # ok to proceed with the override
+                    print("User pressed ok.")
+                    puml(":User Pressed OK;\nnote right:Proceed with Kernel KMI Override\n")
+                    dlg.Destroy()
+                    kmi = kmi_guessed
+                else:
+                    # User cancelled out of guessed KMI Override
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel, out of guessed Kernel KMI Override.")
+                    puml(":User Pressed Cancel;\n}\n")
+                    print("Aborting ...\n")
+                    dlg.Destroy()
+                    return -1
+            else:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unsupported Kernel KMI [{kmi}]")
+                print("Aborting ...\n")
+                puml("#red:Unsupported Kernel KMI [{kmi}];\n}\n")
+                return
         anykernel = False
         pixel_devices = get_android_devices()
         if not device.is_gki:
@@ -3424,7 +3538,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
             puml(":Dialog;\n", True)
             puml(f"note right\n{clean_message}\nend note\n")
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=recommendation, disable_buttons=disabled_buttons, is_md=True, size=[800,600])
+            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=recommendation, disable_buttons=disabled_buttons, is_md=True, size=[800,640])
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -3602,14 +3716,6 @@ Unless you know what you're doing, it is recommended that you choose the default
 
     # KernelSU
     if patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU']:
-        if patch_flavor == 'KernelSU':
-            method = 80
-        elif patch_flavor == 'KernelSU-Next':
-            method = 82
-        elif patch_flavor == 'SukiSU':
-            method = 84
-        elif patch_flavor == 'Wild_KSU':
-            method = 86
         magiskboot_created = False
         if is_rooted:
             res, unused = device.check_file("/data/adb/magisk/magiskboot", True)
@@ -3642,65 +3748,114 @@ Unless you know what you're doing, it is recommended that you choose the default
                 puml("#red:Failed to transfer magiskboot to the phone;\n")
                 return
 
-        # download the latest KernelSU
+
         kmi_parts = kmi.split('-')
         look_for_kernelsu = '-'.join(kmi_parts[::-1])
         kernel_su_gz_file = None
         kernelsu_version = None
+
+        # default_button=1 is KernelSU
+        # default_button=2 is KernelSU-Next
+        # default_button=3 is Wild_KSU
+        # default_button=4 is ShirkNeko SukiSU
+        # default_button=5 is MiRinFork SukiSU
+        # default_button=6 is Manual
+        # radio_initial_value=0 is Release builds
+        # radio_initial_value=1 is Pre-Release builds
+        # radio_initial_value=2 is Release and Pre-Release builds
+        #
+        # Show the KernelSU flavor selection dialog
         if patch_flavor == 'KernelSU':
-            kernel_su_gz_file = download_ksu_latest_release_asset(user='tiann', repo='KernelSU', asset_name=look_for_kernelsu, anykernel=anykernel)
-            if kernel_su_gz_file:
-                kernelsu_version = get_gh_latest_release_version('tiann', 'KernelSU')
+            method = 80
+            res = kernel_flavors(self, default_button=1, radio_initial_value=0, kernel_recommendation="KernelSU")
         elif patch_flavor == 'KernelSU-Next':
-            kernel_su_gz_file = download_ksu_latest_release_asset(user='rifsxd', repo='KernelSU-Next', asset_name=look_for_kernelsu, anykernel=anykernel)
-            if kernel_su_gz_file:
-                kernelsu_version = get_gh_latest_release_version('rifsxd', 'KernelSU-Next')
-        elif patch_flavor == 'Wild_KSU':
-            kernel_su_gz_file = download_ksu_latest_release_asset(user='WildKernels', repo='GKI_KernelSU_SUSFS', asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel='WildKernels')
-            if kernel_su_gz_file:
-                kernelsu_version = get_gh_latest_release_version('WildKernels', 'GKI_KernelSU_SUSFS')
+            method = 82
+            res = kernel_flavors(self, default_button=2, radio_initial_value=0, kernel_recommendation="KernelSU-Next")
         elif patch_flavor == 'SukiSU':
-            sukisu_flavor = ''
-            # show a question dialog to ask the user to select pre-built Kernel flavor
-            title = _("Select a pre-built kernel flavor")
-            buttons_text = [_("ShirkNeko flavor kernel"), _("MiRinFork flavored kernel"), _("WildKernels"), _("Cancel")]
-            message = f'''
-## Select a pre-built kernel flavor
+            method = 84
+            res = kernel_flavors(self, default_button=5, radio_initial_value=1, kernel_recommendation="MiRinFork")
+        elif patch_flavor == 'Wild_KSU':
+            method = 86
+            res = kernel_flavors(self, default_button=3, radio_initial_value=2, kernel_recommendation="WildKernels")
 
-According to the author:
+        # Check if the user canceled
+        if res['button'] == 7:  # Cancel button
+            print("ℹ️ User cancelled the operation\n Aborting ...\n")
+            return -1
 
-- ShirkNeko flavored kernel (adds ZRAM compression algorithm patch, susfs, KPM. Works on many devices.)
+        # Check the radio button selection
+        if res['radio_selection'] == 0:     # Release builds only
+            include_prerelease = False,
+            latest_any = False
+        elif res['radio_selection'] == 1:   # Pre-Release builds only
+            include_prerelease = True,
+            latest_any = False
+        elif  res['radio_selection'] == 2:  # Release and Pre-Release builds
+            include_prerelease = True,
+            latest_any = True
 
-- MiRinFork flavored kernel (adds susfs, KPM. Closest kernel to GKI, works on most devices.)
+        # Check if version_choice checkbox is selected
+        version_choice = res['checkbox_values'][0]
 
-'''
-            print(f"\n*** Dialog ***\n{message}\n______________\n")
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=2, disable_buttons=[], is_md=True, size=[800,230])
-            dlg.CentreOnParent(wx.BOTH)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
-            if result == 1:
-                print("User selected ShirkNeko pre-built kernel flavor.")
-                sukisu_flavor = '_ShirkNeko'
-                kernel_su_gz_file = download_ksu_latest_release_asset(user='ShirkNeko', repo='GKI_KernelSU_SUSFS', asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel='ShirkNeko')
-                if kernel_su_gz_file:
-                    kernelsu_version = get_gh_latest_release_version('ShirkNeko', 'GKI_KernelSU_SUSFS')
-            elif result == 2:
-                print("User selected MiRinFork pre-built kernel flavor.")
-                sukisu_flavor = '_MiRinFork'
-                kernel_su_gz_file = download_ksu_latest_release_asset(user='MiRinFork', repo='GKI_SukiSU_SUSFS', asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel='MiRinFork')
-                if kernel_su_gz_file:
-                    kernelsu_version = get_gh_latest_release_version('MiRinFork', 'GKI_SukiSU_SUSFS')
-            elif result == 3:
-                print("User selected WildKernels.")
-                sukisu_flavor = '_WildKernels'
-                kernel_su_gz_file = download_ksu_latest_release_asset(user='WildKernels', repo='GKI_KernelSU_SUSFS', asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel='WildKernels')
-                if kernel_su_gz_file:
-                    kernelsu_version = get_gh_latest_release_version('WildKernels', 'GKI_KernelSU_SUSFS')
-            elif result == 4:
-                print("⚠️ User cancelled, Aborting ...")
-                return -1, ""
+        # Get checkbox values from the result
+        checkbox_values = res.get('checkbox_values', [])
+        print(f"Checkbox values received: {checkbox_values}")
+
+        # Check what the user selected
+        if res['button'] == 1:
+            # KernelSU
+            user='tiann'
+            repo='KernelSU'
+            custom_kernel=None
+            chosen_kernel='KernelSU'
+        elif res['button'] == 2:
+            # KernelSU-Next
+            user='rifsxd'
+            repo='KernelSU-Next'
+            custom_kernel=None
+            chosen_kernel='KernelSU-Next'
+        elif res['button'] == 3:
+            # WildKernels
+            user='WildKernels'
+            repo='GKI_KernelSU_SUSFS'
+            custom_kernel='WildKernels'
+            chosen_kernel='WildKernels'
+        elif res['button'] == 4:
+            # ShirkNeko
+            user='ShirkNeko'
+            repo='GKI_KernelSU_SUSFS'
+            custom_kernel='ShirkNeko'
+            chosen_kernel='ShirkNeko'
+        elif res['button'] == 5:
+            # MiRinFork
+            user='MiRinFork'
+            repo='GKI_SukiSU_SUSFS'
+            custom_kernel='MiRinFork'
+            chosen_kernel='MiRinFork'
+        elif res['button'] == 6:
+            # Manual
+            # show a file dialog to select the kernel file
+            chosen_kernel='Manual'
+            with wx.FileDialog(self, "Select the kernel image to use.", '', '', wildcard="Kernel image (*.gz;*.zip)|*.gz;*.zip", style=wx.FD_OPEN) as fileDialog:
+                puml(":Select kernel image to use;\n")
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled kernel image selection.")
+                    puml("#pink:User Cancelled;\n}\n")
+                    return
+                # save the current contents in the file
+                kernel_su_gz_file = fileDialog.GetPath()
+                print(f"\nSelected {kernel_su_gz_file} for KernelSU generic kernel image.")
+                puml(f"note right\nSelected {kernel_su_gz_file} for KernelSU generic kernel image.\nend note\n")
+        else:
+            print("⚠️ Invalid selection, Aborting ...")
+            return -1
+
+        if res['button'] != 6:
+            # download the selected KernelSU generic kernel image
+            kernel_su_gz_file = download_ksu_latest_release_asset(user=user, repo=repo, asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel=custom_kernel, include_prerelease = include_prerelease, latest_any=latest_any, version_choice=version_choice)
+            if kernel_su_gz_file:
+                kernelsu_version = get_gh_latest_release_version(user, repo)
+
         if not kernel_su_gz_file:
             print("ERROR: Could not find matching generic kernel image\nAborting ...\n")
             return
@@ -4094,7 +4249,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img = patch_magisk_script("other")
     elif method == 80:
         # KernelSU
-        patch_method = 'kernelsu'
+        patch_method = f'kernelsu_{chosen_kernel.lower()}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 81:
@@ -4104,7 +4259,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img, mountType = patch_kernelsu_lkm_script()
     elif method == 82:
         # KernelSU Next
-        patch_method = 'kernelsu-next'
+        patch_method = f'kernelsu-next_{chosen_kernel.lower()}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 83:
@@ -4115,7 +4270,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patch_method = f"{patch_method}_{mountType}"
     elif method == 84:
         # SukiSU
-        patch_method = f'sukisu{sukisu_flavor.lower()}'
+        patch_method = f'sukisu_{chosen_kernel.lower()}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 85:
@@ -4125,7 +4280,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img, mountType = patch_kernelsu_lkm_script()
     elif method == 86:
         # Wild_KSU
-        patch_method = f'wild_ksu'
+        patch_method = f'wild_ksu_{chosen_kernel.lower()}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 87:
@@ -4296,12 +4451,17 @@ Unless you know what you're doing, it is recommended that you take the default s
     else:
         # if a matching patched.img is not found, store it.
         cached_boot_img_dir_full = os.path.join(boot_images, boot.boot_hash)
+        if kernel_su_gz_file:
+            # if kernel_su_gz_file is full path, just keep the file name (manual case)
+            kernel_su_gz_file = os.path.basename(kernel_su_gz_file)
+            # Append the chosen kernel details to the patched image name
+            patched_img = f"{os.path.splitext(patched_img)[0]}_{os.path.splitext(kernel_su_gz_file)[0]}.img"
         cached_boot_img_path = os.path.join(cached_boot_img_dir_full, patched_img)
         debug(f"Checking for cached copy of {patched_img}")
         if not os.path.exists(cached_boot_img_path):
             debug(f"Cached copy of {patched_img} with sha1: {checksum} is not found.")
-            debug(f"Copying {patched_img_file} to {cached_boot_img_dir_full}")
-            shutil.copy(patched_img_file, cached_boot_img_dir_full, follow_symlinks=True)
+            debug(f"Copying {patched_img_file} to {cached_boot_img_path}")
+            shutil.copy(patched_img_file, cached_boot_img_path, follow_symlinks=True)
         else:
             debug(f"Found a cached copy of {patch_name}.img sha1={checksum}\n")
 

@@ -1743,6 +1743,8 @@ class PifManager(wx.Dialog):
             device = get_phone()
             if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):
                 device_model = "all"
+            elif wx.GetKeyState(wx.WXK_CONTROL):
+                device_model = "_select_"
             elif device:
                 device_model = device.hardware
             else:

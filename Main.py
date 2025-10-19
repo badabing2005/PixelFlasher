@@ -3035,6 +3035,7 @@ class PixelFlasher(wx.Frame):
                 android_versions = get_android_versions()
                 launch_version = android_versions[ro_product_first_api_level]
                 message += f"    Launch Version:                  {launch_version['Name']}\n"
+                message += f"    Attestation Version:             {launch_version['Attestation Version']}\n"
                 if device.api_level and device.api.level is not None:
                     android_version = android_versions[device.api_level]
                     message += f"    Android Version:                 {android_version['Version']}\n"

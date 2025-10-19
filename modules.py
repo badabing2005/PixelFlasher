@@ -3713,6 +3713,7 @@ Unless you know what you're doing, it is recommended that you choose the default
         return
 
     is_rooted = device.rooted
+    kernel_su_gz_file = None
 
     # KernelSU
     if patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU']:

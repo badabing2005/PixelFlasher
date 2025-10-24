@@ -4483,7 +4483,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         ro_product_name = get_first_match(the_dict, keys)
         if ro_product_name != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
-        if ro_product_name in [None, '', 'mainline', 'generic'] and fp_ro_product_name != '':
+        if (not ro_product_name or any(keyword in ro_product_name.lower() for keyword in ['mainline', 'generic'])) and fp_ro_product_name:
             debug(f"Properties for PRODUCT are extracted from FINGERPRINT: {fp_ro_product_name}")
             ro_product_name = fp_ro_product_name
         if autofill and ro_product_name == '':
@@ -4494,7 +4494,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         ro_product_device = get_first_match(the_dict, keys)
         if ro_product_device != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
-        if ro_product_device in [None, '', 'mainline', 'generic'] and fp_ro_product_device != '':
+        if (not ro_product_device or any(keyword in ro_product_device.lower() for keyword in ['mainline', 'generic'])) and fp_ro_product_device:
             debug(f"Properties for DEVICE are extracted from FINGERPRINT: {fp_ro_product_device}")
             ro_product_device = fp_ro_product_device
         if autofill and ro_product_device == '':
@@ -4522,7 +4522,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         # MODEL
         keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
         ro_product_model = get_first_match(the_dict, keys)
-        if ro_product_model in ['mainline', 'generic']:
+        if (not ro_product_model or any(keyword in ro_product_model.lower() for keyword in ['mainline', 'generic'])):
             ro_product_model_bak = ro_product_model
             # get it from vendor/build.prop (ro.product.vendor.model)
             ro_product_vendor_model = get_first_match(the_dict, ['ro.product.vendor.model'])
@@ -5738,8 +5738,11 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
                     pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
                     debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
                 elif custom_kernel == "WildKernels":
-                    # WKSU format: WKSU-13861-android14-6.1.124-2025-02-AnyKernel3.zip
-                    pattern = re.compile(rf"^WKSU-[0-9]+-{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
+                    # Pre v1.5.12-r12 WKSU format: WKSU-13861-android14-6.1.124-2025-02-AnyKernel3.zip
+                    # New pattern (v1.5.12-r12) to match Bypass and Normal builds
+                    # WKSU-13974-SUSFS_v1.5.12-android14-6.1.155-lts-Bypass-BBG-AnyKernel3.zip
+                    # WKSU-13974-SUSFS_v1.5.12-android14-6.1.155-lts-Normal-BBG-AnyKernel3.zip
+                    pattern = re.compile(rf"^WKSU-[0-9]+-.*{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
                     debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
                 else:
                     # Fallback pattern for other custom kernels
@@ -5765,27 +5768,47 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
         fallback_version = float('inf')
         all_matching_assets = []
 
+        # For WildKernels, track Normal and Bypass builds separately for prioritization
+        normal_assets = []
+        bypass_assets = []
+
         for asset in assets:
             match = pattern.match(asset['name'])
             if match:
                 asset_version = int(match[1])
                 matching_assets.append((asset['name'], asset_version))
-                all_matching_assets.append({
+                asset_info = {
                     'asset': asset,
                     'version': asset_version
-                })
+                }
+                all_matching_assets.append(asset_info)
 
-                # First priority: find highest version <= requested version
-                if asset_version <= variable_version and asset_version > best_version:
-                    best_match = asset
-                    best_version = asset_version
-                    if asset_version == variable_version and selection_mode == 0:
-                        break
+                # For WildKernels, categorize by build type for prioritization
+                if custom_kernel == "WildKernels":
+                    if '-Normal-' in asset['name']:
+                        normal_assets.append(asset_info)
+                    elif '-Bypass-' in asset['name']:
+                        bypass_assets.append(asset_info)
 
-                # Fallback: track lowest version > requested version
-                elif asset_version > variable_version and asset_version < fallback_version:
-                    fallback_match = asset
-                    fallback_version = asset_version
+        # Create prioritized asset list: Normal first, then Bypass, then all others
+        prioritized_assets = normal_assets + bypass_assets + all_matching_assets
+
+        # Process assets in priority order
+        for asset_info in prioritized_assets:
+            asset = asset_info['asset']
+            asset_version = asset_info['version']
+
+            # First priority: find highest version <= requested version
+            if asset_version <= variable_version and asset_version > best_version:
+                best_match = asset
+                best_version = asset_version
+                if asset_version == variable_version and selection_mode == 0:
+                    break
+
+            # Fallback: track lowest version > requested version
+            elif asset_version > variable_version and asset_version < fallback_version:
+                fallback_match = asset
+                fallback_version = asset_version
 
         # Apply selection logic based on mode
         if selection_mode == 1:  # Highest Available
@@ -6077,6 +6100,9 @@ def get_gh_release_object(user, repo, include_prerelease=False, latest_any=False
         # Get all releases
         url = f"https://api.github.com/repos/{user}/{repo}/releases"
         response = request_with_fallback(method='GET', url=url)
+        if response.status_code != 200:
+            print(f"Failed to fetch releases from {user}/{repo}. HTTP Status Code: {response.status_code}")
+            return None
         releases = response.json()
 
         # Filter releases based on the flags
@@ -7187,9 +7213,133 @@ def analyze_kb_file(filepath=None, ecdsa_sn=None, ecdsa_issuer=None, rsa_sn=None
 
 
 # ============================================================================
+#                               Function kb_add_missing_files
+# ============================================================================
+def kb_add_missing_files(target_path, check_validity=True, dry_run=False, verbose=False):
+    try:
+        if not target_path or not os.path.exists(target_path):
+            print(f"❌ ERROR: Target path '{target_path}' does not exist or is not provided")
+            return None
+
+        kb_index = load_kb_index()
+
+        # Get all existing file paths from kb_index
+        existing_files = set()
+        for ecdsa_sn, entry in kb_index.items():
+            files = entry.get('files', [])
+            for file_entry in files:
+                file_path = file_entry.get('path', '') if isinstance(file_entry, dict) else str(file_entry)
+                existing_files.add(os.path.normpath(file_path))
+
+        # Scan for keybox files in target path
+        keybox_files = []
+        total_scanned = 0
+
+        print(f"Scanning directory: {target_path}")
+        print("Looking for keybox files (*.xml)...")
+
+        for root, dirs, files in os.walk(target_path):
+            for file in files:
+                total_scanned += 1
+                if file.lower().endswith('.xml'):
+                    file_path = os.path.join(root, file)
+                    normalized_path = os.path.normpath(file_path)
+
+                    # Check if this file is already in kb_index
+                    if normalized_path not in existing_files:
+                        keybox_files.append(file_path)
+                        if verbose:
+                            print(f"  Found potential keybox: {file_path}")
+
+        print(f"Found {len(keybox_files)} potentially missing keybox files")
+
+        # Initialize results
+        results = {
+            'total_scanned': total_scanned,
+            'missing_files_found': len(keybox_files),
+            'valid_files': [],
+            'invalid_files': [],
+            'added_count': 0
+        }
+
+        if not keybox_files:
+            print("No missing keybox files found")
+            return results
+
+        # Check validity if requested
+        if check_validity:
+            print("Validating keybox files...")
+            for file_path in keybox_files:
+                wx.Yield()
+                try:
+                    # Basic XML validation
+                    tree = ET.parse(file_path)
+                    root = tree.getroot()
+
+                    # Check if it's a valid keybox file
+                    if root.tag == 'AndroidAttestation':
+                        keyboxes = root.findall('Keybox')
+                        if keyboxes:
+                            print(f"  ✅ Valid keybox: {os.path.basename(file_path)}")
+                            results['valid_files'].append(file_path)
+                        else:
+                            print(f"  ❌ Invalid keybox (no Keybox elements): {os.path.basename(file_path)}")
+                            results['invalid_files'].append(file_path)
+                    else:
+                        print(f"  ❌ Invalid keybox (not AndroidAttestation): {os.path.basename(file_path)}")
+                        results['invalid_files'].append(file_path)
+
+                except Exception as e:
+                    print(f"  ❌ Invalid keybox (parse error): {os.path.basename(file_path)} - {str(e)}")
+                    results['invalid_files'].append(file_path)
+        else:
+            # If not checking validity, assume all are valid
+            results['valid_files'] = keybox_files[:]
+
+        # Add valid files to kb_index if not in dry_run mode
+        if not dry_run and results['valid_files']:
+            print(f"Adding {len(results['valid_files'])} valid keybox files to kb_index...")
+
+            for file_path in results['valid_files']:
+                wx.Yield()
+                try:
+                    print(f"  Processing: {os.path.basename(file_path)}")
+
+                    # Check the keybox to get certificate details
+                    kb_results = check_kb(file_path, force_fresh=False)
+
+                    if kb_results and 'invalid' not in kb_results:
+                        results['added_count'] += 1
+                        if verbose:
+                            print(f"    ✅ Added to kb_index")
+                    else:
+                        print(f"    ⚠️ Keybox validation failed, not added to index")
+                        results['invalid_files'].append(file_path)
+                        if file_path in results['valid_files']:
+                            results['valid_files'].remove(file_path)
+
+                except Exception as e:
+                    print(f"    ❌ Error processing keybox: {str(e)}")
+                    results['invalid_files'].append(file_path)
+                    if file_path in results['valid_files']:
+                        results['valid_files'].remove(file_path)
+
+        elif dry_run:
+            print("DRY RUN: kb_index is not updated")
+            results['added_count'] = len(results['valid_files'])
+
+        return results
+
+    except Exception as e:
+        print(f"❌ ERROR: Encountered an error in kb_add_missing_files function")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
 #                 Function: kb_stats
 # ============================================================================
-def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, list_non_common_entries=False, target_path=None, check_file_existence=False, list_non_existent=False, remove_non_existent=False):
+def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, list_non_common_entries=False, target_path=None, check_file_existence=False, list_non_existent=False, remove_non_existent=False, add_missing_files=False):
     try:
         kb_index = load_kb_index()
         if not kb_index:
@@ -7638,6 +7788,32 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                     print(f"  - {rsa_root_ca_sn} ({len(stats['unique_rsa_root_ca_sns'][rsa_root_ca_sn])} files):")
                     for file_path in sorted(stats['unique_rsa_root_ca_sns'][rsa_root_ca_sn]):
                         print(f"    - {file_path}")
+
+        # Add missing files
+        if add_missing_files and target_path:
+            print(f"\n" + "=" * 80)
+            print("SCANNING FOR MISSING KEYBOX FILES")
+            print("=" * 80)
+
+            missing_files_results = kb_add_missing_files(
+
+                target_path=target_path,
+                check_validity=True,
+                dry_run=False,
+                verbose=verbose
+            )
+
+            if missing_files_results:
+                stats['missing_files_scan'] = missing_files_results
+                print(f"Missing files scan completed:")
+                print(f"  Files scanned: {missing_files_results['total_scanned']:>8,}")
+                print(f"  Missing files found: {missing_files_results['missing_files_found']:>8,}")
+                if 'valid_files' in missing_files_results:
+                    print(f"  Valid files found: {len(missing_files_results['valid_files']):>8,}")
+                    print(f"  Invalid files found: {len(missing_files_results['invalid_files']):>8,}")
+                print(f"  Files added to kb_index: {missing_files_results['added_count']:>8,}")
+        elif add_missing_files and not target_path:
+            print(f"\n⚠️ Warning: add_missing_files requested but no target_path specified")
 
         print("=" * 80)
         return stats

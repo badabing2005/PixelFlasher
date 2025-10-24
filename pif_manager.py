@@ -2240,6 +2240,14 @@ class PifManager(wx.Dialog):
                         v = v.replace(f'${key}', processed_dict[key])
                     processed_dict[k] = v.strip()
 
+            # if running in debugger
+            if not getattr( sys, 'frozen', False ):
+                # save processed_dict to a file
+                config_path = get_config_path()
+                processed_dict_file = os.path.join(config_path, 'tmp', 'processed_dict.json')
+                with open(processed_dict_file, 'w') as f:
+                    json.dump(processed_dict, f, indent=4)
+
             donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, keep_all=self.keep_unknown)
             if self.pif_format == 'prop':
                 self.console_stc.SetValue(self.J2P(donor_json_string))

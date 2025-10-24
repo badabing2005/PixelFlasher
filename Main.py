@@ -3794,7 +3794,14 @@ class PixelFlasher(wx.Frame):
             print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated select platform tools")
             print("==============================================================================")
             self._on_spin('start')
-            self.config.platform_tools_path = event.GetPath().replace("'", "")
+            the_path = event.GetPath()
+            if "'" in the_path:
+                print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} Warning: Path contains single quotes, which are not supported.")
+                dlg = wx.MessageDialog(self, _("The selected path contains single quotes (').\n\nPlease rename the folder to remove the single quotes and try again."), _("Warning"), wx.OK | wx.ICON_WARNING)
+                dlg.ShowModal()
+                dlg.Destroy()
+                return
+            self.config.platform_tools_path = the_path.replace("'", "")
             check_platform_tools(self)
             if get_sdk_version():
                 self.platform_tools_label.SetLabel(_("Android Platform Tools\nVersion %s") % get_sdk_version())
@@ -5159,6 +5166,23 @@ class PixelFlasher(wx.Frame):
 
             if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):
                 kb_stats_ui(self)
+                return
+
+            if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_ALT):
+                if self.config.unmarked_entries_path and os.path.exists(self.config.unmarked_entries_path):
+                    target_path = self.config.unmarked_entries_path
+
+                with wx.DirDialog(self, "Select reference marking folder", defaultPath=target_path, style=wx.DD_DEFAULT_STYLE) as dirDialog:
+                    if dirDialog.ShowModal() == wx.ID_OK:
+                        target_path = dirDialog.GetPath()
+                        print(f"Selected reference folder: {target_path}")
+                        self.config.unmarked_entries_path = target_path
+                        self.config.save(get_config_file_path())
+                    else:
+                        print("Aborting ...\n")
+                        return
+
+                kb_add_missing_files(target_path=target_path, check_validity=True, dry_run=False, verbose=True)
                 return
 
             if wx.GetKeyState(wx.WXK_CONTROL):

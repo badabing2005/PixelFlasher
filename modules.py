@@ -1626,8 +1626,8 @@ def kb_stats_ui(self):
     try:
         title = "KB Stats"
         buttons_text = ["Process KB Index", "Cancel"]
-        checkboxes = ["Verbose", "List Unique Files", "List Valid Entries", "List Unmarked Entries ...", "Check File Exists", "List Missing Files", "Remove Missing Entries from kb_index"]
-        checkbox_initial_values = [False, True, False, True, True, True, True]
+        checkboxes = ["Verbose", "List Unique Files", "List Valid Entries", "List Unmarked Entries ...", "Add Missing Files ...", "Check File Exists", "List Missing Files", "Remove Missing Entries from kb_index"]
+        checkbox_initial_values = [False, False, True, True, True, True, True, True]
         message = _("**KB Stats Options**<br/>\n")
         dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=None, is_md=True, size=[400,40], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_initial_values, vertical_checkboxes=True)
         dlg.CentreOnParent(wx.BOTH)
@@ -1643,7 +1643,7 @@ def kb_stats_ui(self):
                 print(f"{checkboxes[i]}: {bool(checkbox_values[i])}")
             print("\n")
             target_path = ""
-            if checkbox_values[3]:
+            if checkbox_values[3] or checkbox_values[4]:
                 if self.config.unmarked_entries_path and os.path.exists(self.config.unmarked_entries_path):
                     target_path = self.config.unmarked_entries_path
 
@@ -1656,7 +1656,7 @@ def kb_stats_ui(self):
                     else:
                         print("Aborting ...\n")
                         return
-            kb_stats(verbose=checkbox_values[0], list_unique_files=checkbox_values[1], list_valid_entries=checkbox_values[2], list_non_common_entries=checkbox_values[3], target_path=target_path, check_file_existence=checkbox_values[4], list_non_existent=checkbox_values[5], remove_non_existent=checkbox_values[6])
+            kb_stats(verbose=checkbox_values[0], list_unique_files=checkbox_values[1], list_valid_entries=checkbox_values[2], list_non_common_entries=checkbox_values[3], add_missing_files=checkbox_values[4], target_path=target_path, check_file_existence=checkbox_values[5], list_non_existent=checkbox_values[6], remove_non_existent=checkbox_values[7])
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing kb_stats_ui")
         puml("#red:Encountered an error while processing kb_stats_ui;\n")

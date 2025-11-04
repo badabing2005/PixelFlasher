@@ -2598,8 +2598,8 @@ msgstr "Avant de changer d'emplacement, assurez-vous que votre appareil n'est pa
 msgid "Switch Slot potential concerns"
 msgstr "Problèmes potentiels de changement d'emplacement"
 
-msgid "##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
-msgstr "##⚠️ AVERTISSEMENT: Vous avez choisi de flasher les deux emplacements.<br/>\n"
+msgid "## ⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+msgstr "## ⚠️ AVERTISSEMENT: Vous avez choisi de flasher les deux emplacements.<br/>\n"
 
 msgid "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
 msgstr "Veuillez vous assurer que votre appareil n'est pas soumis à des problèmes d'ARB avant de cliquer sur continuer.<br/>\n"
@@ -2923,4 +2923,86 @@ msgstr "PixelFlasher a deviné que le KMI du noyau est : %s\n\n"
 
 msgid "Are you sure you want to proceed with this guessed KMI?\n"
 msgstr "Êtes-vous sûr de vouloir continuer avec ce KMI deviné?\n"
+
+##############################################################################
+# Additions 2025-11-03
+##############################################################################
+
+msgid "The selected path contains single quotes (').\n\nPlease rename the folder to remove the single quotes and try again."
+msgstr "Le chemin sélectionné contient des guillemets simples (').\n\nVeuillez renommer le dossier pour supprimer les guillemets simples et réessayer."
+
+msgid "Options"
+msgstr "Options"
+
+msgid "Additional Options"
+msgstr "Options supplémentaires"
+
+msgid "Select Option"
+msgstr "Sélectionner l'option"
+
+msgid "⚠️ WARNING: With Option 3, fingerprint can't be patched."
+msgstr "⚠️ AVERTISSEMENT : Avec l'option 3, l'empreinte digitale ne peut pas être patchée."
+
+msgid " (Recommended)"
+msgstr " (Recommandé)"
+
+msgid "Latest Release"
+msgstr "Dernière version"
+
+msgid "Latest Pre-Release"
+msgstr "Dernière pré-version"
+
+msgid "Latest Release or Pre-Release"
+msgstr "Dernière version ou pré-version"
+
+msgid "Let me choose the kernel version from a matching list"
+msgstr "Laissez-moi choisir la version du noyau à partir d'une liste correspondante"
+
+msgid "Show all assets including non-matching ones"
+msgstr "Afficher tous les actifs, y compris ceux qui ne correspondent pas"
+
+msgid "Flash to active slot"
+msgstr "Flasher vers l'emplacement actif"
+
+msgid "Flash to inactive slot"
+msgstr "Flasher vers l'emplacement inactif"
+
+msgid "Flash to both slots"
+msgstr "Flasher aux deux emplacements"
+
+msgid "Flash boot partition"
+msgstr "Flasher la partition boot"
+
+msgid "Flash init_boot partition"
+msgstr "Flasher la partition init_boot"
+
+msgid "Flash vendor_boot partition"
+msgstr "Flasher la partition vendor_boot"
+
+msgid "No Reboot after flash"
+msgstr "Pas de redémarrage après le flash"
+
+msgid "## ✅ Live Boot the stock image:\n"
+msgstr "## ✅ Démarrage en direct de l'image stock :\n"
+
+msgid "## ✅ Live Boot the patched image:\n"
+msgstr "## ✅ Démarrage en direct de l'image patchée :\n"
+
+msgid "## ❌ Live Booting is only supported for boot partition.\n"
+msgstr "## ❌ Le démarrage en direct n'est pris en charge que pour la partition boot.\n"
+
+msgid "## ❌ Valid image is not found that supports live booting.\n"
+msgstr "## ❌ Aucune image valide n'est trouvée qui prend en charge le démarrage en direct.\n"
+
+msgid "## ℹ️ Select partitions that you wish to flash stock image\n"
+msgstr "## ℹ️ Sélectionnez les partitions que vous souhaitez flasher avec l'image stock\n"
+
+msgid "## ℹ️ Select the options to flash a patch image:\n"
+msgstr "## ℹ️ Sélectionnez les options pour flasher une image patchée :\n"
+
+msgid "## ❌ The selected image is not valid.<br/>\n"
+msgstr "## ❌ L'image sélectionnée n'est pas valide.<br/>\n"
+
+msgid "Edit script before continuing"
+msgstr "Éditer le script avant de continuer"
 

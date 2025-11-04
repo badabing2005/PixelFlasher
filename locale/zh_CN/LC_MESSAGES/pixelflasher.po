@@ -2604,8 +2604,8 @@ msgstr "切换分区前，请确保设备不受 ARB（反回滚）限制影响�
 msgid "Switch Slot potential concerns"
 msgstr "切换分区的潜在风险"
 
-msgid "##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
-msgstr "##⚠️ 警告：你已选择对两个分区同时刷写。<br/>\n"
+msgid "## ⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+msgstr "## ⚠️ 警告：你已选择对两个分区同时刷写。<br/>\n"
 
 msgid "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
 msgstr "请确保你的设备没有受到反回滚（ARB）限制，再点击继续。<br/>\n"
@@ -2929,5 +2929,87 @@ msgid "PixelFlasher has guessed the Kernel KMI to be: %s\n\n"
 msgstr ""
 
 msgid "Are you sure you want to proceed with this guessed KMI?\n"
+msgstr ""
+
+##############################################################################
+# Additions 2025-11-03
+##############################################################################
+
+msgid "The selected path contains single quotes (').\n\nPlease rename the folder to remove the single quotes and try again."
+msgstr ""
+
+msgid "Options"
+msgstr ""
+
+msgid "Additional Options"
+msgstr ""
+
+msgid "Select Option"
+msgstr ""
+
+msgid "⚠️ WARNING: With Option 3, fingerprint can't be patched."
+msgstr ""
+
+msgid " (Recommended)"
+msgstr ""
+
+msgid "Latest Release"
+msgstr ""
+
+msgid "Latest Pre-Release"
+msgstr ""
+
+msgid "Latest Release or Pre-Release"
+msgstr ""
+
+msgid "Let me choose the kernel version from a matching list"
+msgstr ""
+
+msgid "Show all assets including non-matching ones"
+msgstr ""
+
+msgid "Flash to active slot"
+msgstr ""
+
+msgid "Flash to inactive slot"
+msgstr ""
+
+msgid "Flash to both slots"
+msgstr ""
+
+msgid "Flash boot partition"
+msgstr ""
+
+msgid "Flash init_boot partition"
+msgstr ""
+
+msgid "Flash vendor_boot partition"
+msgstr ""
+
+msgid "No Reboot after flash"
+msgstr ""
+
+msgid "## ✅ Live Boot the stock image:\n"
+msgstr ""
+
+msgid "## ✅ Live Boot the patched image:\n"
+msgstr ""
+
+msgid "## ❌ Live Booting is only supported for boot partition.\n"
+msgstr ""
+
+msgid "## ❌ Valid image is not found that supports live booting.\n"
+msgstr ""
+
+msgid "## ℹ️ Select partitions that you wish to flash stock image\n"
+msgstr ""
+
+msgid "## ℹ️ Select the options to flash a patch image:\n"
+msgstr ""
+
+msgid "## ❌ The selected image is not valid.<br/>\n"
+msgstr ""
+
+msgid "Edit script before continuing"
 msgstr ""
 

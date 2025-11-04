@@ -5700,7 +5700,7 @@ def bootloader_issue_message():
 # ============================================================================
 #                 Function download_ksu_latest_release_asset
 # ============================================================================
-def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True, custom_kernel=None, include_prerelease = False, latest_any=False, version_choice=False):
+def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=True, custom_kernel=None, include_prerelease = False, latest_any=False, version_choice=False, get_all=False):
     try:
         # For ShirkNeko and other custom kernels that might use pre-releases, check pre-releases first
         include_prerelease = custom_kernel in ['ShirkNeko', 'MiRinFork', 'WildKernels']
@@ -5731,7 +5731,11 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
 
         # Prepare the regular expression pattern
         if anykernel:
-            if custom_kernel:
+            if get_all:
+                version_choice = True
+                pattern = re.compile(rf"^.*\.zip$")
+                debug(f"Using pattern for all assets of {custom_kernel}: {pattern.pattern}")
+            elif custom_kernel:
                 if custom_kernel in ["MiRinFork", 'ShirkNeko']:
                     # MiRinFork format: android14-6.1.145-2025-08-AnyKernel3.zip
                     # ShirkNeko format:  android14-6.1.124-2025-02-AnyKernel3.zip
@@ -5775,7 +5779,14 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
         for asset in assets:
             match = pattern.match(asset['name'])
             if match:
-                asset_version = int(match[1])
+                # Handle case when get_all is True and pattern has no capture groups
+                if get_all and custom_kernel:
+                    # Default version for get_all mode
+                    asset_version = 0
+                elif len(match.groups()) > 0:
+                    asset_version = int(match[1])
+                else:
+                    asset_version = 0
                 matching_assets.append((asset['name'], asset_version))
                 asset_info = {
                     'asset': asset,
@@ -5841,7 +5852,10 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
                         # Extract version from selected asset
                         match = pattern.match(selected_asset['name'])
                         if match:
-                            best_version = int(match[1])
+                            if len(match.groups()) > 0:
+                                best_version = int(match[1])
+                            else:
+                                best_version = 0
                         print(f"ℹ️ User selected version: {best_version}")
                     else:
                         print("ℹ️ User cancelled selection, using suggested asset, aborting ...")
@@ -5870,7 +5884,8 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
             print(f"Downloaded {best_match['name']}")
             return best_match['name']
         else:
-            print(f"A good match for asset {asset_name} not found in the latest release of {user}/{repo}")
+            print(f"⚠️ Automatic good match for asset {asset_name} not found in the latest release of {user}/{repo}")
+            print("ℹ️ To see all available assets, enable the checkbox [Show all assets including non-matching ones] when selecting kernel flavor.\n")
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in download_ksu_latest_release_asset function")
         traceback.print_exc()

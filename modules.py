@@ -1433,7 +1433,26 @@ def setup_for_downgrade(self):
         print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
         puml(":Dialog;\n", True)
         puml(f"note right\n{clean_message}\nend note\n")
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=option, disable_buttons=disabled_buttons, is_md=True, size=[915,670], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_values)
+        dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=buttons_text,
+            default_button=option,
+            disable_buttons=disabled_buttons,
+            is_md=True,
+            size=[915,670],
+            checkbox_labels=checkboxes,
+            checkbox_initial_values=checkbox_values,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -1477,7 +1496,29 @@ def setup_for_downgrade(self):
         # option 3 - Specify SPL value manually
         elif option == 3:
             if checkbox_values[1]:
-                wx.MessageBox(f"⚠️ WARNING: With Option 3, fingerprint can't be patched.", "Warning", wx.OK | wx.ICON_WARNING)
+                dlg = MessageBoxEx(
+                    parent=None,
+                    title=_("Warning"),
+                    message=_("⚠️ WARNING: With Option 3, fingerprint can't be patched."),
+                    button_texts=[_("OK")],
+                    default_button=1,
+                    disable_buttons=None,
+                    is_md=False,
+                    size=(800, 600),
+                    checkbox_labels=None,
+                    checkbox_initial_values=None,
+                    disable_checkboxes=None,
+                    vertical_checkboxes=False,
+                    checkbox_labels2=None,
+                    checkbox_initial_values2=None,
+                    disable_checkboxes2=None,
+                    radio_labels=None,
+                    radio_initial_value=None,
+                    disable_radios=None
+                )
+                dlg.CentreOnParent(wx.BOTH)
+                dlg.ShowModal()
+                dlg.Destroy()
             checkbox_values[1] = False
             dialog = wx.TextEntryDialog(None, "Enter the SPL value (YYYY-MM-DD):", "Enter SPL value", device_spl, style=wx.OK | wx.CANCEL)
             while True:
@@ -1526,9 +1567,29 @@ def setup_for_downgrade(self):
         try:
             if target_spl >= current_spl and not checkbox_values[1]:
                 print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?")
-                dlg = wx.MessageDialog(None, _("WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?"), _("Confirm"), wx.YES_NO | wx.ICON_EXCLAMATION)
+                dlg = MessageBoxEx(
+                parent=None,
+                title=_("Confirm"),
+                message=_("WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?"),
+                button_texts=[_("Yes"), _("No")],
+                default_button=2,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
                 puml(f"note right\nDialog\n====\nWARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?\nend note\n")
                 result = dlg.ShowModal()
+                dlg.Destroy()
                 if result != wx.ID_YES:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled patching.")
                     puml("#pink:User cancelled patching;\n}\n")
@@ -1629,7 +1690,26 @@ def kb_stats_ui(self):
         checkboxes = ["Verbose", "List Unique Files", "List Valid Entries", "List Unmarked Entries ...", "Add Missing Files ...", "Check File Exists", "List Missing Files", "Remove Missing Entries from kb_index"]
         checkbox_initial_values = [False, False, True, True, True, True, True, True]
         message = _("**KB Stats Options**<br/>\n")
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=None, is_md=True, size=[400,40], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_initial_values, vertical_checkboxes=True)
+        dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=buttons_text,
+            default_button=1,
+            disable_buttons=None,
+            is_md=True,
+            size=[400,40],
+            checkbox_labels=checkboxes,
+            checkbox_initial_values=checkbox_initial_values,
+            disable_checkboxes=None,
+            vertical_checkboxes=True,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -2037,8 +2117,28 @@ def manual_magisk(self, boot_file_name):
             message += _("After doing so, Click OK to accept and continue.\n")
             message += _("or Hit CANCEL to abort.")
             print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-            dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+            dlg = MessageBoxEx(
+                parent=None,
+                title=title,
+                message=message,
+                button_texts=[_("OK"), _("Cancel")],
+                default_button=1,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             result = dlg.ShowModal()
+            dlg.Destroy()
             if result == wx.ID_OK:
                 print("User pressed ok.")
                 if not device.is_display_unlocked():
@@ -2073,7 +2173,26 @@ def manual_magisk(self, boot_file_name):
         message += "Click on **Done creating the patch, continue** button <br/>\n"
         message += "or hit the **Cancel** button to abort.\n"
 
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
+        dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=buttons_text,
+            default_button=1,
+            disable_buttons=[],
+            is_md=True,
+            size=[800,400],
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -2145,6 +2264,24 @@ def message_after_flashing():
     return 0
 
 # ============================================================================
+#                               Function get_all_dialog_values
+# ============================================================================
+def get_all_dialog_values(dlg):
+    # Get all dialog return values including checkboxes, radio buttons, and button selection
+    # dlg has to be a MessageBoxEx instance
+    dialog_values = {
+        'button': None,
+        'checkboxes': None,
+        'checkboxes2': None,
+        'radio': None
+    }
+
+    if hasattr(dlg, 'return_value') and dlg.return_value:
+        dialog_values.update(dlg.return_value)
+
+    return dialog_values
+
+# ============================================================================
 #                               Function kernel_flavors
 # ============================================================================
 def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendation):
@@ -2152,9 +2289,9 @@ def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendat
     button_texts = ["KernelSU", "KernelSU-Next", "WildKernels", "ShirkNeko", "MiRinFork", "Manual", "Cancel"]
     if default_button < 1 or default_button > len(button_texts):
         default_button = 1
-    button_texts[default_button -1] += " (Recommended)"
-    radio_labels=["Latest Release", "Latest Pre-Release", "Latest Release or Pre-Release"]
-    checkbox_labels=["Let me choose the kernel version from a matching list."]
+    button_texts[default_button -1] += _(" (Recommended)")
+    radio_labels=[_("Latest Release"), _("Latest Pre-Release"), _("Latest Release or Pre-Release")]
+    checkbox_labels=[_("Let me choose the kernel version from a matching list"), _("Show all assets including non-matching ones")]
     checkbox_initial_values=[False]
 
     message = '''
@@ -2192,36 +2329,43 @@ However you're free to choose the kernel of your choice.
         size=[930,640],
         checkbox_labels=checkbox_labels,
         checkbox_initial_values=checkbox_initial_values,
+        disable_checkboxes=None,
         vertical_checkboxes=False,
+        checkbox_labels2=None,
+        checkbox_initial_values2=None,
+        disable_checkboxes2=None,
         radio_labels=radio_labels,
-        radio_initial_value=radio_initial_value
+        radio_initial_value=radio_initial_value,
+        disable_radios=None
     )
     dlg.CentreOnParent(wx.BOTH)
     result = dlg.ShowModal()
 
-    # Get the radio button selection from the dialog
-    selected_radio_index = None
-    if hasattr(dlg, 'return_value') and dlg.return_value and 'radio' in dlg.return_value:
-        selected_radio_index = dlg.return_value['radio']
-
-    # Get checkbox values before destroying the dialog
-    checkbox_values = get_dlg_checkbox_values()
+    # Get all dialog return values
+    dialog_values = get_all_dialog_values(dlg)
 
     dlg.Destroy()
     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result -1]}")
+
+    # Extract values from dialog_values
+    selected_radio_index = dialog_values.get('radio')
+    checkbox_values = dialog_values.get('checkboxes')
+
     if selected_radio_index is not None:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Selected Radio Option: {radio_labels[selected_radio_index]}")
     if checkbox_values:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Selected Checkboxes: {checkbox_values}")
     puml(f":User Pressed {button_texts[result - 1]};\n")
 
-    # Return both the button selection and radio choice
+    # Return both the button selection and all dialog values
     return {
         'button': result,
         'button_text': button_texts[result - 1] if result <= len(button_texts) else 'Unknown',
         'radio_selection': selected_radio_index,
         'radio_text': radio_labels[selected_radio_index] if selected_radio_index is not None else None,
-        'checkbox_values': checkbox_values
+        'checkbox_values': checkbox_values,
+        'checkbox_values2': dialog_values.get('checkboxes2'),
+        'dialog_values': dialog_values
     }
 
 # ============================================================================
@@ -2767,7 +2911,26 @@ According to the author, Magic Mount is more stable and compatible and is recomm
 
 '''
             print(f"\n*** Dialog ***\n{message}\n______________\n")
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[650,200])
+            dlg = MessageBoxEx(
+                parent=self,
+                title=title,
+                message=message,
+                button_texts=buttons_text,
+                default_button=1,
+                disable_buttons=[],
+                is_md=True,
+                size=[650,200],
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -3305,20 +3468,39 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 message += _("or Hit CANCEL to abort.")
                 print(f"\n*** Dialog ***\n{message_en}\n______________\n")
                 puml(f"note right\nDialog\n====\n{message_en}\nend note\n")
-                dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+                dlg = MessageBoxEx(
+                    parent=None,
+                    title=title,
+                    message=message,
+                    button_texts=[_("OK"), _("Cancel")],
+                    default_button=1,
+                    disable_buttons=None,
+                    is_md=False,
+                    size=(800, 600),
+                    checkbox_labels=None,
+                    checkbox_initial_values=None,
+                    disable_checkboxes=None,
+                    vertical_checkboxes=False,
+                    checkbox_labels2=None,
+                    checkbox_initial_values2=None,
+                    disable_checkboxes2=None,
+                    radio_labels=None,
+                    radio_initial_value=None,
+                    disable_radios=None
+                )
+                dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
-                if result == wx.ID_OK:
+                dlg.Destroy()
+                if result == 1:
                     # ok to proceed with the override
                     print("User pressed ok.")
                     puml(":User Pressed OK;\nnote right:Proceed with Kernel KMI Override\n")
-                    dlg.Destroy()
                     kmi = kmi_guessed
                 else:
                     # User cancelled out of guessed KMI Override
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel, out of guessed Kernel KMI Override.")
                     puml(":User Pressed Cancel;\n}\n")
                     print("Aborting ...\n")
-                    dlg.Destroy()
                     return -1
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unsupported Kernel KMI [{kmi}]")
@@ -3538,7 +3720,26 @@ Unless you know what you're doing, it is recommended that you choose the default
             print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
             puml(":Dialog;\n", True)
             puml(f"note right\n{clean_message}\nend note\n")
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=recommendation, disable_buttons=disabled_buttons, is_md=True, size=[800,640])
+            dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=buttons_text,
+            default_button=recommendation,
+            disable_buttons=disabled_buttons,
+            is_md=True,
+            size=[800,640],
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -3798,6 +3999,9 @@ Unless you know what you're doing, it is recommended that you choose the default
         # Check if version_choice checkbox is selected
         version_choice = res['checkbox_values'][0]
 
+        # Check if get_all checkbox is selected
+        get_all = res['checkbox_values'][1]
+
         # Get checkbox values from the result
         checkbox_values = res.get('checkbox_values', [])
         print(f"Checkbox values received: {checkbox_values}")
@@ -3853,7 +4057,7 @@ Unless you know what you're doing, it is recommended that you choose the default
 
         if res['button'] != 6:
             # download the selected KernelSU generic kernel image
-            kernel_su_gz_file = download_ksu_latest_release_asset(user=user, repo=repo, asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel=custom_kernel, include_prerelease = include_prerelease, latest_any=latest_any, version_choice=version_choice)
+            kernel_su_gz_file = download_ksu_latest_release_asset(user=user, repo=repo, asset_name=look_for_kernelsu, anykernel=anykernel, custom_kernel=custom_kernel, include_prerelease = include_prerelease, latest_any=latest_any, version_choice=version_choice, get_all=get_all)
             if kernel_su_gz_file:
                 kernelsu_version = get_gh_latest_release_version(user, repo)
 
@@ -4193,7 +4397,26 @@ Unless you know what you're doing, it is recommended that you take the default s
             print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
             puml(":Dialog;\n", True)
             puml(f"note right\n{clean_message}\nend note\n")
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=method, disable_buttons=disabled_buttons, is_md=True, size=[800,660], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_initial_values)
+            dlg = MessageBoxEx(
+                parent=self,
+                title=title,
+                message=message,
+                button_texts=buttons_text,
+                default_button=method,
+                disable_buttons=disabled_buttons,
+                is_md=True,
+                size=[800,660],
+                checkbox_labels=checkboxes,
+                checkbox_initial_values=checkbox_initial_values,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -4624,109 +4847,188 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         return -1
 
     # Make sure boot exists
-    if boot.boot_path:
-        title = f"{option} Boot"
-        message = ""
-
-        boot_dir = os.path.dirname(boot.boot_path)
-        boot_img_path = boot.boot_path
-        boot_hash = boot.boot_hash
-        size = [960, 650]
-        if boot.is_init_boot:
-            partition = "init_boot"
-        else:
-            partition = "boot"
-        selected_boot_partition = get_selected_boot_partition()
-        if selected_boot_partition:
-            partition = selected_boot_partition
-        # if option == 'Live' and boot.is_init_boot:
-        if option == 'Live' and partition != "boot":
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting {partition} partition is not supported, looking for stock boot.img")
-            boot_img_path = os.path.join(boot_dir, 'boot.img')
-            if os.path.exists(boot_img_path):
-                size = [960, 880]
-                boot_hash = sha1(boot_img_path)
-                print(f"✅ Found stock boot.img in {boot_dir} with SHA1: {boot_hash}")
-                message += f"##⚠️ Live Booting {partition} is not supported, stock boot.img will be used instead.<br/>\n"
-                message += "Depending on the selection, Live booting stock boot.img might not make a difference.<br/>\n"
-                message += "Magisk patches init_boot<br/>\n"
-                message += "Apatch patches boot<br/>\n"
-                message += "KernelSU (and Next) / SukiSU / Wild_KSU patches boot<br/>\n"
-                message += "KernelSU_LKM (and Next) / SukiSU_LKM / Wild_KSU patches vendor_boot / init_boot<br/>\n\n"
-                # set it to boot partition for live booting
-                partition = "boot"
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} {boot_img_path} file not found, Aborting ...")
-                puml("#red:{boot_img_path} file not found\n}\n")
-                return -1
-        if self.config.flash_both_slots:
-            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: You have selected to flash both slots, please make sure your device is not subject to anti-rollback (ARB) concerns.\nYou can check the bootloader versions from the Device menu.")
-            message += f"##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
-            message += "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
-            message += "You can check the bootloader versions from the Device menu.<br/>\n"
-
-        message += f"## Live/Flash Boot Options:\n\n"
-        message += f"<pre>Option:                     {option}\n"
-        message += f"Partition:                  {partition}\n"
-        message += f"Boot SHA1:                  {boot_hash}\n"
-        message += f"Hardware:                   {device.hardware}\n"
-
-        if boot.is_patched == 1:
-            message += "Patched:                    Yes\n"
-            if boot.patch_method:
-                message += f"Patched Method:             {boot.patch_method}\n"
-            if boot.patch_source_sha1:
-                message += f"Patch Source SHA1:          {boot.patch_source_sha1}\n"
-            if boot.patch_method in ["kernelsu", "kernelsu_lkm"]:
-                message += f"Patched With KernelSU:      {boot.magisk_version}\n"
-            elif boot.patch_method in ["sukisu", "sukisu_lkm"]:
-                message += f"Patched With SukiSU:      {boot.magisk_version}\n"
-            elif boot.patch_method in ["wild_ksu", "wild_ksu_lkm"]:
-                message += f"Patched With Wild_KSU:      {boot.magisk_version}\n"
-            elif "kernelsu-next" in boot.patch_method:
-                message += f"Patched With KSU-Next:      {boot.magisk_version}\n"
-            elif "apatch" in boot.patch_method:
-                message += f"Patched With Apatch:        {boot.magisk_version}\n"
-            else:
-                message += f"Patched With Magisk:        {boot.magisk_version}\n"
-            message += f"Patched on Device:          {boot.hardware}\n"
-            message += f"Original boot.img from:     {boot.package_sig}\n"
-            message += f"Original boot.img SHA1:     {boot.package_boot_hash}\n"
-        else:
-            message += "Patched:                    No\n"
-        message += f"Custom Flash Options:       {self.config.advanced_options}\n"
-        # don't allow inactive slot flashing
-        message += "Flash To Inactive Slot:     False\n"
-        message += f"Flash Both Slots:           {self.config.flash_both_slots}\n"
-        message += f"Current Slot:               {device.active_slot}\n"
-        message += f"Verbose Fastboot:           {self.config.fastboot_verbose}\n"
-        message += f"No Reboot:                  {self.config.no_reboot}\n"
-        message += "boot.img path:\n"
-        message += f"  {boot_img_path}</pre>\n"
-        message += "\nClick OK to accept and continue, or CANCEL to abort."
-        clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
-        print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
-        puml(f":{option} Boot;\n", True)
-        puml(f"note right\nDialog\n====\n{clean_message}\nend note\n")
-        set_message_box_title(title)
-        set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=['OK', 'CANCEL'], default_button=1, disable_buttons=[], is_md=True, size=size)
-        dlg.CentreOnParent(wx.BOTH)
-        result = dlg.ShowModal()
-        if result == 1:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
-            puml(":User Pressed OK to continue;\n")
-        else:
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
-            puml("#pink:User Pressed Cancel to abort;\n}\n")
-            print("Aborting ...\n")
-            dlg.Destroy()
-            return -1
-        dlg.Destroy()
-    else:
+    if not boot.boot_path:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get boot.img path, aborting ...\n")
         puml("#red:Unable to get boot image path;\n}\n")
         return -1
+
+    boot_dir = os.path.dirname(boot.boot_path)
+    boot_img_path = boot.boot_path
+    boot_hash = boot.boot_hash
+    if boot.is_init_boot:
+        partition = "init_boot"
+    else:
+        partition = "boot"
+    # Get the actual selected boot partition in case of vendor_boot patch
+    selected_boot_partition = get_selected_boot_partition()
+    if selected_boot_partition:
+        partition = selected_boot_partition
+
+    boot_file = os.path.join(boot_dir, "boot.img")
+    init_boot_file = os.path.join(boot_dir, "init_boot.img")
+    vendor_boot_file = os.path.join(boot_dir, "vendor_boot.img")
+    selected_image = ntpath.basename(boot_img_path)
+    selected_dir = os.path.dirname(boot_img_path)
+
+    # setup the dialog options
+    title = f"{option} Boot"
+    message = ""
+    size = (940, 440)
+    button_texts=[_("OK"), _("Cancel")]
+    radio_labels=[_('Flash to active slot'), _('Flash to inactive slot'), _('Flash to both slots')]
+    checkbox_labels=[_('Flash boot partition'), _('Flash init_boot partition'), _('Flash vendor_boot partition')]
+    checkbox_labels2=[_('No Reboot after flash')]
+    checkbox_initial_values=[False, False, False]
+    disable_checkboxes=None
+    checkbox_initial_values2=[False]
+    disable_checkboxes2=None
+    radio_initial_value=0
+    disable_radios=None
+    disable_buttons=None
+
+    if not device.active_slot in ['a', 'b']:
+        disable_radios = [2, 3]
+
+    if option == 'Live':
+        # Live option
+        flash_string = ""
+        disable_checkboxes2 = [1]  # no reboot doesn't make sense for live booting
+        checkbox_initial_values2=[False]
+        disable_radios = [1, 2, 3]
+        disable_checkboxes = [1, 2, 3]
+
+        if boot.is_patched != 1 and os.path.exists(os.path.join(selected_dir, "boot.img")):
+            checkbox_initial_values=[True, False, False]
+            partition = "boot"
+            selected_image = "boot.img"
+            message += _("## ✅ Live Boot the stock image:\n")
+        elif os.path.exists(boot_file) and partition == "boot" and boot.is_patched == 1:
+            checkbox_initial_values=[True, False, False]
+            message += _("## ✅ Live Boot the patched image:\n")
+        else:
+            checkbox_initial_values=[False, False, False]
+            disable_buttons = [1]
+            radio_initial_value = None
+            if partition != "boot":
+                message += _("## ❌ Live Booting is only supported for boot partition.\n")
+            else:
+                message += _("## ❌ Valid image is not found that supports live booting.\n")
+    else:
+        # Flash option
+        flash_string = "flash"
+        if boot.is_patched != 1:
+            # stock
+            disable_checkboxes = []  # Initialize as empty list
+            if os.path.exists(boot_file):
+                checkbox_initial_values[0] = True
+            else:
+                disable_checkboxes.append(1)
+            if os.path.exists(init_boot_file):
+                checkbox_initial_values[1] = True
+            else:
+                disable_checkboxes.append(2)
+            if os.path.exists(vendor_boot_file):
+                checkbox_initial_values[2] = True
+            else:
+                disable_checkboxes.append(3)
+            # Convert to None if empty, or keep the list if it has items
+            disable_checkboxes = disable_checkboxes if disable_checkboxes else None
+            message += _("## ℹ️ Select partitions that you wish to flash stock image\n")
+        else:
+            # patched
+            flash_message = _("## ℹ️ Select the options to flash a patch image:\n")
+            disable_checkboxes = [1, 2, 3]
+            if partition == "boot" and os.path.exists(boot_file):
+                checkbox_initial_values=[True, False, False]
+            elif partition == "init_boot" and os.path.exists(init_boot_file):
+                checkbox_initial_values=[False, True, False]
+            elif partition == "vendor_boot" and os.path.exists(vendor_boot_file):
+                checkbox_initial_values=[False, False, True]
+            else:
+                checkbox_initial_values=[False, False, False]
+                disable_buttons = [1]
+                radio_initial_value = None
+                disable_radios = [1, 2, 3]
+                flash_message = _("## ❌ The selected image is not valid.<br/>\n")
+            message += flash_message
+
+    # Additional message details
+    message += f"<pre>Option:                 {option}\n"
+    message += f"Partition:              {partition}\n"
+    message += f"Image SHA1:             {boot_hash}\n"
+    message += f"Hardware:               {device.hardware}\n"
+    # Add additional image details
+    if boot.is_patched == 1:
+        message += "Patched:                Yes\n"
+        if boot.patch_method:
+            message += f"Patched Method:         {boot.patch_method}\n"
+        if boot.patch_source_sha1:
+            message += f"Patch Source SHA1:      {boot.patch_source_sha1}\n"
+        if boot.patch_method in ["kernelsu", "kernelsu_lkm"]:
+            message += f"Patched With KernelSU:  {boot.magisk_version}\n"
+        elif boot.patch_method in ["sukisu", "sukisu_lkm"]:
+            message += f"Patched With SukiSU:    {boot.magisk_version}\n"
+        elif boot.patch_method in ["wild_ksu", "wild_ksu_lkm"]:
+            message += f"Patched With Wild_KSU:  {boot.magisk_version}\n"
+        elif "kernelsu-next" in boot.patch_method:
+            message += f"Patched With KSU-Next:  {boot.magisk_version}\n"
+        elif "apatch" in boot.patch_method:
+            message += f"Patched With Apatch:    {boot.magisk_version}\n"
+        else:
+            message += f"Patched With Magisk:    {boot.magisk_version}\n"
+        message += f"Patched on Device:      {boot.hardware}\n"
+        message += f"Source Image from:      {boot.package_sig}\n"
+    else:
+        message += "Patched:                No\n"
+    if device.active_slot in ['a', 'b']:
+        message += f"Current Slot:           {device.active_slot}\n"
+    message += f"Selected Image:         {selected_image}</pre>\n"
+
+    clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
+    print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
+    puml(f":{option} Boot;\n", True)
+    puml(f"note right\nDialog\n====\n{clean_message}\nend note\n")
+    set_message_box_title(title)
+    set_message_box_message(message)
+
+    dlg = MessageBoxEx(
+        parent=None,
+        title=title,
+        message=message,
+        button_texts=button_texts,
+        default_button=1,
+        disable_buttons=disable_buttons,
+        is_md=True,
+        size=size,
+        checkbox_labels=checkbox_labels,
+        checkbox_initial_values=checkbox_initial_values,
+        disable_checkboxes=disable_checkboxes,
+        vertical_checkboxes=False,
+        checkbox_labels2=checkbox_labels2,
+        checkbox_initial_values2=checkbox_initial_values2,
+        disable_checkboxes2=disable_checkboxes2,
+        radio_labels=radio_labels,
+        radio_initial_value=radio_initial_value,
+        disable_radios=disable_radios
+    )
+    dlg.CentreOnParent(wx.BOTH)
+    result = dlg.ShowModal()
+
+    # Get all dialog return values before destroying the dialog
+    dialog_values = get_all_dialog_values(dlg)
+    dlg.Destroy()
+
+    # Extract values from dialog_values for consistent access
+    selected_radio_index = dialog_values.get('radio')
+    checkbox_values = dialog_values.get('checkboxes')
+    checkbox_values2 = dialog_values.get('checkboxes2')
+
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result -1]}")
+    if result == 2:
+        print("Aborting ...\n")
+        puml("#pink:User Pressed Cancel to abort;\n}\n")
+        return -1
+    print(f"dialog values: {dialog_values}")
 
     device = get_phone()
     if not device:
@@ -4738,8 +5040,269 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         puml("}\n")
         self.clear_device_selection()
         return -1
-
     device_id = device.id
+
+    # build the script
+    config_path = get_config_path()
+    tmp_dir = os.path.join(config_path, 'tmp')
+
+    flash_pf_file_win = os.path.join(tmp_dir, "flash-boot.bat")
+    flash_pf_file_linux = os.path.join(tmp_dir, "flash-boot.sh")
+    cp = None
+    if self.config.force_codepage:
+        cp = str(self.config.custom_codepage)
+        if cp == '':
+            cp = None
+    else:
+        # don't use system codepage, use UTF-8 if not set
+        # cp = get_system_codepage()
+        cp = "65001"
+    if cp:
+        first_line_win = f"\nchcp {cp}\n@ECHO OFF\n"
+    else:
+        first_line_win = f"@ECHO OFF\n"
+    first_line_linux = "#!/bin/sh\n"
+
+    version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
+    version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# Android Platform Tools Version: {get_sdk_version()}\n# Device is rooted: {device.rooted}\n\n"
+
+    # delete previous flash-boot.bat file if it exists
+    if os.path.exists(flash_pf_file_win):
+        os.remove(flash_pf_file_win)
+
+    # delete previous flash-boot.sh file if it exists
+    if os.path.exists(flash_pf_file_linux):
+        os.remove(flash_pf_file_linux)
+
+    data_win = ''
+    data_linux = ''
+
+    # create flash-boot.bat/sh based on the live / flash options.
+    f_win = open(flash_pf_file_win.strip(), "w", encoding="ISO-8859-1", errors="replace")
+    f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
+    data_win = first_line_win
+    data_linux = first_line_linux
+    data_win += version_sig_win
+    data_linux += version_sig_linux
+    data_win += r'PATH=%PATH%;"%SYSTEMROOT%\System32"' + "\n\n"
+
+    if boot.is_patched != 1:
+        boot_to_flash = os.path.join(selected_dir, "boot.img")
+        init_boot_to_flash = os.path.join(selected_dir, "init_boot.img")
+        vendor_boot_to_flash = os.path.join(selected_dir, "vendor_boot.img")
+    else:
+        boot_to_flash = boot_img_path
+        init_boot_to_flash = boot_img_path
+        vendor_boot_to_flash = boot_img_path
+
+    # Live
+    if option == 'Live' and checkbox_values and checkbox_values[0]:
+        data_win += "echo Live Booting boot partition ... \n"
+        data_win += f"\"{get_adb()}\" -s {device_id} boot \"{boot_to_flash}\"\n\n"
+        data_linux += "echo Live Booting boot partition ... \n"
+        data_linux += f"\"{get_adb()}\" -s {device_id} boot \"{boot_to_flash}\"\n\n"
+
+    # Flash
+    else:
+        # if boot is selected
+        if checkbox_values and checkbox_values[0]:
+            if selected_radio_index == 0:
+                # active slot
+                data_win += "echo Flashing boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{boot_to_flash}\"\n"
+            elif selected_radio_index == 1:
+                # inactive slot
+                data_win += "echo Flashing boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{boot_to_flash}\"\n"
+            elif selected_radio_index == 2:
+                # both slots
+                data_win += "echo Flashing boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{boot_to_flash}\"\n"
+                data_win += "echo Flashing boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{boot_to_flash}\"\n"
+                data_linux += "echo Flashing boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{boot_to_flash}\"\n"
+            data_win += "\n"
+            data_linux += "\n"
+
+        # if init_boot is selected
+        if checkbox_values and checkbox_values[1]:
+            if selected_radio_index == 0:
+                # active slot
+                data_win += "echo Flashing init_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{init_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing init_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{init_boot_to_flash}\"\n"
+            elif selected_radio_index == 1:
+                # inactive slot
+                data_win += "echo Flashing init_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{init_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing init_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{init_boot_to_flash}\"\n"
+            elif selected_radio_index == 2:
+                # both slots
+                data_win += "echo Flashing init_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{init_boot_to_flash}\"\n"
+                data_win += "echo Flashing init_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{init_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing init_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{init_boot_to_flash}\"\n"
+                data_linux += "echo Flashing init_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{init_boot_to_flash}\"\n"
+            data_win += "\n"
+            data_linux += "\n"
+
+        # if vendor_boot is selected
+        if checkbox_values and checkbox_values[2]:
+            if selected_radio_index == 0:
+                # active slot
+                data_win += "echo Flashing vendor_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+            elif selected_radio_index == 1:
+                # inactive slot
+                data_win += "echo Flashing vendor_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+            if selected_radio_index == 2:
+                # both slots
+                data_win += "echo Flashing vendor_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+                data_win += "echo Flashing vendor_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+                data_linux += "echo Flashing vendor_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+            data_win += "\n"
+            data_linux += "\n"
+
+    # save the scripts
+    f_win.write(data_win)
+    f_win.close()
+    f_linux.write(data_linux)
+    f_linux.close()
+
+    # make the sh script executable
+    if sys.platform != "win32":
+        data = data_linux
+        flash_pf_file = flash_pf_file_linux
+        theCmd = f"chmod 755 \"{flash_pf_file_linux}\""
+        debug(theCmd)
+        res = run_shell(theCmd)
+        if res and isinstance(res, subprocess.CompletedProcess):
+            debug(f"Return Code: {res.returncode}")
+            debug(f"Stdout: {res.stdout}")
+            debug(f"Stderr: {res.stderr}")
+            if res.returncode != 0:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
+                print("Aborting ...\n")
+                puml("#red:Could not set the permissions on flash script;\n}\n")
+                return -1
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
+            print("Aborting ...\n")
+            puml("#red:Could not set the permissions on flash script;\n}\n")
+            return -1
+    else:
+        data = data_win
+        flash_pf_file = flash_pf_file_win
+
+    title = f"{option} Boot - Confirm Flash"
+    message = "\nNote: Pressing OK button will invoke a script that will utilize\n"
+    message += "fastboot commands, this could possibly take a long time and PixelFlasher\n"
+    message += "will appear frozen. PLEASE BE PATIENT. \n"
+    message += "In case it takes excessively long, it could possibly be due to improper or\n"
+    message += "faulty fastboot drivers.\n"
+    message += "In such cases, killing the fastboot process will resume to normalcy.\n\n"
+    message += "Do you want to continue to flash with the above options?\n"
+    message += "You can also choose to edit the script before continuing,\nin case you want to customize it.(Only choose this if you know what you are doing)\n\n"
+    message += "Press OK to continue or CANCEL to abort.\n"
+    print(f"\n*** Dialog ***\n{message}\n______________\n")
+    print(f"The script content that will be executed:")
+    print(f"___________________________________________________\n{data}")
+    print("___________________________________________________\n")
+    puml(":Dialog;\n", True)
+    puml(f"note right\n{message}\nend note\n")
+    puml(":Script;\n")
+    puml(f"note right\nFlash Script\n====\n{data}\nend note\n")
+    try:
+        dlg = MessageBoxEx(
+            parent=None,
+            title=title,
+            message=message,
+            button_texts=[_("OK"), _("Edit script before continuing"), _("Cancel")],
+            default_button=1,
+            disable_buttons=None,
+            is_md=False,
+            size=(800, 600),
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
+        traceback.print_exc()
+
+    if result == 1: # OK
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
+        puml(":User Pressed OK;\n")
+        # continue flashing
+    elif result == 2: # Edit
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
+        puml("#pink:User Pressed Edit Script;\n")
+        dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600)
+        dlg.CenterOnParent()
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        if result == wx.ID_OK:
+            # get the contents of modified flash_pf_file
+            with open(flash_pf_file, 'r', encoding='ISO-8859-1', errors="replace") as f:
+                contents = f.read()
+            print(f"\nflash_boot file has been modified!")
+            print(f"The modified script content that will be executed:")
+            print(f"___________________________________________________\n{contents}")
+            print("___________________________________________________\n")
+            puml(f"note right\nModified Script\n====\n{contents}\nend note\n")
+            # continue flashing
+        else:
+            print("User cancelled editing flash_boot file.")
+            puml(f"note right\nCancelled and Aborted\nend note\n")
+            return -1
+    elif result == 3: # Cancel
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+        print("Aborting ...\n")
+        puml("#pink:User Pressed Cancel;\n}\n")
+        return -1
+
+    # reboot to bootloader if needed
     mode = device.get_device_state()
     if mode in ['adb', 'recovery', 'sideload'] and get_adb():
         self.refresh_device(device_id)
@@ -4761,63 +5324,81 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
     done_flashing = False
     if mode == 'fastboot' and get_fastboot():
-        if not (self.config.advanced_options and self.config.flash_mode == 'customFlash' and get_image_mode() == 'SIDELOAD'):
-            # Check for bootloader unlocked
-            if self.config.check_for_bootloader_unlocked:
-                res = is_device_unlocked(self, device)
-                if res == -1:
-                    # Device is not detected
+        # Check for bootloader unlocked
+        if self.config.check_for_bootloader_unlocked:
+            res = is_device_unlocked(self, device)
+            if res == -1:
+                # Device is not detected
+                print("Aborting ...\n")
+                puml("#red:Device is not detected;\n}\n")
+                self.toast(_("Flash action"), _("❌ Device is not detected."))
+                return -1
+            elif res == 0:
+                self.toast(_("Flash action"), _("❌ Bootloader is locked, cannot flash."))
+                dlg = MessageBoxEx(
+                    parent=None,
+                    title=_("Error"),
+                    message=_("Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?"),
+                    button_texts=[_("Yes"), _("No")],
+                    default_button=2,
+                    disable_buttons=None,
+                    is_md=False,
+                    size=(800, 600),
+                    checkbox_labels=None,
+                    checkbox_initial_values=None,
+                    disable_checkboxes=None,
+                    vertical_checkboxes=False,
+                    checkbox_labels2=None,
+                    checkbox_initial_values2=None,
+                    disable_checkboxes2=None,
+                    radio_labels=None,
+                    radio_initial_value=None,
+                    disable_radios=None
+                )
+                result = dlg.ShowModal()
+                dlg.Destroy()
+                if result != 1:
+                    print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
                     print("Aborting ...\n")
-                    puml("#red:Device is not detected;\n}\n")
-                    self.toast(_("Flash action"), _("❌ Device is not detected."))
+                    puml("#red:Bootloader is locked, can't flash;\n}\n")
                     return -1
-                elif res == 0:
-                    self.toast(_("Flash action"), _("❌ Bootloader is locked, cannot flash."))
-                    dlg = wx.MessageDialog(None, _("Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?"), _("Error"), wx.YES_NO | wx.ICON_ERROR)
-                    result = dlg.ShowModal()
-                    if result != wx.ID_YES:
-                        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
-                        print("Aborting ...\n")
-                        puml("#red:Bootloader is locked, can't flash;\n}\n")
-                        return -1
-                    else:
-                        print("❌ Bootloader is locked, but user chose to proceed ...")
                 else:
-                    print("✅ Bootloader is unlocked, continuing ...")
+                    print("❌ Bootloader is locked, but user chose to proceed ...")
             else:
-                print("⚠️ Skipping bootloader unlock check ...")
+                print("✅ Bootloader is unlocked, continuing ...")
+        else:
+            print("⚠️ Skipping bootloader unlock check ...")
 
         startFlash = time.time()
-        fastboot_options = ''
-        if option == 'Flash':
-            if self.config.advanced_options:
-                if self.config.flash_to_inactive_slot:
-                    fastboot_options += '--slot other '
-                if self.config.flash_both_slots:
-                    fastboot_options += '--slot all '
-                if self.config.fastboot_verbose:
-                    fastboot_options += '--verbose '
-            fastboot_options += 'flash '
-        theCmd = f"\"{get_fastboot()}\" -s {device.id} {fastboot_options} {partition} \"{boot_img_path}\""
-        print(f"\nℹ️ Flashing phone: {theCmd} ...")
-        res = run_shell(theCmd)
+
+        # -------------------------------------------------------------------------
+        # Run the script
+        # -------------------------------------------------------------------------
+        print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} Flashing boot: {device_id} ...")
+        puml(f":Flashing boot: {device_id};\n", True)
+        theCmd = flash_pf_file
+        theCmd = f"\"{theCmd}\""
+        debug(theCmd)
+        res = run_shell2(theCmd, chcp=cp)
         if res and isinstance(res, subprocess.CompletedProcess):
             debug(f"Return Code: {res.returncode}")
             debug(f"Stdout: {res.stdout}")
             debug(f"Stderr: {res.stderr}")
             if res.returncode != 0:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {option} boot failed!")
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash boot script.")
                 print("Aborting ...\n")
-                puml("#red:{option} Boot failed!;\n}\n")
-                puml("}\n")
+                puml("#red:Encountered an error while running flash script.;\n}\n")
+                self.toast(_("Flash action"), _("❌ Encountered an error while running the flash boot script."))
                 return -1
         else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {option} boot failed!")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash boot script.")
             print("Aborting ...\n")
-            puml("#red:{option} Boot failed!;\n}\n")
-            puml("}\n")
+            puml("#red:Encountered an error while running flash script.;\n}\n")
+            self.toast(_("Flash action"), _("❌ Encountered an error while running the flash boot script."))
             return -1
-        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done!")
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done flash boot script execution!")
+        puml(f":Done flash bootscript execution;\n", True)
+
         endFlash = time.time()
         print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
         print("------------------------------------------------------------------------------\n")
@@ -4828,7 +5409,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             self.refresh_device(device_id)
             message_after_flashing()
             return
-        elif option == 'Flash' and not self.config.no_reboot:
+        elif option == 'Flash' and not checkbox_values2[0]:
             puml(":Reboot to System;\n")
             device.reboot_system()
     else:
@@ -5187,7 +5768,7 @@ def flash_phone(self):
                 f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
                 data_win = first_line_win
                 data_linux = first_line_linux
-                data_win += r'PATH=%PATH%;"%SYSTEMROOT%\System32"\n'
+                data_win += r'PATH=%PATH%;"%SYSTEMROOT%\System32"' + "\n\n"
                 # Sideload
                 if image_mode == 'SIDELOAD':
                     msg  = "\nADB Sideload:           "
@@ -5399,7 +5980,26 @@ def flash_phone(self):
                         print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
                         puml(":Dialog;\n", True)
                         puml(f"note right\n{clean_message}\nend note\n")
-                        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=2, is_md=True, size=[700,400])
+                        dlg = MessageBoxEx(
+                            parent=self,
+                            title=title,
+                            message=message,
+                            button_texts=buttons_text,
+                            default_button=2,
+                            disable_buttons=None,
+                            is_md=True,
+                            size=[700,400],
+                            checkbox_labels=None,
+                            checkbox_initial_values=None,
+                            disable_checkboxes=None,
+                            vertical_checkboxes=False,
+                            checkbox_labels2=None,
+                            checkbox_initial_values2=None,
+                            disable_checkboxes2=None,
+                            radio_labels=None,
+                            radio_initial_value=None,
+                            disable_radios=None
+                        )
                         dlg.CentreOnParent(wx.BOTH)
                         result = dlg.ShowModal()
                         dlg.Destroy()
@@ -5641,7 +6241,26 @@ def flash_phone(self):
         puml(":Script;\n")
         puml(f"note right\nFlash Script\n====\n{data}\nend note\n")
         try:
-            dlg = MessageBoxEx(parent=None, title=title, message=message, button_texts=["OK", "Edit script before continuing", "Cancel"], default_button=1)
+            dlg = MessageBoxEx(
+                parent=None,
+                title=title,
+                message=message,
+                button_texts=["OK", "Edit script before continuing", "Cancel"],
+                default_button=1,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -5784,9 +6403,29 @@ def flash_phone(self):
                     return -1
                 elif res == 0:
                     self.toast(_("Flash action"), _("❌ Bootloader is locked, cannot flash."))
-                    dlg = wx.MessageDialog(None, _("Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?"), _("Error"), wx.YES_NO | wx.ICON_ERROR)
+                    dlg = MessageBoxEx(
+                        parent=None,
+                        title=_("Error"),
+                        message=_("Your bootloader is locked or you haven't granted su permissions to shell process.\nDo you want to proceed regardless?"),
+                        button_texts=[_("Yes"), _("No")],
+                        default_button=2,
+                        disable_buttons=None,
+                        is_md=False,
+                        size=(800, 600),
+                        checkbox_labels=None,
+                        checkbox_initial_values=None,
+                        disable_checkboxes=None,
+                        vertical_checkboxes=False,
+                        checkbox_labels2=None,
+                        checkbox_initial_values2=None,
+                        disable_checkboxes2=None,
+                        radio_labels=None,
+                        radio_initial_value=None,
+                        disable_radios=None
+                    )
                     result = dlg.ShowModal()
-                    if result != wx.ID_YES:
+                    dlg.Destroy()
+                    if result != 1:
                         print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
                         print("Aborting ...\n")
                         puml("#red:Bootloader is locked, can't flash;\n}\n")
@@ -6074,7 +6713,26 @@ def flash_phone(self):
                     message += _("or hit the **Cancel** button to abort.\n")
 
                     print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-                    dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
+                    dlg = MessageBoxEx(
+                        parent=self,
+                        title=title,
+                        message=message,
+                        button_texts=buttons_text,
+                        default_button=1,
+                        disable_buttons=[],
+                        is_md=True,
+                        size=[800,400],
+                        checkbox_labels=None,
+                        checkbox_initial_values=None,
+                        disable_checkboxes=None,
+                        vertical_checkboxes=False,
+                        checkbox_labels2=None,
+                        checkbox_initial_values2=None,
+                        disable_checkboxes2=None,
+                        radio_labels=None,
+                        radio_initial_value=None,
+                        disable_radios=None
+                    )
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
                     dlg.Destroy()
@@ -6150,7 +6808,26 @@ def flash_phone(self):
                     message += _("or hit the **Cancel** button to abort.\n")
 
                     print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-                    dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,400])
+                    dlg = MessageBoxEx(
+                        parent=self,
+                        title=title,
+                        message=message,
+                        button_texts=buttons_text,
+                        default_button=1,
+                        disable_buttons=[],
+                        is_md=True,
+                        size=[800,400],
+                        checkbox_labels=None,
+                        checkbox_initial_values=None,
+                        disable_checkboxes=None,
+                        vertical_checkboxes=False,
+                        checkbox_labels2=None,
+                        checkbox_initial_values2=None,
+                        disable_checkboxes2=None,
+                        radio_labels=None,
+                        radio_initial_value=None,
+                        disable_radios=None
+                    )
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
                     dlg.Destroy()
@@ -6186,7 +6863,26 @@ def flash_phone(self):
                     message += _("Click on **Done rebooting to system, continue** button when the watch OS fully loads.\n")
 
                     print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-                    dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, disable_buttons=[], is_md=True, size=[800,300])
+                    dlg = MessageBoxEx(
+                        parent=self,
+                        title=title,
+                        message=message,
+                        button_texts=buttons_text,
+                        default_button=1,
+                        disable_buttons=[],
+                        is_md=True,
+                        size=[800,300],
+                        checkbox_labels=None,
+                        checkbox_initial_values=None,
+                        disable_checkboxes=None,
+                        vertical_checkboxes=False,
+                        checkbox_labels2=None,
+                        checkbox_initial_values2=None,
+                        disable_checkboxes2=None,
+                        radio_labels=None,
+                        radio_initial_value=None,
+                        disable_radios=None
+                    )
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
                     dlg.Destroy()

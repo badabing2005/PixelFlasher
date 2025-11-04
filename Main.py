@@ -82,7 +82,8 @@ from message_box_ex import MessageBoxEx
 from modules import (adb_kill_server, auto_resize_boot_list,
     check_platform_tools, flash_phone, live_flash_boot_phone,
     patch_boot_img, populate_boot_list, process_file, kb_stats_ui,
-    select_firmware, set_flash_button_state, setup_for_downgrade)
+    select_firmware, set_flash_button_state, setup_for_downgrade,
+    get_all_dialog_values)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
 from phone import get_connected_devices, update_phones
@@ -2130,7 +2131,26 @@ class PixelFlasher(wx.Frame):
             print(f"\n*** Dialog ***\n{message}\n______________\n")
             puml(":Dialog;\n", True)
             puml(f"note right\n{message}\nend note\n")
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=buttons_text, default_button=1, is_md=True, size=[960,520], checkbox_labels=checkboxes)
+            dlg = MessageBoxEx(
+                parent=self,
+                title=title,
+                message=message,
+                button_texts=buttons_text,
+                default_button=1,
+                disable_buttons=None,
+                is_md=True,
+                size=[960,520],
+                checkbox_labels=checkboxes,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -2493,6 +2513,7 @@ class PixelFlasher(wx.Frame):
         message += _("	- `/data/adb/tricky_store/keybox.xml` (Not the contents, just if the certificates are revoked or not)\n")
         message += "	- `/data/adb/tricky_store/target.txt`\n"
         message += "	- `/data/adb/tricky_store/security_patch.txt`\n"
+        message += "	- `/data/adb/tricky_store/tee_status`\n"
         message += _("- PlayIntegrity Fork (if available):\n")
         message += "	- `/data/adb/modules/playintegrityfix/custom.pif.json`\n"
         message += "	- `/data/adb/modules/playintegrityfix/custom.pif.prop`\n"
@@ -2528,7 +2549,26 @@ class PixelFlasher(wx.Frame):
 
         checkboxes = [_("Redact Keybox details")]
         checkbox_initial_values = [False]
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('Yes'), _('No')], default_button=1, disable_buttons=None, is_md=True, size=[915,700], checkbox_labels=checkboxes, checkbox_initial_values=checkbox_initial_values, vertical_checkboxes=False)
+        dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=[_('Yes'), _('No')],
+            default_button=1,
+            disable_buttons=None,
+            is_md=True,
+            size=[915,700],
+            checkbox_labels=checkboxes,
+            checkbox_initial_values=checkbox_initial_values,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -2661,6 +2701,14 @@ class PixelFlasher(wx.Frame):
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store security_patch.txt ...")
                 print("==============================================================================")
                 res = device.file_content("/data/adb/tricky_store/security_patch.txt", True)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # TrickyStore - tee_status
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store tee_status ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/tricky_store/tee_status", True)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -4048,7 +4096,26 @@ class PixelFlasher(wx.Frame):
             alert = self.get_vbmeta(device)
             if show_alert and "WARNING!" in alert:
                 try:
-                    dlg = MessageBoxEx(parent=None, title=_("vbmeta issue."), message=_("Warning!\n%s") % alert, button_texts=[_("OK")], default_button=1)
+                    dlg = MessageBoxEx(
+                        parent=None,
+                        title=_("vbmeta issue."),
+                        message=_("Warning!\n%s") % alert,
+                        button_texts=[_("OK")],
+                        default_button=1,
+                        disable_buttons=None,
+                        is_md=False,
+                        size=(800, 600),
+                        checkbox_labels=None,
+                        checkbox_initial_values=None,
+                        disable_checkboxes=None,
+                        vertical_checkboxes=False,
+                        checkbox_labels2=None,
+                        checkbox_initial_values2=None,
+                        disable_checkboxes2=None,
+                        radio_labels=None,
+                        radio_initial_value=None,
+                        disable_radios=None
+                    )
                     puml(f"note right\nDialog\n====\nWarning!\n{alert}\nend note\n")
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
@@ -4177,7 +4244,26 @@ class PixelFlasher(wx.Frame):
             set_message_box_title(title)
             set_message_box_message(message)
             try:
-                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
+                dlg = MessageBoxEx(
+                    parent=self,
+                    title=title,
+                    message=message,
+                    button_texts=[_('OK'), _('CANCEL')],
+                    default_button=2,
+                    disable_buttons=None,
+                    is_md=False,
+                    size=(800, 600),
+                    checkbox_labels=None,
+                    checkbox_initial_values=None,
+                    disable_checkboxes=None,
+                    vertical_checkboxes=False,
+                    checkbox_labels2=None,
+                    checkbox_initial_values2=None,
+                    disable_checkboxes2=None,
+                    radio_labels=None,
+                    radio_initial_value=None,
+                    disable_radios=None
+                )
             except Exception:
                 traceback.print_exc()
                 self.no_wipe_downgrade_checkbox.SetValue(False)
@@ -4471,7 +4557,26 @@ class PixelFlasher(wx.Frame):
         set_message_box_title(title)
         set_message_box_message(message)
         try:
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
+            dlg = MessageBoxEx(
+                parent=self,
+                title=title,
+                message=message,
+                button_texts=[_('OK'), _('CANCEL')],
+                default_button=2,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
         except Exception:
             traceback.print_exc()
             return
@@ -4501,7 +4606,26 @@ class PixelFlasher(wx.Frame):
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
+        dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=[_('OK'), _('CANCEL')],
+            default_button=2,
+            disable_buttons=None,
+            is_md=False,
+            size=(800, 600),
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
 
@@ -4561,7 +4685,26 @@ class PixelFlasher(wx.Frame):
         print(f"\n*** Dialog ***\n{message}\n______________\n")
         set_message_box_title(title)
         set_message_box_message(message)
-        dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
+        dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=[_('OK'), _('CANCEL')],
+            default_button=2,
+            disable_buttons=None,
+            is_md=False,
+            size=(800, 600),
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None
+        )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
 
@@ -4620,7 +4763,26 @@ class PixelFlasher(wx.Frame):
             print(f"\n*** Dialog ***\n{message}\n______________\n")
             set_message_box_title(title)
             set_message_box_message(message)
-            dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=1)
+            dlg = MessageBoxEx(
+                parent=self,
+                title=title,
+                message=message,
+                button_texts=[_('OK'), _('CANCEL')],
+                default_button=1,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
 
@@ -4880,7 +5042,26 @@ class PixelFlasher(wx.Frame):
                 print(f"\n*** Dialog ***\n{message}\n______________\n")
                 set_message_box_title(title)
                 set_message_box_message(message)
-                dlg = MessageBoxEx(parent=self, title=title, message=message, button_texts=[_('OK'), _('CANCEL')], default_button=2)
+                dlg = MessageBoxEx(
+                    parent=self,
+                    title=title,
+                    message=message,
+                    button_texts=[_('OK'), _('CANCEL')],
+                    default_button=2,
+                    disable_buttons=None,
+                    is_md=False,
+                    size=(800, 600),
+                    checkbox_labels=None,
+                    checkbox_initial_values=None,
+                    disable_checkboxes=None,
+                    vertical_checkboxes=False,
+                    checkbox_labels2=None,
+                    checkbox_initial_values2=None,
+                    disable_checkboxes2=None,
+                    radio_labels=None,
+                    radio_initial_value=None,
+                    disable_radios=None
+                )
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
                 if result == 1:

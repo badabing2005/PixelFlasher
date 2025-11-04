@@ -584,7 +584,26 @@ class MagiskModules(wx.Dialog):
             if not device.rooted:
                 return
             buttons_text = [_("Disabled"), _("Apps Only"), _("ADB Only"), _("Apps and ADB"), _("Cancel")]
-            dlg = MessageBoxEx(parent=self, title=_('Magisk'), message=_("Superuser Access"), button_texts=buttons_text, default_button=1)
+            dlg = MessageBoxEx(
+                parent=self,
+                title=_('Magisk'),
+                message=_("Superuser Access"),
+                button_texts=buttons_text,
+                default_button=1,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -641,7 +660,26 @@ class MagiskModules(wx.Dialog):
             if not device.rooted:
                 return
             buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", "Tricky Store OSS", "TargetedFix", _("Cancel")]
-            dlg = MessageBoxEx(parent=self, title=_('PIF Module'), message=_("Select the module you want to install"), button_texts=buttons_text, default_button=1)
+            dlg = MessageBoxEx(
+                parent=self,
+                title=_('PIF Module'),
+                message=_("Select the module you want to install"),
+                button_texts=buttons_text,
+                default_button=1,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None
+            )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()

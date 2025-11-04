@@ -2598,8 +2598,8 @@ msgstr "Antes de cambiar las ranuras, asegúrese de que su dispositivo no está 
 msgid "Switch Slot potential concerns"
 msgstr "Posibles problemas al cambiar de ranura"
 
-msgid "##⚠️ WARNING: You have selected to flash both slots.<br/>\n"
-msgstr "##⚠️ ADVERTENCIA: Ha seleccionado flashear ambas ranuras.<br/>\n"
+msgid "## ⚠️ WARNING: You have selected to flash both slots.<br/>\n"
+msgstr "## ⚠️ ADVERTENCIA: Ha seleccionado flashear ambas ranuras.<br/>\n"
 
 msgid "Please make sure your device is not subject to ARB concerns before clicking continue.<br/>\n"
 msgstr "Por favor, asegúrese de que su dispositivo no está sujeto a problemas de ARB antes de hacer clic en continuar.<br/>\n"
@@ -2924,5 +2924,87 @@ msgstr "PixelFlasher ha adivinado que el Kernel KMI es: %s\n\n"
 
 msgid "Are you sure you want to proceed with this guessed KMI?\n"
 msgstr "¿Está seguro de que desea continuar con este KMI adivinado?\n"
+
+##############################################################################
+# Additions 2025-11-03
+##############################################################################
+
+msgid "The selected path contains single quotes (').\n\nPlease rename the folder to remove the single quotes and try again."
+msgstr "La ruta seleccionada contiene comillas simples (').\n\nPor favor, renombre la carpeta para eliminar las comillas simples y vuelva a intentarlo."
+
+msgid "Options"
+msgstr "Opciones"
+
+msgid "Additional Options"
+msgstr "Opciones adicionales"
+
+msgid "Select Option"
+msgstr "Seleccionar opción"
+
+msgid "⚠️ WARNING: With Option 3, fingerprint can't be patched."
+msgstr "⚠️ ADVERTENCIA: Con la Opción 3, la huella digital no se puede parchear."
+
+msgid " (Recommended)"
+msgstr " (Recomendado)"
+
+msgid "Latest Release"
+msgstr "Última versión"
+
+msgid "Latest Pre-Release"
+msgstr "Última pre-lanzamiento"
+
+msgid "Latest Release or Pre-Release"
+msgstr "Última versión o pre-lanzamiento"
+
+msgid "Let me choose the kernel version from a matching list"
+msgstr "Déjame elegir la versión del kernel de una lista coincidente"
+
+msgid "Show all assets including non-matching ones"
+msgstr "Mostrar todos los activos, incluidos los que no coinciden"
+
+msgid "Flash to active slot"
+msgstr "Flashear a la ranura activa"
+
+msgid "Flash to inactive slot"
+msgstr "Flashear a la ranura inactiva"
+
+msgid "Flash to both slots"
+msgstr "Flashear a ambas ranuras"
+
+msgid "Flash boot partition"
+msgstr "Flashear partición de arranque"
+
+msgid "Flash init_boot partition"
+msgstr "Flashear partición init_boot"
+
+msgid "Flash vendor_boot partition"
+msgstr "Flashear partición vendor_boot"
+
+msgid "No Reboot after flash"
+msgstr "No reiniciar después del flasheo"
+
+msgid "## ✅ Live Boot the stock image:\n"
+msgstr "## ✅ Live Boot la imagen stock:\n"
+
+msgid "## ✅ Live Boot the patched image:\n"
+msgstr "## ✅ Live Boot la imagen parcheada:\n"
+
+msgid "## ❌ Live Booting is only supported for boot partition.\n"
+msgstr "## ❌ El arranque en vivo solo es compatible con la partición de arranque.\n"
+
+msgid "## ❌ Valid image is not found that supports live booting.\n"
+msgstr "## ❌ No se encuentra una imagen válida que admita el arranque en vivo.\n"
+
+msgid "## ℹ️ Select partitions that you wish to flash stock image\n"
+msgstr "## ℹ️ Seleccione las particiones que desea flashear con la imagen stock\n"
+
+msgid "## ℹ️ Select the options to flash a patch image:\n"
+msgstr "## ℹ️ Seleccione las opciones para flashear una imagen parcheada:\n"
+
+msgid "## ❌ The selected image is not valid.<br/>\n"
+msgstr "## ❌ La imagen seleccionada no es válida.<br/>\n"
+
+msgid "Edit script before continuing"
+msgstr "Editar script antes de continuar"
 
 

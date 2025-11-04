@@ -41,6 +41,7 @@ import wx
 import wx.html
 
 from runtime import *
+from i18n import _
 
 class MessageBoxEx(wx.Dialog):
     def __init__(
@@ -55,9 +56,14 @@ class MessageBoxEx(wx.Dialog):
             size=(800, 600),
             checkbox_labels=None,
             checkbox_initial_values=None,
+            disable_checkboxes=None,
             vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
+            disable_radios=None,
             **kwargs
         ):
         wx.Dialog.__init__(self, *args, **kwargs)
@@ -67,7 +73,9 @@ class MessageBoxEx(wx.Dialog):
         self.buttons = []
         self.return_value = None
         self.checkboxes = []
+        self.checkboxes2 = []
         self.checkbox_labels = checkbox_labels
+        self.checkbox_labels2 = checkbox_labels2
         self.radio_buttons = []
         self.radio_labels = radio_labels
         self.radio_initial_value = radio_initial_value
@@ -75,6 +83,10 @@ class MessageBoxEx(wx.Dialog):
             self.checkbox_initial_values = checkbox_initial_values
         else:
             self.checkbox_initial_values = []
+        if checkbox_initial_values2 is not None:
+            self.checkbox_initial_values2 = checkbox_initial_values2
+        else:
+            self.checkbox_initial_values2 = []
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         message_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -111,23 +123,72 @@ class MessageBoxEx(wx.Dialog):
 
         vSizer.Add(message_sizer, 1, wx.EXPAND, 5)
 
-        if checkbox_labels is not None:
+        if checkbox_labels is not None or checkbox_labels2 is not None:
             if vertical_checkboxes:
-                orientation = wx.VERTICAL
+                # For vertical layout: create horizontal sizer for columns
+                main_checkbox_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+                if checkbox_labels is not None:
+                    checkbox_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, _("Options")), wx.VERTICAL)
+                    for i in range(len(checkbox_labels)):
+                        checkbox_label = checkbox_labels[i]
+                        checkbox = wx.CheckBox(self, wx.ID_ANY, checkbox_label, wx.DefaultPosition, wx.DefaultSize, 0)
+                        if i < len(self.checkbox_initial_values):
+                            checkbox.SetValue(self.checkbox_initial_values[i])
+                        if disable_checkboxes is not None and i + 1 in disable_checkboxes:
+                            checkbox.Enable(False)
+                        self.checkboxes.append(checkbox)
+                        checkbox_sizer.Add(checkbox, 0, wx.ALL, 5)
+                    main_checkbox_sizer.Add(checkbox_sizer, 1, wx.EXPAND | wx.ALL, 5)
+
+                if checkbox_labels2 is not None:
+                    checkbox_sizer2 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, _("Additional Options")), wx.VERTICAL)
+                    for i in range(len(checkbox_labels2)):
+                        checkbox_label = checkbox_labels2[i]
+                        checkbox = wx.CheckBox(self, wx.ID_ANY, checkbox_label, wx.DefaultPosition, wx.DefaultSize, 0)
+                        if i < len(self.checkbox_initial_values2):
+                            checkbox.SetValue(self.checkbox_initial_values2[i])
+                        if disable_checkboxes2 is not None and i + 1 in disable_checkboxes2:
+                            checkbox.Enable(False)
+                        self.checkboxes2.append(checkbox)
+                        checkbox_sizer2.Add(checkbox, 0, wx.ALL, 5)
+                    main_checkbox_sizer.Add(checkbox_sizer2, 1, wx.EXPAND | wx.ALL, 5)
+
+                vSizer.Add(main_checkbox_sizer, 0, wx.EXPAND | wx.ALL, 10)
             else:
-                orientation = wx.HORIZONTAL
-            checkbox_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY), orientation)
-            for i in range(len(checkbox_labels)):
-                checkbox_label = checkbox_labels[i]
-                checkbox = wx.CheckBox(self, wx.ID_ANY, checkbox_label, wx.DefaultPosition, wx.DefaultSize, 0)
-                if i < len(self.checkbox_initial_values):
-                    checkbox.SetValue(self.checkbox_initial_values[i])
-                self.checkboxes.append(checkbox)
-                checkbox_sizer.Add(checkbox, 0, wx.ALL, 5)
-            vSizer.Add(checkbox_sizer, 0, wx.EXPAND | wx.ALL, 10)
+                # For horizontal layout: create vertical sizer for rows
+                main_checkbox_sizer = wx.BoxSizer(wx.VERTICAL)
+
+                if checkbox_labels is not None:
+                    checkbox_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, _("Options")), wx.HORIZONTAL)
+                    for i in range(len(checkbox_labels)):
+                        checkbox_label = checkbox_labels[i]
+                        checkbox = wx.CheckBox(self, wx.ID_ANY, checkbox_label, wx.DefaultPosition, wx.DefaultSize, 0)
+                        if i < len(self.checkbox_initial_values):
+                            checkbox.SetValue(self.checkbox_initial_values[i])
+                        if disable_checkboxes is not None and i + 1 in disable_checkboxes:
+                            checkbox.Enable(False)
+                        self.checkboxes.append(checkbox)
+                        checkbox_sizer.Add(checkbox, 0, wx.ALL, 5)
+                    main_checkbox_sizer.Add(checkbox_sizer, 0, wx.EXPAND | wx.ALL, 5)
+
+                if checkbox_labels2 is not None:
+                    checkbox_sizer2 = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, _("Additional Options")), wx.HORIZONTAL)
+                    for i in range(len(checkbox_labels2)):
+                        checkbox_label = checkbox_labels2[i]
+                        checkbox = wx.CheckBox(self, wx.ID_ANY, checkbox_label, wx.DefaultPosition, wx.DefaultSize, 0)
+                        if i < len(self.checkbox_initial_values2):
+                            checkbox.SetValue(self.checkbox_initial_values2[i])
+                        if disable_checkboxes2 is not None and i + 1 in disable_checkboxes2:
+                            checkbox.Enable(False)
+                        self.checkboxes2.append(checkbox)
+                        checkbox_sizer2.Add(checkbox, 0, wx.ALL, 5)
+                    main_checkbox_sizer.Add(checkbox_sizer2, 0, wx.EXPAND | wx.ALL, 5)
+
+                vSizer.Add(main_checkbox_sizer, 0, wx.EXPAND | wx.ALL, 10)
 
         if radio_labels is not None:
-            radio_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Select Option"), wx.HORIZONTAL)
+            radio_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, _("Select Option")), wx.HORIZONTAL)
             for i, radio_label in enumerate(radio_labels):
                 # First radio button should have RB_GROUP style to start a new group
                 style = wx.RB_GROUP if i == 0 else 0
@@ -136,6 +197,8 @@ class MessageBoxEx(wx.Dialog):
                     radio_button.SetValue(True)
                 elif self.radio_initial_value is None and i == 0:
                     radio_button.SetValue(True)  # Default to first option
+                if disable_radios is not None and i + 1 in disable_radios:
+                    radio_button.Enable(False)
                 self.radio_buttons.append(radio_button)
                 radio_sizer.Add(radio_button, 0, wx.ALL, 5)
             vSizer.Add(radio_sizer, 0, wx.EXPAND | wx.ALL, 10)
@@ -177,6 +240,10 @@ class MessageBoxEx(wx.Dialog):
             checkbox_values = [checkbox.IsChecked() for checkbox in self.checkboxes]
             set_dlg_checkbox_values(checkbox_values)
             self.return_value['checkboxes'] = checkbox_values
+
+        if self.checkbox_labels2 is not None:
+            checkbox_values2 = [checkbox.IsChecked() for checkbox in self.checkboxes2]
+            self.return_value['checkboxes2'] = checkbox_values2
 
         if self.radio_labels is not None:
             for i, radio_button in enumerate(self.radio_buttons):

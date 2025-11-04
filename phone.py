@@ -1686,8 +1686,8 @@ add_hosts_module
         try:
             if self.true_mode == 'adb' and self.rooted:
                 try:
-                    print("Creating a backup of /data/adb ...")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/local/tmp/data_adb.tgz; tar cvfz /data/local/tmp/data_adb.tgz /data/adb/\'\""
+                    print("Creating a backup of /data/adb, please be patient ...")
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'rm -f /data/local/tmp/data_adb.tgz; tar cvfz /data/local/tmp/data_adb.tgz --sparse /data/adb/\'\""
                     res = run_shell(theCmd)
                     # expect 0
                     if res and isinstance(res, subprocess.CompletedProcess):
@@ -1695,14 +1695,13 @@ add_hosts_module
                         debug(f"Stdout: {res.stdout}")
                         debug(f"Stderr: {res.stderr}")
                         if res.returncode != 0:
-                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb")
-                            print("Aborting ...\n")
-                            return -2
+                            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: backup of /data/adb may have failed or produced warnings.")
                     else:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to create a backup of /data/adb")
                         print("Aborting ...\n")
                         return -2
 
+                    wx.Yield()
                     # check if backup got created.
                     print("\nChecking to see if backup file [/data/local/tmp/data_adb.tgz] got created ...")
                     res, unused = self.check_file("/data/local/tmp/data_adb.tgz")
@@ -1750,7 +1749,7 @@ add_hosts_module
                     return -1
 
                 print("Restoring a backup of /data/adb ...")
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /; tar xvfz /data/local/tmp/data_adb.tgz \'\""
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /; tar xvfz /data/local/tmp/data_adb.tgz --sparse\'\""
                 res = run_shell(theCmd)
                 # expect 0
                 if res and isinstance(res, subprocess.CompletedProcess):
@@ -3525,7 +3524,9 @@ add_hosts_module
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell wc -l /proc/mounts"
                     res = run_shell(theCmd, timeout=8)
                     if res and isinstance(res, subprocess.CompletedProcess):
-                        return res.stdout.strip('\n').split()[0]
+                        output_parts = res.stdout.strip('\n').split()
+                        if output_parts:
+                            return output_parts[0]
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting mount count.")
             puml("#red:Encountered an error while getting mount count.;\n")

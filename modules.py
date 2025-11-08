@@ -2284,7 +2284,7 @@ def get_all_dialog_values(dlg):
 # ============================================================================
 #                               Function kernel_flavors
 # ============================================================================
-def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendation):
+def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendation, checkbox_initial_values=None):
     title = "Select the kernel flavor"
     button_texts = ["KernelSU", "KernelSU-Next", "WildKernels", "ShirkNeko", "MiRinFork", "Manual", "Cancel"]
     if default_button < 1 or default_button > len(button_texts):
@@ -2292,7 +2292,8 @@ def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendat
     button_texts[default_button -1] += _(" (Recommended)")
     radio_labels=[_("Latest Release"), _("Latest Pre-Release"), _("Latest Release or Pre-Release")]
     checkbox_labels=[_("Let me choose the kernel version from a matching list"), _("Show all assets including non-matching ones")]
-    checkbox_initial_values=[False]
+    if not checkbox_initial_values:
+        checkbox_initial_values=[False, False]
 
     message = '''
 # Available kernel flavors<br/>
@@ -2402,6 +2403,12 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             pattern = r'^Wild_KSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.wild_ksu_path
             app_name = "Wild_KSU"
+        elif app_type == "KernelSU-Legacy":
+            repo_user = 'rsuntk'
+            repo_name = 'KernelSU'
+            pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
+            path_getter = lambda: device.ksu_path
+            app_name = "KernelSU"
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
@@ -2711,6 +2718,18 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             with_version_code = device.wild_ksu_app_version_code
             VERSION_VAR = "WILD_KSU_VERSION"
             PATH_VAR = "WILD_KSU_PATH"
+        elif 'KernelSU-Legacy' in patch_flavor:
+            patch_label = "KernelSU-Legacy App"
+            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU-Legacy')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1
+            with_version = device.get_uncached_ksu_app_version()
+            with_version_code = device.ksu_app_version_code
+            VERSION_VAR = "KSU_VERSION"
+            PATH_VAR = "KSU_PATH"
         else:
             patch_label = "KernelSU App"
             success, flavor_path, error_msg = ensure_root_app_installed('KernelSU')
@@ -2876,6 +2895,18 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             with_version_code = device.wild_ksu_app_version_code
             VERSION_VAR = "WILD_KSU_VERSION"
             PATH_VAR = "WILD_KSU_PATH"
+        elif 'KernelSU-Legacy' in patch_flavor:
+            patch_label = "KernelSU-Legacy App"
+            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU-Legacy')
+            if not success:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+                puml(f"#red:{error_msg};\n")
+                print("Aborting ...\n")
+                return -1, ""
+            with_version = device.get_uncached_ksu_app_version()
+            with_version_code = device.ksu_app_version_code
+            VERSION_VAR = "KSU_VERSION"
+            PATH_VAR = "KSU_PATH"
         else:
             patch_label = "KernelSU App"
             success, flavor_path, error_msg = ensure_root_app_installed('KernelSU')
@@ -3416,7 +3447,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
         print(f"Patching on hardware: {device.hardware}")
 
     # If patch_flavor is KernelSU* check if the device is a Pixel device and if the kernel is KMI
-    if patch_flavor in ['KernelSU', 'KernelSU_LKM','KernelSU-Next', 'KernelSU_Next_LKM', 'SukiSU', 'SukiSU_LKM', 'Wild_KSU', 'Wild_KSU_LKM']:
+    if patch_flavor in ['KernelSU', 'KernelSU_LKM','KernelSU-Next', 'KernelSU_Next_LKM', 'SukiSU', 'SukiSU_LKM', 'Wild_KSU', 'Wild_KSU_LKM', 'KernelSU-Legacy']:
         if self.config.override_kmi:
             title = _("Kernel KMI Override")
             message_en = f"Kernel KMI Override: {self.config.override_kmi}\n\n"
@@ -3509,7 +3540,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 return
         anykernel = False
         pixel_devices = get_android_devices()
-        if not device.is_gki:
+        if not device.is_gki and patch_flavor != 'KernelSU-Legacy':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incompatible Kernel KMI")
             print("Aborting ...\n")
             puml("#red:Incompatible Kernel KMI;\n}\n")
@@ -3614,7 +3645,7 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 puml("#red:boot.img or init_boot.img is not found;\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
 
-        elif patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU']:
+        elif patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU', 'KernelSU-Legacy']:
             if patch_flavor == 'KernelSU-Next':
                 app_name = "KernelSU-Next"
                 app_version = device.get_uncached_ksu_next_app_version()
@@ -3624,6 +3655,9 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             elif patch_flavor == 'Wild_KSU':
                 app_name = "Wild_KSU"
                 app_version = device.get_uncached_wild_ksu_app_version()
+            elif patch_flavor == 'KernelSU-Legacy':
+                app_name = "KernelSU-Legacy"
+                app_version = device.get_uncached_ksu_app_version()
             else:
                 app_name = "KernelSU"
                 app_version = device.get_uncached_ksu_app_version()
@@ -3917,7 +3951,7 @@ Unless you know what you're doing, it is recommended that you choose the default
     kernel_su_gz_file = None
 
     # KernelSU
-    if patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU']:
+    if patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU', 'KernelSU-Legacy']:
         magiskboot_created = False
         if is_rooted:
             res, unused = device.check_file("/data/adb/magisk/magiskboot", True)
@@ -3969,16 +4003,19 @@ Unless you know what you're doing, it is recommended that you choose the default
         # Show the KernelSU flavor selection dialog
         if patch_flavor == 'KernelSU':
             method = 80
-            res = kernel_flavors(self, default_button=1, radio_initial_value=0, kernel_recommendation="KernelSU")
+            res = kernel_flavors(self, default_button=1, radio_initial_value=0, kernel_recommendation="KernelSU", checkbox_initial_values=[False, False])
         elif patch_flavor == 'KernelSU-Next':
             method = 82
-            res = kernel_flavors(self, default_button=2, radio_initial_value=0, kernel_recommendation="KernelSU-Next")
+            res = kernel_flavors(self, default_button=2, radio_initial_value=0, kernel_recommendation="KernelSU-Next", checkbox_initial_values=[False, False])
         elif patch_flavor == 'SukiSU':
             method = 84
-            res = kernel_flavors(self, default_button=5, radio_initial_value=1, kernel_recommendation="MiRinFork")
+            res = kernel_flavors(self, default_button=5, radio_initial_value=1, kernel_recommendation="MiRinFork", checkbox_initial_values=[False, False])
         elif patch_flavor == 'Wild_KSU':
             method = 86
-            res = kernel_flavors(self, default_button=3, radio_initial_value=2, kernel_recommendation="WildKernels")
+            res = kernel_flavors(self, default_button=3, radio_initial_value=2, kernel_recommendation="WildKernels", checkbox_initial_values=[False, True])
+        elif patch_flavor == 'KernelSU-Legacy':
+            method = 88
+            res = kernel_flavors(self, default_button=1, radio_initial_value=0, kernel_recommendation="KernelSU", checkbox_initial_values=[False, False])
 
         # Check if the user canceled
         if res['button'] == 7:  # Cancel button
@@ -4072,20 +4109,32 @@ Unless you know what you're doing, it is recommended that you choose the default
         if anykernel:
             kernelsu_image = os.path.join(tmp_path, kernel_su_gz_file)
             debug(f"Unzipping Image: {kernelsu_image} into {tmp_path} ...")
-            extract_from_zip(kernelsu_image, 'Image', tmp_path)
+            extract_from_zip(kernelsu_image, 'Image', tmp_path, True)
             # check if Image exists
             if not os.path.exists(os.path.join(tmp_path, 'Image')):
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract Image from: {kernelsu_image}.")
-                puml("#red:Could not extract Image from: {kernelsu_image};\n")
-                print("Aborting ...\n}\n")
-                return
+                print(f"Image file not found in the {kernelsu_image}, checking for Image.lz4 ...")
+                extract_from_zip(kernelsu_image, 'Image.lz4', tmp_path)
+                # check if Image exists
+                if not os.path.exists(os.path.join(tmp_path, 'Image.lz4')):
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract Image or Image.lz4 from: {kernelsu_image}.")
+                    puml("#red:Could not extract Image from: {kernelsu_image};\n")
+                    print("Aborting ...\n}\n")
+                    return
+                else:
+                    print(f"Extracted Image.lz4 from: {kernelsu_image} version {kernelsu_version} into {tmp_path}")
+                    # transfer Image to the phone
+                    res = device.push_file(os.path.join(tmp_path, 'Image.lz4'), '/data/local/tmp/Image', False)
+                    if res != 0:
+                        print("Aborting ...\n")
+                        puml("#red:Failed to transfer Image to the phone;\n")
+                        return
             else:
                 print(f"Extracted Image from: {kernelsu_image} version {kernelsu_version} into {tmp_path}")
                 # transfer Image to the phone
                 res = device.push_file(os.path.join(tmp_path, 'Image'), '/data/local/tmp/Image', False)
                 if res != 0:
                     print("Aborting ...\n")
-                    puml("#red:Failed to transfer magiskboot to the phone;\n")
+                    puml("#red:Failed to transfer Image to the phone;\n")
                     return
 
     # KernelSU_LKM
@@ -4512,6 +4561,11 @@ Unless you know what you're doing, it is recommended that you take the default s
         patch_method = 'wild_ksu_lkm'
         # set_patched_with(wild_ksu_app_version)
         patched_img, mountType = patch_kernelsu_lkm_script()
+    elif method == 88:
+        # KernelSU-Legacy
+        patch_method = f'kernelsu_{chosen_kernel.lower()}'
+        set_patched_with(kernelsu_version)
+        patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 90:
         # APatch
         patch_method = 'apatch'
@@ -4695,7 +4749,7 @@ Unless you know what you're doing, it is recommended that you take the default s
             return None
         cursor = con.cursor()
         is_init_boot = 1 if boot.is_init_boot else 0
-        if patch_flavor in ['KernelSU', 'KernelSU-Next', 'APatch', 'APatch_manual', 'SukiSU', 'Wild_KSU']:
+        if patch_flavor in ['KernelSU', 'KernelSU-Next', 'APatch', 'APatch_manual', 'SukiSU', 'Wild_KSU', 'KernelSU-Legacy']:
             is_init_boot = 0
         sql = 'INSERT INTO BOOT (boot_hash, file_path, is_patched, magisk_version, hardware, epoch, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (boot_hash) DO NOTHING'
         data = (checksum, cached_boot_img_path, 1, get_patched_with(), device.hardware, time.time(), patch_method, False, False, is_init_boot, boot_sha1_long)
@@ -4750,7 +4804,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     end = time.time()
     if patch_flavor == "Magisk":
         print(f"\nMagisk Version:   {get_patched_with()}")
-    elif patch_flavor in ["KernelSU", "KernelSU_LKM"]:
+    elif patch_flavor in ["KernelSU", "KernelSU_LKM", "KernelSU-Legacy"]:
         print(f"\nKernelSU Version: {get_patched_with()}")
     elif patch_flavor in ["SukiSU", "SukiSU_LKM"]:
         print(f"\nSukiSU Version: {get_patched_with()}")

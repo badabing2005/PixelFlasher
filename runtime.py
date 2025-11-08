@@ -81,6 +81,7 @@ from packaging.version import parse
 from platformdirs import *
 from constants import *
 from payload_dumper import extract_payload
+from ksu_asset_selector import show_ksu_asset_selector
 import cProfile, pstats, io
 import avbtool
 
@@ -5102,11 +5103,16 @@ def get_xiaomi_apk(filename):
 # ============================================================================
 #                               Function extract_from_zip
 # ============================================================================
-def extract_from_zip(zip_path, to_extract, extracted_file_path):
+def extract_from_zip(zip_path, to_extract, extracted_file_path, quiet=False):
     try:
         print(f"Extracting {to_extract} from {zip_path}...")
-        with zipfile.ZipFile(zip_path, "r") as archive:
-            archive.extract(to_extract, extracted_file_path)
+        if quiet:
+            with contextlib.suppress(Exception):
+                with zipfile.ZipFile(zip_path, "r") as archive:
+                    archive.extract(to_extract, extracted_file_path)
+        else:
+            with zipfile.ZipFile(zip_path, "r") as archive:
+                archive.extract(to_extract, extracted_file_path)
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_from_zip function")
         traceback.print_exc()
@@ -5746,6 +5752,7 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
                     # New pattern (v1.5.12-r12) to match Bypass and Normal builds
                     # WKSU-13974-SUSFS_v1.5.12-android14-6.1.155-lts-Bypass-BBG-AnyKernel3.zip
                     # WKSU-13974-SUSFS_v1.5.12-android14-6.1.155-lts-Normal-BBG-AnyKernel3.zip
+                    version_choice = True
                     pattern = re.compile(rf"^WKSU-[0-9]+-.*{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
                     debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
                 else:
@@ -5831,7 +5838,6 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
         elif selection_mode == 2:  # User selectable
             if all_matching_assets:
                 try:
-                    from ksu_asset_selector import show_ksu_asset_selector
                     # Sort assets by version (highest first) for better display
                     sorted_assets = sorted(all_matching_assets, key=lambda x: x['version'], reverse=True)
                     asset_list = [item['asset'] for item in sorted_assets]
@@ -5844,7 +5850,8 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
                         assets=asset_list,
                         title="Select KernelSU Asset",
                         message=f"Multiple KernelSU assets found for {base_name}-{fixed_version}.x\nRequested version: {variable_version}",
-                        suggested_asset=suggested_asset
+                        suggested_asset=suggested_asset,
+                        initial_filter=f"{fixed_version}."
                     )
 
                     if selected_asset:

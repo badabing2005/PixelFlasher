@@ -3611,6 +3611,12 @@ class PixelFlasher(wx.Frame):
                     return True
                 return False
 
+            elif condition == 'is_not_gki':
+                device = get_phone()
+                if device and device.is_gki:
+                    return False
+                return True
+
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown condition: {condition}")
                 return False
@@ -3698,6 +3704,7 @@ class PixelFlasher(wx.Frame):
                 self.patch_magisk_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 self.patch_kernelsu_button:             ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_kernelsu_lkm_button:         ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
+                self.patch_kernelsu_legacy_button:      ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_not_gki'],
                 self.patch_kernelsu_next_button:        ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_kernelsu_next_lkm_button:    ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
                 self.patch_apatch_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
@@ -5989,6 +5996,22 @@ class PixelFlasher(wx.Frame):
         self._on_spin('stop')
 
     # -----------------------------------------------
+    #          _on_kernelsu_legacy_patch_boot
+    # -----------------------------------------------
+    def _on_kernelsu_legacy_patch_boot(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated KernelSU Legacy Patch boot")
+            print("==============================================================================")
+            self._on_spin('start')
+            patch_boot_img(self, 'KernelSU-Legacy')
+            self.update_widget_states()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while patching with KernelSU Legacy")
+            traceback.print_exc()
+        self._on_spin('stop')
+
+    # -----------------------------------------------
     #                  _on_sukisu_patch_boot
     # -----------------------------------------------
     def _on_sukisu_patch_boot(self, event):
@@ -6446,6 +6469,7 @@ class PixelFlasher(wx.Frame):
         self.patch_magisk_button = self.patch_button.AddFunction(_("Patch with Magisk"), lambda: self._on_magisk_patch_boot(None), images.magisk_24.GetBitmap())
         self.patch_kernelsu_button = self.patch_button.AddFunction(_("Patch with KernelSU"), lambda: self._on_kernelsu_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_kernelsu_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU LKM"), lambda: self._on_kernelsu_lkm_patch_boot(None), images.kernelsu_24.GetBitmap())
+        self.patch_kernelsu_legacy_button = self.patch_button.AddFunction(_("Patch with KernelSU Legacy"), lambda: self._on_kernelsu_legacy_patch_boot(None), images.kernelsu_24.GetBitmap())
         self.patch_kernelsu_next_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next"), lambda: self._on_kernelsu_next_patch_boot(None), images.kernelsu_next_24.GetBitmap())
         self.patch_kernelsu_next_lkm_button = self.patch_button.AddFunction(_("Patch with KernelSU-Next LKM"), lambda: self._on_kernelsu_next_lkm_patch_boot(None), images.kernelsu_next_24.GetBitmap())
         self.patch_sukisu_button = self.patch_button.AddFunction(_("Patch with SukiSU"), lambda: self._on_sukisu_patch_boot(None), images.sukisu_24.GetBitmap())

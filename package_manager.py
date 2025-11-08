@@ -363,6 +363,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
 
         # Connect Events
         self.searchCtrl.Bind(wx.EVT_TEXT_ENTER, self.OnSearch)
+        # Bind EVT_TEXT to get dynamic filtering as the user types
+        self.searchCtrl.Bind(wx.EVT_TEXT, self.OnSearch)
         self.searchCtrl.Bind(wx.EVT_SEARCH, self.OnSearch)
         self.searchCtrl.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.OnCancel)
         self.button_get_names.Bind(wx.EVT_BUTTON, self.OnGetAppNames)
@@ -403,6 +405,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.user_apps_checkbox.Bind(wx.EVT_CHECKBOX, self.OnUserAppsCheckbox)
 
         self.Refresh()
+
+        # Set focus on search control after initialization
+        wx.CallAfter(self.searchCtrl.SetFocus)
 
     # -----------------------------------------------
     #              Function PopulateList

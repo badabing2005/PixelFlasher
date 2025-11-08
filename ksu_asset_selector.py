@@ -40,17 +40,17 @@ import re
 #                      Class KsuAssetSelectorDialog
 # ============================================================================
 class KsuAssetSelectorDialog(wx.Dialog):
-    def __init__(self, parent, assets, title="Select KSU Asset", message="Select a KSU asset:", suggested_asset=None):
+    def __init__(self, parent, assets, title="Select KSU Asset", message="Select a KSU asset:", suggested_asset=None, initial_filter=None):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.assets = assets
         self.filtered_assets = assets.copy()
         self.selected_asset = None
 
-        self.init_ui(message, suggested_asset)
+        self.init_ui(message, suggested_asset, initial_filter)
         self.Centre()
 
-    def init_ui(self, message, suggested_asset):
+    def init_ui(self, message, suggested_asset, initial_filter):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Message
@@ -66,6 +66,11 @@ class KsuAssetSelectorDialog(wx.Dialog):
         self.filter_text.SetDescriptiveText("Search assets...")
         self.filter_text.ShowSearchButton(True)
         self.filter_text.ShowCancelButton(True)
+
+        # Set initial filter if provided
+        if initial_filter:
+            self.filter_text.SetValue(initial_filter)
+
         filter_sizer.Add(self.filter_text, 1, wx.EXPAND)
 
         main_sizer.Add(filter_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
@@ -126,8 +131,25 @@ class KsuAssetSelectorDialog(wx.Dialog):
         self.filter_text.Bind(wx.EVT_TEXT_ENTER, self.on_filter_changed)
         self.filter_text.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN, self.on_filter_cleared)
 
+        # Apply initial filter if provided
+        if initial_filter:
+            self.apply_filter(initial_filter)
+
         # Initially populate the list
         self.populate_list(suggested_asset)
+
+    def apply_filter(self, filter_text):
+        filter_text = filter_text.strip().lower()
+
+        if not filter_text:
+            # No filter, show all assets
+            self.filtered_assets = self.assets.copy()
+        else:
+            # Filter assets by name containing the filter text
+            self.filtered_assets = [
+                asset for asset in self.assets
+                if filter_text in asset['name'].lower()
+            ]
 
     def populate_list(self, suggested_asset=None):
         self.asset_list.DeleteAllItems()
@@ -156,18 +178,8 @@ class KsuAssetSelectorDialog(wx.Dialog):
                 self.asset_list.Focus(index)
 
     def on_filter_changed(self, event):
-        filter_text = self.filter_text.GetValue().strip().lower()
-
-        if not filter_text:
-            # No filter, show all assets
-            self.filtered_assets = self.assets.copy()
-        else:
-            # Filter assets by name containing the filter text
-            self.filtered_assets = [
-                asset for asset in self.assets
-                if filter_text in asset['name'].lower()
-            ]
-
+        filter_text = self.filter_text.GetValue()
+        self.apply_filter(filter_text)
         # Repopulate the list with filtered results
         self.populate_list()
 
@@ -194,8 +206,8 @@ class KsuAssetSelectorDialog(wx.Dialog):
 # ============================================================================
 #                  Function show_ksu_asset_selector
 # ============================================================================
-def show_ksu_asset_selector(parent, assets, title="Select KSU Asset", message="Select a KSU asset:", suggested_asset=None):
-    dialog = KsuAssetSelectorDialog(parent, assets, title, message, suggested_asset)
+def show_ksu_asset_selector(parent, assets, title="Select KSU Asset", message="Select a KSU asset:", suggested_asset=None, initial_filter=None):
+    dialog = KsuAssetSelectorDialog(parent, assets, title, message, suggested_asset, initial_filter)
 
     if dialog.ShowModal() == wx.ID_OK:
         selected_asset = dialog.get_selected_asset()

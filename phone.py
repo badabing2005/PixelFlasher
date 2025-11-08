@@ -679,8 +679,17 @@ class Device():
             patch = version_match[3]
 
             # Map kernel versions to Android versions
+            # https://www.hestabit.com/blog/complete-list-of-android-versions/
             android_version = None
-            if major == 5 and minor in [10, 15]:
+            if major == 4 and minor in [4, 9]:
+                android_version = "9"
+            elif major == 4 and minor == 14:
+                android_version = "10"
+            elif major == 4 and minor == 19:
+                android_version = "11"
+            elif major == 5 and minor == 4:
+                android_version = "12"
+            elif major == 5 and minor in [10, 15]:
                 android_version = "13"
             elif major == 6 and minor == 1:
                 android_version = "14"
@@ -4228,7 +4237,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def get_magisk_denylist(self):
         try:
-            if self.true_mode != 'adb' or not get_adb() or not self.rooted:
+            if self.true_mode != 'adb' or not get_adb() or not self.rooted or 'magisksu' not in self.su_version.lower():
                 return []
             print("Getting Magisk denylist ...")
             puml(f":Magisk denylist;\n", True)

@@ -76,16 +76,17 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - And a lot more...
 - In app download of all Pixel phone / watch firmware images and full OTA images (past an present).
 - Rooting Application installation UI, [screenshot](images/Magisk-Installer.png). Supported versions:
-  - stable (official)
-  - beta (official)
-  - canary (official)
-  - debug (official)
-  - alpha
-  - delta canary (Kitsune)
-  - delta debug (Kitsune)
+  - Magisk stable (official)
+  - Magisk beta (official)
+  - Magisk debug (official)
+  - Magisk Release (official)
+  - Magisk Pre-Release (official)
+  - KitsuneMagisk Fork
   - KernelSU
   - KernelSU-Next
   - Apatch
+  - SukiSU
+  - Wild_KSU
   - Magisk zygote64_32 canary
   - Special builds that disable modules (used to recover from bootloops due to bad modules).
     - Magisk special v27001
@@ -124,9 +125,13 @@ No more setting airplane mode and clearing storage to retain Safetynet / Play In
   - Disable (Freeze)
   - Enable
   - Uninstall
+  - Add to Magisk Denylist
+  - Remove from Magisk Denylist
+  - SU Permissions
   - Install APK
   - Download APK
   - Launch
+  - View Application Permissions
   - Kill
   - Clear Application Data
   - Multi-Select

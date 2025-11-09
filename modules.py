@@ -5152,9 +5152,9 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     # Live
     if option == 'Live' and checkbox_values and checkbox_values[0]:
         data_win += "echo Live Booting boot partition ... \n"
-        data_win += f"\"{get_adb()}\" -s {device_id} boot \"{boot_to_flash}\"\n\n"
+        data_win += f"\"{get_fastboot()}\" -s {device_id} boot \"{boot_to_flash}\"\n\n"
         data_linux += "echo Live Booting boot partition ... \n"
-        data_linux += f"\"{get_adb()}\" -s {device_id} boot \"{boot_to_flash}\"\n\n"
+        data_linux += f"\"{get_fastboot()}\" -s {device_id} boot \"{boot_to_flash}\"\n\n"
 
     # Flash
     else:

@@ -184,6 +184,8 @@ class Device():
         self._config_kallsyms = None
         self._config_kallsyms_all = None
         self._tmp_readable = None
+        self._partitions = None
+        self.bootdevice_string = None
         # Get vbmeta details
         self.vbmeta = self.get_vbmeta_details()
 
@@ -1086,13 +1088,43 @@ class Device():
     #                               method get_partitions
     # ----------------------------------------------------------------------------
     def get_partitions(self):
+        if self._partitions is not None:
+            return self._partitions
         try:
             if self.true_mode != 'adb':
                 return -1
+
+            self.bootdevice_string = ''
             if self.rooted:
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /dev/block/bootdevice/by-name/; ls -1 .\'\""
+                res, unused = self.check_file('/dev/block/bootdevice/by-name', True)
+                if res == 1:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /dev/block/bootdevice/by-name/; ls -1 .\'\""
+                    self.bootdevice_string = '/dev/block/bootdevice/by-name/'
+                else:
+                    res, unused = self.check_file('/dev/block/by-name', True)
+                    if res == 1:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /dev/block/by-name/; ls -1 .\'\""
+                        self.bootdevice_string = '/dev/block/by-name/'
+                    else:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get partitions list.")
+                        self.bootdevice_string = None
+                        return -1
+
             else:
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell cd /dev/block/bootdevice/by-name/; ls -1 ."
+                res, unused = self.check_file('/dev/block/bootdevice/by-name', False)
+                if res == 1:
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell cd /dev/block/bootdevice/by-name/; ls -1 ."
+                    self.bootdevice_string = '/dev/block/bootdevice/by-name/'
+                else:
+                    res, unused = self.check_file('/dev/block/by-name', False)
+                    if res == 1:
+                        theCmd = f"\"{get_adb()}\" -s {self.id} shell cd /dev/block/by-name/; ls -1 ."
+                        self.bootdevice_string = '/dev/block/by-name/'
+                    else:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get partitions list.")
+                        self.bootdevice_string = None
+                        return -1
+
             try:
                 res = run_shell(theCmd)
                 if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
@@ -1106,6 +1138,7 @@ class Device():
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get partitions list.")
                 puml("#red:ERROR: Could not get partitions list.;\n", True)
                 return -1
+            self._partitions = list
             return list
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_partitions.")
@@ -2000,7 +2033,8 @@ add_hosts_module
 
             debug(f"Dumping partition to file: {file_path} ...")
             puml(f":Dump Partition;\nnote right:Partition: {partition};\n", True)
-            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/{partition} of={file_path}\'\""
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if={self.bootdevice_string}/{partition} of={file_path}\'\""
+            debug(theCmd)
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess):
                 debug(f"Returncode: {res.returncode}")
@@ -2087,9 +2121,11 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell ls \"{file_path}\""
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess):
-                debug(f"Returncode: {res.returncode}")
-                debug(f"Stdout: {res.stdout}")
-                debug(f"Stderr: {res.stderr}")
+                # don't output debug when checking partitions as it's too verbose
+                if not '/dev/block/' in file_path:
+                    debug(f"Returncode: {res.returncode}")
+                    debug(f"Stdout: {res.stdout}")
+                    debug(f"Stderr: {res.stderr}")
                 if  res.returncode == 0:
                     if "No such file or directory" not in f"{res.stdout} {res.stderr}":
                         print(f"File: {file_path} is found on the device.")
@@ -3407,13 +3443,33 @@ add_hosts_module
             try:
                 conn = sqlite3.connect(local_db_path)
                 cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT mid, module_pkg_name, apk_path, enabled, auto_include
-                    FROM modules
-                """)
+
+                # Different versions of lsposed have different tables
+                # check if auto_include column exists
+                cursor.execute("PRAGMA table_info(modules)")
+                columns = [column[1] for column in cursor.fetchall()]
+                has_auto_include = 'auto_include' in columns
+
+                # Build query based on available columns
+                if has_auto_include:
+                    cursor.execute("""
+                        SELECT mid, module_pkg_name, apk_path, enabled, auto_include
+                        FROM modules
+                    """)
+                else:
+                    cursor.execute("""
+                        SELECT mid, module_pkg_name, apk_path, enabled
+                        FROM modules
+                    """)
+
                 rows = cursor.fetchall()
                 for row in rows:
-                    mid, module_pkg_name, apk_path, enabled, auto_include = row
+                    if has_auto_include:
+                        mid, module_pkg_name, apk_path, enabled, auto_include = row
+                    else:
+                        mid, module_pkg_name, apk_path, enabled = row
+                        auto_include = False  # Default value when column doesn't exist
+
                     module = {
                         'id': str(mid),
                         'name': module_pkg_name or '',
@@ -3429,7 +3485,11 @@ add_hosts_module
 
             except sqlite3.Error as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: SQLite error: {e}")
-                return []
+                print("Unable to read LSPosed database, returning empty module list")
+                modules = []
+
+                with contextlib.suppress(Exception):
+                    conn.close()
 
             return modules
 

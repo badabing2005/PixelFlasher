@@ -2154,8 +2154,12 @@ class PixelFlasher(wx.Frame):
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
-            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
-            puml(f":User Pressed {buttons_text[result - 1]};\n")
+            if result > 0 and result <= len(buttons_text):
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result - 1]}")
+                puml(f":User Pressed {buttons_text[result - 1]};\n")
+            else:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Dialog closed or invalid result: {result}")
+                puml(f":Dialog closed or invalid result;\n")
 
             method = result
             if method == 2:

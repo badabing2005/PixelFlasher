@@ -4928,17 +4928,17 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     title = f"{option} Boot"
     message = ""
     size = (940, 440)
-    button_texts=[_("OK"), _("Cancel")]
-    radio_labels=[_('Flash to active slot'), _('Flash to inactive slot'), _('Flash to both slots')]
-    checkbox_labels=[_('Flash boot partition'), _('Flash init_boot partition'), _('Flash vendor_boot partition')]
-    checkbox_labels2=[_('No Reboot after flash')]
-    checkbox_initial_values=[False, False, False]
-    disable_checkboxes=None
-    checkbox_initial_values2=[False]
-    disable_checkboxes2=None
-    radio_initial_value=0
-    disable_radios=None
-    disable_buttons=None
+    button_texts = [_("OK"), _("Cancel")]
+    radio_labels = [_('Flash to active slot'), _('Flash to inactive slot'), _('Flash to both slots')]
+    checkbox_labels = [_('Flash boot partition'), _('Flash init_boot partition'), _('Flash vendor_boot partition')]
+    checkbox_labels2 = [_('No Reboot after flash')]
+    checkbox_initial_values = [False, False, False]
+    disable_checkboxes = None
+    checkbox_initial_values2 = [False]
+    disable_checkboxes2 = None
+    radio_initial_value = 0
+    disable_radios = None
+    disable_buttons = None
 
     if not device.active_slot in ['a', 'b']:
         disable_radios = [2, 3]
@@ -6502,7 +6502,9 @@ def flash_phone(self):
                     if selected_boot_partition:
                         partition = selected_boot_partition
 
+                    print("\n======================================")
                     print(f"Flashing patched {partition} ...")
+                    print("\n======================================")
                     theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} {flash} {partition} \"{boot.boot_path}\"\n"
                     debug(theCmd)
                     res = run_shell(theCmd)
@@ -6528,7 +6530,9 @@ def flash_phone(self):
             # flash vbmeta if disabling verity / verification
             vbmeta_file = os.path.join(package_dir_full, "vbmeta.img")
             if self.config.disable_verity or self.config.disable_verification and os.path.exists(vbmeta_file) and self.config.flash_mode != 'dryRun':
-                print("flashing vbmeta ...")
+                print("\n====================")
+                print("  Flashing vbmeta ...")
+                print("\n====================")
                 theCmd = f"\"{get_fastboot()}\" -s {device_id} {fastboot_options} flash vbmeta \"{vbmeta_file}\""
                 debug(theCmd)
                 res = run_shell(theCmd)
@@ -6951,6 +6955,9 @@ def flash_phone(self):
                     return -1
 
                 # compare slots
+                print("\n=======================================================")
+                print("Verifying the current active slot after OTA flashing ...")
+                print("\n=======================================================")
                 res = compare_slots()
                 if res == -1:
                     refresh_and_done()

@@ -3432,6 +3432,83 @@ def get_beta_pif(device_model='random', force_version=None):
             product_list.append(product)
         return model_list, product_list
 
+    # Show a dialog to list the dates and their sources
+    # recommed to select the first one (newest)
+    # let the user have the option to select another source if they want
+
+    # setup the dialog options
+    title = f"Select Beta print source"
+    message = ""
+    size = (580, 360)
+    button_texts = [_('Automatic'), _('OTA Image'), _('Factory Image'), _('GSI Image'), _("Cancel")]
+    default_button = 1
+
+    message = '''
+# Available Beta sources<br/>
+  - **Automatic:** PixelFlasher automatically chooses the most recent option.
+  - **OTA:** Sourced from Pixel beta OTA images.
+  - **Factory:** Sourced from Pixel beta factory images.
+  - **GSI** Sourced from Pixel GSI images.
+'''
+
+    # Additional message details
+    message += f"<pre>"
+    for item in dates:
+        the_date = item[0]
+        source = item[1]
+        source = source.replace("_error", "")
+        # message += f"{source}:  {the_date}\n"
+        message += f"{source:<10}: {the_date.strftime('%B %d, %Y')}\n"
+    message += f"</pre>"
+
+    clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
+    print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
+    puml(":Dialog;\n", True)
+    puml(f"note right\n{clean_message}\nend note\n")
+    from message_box_ex import MessageBoxEx
+    dlg = MessageBoxEx(
+        parent=None,
+        title=title,
+        message=message,
+        button_texts=button_texts,
+        default_button=default_button,
+        disable_buttons=None,
+        is_md=True,
+        size=size,
+        checkbox_labels=None,
+        checkbox_initial_values=None,
+        disable_checkboxes=None,
+        vertical_checkboxes=False,
+        checkbox_labels2=None,
+        checkbox_initial_values2=None,
+        disable_checkboxes2=None,
+        radio_labels=None,
+        radio_initial_value=0,
+        disable_radios=None
+    )
+    dlg.CentreOnParent(wx.BOTH)
+    result = dlg.ShowModal()
+
+    dlg.Destroy()
+    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result -1]}")
+
+    if result == 1:
+        # User selected Automatic
+        pass # keep newest_data intact
+    elif result == 2:
+        # User selected OTA
+        newest_data = ['ota']
+    elif result == 3:
+        # User selected Factory
+        newest_data = ['factory']
+    elif result == 4:
+        # User selected GSI
+        newest_data = ['gsi']
+    else:
+        # result = 5
+        # user selected CANCEL
+        return -1
+
     fingerprint = None
     security_patch = None
     for data in newest_data:
@@ -3914,7 +3991,10 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=8*1024*10
                     end_range = total_size
 
                 # Request range of bytes
-                headers = {"Range": f"bytes={start_range}-{end_range - 1}"}
+                headers = {
+                    "Range": f"bytes={start_range}-{end_range - 1}",
+                    "Accept-Encoding": "identity"  # Disable compression to avoid gzip issues
+                }
                 # debug(f"Fetching bytes {start_range} to {end_range - 1} from {url}")
                 debug(f"Fetching bytes 0x{start_range:x} to 0x{(end_range - 1):x}")
                 wx.Yield()
@@ -3974,13 +4054,15 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=8*1024*10
                     if image_type == 'ota':
                         fallback_size = min(5*1024*1024, total_size)  # 5MB for OTA
                         debug(f"Downloading first {fallback_size // (1024*1024)}MB of OTA file...")
-                        response = requests.get(url, stream=True, verify=False, timeout=60)
+                        headers = {"Accept-Encoding": "identity"}  # Disable compression
+                        response = requests.get(url, headers=headers, stream=True, verify=False, timeout=60)
                         content = response.raw.read(fallback_size).decode('utf-8', errors='ignore')
                     else:
                         # For factory images, we might need to download a larger portion
                         fallback_size = min(fallback_size, total_size)  # 60MB for factory images
                         debug(f"Downloading first {fallback_size // (1024*1024)}MB of file...")
-                        response = requests.get(url, stream=True, verify=False, timeout=90)
+                        headers = {"Accept-Encoding": "identity"}  # Disable compression
+                        response = requests.get(url, headers=headers, stream=True, verify=False, timeout=90)
                         content = response.raw.read(fallback_size).decode('utf-8', errors='ignore')
 
                     # Search for patterns in the fallback content
@@ -4016,7 +4098,7 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=8*1024*10
 # ============================================================================
 #                               Function url2fpsp
 # ============================================================================
-def url2fpsp(url, image_type):
+def url2fpsp(url, image_type, override_size_limit=None):
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
@@ -4026,16 +4108,21 @@ def url2fpsp(url, image_type):
 
             # For OTA and factory images, use incremental chunk fetching
             if image_type == 'ota':
-                fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, 2*1024)
+                chunk_size = override_size_limit if override_size_limit is not None else 2*1024
+                fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size)
 
             elif image_type == 'factory':
-                fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, 8*1024*1024)
+                chunk_size = override_size_limit if override_size_limit is not None else 8*1024*1024
+                fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size)
 
             elif image_type == 'gsi':
                 response = requests.head(url)
                 file_size = int(response.headers["Content-Length"])
                 start_byte = max(0, file_size - 8192)
-                headers = {"Range": f"bytes={start_byte}-{file_size - 1}"}
+                headers = {
+                    "Range": f"bytes={start_byte}-{file_size - 1}",
+                    "Accept-Encoding": "identity"  # Disable compression
+                }
                 response = requests.get(url, headers=headers, stream=True, verify=False)
                 end_content = response.content
                 content = partial_extract(end_content, "build.prop")

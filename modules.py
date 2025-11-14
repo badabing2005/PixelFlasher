@@ -2919,6 +2919,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             with_version_code = device.ksu_app_version_code
             VERSION_VAR = "KSU_VERSION"
             PATH_VAR = "KSU_PATH"
+
+        try:
+            version_code_int = int(with_version_code)
+        except (ValueError, TypeError):
+            # Handle the case where conversion fails assume very high version code
+            version_code_int = 9999999
+            print(f"⚠️ Warning: Could not convert version code '{with_version_code}' to integer, using default value")
+
         path_to_busybox = os.path.join(get_bundle_dir(),'bin', f"busybox_{device.architecture}")
         script_path = "/data/local/tmp/pf_patch.sh"
         exec_cmd = f"\"{get_adb()}\" -s {device.id} shell /data/local/tmp/pf_patch.sh"
@@ -2977,7 +2985,8 @@ According to the author, Magic Mount is more stable and compatible and is recomm
             if result == 3:
                 print("⚠️ User cancelled, Aborting ...")
                 return -1, ""
-        elif patch_flavor == 'SukiSU_LKM':
+        elif patch_flavor == 'SukiSU_LKM' and version_code_int < 40000:
+            # as of SukiSU 4.0.0 (version code 40000), zakozako and zakoboot are replaced with ksud and magiskboot
             ksud_mount = "zakozako"
             magiskboot = "zakoboot"
         else:

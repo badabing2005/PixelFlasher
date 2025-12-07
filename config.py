@@ -122,6 +122,7 @@ class Config():
         self.keep_patch_temporary_files = False
         self.kb_index = False
         self.unmarked_entries_path = None
+        self.spoofed_apps = ''
 
         self.toolbar = {
             'tb_position': 'top',
@@ -340,6 +341,8 @@ class Config():
                     conf.unmarked_entries_path = data['unmarked_entries_path']
                 with contextlib.suppress(KeyError):
                     conf.ksu_asset_selection_mode = data['ksu_asset_selection_mode']
+                with contextlib.suppress(KeyError):
+                    conf.spoofed_apps = data['spoofed_apps']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -544,7 +547,8 @@ class Config():
             'keep_patch_temporary_files': self.keep_patch_temporary_files,
             'kb_index': self.kb_index,
             'unmarked_entries_path': self.unmarked_entries_path,
-            'ksu_asset_selection_mode': self.ksu_asset_selection_mode
+            'ksu_asset_selection_mode': self.ksu_asset_selection_mode,
+            'spoofed_apps': self.spoofed_apps
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

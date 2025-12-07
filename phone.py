@@ -238,7 +238,7 @@ class Device():
     # ----------------------------------------------------------------------------
     def get_package_details(self, package):
         if self.true_mode != 'adb':
-            return
+            return '', ''
         try:
             theCmd = f"\"{get_adb()}\" -s {self.id} shell dumpsys package {package}"
             res = run_shell(theCmd)
@@ -1096,12 +1096,12 @@ class Device():
 
             self.bootdevice_string = ''
             if self.rooted:
-                res, unused = self.check_file('/dev/block/bootdevice/by-name', True)
+                res, unused = self.check_file('/dev/block/bootdevice/by-name', True, False)
                 if res == 1:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /dev/block/bootdevice/by-name/; ls -1 .\'\""
                     self.bootdevice_string = '/dev/block/bootdevice/by-name/'
                 else:
-                    res, unused = self.check_file('/dev/block/by-name', True)
+                    res, unused = self.check_file('/dev/block/by-name', True, False)
                     if res == 1:
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cd /dev/block/by-name/; ls -1 .\'\""
                         self.bootdevice_string = '/dev/block/by-name/'
@@ -1111,12 +1111,12 @@ class Device():
                         return -1
 
             else:
-                res, unused = self.check_file('/dev/block/bootdevice/by-name', False)
+                res, unused = self.check_file('/dev/block/bootdevice/by-name', False, False)
                 if res == 1:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell cd /dev/block/bootdevice/by-name/; ls -1 ."
                     self.bootdevice_string = '/dev/block/bootdevice/by-name/'
                 else:
-                    res, unused = self.check_file('/dev/block/by-name', False)
+                    res, unused = self.check_file('/dev/block/by-name', False, False)
                     if res == 1:
                         theCmd = f"\"{get_adb()}\" -s {self.id} shell cd /dev/block/by-name/; ls -1 ."
                         self.bootdevice_string = '/dev/block/by-name/'
@@ -2090,7 +2090,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method check_file
     # ----------------------------------------------------------------------------
-    def check_file(self, file_path: str, with_su = False) -> int:
+    def check_file(self, file_path: str, with_su = False, verbose = True) -> int:
         """Method checks if a file exists on the device.
 
         Args:
@@ -2128,16 +2128,28 @@ add_hosts_module
                     debug(f"Stderr: {res.stderr}")
                 if  res.returncode == 0:
                     if "No such file or directory" not in f"{res.stdout} {res.stderr}":
-                        print(f"File: {file_path} is found on the device.")
+                        if verbose:
+                            print(f"File: {file_path} is found on the device.")
+                        else:
+                            debug(f"File: {file_path} is found on the device.")
                         return 1, res.stdout.strip()
                     else:
-                        print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Got returncode 0 but also file not found message.")
+                        if verbose:
+                            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Got returncode 0 but also file not found message.")
+                        else:
+                            debug(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Got returncode 0 but also file not found message.")
                         return 0, None
-            print(f"File: {file_path} is not found on the device.")
+            if verbose:
+                print(f"File: {file_path} is not found on the device.")
+            else:
+                debug(f"File: {file_path} is not found on the device.")
             return 0, None
         except Exception as e:
             traceback.print_exc()
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}")
+            if verbose:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}")
+            else:
+                debug(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check {file_path}")
             return -1, None
 
     # ----------------------------------------------------------------------------
@@ -5115,6 +5127,43 @@ add_hosts_module
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not {action} {pkg}.")
+
+
+    # ----------------------------------------------------------------------------
+    #                               Method get_package_info
+    # ----------------------------------------------------------------------------
+    def get_package_info(self, pkg: str) -> dict:
+        if self.true_mode != 'adb':
+            return None
+        try:
+            theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -f {pkg}"
+            res = run_shell(theCmd)
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                # Check if package is in the output
+                if pkg in res.stdout:
+                    # Parse the path from output like: package:/data/app/.../base.apk=com.example.package
+                    for line in res.stdout.strip().split('\n'):
+                        if f'={pkg}' in line and line.startswith('package:'):
+                            # Remove everything from last '=' to end, then remove 'package:' prefix exmaple:
+                            # From: package:/data/app/~~EbETURkpF3BXLejYNHlp-w==/cypzdi.vdbwdd.oujrgk-HRAnkdg4qf8oozTjdb0UlQ==/base.apk=cypzdi.vdbwdd.oujrgk
+                            # To: /data/app/~~EbETURkpF3BXLejYNHlp-w==/cypzdi.vdbwdd.oujrgk-HRAnkdg4qf8oozTjdb0UlQ==/base.apk
+                            last_equals_pos = line.rfind('=')
+                            path_with_prefix = line[:last_equals_pos]
+                            path = path_with_prefix.replace('package:', '', 1)
+                            return {'sourceDir': path}
+                    # Package exists but couldn't parse path
+                    return {'sourceDir': ''}
+                else:
+                    # Package not found
+                    return {}
+            else:
+                # Command failed
+                return {}
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not check package {pkg} info.")
+            return None
+
 
     # ----------------------------------------------------------------------------
     #                               method get_package_list

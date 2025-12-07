@@ -64,6 +64,7 @@ class MessageBoxEx(wx.Dialog):
             radio_labels=None,
             radio_initial_value=None,
             disable_radios=None,
+            vertical_radios=False,
             **kwargs
         ):
         wx.Dialog.__init__(self, *args, **kwargs)
@@ -188,7 +189,8 @@ class MessageBoxEx(wx.Dialog):
                 vSizer.Add(main_checkbox_sizer, 0, wx.EXPAND | wx.ALL, 10)
 
         if radio_labels is not None:
-            radio_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, _("Select Option")), wx.HORIZONTAL)
+            orientation = wx.VERTICAL if vertical_radios else wx.HORIZONTAL
+            radio_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, _("Select Option")), orientation)
             for i, radio_label in enumerate(radio_labels):
                 # First radio button should have RB_GROUP style to start a new group
                 style = wx.RB_GROUP if i == 0 else 0

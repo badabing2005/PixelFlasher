@@ -36,6 +36,7 @@
 import wx
 import images as images
 import webbrowser
+import sys
 from runtime import *
 from constants import *
 from i18n import _
@@ -53,29 +54,10 @@ class AdvancedSettings(wx.Dialog):
         # Top Part:
         top_panel = wx.Panel(self)
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        blanksspace = 40
-        warning_text = " " * blanksspace + _('WARNING!\n')
-        warning_text += " " * blanksspace + _('This is advanced configuration.\n')
-        warning_text += " " * blanksspace + _('Unless you know what you are doing,\n')
-        warning_text += " " * blanksspace + _('you should not be enabling it.')
-        # warning_text += '\n\n'
-        # warning_text += _('YOU AND YOU ALONE ARE RESPONSIBLE FOR ANYTHING THAT HAPPENS TO YOUR DEVICE.\n')
-        # warning_text += _('THIS TOOL IS CODED WITH THE EXPRESS ASSUMPTION THAT YOU ARE FAMILIAR WITH\n')
-        # warning_text += _('ADB, MAGISK, ANDROID, AND ROOT.\n')
-        # warning_text += _('IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.\n')
-
-        # warning label
-        self.warning_label = wx.StaticText(parent=top_panel, id=wx.ID_ANY, label=warning_text, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.ALIGN_CENTER_HORIZONTAL)
-        self.warning_label.Wrap(-1)
-        self.warning_label.SetForegroundColour(wx.Colour(255, 0, 0))
-        warning_sizer.Add(self.warning_label, proportion=0, flag=wx.LEFT|wx.RIGHT|wx.EXPAND, border=80)
-        top_sizer.Add(warning_sizer, proportion=0, flag=wx.EXPAND, border=5)
 
         # advanced options
         advanced_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.advanced_options_checkbox = wx.CheckBox(parent=top_panel, id=wx.ID_ANY, label=_("Enable Advanced Options"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
+        self.advanced_options_checkbox = wx.CheckBox(parent=top_panel, id=wx.ID_ANY, label=_("Enable Advanced Options (only enable this if you know what you're doing)"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.advanced_options_checkbox.SetToolTip(_("Expert mode"))
         advanced_options_sizer.Add(self.advanced_options_checkbox, proportion=0, flag=wx.ALL, border=5)
         top_sizer.Add(advanced_options_sizer, proportion=0, flag=wx.EXPAND, border=5)
@@ -104,8 +86,16 @@ class AdvancedSettings(wx.Dialog):
         self.reset_magisk_pkg.SetBitmap(images.scan_24.GetBitmap())
         self.reset_magisk_pkg.SetToolTip(_("Resets package name to default: %s") % MAGISK_PKG_NAME)
         package_name_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        package_name_sizer.Add(self.package_name, proportion=1, flag=wx.ALL, border=0)
+        package_name_sizer.Add(self.package_name, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
         package_name_sizer.Add(self.reset_magisk_pkg, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+
+        # Spoofed apps package names
+        self.spoofed_apps_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("Spoofed Apps Package Names"))
+        self.spoofed_apps_label.SetToolTip(_("The listed package names are spoofed apps that PixelFlasher will look for."))
+        self.spoofed_apps = wx.SearchCtrl(scrolled_panel, style=wx.TE_LEFT)
+        self.spoofed_apps.ShowCancelButton(True)
+        self.spoofed_apps.SetDescriptiveText(_("Example: xz.jft.fn, otgs.werg.dflkjh"))
+        self.spoofed_apps.ShowSearchButton(False)
 
         # only add if we're on linux
         if sys.platform.startswith("linux"):
@@ -267,6 +257,7 @@ class AdvancedSettings(wx.Dialog):
         # Set Widget values from config
         self.advanced_options_checkbox.SetValue(self.Parent.config.advanced_options)
         self.package_name.SetValue(self.Parent.config.magisk)
+        self.spoofed_apps.SetValue(self.Parent.config.spoofed_apps)
         self.patch_methods_checkbox.SetValue(self.Parent.config.offer_patch_methods)
         self.recovery_patch_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
         self.keep_temp_files_checkbox.SetValue(self.Parent.config.keep_patch_temporary_files)
@@ -301,8 +292,11 @@ class AdvancedSettings(wx.Dialog):
             self.shell.SetValue(self.Parent.config.linux_shell)
 
         # add the widgets to the grid in two columns, first fix size, the second expandable.
-        fgs1.Add(package_name_label, 0, wx.EXPAND)
+        fgs1.Add(package_name_label, 0, wx.ALIGN_CENTER_VERTICAL)
         fgs1.Add(package_name_sizer, 0, wx.EXPAND)
+
+        fgs1.Add(self.spoofed_apps_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        fgs1.Add(self.spoofed_apps, 1, wx.EXPAND)
 
         fgs1.Add(self.patch_methods_checkbox, 0, wx.EXPAND)
         fgs1.Add(self.recovery_patch_checkbox, 0, wx.EXPAND)
@@ -423,7 +417,7 @@ class AdvancedSettings(wx.Dialog):
         screen_max_width = int(screen_width * 0.9)
         screen_max_height = int(screen_height * 0.9)
         self.max_width = min(screen_max_width, 914)
-        self.max_height = min(screen_max_height, 1172)
+        self.max_height = min(screen_max_height, 1250)
         debug(f"Max Dialog Size: {self.max_width} x {self.max_height}")
         self.SetMaxSize(wx.Size(self.max_width, self.max_height))
         self.SetSizeHints(self.GetMinSize(), self.GetMaxSize())
@@ -477,15 +471,15 @@ class AdvancedSettings(wx.Dialog):
 
     def _open_scrcpy_link(self, event):
         try:
-            print(f"Launching browser for scrcpy download URL: {SCRCPYURL}")
+            sys.stdout.write(f"Launching browser for scrcpy download URL: {SCRCPYURL}\n")
             webbrowser.open_new(SCRCPYURL)
             puml(f":Open scrcpy Link;\nnote right\n=== scrcpy\n[[{SCRCPYURL}]]\nend note\n", True)
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link")
+            sys.stdout.write(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link\n")
             traceback.print_exc()
 
     def _onResetMagiskPkg(self, e):
-        self.package_name.Label = MAGISK_PKG_NAME
+        self.package_name.SetValue(MAGISK_PKG_NAME)
 
 
     def _onCancel(self, e):
@@ -495,94 +489,101 @@ class AdvancedSettings(wx.Dialog):
     def _onOk(self, e):
         try:
             if self.advanced_options_checkbox.GetValue() != self.Parent.config.advanced_options:
-                print(f"Setting Enable Advanced Options to: {self.advanced_options_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Enable Advanced Options to: {self.advanced_options_checkbox.GetValue()}\n")
             self.Parent.config.advanced_options = self.advanced_options_checkbox.GetValue()
 
             if self.patch_methods_checkbox.GetValue() != self.Parent.config.offer_patch_methods:
-                print(f"Setting Offer Patch Methods to: {self.patch_methods_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Offer Patch Methods to: {self.patch_methods_checkbox.GetValue()}\n")
             self.Parent.config.offer_patch_methods = self.patch_methods_checkbox.GetValue()
 
+            value = self.spoofed_apps.GetValue()
+            if value is None:
+                value = ''
+            if value != self.Parent.config.spoofed_apps:
+                sys.stdout.write(f"Setting Spoofed Apps to: {value}\n")
+                self.Parent.config.spoofed_apps = value
+
             if self.recovery_patch_checkbox.GetValue() != self.Parent.config.show_recovery_patching_option:
-                print(f"Setting Patching Recovery Partition to: {self.recovery_patch_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Patching Recovery Partition to: {self.recovery_patch_checkbox.GetValue()}\n")
             self.Parent.config.show_recovery_patching_option = self.recovery_patch_checkbox.GetValue()
 
             if self.keep_temp_files_checkbox.GetValue() != self.Parent.config.keep_patch_temporary_files:
-                print(f"Keep Temp Files to: {self.keep_temp_files_checkbox.GetValue()}")
+                sys.stdout.write(f"Keep Temp Files to: {self.keep_temp_files_checkbox.GetValue()}\n")
             self.Parent.config.keep_patch_temporary_files = self.keep_temp_files_checkbox.GetValue()
 
             if self.use_busybox_shell_checkbox.GetValue() != self.Parent.config.use_busybox_shell:
-                print(f"Setting Use Busybox Shell to: {self.use_busybox_shell_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Use Busybox Shell to: {self.use_busybox_shell_checkbox.GetValue()}\n")
             self.Parent.config.use_busybox_shell = self.use_busybox_shell_checkbox.GetValue()
 
             if self.low_mem_checkbox.GetValue() != self.Parent.config.low_mem:
-                print(f"Setting Low Memory to: {self.low_mem_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Low Memory to: {self.low_mem_checkbox.GetValue()}\n")
             self.Parent.config.low_mem = self.low_mem_checkbox.GetValue()
             set_low_memory(self.low_mem_checkbox.GetValue())
 
             if self.extra_img_extracts_checkbox.GetValue() != self.Parent.config.extra_img_extracts:
-                print(f"Setting Extra img extraction to: {self.extra_img_extracts_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Extra img extraction to: {self.extra_img_extracts_checkbox.GetValue()}\n")
             self.Parent.config.extra_img_extracts = self.extra_img_extracts_checkbox.GetValue()
 
             if self.show_notifications_checkbox.GetValue() != self.Parent.config.show_notifications:
-                print(f"Setting Show notifications to: {self.show_notifications_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Show notifications to: {self.show_notifications_checkbox.GetValue()}\n")
             self.Parent.config.show_notifications = self.show_notifications_checkbox.GetValue()
 
             if self.create_boot_tar_checkbox.GetValue() != self.Parent.config.create_boot_tar:
-                print(f"Setting Always create boot.tar: {self.create_boot_tar_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Always create boot.tar: {self.create_boot_tar_checkbox.GetValue()}\n")
             self.Parent.config.create_boot_tar = self.create_boot_tar_checkbox.GetValue()
 
             if self.check_for_update_checkbox.GetValue() != self.Parent.config.update_check:
-                print(f"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Check for updates to: {self.check_for_update_checkbox.GetValue()}\n")
             self.Parent.config.update_check = self.check_for_update_checkbox.GetValue()
 
             if self.check_for_disk_space_checkbox.GetValue() != self.Parent.config.check_for_disk_space:
-                print(f"Setting Check for Minimum Disk Space to: {self.check_for_disk_space_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Check for Minimum Disk Space to: {self.check_for_disk_space_checkbox.GetValue()}\n")
             self.Parent.config.check_for_disk_space = self.check_for_disk_space_checkbox.GetValue()
 
             if self.check_for_bootloader_unlocked_checkbox.GetValue() != self.Parent.config.check_for_bootloader_unlocked:
-                print(f"Setting Check for Minimum Disk Space to: {self.check_for_bootloader_unlocked_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Check for Minimum Disk Space to: {self.check_for_bootloader_unlocked_checkbox.GetValue()}\n")
             self.Parent.config.check_for_bootloader_unlocked = self.check_for_bootloader_unlocked_checkbox.GetValue()
 
             if self.check_for_firmware_hash_validity_checkbox.GetValue() != self.Parent.config.check_for_firmware_hash_validity:
-                print(f"Setting Check for Firmware Hash Validity to: {self.check_for_firmware_hash_validity_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Check for Firmware Hash Validity to: {self.check_for_firmware_hash_validity_checkbox.GetValue()}\n")
             self.Parent.config.check_for_firmware_hash_validity = self.check_for_firmware_hash_validity_checkbox.GetValue()
 
             if self.keep_temporary_support_files_checkbox.GetValue() != self.Parent.config.keep_temporary_support_files:
-                print(f"Setting Keep temporary support files to: {self.keep_temporary_support_files_checkbox.GetValue()}")
+                sys.stdout.write(f"Setting Keep temporary support files to: {self.keep_temporary_support_files_checkbox.GetValue()}\n")
             self.Parent.config.keep_temporary_support_files = self.keep_temporary_support_files_checkbox.GetValue()
 
             if self.check_module_updates.GetValue() != self.Parent.config.check_module_updates:
-                print(f"Setting Check Magisk modules for updates to: {self.check_module_updates.GetValue()}")
+                sys.stdout.write(f"Setting Check Magisk modules for updates to: {self.check_module_updates.GetValue()}\n")
             self.Parent.config.check_module_updates = self.check_module_updates.GetValue()
 
             if self.show_custom_rom_options.GetValue() != self.Parent.config.show_custom_rom_options:
-                print(f"Setting Show custom ROM options to: {self.show_custom_rom_options.GetValue()}")
+                sys.stdout.write(f"Setting Show custom ROM options to: {self.show_custom_rom_options.GetValue()}\n")
             self.Parent.config.show_custom_rom_options = self.show_custom_rom_options.GetValue()
 
             if self.sanitize_support_files.GetValue() != self.Parent.config.sanitize_support_files:
-                print(f"Setting Sanitize Support Files options to: {self.sanitize_support_files.GetValue()}")
+                sys.stdout.write(f"Setting Sanitize Support Files options to: {self.sanitize_support_files.GetValue()}\n")
             self.Parent.config.sanitize_support_files = self.sanitize_support_files.GetValue()
 
             if self.kb_index_cb.GetValue() != self.Parent.config.kb_index:
-                print(f"Setting Keybox Indexing options to: {self.kb_index_cb.GetValue()}")
+                sys.stdout.write(f"Setting Keybox Indexing options to: {self.kb_index_cb.GetValue()}\n")
             self.Parent.config.kb_index = self.kb_index_cb.GetValue()
 
             if self.package_name.GetValue():
                 with contextlib.suppress(Exception):
                     if self.package_name.GetValue() != self.Parent.config.magisk:
-                        print(f"Setting Magisk Package Name to: {self.package_name.GetValue()}")
+                        sys.stdout.write(f"Setting Magisk Package Name to: {self.package_name.GetValue()}\n")
                         set_magisk_package(self.package_name.GetValue())
                         self.Parent.config.magisk = self.package_name.GetValue()
 
             if sys.platform.startswith("linux"):
                 with contextlib.suppress(Exception):
                     if self.file_explorer.GetValue() != self.Parent.config.linux_file_explorer:
-                        print(f"Setting Linux File Explorer to: {self.file_explorer.GetValue()}")
+                        sys.stdout.write(f"Setting Linux File Explorer to: {self.file_explorer.GetValue()}\n")
                     self.Parent.config.linux_file_explorer = self.file_explorer.GetValue()
 
                 with contextlib.suppress(Exception):
                     if self.shell.GetValue() != self.Parent.config.linux_shell:
-                        print(f"Setting Linux Shell to: {self.shell.GetValue()}")
+                        sys.stdout.write(f"Setting Linux Shell to: {self.shell.GetValue()}\n")
                     set_linux_shell(self.shell.GetValue())
                     self.Parent.config.linux_shell = self.shell.GetValue()
 
@@ -594,26 +595,26 @@ class AdvancedSettings(wx.Dialog):
             if value is None:
                 value = ''
             if value != self.Parent.config.delete_bundled_libs:
-                print(f"Setting Delete bundled libs to: {value}")
+                sys.stdout.write(f"Setting Delete bundled libs to: {value}\n")
                 self.Parent.config.delete_bundled_libs = value
 
             value = self.override_kmi.GetValue()
             if value is None:
                 value = ''
             if value != self.Parent.config.override_kmi:
-                print(f"Setting Kernel KMI to: {value}")
+                sys.stdout.write(f"Setting Kernel KMI to: {value}\n")
                 self.Parent.config.override_kmi = value
 
             font_settings_changed = False
             if self.use_custom_font_checkbox.GetValue() != self.Parent.config.customize_font:
-                print("Enabling Custom Font")
+                sys.stdout.write("Enabling Custom Font\n")
                 font_settings_changed = True
             if self.font.GetStringSelection() != self.Parent.config.pf_font_face:
-                print(f"Setting Application Font to: {self.font.GetStringSelection()}")
+                sys.stdout.write(f"Setting Application Font to: {self.font.GetStringSelection()}\n")
                 if self.use_custom_font_checkbox.GetValue():
                     font_settings_changed = True
             if self.font_size.GetValue() != self.Parent.config.pf_font_size:
-                print(f"Setting Application Font Size to: {self.font_size.GetValue()}")
+                sys.stdout.write(f"Setting Application Font Size to: {self.font_size.GetValue()}\n")
                 if self.use_custom_font_checkbox.GetValue():
                     font_settings_changed = True
             self.Parent.config.customize_font = self.use_custom_font_checkbox.GetValue()
@@ -624,14 +625,14 @@ class AdvancedSettings(wx.Dialog):
             if value is None:
                 value = ''
             if value != self.Parent.config.scrcpy['path'] and os.path.exists(value):
-                print(f"Setting scrcpy path path to: {value}")
+                sys.stdout.write(f"Setting scrcpy path path to: {value}\n")
                 self.Parent.config.scrcpy['path'] = value
 
             value = self.scrcpy_flags.GetValue()
             if value is None:
                 value = ''
             if value != self.Parent.config.scrcpy['flags']:
-                print(f"Setting scrcpy flags to: {value}")
+                sys.stdout.write(f"Setting scrcpy flags to: {value}\n")
                 self.Parent.config.scrcpy['flags'] = value
 
             # update the runtime config

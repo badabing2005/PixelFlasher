@@ -2962,12 +2962,6 @@ msgstr "Déjame elegir la versión del kernel de una lista coincidente"
 msgid "Show all assets including non-matching ones"
 msgstr "Mostrar todos los activos, incluidos los que no coinciden"
 
-msgid "Flash to active slot"
-msgstr "Flashear a la ranura activa"
-
-msgid "Flash to inactive slot"
-msgstr "Flashear a la ranura inactiva"
-
 msgid "Flash to both slots"
 msgstr "Flashear a ambas ranuras"
 

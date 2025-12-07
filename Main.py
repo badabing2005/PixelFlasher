@@ -2149,7 +2149,8 @@ class PixelFlasher(wx.Frame):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -2571,7 +2572,8 @@ class PixelFlasher(wx.Frame):
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -3448,10 +3450,14 @@ class PixelFlasher(wx.Frame):
                 set_a_only(True)
                 self.update_slot_image('none')
             self.update_rooted_image(device.rooted)
+            if device.rooted:
+                self.update_rooted_with_image(device.root_version)
         else:
             self.device_label.Label = _("ADB Connected Devices")
             self.update_slot_image('none')
             self.update_rooted_image(False)
+            if device and device.rooted:
+                self.update_rooted_with_image(device.root_version)
 
     #-----------------------------------------------------------------------------
     #                          evaluate_condition
@@ -3574,6 +3580,18 @@ class PixelFlasher(wx.Frame):
             elif condition == 'boot_is_init_boot':
                 boot = get_boot()
                 if boot and boot.is_init_boot == 1:
+                    return True
+                return False
+
+            elif condition == 'boot_is_not_init_boot':
+                boot = get_boot()
+                if boot and boot.is_init_boot == 0:
+                    return True
+                return False
+
+            elif condition == 'partition_is_boot':
+                partition = get_selected_boot_partition()
+                if partition and partition == 'boot':
                     return True
                 return False
 
@@ -3703,7 +3721,7 @@ class PixelFlasher(wx.Frame):
                 self.fastboot_force_checkBox:           ['device_attached', 'mode_is_not_ota', 'dual_slot'],
                 self.wipe_checkBox:                     ['device_attached', 'custom_flash'],
                 self.no_wipe_downgrade_checkbox:        ['device_attached', 'not_custom_flash', 'boot_is_selected', 'firmware_selected', 'firmware_is_not_ota'],
-                self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected'],
+                self.temporary_root_checkBox:           ['not_custom_flash', 'boot_is_patched', 'boot_is_selected', 'partition_is_boot'],
                 self.patch_button:                      ['device_attached', 'device_mode_true_adb'],
                 self.patch_magisk_button:               ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched'],
                 self.patch_kernelsu_button:             ['device_attached', 'device_mode_true_adb', 'boot_is_selected', 'boot_is_not_patched', 'is_gki'],
@@ -4125,7 +4143,8 @@ class PixelFlasher(wx.Frame):
                         disable_checkboxes2=None,
                         radio_labels=None,
                         radio_initial_value=None,
-                        disable_radios=None
+                        disable_radios=None,
+                        vertical_radios=False
                     )
                     puml(f"note right\nDialog\n====\nWarning!\n{alert}\nend note\n")
                     dlg.CentreOnParent(wx.BOTH)
@@ -4273,7 +4292,8 @@ class PixelFlasher(wx.Frame):
                     disable_checkboxes2=None,
                     radio_labels=None,
                     radio_initial_value=None,
-                    disable_radios=None
+                    disable_radios=None,
+                    vertical_radios=False
                 )
             except Exception:
                 traceback.print_exc()
@@ -4586,7 +4606,8 @@ class PixelFlasher(wx.Frame):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
         except Exception:
             traceback.print_exc()
@@ -4635,7 +4656,8 @@ class PixelFlasher(wx.Frame):
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -4714,7 +4736,8 @@ class PixelFlasher(wx.Frame):
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -4792,7 +4815,8 @@ class PixelFlasher(wx.Frame):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -5071,7 +5095,8 @@ class PixelFlasher(wx.Frame):
                     disable_checkboxes2=None,
                     radio_labels=None,
                     radio_initial_value=None,
-                    disable_radios=None
+                    disable_radios=None,
+                    vertical_radios=False
                 )
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
@@ -5733,21 +5758,15 @@ class PixelFlasher(wx.Frame):
                 # get boot image info
                 boot_img_info = get_boot_image_info(boot.boot_path)
                 if boot_img_info and boot_img_info['Partition Name']:
-                    set_selected_boot_partition(boot_img_info['Partition Name'])
+                    partition = boot_img_info['Partition Name']
+                    set_selected_boot_partition(partition)
                 else:
                     set_selected_boot_partition(None)
-                if boot.is_init_boot == 0:
-                    message += f"Init Boot:                False\n"
-                    if boot_img_info and 'com.android.build.boot.security_patch' in boot_img_info:
-                        boot.spl = boot_img_info['com.android.build.boot.security_patch']
-                    if boot_img_info and 'com.android.build.boot.fingerprint' in boot_img_info:
-                        boot.fingerprint = boot_img_info['com.android.build.boot.fingerprint']
-                elif boot.is_init_boot == 1:
-                    message += f"Init Boot:                True\n"
-                    if boot_img_info and 'com.android.build.init_boot.security_patch' in boot_img_info:
-                        boot.spl = boot_img_info['com.android.build.init_boot.security_patch']
-                    if boot_img_info and 'com.android.build.init_boot.fingerprint' in boot_img_info:
-                        boot.fingerprint = boot_img_info['com.android.build.init_boot.fingerprint']
+                    partition = None
+                if boot_img_info and partition and f'com.android.build.{partition}.security_patch' in boot_img_info:
+                    boot.spl = boot_img_info[f'com.android.build.{partition}.security_patch']
+                if boot_img_info and partition and f'com.android.build.{partition}.fingerprint' in boot_img_info:
+                    boot.fingerprint = boot_img_info[f'com.android.build.{partition}.fingerprint']
                 message += f"Date:                     {ts.strftime('%Y-%m-%d %H:%M:%S')}\n"
                 message += f"Firmware Fingerprint:     {boot.package_sig}\n"
                 message += f"Firmware:                 {boot.package_path}\n"
@@ -6239,6 +6258,46 @@ class PixelFlasher(wx.Frame):
             traceback.print_exc()
 
     # -----------------------------------------------
+    #                  update_rooted_with_image
+    # -----------------------------------------------
+    def update_rooted_with_image(self, rooted_with):
+        try:
+            try:
+                root_app_version, root_app = rooted_with.rsplit(":", 1)
+            except Exception as e:
+                root_app = rooted_with
+            rooted_with_image = self.rooted_with_image.GetBitmap()
+            rooted_with_image_height = 0
+            rooted_image = self.rooted_image.GetBitmap()
+            rooted_image_height = 0
+            self.rooted_with_image.SetToolTip(f"Rooted With: {rooted_with}")
+            if root_app == "MAGISKSU":
+                self.rooted_with_image.SetBitmap(images.magisk_48.GetBitmap())
+            elif root_app == "KernelSU":
+                self.rooted_with_image.SetBitmap(images.kernelsu_48.GetBitmap())
+            elif root_app == "KSU-Next":
+                self.rooted_with_image.SetBitmap(images.kernelsu_next_48.GetBitmap())
+            elif root_app == "SukiSU":
+                self.rooted_with_image.SetBitmap(images.sukisu_48.GetBitmap())
+            elif root_app == "WildKSU":
+                self.rooted_with_image.SetBitmap(images.wild_ksu_48.GetBitmap())
+            elif root_app == "APatch":
+                self.rooted_with_image.SetBitmap(images.apatch_48.GetBitmap())
+            else:
+                self.rooted_with_image.SetBitmap(wx.NullBitmap)  # Set the bitmap to None
+                self.rooted_with_image.SetToolTip("")
+            with contextlib.suppress(Exception):
+                rooted_with_image_height = rooted_with_image.GetHeight()
+            with contextlib.suppress(Exception):
+                rooted_image_height = rooted_image.GetHeight()
+            # only refresh UI if the current slot height and current rooted height are 0 and we need to change the image to 64 pixels
+            if rooted_with_image_height == 0 and rooted_image_height == 0 and rooted_with !=  '':
+                self._refresh_ui()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating slot image")
+            traceback.print_exc()
+
+    # -----------------------------------------------
     #                  update_rooted_image
     # -----------------------------------------------
     def update_rooted_image(self, is_rooted=False):
@@ -6409,6 +6468,9 @@ class PixelFlasher(wx.Frame):
         self.slot_image.SetBitmap(wx.NullBitmap)
         self.rooted_image = wx.StaticBitmap(panel, pos=(0, 0))
         self.rooted_image.SetBitmap(wx.NullBitmap)
+        self.rooted_with_image = wx.StaticBitmap(panel, pos=(0, 0))
+        self.rooted_with_image.SetBitmap(wx.NullBitmap)
+        self.rooted_with_image.SetToolTip("")
         # list control
         if self.CharHeight > 20:
             self.il = wx.ImageList(24, 24)
@@ -6511,6 +6573,7 @@ class PixelFlasher(wx.Frame):
         slot_root_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         slot_root_sizer.Add(window=self.slot_image, proportion=0, flag=wx.ALL, border=0)
         slot_root_sizer.Add(window=self.rooted_image, proportion=0, flag=wx.ALL, border=0)
+        slot_root_sizer.Add(window=self.rooted_with_image, proportion=0, flag=wx.ALL, border=0)
         boot_label_v_sizer.Add(slot_root_sizer, proportion=0, flag=wx.ALL, border=0)
         image_buttons_sizer = wx.BoxSizer(orient=wx.VERTICAL)
         image_buttons_sizer.Add(self.patch_button, proportion=1, flag=wx.LEFT, border=2)

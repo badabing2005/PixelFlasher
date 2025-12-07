@@ -3484,7 +3484,8 @@ def get_beta_pif(device_model='random', force_version=None):
         disable_checkboxes2=None,
         radio_labels=None,
         radio_initial_value=0,
-        disable_radios=None
+        disable_radios=None,
+        vertical_radios=False
     )
     dlg.CentreOnParent(wx.BOTH)
     result = dlg.ShowModal()
@@ -5835,12 +5836,10 @@ def download_ksu_latest_release_asset(user, repo, asset_name=None, anykernel=Tru
                     pattern = re.compile(rf"^{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
                     debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
                 elif custom_kernel == "WildKernels":
-                    # Pre v1.5.12-r12 WKSU format: WKSU-13861-android14-6.1.124-2025-02-AnyKernel3.zip
-                    # New pattern (v1.5.12-r12) to match Bypass and Normal builds
-                    # WKSU-13974-SUSFS_v1.5.12-android14-6.1.155-lts-Bypass-BBG-AnyKernel3.zip
-                    # WKSU-13974-SUSFS_v1.5.12-android14-6.1.155-lts-Normal-BBG-AnyKernel3.zip
-                    version_choice = True
-                    pattern = re.compile(rf"^WKSU-[0-9]+-.*{base_name}-{fixed_version}\.([0-9]+)-.*-AnyKernel3\.zip$")
+                    # Latest format: 6.1.57-android14-2023-12-Normal-AnyKernel3.zip
+                    #                6.1.57-android14-2024-01-Bypass-AnyKernel3.zip
+                    # version_choice = True
+                    pattern = re.compile(rf"^{fixed_version}\.([0-9]+)-{base_name}-[0-9]{{4}}-[0-9]{{2}}-(?:Normal|Bypass)-AnyKernel3\.zip$")
                     debug(f"Using pattern for {custom_kernel}: {pattern.pattern}")
                 else:
                     # Fallback pattern for other custom kernels
@@ -8544,6 +8543,7 @@ def get_rooting_app_apks():
                 "SukiSU",
                 "Wild_KSU",
                 "Magisk zygote64_32 canary",
+                "Magisk special 30600",
                 "Magisk special 27001",
                 "Magisk special 26401",
                 'Magisk special 25203'
@@ -8931,6 +8931,23 @@ This is a special Magisk build\n\n
 ## 2024.02.12 Special Magisk v27.0 Build\n\n
 This is a special Magisk build\n\n
 - Based on build versionCode: 27001 versionName: 79fd3e40\n
+- Modified to disable loading modules while keep root.\n
+- Made to recover from bootloops due to bad / incompatible Modules.\n\n
+### Steps to follow [here](https://github.com/badabing2005/Magisk)\n
+        """
+        setattr(ma, 'release_notes', release_notes)
+        return ma
+    elif channel == 'Magisk special 30600':
+        url = ""
+        setattr(ma, 'version', "0d63870f")
+        setattr(ma, 'versionCode', "30600")
+        setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_30600/app-release.apk")
+        setattr(ma, 'note_link', "note_link")
+        setattr(ma, 'package', MAGISK_PKG_NAME)
+        release_notes = """
+## 2025.12.05 Special Magisk v30.6 Build\n\n
+This is a special Magisk build\n\n
+- Based on build versionCode: 30600 versionName: 0d63870f\n
 - Modified to disable loading modules while keep root.\n
 - Made to recover from bootloops due to bad / incompatible Modules.\n\n
 ### Steps to follow [here](https://github.com/badabing2005/Magisk)\n

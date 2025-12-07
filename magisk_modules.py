@@ -602,7 +602,8 @@ class MagiskModules(wx.Dialog):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -678,7 +679,8 @@ class MagiskModules(wx.Dialog):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()

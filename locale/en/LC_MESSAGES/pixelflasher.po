@@ -2929,12 +2929,6 @@ msgstr ""
 msgid "Flash to active slot"
 msgstr ""
 
-msgid "Flash to inactive slot"
-msgstr ""
-
-msgid "Flash to both slots"
-msgstr ""
-
 msgid "Flash boot partition"
 msgstr ""
 

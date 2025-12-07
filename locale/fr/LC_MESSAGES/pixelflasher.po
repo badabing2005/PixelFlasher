@@ -2961,12 +2961,6 @@ msgstr "Laissez-moi choisir la version du noyau à partir d'une liste correspond
 msgid "Show all assets including non-matching ones"
 msgstr "Afficher tous les actifs, y compris ceux qui ne correspondent pas"
 
-msgid "Flash to active slot"
-msgstr "Flasher vers l'emplacement actif"
-
-msgid "Flash to inactive slot"
-msgstr "Flasher vers l'emplacement inactif"
-
 msgid "Flash to both slots"
 msgstr "Flasher aux deux emplacements"
 

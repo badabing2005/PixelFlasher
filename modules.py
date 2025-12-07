@@ -1451,7 +1451,8 @@ def setup_for_downgrade(self):
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -1514,7 +1515,8 @@ def setup_for_downgrade(self):
                     disable_checkboxes2=None,
                     radio_labels=None,
                     radio_initial_value=None,
-                    disable_radios=None
+                    disable_radios=None,
+                    vertical_radios=False
                 )
                 dlg.CentreOnParent(wx.BOTH)
                 dlg.ShowModal()
@@ -1585,7 +1587,8 @@ def setup_for_downgrade(self):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
                 puml(f"note right\nDialog\n====\nWARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?\nend note\n")
                 result = dlg.ShowModal()
@@ -1708,7 +1711,8 @@ def kb_stats_ui(self):
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -2135,7 +2139,8 @@ def manual_magisk(self, boot_file_name):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -2191,7 +2196,8 @@ def manual_magisk(self, boot_file_name):
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -2337,7 +2343,8 @@ However you're free to choose the kernel of your choice.
         disable_checkboxes2=None,
         radio_labels=radio_labels,
         radio_initial_value=radio_initial_value,
-        disable_radios=None
+        disable_radios=None,
+        vertical_radios=False
     )
     dlg.CentreOnParent(wx.BOTH)
     result = dlg.ShowModal()
@@ -2385,67 +2392,244 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             pattern = r'^KernelSU_Next(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_next_path
             app_name = "KernelSU-Next"
+            package_name = "KSU_Next_PKG_NAME"
         elif app_type == 'APatch':
             repo_user = 'bmax121'
             repo_name = 'APatch'
             pattern = r'^APatch_.*\.apk$'
             path_getter = lambda: device.apatch_path
             app_name = "APatch"
+            package_name = "APatch_PKG_NAME"
         elif app_type == 'SukiSU':
             repo_user = 'SukiSU-Ultra'
             repo_name = 'SukiSU-Ultra'
             pattern = r'^SukiSU_(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.sukisu_path
             app_name = "SukiSU"
+            package_name = "SUKISU_PKG_NAME"
         elif app_type == 'Wild_KSU':
             repo_user = 'WildKernels'
             repo_name = 'Wild_KSU'
             pattern = r'^Wild_KSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.wild_ksu_path
             app_name = "Wild_KSU"
+            package_name = "WILD_KSU_PKG_NAME"
         elif app_type == "KernelSU-Legacy":
             repo_user = 'rsuntk'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_path
             app_name = "KernelSU"
+            package_name = "KERNEL_SU_PKG_NAME"
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_path
             app_name = "KernelSU"
+            package_name = "KERNEL_SU_PKG_NAME"
 
-        # Check if already installed
+        # Check if app is already installed
         app_path = path_getter()
         if app_path:
-            return True, app_path, None
+            version, version_code = device.get_app_version(package_name)
+            return True, app_path, None, version, version_code
 
-        # Install the app
-        print(f"{app_name} does not appear to be installed. Installing it now ...")
-        try:
-            release = get_gh_release_object(user=repo_user, repo=repo_name, include_prerelease=False)
-            if not release:
-                return False, None, f"Could not find {app_name} release"
+        # App not installed, let's check if the user has configured spoofed apps
+        spoofed_apps_list = []
+        if self.config.spoofed_apps:
+            # We need appt2 to get the package names
+            try:
+                debug("Pushing aapt2 to device...")
+                res = device.push_aapt2()
+                if res == 0:
+                    debug("aapt2 pushed successfully")
+                else:
+                    print("❌ Failed to push aapt2")
+            except Exception as e:
+                traceback.print_exc()
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: pushing aapt2")
 
-            apk_file = gh_asset_utility(release_object=release, asset_name_pattern=pattern, download=True)
-            if not apk_file:
-                return False, None, f"Could not download {app_name} APK"
+            package_names = [pkg.strip() for pkg in self.config.spoofed_apps.split(',') if pkg.strip()]
+            for package_name in package_names:
+                app_info = device.get_package_info(package_name)
+                if app_info is not None and app_info:
+                    app_label, icon = device.get_package_label(package_name, app_info.get('sourceDir', None))
 
-            app = os.path.join(config_path, 'tmp', apk_file)
-            res = device.install_apk(app)
-            if res != 0:
-                return False, None, f"Failed to install {app_name}"
+                    spoofed_apps_list.append({
+                        'name': app_label,
+                        'path': app_info.get('sourceDir', ''),
+                        'package': package_name,
+                        'installed': True
+                    })
+                else:
+                    # Package not installed, but add to the list as disabled option
+                    spoofed_apps_list.append({
+                        'name': 'Missing App',
+                        'path': '',
+                        'package': package_name,
+                        'installed': False
+                    })
 
-            # Check if installation was successful
-            app_path = path_getter()
-            if not app_path:
-                return False, None, f"Failed to find {app_name} after installation"
+        # Present dialog for app selection
+        title = f"Select {app_name} Application"
+        message = f"**{app_name} does not appear to be installed with the official package name.**<br/>\n\n"
+        message += f"You can choose to create a patch by pressing the button:<br/><br/>\n\n"
+        message += f"- **Use the selected option:** Selecting an installed spoofed app.<br/>\n"
+        message += f"  _If you have configured spoofed app package names in PixelFlasher settings._<br/>\n"
+        message += f"- **Install latest:** Let PixelFlasher install the official {app_name} from the web.<br/>\n"
+        message += f"- **Manual:** Provide your own {app_name} APK file manually.<br/>\n\n"
 
-            return True, app_path, None
+        button_texts = [
+            _("Use the selected option"),
+            _("Install latest"),
+            _("Manual, let me provide my own apk"),
+            _("Cancel")
+        ]
 
-        except Exception as e:
-            return False, None, f"Exception during {app_name} installation: {str(e)}"
+        radio_labels = []
+        disable_radios = []
+        disable_buttons = [1]
+        for i, app_info in enumerate(spoofed_apps_list):
+            if app_info['installed']:
+                radio_labels.append(f"{app_info['name']} ({app_info['package']}) - Installed")
+                disable_buttons = []
+            else:
+                radio_labels.append(f"{app_info['name']} ({app_info['package']}) - Not Installed")
+                disable_radios.append(i + 1)
+
+        # Find first installed spoofed app as default selection (might not be the best match)
+        radio_initial_value = 0
+        for i, app_info in enumerate(spoofed_apps_list):
+            if app_info['installed']:
+                radio_initial_value = i
+                break
+
+        clean_message = message.replace("<br/>", "")
+        print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
+        puml(f"note right\nDialog\n====\n{clean_message}\nend note\n")
+
+        dlg = MessageBoxEx(
+            parent=self,
+            title=title,
+            message=message,
+            button_texts=button_texts,
+            default_button=1,
+            disable_buttons=disable_buttons,
+            is_md=True,
+            size=[800, 300],
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=radio_labels,
+            radio_initial_value=radio_initial_value,
+            disable_radios=disable_radios,
+            vertical_radios=True
+        )
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
+        dialog_values = get_all_dialog_values(dlg)
+        selected_radio_index = dialog_values.get('radio')
+        dlg.Destroy()
+
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result - 1]}")
+
+        # Use the selected spoofed app
+        if result == 1:
+            if selected_radio_index is not None and selected_radio_index < len(spoofed_apps_list):
+                selected_app = spoofed_apps_list[selected_radio_index]
+                if selected_app['installed']:
+                    print(f"Using spoofed app: {selected_app['name']} [{selected_app['package']}]")
+                    version, version_code = device.get_app_version(selected_app['package'])
+                    return True, selected_app['path'], None, version, version_code
+                else:
+                    return False, None, f"Selected app {selected_app['name']} is not installed", None, None
+            else:
+                return False, None, "Invalid selection", None, None
+
+        # Install latest official app
+        elif result == 2:
+            print(f"Getting the latest {app_name} to install ...")
+            try:
+                release = get_gh_release_object(user=repo_user, repo=repo_name, include_prerelease=False)
+                if not release:
+                    return False, None, f"Could not find {app_name} release", None, None
+
+                apk_file = gh_asset_utility(release_object=release, asset_name_pattern=pattern, download=True)
+                if not apk_file:
+                    return False, None, f"Could not download {app_name} APK", None, None
+
+                app = os.path.join(config_path, 'tmp', apk_file)
+                res = device.install_apk(app)
+                if res != 0:
+                    return False, None, f"Failed to install {app_name}", None, None
+
+                # Check if installation was successful
+                app_path = path_getter()
+                if not app_path:
+                    return False, None, f"Failed to find {app_name} after installation", None, None
+                version, version_code = device.get_app_version(package_name)
+                return True, app_path, None, version, version_code
+
+            except Exception as e:
+                return False, None, f"Exception during {app_name} installation: {str(e)}", None, None
+
+        # Manual APK selection
+        elif result == 3:
+            with wx.FileDialog(self, f"Select {app_name} Application", '', '', wildcard="APK files (*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
+                if fileDialog.ShowModal() == wx.ID_CANCEL:
+                    print("User cancelled APK selection.")
+                    return False, None, "User cancelled APK selection", None, None
+                selected_apk = fileDialog.GetPath()
+                print(f"User selected APK: {selected_apk}")
+                try:
+                    res = device.install_apk(selected_apk)
+                    if res != 0:
+                        return False, None, f"Failed to install {app_name}", None, None
+
+                    # Extract the binary xml AndroidManifest from the selected APK
+                    tmp_AndroidManifest = os.path.join(config_path, 'tmp', 'AndroidManifest.xml')
+                    if os.path.exists(tmp_AndroidManifest):
+                        os.remove(tmp_AndroidManifest)
+                    with zipfile.ZipFile(selected_apk, 'r') as zip_ref:
+                        zip_ref.extract('AndroidManifest.xml', os.path.join(config_path, 'tmp'))
+                    if os.path.exists(tmp_AndroidManifest):
+                        axml2xml(tmp_AndroidManifest, tmp_AndroidManifest + '.xml.txt')
+                        # parse the xml to get the package name
+                        tree = ET.parse(tmp_AndroidManifest + '.xml.txt')
+                        root = tree.getroot()
+                        package_name = root.attrib.get('package', '')
+                        if package_name:
+                            # Check if installation was successful
+                            app_info = device.get_package_info(package_name)
+                            app_path = app_info.get('sourceDir', '')
+                            if not app_path:
+                                return False, None, f"Failed to find {app_name} after installation", None, None
+                            # Update spoofed apps list in config
+                            spoofed_apps = self.config.spoofed_apps.split(',') if self.config.spoofed_apps else []
+                            if package_name not in [pkg.strip() for pkg in spoofed_apps]:
+                                spoofed_apps.append(package_name)
+                                self.config.spoofed_apps = ','.join(spoofed_apps)
+                                self.config.save(get_config_file_path())
+                            version, version_code = device.get_app_version(package_name)
+                            return True, app_path, None, version, version_code
+                    else:
+                        # Push APK to phone
+                        res = device.push_file(selected_apk, "/data/local/tmp/user_provided_app.apk")
+                        if res != 0:
+                            return False, None, "Failed to transfer user-provided APK to phone", None, None
+                        return True, "/data/local/tmp/user_provided_app.apk", None, None, None
+
+                except Exception as e:
+                    return False, None, f"Exception during {app_name} installation: {str(e)}", None, None
+
+        # Cancel
+        else:
+            return False, None, "User cancelled", None, None
 
     # ==========================================
     # Sub Function       patch_script
@@ -2558,23 +2742,36 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 data += "    echo \"❌ ERROR: Magisk binary not found in /data/local/tmp/pf/assets/ \"\n"
                 data += "fi\n"
 
-            data += "SYSTEM_ROOT=false\n"
-            data += "SYSTEM_AS_ROOT=false\n"
-            data += "grep \' / \' /proc/mounts | grep -qv \'rootfs\' && SYSTEM_ROOT=true\n"
-            data += "grep \' / \' /proc/mounts | grep -qv \'rootfs\' && SYSTEM_AS_ROOT=true\n"
-            data += ". ./util_functions.sh\n"
-            data += 'get_flags\n'
+            # We need SDK_INT because check_encryption() in app_functions.sh uses it and it's not defined yet.
+            data += f"SDK_INT={device.api_level}\n"
+            data += "export SDK_INT\n"
+            data += "if [[ -f \"./app_functions.sh\" ]]; then\n"
+            data += "    . ./app_functions.sh\n"
+            data += "    app_init\n"
+            data += "    . ./util_functions.sh\n"
+            data += "else\n"
+            data += "    SYSTEM_ROOT=false\n"
+            data += "    SYSTEM_AS_ROOT=false\n"
+            data += "    grep \' / \' /proc/mounts | grep -qv \'rootfs\' && SYSTEM_ROOT=true\n"
+            data += "    grep \' / \' /proc/mounts | grep -qv \'rootfs\' && SYSTEM_AS_ROOT=true\n"
+            data += "    . ./util_functions.sh\n"
+            data += "    mount_partitions >/dev/null\n"
+            data += '    get_flags\n'
+            data += "fi\n"
             data += "echo -------------------------\n"
-            data += "echo \"SYSTEM_ROOT:       $SYSTEM_ROOT\"\n"
+            data += "echo \"SLOT:              $SLOT\"\n"
             data += "echo \"SYSTEM_AS_ROOT:    $SYSTEM_AS_ROOT\"\n"
+            data += "echo \"RAMDISKEXIST:      $RAMDISKEXIST\"\n"
+            data += "echo \"ISAB:              $ISAB\"\n"
+            data += "echo \"CRYPTOTYPE:        $CRYPTOTYPE\"\n"
+            data += "echo \"PATCHVBMETAFLAG:   $PATCHVBMETAFLAG\"\n"
+            data += "echo \"LEGACYSAR:         $LEGACYSAR\"\n"
+            data += "echo \"RECOVERYMODE:      $RECOVERYMODE\"\n"
             data += "echo \"KEEPVERITY:        $KEEPVERITY\"\n"
             data += "echo \"KEEPFORCEENCRYPT:  $KEEPFORCEENCRYPT\"\n"
-            data += "echo \"RECOVERYMODE:      $RECOVERYMODE\"\n"
-            data += "echo \"PATCHVBMETAFLAG:   $PATCHVBMETAFLAG\"\n"
+            data += "echo \"VENDORBOOT:        $VENDORBOOT\"\n"
             data += "echo \"ISENCRYPTED:       $ISENCRYPTED\"\n"
-            data += "echo \"VBMETAEXIST:       $VBMETAEXIST\"\n"
-            data += "echo \"LEGACYSAR:         $LEGACYSAR\"\n"
-            data += "export KEEPVERITY KEEPFORCEENCRYPT RECOVERYMODE PATCHVBMETAFLAG ISENCRYPTED VBMETAEXIST SYSTEM_ROOT SYSTEM_AS_ROOT LEGACYSAR\n"
+            data += "export SLOT SYSTEM_AS_ROOT RAMDISKEXIST ISAB CRYPTOTYPE PATCHVBMETAFLAG LEGACYSAR RECOVERYMODE KEEPVERITY KEEPFORCEENCRYPT VENDORBOOT  ISENCRYPTED\n"
             data += "echo -------------------------\n"
             data += "echo \"Creating a patch ...\"\n"
             data += "./magiskboot cleanup\n"
@@ -2684,62 +2881,52 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     def patch_kernelsu_script(kernelsu_version):
         if 'KernelSU-Next' in patch_flavor:
             patch_label = "KernelSU-Next App"
-            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU-Next')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Next')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1
-            with_version = device.get_uncached_ksu_next_app_version()
-            with_version_code = device.ksu_next_app_version_code
             VERSION_VAR = "KSU_NEXT_VERSION"
             PATH_VAR = "KSU_NEXT_PATH"
         elif 'SukiSU' in patch_flavor:
             patch_label = "SukiSU App"
-            success, flavor_path, error_msg = ensure_root_app_installed('SukiSU')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('SukiSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1
-            with_version = device.get_uncached_sukisu_app_version()
-            with_version_code = device.sukisu_app_version_code
             VERSION_VAR = "SUKISU_VERSION"
             PATH_VAR = "SUKISU_PATH"
         elif 'Wild_KSU' in patch_flavor:
             patch_label = "Wild_KSU App"
-            success, flavor_path, error_msg = ensure_root_app_installed('Wild_KSU')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('Wild_KSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1
-            with_version = device.get_uncached_wild_ksu_app_version()
-            with_version_code = device.wild_ksu_app_version_code
             VERSION_VAR = "WILD_KSU_VERSION"
             PATH_VAR = "WILD_KSU_PATH"
         elif 'KernelSU-Legacy' in patch_flavor:
             patch_label = "KernelSU-Legacy App"
-            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU-Legacy')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Legacy')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1
-            with_version = device.get_uncached_ksu_app_version()
-            with_version_code = device.ksu_app_version_code
             VERSION_VAR = "KSU_VERSION"
             PATH_VAR = "KSU_PATH"
         else:
             patch_label = "KernelSU App"
-            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1
-            with_version = device.get_uncached_ksu_app_version()
-            with_version_code = device.ksu_app_version_code
             VERSION_VAR = "KSU_VERSION"
             PATH_VAR = "KSU_PATH"
         set_patched_with(with_version)
@@ -2861,62 +3048,52 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     def patch_kernelsu_lkm_script():
         if 'KernelSU-Next' in patch_flavor:
             patch_label = "KernelSU-Next App"
-            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU-Next')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Next')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1, ""
-            with_version = device.get_uncached_ksu_next_app_version()
-            with_version_code = device.ksu_next_app_version_code
             VERSION_VAR = "KSU_NEXT_VERSION"
             PATH_VAR = "KSU_NEXT_PATH"
         elif 'SukiSU' in patch_flavor:
             patch_label = "SukiSU App"
-            success, flavor_path, error_msg = ensure_root_app_installed('SukiSU')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('SukiSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1, ""
-            with_version = device.get_uncached_sukisu_app_version()
-            with_version_code = device.sukisu_app_version_code
             VERSION_VAR = "SUKISU_VERSION"
             PATH_VAR = "SUKISU_PATH"
         elif 'Wild_KSU' in patch_flavor:
             patch_label = "Wild_KSU App"
-            success, flavor_path, error_msg = ensure_root_app_installed('Wild_KSU')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('Wild_KSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1, ""
-            with_version = device.get_uncached_wild_ksu_app_version()
-            with_version_code = device.wild_ksu_app_version_code
             VERSION_VAR = "WILD_KSU_VERSION"
             PATH_VAR = "WILD_KSU_PATH"
         elif 'KernelSU-Legacy' in patch_flavor:
             patch_label = "KernelSU-Legacy App"
-            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU-Legacy')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Legacy')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1, ""
-            with_version = device.get_uncached_ksu_app_version()
-            with_version_code = device.ksu_app_version_code
             VERSION_VAR = "KSU_VERSION"
             PATH_VAR = "KSU_PATH"
         else:
             patch_label = "KernelSU App"
-            success, flavor_path, error_msg = ensure_root_app_installed('KernelSU')
+            success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
                 puml(f"#red:{error_msg};\n")
                 print("Aborting ...\n")
                 return -1, ""
-            with_version = device.get_uncached_ksu_app_version()
-            with_version_code = device.ksu_app_version_code
             VERSION_VAR = "KSU_VERSION"
             PATH_VAR = "KSU_PATH"
 
@@ -2968,7 +3145,8 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -3526,7 +3704,8 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                     disable_checkboxes2=None,
                     radio_labels=None,
                     radio_initial_value=None,
-                    disable_radios=None
+                    disable_radios=None,
+                    vertical_radios=False
                 )
                 dlg.CentreOnParent(wx.BOTH)
                 result = dlg.ShowModal()
@@ -3781,7 +3960,8 @@ Unless you know what you're doing, it is recommended that you choose the default
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -4149,54 +4329,18 @@ Unless you know what you're doing, it is recommended that you choose the default
     # KernelSU_LKM
     elif patch_flavor == 'KernelSU_LKM':
         method = 81
-        # check if KernelSU app is installed
-        print("Checking to see if KernelSU app is installed ...")
-        puml(":Checking KernelSU App;\n")
-        success, kernelsu_app_path, error_msg = ensure_root_app_installed('KernelSU')
-        if not success:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-            puml(f"#red:{error_msg};\n")
-            print("Aborting ...\n}\n")
-            return
 
     # KernelSU_Next_LKM
     elif patch_flavor == 'KernelSU-Next_LKM':
         method = 83
-        # check if KernelSU-Next app is installed
-        print("Checking to see if KernelSU-Next app is installed ...")
-        puml(":Checking KernelSU-Next App;\n")
-        success, kernelsu_next_app_path, error_msg = ensure_root_app_installed('KernelSU-Next')
-        if not success:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-            puml(f"#red:{error_msg};\n")
-            print("Aborting ...\n}\n")
-            return
 
     # SukiSU_LKM
     elif patch_flavor == 'SukiSU_LKM':
         method = 85
-        # check if SukiSU app is installed
-        print("Checking to see if SukiSU app is installed ...")
-        puml(":Checking SukiSU App;\n")
-        success, sukisu_app_path, error_msg = ensure_root_app_installed('SukiSU')
-        if not success:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-            puml(f"#red:{error_msg};\n")
-            print("Aborting ...\n}\n")
-            return
 
     # Wild_KSU_LKM
     elif patch_flavor == 'Wild_KSU_LKM':
         method = 87
-        # check if Wild_KSU app is installed
-        print("Checking to see if Wild_KSU app is installed ...")
-        puml(":Checking Wild_KSU App;\n")
-        success, wild_ksu_app_path, error_msg = ensure_root_app_installed('Wild_KSU')
-        if not success:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-            puml(f"#red:{error_msg};\n")
-            print("Aborting ...\n}\n")
-            return
 
     # APatch
     elif patch_flavor == 'APatch':
@@ -4204,7 +4348,7 @@ Unless you know what you're doing, it is recommended that you choose the default
         # check if APatch app is installed
         print("Checking to see if APatch app is installed ...")
         puml(":Checking APatch App;\n")
-        success, apatch_app_path, error_msg = ensure_root_app_installed('APatch')
+        success, apatch_app_path, error_msg, with_version, with_version_code = ensure_root_app_installed('APatch')
         if not success:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
             puml(f"#red:{error_msg};\n")
@@ -4213,6 +4357,16 @@ Unless you know what you're doing, it is recommended that you choose the default
 
     # APatch Alternate
     elif patch_flavor == 'APatch_manual':
+        method = 91
+        # check if APatch app is installed
+        print("Checking to see if APatch app is installed ...")
+        puml(":Checking APatch App;\n")
+        success, apatch_app_path, error_msg, with_version, with_version_code = ensure_root_app_installed('APatch')
+        if not success:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
+            puml(f"#red:{error_msg};\n")
+            print("Aborting ...\n}\n")
+            return
         compatible = True
         # Check for CONFIG_KALLSYMS=y in the kernel config
         if device.config_kallsyms != 'CONFIG_KALLSYMS=y':
@@ -4259,8 +4413,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                 print("Aborting ...\n")
                 return -1
 
-        method = 91
-        success, apatch_app_path, error_msg = ensure_root_app_installed('APatch')
+        success, apatch_app_path, error_msg, with_version, with_version_code = ensure_root_app_installed('APatch')
         if not success:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
             puml(f"#red:{error_msg};\n")
@@ -4366,16 +4519,6 @@ Unless you know what you're doing, it is recommended that you choose the default
         magisk_app_version = device.get_uncached_magisk_app_version()
         magisk_version = device.magisk_version
 
-        # If the device is not reporting rooted, and adb shell access is not granted
-        # Display a warning and abort.
-        if self.config.magisk not in ['', MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME, KERNEL_SU_PKG_NAME, APATCH_PKG_NAME] and not is_rooted:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It looks like you have a hidden Magisk Manager, and have not allowed root access to adb shell")
-            print("Patching can not be performed, to correct this, either grant root access to adb shell (recommended) or unhide Magisk Manager.")
-            print("And try again.")
-            print("Aborting ...\n")
-            puml("#red:Hidden Magisk and root is not granted;\n}\n")
-            return
-
         # -------------------------------
         # Patching decision
         # -------------------------------
@@ -4389,6 +4532,27 @@ Unless you know what you're doing, it is recommended that you choose the default
         print(f"  Magisk Version:         {m_version}")
         puml(f"note right\nMagisk Manager Version: {m_app_version}\nMagisk Version:         {m_version}\nend note\n")
 
+        # if selected firmware is Pixel and December 2025 or newer, and Magisk version is less than 30.6, warn the user
+        if boot.spl:
+            spl_date = datetime.strptime(boot.spl, '%Y-%m-%d')
+            dec_2025 = datetime.strptime('2025-12-01', '%Y-%m-%d')
+            try:
+                device_type = get_android_devices()[device.hardware]
+                mm_version = max(m_app_version, m_version)
+            except Exception as e:
+                device_type = None
+            if device_type and spl_date >= dec_2025 and mm_version < 30600:
+                self.toast(_("WARNING! Incompatible Magisk"), _("⚠️ Magisk versions older than 30.6 may not work correctly on this firmware.."))
+                print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Your device firmware date is {boot.spl}, which is December 2025 or newer.")
+                print("Magisk versions older than 30.6 may not work correctly on this firmware.\n")
+                puml("#orange:WARNING: Magisk versions older than 30.6 may not work correctly on December 2025 or newer firmware;\n")
+                dlg = wx.MessageDialog(None, _("⚠️ Magisk versions older than 30.6 may not work correctly on this firmware.\nAre you sure want to continue?"), _("Incompatible Magisk"), wx.YES_NO | wx.ICON_EXCLAMATION)
+                result = dlg.ShowModal()
+                if result != wx.ID_YES:
+                    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled creating a patch.")
+                    puml("#pink:User cancelled creating a patch;\n}\n")
+                    return -1
+
         if is_rooted and magisk_version:
             method = 1  # rooted
             # disable app method if app is not found or is hidden.
@@ -4401,11 +4565,11 @@ Unless you know what you're doing, it is recommended that you choose the default
                     puml("#orange:WARNING: Magisk Version is different than Magisk Manager version;\n")
                     if m_version < m_app_version:
                         method = 2  # app
-        elif m_app_version > 0:
+        elif m_app_version > 1:
             method = 2  # app
             disabled_buttons = [1, 3]
         else:
-            disabled_buttons = [1, 3]
+            disabled_buttons = [1, 2, 3]
             method = 5  # other
 
         # -------------------------------
@@ -4473,7 +4637,8 @@ Unless you know what you're doing, it is recommended that you take the default s
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -5072,7 +5237,8 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         disable_checkboxes2=disable_checkboxes2,
         radio_labels=radio_labels,
         radio_initial_value=radio_initial_value,
-        disable_radios=disable_radios
+        disable_radios=disable_radios,
+        vertical_radios=False
     )
     dlg.CentreOnParent(wx.BOTH)
     result = dlg.ShowModal()
@@ -5325,7 +5491,8 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             disable_checkboxes2=None,
             radio_labels=None,
             radio_initial_value=None,
-            disable_radios=None
+            disable_radios=None,
+            vertical_radios=False
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
@@ -5416,7 +5583,8 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                     disable_checkboxes2=None,
                     radio_labels=None,
                     radio_initial_value=None,
-                    disable_radios=None
+                    disable_radios=None,
+                    vertical_radios=False
                 )
                 result = dlg.ShowModal()
                 dlg.Destroy()
@@ -6061,7 +6229,8 @@ def flash_phone(self):
                             disable_checkboxes2=None,
                             radio_labels=None,
                             radio_initial_value=None,
-                            disable_radios=None
+                            disable_radios=None,
+                            vertical_radios=False
                         )
                         dlg.CentreOnParent(wx.BOTH)
                         result = dlg.ShowModal()
@@ -6322,7 +6491,8 @@ def flash_phone(self):
                 disable_checkboxes2=None,
                 radio_labels=None,
                 radio_initial_value=None,
-                disable_radios=None
+                disable_radios=None,
+                vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
@@ -6484,7 +6654,8 @@ def flash_phone(self):
                         disable_checkboxes2=None,
                         radio_labels=None,
                         radio_initial_value=None,
-                        disable_radios=None
+                        disable_radios=None,
+                        vertical_radios=False
                     )
                     result = dlg.ShowModal()
                     dlg.Destroy()
@@ -6798,7 +6969,8 @@ def flash_phone(self):
                         disable_checkboxes2=None,
                         radio_labels=None,
                         radio_initial_value=None,
-                        disable_radios=None
+                        disable_radios=None,
+                        vertical_radios=False
                     )
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
@@ -6893,7 +7065,8 @@ def flash_phone(self):
                         disable_checkboxes2=None,
                         radio_labels=None,
                         radio_initial_value=None,
-                        disable_radios=None
+                        disable_radios=None,
+                        vertical_radios=False
                     )
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()
@@ -6948,7 +7121,8 @@ def flash_phone(self):
                         disable_checkboxes2=None,
                         radio_labels=None,
                         radio_initial_value=None,
-                        disable_radios=None
+                        disable_radios=None,
+                        vertical_radios=False
                     )
                     dlg.CentreOnParent(wx.BOTH)
                     result = dlg.ShowModal()

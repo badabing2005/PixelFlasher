@@ -3452,6 +3452,8 @@ class PixelFlasher(wx.Frame):
             self.update_rooted_image(device.rooted)
             if device.rooted:
                 self.update_rooted_with_image(device.root_version)
+            else:
+                self.update_rooted_with_image('Not Rooted')
         else:
             self.device_label.Label = _("ADB Connected Devices")
             self.update_slot_image('none')
@@ -6238,20 +6240,24 @@ class PixelFlasher(wx.Frame):
         try:
             slot_image = self.slot_image.GetBitmap()
             slot_image_height = 0
-            rooted_image = self.rooted_image.GetBitmap()
-            rooted_image_height = 0
+
+            will_be_visible = False
             if slot == "a":
                 self.slot_image.SetBitmap(images.slot_a_48.GetBitmap())
+                will_be_visible = True
             elif slot == "b":
                 self.slot_image.SetBitmap(images.slot_b_48.GetBitmap())
+                will_be_visible = True
             else:
                 self.slot_image.SetBitmap(wx.NullBitmap)  # Set the bitmap to None
+                will_be_visible = False
+
             with contextlib.suppress(Exception):
                 slot_image_height = slot_image.GetHeight()
-            with contextlib.suppress(Exception):
-                rooted_image_height = rooted_image.GetHeight()
-            # only refresh UI if the current slot height and current rooted height are 0 and we need to change the image to 64 pixels
-            if slot_image_height == 0 and rooted_image_height == 0 and slot !=  'none':
+
+            was_visible = slot_image_height > 0
+
+            if (not was_visible and will_be_visible) or (was_visible and not will_be_visible):
                 self._refresh_ui()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating slot image")
@@ -6268,30 +6274,38 @@ class PixelFlasher(wx.Frame):
                 root_app = rooted_with
             rooted_with_image = self.rooted_with_image.GetBitmap()
             rooted_with_image_height = 0
-            rooted_image = self.rooted_image.GetBitmap()
-            rooted_image_height = 0
             self.rooted_with_image.SetToolTip(f"Rooted With: {rooted_with}")
+
+            will_be_visible = False
             if root_app == "MAGISKSU":
                 self.rooted_with_image.SetBitmap(images.magisk_48.GetBitmap())
+                will_be_visible = True
             elif root_app == "KernelSU":
                 self.rooted_with_image.SetBitmap(images.kernelsu_48.GetBitmap())
+                will_be_visible = True
             elif root_app == "KSU-Next":
                 self.rooted_with_image.SetBitmap(images.kernelsu_next_48.GetBitmap())
+                will_be_visible = True
             elif root_app == "SukiSU":
                 self.rooted_with_image.SetBitmap(images.sukisu_48.GetBitmap())
+                will_be_visible = True
             elif root_app == "WildKSU":
                 self.rooted_with_image.SetBitmap(images.wild_ksu_48.GetBitmap())
+                will_be_visible = True
             elif root_app == "APatch":
                 self.rooted_with_image.SetBitmap(images.apatch_48.GetBitmap())
+                will_be_visible = True
             else:
                 self.rooted_with_image.SetBitmap(wx.NullBitmap)  # Set the bitmap to None
                 self.rooted_with_image.SetToolTip("")
+                will_be_visible = False
+
             with contextlib.suppress(Exception):
                 rooted_with_image_height = rooted_with_image.GetHeight()
-            with contextlib.suppress(Exception):
-                rooted_image_height = rooted_image.GetHeight()
-            # only refresh UI if the current slot height and current rooted height are 0 and we need to change the image to 64 pixels
-            if rooted_with_image_height == 0 and rooted_image_height == 0 and rooted_with !=  '':
+
+            was_visible = rooted_with_image_height > 0
+
+            if (not was_visible and will_be_visible) or (was_visible and not will_be_visible):
                 self._refresh_ui()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating slot image")
@@ -6304,18 +6318,21 @@ class PixelFlasher(wx.Frame):
         try:
             rooted_image = self.rooted_image.GetBitmap()
             rooted_image_height = 0
-            slot_image = self.slot_image.GetBitmap()
-            slot_image_height = 0
+
+            will_be_visible = False
             if is_rooted:
                 self.rooted_image.SetBitmap(images.rooted.GetBitmap())
+                will_be_visible = True
             else:
                 self.rooted_image.SetBitmap(wx.NullBitmap)  # Set the bitmap to None
-            with contextlib.suppress(Exception):
-                slot_image_height = slot_image.GetHeight()
+                will_be_visible = False
+
             with contextlib.suppress(Exception):
                 rooted_image_height = rooted_image.GetHeight()
-            # only refresh UI if the current slot height and current rooted height are 0 and we need to change the image to 64 pixels
-            if rooted_image_height == 0 and slot_image_height == 0 and is_rooted:
+
+            was_visible = rooted_image_height > 0
+
+            if (not was_visible and will_be_visible) or (was_visible and not will_be_visible):
                 self._refresh_ui()
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while updating root image")

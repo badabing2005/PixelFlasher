@@ -2594,7 +2594,6 @@ class PixelFlasher(wx.Frame):
                 print("\n")
                 # enable / disable redaction based on checkbox
                 redact_keybox = checkbox_values[0]
-                set_verbose(not redact_keybox)
 
             set_puml_state(False)
             if device and device.hardware:
@@ -2624,7 +2623,9 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Getting Device details ...")
                 print("==============================================================================")
+                set_verbose(not redact_keybox)
                 self._print_device_details(device)
+                set_verbose(current_debug)
                 if not device.rooted:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: device is not rooted")
                     print("Perhaps su permissions are not granted to shell process?")
@@ -2690,7 +2691,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store spoof_build_vars ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/tricky_store/spoof_build_vars", True)
+                res = device.file_content("/data/adb/tricky_store/spoof_build_vars", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2698,7 +2699,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store target.txt ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/tricky_store/target.txt", True)
+                res = device.file_content("/data/adb/tricky_store/target.txt", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2706,7 +2707,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store security_patch.txt ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/tricky_store/security_patch.txt", True)
+                res = device.file_content("/data/adb/tricky_store/security_patch.txt", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2714,7 +2715,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store tee_status ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/tricky_store/tee_status", True)
+                res = device.file_content("/data/adb/tricky_store/tee_status", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2723,7 +2724,7 @@ class PixelFlasher(wx.Frame):
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Tricky Store keybox status ...")
                 print("==============================================================================")
                 keybox_xml = '/data/adb/tricky_store/keybox.xml'
-                res, unused = device.check_file(keybox_xml, True)
+                res, unused = device.check_file(keybox_xml, True, False)
                 if res == 1:
                     keybox_file = os.path.join(tmp_dir_full, "keybox.xml")
                     debug(f"Pulling {keybox_xml} from the phone to: {keybox_file} ...")
@@ -2731,14 +2732,16 @@ class PixelFlasher(wx.Frame):
                     if res != 0:
                         print(f"Error: Failed to pull {keybox_xml} from the phone.")
                     else:
+                        set_verbose(not redact_keybox)
                         res = check_kb(keybox_file)
                         print(f"Result: {res}")
+                        set_verbose(current_debug)
 
                 # PlayIntegrity Fork - custom.pif.json
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.json ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.json", True)
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.json", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2746,7 +2749,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.prop ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.prop", True)
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.prop", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2754,7 +2757,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace.list", True)
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace.list", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2762,7 +2765,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace_list.txt ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace_list.txt", True)
+                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace_list.txt", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2770,7 +2773,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
-                res, unused = device.check_file('/data/adb/modules/playintegrityfix/scripts-only-mode', True)
+                res, unused = device.check_file('/data/adb/modules/playintegrityfix/scripts-only-mode', True, False)
                 if res == 1:
                     print("scripts-only-mode is enabled")
                 else:
@@ -2780,12 +2783,12 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking TargetedFix target.txt ...")
                 print("==============================================================================")
-                res = device.file_content(f"{TARGETEDFIX_CONFIG_PATH}/target.txt", True)
+                res = device.file_content(f"{TARGETEDFIX_CONFIG_PATH}/target.txt", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
                     for line in res.splitlines():
                         if line:
-                            target = device.file_content(f"{TARGETEDFIX_CONFIG_PATH}/{line.strip()}.json", True)
+                            target = device.file_content(f"{TARGETEDFIX_CONFIG_PATH}/{line.strip()}.json", True, False)
                             if target != -1:
                                 print(f"--------------------\n{line.strip()}\n--------------------")
                             else:
@@ -2795,7 +2798,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix pif.json ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/pif.json", True)
+                res = device.file_content("/data/adb/modules/playintegrityfix/pif.json", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2803,7 +2806,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrityFix older pif.json ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/pif.json", True)
+                res = device.file_content("/data/adb/pif.json", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -5612,6 +5615,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def _on_boot_selected(self, event):
         try:
+            self.selected_partition_label.SetLabel("")
             x,y = event.GetPosition()
             row,flags = self.list.HitTest((x,y))
             boot = None
@@ -5690,6 +5694,14 @@ class PixelFlasher(wx.Frame):
                         boot.patch_source_sha1 = row[17]
                         package_boot_count += 1
 
+                # set partition type label
+                partition_type = "boot"
+                if boot.is_init_boot:
+                    partition_type = "init_boot"
+                elif boot.boot_path and "vendor_boot" in os.path.basename(boot.boot_path):
+                    partition_type = "vendor_boot"
+                self.selected_partition_label.SetLabel(partition_type)
+
                 # Check if the original boot_path exists in case pf_home changed.
                 original_path = boot.boot_path
                 if os.path.exists(original_path):
@@ -5762,9 +5774,11 @@ class PixelFlasher(wx.Frame):
                 if boot_img_info and boot_img_info['Partition Name']:
                     partition = boot_img_info['Partition Name']
                     set_selected_boot_partition(partition)
+                    self.selected_partition_label.SetLabel(partition)
                 else:
                     set_selected_boot_partition(None)
                     partition = None
+                    self.selected_partition_label.SetLabel("")
                 if boot_img_info and partition and f'com.android.build.{partition}.security_patch' in boot_img_info:
                     boot.spl = boot_img_info[f'com.android.build.{partition}.security_patch']
                 if boot_img_info and partition and f'com.android.build.{partition}.fingerprint' in boot_img_info:
@@ -6481,6 +6495,12 @@ class PixelFlasher(wx.Frame):
         self.show_all_boot_checkBox = wx.CheckBox(parent=panel, id=wx.ID_ANY, label=_("Show All boot/init_boot"), pos=wx.DefaultPosition, size=wx.DefaultSize, style=0)
         self.show_all_boot_checkBox.SetToolTip(_("Show all boot/init_boot even if it is\nnot part of the selected firmware or ROM"))
         #
+        self.selected_partition_label = wx.StaticText(parent=panel, id=wx.ID_ANY, label="")
+        font = self.selected_partition_label.GetFont()
+        font.MakeBold()
+        font.SetPointSize(font.GetPointSize() + 2)
+        self.selected_partition_label.SetFont(font)
+        #
         self.slot_image = wx.StaticBitmap(panel, pos=(0, 0))
         self.slot_image.SetBitmap(wx.NullBitmap)
         self.rooted_image = wx.StaticBitmap(panel, pos=(0, 0))
@@ -6586,6 +6606,8 @@ class PixelFlasher(wx.Frame):
         boot_label_v_sizer.Add(window=self.select_boot_label, flag=wx.ALL, border=0)
         boot_label_v_sizer.AddSpacer(10)
         boot_label_v_sizer.Add(window=self.show_all_boot_checkBox, flag=wx.ALL, border=0)
+        boot_label_v_sizer.AddSpacer(10)
+        boot_label_v_sizer.Add(window=self.selected_partition_label, flag=wx.ALL, border=0)
         boot_label_v_sizer.AddStretchSpacer(1)
         slot_root_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         slot_root_sizer.Add(window=self.slot_image, proportion=0, flag=wx.ALL, border=0)

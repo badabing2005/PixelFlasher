@@ -2225,7 +2225,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method file_content
     # ----------------------------------------------------------------------------
-    def file_content(self, file_path: str, with_su = False) -> int:
+    def file_content(self, file_path: str, with_su = False, verbose = True) -> int:
         """Method cats the file content.
 
         Args:
@@ -2257,7 +2257,10 @@ add_hosts_module
                 debug(f"Stderr: {res.stderr}")
                 if res.returncode == 0:
                     return res.stdout
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path}")
+            if verbose:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path} or file does not exist.")
+            else:
+                debug(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get file content: {file_path} or file does not exist.")
             return -1
         except Exception as e:
             traceback.print_exc()

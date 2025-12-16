@@ -2392,42 +2392,42 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             pattern = r'^KernelSU_Next(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_next_path
             app_name = "KernelSU-Next"
-            package_name = "KSU_Next_PKG_NAME"
+            package_name = KSU_NEXT_PKG_NAME
         elif app_type == 'APatch':
             repo_user = 'bmax121'
             repo_name = 'APatch'
             pattern = r'^APatch_.*\.apk$'
             path_getter = lambda: device.apatch_path
             app_name = "APatch"
-            package_name = "APatch_PKG_NAME"
+            package_name = APATCH_PKG_NAME
         elif app_type == 'SukiSU':
             repo_user = 'SukiSU-Ultra'
             repo_name = 'SukiSU-Ultra'
             pattern = r'^SukiSU_(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.sukisu_path
             app_name = "SukiSU"
-            package_name = "SUKISU_PKG_NAME"
+            package_name = SUKISU_PKG_NAME
         elif app_type == 'Wild_KSU':
             repo_user = 'WildKernels'
             repo_name = 'Wild_KSU'
             pattern = r'^Wild_KSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.wild_ksu_path
             app_name = "Wild_KSU"
-            package_name = "WILD_KSU_PKG_NAME"
+            package_name = WILD_KSU_PKG_NAME
         elif app_type == "KernelSU-Legacy":
             repo_user = 'rsuntk'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_path
             app_name = "KernelSU"
-            package_name = "KERNEL_SU_PKG_NAME"
+            package_name = KERNEL_SU_PKG_NAME
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_path
             app_name = "KernelSU"
-            package_name = "KERNEL_SU_PKG_NAME"
+            package_name = KERNEL_SU_PKG_NAME
 
         # Check if app is already installed
         app_path = path_getter()
@@ -3115,15 +3115,18 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         mountType = ""
         # Patch flavor based cmd selector
-        if patch_flavor in ['KernelSU-Next_LKM', 'Wild_KSU_LKM']:
+        if self.config.force_ksud_mount_selection or patch_flavor == 'Wild_KSU_LKM' or (patch_flavor == 'KernelSU-Next_LKM' and version_code_int < 32857) :
             magiskboot = "magiskboot"
             # show a question dialog to ask the user to select mount type MagicMount or OverlayFS
             title = "Select dynamic module mount system"
-            buttons_text = ["MagicMount", "OverlayFS", "Cancel"]
+            buttons_text = ["MagicMount", "OverlayFS", "None", "Cancel"]
             message = f'''
-## Select dynamic module mount system MagicMount or OverlayFS
+## Select dynamic module mount
 
-According to the author, Magic Mount is more stable and compatible and is recommended.
+- **System MagicMount**
+  `Magic Mount is more stable and compatible (when supported).`
+- **OverlayFS**
+- **None**
 
 '''
             print(f"\n*** Dialog ***\n{message}\n______________\n")
@@ -3160,7 +3163,11 @@ According to the author, Magic Mount is more stable and compatible and is recomm
                 ksud_mount = "ksud_overlayfs"
                 mountType = "overlayfs"
                 print("User selected OverlayFS for dynamic module mount system.")
-            if result == 3:
+            elif result == 3:
+                ksud_mount = "ksud"
+                mountType = ""
+                print("User selected None for dynamic module mount system.")
+            if result == 4:
                 print("⚠️ User cancelled, Aborting ...")
                 return -1, ""
         elif patch_flavor == 'SukiSU_LKM' and version_code_int < 40000:
@@ -5105,7 +5112,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     button_texts = [_("OK"), _("Cancel")]
     radio_labels = [_('Flash to active slot'), _('Flash to inactive slot'), _('Flash to both slots')]
     checkbox_labels = [_('Flash boot partition'), _('Flash init_boot partition'), _('Flash vendor_boot partition')]
-    checkbox_labels2 = [_('No Reboot after flash')]
+    checkbox_labels2 = [_('No Reboot after flash'), _('Flash stock to other partitions (if available)')]
     checkbox_initial_values = [False, False, False]
     disable_checkboxes = None
     checkbox_initial_values2 = [False]
@@ -5120,7 +5127,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     if option == 'Live':
         # Live option
         flash_string = ""
-        disable_checkboxes2 = [1]  # no reboot doesn't make sense for live booting
+        disable_checkboxes2 = [1, 2]  # no reboot doesn't make sense for live booting, same with flashing stock to other partitions
         checkbox_initial_values2=[False]
         disable_radios = [1, 2, 3]
         disable_checkboxes = [1, 2, 3]
@@ -5145,6 +5152,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         # Flash option
         flash_string = "flash"
         if boot.is_patched != 1:
+            disable_checkboxes2 = [2]  # flashing stock to other partitions doesn't make sense if the image is stock
             # stock
             disable_checkboxes = []  # Initialize as empty list
             if os.path.exists(boot_file):
@@ -5362,6 +5370,57 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{boot_to_flash}\"\n"
             data_win += "\n"
             data_linux += "\n"
+            # If flash stock to other partitions is selected
+            if checkbox_values2 and checkbox_values2[1]:
+                if selected_radio_index == 0:
+                    if os.path.exists(init_boot_to_flash):
+                        data_win += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                    if os.path.exists(vendor_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                elif selected_radio_index == 1:
+                    if os.path.exists(init_boot_to_flash):
+                        data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                    if os.path.exists(vendor_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                elif selected_radio_index == 2:
+                    if os.path.exists(init_boot_to_flash):
+                        data_win += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                    if os.path.exists(vendor_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                data_win += "\n"
+                data_linux += "\n"
 
         # if init_boot is selected
         if checkbox_values and checkbox_values[1]:
@@ -5392,6 +5451,57 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{init_boot_to_flash}\"\n"
             data_win += "\n"
             data_linux += "\n"
+            # If flash stock to other partitions is selected
+            if checkbox_values2 and checkbox_values2[1]:
+                if selected_radio_index == 0:
+                    if os.path.exists(boot_to_flash):
+                        data_win += "echo Flashing stock boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                    if os.path.exists(vendor_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                if selected_radio_index == 1:
+                    if os.path.exists(boot_to_flash):
+                        data_win += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                    if os.path.exists(vendor_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                if selected_radio_index == 2:
+                    if os.path.exists(boot_to_flash):
+                        data_win += "echo Flashing stock boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                    if os.path.exists(vendor_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                data_win += "\n"
+                data_linux += "\n"
 
         # if vendor_boot is selected
         if checkbox_values and checkbox_values[2]:
@@ -5422,6 +5532,57 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{vendor_boot_to_flash}\"\n"
             data_win += "\n"
             data_linux += "\n"
+            # If flash stock to other partitions is selected
+            if checkbox_values2 and checkbox_values2[1]:
+                if selected_radio_index == 0:
+                    if os.path.exists(boot_to_flash):
+                        data_win += "echo Flashing stock boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                    if os.path.exists(init_boot_to_flash):
+                        data_win += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                if selected_radio_index == 1:
+                    if os.path.exists(boot_to_flash):
+                        data_win += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                    if os.path.exists(init_boot_to_flash):
+                        data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                if selected_radio_index == 2:
+                    if os.path.exists(boot_to_flash):
+                        data_win += "echo Flashing stock boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                    if os.path.exists(init_boot_to_flash):
+                        data_win += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+
+                        data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
+                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                data_win += "\n"
+                data_linux += "\n"
 
     # save the scripts
     f_win.write(data_win)

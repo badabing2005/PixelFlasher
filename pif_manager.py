@@ -338,7 +338,7 @@ class PifManager(wx.Dialog):
         self.rb_latest.SetValue(True)
 
         # Custom version input
-        self.custom_version = wx.TextCtrl(self, wx.ID_ANY, "15", size=(40, -1))
+        self.custom_version = wx.TextCtrl(self, wx.ID_ANY, "15", size=(75, -1))
         self.custom_version.SetToolTip(_("Set a valid Android version code."))
         # self.custom_version.SetToolTip(_("Set a valid two digit Android version code,\nor 'C' for Canary,\nor 'CANARY_rxx' for Canary release.\nExample: 15, 16, 17, C, CANARY_r01\nNote: The custom version is only used when 'Custom' is selected."))
         self.custom_version.Enable(False)
@@ -1748,7 +1748,8 @@ class PifManager(wx.Dialog):
             elif device:
                 device_model = device.hardware
             else:
-                device_model = "Random"
+                # device_model = "Random"
+                device_model = "_select_"
             # Check if self.beta_pif_version is a two digit number then set force_version to that (int)
             if self.beta_pif_version.isdigit() and len(self.beta_pif_version) == 2:
                 force_version = int(self.beta_pif_version)

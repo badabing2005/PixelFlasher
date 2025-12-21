@@ -3299,6 +3299,41 @@ def get_telegram_factory_images(max_pages=3):
 
 
 # ============================================================================
+#                 Function get_api_level
+# ============================================================================
+def get_api_level(android_version):
+    try:
+        version_data = get_android_versions()
+        # Create reverse lookup from API version to Android version
+        version_to_api = {}
+        for api_version, info in version_data.items():
+            version_to_api[info['Version'].lower()] = api_version
+        api_level = version_to_api[str(android_version)]
+        return int(api_level)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get API level for Android version {android_version}")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
+#                               Function find_canary_url
+# ============================================================================
+def find_canary_url(api_level=36):
+    try:
+        for i in range(9, 0, -1):
+            url = f"https://dl.google.com/android/repository/sys-img/google_apis/arm64-v8a-{api_level}.0-CANARY_r{i:02d}.zip"
+            #debug(f"Checking: {url}")
+            response = requests.head(url, allow_redirects=True, timeout=5)
+            if response.status_code == 200:
+                return url
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in find_canary_url function")
+        traceback.print_exc()
+    return None
+
+
+# ============================================================================
 #                 Function get_beta_pif
 # ============================================================================
 def get_beta_pif(device_model='random', force_version=None):
@@ -3309,352 +3344,364 @@ def get_beta_pif(device_model='random', force_version=None):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get the latest Android version")
         return -1
 
+    canary_data = False
+    beta_type = "Beta"
     if force_version and str(force_version).startswith('CANARY'):
-        version_data = get_android_versions()
-        # Create reverse lookup from API version to Android version
-        version_to_api = {}
-        for api_version, info in version_data.items():
-            version_to_api[info['Version'].lower()] = api_version
-        api_version = version_to_api[str(latest_version)]
-        canary_url = f"https://dl.google.com/android/repository/sys-img/google_apis/arm64-v8a-{api_version}.0-{force_version}.zip"
-        debug(f"Using Canary URL: {canary_url}")
-        # Fetch Canary data
-        # fingerprint, security_patch = url2fpsp(canary_url, "canary")
-        # TODO : Implement url2fpsp for Canary builds
-        return -1
+        fingerprint, security_patch, expiry_date = url2fpsp("https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/canary.pif.prop", "canary")
+        if fingerprint and security_patch:
+            device_data = get_android_devices()
+            model_list = []
+            product_list = []
+            today = datetime.now().date()
+            for product, info in device_data.items():
+                if info['is_pixel_watch']:
+                    continue
+                end_date_str = info.get('security_update_end_date', '')
+                if end_date_str:
+                    try:
+                        end_date = datetime.strptime(end_date_str, "%B %Y").date()
+                        if end_date >= today:
+                            model_list.append(info['device'])
+                            product_list.append(f"{product}_beta")
+                    except ValueError:
+                        debug(f"Could not parse end date: {end_date_str} for product: {product}")
+            canary_data = True
+            beta_type = "Canary"
 
-    # set the url to the latest version
-    ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
-    factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
-    if not force_version and latest_version_url:
-        ota_url = f"{latest_version_url}/download-ota"
-        factory_url = f"{latest_version_url}/download"
-
-    # Fetch OTA HTML
-    ota_data, ota_error = get_beta_data(ota_url)
-    if not ota_data:
-        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview OTA data for Android {latest_version}")
-    # print(ota_data.__dict__)
-
-    # Fetch Factory HTML
-    factory_data, factory_error = get_beta_data(factory_url)
-    if not factory_data:
-        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview Factory data for Android {latest_version}")
-    # print(factory_data.__dict__)
-
-    # Fetch GSI HTML
-    gsi_data, gsi_error = get_gsi_data(force_version=force_version or latest_version)
-    if not gsi_data:
-        print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview GSI data for Android {latest_version}")
-    # print(gsi_data.__dict__)
-
-    if not ota_data and not factory_data and not gsi_data:
-        return -1
-    if not ota_data and not factory_data:
-        print(f"Getting beta print from GSI data, version {latest_version} ...")
-
-    ota_date_object = None
-    factory_date_object = None
-    gsi_date_object = None
-    if ota_data:
-        ota_date = ota_data.__dict__['release_date']
-        ota_date_object = datetime.strptime(ota_date, "%B %d, %Y")
-        if ota_error:
-            print(f"Beta OTA Date:            {ota_date} (❌ Problems with download links or hashes)")
-        else:
-            print(f"Beta OTA Date:            {ota_date}")
     else:
-        print(f"Beta OTA:                 Unavailable")
+        # set the url to the latest version
+        ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
+        factory_url = f"https://developer.android.com/about/versions/{latest_version}/download"
+        if not force_version and latest_version_url:
+            ota_url = f"{latest_version_url}/download-ota"
+            factory_url = f"{latest_version_url}/download"
 
-    if factory_data:
-        factory_date = factory_data.__dict__['release_date']
-        factory_date_object = datetime.strptime(factory_date, "%B %d, %Y")
-        if factory_error:
-            print(f"Beta Factory Date:        {factory_date} (❌ Problems with download links or hashes)")
+        # Fetch OTA HTML
+        ota_data, ota_error = get_beta_data(ota_url)
+        if not ota_data:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview OTA data for Android {latest_version}")
+        # print(ota_data.__dict__)
+
+        # Fetch Factory HTML
+        factory_data, factory_error = get_beta_data(factory_url)
+        if not factory_data:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview Factory data for Android {latest_version}")
+        # print(factory_data.__dict__)
+
+        # Fetch GSI HTML
+        gsi_data, gsi_error = get_gsi_data(force_version=force_version or latest_version)
+        if not gsi_data:
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get beta or Developer Preview GSI data for Android {latest_version}")
+        # print(gsi_data.__dict__)
+
+        if not ota_data and not factory_data and not gsi_data and not canary_data:
+            return -1
+        if not ota_data and not factory_data and not canary_data:
+            print(f"Getting beta print from GSI data, version {latest_version} ...")
+
+        ota_date_object = None
+        factory_date_object = None
+        gsi_date_object = None
+        if ota_data:
+            ota_date = ota_data.__dict__['release_date']
+            ota_date_object = datetime.strptime(ota_date, "%B %d, %Y")
+            if ota_error:
+                print(f"Beta OTA Date:            {ota_date} (❌ Problems with download links or hashes)")
+            else:
+                print(f"Beta OTA Date:            {ota_date}")
         else:
-            print(f"Beta Factory Date:        {factory_date}")
-    else:
-        print(f"Beta Factory:             Unavailable")
+            print(f"Beta OTA:                 Unavailable")
 
-    if gsi_data:
-        gsi_date = gsi_data.__dict__['release_date']
-        gsi_date_object = datetime.strptime(gsi_date, "%B %d, %Y")
-        if gsi_error:
-            print(f"Beta GSI Date:            {gsi_date} (❌ Possible problems with GSI date)")
+        if factory_data:
+            factory_date = factory_data.__dict__['release_date']
+            factory_date_object = datetime.strptime(factory_date, "%B %d, %Y")
+            if factory_error:
+                print(f"Beta Factory Date:        {factory_date} (❌ Problems with download links or hashes)")
+            else:
+                print(f"Beta Factory Date:        {factory_date}")
         else:
-            print(f"Beta GSI Date:            {gsi_date}")
-    else:
-        print(f"Beta GSI:                 Unavailable")
+            print(f"Beta Factory:             Unavailable")
 
-    # Determine the latest date(s)
-    newest_data = []
-    dates = []
-    if ota_date_object and not ota_error:
-        dates.append((ota_date_object, 'ota'))
-    if factory_date_object and not factory_error:
-        dates.append((factory_date_object, 'factory'))
-    if gsi_date_object and not gsi_error:
-        dates.append((gsi_date_object, 'gsi'))
-    if ota_date_object and ota_error:
-        dates.append((ota_date_object, 'ota_error'))
-    if factory_date_object and factory_error:
-        dates.append((factory_date_object, 'factory_error'))
-    if gsi_date_object and gsi_error:
-        dates.append((gsi_date_object, 'gsi_error'))
+        if gsi_data:
+            gsi_date = gsi_data.__dict__['release_date']
+            gsi_date_object = datetime.strptime(gsi_date, "%B %d, %Y")
+            if gsi_error:
+                print(f"Beta GSI Date:            {gsi_date} (❌ Possible problems with GSI date)")
+            else:
+                print(f"Beta GSI Date:            {gsi_date}")
+        else:
+            print(f"Beta GSI:                 Unavailable")
 
-    # Sort dates in descending order
-    dates.sort(key=lambda x: (x[0], {'ota': 0, 'factory': 1, 'gsi': 2, 'ota_error': 3, 'factory_error': 4, 'gsi_error': 5}[x[1]]), reverse=True)
+        # Determine the latest date(s)
+        newest_data = []
+        dates = []
+        if ota_date_object and not ota_error:
+            dates.append((ota_date_object, 'ota'))
+        if factory_date_object and not factory_error:
+            dates.append((factory_date_object, 'factory'))
+        if gsi_date_object and not gsi_error:
+            dates.append((gsi_date_object, 'gsi'))
+        if ota_date_object and ota_error:
+            dates.append((ota_date_object, 'ota_error'))
+        if factory_date_object and factory_error:
+            dates.append((factory_date_object, 'factory_error'))
+        if gsi_date_object and gsi_error:
+            dates.append((gsi_date_object, 'gsi_error'))
 
-    if not dates:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to determine the latest date")
-        return -1
+        # Sort dates in descending order
+        dates.sort(key=lambda x: (x[0], {'ota': 0, 'factory': 1, 'gsi': 2, 'ota_error': 3, 'factory_error': 4, 'gsi_error': 5}[x[1]]), reverse=True)
 
-    latest_date = dates[0][0]
+        if not dates:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to determine the latest date")
+            return -1
 
-    # Group dates by their value
-    date_groups = {}
-    for date, source in dates:
-        if date not in date_groups:
-            date_groups[date] = []
-        date_groups[date].append(source)
+        latest_date = dates[0][0]
 
-    # Process groups in descending date order
-    for date in sorted(date_groups.keys(), reverse=True):
-        # Sort sources within each date group to maintain ota, factory, gsi order
-        sources = sorted(date_groups[date], key=lambda x: {'ota': 0, 'factory': 1, 'gsi': 2, 'ota_error': 3, 'factory_error': 4, 'gsi_error': 5}[x])
-        newest_data.extend(sources)
+        # Group dates by their value
+        date_groups = {}
+        for date, source in dates:
+            if date not in date_groups:
+                date_groups[date] = []
+            date_groups[date].append(source)
 
-    def get_model_and_prod_list(data):
-        for device in data.__dict__['devices']:
-            model_list.append(device['device'])
-            zip_filename = device['zip_filename']
-            product = zip_filename.split('-')[0]
-            product_list.append(product)
-        return model_list, product_list
+        # Process groups in descending date order
+        for date in sorted(date_groups.keys(), reverse=True):
+            # Sort sources within each date group to maintain ota, factory, gsi order
+            sources = sorted(date_groups[date], key=lambda x: {'ota': 0, 'factory': 1, 'gsi': 2, 'ota_error': 3, 'factory_error': 4, 'gsi_error': 5}[x])
+            newest_data.extend(sources)
 
-    # Show a dialog to list the dates and their sources
-    # recommed to select the first one (newest)
-    # let the user have the option to select another source if they want
+        def get_model_and_prod_list(data):
+            for device in data.__dict__['devices']:
+                model_list.append(device['device'])
+                zip_filename = device['zip_filename']
+                product = zip_filename.split('-')[0]
+                product_list.append(product)
+            return model_list, product_list
 
-    # setup the dialog options
-    title = f"Select Beta print source"
-    message = ""
-    size = (580, 360)
-    button_texts = [_('Automatic'), _('OTA Image'), _('Factory Image'), _('GSI Image'), _("Cancel")]
-    default_button = 1
+        # Show a dialog to list the dates and their sources
+        # recommed to select the first one (newest)
+        # let the user have the option to select another source if they want
 
-    message = '''
+        # setup the dialog options
+        title = f"Select Beta print source"
+        message = ""
+        size = (580, 360)
+        button_texts = [_('Automatic'), _('OTA Image'), _('Factory Image'), _('GSI Image'), _("Cancel")]
+        default_button = 1
+
+        message = '''
 # Available Beta sources<br/>
-  - **Automatic:** PixelFlasher automatically chooses the most recent option.
-  - **OTA:** Sourced from Pixel beta OTA images.
-  - **Factory:** Sourced from Pixel beta factory images.
-  - **GSI** Sourced from Pixel GSI images.
+- **Automatic:** PixelFlasher automatically chooses the most recent option.
+- **OTA:** Sourced from Pixel beta OTA images.
+- **Factory:** Sourced from Pixel beta factory images.
+- **GSI** Sourced from Pixel GSI images.
 '''
 
-    # Additional message details
-    message += f"<pre>"
-    for item in dates:
-        the_date = item[0]
-        source = item[1]
-        source = source.replace("_error", "")
-        # message += f"{source}:  {the_date}\n"
-        message += f"{source:<10}: {the_date.strftime('%B %d, %Y')}\n"
-    message += f"</pre>"
+        # Additional message details
+        message += f"<pre>"
+        for item in dates:
+            the_date = item[0]
+            source = item[1]
+            source = source.replace("_error", "")
+            # message += f"{source}:  {the_date}\n"
+            message += f"{source:<10}: {the_date.strftime('%B %d, %Y')}\n"
+        message += f"</pre>"
 
-    clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
-    print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
-    puml(":Dialog;\n", True)
-    puml(f"note right\n{clean_message}\nend note\n")
-    from message_box_ex import MessageBoxEx
-    dlg = MessageBoxEx(
-        parent=None,
-        title=title,
-        message=message,
-        button_texts=button_texts,
-        default_button=default_button,
-        disable_buttons=None,
-        is_md=True,
-        size=size,
-        checkbox_labels=None,
-        checkbox_initial_values=None,
-        disable_checkboxes=None,
-        vertical_checkboxes=False,
-        checkbox_labels2=None,
-        checkbox_initial_values2=None,
-        disable_checkboxes2=None,
-        radio_labels=None,
-        radio_initial_value=0,
-        disable_radios=None,
-        vertical_radios=False
-    )
-    dlg.CentreOnParent(wx.BOTH)
-    result = dlg.ShowModal()
+        clean_message = message.replace("<br/>", "").replace("</pre>", "").replace("<pre>", "")
+        print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
+        puml(":Dialog;\n", True)
+        puml(f"note right\n{clean_message}\nend note\n")
+        from message_box_ex import MessageBoxEx
+        dlg = MessageBoxEx(
+            parent=None,
+            title=title,
+            message=message,
+            button_texts=button_texts,
+            default_button=default_button,
+            disable_buttons=None,
+            is_md=True,
+            size=size,
+            checkbox_labels=None,
+            checkbox_initial_values=None,
+            disable_checkboxes=None,
+            vertical_checkboxes=False,
+            checkbox_labels2=None,
+            checkbox_initial_values2=None,
+            disable_checkboxes2=None,
+            radio_labels=None,
+            radio_initial_value=0,
+            disable_radios=None,
+            vertical_radios=False
+        )
+        dlg.CentreOnParent(wx.BOTH)
+        result = dlg.ShowModal()
 
-    dlg.Destroy()
-    print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result -1]}")
+        dlg.Destroy()
+        print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result -1]}")
 
-    if result == 1:
-        # User selected Automatic
-        pass # keep newest_data intact
-    elif result == 2:
-        # User selected OTA
-        newest_data = ['ota']
-    elif result == 3:
-        # User selected Factory
-        newest_data = ['factory']
-    elif result == 4:
-        # User selected GSI
-        newest_data = ['gsi']
-    else:
-        # result = 5
-        # user selected CANCEL
-        return -1
+        if result == 1:
+            # User selected Automatic
+            pass # keep newest_data intact
+        elif result == 2:
+            # User selected OTA
+            newest_data = ['ota']
+        elif result == 3:
+            # User selected Factory
+            newest_data = ['factory']
+        elif result == 4:
+            # User selected GSI
+            newest_data = ['gsi']
+        else:
+            # result = 5
+            # user selected CANCEL
+            return -1
 
-    fingerprint = None
-    security_patch = None
-    for data in newest_data:
-        if data in ['ota', 'ota_error'] and ota_data:
-            print("  Extracting PIF from Beta OTA ...")
-            selected_url = None
-            if device_model == '_select_':
-                try:
-                    from device_selector import show_device_selector
-                    devices = ota_data.__dict__['devices']
-                    selected_device = show_device_selector(
-                        parent=None,
-                        devices=devices,
-                        title="Select OTA Device",
-                        message="Select an OTA device:"
-                    )
-
-                    if selected_device:
-                        selected_url = selected_device['url']
-                        # Extract codename from zip filename (format: codename-buildid-*.zip)
-                        zip_filename = selected_device['zip_filename']
-                        device_model = zip_filename.split('-')[0]
-                        device_model = device_model.lower().replace('_beta', '').replace('beta_', '')
-                        print(f"  Selected: {selected_device['device']} - {selected_device['zip_filename']}")
-                    else:
-                        print("Selection cancelled.")
-                        return "Selection cancelled."
-                except ImportError:
-                    selected_url = None
-            elif device_model != 'random':
-                # Try to find a device that matches the requested device model
-                for device in ota_data.__dict__['devices']:
-                    if device_model.lower() in device['zip_filename'].lower():
-                        selected_url = device['url']
-                        debug(f"  Found matching OTA device: {device['zip_filename']}")
-                        break
-            # Fall back to last device if no match found or if random was requested
-            if selected_url is None:
-                selected_url = ota_data.__dict__['devices'][-1]['url']
-                debug(f"  Using last OTA device: {ota_data.__dict__['devices'][-1]['zip_filename']}")
-            # Grab fp and sp from selected OTA zip
-            fingerprint, security_patch = url2fpsp(selected_url, "ota")
-            if fingerprint and security_patch:
-                model_list = []
-                product_list = []
-                model_list, product_list = get_model_and_prod_list(ota_data)
-                expiry_date = ota_data.__dict__['beta_expiry_date']
-                if model_list and product_list:
-                    break
-        elif data in ['factory', 'factory_error'] and factory_data:
-            print("  Extracting PIF from Beta Factory ...")
-            selected_url = None
-            if device_model == '_select_':
-                try:
-                    from device_selector import show_device_selector
-                    devices = factory_data.__dict__['devices']
-                    selected_device = show_device_selector(
-                        parent=None,
-                        devices=devices,
-                        title="Select Factory Device",
-                        message="Select a Factory device:"
-                    )
-                    if selected_device:
-                        selected_url = selected_device['url']
-                        # Extract codename from zip filename (format: codename-buildid-*.zip)
-                        zip_filename = selected_device['zip_filename']
-                        device_model = zip_filename.split('-')[0]
-                        device_model = device_model.lower().replace('_beta', '').replace('beta_', '')
-                        print(f"  Selected: {selected_device['device']} - {selected_device['zip_filename']}")
-                    else:
-                        print("Selection cancelled.")
-                        return "Selection cancelled."
-                except ImportError:
-                    selected_url = None
-            elif device_model != 'random':
-                # Try to find a device that matches the requested model
-                for device in factory_data.__dict__['devices']:
-                    if device_model.lower() in device['zip_filename'].lower():
-                        selected_url = device['url']
-                        debug(f"  Found matching Factory device: {device['zip_filename']}")
-                        break
-            # Fall back to last device if no match found or if random was requested
-            if selected_url is None:
-                selected_url = factory_data.__dict__['devices'][-1]['url']
-                debug(f"  Using last Factory device: {factory_data.__dict__['devices'][-1]['zip_filename']}")
-            # Grab fp and sp from selected Factory zip
-            fingerprint, security_patch = url2fpsp(selected_url, "factory")
-            if fingerprint and security_patch:
-                model_list = []
-                product_list = []
-                model_list, product_list = get_model_and_prod_list(factory_data)
-                expiry_date = factory_data.__dict__['beta_expiry_date']
-                if model_list and product_list:
-                    break
-        elif data in ['gsi', 'gsi_error'] and gsi_data:
-            print(f"  Extracting beta print from GSI data version {latest_version} ...")
-            fingerprint, security_patch = url2fpsp(gsi_data.__dict__['devices'][0]['url'], "gsi")
-            incremental = gsi_data.__dict__['incremental']
-            expiry_date = gsi_data.__dict__['beta_expiry_date']
-            model_list = gsi_data.__dict__['model_list']
-            product_list = gsi_data.__dict__['product_list']
-            security_patch_level = gsi_data.__dict__['security_patch_level']
-            if not model_list or not product_list:
-                model_list = []
-                product_list = []
-                if factory_data:
-                    model_list, product_list = get_model_and_prod_list(factory_data)
-            if not model_list or not product_list:
-                model_list = []
-                product_list = []
-                if ota_data:
-                    model_list, product_list = get_model_and_prod_list(ota_data)
-            if model_list and product_list:
-                if not security_patch:
-                    # Make sur security_patch_level to YYYY-MM-DD format
+        fingerprint = None
+        security_patch = None
+        for data in newest_data:
+            if data in ['ota', 'ota_error'] and ota_data:
+                print("  Extracting PIF from Beta OTA ...")
+                selected_url = None
+                if device_model == '_select_':
                     try:
-                        if security_patch_level:
-                            # Handle month name format like "September 2020"
-                            try:
-                                date_obj = datetime.strptime(security_patch_level, "%B %Y")
-                                security_patch = date_obj.strftime("%Y-%m-05")
-                            except ValueError:
-                                # Try other common formats
-                                try:
-                                    # handle YYYY-MM format
-                                    if re.match(r'^\d{4}-\d{2}$', security_patch_level):
-                                        security_patch = f"{security_patch_level}-05"
-                                    # handle YYYY-MM-DD format already
-                                    elif re.match(r'^\d{4}-\d{2}-\d{2}$', security_patch_level):
-                                        security_patch = security_patch_level
-                                    else:
-                                        # fallback
-                                        security_patch = security_patch_level
-                                except:
-                                    security_patch = security_patch_level
+                        from device_selector import show_device_selector
+                        devices = ota_data.__dict__['devices']
+                        selected_device = show_device_selector(
+                            parent=None,
+                            devices=devices,
+                            title="Select OTA Device",
+                            message="Select an OTA device:"
+                        )
+
+                        if selected_device:
+                            selected_url = selected_device['url']
+                            # Extract codename from zip filename (format: codename-buildid-*.zip)
+                            zip_filename = selected_device['zip_filename']
+                            device_model = zip_filename.split('-')[0]
+                            device_model = device_model.lower().replace('_beta', '').replace('beta_', '')
+                            print(f"  Selected: {selected_device['device']} - {selected_device['zip_filename']}")
                         else:
-                            security_patch = ""
-                    except Exception as e:
-                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to parse security patch level: {security_patch_level}")
-                        security_patch = security_patch_level  # Fallback to original value
-                if not fingerprint:
-                    build_id = gsi_data.__dict__['build']
-                    fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{latest_version}/{build_id}/{incremental}:user/release-keys"
+                            print("Selection cancelled.")
+                            return "Selection cancelled."
+                    except ImportError:
+                        selected_url = None
+                elif device_model != 'random':
+                    # Try to find a device that matches the requested device model
+                    for device in ota_data.__dict__['devices']:
+                        if device_model.lower() in device['zip_filename'].lower():
+                            selected_url = device['url']
+                            debug(f"  Found matching OTA device: {device['zip_filename']}")
+                            break
+                # Fall back to last device if no match found or if random was requested
+                if selected_url is None:
+                    selected_url = ota_data.__dict__['devices'][-1]['url']
+                    debug(f"  Using last OTA device: {ota_data.__dict__['devices'][-1]['zip_filename']}")
+                # Grab fp and sp from selected OTA zip
+                fingerprint, security_patch = url2fpsp(selected_url, "ota")
                 if fingerprint and security_patch:
-                    break
+                    model_list = []
+                    product_list = []
+                    model_list, product_list = get_model_and_prod_list(ota_data)
+                    expiry_date = ota_data.__dict__['beta_expiry_date']
+                    if model_list and product_list:
+                        break
+            elif data in ['factory', 'factory_error'] and factory_data:
+                print("  Extracting PIF from Beta Factory ...")
+                selected_url = None
+                if device_model == '_select_':
+                    try:
+                        from device_selector import show_device_selector
+                        devices = factory_data.__dict__['devices']
+                        selected_device = show_device_selector(
+                            parent=None,
+                            devices=devices,
+                            title="Select Factory Device",
+                            message="Select a Factory device:"
+                        )
+                        if selected_device:
+                            selected_url = selected_device['url']
+                            # Extract codename from zip filename (format: codename-buildid-*.zip)
+                            zip_filename = selected_device['zip_filename']
+                            device_model = zip_filename.split('-')[0]
+                            device_model = device_model.lower().replace('_beta', '').replace('beta_', '')
+                            print(f"  Selected: {selected_device['device']} - {selected_device['zip_filename']}")
+                        else:
+                            print("Selection cancelled.")
+                            return "Selection cancelled."
+                    except ImportError:
+                        selected_url = None
+                elif device_model != 'random':
+                    # Try to find a device that matches the requested model
+                    for device in factory_data.__dict__['devices']:
+                        if device_model.lower() in device['zip_filename'].lower():
+                            selected_url = device['url']
+                            debug(f"  Found matching Factory device: {device['zip_filename']}")
+                            break
+                # Fall back to last device if no match found or if random was requested
+                if selected_url is None:
+                    selected_url = factory_data.__dict__['devices'][-1]['url']
+                    debug(f"  Using last Factory device: {factory_data.__dict__['devices'][-1]['zip_filename']}")
+                # Grab fp and sp from selected Factory zip
+                fingerprint, security_patch = url2fpsp(selected_url, "factory")
+                if fingerprint and security_patch:
+                    model_list = []
+                    product_list = []
+                    model_list, product_list = get_model_and_prod_list(factory_data)
+                    expiry_date = factory_data.__dict__['beta_expiry_date']
+                    if model_list and product_list:
+                        break
+            elif data in ['gsi', 'gsi_error'] and gsi_data:
+                print(f"  Extracting beta print from GSI data version {latest_version} ...")
+                fingerprint, security_patch = url2fpsp(gsi_data.__dict__['devices'][0]['url'], "gsi")
+                incremental = gsi_data.__dict__['incremental']
+                expiry_date = gsi_data.__dict__['beta_expiry_date']
+                model_list = gsi_data.__dict__['model_list']
+                product_list = gsi_data.__dict__['product_list']
+                security_patch_level = gsi_data.__dict__['security_patch_level']
+                if not model_list or not product_list:
+                    model_list = []
+                    product_list = []
+                    if factory_data:
+                        model_list, product_list = get_model_and_prod_list(factory_data)
+                if not model_list or not product_list:
+                    model_list = []
+                    product_list = []
+                    if ota_data:
+                        model_list, product_list = get_model_and_prod_list(ota_data)
+                if model_list and product_list:
+                    if not security_patch:
+                        # Make sur security_patch_level to YYYY-MM-DD format
+                        try:
+                            if security_patch_level:
+                                # Handle month name format like "September 2020"
+                                try:
+                                    date_obj = datetime.strptime(security_patch_level, "%B %Y")
+                                    security_patch = date_obj.strftime("%Y-%m-05")
+                                except ValueError:
+                                    # Try other common formats
+                                    try:
+                                        # handle YYYY-MM format
+                                        if re.match(r'^\d{4}-\d{2}$', security_patch_level):
+                                            security_patch = f"{security_patch_level}-05"
+                                        # handle YYYY-MM-DD format already
+                                        elif re.match(r'^\d{4}-\d{2}-\d{2}$', security_patch_level):
+                                            security_patch = security_patch_level
+                                        else:
+                                            # fallback
+                                            security_patch = security_patch_level
+                                    except:
+                                        security_patch = security_patch_level
+                            else:
+                                security_patch = ""
+                        except Exception as e:
+                            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to parse security patch level: {security_patch_level}")
+                            security_patch = security_patch_level  # Fallback to original value
+                    if not fingerprint:
+                        build_id = gsi_data.__dict__['build']
+                        fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{latest_version}/{build_id}/{incremental}:user/release-keys"
+                    if fingerprint and security_patch:
+                        break
+
 
     build_type = 'user'
     build_tags = 'release-keys'
@@ -3670,8 +3717,9 @@ def get_beta_pif(device_model='random', force_version=None):
             latest_version = match[4]
             build_id = match[5]
             incremental = match[6]
-            build_type = match[7]
-            build_tags = match[8]
+            if not canary_data:
+                build_type = match[7]
+                build_tags = match[8]
 
     def set_random_beta():
         list_count = len(model_list)
@@ -3739,8 +3787,8 @@ def get_beta_pif(device_model='random', force_version=None):
     # }
 
     random_print_json = json.dumps(pif_data, indent=4)
-    print(f"Beta Print Expiry Date:   {expiry_date}")
-    print(f"Random Beta Profile/Fingerprint:\n{random_print_json}\n")
+    print(f"{beta_type} Print Expiry Date:   {expiry_date}")
+    print(f"Random {beta_type} Profile/Fingerprint:\n{random_print_json}\n")
     return random_print_json
 
 
@@ -3765,45 +3813,102 @@ def get_beta_data(url):
 
         # Extract information from the first table
         table = soup.find('table', class_='responsive fixed')
+
+        # If metadata table is missing, try to fetch it from alternate pages
         if not table:
+            # Determine base URL to construct alternates
+            # Typical URLs:
+            # .../versions/16/qpr3/download-ota
+            # .../versions/16/qpr3/download
+            # .../versions/16/download-ota
+
+            base_url = url.rsplit('/', 1)[0]
+            current_endpoint = url.rsplit('/', 1)[1]
+
+            alternates = []
+
+            # 1. Try the counterpart (download <-> download-ota)
+            if 'download-ota' in current_endpoint:
+                alternates.append(f"{base_url}/download")
+            elif 'download' in current_endpoint:
+                alternates.append(f"{base_url}/download-ota")
+
+            # 2. Try release notes
+            alternates.append(f"{base_url}/release-notes")
+
+            for alt_url in alternates:
+                debug(f"ℹ️ Metadata table not found, checking alternate URL: {alt_url}")
+                try:
+                    alt_resp = requests.get(alt_url)
+                    if alt_resp.status_code == 200:
+                        alt_soup = BeautifulSoup(alt_resp.text, 'html.parser')
+                        table = alt_soup.find('table', class_='responsive fixed')
+                        if table:
+                            debug(f"  ✅ Found metadata table at {alt_url}")
+                            break
+                except Exception as e:
+                    print(f"  ❌ Failed to fetch alternate metadata from {alt_url}: {e}")
+
+        release_date = None
+        build = None
+        emulator_support = None
+        security_patch_level = None
+        google_play_services = None
+        beta_expiry_date = None
+
+        if table:
+            rows = table.find_all('tr')
+            data = {}
+            for row in rows:
+                cols = row.find_all('td')
+                if len(cols) >= 2:
+                    key = cols[0].text.strip().lower().replace(' ', '_')
+                    value = cols[1].text.strip()
+                    data[key] = value
+
+            release_date = data.get('release_date')
+            build = data.get('build')
+            if not build:
+                wx.Yield()
+                # try again to get the build, this time looking for builds
+                build = data.get('builds')
+            if not build:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build(s) not found in the data.")
+                return None, None
+            else:
+                # we might get an output like this: 'BP31.250610.004\n      BP31.250610.004.A1 (Pixel 6, 6 Pro)'
+                # we need to extract the first build from it, but we also need to keep the other builds for later
+                # when we're extracting the devices, we need to match the build with the device.
+                builds = build.split('\n')
+                if len(builds) > 1:
+                    print(f"ℹ️ Multiple Builds are found, selecting the first one: {builds[0].strip()}")
+                    build = builds[0].strip()  # Take the first build only
+                    print(f"ℹ️ Selected Build:           {build}")
+                else:
+                    print(f"ℹ️ Single Build is found: {builds[0].strip()}")
+                    build = builds[0].strip()
+            emulator_support = data.get('emulator_support')
+            security_patch_level = data.get('security_patch_level')
+            google_play_services = data.get('google_play_services')
+
+            if release_date:
+                try:
+                    beta_release_date = datetime.strptime(release_date, '%B %d, %Y').strftime('%Y-%m-%d')
+                    beta_expiry = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
+                    beta_expiry_date = beta_expiry.strftime('%Y-%m-%d')
+                except:
+                    pass
+        elif soup.find('table', id='images'):
+            debug(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Metadata table not found, using dummy metadata.")
+            release_date = datetime.now().strftime("%B %d, %Y")
+            build = "Unknown"
+            emulator_support = "Unknown"
+            security_patch_level = "Unknown"
+            google_play_services = "Unknown"
+            beta_expiry_date = (datetime.now() + timedelta(weeks=6)).strftime('%Y-%m-%d')
+        else:
             # print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Required table is not found on the page.")
             return None, None
-
-        rows = table.find_all('tr')
-        data = {}
-        for row in rows:
-            cols = row.find_all('td')
-            key = cols[0].text.strip().lower().replace(' ', '_')
-            value = cols[1].text.strip()
-            data[key] = value
-
-        release_date = data.get('release_date')
-        build = data.get('build')
-        if not build:
-            wx.Yield()
-            # try again to get the build, this time looking for builds
-            build = data.get('builds')
-        if not build:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build(s) not found in the data.")
-            return None, None
-        else:
-            # we might get an output like this: 'BP31.250610.004\n      BP31.250610.004.A1 (Pixel 6, 6 Pro)'
-            # we need to extract the first build from it, but we also need to keep the other builds for later
-            # when we're extracting the devices, we need to match the build with the device.
-            builds = build.split('\n')
-            if len(builds) > 1:
-                print(f"ℹ️ Multiple Builds are found, selecting the first one: {builds[0].strip()}")
-                build = builds[0].strip()  # Take the first build only
-                print(f"ℹ️ Selected Build:           {build}")
-            else:
-                print(f"ℹ️ Single Build is found: {builds[0].strip()}")
-                build = builds[0].strip()
-        emulator_support = data.get('emulator_support')
-        security_patch_level = data.get('security_patch_level')
-        google_play_services = data.get('google_play_services')
-        beta_release_date = datetime.strptime(release_date, '%B %d, %Y').strftime('%Y-%m-%d')
-        beta_expiry = datetime.strptime(beta_release_date, '%Y-%m-%d') + timedelta(weeks=6)
-        beta_expiry_date = beta_expiry.strftime('%Y-%m-%d')
 
         # Extract information from the second table
         devices = []
@@ -3816,17 +3921,21 @@ def get_beta_data(url):
             button = cols[1].find('button')
             category = button['data-category']
             zip_filename = button.text.strip()
+            hashcode = cols[1].find('code').text.strip()
+
             # Check if the build is present in the zip_filename, if not print a warning
             if not build:
-                error = True
-            if build and build.lower() not in zip_filename.lower():
+                # If we have no build info, we can't verify, but we shouldn't fail the whole process
+                pass
+            if build and build != "Unknown" and build.lower() not in zip_filename.lower():
                 print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Build '{build}' not found in zip filename '{zip_filename}' for device '{device}'")
                 error = True
-            hashcode = cols[1].find('code').text.strip()
+
             # check if the first 8 characters of the hashcode is not in the zip_filename, if not print a warning
             if hashcode[:8].lower() not in zip_filename.lower():
                 print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Hashcode '{hashcode[:8]}' not found in zip filename '{zip_filename}' for device '{device}'")
                 error = True
+
             devices.append({
                 'device': device,
                 'category': category,
@@ -3867,6 +3976,7 @@ def get_latest_android_version(force_version=None):
     soup = BeautifulSoup(versions_html, 'html.parser')
     version = 0
     beta_link_url = ''
+    beta_links = {}
 
     for link in soup.find_all('a'):
         # Look for Android Beta link
@@ -3876,9 +3986,17 @@ def get_latest_android_version(force_version=None):
             if beta_href:
                 # Convert relative URL to absolute if needed
                 if beta_href.startswith('/'):
-                    beta_link_url = f"https://developer.android.com{beta_href}"
+                    full_url = f"https://developer.android.com{beta_href}"
                 else:
-                    beta_link_url = beta_href
+                    full_url = beta_href
+
+                # Extract version from URL
+                match = re.search(r'about/versions/(\d+)', full_url)
+                if match:
+                    ver = int(match.group(1))
+                    # Only store if not already present (assuming descending order on page, first is newest)
+                    if ver not in beta_links:
+                        beta_links[ver] = full_url
 
         # Look for version links
         href = link.get('href')
@@ -3892,8 +4010,52 @@ def get_latest_android_version(force_version=None):
                 if link_version > version:
                     version = link_version
 
+    # Determine best beta link
+    if force_version and not str(force_version).startswith('CANARY'):
+        # Try to find beta link for forced version
+        try:
+            force_ver_int = int(force_version)
+            if force_ver_int in beta_links:
+                beta_link_url = beta_links[force_ver_int]
+        except ValueError:
+            pass
+    else:
+        # Find highest version in beta_links
+        if beta_links:
+            max_ver = max(beta_links.keys())
+            beta_link_url = beta_links[max_ver]
+
+    # Check for QPR updates on the specific version page
+    if version > 0:
+        version_page_url = f"https://developer.android.com/about/versions/{version}"
+        print(f"Checking for QPR updates on {version_page_url}...")
+        try:
+            v_response = request_with_fallback('GET', version_page_url)
+            if v_response != 'ERROR' and v_response.status_code == 200:
+                v_soup = BeautifulSoup(v_response.text, 'html.parser')
+                max_qpr = 0
+                qpr_url = ""
+
+                for link in v_soup.find_all('a'):
+                    href = link.get('href')
+                    if href:
+                        # Check for qpr pattern: .../versions/{version}/qpr(\d+)
+                        match = re.search(rf'about/versions/{version}/qpr(\d+)', href)
+                        if match:
+                            qpr_num = int(match.group(1))
+                            if qpr_num > max_qpr:
+                                max_qpr = qpr_num
+                                # Construct base QPR url
+                                qpr_url = f"https://developer.android.com/about/versions/{version}/qpr{qpr_num}"
+
+                if max_qpr > 0:
+                    print(f"Found newer QPR version:  QPR{max_qpr}")
+                    beta_link_url = qpr_url
+        except Exception as e:
+            print(f"Failed to check for QPR updates: {e}")
+
     # Resolve any redirects in the beta_link_url
-    if beta_link_url:
+    if beta_link_url and 'qpr' not in beta_link_url.lower():
         beta_link_url = resolve_url_redirects(beta_link_url)
 
     return version, beta_link_url
@@ -4136,6 +4298,20 @@ def url2fpsp(url, image_type, override_size_limit=None):
 
                 fingerprint = fingerprint_match.group(1).strip('\x00') if fingerprint_match else None
                 security_patch = security_patch_match.group(1).strip('\x00') if security_patch_match else None
+
+            elif image_type == 'canary':
+                response = requests.get(url, stream=True, verify=False)
+                content = response.content.decode('utf-8', errors='ignore')
+                fingerprint_match = re.search(r"^FINGERPRINT=(.+)", content, re.MULTILINE)
+                security_patch_match = re.search(r"^SECURITY_PATCH=(.+)", content, re.MULTILINE)
+                expiry_date_match = re.search(r"^#\sEstimated\sExpiry:\s(.+)", content, re.MULTILINE)
+                if fingerprint_match:
+                    fingerprint = fingerprint_match.group(1).strip()
+                if security_patch_match:
+                    security_patch = security_patch_match.group(1).strip()
+                if expiry_date_match:
+                    expiry_date = expiry_date_match.group(1).strip()
+                return fingerprint, security_patch, expiry_date
 
             else:
                 print(f"Invalid image type: {image_type}")
@@ -7530,9 +7706,16 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                 rsa_leaf = entry.get('rsa_leaf', '')
                 rsa_chain = entry.get('rsa_chain', '')
 
-                ecdsa_leaf_valid = ecdsa_leaf == 'valid'
+                # Get root CA SNs from the first file entry
+                ecdsa_root_ca_sn = None
+                rsa_root_ca_sn = None
+                if files and isinstance(files[0], dict):
+                    ecdsa_root_ca_sn = files[0].get('ecdsa_root_ca_sn')
+                    rsa_root_ca_sn = files[0].get('rsa_root_ca_sn')
+
+                ecdsa_leaf_valid = ecdsa_leaf == 'valid' and ecdsa_root_ca_sn
                 ecdsa_chain_valid = ecdsa_chain == 'valid'
-                rsa_leaf_valid = rsa_leaf == 'valid'
+                rsa_leaf_valid = rsa_leaf == 'valid' and rsa_root_ca_sn
                 rsa_chain_valid = rsa_chain == 'valid'
 
                 # Check for single file entries

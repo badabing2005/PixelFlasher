@@ -466,6 +466,7 @@ Your help improving translations is greatly appreciated!
 - Spanish `es`, used online translation (it could be imperfect)
 - Traditional Chinese `zh-rTW`, thanks to [EdwardWu](https://github.com/bluehomewu)
 - Simplified Chinese `zh_CN`, thanks to [LittlenineEnnea](https://github.com/LittlenineEnnea)
+- Italian `it`, thanks to [bandrea83](https://github.com/bandrea83)
 
 ## Credits
 

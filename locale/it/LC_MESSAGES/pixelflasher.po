@@ -48,7 +48,7 @@ msgid "&My Tools"
 msgstr "&I Miei Strumenti"
 
 msgid "&Google Images"
-msgstr "Immagini &Google"
+msgstr "&Immagini Google"
 
 msgid "&Toolbar"
 msgstr "&Barra degli strumenti"
@@ -71,8 +71,8 @@ msgstr "Impostazioni"
 msgid "Exit"
 msgstr "Esci"
 
-msgid "E&xit\tCtrl-Q"
-msgstr "E&sci\tCtrl-Q"
+msgid "&Exit\tCtrl-Q"
+msgstr "&Esci\tCtrl-Q"
 
 msgid "Exit PixelFlasher"
 msgstr "Esci da PixelFlasher"

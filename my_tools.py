@@ -40,6 +40,7 @@ from datetime import datetime
 import wx
 import images as images
 from runtime import *
+from i18n import _
 
 
 # ============================================================================
@@ -48,7 +49,7 @@ from runtime import *
 class MyToolsDialog(wx.Dialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
-        self.SetTitle("My Tools Manager")
+        self.SetTitle(_("My Tools Manager"))
         self.mytools = {}
         self.load_mytools()
         self.SetSize((900, 750))
@@ -68,66 +69,66 @@ class MyToolsDialog(wx.Dialog):
         title_ctrl_default_height = self.title_ctrl.GetSize().height
         self.title_ctrl.SetMinSize((500, title_ctrl_default_height))
         self.title_ctrl.ShowCancelButton(True)
-        self.title_ctrl.SetDescriptiveText("Title")
+        self.title_ctrl.SetDescriptiveText(_("Title"))
         self.title_ctrl.ShowSearchButton(False)
-        self.title_ctrl.SetToolTip("Title of the tool")
+        self.title_ctrl.SetToolTip(_("Title of the tool"))
 
         self.command_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.command_ctrl.ShowCancelButton(True)
-        self.command_ctrl.SetDescriptiveText("Command")
+        self.command_ctrl.SetDescriptiveText(_("Command"))
         self.command_ctrl.ShowSearchButton(False)
-        self.command_ctrl.SetToolTip("Command to run")
+        self.command_ctrl.SetToolTip(_("Command to run"))
 
         self.args_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.args_ctrl.ShowCancelButton(True)
-        self.args_ctrl.SetDescriptiveText("Arguments")
+        self.args_ctrl.SetDescriptiveText(_("Arguments"))
         self.args_ctrl.ShowSearchButton(False)
-        self.args_ctrl.SetToolTip("Arguments to pass to the command")
+        self.args_ctrl.SetToolTip(_("Arguments to pass to the command"))
 
         self.directory_ctrl = wx.SearchCtrl(self, style=wx.TE_LEFT)
         self.directory_ctrl.ShowCancelButton(True)
-        self.directory_ctrl.SetDescriptiveText("Directory")
+        self.directory_ctrl.SetDescriptiveText(_("Directory"))
         self.directory_ctrl.ShowSearchButton(False)
-        self.directory_ctrl.SetToolTip("Directory to run the command in")
+        self.directory_ctrl.SetToolTip(_("Directory to run the command in"))
 
-        shell_method_choices = ["Method 1", "Method 2", "Method 3", "Method 4"]
+        shell_method_choices = [_("Method 1"), _("Method 2"), _("Method 3"), _("Method 4")]
         self.shell_method_choice = wx.Choice(self, choices=shell_method_choices)
         self.shell_method_choice.SetSelection(2)
-        self.shell_method_choice.SetToolTip("Shell method to use\nMethod 3 is recommended.")
+        self.shell_method_choice.SetToolTip(_("Shell method to use\nMethod 3 is recommended."))
 
-        self.run_detached_checkbox = wx.CheckBox(self, label="Run Detached")
+        self.run_detached_checkbox = wx.CheckBox(self, label=_("Run Detached"))
         self.run_detached_checkbox.SetValue(True)
-        self.run_detached_checkbox.SetToolTip("Run the command detached")
+        self.run_detached_checkbox.SetToolTip(_("Run the command detached"))
 
-        self.enabled_checkbox = wx.CheckBox(self, label="Enabled")
-        self.enabled_checkbox.SetToolTip("Enable the tool")
+        self.enabled_checkbox = wx.CheckBox(self, label=_("Enabled"))
+        self.enabled_checkbox.SetToolTip(_("Enable the tool"))
 
-        self.add_button = wx.Button(self, label="Add")
-        self.add_button.SetToolTip("Add a new tool")
+        self.add_button = wx.Button(self, label=_("Add"))
+        self.add_button.SetToolTip(_("Add a new tool"))
         self.add_button.Disable()
 
-        self.add_separator = wx.Button(self, label="Add Separator")
-        self.add_separator.SetToolTip("Add a separator")
+        self.add_separator = wx.Button(self, label=_("Add Separator"))
+        self.add_separator.SetToolTip(_("Add a separator"))
         self.add_separator.Disable()
 
-        self.remove_button = wx.Button(self, label="Remove")
-        self.remove_button.SetToolTip("Remove the selected tool")
+        self.remove_button = wx.Button(self, label=_("Remove"))
+        self.remove_button.SetToolTip(_("Remove the selected tool"))
         self.remove_button.Disable()
 
-        self.update_button = wx.Button(self, label="Update")
-        self.update_button.SetToolTip("Update the selected tool")
+        self.update_button = wx.Button(self, label=_("Update"))
+        self.update_button.SetToolTip(_("Update the selected tool"))
         self.update_button.Disable()
 
-        self.up_button = wx.Button(self, label="Up")
-        self.up_button.SetToolTip("Move selected tool up")
+        self.up_button = wx.Button(self, label=_("Up"))
+        self.up_button.SetToolTip(_("Move selected tool up"))
         self.up_button.Disable()
 
-        self.down_button = wx.Button(self, label="Down")
-        self.down_button.SetToolTip("Move selected tool down")
+        self.down_button = wx.Button(self, label=_("Down"))
+        self.down_button.SetToolTip(_("Move selected tool down"))
         self.down_button.Disable()
 
-        self.close_button = wx.Button(self, label="Close")
-        self.close_button.SetToolTip("Close this dialog")
+        self.close_button = wx.Button(self, label=_("Close"))
+        self.close_button.SetToolTip(_("Close this dialog"))
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -329,7 +330,7 @@ class MyToolsDialog(wx.Dialog):
     def OnUpdate(self, e):
         selection = self.list.GetFirstSelected()
         if selection == -1:
-            print("No item selected for update.")
+            print(f"No item selected for update.")
             return
         item_id = str(selection + 1)
         self.add_to_mytools(update_index=item_id)

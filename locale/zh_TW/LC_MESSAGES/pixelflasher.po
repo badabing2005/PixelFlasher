@@ -2998,3 +2998,68 @@ msgstr ""
 msgid "Edit script before continuing"
 msgstr ""
 
+##############################################################################
+# Download Progress Window
+##############################################################################
+msgid "Downloading: %s"
+msgstr ""
+
+##############################################################################
+# File Editor Window
+##############################################################################
+msgid "Open Shell"
+msgstr ""
+
+msgid "Save and Continue"
+msgstr ""
+
+msgid "Cancel and Abort"
+msgstr ""
+
+msgid "Open Folder in working directory"
+msgstr ""
+
+msgid "Open command shell in working directory"
+msgstr ""
+
+msgid "Open Folder in working directory\nNote: PF_FILEMANAGER needs to be set."
+msgstr ""
+
+msgid "Open Terminal shell in working directory"
+msgstr ""
+
+msgid "Save the file and continue."
+msgstr ""
+
+msgid "Cancel and Abort."
+msgstr ""
+
+##############################################################################
+# Ksu Asset Selector
+##############################################################################
+msgid "Filter:"
+msgstr ""
+
+msgid "Search assets..."
+msgstr ""
+
+msgid "Asset Name"
+msgstr ""
+
+msgid "Size"
+msgstr ""
+
+msgid "Suggested: %s"
+msgstr ""
+
+msgid "Please select an asset."
+msgstr ""
+
+msgid "No Selection"
+msgstr ""
+
+msgid "Select KSU Asset"
+msgstr ""
+
+msgid "Select a KSU asset:"
+msgstr ""

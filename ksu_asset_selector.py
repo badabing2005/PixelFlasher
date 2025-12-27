@@ -35,6 +35,7 @@
 
 import wx
 import re
+from i18n import _
 
 # ============================================================================
 #                      Class KsuAssetSelectorDialog
@@ -59,11 +60,11 @@ class KsuAssetSelectorDialog(wx.Dialog):
 
         # Filter section
         filter_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        filter_label = wx.StaticText(self, label="Filter:")
+        filter_label = wx.StaticText(self, label=_("Filter:"))
         filter_sizer.Add(filter_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
         self.filter_text = wx.SearchCtrl(self, style=wx.TE_PROCESS_ENTER)
-        self.filter_text.SetDescriptiveText("Search assets...")
+        self.filter_text.SetDescriptiveText(_("Search assets..."))
         self.filter_text.ShowSearchButton(True)
         self.filter_text.ShowCancelButton(True)
 
@@ -77,27 +78,27 @@ class KsuAssetSelectorDialog(wx.Dialog):
 
         # Asset list
         self.asset_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        self.asset_list.AppendColumn("Asset Name", width=500)
-        self.asset_list.AppendColumn("Version", width=100)
-        self.asset_list.AppendColumn("Size", width=120)
+        self.asset_list.AppendColumn(_("Asset Name"), width=500)
+        self.asset_list.AppendColumn(_("Version"), width=100)
+        self.asset_list.AppendColumn(_("Size"), width=120)
 
         main_sizer.Add(self.asset_list, 1, wx.ALL | wx.EXPAND, 10)
 
         # Suggested text
         self.suggested_text = None
         if suggested_asset:
-            self.suggested_text = wx.StaticText(self, label=f"Suggested: {suggested_asset['name']}")
+            self.suggested_text = wx.StaticText(self, label=_("Suggested: %s") % (suggested_asset['name']))
             self.suggested_text.SetFont(self.suggested_text.GetFont().Bold())
             main_sizer.Add(self.suggested_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
         # Buttons
         button_sizer = wx.StdDialogButtonSizer()
 
-        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        ok_button = wx.Button(self, wx.ID_OK, _("OK"))
         ok_button.SetDefault()
         button_sizer.AddButton(ok_button)
 
-        cancel_button = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        cancel_button = wx.Button(self, wx.ID_CANCEL, _("Cancel"))
         button_sizer.AddButton(cancel_button)
 
         button_sizer.Realize()
@@ -159,7 +160,7 @@ class KsuAssetSelectorDialog(wx.Dialog):
 
             # Extract version from asset name if possible
             match = re.search(r'\.([0-9]+)(?:_.*|)-', asset['name'])
-            version = match.group(1) if match else "Unknown"
+            version = match.group(1) if match else _("Unknown")
             self.asset_list.SetItem(index, 1, version)
 
             # Format size
@@ -193,7 +194,7 @@ class KsuAssetSelectorDialog(wx.Dialog):
             self.selected_asset = self.filtered_assets[selected_index]
             self.EndModal(wx.ID_OK)
         else:
-            wx.MessageBox("Please select an asset.", "No Selection", wx.OK | wx.ICON_WARNING)
+            wx.MessageBox(_("Please select an asset."), _("No Selection"), wx.OK | wx.ICON_WARNING)
 
     def on_item_activated(self, event):
         self.selected_asset = self.filtered_assets[event.GetIndex()]
@@ -206,7 +207,7 @@ class KsuAssetSelectorDialog(wx.Dialog):
 # ============================================================================
 #                  Function show_ksu_asset_selector
 # ============================================================================
-def show_ksu_asset_selector(parent, assets, title="Select KSU Asset", message="Select a KSU asset:", suggested_asset=None, initial_filter=None):
+def show_ksu_asset_selector(parent, assets, title=_("Select KSU Asset"), message=_("Select a KSU asset:"), suggested_asset=None, initial_filter=None):
     dialog = KsuAssetSelectorDialog(parent, assets, title, message, suggested_asset, initial_filter)
 
     if dialog.ShowModal() == wx.ID_OK:

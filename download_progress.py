@@ -34,6 +34,7 @@
 # <https://www.gnu.org/licenses/>.
 
 import wx
+from i18n import _
 
 # ============================================================================
 #                               Class FilePickerComboBox
@@ -72,13 +73,13 @@ class DownloadProgressWindow(wx.Frame):
 
         # URL and Filename
         label_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        url_label = wx.StaticText(item_panel, label=f"Downloading: {filename}")
+        url_label = wx.StaticText(item_panel, label=_("Downloading: %s) % (filename))
         label_sizer.Add(url_label, 1, wx.EXPAND)
 
         # Progress bar and cancel button
         gauge_sizer = wx.BoxSizer(wx.HORIZONTAL)
         gauge = wx.Gauge(item_panel, range=100, size=(-1, 20), style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
-        cancel_button = wx.Button(item_panel, label="Cancel", size=(70, -1))
+        cancel_button = wx.Button(item_panel, label=_("Cancel"), size=(70, -1))
 
         gauge_sizer.Add(gauge, 1, wx.EXPAND | wx.RIGHT, 5)
         gauge_sizer.Add(cancel_button, 0)

@@ -2090,7 +2090,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method check_file
     # ----------------------------------------------------------------------------
-    def check_file(self, file_path: str, with_su = False, verbose = True) -> int:
+    def check_file(self, file_path: str, with_su = False, verbose = True) -> tuple[int, str | None]:
         """Method checks if a file exists on the device.
 
         Args:

@@ -5132,9 +5132,18 @@ class PixelFlasher(wx.Frame):
         try:
             device = get_phone(True)
             if device:
-                res = device.exec_cmd('sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh')
-                if res:
-                    print(res)
+                _script_path = "/storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh"
+                _script_exists, _ = device.check_file(_script_path)
+                if _script_exists == 1:
+                    res = device.exec_cmd(f'sh {_script_path}')
+                    if res:
+                        print(res)
+                else:
+                    _pkg_path = device.exec_cmd("pm path moe.shizuku.privileged.api")
+                    _pkg = _pkg_path.removeprefix("package:").removesuffix("/base.apk\n") + "/lib/arm64/libshizuku.so"
+                    res = device.exec_cmd(_pkg)
+                    if res:
+                        print(res)
             else:
                 self.clear_device_selection()
         except Exception:

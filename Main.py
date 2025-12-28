@@ -5135,7 +5135,6 @@ class PixelFlasher(wx.Frame):
                 _script_path = "/storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh"
                 _script_exists, _ = device.check_file(_script_path)
                 if _script_exists == 1:
-                    print("_script_exists == 1")
                     res = device.exec_cmd(f'sh {_script_path}')
                     if res:
                         print(res)

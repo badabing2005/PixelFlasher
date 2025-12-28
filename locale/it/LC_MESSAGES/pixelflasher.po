@@ -3000,3 +3000,69 @@ msgstr "## ❌ L'immagine selezionata non è valida.<br/>\n"
 
 msgid "Edit script before continuing"
 msgstr "Modifica script prima di continuare"
+
+##############################################################################
+# Download Progress Window
+##############################################################################
+msgid "Downloading: %s"
+msgstr "Dowmload in corso: %s"
+
+##############################################################################
+# File Editor Window
+##############################################################################
+msgid "Open Shell"
+msgstr "Apri Shell"
+
+msgid "Save and Continue"
+msgstr "Salva e Continua"
+
+msgid "Cancel and Abort"
+msgstr "Annulla e Ferma"
+
+msgid "Open Folder in working directory"
+msgstr "Apri Cartells nella directory di lavoro"
+
+msgid "Open command shell in working directory"
+msgstr "Apri shell comandi nella directory di lavoro"
+
+msgid "Open Folder in working directory\nNote: PF_FILEMANAGER needs to be set."
+msgstr "Apri Cartella nella directory di lavoro\nNota: PF_FILEMANAGER richiede di essere impostato."
+
+msgid "Open Terminal shell in working directory"
+msgstr "Apri shell Terminale nella directory di lavoro"
+
+msgid "Save the file and continue."
+msgstr "Salva file e continua"
+
+msgid "Cancel and Abort."
+msgstr "Annulla e Ferma."
+
+##############################################################################
+# Ksu Asset Selector
+##############################################################################
+msgid "Filter:"
+msgstr "Filtra:"
+
+msgid "Search assets..."
+msgstr "Cerca assets..."
+
+msgid "Asset Name"
+msgstr "Nome Asset"
+
+msgid "Size"
+msgstr "Dimensione"
+
+msgid "Suggested: %s"
+msgstr "Suggerito: %s"
+
+msgid "Please select an asset."
+msgstr "Prego seleziona un asset."
+
+msgid "No Selection"
+msgstr "Nessuna Selezione"
+
+msgid "Select KSU Asset"
+msgstr "Selezione Asset KSU"
+
+msgid "Select a KSU asset:"
+msgstr "Selezioona un asset KSU:"

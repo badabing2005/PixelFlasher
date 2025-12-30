@@ -194,6 +194,8 @@ command_lines = [
     "-a -F -i -n analyze-64 images/analyze-64.png images.py",
     "-a -F -i -n shizuku-24 images/shizuku-24.png images.py",
     "-a -F -i -n beta-24 images/beta-24.png images.py",
+    "-a -F -i -n canary-24 images/canary-24.png images.py",
+    "-a -F -i -n all-betas-24 images/all-betas-24.png images.py",
     "-a -F -i -n permissions-24 images/permissions-24.png images.py",
     "-a -F -i -n google-24 images/google-24.png images.py",
     "-a -F -i -n android-24 images/android-24.png images.py",

@@ -2889,10 +2889,10 @@ msgstr ""
 ##############################################################################
 # Additions 2025-10-05
 ##############################################################################
-msgid "Convert console content from env (key=value) format prop to json"
+msgid "Convert console content from env (key=value) prop format to json"
 msgstr "将控制台内容从 env（key=value）prop 格式转换为 JSON"
 
-msgid "Convert console content from json to env (key=value) format"
+msgid "Convert console content from json to env (key=value) prop format"
 msgstr "将控制台内容从 JSON 转换为 env（key=value）prop 格式"
 
 ##############################################################################
@@ -2968,7 +2968,7 @@ msgstr ""
 msgid "Show all assets including non-matching ones"
 msgstr ""
 
-msgid "Flash to both slots"
+msgid "Flash to active slot"
 msgstr ""
 
 msgid "Flash boot partition"
@@ -3006,6 +3006,10 @@ msgstr ""
 
 msgid "Edit script before continuing"
 msgstr ""
+
+##############################################################################
+# Additions 2025-12-28
+##############################################################################
 
 ##############################################################################
 # Download Progress Window

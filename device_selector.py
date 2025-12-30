@@ -45,11 +45,12 @@ class DeviceSelectorDialog(wx.Dialog):
     # ============================================================================
     #                               Function __init__
     # ============================================================================
-    def __init__(self, parent, devices, title=_("Select Device"), message=_("Select a device:")):
+    def __init__(self, parent, devices, title=_("Select Device"), message=_("Select a device:"), select_device=None):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.devices = devices
         self.selected_device = None
+        self._select_device = select_device
 
         self._create_ui(message)
         self._bind_events()
@@ -71,13 +72,20 @@ class DeviceSelectorDialog(wx.Dialog):
         self.device_list.AppendColumn("Filename", width=500)
 
         # Populate the list
+        selected_index = None
+
         for i, device in enumerate(self.devices):
             index = self.device_list.InsertItem(i, device.get('device', 'Unknown'))
-            self.device_list.SetItem(index, 1, device.get('zip_filename', 'Unknown'))
+            self.device_list.SetItem(index, 1, device.get('zip_filename', ''))
             self.device_list.SetItemData(index, i)
+            if selected_index is None and self._matches_select_device(device):
+                selected_index = index
 
         # Select first item by default
-        if self.devices:
+        if selected_index is not None:
+            self.device_list.Select(selected_index)
+            self.device_list.EnsureVisible(selected_index)
+        elif self.devices:
             self.device_list.Select(0)
 
         main_sizer.Add(self.device_list, 1, wx.ALL | wx.EXPAND, 10)
@@ -96,6 +104,48 @@ class DeviceSelectorDialog(wx.Dialog):
         main_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
 
         self.SetSizer(main_sizer)
+
+    # ============================================================================
+    #                               Function _matches_select_device
+    # ============================================================================
+    def _matches_select_device(self, device):
+        if not self._select_device:
+            return False
+
+        target = self._select_device
+
+        if isinstance(target, dict):
+            if device is target:
+                return True
+            target_device = target.get('device')
+            target_filename = target.get('zip_filename')
+        else:
+            target_device = target
+            target_filename = target
+
+        def normalize(value):
+            if value is None:
+                return None
+            if isinstance(value, str):
+                return value.strip().lower()
+            return str(value).strip().lower()
+
+        device_name = normalize(device.get('device'))
+        filename = normalize(device.get('zip_filename'))
+
+        if isinstance(target, dict):
+            target_device_normalized = normalize(target_device)
+            target_filename_normalized = normalize(target_filename)
+            return (
+                target_device_normalized is not None and target_device_normalized == device_name
+            ) or (
+                target_filename_normalized is not None and target_filename_normalized == filename
+            )
+
+        normalized_target = normalize(target_device)
+        return normalized_target is not None and (
+            normalized_target == device_name or normalized_target == filename
+        )
 
     # ============================================================================
     #                               Function _bind_events
@@ -140,7 +190,7 @@ class DeviceSelectorDialog(wx.Dialog):
 # ============================================================================
 #                               Function show_device_selector
 # ============================================================================
-def show_device_selector(parent, devices, title=_("Select Device"), message=_("Select a device:")):
+def show_device_selector(parent, devices, title=_("Select Device"), message=_("Select a device:"), select_device=None):
     """
     Show device selector dialog and return selected device.
 
@@ -149,6 +199,7 @@ def show_device_selector(parent, devices, title=_("Select Device"), message=_("S
         devices: List of device dictionaries with 'device', 'zip_filename', 'url' keys
         title: Dialog title
         message: Message to display above the list
+        select_device: Preferred device (dict or string identifier) to pre-select if available
 
     Returns:
         Selected device dictionary or None if cancelled
@@ -157,7 +208,7 @@ def show_device_selector(parent, devices, title=_("Select Device"), message=_("S
         wx.MessageBox(_("No devices available."), _("Error"), wx.OK | wx.ICON_ERROR, parent)
         return None
 
-    dialog = DeviceSelectorDialog(parent, devices, title, message)
+    dialog = DeviceSelectorDialog(parent, devices, title, message, select_device=select_device)
 
     try:
         if dialog.ShowModal() == wx.ID_OK:

@@ -1173,7 +1173,7 @@ msgstr ""
 msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
 msgstr ""
 
-msgid "- Device id and other device related details.\n"
+msgid "- Device state and other device related details.\n"
 msgstr ""
 
 msgid "- Magisk (if available):\n"
@@ -2964,6 +2964,10 @@ msgstr ""
 
 msgid "Edit script before continuing"
 msgstr ""
+
+##############################################################################
+# Additions 2025-12-28
+##############################################################################
 
 ##############################################################################
 # Download Progress Window

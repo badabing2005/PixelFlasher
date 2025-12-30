@@ -2961,8 +2961,8 @@ msgstr "Laissez-moi choisir la version du noyau à partir d'une liste correspond
 msgid "Show all assets including non-matching ones"
 msgstr "Afficher tous les actifs, y compris ceux qui ne correspondent pas"
 
-msgid "Flash to both slots"
-msgstr "Flasher aux deux emplacements"
+msgid "Flash to active slot"
+msgstr "Flasher sur l'emplacement actif"
 
 msgid "Flash boot partition"
 msgstr "Flasher la partition boot"
@@ -2999,6 +2999,10 @@ msgstr "## ❌ L'image sélectionnée n'est pas valide.<br/>\n"
 
 msgid "Edit script before continuing"
 msgstr "Éditer le script avant de continuer"
+
+##############################################################################
+# Additions 2025-12-28
+##############################################################################
 
 ##############################################################################
 # Download Progress Window

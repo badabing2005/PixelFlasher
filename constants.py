@@ -35,7 +35,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '8.13.1.0'
+VERSION = '8.14.0.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -67,6 +67,7 @@ APATCH_NEXT_PKG_NAME = 'me.garfieldhan.apatch.next'
 ZYGISK_NEXT_UPDATE_URL = 'https://api.nullptr.icu/android/zygisk-next/static/update.json'
 ANDROID_CANARY_VERSION = 'CANARY_r03'
 TARGETEDFIX_CONFIG_PATH = '/data/adb/modules/targetedfix/config'
+CANARY_MINER_CATALOG_URL = 'https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/catalog.json'
 
 # https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/page-518#post-89308909
 BANNED_KERNELS = [

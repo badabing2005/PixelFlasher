@@ -483,6 +483,7 @@ I strongly encourage all beginners to follow those guides rather than use this p
 - vm03's [payload_dumper](https://github.com/vm03/payload_dumper) source code to extract images from payload.bin files.
 - [osm0sis](https://github.com/osm0sis) for the creative and pioneer approach to beta pif print extraction, [banned kernel list](https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/page-518#post-89308909) and endless other contributions that are too many to enumerate.
 - [capntrips](https://github.com/capntrips) for code / tools and mentoring provided to create features like `Downgrade Patch` and `Cancel OTA Update`.
+- [Vagelis1608](https://github.com/Vagelis1608) for building [canary / beta factory image catalog](https://github.com/Vagelis1608/get_the_canary_miner/blob/main/catalog.json) and graciously sharing.
 
 ## Troubleshooting
 

@@ -2962,8 +2962,8 @@ msgstr "Déjame elegir la versión del kernel de una lista coincidente"
 msgid "Show all assets including non-matching ones"
 msgstr "Mostrar todos los activos, incluidos los que no coinciden"
 
-msgid "Flash to both slots"
-msgstr "Flashear a ambas ranuras"
+msgid "Flash to active slot"
+msgstr "Flashear a la ranura activa"
 
 msgid "Flash boot partition"
 msgstr "Flashear partición de arranque"
@@ -3000,6 +3000,10 @@ msgstr "## ❌ La imagen seleccionada no es válida.<br/>\n"
 
 msgid "Edit script before continuing"
 msgstr "Editar script antes de continuar"
+
+##############################################################################
+# Additions 2025-12-28
+##############################################################################
 
 ##############################################################################
 # Download Progress Window

@@ -5192,6 +5192,8 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -s --user 0"
             elif state == 'uid':
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages -U"
+            elif state == 'apex-only':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages --apex-only --show-versioncode"
             else:
                 # Default to all packages if no state specified
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell pm list packages"

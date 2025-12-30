@@ -497,6 +497,38 @@ class GoogleImagesMenu(GoogleImagesBaseMenu):
                     beta_menu_item = device_menu.AppendSubMenu(beta_menu, "Beta")
                     beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
 
+                # Handle Canary downloads if they exist
+                if 'canaries' in device_data:
+                    canary_menu = wx.Menu()
+                    for canary_entry in device_data['canaries']:
+                        version = canary_entry.get('version')
+                        sha256 = canary_entry.get('sha256')
+                        menu_label = f"{version} ({device_label})"
+                        menu_id = self.generate_unique_id()
+                        canary_menu_item = canary_menu.Append(menu_id, menu_label, sha256)
+                        if canary_menu_item is not None:
+                            url = canary_entry.get('url')
+                            self.bind_download_event(canary_menu_item, url)
+                            canary_menu_item.SetBitmap(images.canary_24.GetBitmap())
+                    canary_menu_item = device_menu.AppendSubMenu(canary_menu, "Canary - Factory")
+                    canary_menu_item.SetBitmap(images.canary_24.GetBitmap())
+
+                # Handle All Betas submenu
+                if 'betas' in device_data:
+                    all_betas_menu = wx.Menu()
+                    for beta_entry in device_data['betas']:
+                        version = beta_entry.get('version')
+                        sha256 = beta_entry.get('sha256')
+                        menu_label = f"{version} ({device_label})"
+                        menu_id = self.generate_unique_id()
+                        all_betas_menu_item = all_betas_menu.Append(menu_id, menu_label, sha256)
+                        if all_betas_menu_item is not None:
+                            url = beta_entry.get('url')
+                            self.bind_download_event(all_betas_menu_item, url)
+                            all_betas_menu_item.SetBitmap(images.all_betas_24.GetBitmap())
+                    all_betas_menu_item = device_menu.AppendSubMenu(all_betas_menu, "All Betas - Factory")
+                    all_betas_menu_item.SetBitmap(images.all_betas_24.GetBitmap())
+
                 if device_type == 'phone':
                     device_menu_item = self.phones_menu.AppendSubMenu(device_menu, f"{device_id} ({device_label})")
                     # Set the background color and the icon for the current device. (background color is not working)
@@ -578,12 +610,53 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
                         self.parent.Bind(wx.EVT_MENU, lambda event, u=beta_entry['url']: self.on_download(u), menu_item)
                         menu_item.SetBitmap(images.beta_24.GetBitmap())
 
+                # Add Canary submenu if canary data exists (apply date filter)
+                submenu_canary = wx.Menu() if 'canaries' in device_data else None
+                if submenu_canary and 'canaries' in device_data:
+                    for canary_entry in device_data['canaries']:
+                        entry_date = canary_entry.get('date')
+                        # only include canary entries that have a parsable date and are not older than the current device firmware
+                        if entry_date is not None and (not date_filter or (date_filter is not None and int(entry_date) >= int(date_filter))):
+                            version = canary_entry.get('version')
+                            menu_label = f"{version}"
+                            menu_id = wx.NewId()
+                            menu_item = submenu_canary.Append(menu_id, menu_label)
+                            self.parent.Bind(wx.EVT_MENU, lambda event, u=canary_entry.get('url'): self.on_download(u), menu_item)
+                            # mark as downloadable if it's newer than the installed build
+                            if date_filter and int(entry_date) != int(date_filter):
+                                menu_item.SetBitmap(images.download_24.GetBitmap())
+                                # prefer canary icon but show download badge semantics by setting download icon
+                            else:
+                                menu_item.SetBitmap(images.canary_24.GetBitmap())
+
+                # Add All Betas submenu if aggregated betas exist (apply date filter)
+                submenu_all_betas = wx.Menu() if 'betas' in device_data else None
+                if submenu_all_betas and 'betas' in device_data:
+                    for beta_entry in device_data['betas']:
+                        entry_date = beta_entry.get('date')
+                        if entry_date is not None and (not date_filter or (date_filter is not None and int(entry_date) >= int(date_filter))):
+                            version = beta_entry.get('version')
+                            menu_label = f"{version}"
+                            menu_id = wx.NewId()
+                            menu_item = submenu_all_betas.Append(menu_id, menu_label)
+                            self.parent.Bind(wx.EVT_MENU, lambda event, u=beta_entry.get('url'): self.on_download(u), menu_item)
+                            if date_filter and int(entry_date) != int(date_filter):
+                                menu_item.SetBitmap(images.download_24.GetBitmap())
+                            else:
+                                menu_item.SetBitmap(images.all_betas_24.GetBitmap())
+
             with contextlib.suppress(Exception):
                 ota_menu_item = self.AppendSubMenu(submenu_ota, "OTA")
                 factory_menu_item = self.AppendSubMenu(submenu_factory, "Factory")
                 if submenu_beta:
                     beta_menu_item = self.AppendSubMenu(submenu_beta, "Beta")
                     beta_menu_item.SetBitmap(images.beta_24.GetBitmap())
+                if submenu_canary:
+                    canary_menu_item = self.AppendSubMenu(submenu_canary, "Canary - Factory")
+                    canary_menu_item.SetBitmap(images.canary_24.GetBitmap())
+                if submenu_all_betas:
+                    all_betas_menu_item = self.AppendSubMenu(submenu_all_betas, "All Betas - Factory")
+                    all_betas_menu_item.SetBitmap(images.all_betas_24.GetBitmap())
                 if download_flag:
                     ota_menu_item.SetBitmap(images.download_24.GetBitmap())
                     factory_menu_item.SetBitmap(images.download_24.GetBitmap())

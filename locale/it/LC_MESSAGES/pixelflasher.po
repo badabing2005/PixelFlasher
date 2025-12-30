@@ -71,8 +71,8 @@ msgstr "Impostazioni"
 msgid "Exit"
 msgstr "Esci"
 
-msgid "&Exit\tCtrl-Q"
-msgstr "&Esci\tCtrl-Q"
+msgid "E&xit\tCtrl-Q"
+msgstr "E&sci\tCtrl-Q"
 
 msgid "Exit PixelFlasher"
 msgstr "Esci da PixelFlasher"
@@ -1197,8 +1197,8 @@ msgstr "_Se hai selezionato più APK da installare, le opzioni si applicheranno 
 msgid "**This feature will generate a device analysis report that you could optionally post online to get assistance on Play Integrity related issues.**<br/>\n"
 msgstr "**Questa funzionalità genererà un report di analisi del dispositivo che potrai opzionalmente pubblicare online per ottenere assistenza su problemi relativi a Play Integrity.**<br/>\n"
 
-msgid "- Device id and other device related details.\n"
-msgstr "- ID Dispositivo e altri dettagli relativi al dispositivo.\n"
+msgid "- Device state and other device related details.\n"
+msgstr "- Stato del dispositivo e altri dettagli relativi al dispositivo.\n"
 
 msgid "- Magisk (if available):\n"
 msgstr "- Magisk (se disponibile):\n"
@@ -3000,6 +3000,10 @@ msgstr "## ❌ L'immagine selezionata non è valida.<br/>\n"
 
 msgid "Edit script before continuing"
 msgstr "Modifica script prima di continuare"
+
+##############################################################################
+# Additions 2025-12-28
+##############################################################################
 
 ##############################################################################
 # Download Progress Window

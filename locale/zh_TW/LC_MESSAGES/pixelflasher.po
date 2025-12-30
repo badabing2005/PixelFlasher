@@ -2959,7 +2959,7 @@ msgstr ""
 msgid "Show all assets including non-matching ones"
 msgstr ""
 
-msgid "Flash to both slots"
+msgid "Flash to active slot"
 msgstr ""
 
 msgid "Flash boot partition"
@@ -2997,6 +2997,10 @@ msgstr ""
 
 msgid "Edit script before continuing"
 msgstr ""
+
+##############################################################################
+# Additions 2025-12-28
+##############################################################################
 
 ##############################################################################
 # Download Progress Window

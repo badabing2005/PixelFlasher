@@ -45,6 +45,7 @@ from runtime import *
 from file_editor import FileEditor
 from i18n import _
 from package_manager import PackageManager
+from factory_image_selector import show_factory_image_dialog
 
 # ============================================================================
 #                               Class PifModule
@@ -347,9 +348,9 @@ class PifManager(wx.Dialog):
         self.beta_pif_button = wx.Button(self, wx.ID_ANY, _("Get Pixel Beta Pif"), wx.DefaultPosition, wx.DefaultSize, 0)
         self.beta_pif_button.SetToolTip(_("Get the latest Pixel beta pif."))
 
-        # Get Xiaomi Pif button
-        self.xiaomi_pif_button = wx.Button(self, wx.ID_ANY, _("Get Xiaomi Pif"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.xiaomi_pif_button.SetToolTip(_("Get Xiaomi.eu pif\nEasy to start but is not recommended as it gets banned quickly.\nRecommended to find your own."))
+        # Get the Canary miner button
+        self.canary_pif_button = wx.Button(self, wx.ID_ANY, _("Get the Canary miner"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.canary_pif_button.SetToolTip(_("Get the latest Vagelis1608 Canary pif."))
 
         # Get TheFreeman193 Pif button
         self.freeman_pif_button = wx.Button(self, wx.ID_ANY, _("Get TheFreeman193 Random Pif"), wx.DefaultPosition, wx.DefaultSize, 0)
@@ -372,7 +373,7 @@ class PifManager(wx.Dialog):
         self.auto_run_migrate_checkbox.SetMinSize((button_width, -1))
         self.disable_uiautomator_checkbox.SetMinSize((button_width, -1))
         self.pi_checker_button.SetMinSize((button_width, -1))
-        self.xiaomi_pif_button.SetMinSize((button_width, -1))
+        self.canary_pif_button.SetMinSize((button_width, -1))
         self.freeman_pif_button.SetMinSize((button_width, -1))
         self.beta_pif_button.SetMinSize((button_width, -1))
 
@@ -411,7 +412,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.pi_checker_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.beta_pif_hsizer, 0, wx.EXPAND | wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.beta_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
-        v_buttons_sizer.Add(self.xiaomi_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.canary_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.freeman_pif_button, 0, wx.TOP | wx.BOTTOM | wx.RIGHT, 5)
 
         self.vertical_btn_sizer1 = wx.BoxSizer(wx.VERTICAL)
@@ -529,7 +530,7 @@ class PifManager(wx.Dialog):
         self.rb_custom.Bind(wx.EVT_RADIOBUTTON, self.onBetaRadioSelect)
         self.custom_version.Bind(wx.EVT_TEXT, self.onBetaVersionChange)
         self.beta_pif_button.Bind(wx.EVT_BUTTON, self.onGetPixelBetaPif)
-        self.xiaomi_pif_button.Bind(wx.EVT_BUTTON, self.onGetXiaomiPif)
+        self.canary_pif_button.Bind(wx.EVT_BUTTON, self.onGetCanaryPif)
         self.freeman_pif_button.Bind(wx.EVT_BUTTON, self.onGetFreemanPif)
         #
         self.smart_paste_up.Bind(wx.EVT_BUTTON, self.onSmartPasteUp)
@@ -1644,18 +1645,21 @@ class PifManager(wx.Dialog):
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  onGetXiaomiPif
+    #                  onGetCanaryPif
     # -----------------------------------------------
-    def onGetXiaomiPif(self, e):
+    def onGetCanaryPif(self, e):
         try:
             self._on_spin('start')
-            xiaomi_pif = get_xiaomi_pif()
+            device = get_phone()
+            if device:
+                device_model = device.hardware
+            canary_pif = get_canary_miner(device_model='_select_', default_selection=device_model if device else None)
             if self.pif_format == 'prop':
-                self.console_stc.SetValue(self.J2P(xiaomi_pif))
+                self.console_stc.SetValue(self.J2P(canary_pif, quiet=True))
             else:
-                self.console_stc.SetValue(xiaomi_pif)
+                self.console_stc.SetValue(self.P2J(canary_pif))
         except Exception:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onGetXiaomiPif function")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onGetCanaryPif function")
             traceback.print_exc()
         finally:
             self._on_spin('stop')
@@ -1754,10 +1758,31 @@ class PifManager(wx.Dialog):
             if self.beta_pif_version.isdigit() and len(self.beta_pif_version) == 2:
                 force_version = int(self.beta_pif_version)
             elif self.beta_pif_version.lower() == 'c':
-                force_version = ANDROID_CANARY_VERSION
-            elif self.beta_pif_version.lower().startswith('canary'):
-                # If it starts with 'canary', we assume it's a valid canary version
-                force_version = self.beta_pif_version.strip()
+                catalog, catalog_path = fetch_canary_miner_catalog()
+                if not catalog_path:
+                    catalog_path = os.path.join(get_config_path(), 'canary_miner_catalog.json').strip()
+
+                if not catalog and catalog_path and os.path.exists(catalog_path):
+                    try:
+                        with open(catalog_path, 'r', encoding='utf-8') as f:
+                            catalog = json.load(f)
+                    except Exception:
+                        catalog = None
+
+                if catalog:
+                    selected_entry = self.select_catalog_image(catalog)
+                    if selected_entry:
+                        release = selected_entry.get('release', {}) if isinstance(selected_entry, dict) else {}
+                        selected_url = release.get('url') if isinstance(release, dict) else None
+                        if selected_url and self.process_factory_image_selection(selected_url, "Canary"):
+                            return
+                        if not selected_url:
+                            print("⚠️ WARNING! Selected Canary catalog entry is missing a download URL.")
+                        device_model = release.get('target') or selected_entry.get('device_key', device_model)
+                    else:
+                        print("ℹ️ INFO: Canary catalog selection cancelled by user; skipping automatic retrieval.")
+                        wx.CallAfter(self.console_stc.SetValue, _("Canary selection cancelled."))
+                        return
             elif self.beta_pif_version.lower() == 't':
                 force_version = 't'
                 t_factory_images = get_telegram_factory_images()
@@ -1767,54 +1792,9 @@ class PifManager(wx.Dialog):
                         force_version = None
                         self.console_stc.SetValue(f"{self.console_stc.GetValue()}\n⚠️ WARNING! No valid Telegram factory image selected.")
                         return
-                    else:
-                        print(f"Selected Telegram factory image: {selected_image}")
-                        # First try getting fingerprint without downloading
-                        fingerprint, security_patch = url2fpsp(selected_image, "factory")
-                        if fingerprint is None or security_patch is None:
-                            debug(f"Failed to get fingerprint and security patch from partial {selected_image}\nTrying the full image ...")
-                            override_size_limit = get_size_from_url(selected_image)
-                            self.console_stc.SetValue(f"{self.console_stc.GetValue()}\n⚠️ Downloading full Telegram factory image {override_size_limit} bytes ...\nThis may take quite a while ...")
-                            wx.Yield()
-                            if override_size_limit is not None:
-                                fingerprint, security_patch = url2fpsp(selected_image, "factory", override_size_limit)
-                        if fingerprint and security_patch:
-                            print(f"Security Patch:           {security_patch}")
-                            # Extract props from fingerprint
-                            pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
-                            match = re.search(pattern, fingerprint)
-                            if match and match.lastindex == 8:
-                                product = match[2]
-                                device = match[3]
-                                latest_version = match[4]
-                                build_id = match[5]
-                                incremental = match[6]
-                                build_type = match[7]
-                                build_tags = match[8]
-                                device_data = get_android_devices()
-                                model = None
-                                with contextlib.suppress(Exception):
-                                    model = device_data[device]['device']
-                                pif_data = {
-                                    "MANUFACTURER": "Google",
-                                    "MODEL": model,
-                                    "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
-                                    "PRODUCT": product,
-                                    "DEVICE": device,
-                                    "SECURITY_PATCH": security_patch,
-                                    "DEVICE_INITIAL_SDK_INT": "32"
-                                }
-                                json_string = json.dumps(pif_data, indent=4) + "\n"
-                                if json_string:
-                                    if self.pif_format == 'prop':
-                                        self.console_stc.SetValue(self.J2P(json_string))
-                                    else:
-                                        self.console_stc.SetValue(json_string)
-                                    print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
-                                    return
-                            print("⚠️ WARNING! Failed to create fingerprint from Telegram factory image.")
-                            wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
-                            return
+                    if self.process_factory_image_selection(selected_image, "Telegram"):
+                        return
+                    return
                 else:
                     force_version = None
                     print(f"⚠️ WARNING! The requested Android beta / canary version is not valid: {self.beta_pif_version}. Using latest version instead.")
@@ -1844,87 +1824,234 @@ class PifManager(wx.Dialog):
     # Create a custom dialog with tree control for selection
     def select_t_image(self, t_factory_images):
         try:
-            if t_factory_images and isinstance(t_factory_images, list):
-                select_dialog = wx.Dialog(self, title=_("Telegram Factory Images"), size=(800, 600))
+            if not (t_factory_images and isinstance(t_factory_images, list)):
+                return None
 
-                instruction_text = wx.StaticText(select_dialog, label=_("Select a factory image to use:"))
+            build_groups = {}
+            for image in t_factory_images:
+                if not isinstance(image, dict):
+                    continue
+                build_id = image.get('build_id', 'Unknown Build')
+                build_groups.setdefault(build_id, []).append(image)
 
-                # Create tree control
-                tree_ctrl = wx.TreeCtrl(select_dialog, style=wx.TR_DEFAULT_STYLE | wx.TR_SINGLE)
-                root = tree_ctrl.AddRoot("Factory Images")
+            if not build_groups:
+                print("⚠️ WARNING! Telegram factory images did not contain any selectable entries.")
+                return None
 
-                # Group images by build_id
-                build_groups = {}
-                for i, image in enumerate(t_factory_images):
-                    build_id = image.get('build_id', 'Unknown Build')
-                    if build_id not in build_groups:
-                        build_groups[build_id] = []
-                    build_groups[build_id].append((i, image))
+            tree_nodes = []
+            for build_id, images in build_groups.items():
+                children = []
+                for image in images:
+                    device_label = image.get('device', 'Unknown Device')
+                    image_type = image.get('type', 'Factory Image')
+                    children.append({
+                        'label': f"{device_label} - {image_type}",
+                        'data': image,
+                    })
+                tree_nodes.append({
+                    'label': build_id,
+                    'children': children,
+                })
 
-                # Add build groups to tree (collapsed by default)
-                build_items = {}
-                for build_id, images in build_groups.items():
-                    build_item = tree_ctrl.AppendItem(root, build_id)
-                    build_items[build_id] = build_item
+            selected_image = show_factory_image_dialog(
+                self,
+                _("Telegram Factory Images"),
+                _("Select a factory image to use:"),
+                _("Factory Images"),
+                tree_nodes,
+                size=(800, 600),
+            )
 
-                    for image_index, image in images:
-                        device_type = f"{image['device']} - {image.get('type', 'Factory Image')}"
-                        image_item = tree_ctrl.AppendItem(build_item, device_type)
-                        # Store the original index in the item data
-                        tree_ctrl.SetItemData(image_item, image_index)
-
-                # Expand root but keep build groups collapsed
-                tree_ctrl.Expand(root)
-
-                # Add OK and Cancel buttons
-                btn_sizer = wx.StdDialogButtonSizer()
-                ok_button = wx.Button(select_dialog, wx.ID_OK)
-                cancel_button = wx.Button(select_dialog, wx.ID_CANCEL)
-                btn_sizer.AddButton(ok_button)
-                btn_sizer.AddButton(cancel_button)
-                btn_sizer.Realize()
-
-                # Initially disable OK button
-                ok_button.Enable(False)
-
-                def on_tree_selection(event):
-                    selected_item = tree_ctrl.GetSelection()
-                    if selected_item and selected_item != root:
-                        # Check if it's a leaf node (has data)
-                        item_data = tree_ctrl.GetItemData(selected_item)
-                        ok_button.Enable(item_data is not None)
-                    else:
-                        ok_button.Enable(False)
-
-                tree_ctrl.Bind(wx.EVT_TREE_SEL_CHANGED, on_tree_selection)
-
-                dialog_sizer = wx.BoxSizer(wx.VERTICAL)
-                dialog_sizer.Add(instruction_text, 0, wx.ALL, 10)
-                dialog_sizer.Add(tree_ctrl, 1, wx.EXPAND | wx.ALL, 10)
-                dialog_sizer.Add(btn_sizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
-
-                select_dialog.SetSizer(dialog_sizer)
-
-                selected_index = -1
-                # Show the dialog and get result
-                if select_dialog.ShowModal() == wx.ID_OK:
-                    selected_item = tree_ctrl.GetSelection()
-                    if selected_item and selected_item != root:
-                        item_data = tree_ctrl.GetItemData(selected_item)
-                        if item_data is not None:
-                            selected_index = item_data
-
-                if selected_index >= 0:
-                    selected_image = t_factory_images[selected_index]
-                    print(f"Selected factory image: {selected_image['device']} - {selected_image.get('type', 'Factory Image')}")
-                    print(f"URL: {selected_image['url']}")
-
-                select_dialog.Destroy()
-                return selected_image['url'] if selected_index >= 0 else None
+            if selected_image and isinstance(selected_image, dict):
+                print(f"Selected factory image: {selected_image.get('device', 'Unknown Device')} - {selected_image.get('type', 'Factory Image')}")
+                print(f"URL: {selected_image.get('url')}")
+                return selected_image.get('url')
+            return None
         except Exception as e:
             print(f"Error selecting Telegram factory image: {e}")
             traceback.print_exc()
             return None
+
+    # -----------------------------------------------
+    #                  select_catalog_image
+    # -----------------------------------------------
+    def select_catalog_image(self, catalog):
+        try:
+            if not isinstance(catalog, dict):
+                return None
+
+            tree_data = {}
+            sections = (
+                ('canaries', _("Canaries")),
+                ('betas', _("All Betas")),
+            )
+
+            for section_key, section_label in sections:
+                section = catalog.get(section_key, {})
+                if not isinstance(section, dict):
+                    continue
+                build_map = {}
+                for device_key, device_obj in section.items():
+                    if not isinstance(device_obj, dict):
+                        continue
+                    device_name = device_obj.get('name') or device_key
+                    releases = device_obj.get('releases', [])
+                    if not isinstance(releases, list):
+                        continue
+                    for release in releases:
+                        if not isinstance(release, dict):
+                            continue
+                        build_name = release.get('buildName') or release.get('releaseId') or release.get('buildId') or _("Unknown Build")
+                        entry = {
+                            'category': section_label,
+                            'device_key': device_key,
+                            'device_name': device_name,
+                            'release': release,
+                        }
+                        build_map.setdefault(build_name, []).append(entry)
+                if build_map:
+                    tree_data[section_label] = build_map
+
+            if not tree_data:
+                print("⚠️ WARNING! Canary Miner catalog did not contain any selectable entries.")
+                return None
+
+            def build_sort_value(build_name, entries):
+                values = []
+                for entry in entries:
+                    release = entry.get('release') if isinstance(entry, dict) else None
+                    if not isinstance(release, dict):
+                        continue
+                    for key in ('buildName', 'releaseId', 'buildId'):
+                        candidate = release.get(key)
+                        if not isinstance(candidate, str):
+                            continue
+                        match = re.search(r'(\d{6})', candidate)
+                        if match:
+                            values.append(int(match.group(1)))
+                            break
+                        match = re.search(r'(\d+)', candidate)
+                        if match:
+                            values.append(int(match.group(1)))
+                            break
+                if values:
+                    return max(values)
+                match = re.search(r'(\d{6})', build_name)
+                if match:
+                    return int(match.group(1))
+                match = re.search(r'(\d+)', build_name)
+                if match:
+                    return int(match.group(1))
+                return 0
+
+            tree_nodes = []
+            for section_label, build_map in sorted(tree_data.items()):
+                build_children = []
+                sorted_builds = sorted(
+                    build_map.items(),
+                    key=lambda kv: (build_sort_value(kv[0], kv[1]), kv[0]),
+                    reverse=True
+                )
+                for build_name, entries in sorted_builds:
+                    release_children = []
+                    for entry in entries:
+                        release = entry['release']
+                        release_id = release.get('releaseId', '') if isinstance(release, dict) else ''
+                        device_text = entry['device_name'] or entry['device_key']
+                        if entry['device_key'] and entry['device_key'] not in device_text:
+                            device_text = f"{device_text} [{entry['device_key']}]"
+                        if release_id:
+                            device_text = f"{device_text} ({release_id})"
+                        release_children.append({
+                            'label': device_text,
+                            'data': entry,
+                        })
+                    if release_children:
+                        build_children.append({
+                            'label': build_name,
+                            'children': release_children,
+                        })
+                if build_children:
+                    tree_nodes.append({
+                        'label': section_label,
+                        'children': build_children,
+                    })
+
+            if not tree_nodes:
+                print("⚠️ WARNING! Canary Miner catalog did not contain any selectable entries.")
+                return None
+
+            return show_factory_image_dialog(
+                self,
+                _("Canary Miner Catalog"),
+                _("Select a Canary or Beta factory image:"),
+                _("Catalog"),
+                tree_nodes,
+            )
+        except Exception as e:
+            print(f"Error selecting Canary catalog entry: {e}")
+            traceback.print_exc()
+            return None
+
+    # -----------------------------------------------
+    #          process_factory_image_selection
+    # -----------------------------------------------
+    def process_factory_image_selection(self, image_url, source_label):
+        try:
+            if not image_url:
+                print(f"⚠️ WARNING! No download URL available for {source_label} factory image selection.")
+                return False
+
+            fingerprint, security_patch = url2fpsp(image_url, "factory")
+            if fingerprint is None or security_patch is None:
+                debug(f"Failed to get fingerprint and security patch from partial {image_url}\nTrying the full image ...")
+                override_size_limit = get_size_from_url(image_url)
+                if override_size_limit is not None:
+                    self.console_stc.SetValue(f"{self.console_stc.GetValue()}\n⚠️ Downloading full {source_label} factory image {override_size_limit} bytes ...\nThis may take quite a while ...")
+                    wx.Yield()
+                    fingerprint, security_patch = url2fpsp(image_url, "factory", override_size_limit)
+
+            if fingerprint and security_patch:
+                print(f"Security Patch:           {security_patch}")
+                pattern = r'([^\/]*)\/([^\/]*)\/([^:]*)[:]([^\/]*)\/([^\/]*)\/([^:]*)[:]([^\/]*)\/([^\/]*)$'
+                match = re.search(pattern, fingerprint)
+                if match and match.lastindex == 8:
+                    product = match[2]
+                    device = match[3]
+                    latest_version = match[4]
+                    build_id = match[5]
+                    incremental = match[6]
+                    build_type = match[7]
+                    build_tags = match[8]
+                    device_data = get_android_devices()
+                    model = None
+                    with contextlib.suppress(Exception):
+                        model = device_data[device]['device']
+                    pif_data = {
+                        "MANUFACTURER": "Google",
+                        "MODEL": model,
+                        "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
+                        "PRODUCT": product,
+                        "DEVICE": device,
+                        "SECURITY_PATCH": security_patch,
+                        "DEVICE_INITIAL_SDK_INT": "32"
+                    }
+                    json_string = json.dumps(pif_data, indent=4) + "\n"
+                    if self.pif_format == 'prop':
+                        self.console_stc.SetValue(self.J2P(json_string))
+                    else:
+                        self.console_stc.SetValue(json_string)
+                    print(f"{source_label} Pixel Beta Profile/Fingerprint:\n{json_string}")
+                    return True
+
+            print(f"⚠️ WARNING! Failed to create fingerprint from {source_label.lower()} factory image.")
+            wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
+            return False
+        except Exception as e:
+            print(f"⚠️ WARNING! Exception while processing {source_label.lower()} factory image: {e}")
+            traceback.print_exc()
+            wx.CallAfter(self.console_stc.SetValue, _("Failed to get beta print."))
+            return False
 
     # -----------------------------------------------
     #                  onPlayIntegrityCheck
@@ -2819,14 +2946,15 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     #                  J2P
     # -----------------------------------------------
-    def J2P(self, json_str):
+    def J2P(self, json_str, quiet=False):
         try:
             contentDict = json.loads(json_str)
         except Exception:
             try:
                 contentDict = json5.loads(json_str)
             except Exception:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
+                if not quiet:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Not a valid json.")
                 return json_str
 
         try:

@@ -39,6 +39,7 @@ import contextlib
 import chardet
 import fnmatch
 import hashlib
+import html
 import io
 import json
 import json5
@@ -171,7 +172,6 @@ class Boot():
         self.is_init_boot = None
         self.patch_source_sha1 = None
         self.spl = None
-        self.fingerprint = None
 
 
 # ============================================================================
@@ -3317,6 +3317,103 @@ def get_api_level(android_version):
 
 
 # ============================================================================
+#                               Function get_beta_factory_object
+# ============================================================================
+def get_beta_factory_object(product, canary = True, active = True, latest = True):
+    try:
+        debug(f"Retrieving canary data for product: {product}")
+
+        if 'beta' not in product:
+            product += '_beta'
+
+        page_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+        }
+
+        response = requests.get("https://flash.android.com", headers=page_headers, timeout=20)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        body_tag = soup.body
+        if body_tag is None:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not locate body tag on flash.android.com")
+            return None
+
+        raw_client_config = body_tag.get("data-client-config", "")
+        if not raw_client_config:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing data-client-config attribute on flash.android.com body")
+            return None
+
+        client_config = html.unescape(raw_client_config)
+        key_match = re.search(r"\"(AIza[0-9A-Za-z\-_]+)\"", client_config)
+        if not key_match:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to extract key from flash.android.com")
+            return None
+
+        api_key = key_match.group(1)
+        api_url = f"https://content-flashstation-pa.googleapis.com/v1/builds?key={api_key}&product={product}"
+        debug(f"Querying Flashstation API: {api_url}")
+
+        api_headers = {
+            "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://flash.android.com",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+        }
+
+        api_response = requests.get(api_url, headers=api_headers, timeout=30)
+        api_response.raise_for_status()
+        data = api_response.json()
+
+        if not latest:
+            return data
+
+        builds = data.get("flashstationBuild", [])
+        debug(f"Received {len(builds)} builds for {product}")
+
+        filtered_builds = []
+        for build in builds:
+            preview = build.get("previewMetadata") or {}
+            canary_flag = preview.get("canary")
+            active_flag = preview.get("active")
+
+            if canary is not None and bool(canary_flag) != bool(canary):
+                continue
+            if active is not None and bool(active_flag) != bool(active):
+                continue
+
+            filtered_builds.append(build)
+
+        if not filtered_builds:
+            debug("No builds matched the requested criteria")
+            return None
+
+        def build_sort_key(entry):
+            build_id = entry.get("buildId", "0")
+            try:
+                return int(build_id)
+            except (TypeError, ValueError):
+                return 0
+
+        filtered_builds.sort(key=build_sort_key, reverse=True)
+
+        latest_build = filtered_builds[0].copy()
+        latest_build.pop("licenseText", None)
+        return latest_build
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to retrieve canary URL for {product}")
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
 #                               Function find_canary_url
 # ============================================================================
 def find_canary_url(api_level=36):
@@ -3334,6 +3431,86 @@ def find_canary_url(api_level=36):
 
 
 # ============================================================================
+#                               Function get_canary_miner
+# ============================================================================
+def get_canary_miner(device_model='random', default_selection=None):
+    CANARY_PIFS_URL = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/devices"
+    # get file list from CANARY_PIFS_URL
+    try:
+        canary_device = None
+        canary_url = None
+        response = requests.get(CANARY_PIFS_URL)
+        if response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Canary PIFs page")
+            return -1
+        page_html = response.text
+        file_list = []
+        file_pattern = r'{"name":"([^"]+)","path":"(devices/[^"]+)","contentType":"file"}'
+        matches = re.findall(file_pattern, page_html)
+        for match in matches:
+            file_name = match[0]
+            if '.pif.prop' not in file_name:
+                continue
+            file_name = file_name.replace('.pif.prop', '')
+            file_path = match[1]
+            file_path = f"https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/{file_path}"
+            file_list.append({"device": file_name, "path": file_path})
+            if device_model != 'random' and device_model != '_select_' and device_model in file_name:
+                canary_url = file_path
+                canary_device = device_model
+
+        debug(f"Found {len(file_list)} Canary PIF files")
+        if device_model == 'random':
+            selected_file = random.choice(file_list)
+            canary_url = selected_file['path']
+            canary_device = selected_file['device']
+        elif device_model == '_select_':
+            canary_url, canary_device = select_pif_device(file_list, default_selection, device_type="Canary")
+            if not canary_url:
+                return "Selection cancelled."
+        elif not canary_url:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Canary PIF for device model: {device_model}")
+            return -1
+
+        response = requests.get(canary_url)
+        if response.status_code != 200:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Canary PIF file for {canary_device}")
+            return -1
+        pif_content = response.text
+        return pif_content
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting Canary Miner data.")
+        traceback.print_exc()
+        return -1
+
+
+# ============================================================================
+#                 Function select_pif_device
+# ============================================================================
+def select_pif_device(devices_data, default_selection=None, device_type=""):
+    try:
+        from device_selector import show_device_selector
+        selected_device = show_device_selector(
+            parent=None,
+            devices=devices_data,
+            title=f"Select {device_type} Device",
+            message=f"Select a {device_type} device:",
+            select_device=default_selection
+        )
+        if selected_device:
+            pif_url = selected_device['path']
+            pif_device = selected_device['device']
+            print(f"  Selected: {pif_device}")
+            return pif_url, pif_device
+        else:
+            print("Selection cancelled.")
+            return None, None
+    except ImportError:
+        selected_url = None
+
+
+# ============================================================================
 #                 Function get_beta_pif
 # ============================================================================
 def get_beta_pif(device_model='random', force_version=None):
@@ -3347,27 +3524,9 @@ def get_beta_pif(device_model='random', force_version=None):
     canary_data = False
     beta_type = "Beta"
     if force_version and str(force_version).startswith('CANARY'):
-        fingerprint, security_patch, expiry_date = url2fpsp("https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/canary.pif.prop", "canary")
-        if fingerprint and security_patch:
-            device_data = get_android_devices()
-            model_list = []
-            product_list = []
-            today = datetime.now().date()
-            for product, info in device_data.items():
-                if info['is_pixel_watch']:
-                    continue
-                end_date_str = info.get('security_update_end_date', '')
-                if end_date_str:
-                    try:
-                        end_date = datetime.strptime(end_date_str, "%B %Y").date()
-                        if end_date >= today:
-                            model_list.append(info['device'])
-                            product_list.append(f"{product}_beta")
-                    except ValueError:
-                        debug(f"Could not parse end date: {end_date_str} for product: {product}")
-            canary_data = True
-            beta_type = "Canary"
-
+        # moved this logic to pif manager
+        # the code should never get here
+        pass
     else:
         # set the url to the latest version
         ota_url = f"https://developer.android.com/about/versions/{latest_version}/download-ota"
@@ -4383,6 +4542,39 @@ def device_has_update(data, device_id, target_date):
 
 
 # ============================================================================
+#                     Function fetch_canary_miner_catalog
+# ============================================================================
+def fetch_canary_miner_catalog(catalog_path=None):
+    if catalog_path is None:
+        catalog_path = os.path.join(get_config_path(), 'canary_miner_catalog.json').strip()
+
+    try:
+        from constants import CANARY_MINER_CATALOG_URL
+        catalog_url = CANARY_MINER_CATALOG_URL
+        if 'github.com' in catalog_url and '/blob/' in catalog_url:
+            catalog_url = catalog_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
+
+        res = request_with_fallback(method='GET', url=catalog_url)
+        if res == 'ERROR':
+            return None, catalog_path
+
+        content = res.content if hasattr(res, 'content') else res.text
+        text = content if isinstance(content, str) else content.decode('utf-8', errors='replace')
+
+        try:
+            catalog_json = json.loads(text)
+            with open(catalog_path, 'w', encoding='utf-8') as f:
+                json.dump(catalog_json, f, indent=2)
+            return catalog_json, catalog_path
+        except Exception:
+            with open(catalog_path, 'w', encoding='utf-8') as f:
+                f.write(text)
+            return None, catalog_path
+    except Exception:
+        return (None, catalog_path) if catalog_path else (None, None)
+
+
+# ============================================================================
 #                               Function get_google_images
 # ============================================================================
 def get_google_images(save_to=None):
@@ -4575,6 +4767,142 @@ def get_google_images(save_to=None):
                 # Only add beta list if there are actual beta entries
                 if beta_entries:
                     data[device_id]['beta'] = beta_entries
+
+        # Attempt to fetch and incorporate canary miner catalog if available
+        try:
+            catalog, catalog_path = fetch_canary_miner_catalog()
+            if not catalog_path:
+                catalog_path = os.path.join(get_config_path(), 'canary_miner_catalog.json').strip()
+
+            if not catalog and catalog_path and os.path.exists(catalog_path):
+                try:
+                    with open(catalog_path, 'r', encoding='utf-8') as f:
+                        catalog = json.load(f)
+                except Exception:
+                    catalog = None
+
+            if catalog:
+                def extract_sha256_from_url(u):
+                    if not u:
+                        return ''
+                    m = re.search(r"([a-fA-F0-9]{64})", u)
+                    if m:
+                        return m.group(1)
+                    # fallback: last path segment without extension
+                    try:
+                        name = os.path.basename(urlparse(u).path)
+                        # strip extension
+                        name = os.path.splitext(name)[0]
+                        return name
+                    except Exception:
+                        return ''
+
+                # Build by_device from catalog structure. Catalog typically has top-level 'canaries' and 'betas'.
+                by_device = {}
+                if isinstance(catalog, dict):
+                    for section_name in ('canaries', 'betas'):
+                        section = catalog.get(section_name, {})
+                        if not isinstance(section, dict):
+                            continue
+                        for device_key, device_obj in section.items():
+                            releases = []
+                            try:
+                                releases = device_obj.get('releases', [])
+                            except Exception:
+                                continue
+                            for rel in releases:
+                                try:
+                                    releaseId = rel.get('releaseId', '') if isinstance(rel, dict) else ''
+                                    buildName = rel.get('buildName', '') if isinstance(rel, dict) else ''
+                                    url_field = rel.get('url', '') if isinstance(rel, dict) else ''
+                                    typ = 'canaries' if section_name == 'canaries' else 'betas'
+                                    version = ''
+                                    if releaseId and buildName:
+                                        version = f"{releaseId} - {buildName}"
+                                    elif releaseId:
+                                        version = str(releaseId)
+                                    elif buildName:
+                                        version = str(buildName)
+                                    sha = extract_sha256_from_url(url_field)
+                                    date = None
+                                    if buildName:
+                                        m = re.search(r"(\d{6})", str(buildName))
+                                        if m:
+                                            date = m.group(1)
+                                    entry = {'version': version, 'url': url_field, 'sha256': sha, 'date': date}
+                                    if device_key not in by_device:
+                                        by_device[device_key] = {'canaries': [], 'betas': []}
+                                    by_device[device_key][typ].append(entry)
+                                except Exception:
+                                    continue
+                elif isinstance(catalog, list):
+                    # fallback: try to process list items
+                    for item in catalog:
+                        try:
+                            if not isinstance(item, dict):
+                                continue
+                            device_key = get_first_match(item, ['device', 'codename', 'product', 'device_codename'])
+                            releaseId = get_first_match(item, ['releaseId', 'release', 'channel'])
+                            buildName = get_first_match(item, ['buildName', 'build', 'name'])
+                            url_field = get_first_match(item, ['url', 'downloadUrl', 'link'])
+                            typ = 'betas'
+                            lower = (str(releaseId) + ' ' + str(buildName)).lower()
+                            if 'canary' in lower or 'canary' in str(releaseId).lower():
+                                typ = 'canaries'
+                            version = ''
+                            if releaseId and buildName:
+                                version = f"{releaseId} - {buildName}"
+                            elif releaseId:
+                                version = str(releaseId)
+                            elif buildName:
+                                version = str(buildName)
+                            sha = extract_sha256_from_url(url_field)
+                            date = None
+                            if buildName:
+                                m = re.search(r"(\d{6})", str(buildName))
+                                if m:
+                                    date = m.group(1)
+                            entry = {'version': version, 'url': url_field, 'sha256': sha, 'date': date}
+                            if device_key not in by_device:
+                                by_device[device_key] = {'canaries': [], 'betas': []}
+                            by_device[device_key][typ].append(entry)
+                        except Exception:
+                            continue
+
+                # merge into existing data
+                for dev_key, lists in by_device.items():
+                    # try to find matching device id in data; device ids in data are keys like 'redfin'.
+                    # If device_key matches any of device label or id, attach; otherwise skip.
+                    target_key = None
+                    if dev_key in data:
+                        target_key = dev_key
+                    else:
+                        # try match by label
+                        for did, dval in data.items():
+                            label = dval.get('label', '')
+                            if label and dev_key and dev_key.lower() in label.lower():
+                                target_key = did
+                                break
+                    if not target_key:
+                        # if blank device_key, skip
+                        continue
+
+                    # sort newest first by date (None treated as 0)
+                    def sort_key(e):
+                        try:
+                            return int(e['date']) if e.get('date') else 0
+                        except Exception:
+                            return 0
+
+                    if lists.get('canaries'):
+                        sorted_can = sorted(lists['canaries'], key=sort_key, reverse=True)
+                        data[target_key]['canaries'] = sorted_can
+                    if lists.get('betas'):
+                        sorted_bet = sorted(lists['betas'], key=sort_key, reverse=True)
+                        # Preserve existing 'beta' key used elsewhere; also add 'betas' for All Betas submenu
+                        data[target_key]['betas'] = sorted_bet
+        except Exception:
+            pass
 
         # Convert to JSON
         json_data = json.dumps(data, indent=2)

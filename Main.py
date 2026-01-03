@@ -4755,7 +4755,7 @@ class PixelFlasher(wx.Frame):
             if device:
                 res = device.lock_bootloader()
                 if res == -1:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while unlocking bootloader")
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while locking bootloader")
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device not found.")
             if not self.config.no_reboot:

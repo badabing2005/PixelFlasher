@@ -2090,7 +2090,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method check_file
     # ----------------------------------------------------------------------------
-    def check_file(self, file_path: str, with_su = False, verbose = True) -> tuple[int, str | None]:
+    def check_file(self, file_path: str, with_su = False, verbose = True):
         """Method checks if a file exists on the device.
 
         Args:
@@ -4582,7 +4582,7 @@ add_hosts_module
                 self.refresh_phone_mode()
             if self.mode == 'f.b' and get_fastboot():
                 # add a popup warning before continuing.
-                print(f"Unlocking bootloader for device: {self.id} ...")
+                print(f"Locking bootloader for device: {self.id} ...")
                 theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing lock"
                 debug(theCmd)
                 res = run_shell(theCmd)

@@ -2850,8 +2850,8 @@ msgstr "**注意：** 如果您使用的是私人 keybox，請勾選 `Redact Key
 msgid "**This report will include the following details:**<br/>\n"
 msgstr "**此報告將包含以下詳細資訊：**<br/>\n"
 
-msgid "- Playstore Versions.\n"
-msgstr "- Playstore 版本。\n"
+msgid "- Playstore and GMS versions.\n"
+msgstr "- Playstore 和 GMS 版本。\n"
 
 msgid "Redact Keybox details"
 msgstr "隱藏 Keybox 詳細資訊"

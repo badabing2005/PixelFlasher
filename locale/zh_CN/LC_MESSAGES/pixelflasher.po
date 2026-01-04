@@ -2859,7 +2859,7 @@ msgstr ""
 msgid "**This report will include the following details:**<br/>\n"
 msgstr ""
 
-msgid "- Playstore Versions.\n"
+msgid "- Playstore and GMS versions.\n"
 msgstr ""
 
 msgid "Redact Keybox details"

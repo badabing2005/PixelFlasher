@@ -2853,8 +2853,8 @@ msgstr "Se stai usando un keybox privato, seleziona la casella `Oscura dettagli 
 msgid "**This report will include the following details:**<br/>\n"
 msgstr "**Questo report includerà i seguenti dettagli:**<br/>\n"
 
-msgid "- Playstore Versions.\n"
-msgstr "- Versioni Playstore.\n"
+msgid "- Playstore and GMS versions.\n"
+msgstr "- Versioni Playstore e GMS.\n"
 
 msgid "Redact Keybox details"
 msgstr "Oscura dettagli Keybox"

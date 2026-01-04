@@ -23,7 +23,7 @@ a = Analysis(['PixelFlasher.py'],
                 ('testkey_rsa4096.pem', '.'),
                 ('locale', 'locale')
             ],
-             hiddenimports=['_cffi_backend'],
+             hiddenimports=['_cffi_backend', 'modules'],
              hookspath=[],
              runtime_hooks=[],
             excludes=[

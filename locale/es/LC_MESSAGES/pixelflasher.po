@@ -2853,8 +2853,8 @@ msgstr "Si está utilizando un keybox privado, marque la casilla `Redactar detal
 msgid "**This report will include the following details:**<br/>\n"
 msgstr "**Este informe incluirá los siguientes detalles:**<br/>\n"
 
-msgid "- Playstore Versions.\n"
-msgstr "- Versiones de Playstore.\n"
+msgid "- Playstore and GMS versions.\n"
+msgstr "- Versiones de Playstore y GMS.\n"
 
 msgid "Redact Keybox details"
 msgstr "Redactar detalles del Keybox"

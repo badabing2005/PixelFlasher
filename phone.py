@@ -5063,7 +5063,7 @@ add_hosts_module
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not execute {cmd}. Device is not rooted.")
                 else:
                     debug(f"Executing command: {cmd} on the device ...")
-                    theCmd = f"\"{get_adb()}\" -s {self.id} shell {cmd}"
+                    theCmd = f"\"{get_adb()}\" -s {self.id} shell \"{cmd}\""
                 res = run_shell(theCmd)
                 data = res.stdout
                 debug(f"Return Code: {res.returncode}")

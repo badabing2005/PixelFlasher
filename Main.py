@@ -2605,7 +2605,7 @@ class PixelFlasher(wx.Frame):
         message += "	- `/data/adb/pif.json`\n"
         message += _("- Whether a testkey ROM is used or not.\n")
         message += _("- logcat for PlayIntegrity and TrickyStore related logs.\n")
-        message += _("- Playstore Versions.\n")
+        message += _("- Playstore and GMS versions.\n")
         message += _("- Droidguard VM list.\n")
         message += _("- If any custom ROM injection apps are installed from:\n")
         message += "    - Xiaomi.eu\n"
@@ -2888,6 +2888,13 @@ class PixelFlasher(wx.Frame):
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking Playstore versions ...")
                 print("==============================================================================")
                 res = device.exec_cmd("dumpsys package com.android.vending | grep -e versionName -e codePath", True)
+                print(res)
+
+                # GMS versions
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking GMS versions ...")
+                print("==============================================================================")
+                res = device.exec_cmd("dumpsys package com.google.android.gms | grep -e versionName -e codePath", True)
                 print(res)
 
                 # Check for conflicting custom ROM injection apps

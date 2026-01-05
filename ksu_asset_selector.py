@@ -50,6 +50,7 @@ class KsuAssetSelectorDialog(wx.Dialog):
 
         self.init_ui(message, suggested_asset, initial_filter)
         self.Centre()
+        self.Bind(wx.EVT_CLOSE, self._on_close)
 
     def init_ui(self, message, suggested_asset, initial_filter):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -202,6 +203,9 @@ class KsuAssetSelectorDialog(wx.Dialog):
 
     def get_selected_asset(self):
         return self.selected_asset
+
+    def _on_close(self, event):
+        self.EndModal(wx.ID_CANCEL)
 
 
 # ============================================================================

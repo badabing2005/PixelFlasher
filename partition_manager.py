@@ -170,6 +170,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         # for wxGTK
         self.list.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
         self.all_checkbox.Bind(wx.EVT_CHECKBOX, self.OnAllCheckbox)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     # -----------------------------------------------
     #              Function PopulateList

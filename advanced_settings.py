@@ -404,6 +404,7 @@ class AdvancedSettings(wx.Dialog):
         self.use_custom_font_checkbox.Bind(wx.EVT_CHECKBOX, self._on_use_custom_fontface)
         self.Bind(wx.EVT_INIT_DIALOG, self.on_init_dialog)
         self.scrcpy_link.Bind(wx.EVT_BUTTON, self._open_scrcpy_link)
+        self.Bind(wx.EVT_CLOSE, self._onCancel)
         # self.Bind(wx.EVT_SIZE, self.on_resize)
 
         # Enable / Disable Widgets

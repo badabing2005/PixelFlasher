@@ -6658,6 +6658,8 @@ def flash_phone(self):
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
             dlg.Destroy()
+            if result not in (1, 2, 3):
+                result = 3
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error.")
             traceback.print_exc()

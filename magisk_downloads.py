@@ -204,6 +204,7 @@ class MagiskDownloads(wx.Dialog):
         # for wxGTK
         self.list.Bind(wx.EVT_RIGHT_UP, self._onRightClick)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self._onItemSelected, self.list)
+        self.Bind(wx.EVT_CLOSE, self._onCancel)
 
 
         # Autosize the dialog

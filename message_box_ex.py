@@ -69,7 +69,7 @@ class MessageBoxEx(wx.Dialog):
         ):
         wx.Dialog.__init__(self, *args, **kwargs)
         self.SetTitle(title)
-        self.button_texts = button_texts
+        self.button_texts = button_texts or []
         self.default_button = default_button
         self.buttons = []
         self.return_value = None
@@ -88,6 +88,23 @@ class MessageBoxEx(wx.Dialog):
             self.checkbox_initial_values2 = checkbox_initial_values2
         else:
             self.checkbox_initial_values2 = []
+
+        self._close_button_index = None
+        if self.button_texts:
+            cancel_keywords = ("cancel", "abort", "no", "stop")
+            for idx, label in enumerate(self.button_texts):
+                normalized = (label or "").strip().lower()
+                tokens = normalized.replace('-', ' ').replace('_', ' ').split()
+                if any(keyword == normalized or keyword in tokens for keyword in cancel_keywords):
+                    self._close_button_index = idx
+                    break
+            if self._close_button_index is None:
+                if len(self.button_texts) > 1:
+                    self._close_button_index = len(self.button_texts) - 1
+                elif self.default_button:
+                    self._close_button_index = max(0, min(len(self.button_texts) - 1, self.default_button - 1))
+                else:
+                    self._close_button_index = 0
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         message_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -229,13 +246,21 @@ class MessageBoxEx(wx.Dialog):
 
         # Autosize the dialog
         self.SetSizerAndFit(vSizer)
+        self.Bind(wx.EVT_CLOSE, self._onDialogClose)
 
     def _setDefaultButton(self, button):
         button.SetDefault()
         button.SetFocus()
 
     def _onButtonClick(self, e, button_index):
-        button_value = button_index + 1
+        self._emit_modal_result(button_index + 1)
+
+    def _onLinkClicked(self, event):
+        url = event.GetLinkInfo().GetHref()
+        # wx.LaunchDefaultBrowser(url)
+        webbrowser.open(url)
+
+    def _emit_modal_result(self, button_value):
         self.return_value = {'button': button_value}
 
         if self.checkbox_labels is not None:
@@ -255,7 +280,13 @@ class MessageBoxEx(wx.Dialog):
 
         self.EndModal(button_value)
 
-    def _onLinkClicked(self, event):
-        url = event.GetLinkInfo().GetHref()
-        # wx.LaunchDefaultBrowser(url)
-        webbrowser.open(url)
+    def _onDialogClose(self, event):
+        if self.IsModal():
+            if self.button_texts:
+                close_index = self._close_button_index if self._close_button_index is not None else 0
+                close_index = max(0, min(len(self.button_texts) - 1, close_index))
+                self._emit_modal_result(close_index + 1)
+            else:
+                self.EndModal(wx.ID_CANCEL)
+        else:
+            event.Skip()

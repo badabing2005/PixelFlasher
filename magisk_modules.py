@@ -296,6 +296,7 @@ class MagiskModules(wx.Dialog):
         self.html.Bind(wx.EVT_CONTEXT_MENU, self.onContextMenu)
         self.list.Bind(wx.EVT_LEFT_DOWN, self.onModuleSelection)
         self.Bind(wx.EVT_SIZE, self.OnResize)
+        self.Bind(wx.EVT_CLOSE, self.onCancel)
 
         # Autosize the dialog
         # self.list.PostSizeEventToParent()

@@ -121,6 +121,7 @@ class SuPermissionDialog(wx.Dialog):
         sizer.Add(button_sizer, 0, wx.ALIGN_CENTER)
 
         self.SetSizerAndFit(sizer)
+        self.Bind(wx.EVT_CLOSE, self.OnCancel)
 
     def OnAllow(self, event):
         until_text = self.until_dropdown.GetValue()
@@ -403,6 +404,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.list.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
         self.system_apps_checkbox.Bind(wx.EVT_CHECKBOX, self.OnSystemAppsCheckbox)
         self.user_apps_checkbox.Bind(wx.EVT_CHECKBOX, self.OnUserAppsCheckbox)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         self.Refresh()
 

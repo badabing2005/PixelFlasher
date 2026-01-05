@@ -145,6 +145,7 @@ class FileEditor(wx.Dialog):
         self.open_shell.Bind(wx.EVT_BUTTON, self.on_open_shell)
         self.save_button.Bind(wx.EVT_BUTTON, self.on_save)
         self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+        self.Bind(wx.EVT_CLOSE, self.on_cancel)
         # self.Bind(wx.EVT_SIZE, self._on_resize)
 
         # fix horizontal scroll bar

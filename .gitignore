@@ -148,4 +148,6 @@ images/*.psd
 /.sourcery.yaml
 .local/
 desktop.ini
+tools/
+data/
 

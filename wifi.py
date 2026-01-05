@@ -161,6 +161,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick, self.list)
         self.ip_ctrl.Bind(wx.EVT_TEXT, self.on_ip_change)
         self.pairing_code.Bind(wx.EVT_TEXT, self.on_pairing_change)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     # -----------------------------------------------
     #              Function PopulateList

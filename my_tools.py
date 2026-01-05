@@ -177,6 +177,7 @@ class MyToolsDialog(wx.Dialog):
         self.args_ctrl.Bind(wx.EVT_TEXT, self.on_args_change)
         self.directory_ctrl.Bind(wx.EVT_TEXT, self.on_directory_change)
         self.Bind(wx.EVT_SIZE, self.OnResize)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     # -----------------------------------------------
     #              Function PopulateList

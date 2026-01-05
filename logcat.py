@@ -349,4 +349,8 @@ class LogcatDialog(wx.Dialog):
 
         self.Fit()
         self.CenterOnParent()
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+
+    def _on_close(self, event):
+        self.EndModal(wx.ID_CANCEL)
 

@@ -55,6 +55,7 @@ class DeviceSelectorDialog(wx.Dialog):
         self._create_ui(message)
         self._bind_events()
         self._size_and_center()
+        self.Bind(wx.EVT_CLOSE, self.on_close)
 
     # ============================================================================
     #                               Function _create_ui
@@ -181,11 +182,16 @@ class DeviceSelectorDialog(wx.Dialog):
             wx.MessageBox(_("Please select a device."), _("No Selection"), wx.OK | wx.ICON_WARNING, self)
 
     # ============================================================================
+    #                               Function on_close
+    # ============================================================================
+    def on_close(self, event):
+        self.EndModal(wx.ID_CANCEL)
+
+    # ============================================================================
     #                               Function get_selected_device
     # ============================================================================
     def get_selected_device(self):
         return self.selected_device
-
 
 # ============================================================================
 #                               Function show_device_selector

@@ -24,9 +24,9 @@ a = Analysis(['PixelFlasher.py'],
                 ('testkey_rsa4096.pem', '.'),
                 ('locale', 'locale')
             ],
-             hiddenimports=['_cffi_backend'],
-             hookspath=[],
-             runtime_hooks=[],
+            hiddenimports=['_cffi_backend'],
+            hookspath=[],
+            runtime_hooks=[],
             excludes=[
                 'bin/busybox_arm64-v8a',
                 'bin/busybox_armeabi-v7a',
@@ -40,9 +40,9 @@ a = Analysis(['PixelFlasher.py'],
                 'bin/update_engine_client_r28',
                 'bin/update_engine_client_r72'
             ],
-             win_no_prefer_redirects=False,
-             win_private_assemblies=False,
-             cipher=block_cipher)
+            win_no_prefer_redirects=False,
+            win_private_assemblies=False,
+            cipher=block_cipher)
 
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)

@@ -140,7 +140,7 @@ jobs:
           # Download CI version of appimagetool but don't try to install it.
           # Extract and run it directly to avoid FUSE dependency issues
           echo "Downloading appimagetool..."
-          curl -L -o appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          curl -L -o appimagetool.AppImage https://github.com/AppImage/appimagetool/releases/download/1.9.0/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
           echo "Downloaded appimagetool successfully"
           ls -la appimagetool.AppImage

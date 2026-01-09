@@ -5,7 +5,7 @@ block_cipher = None
 a = Analysis(['PixelFlasher.py'],
              pathex=[],
              binaries=[('bin/7zzs', 'bin')],
-             pathex=[os.path.abspath(os.path.dirname(__file__))],
+             pathex=['.'],
              datas=[
                 ("images/icon-64.png", "images"),
                 ("images/icon-dark-64.png", "images"),

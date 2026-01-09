@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
-            pathex=[os.path.abspath(os.path.dirname(__file__))],
+            pathex=['.'],
             binaries=[('bin/7z.exe', 'bin'), ('bin/7z.dll', 'bin')],
             datas=[
                 ("images/icon-64.png", "images"),

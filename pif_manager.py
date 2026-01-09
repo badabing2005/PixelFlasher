@@ -46,6 +46,7 @@ from file_editor import FileEditor
 from i18n import _
 from package_manager import PackageManager
 from factory_image_selector import show_factory_image_dialog
+from message_box_ex import MessageBoxEx
 
 # ============================================================================
 #                               Class PifModule
@@ -1653,7 +1654,45 @@ class PifManager(wx.Dialog):
             device = get_phone()
             if device:
                 device_model = device.hardware
-            canary_pif = get_canary_miner(device_model='_select_', default_selection=device_model if device else None)
+            buttons_text = [_("Canary Device"), "Canary Emulator", "Beta Device", _("Cancel")]
+            dlg = MessageBoxEx(
+                parent=self,
+                title=_('Canary Miner Selection'),
+                message=_("Please make a selection"),
+                button_texts=buttons_text,
+                default_button=1,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None,
+                vertical_radios=False
+            )
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            miner_url = None
+            if result == 1:
+                miner_url = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/devices"
+            elif result == 2:
+                miner_url = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/emulator"
+            elif result == 3:
+                miner_url = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/betas"
+            else:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting ...\n")
+                return -1
+
+            canary_pif = get_canary_miner(device_model='_select_', default_selection=device_model if device else None, miner_url=miner_url)
             if self.pif_format == 'prop':
                 self.console_stc.SetValue(self.J2P(canary_pif, quiet=True))
             else:
@@ -1860,6 +1899,7 @@ class PifManager(wx.Dialog):
                 _("Factory Images"),
                 tree_nodes,
                 size=(800, 600),
+                download_button=True,
             )
 
             if selected_image and isinstance(selected_image, dict):
@@ -2027,6 +2067,9 @@ class PifManager(wx.Dialog):
                     model = None
                     with contextlib.suppress(Exception):
                         model = device_data[device]['device']
+                        # if model starts with "Google ", remove that part
+                        if model.startswith("Google "):
+                            model = model[7:]
                     pif_data = {
                         "MANUFACTURER": "Google",
                         "MODEL": model,

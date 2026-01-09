@@ -661,7 +661,7 @@ class MagiskModules(wx.Dialog):
             device = get_phone(True)
             if not device.rooted:
                 return
-            buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", "Tricky Store OSS", "TargetedFix", _("Cancel")]
+            buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", "Tricky Store OSS", "TEESimulator","TargetedFix", _("Cancel")]
             dlg = MessageBoxEx(
                 parent=self,
                 title=_('PIF Module'),
@@ -696,6 +696,8 @@ class MagiskModules(wx.Dialog):
             elif result == 3:
                 gh_latest_url = get_gh_latest_release_asset_regex('beakthoven', 'TrickyStoreOSS', r'^Tricky\-Store\-OSS.*\-Release\.zip$')
             elif result == 4:
+                gh_latest_url = get_gh_latest_release_asset_regex('JingMatrix', 'TEESimulator', r'^TEESimulator.*\-Release\.zip$')
+            elif result == 5:
                 module_update_url = TARGETEDFIX_UPDATE_URL
                 # gh_latest_url = get_gh_latest_release_asset_regex('VisionR1', 'TargetedFix', r'^TargetedFix.*\.zip$')
                 # gh_latest_url = get_gh_pre_release_asset_regex('VisionR1', 'TargetedFix', r'^TargetedFix.*\.zip$')

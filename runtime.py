@@ -3433,19 +3433,22 @@ def find_canary_url(api_level=36):
 # ============================================================================
 #                               Function get_canary_miner
 # ============================================================================
-def get_canary_miner(device_model='random', default_selection=None):
-    CANARY_PIFS_URL = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/devices"
-    # get file list from CANARY_PIFS_URL
+def get_canary_miner(device_model='random', default_selection=None, miner_url=None):
+    if not miner_url:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No miner URL provided")
+        return -1
+    # get file list from miner_url
     try:
         canary_device = None
         canary_url = None
-        response = requests.get(CANARY_PIFS_URL)
+        response = requests.get(miner_url)
         if response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch Canary PIFs page")
             return -1
         page_html = response.text
         file_list = []
-        file_pattern = r'{"name":"([^"]+)","path":"(devices/[^"]+)","contentType":"file"}'
+        directory = path.basename(urlparse(miner_url).path) or "devices"
+        file_pattern = rf'{{"name":"([^"]+)","path":"({re.escape(directory)}/[^"]+)","contentType":"file"}}'
         matches = re.findall(file_pattern, page_html)
         for match in matches:
             file_name = match[0]
@@ -3465,7 +3468,13 @@ def get_canary_miner(device_model='random', default_selection=None):
             canary_url = selected_file['path']
             canary_device = selected_file['device']
         elif device_model == '_select_':
-            canary_url, canary_device = select_pif_device(file_list, default_selection, device_type="Canary")
+            if len(file_list) == 1:
+                only_file = file_list[0]
+                debug(f"Only one Canary PIF found, auto-selecting {only_file['device']}")
+                canary_url = only_file['path']
+                canary_device = only_file['device']
+            else:
+                canary_url, canary_device = select_pif_device(file_list, default_selection, device_type="Canary")
             if not canary_url:
                 return "Selection cancelled."
         elif not canary_url:

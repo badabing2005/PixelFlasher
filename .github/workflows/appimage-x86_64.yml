@@ -113,7 +113,6 @@ jobs:
             - android_versions.json
             - android_devices.json
             - testkey_rsa4096.pem
-            - modules.py
           binaries:
             - bin/7zzs
           hidden_imports:
@@ -190,9 +189,9 @@ jobs:
 
       - name: Build AppImage
         run: |
-          # Create AppImage using --appimage-extract-and-run to avoid FUSE dependency
+          # Create AppImage # comment out using --appimage-extract-and-run to avoid FUSE dependency
           mkdir -p dist
-          ARCH=x86_64 ./appimagetool.AppImage --appimage-extract-and-run AppDir dist/PixelFlasher-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool.AppImage AppDir dist/PixelFlasher-x86_64.AppImage
 
           # Generate SHA256 checksum
           cd dist

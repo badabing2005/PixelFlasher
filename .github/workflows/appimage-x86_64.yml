@@ -94,32 +94,6 @@ jobs:
           ls dist
         shell: bash
 
-      # - name: Create AppImage configuration
-      #   run: |
-      #     # Get version from build.sh
-      #     VERSION=$(grep -m1 "VERSION=" build.sh | cut -d'=' -f2 || echo "1.0.0")
-
-      #     # Create appimage configuration file
-      #     cat > appimage.yml << EOF
-      #     app: PixelFlasher
-      #     binary: PixelFlasher
-      #     script: PixelFlasher.py
-      #     version: ${VERSION}
-      #     icon: images/icon-dark-256.png
-      #     categories: Utility;Development
-      #     extra_data:
-      #       - images/
-      #       - bin/
-      #       - android_versions.json
-      #       - android_devices.json
-      #       - testkey_rsa4096.pem
-      #     binaries:
-      #       - bin/7zzs
-      #     hidden_imports:
-      #       - _cffi_backend
-      #     EOF
-      #   shell: bash
-
       - name: Create .desktop file
         run: |
           mkdir -p dist
@@ -194,6 +168,7 @@ jobs:
           tree AppDir
           ls -lR AppDir
         shell: bash
+
       - name: Build AppImage
         run: |
           # Create AppImage # comment out using --appimage-extract-and-run to avoid FUSE dependency

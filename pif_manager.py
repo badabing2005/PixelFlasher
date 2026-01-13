@@ -1019,6 +1019,9 @@ class PifManager(wx.Dialog):
 
                 # Only pull files that don't exist locally
                 for target in targets:
+                    # if target is not a commented line, skip
+                    if target.startswith('#'):
+                        continue
                     local_tf_target_file = os.path.join(config_path, 'tmp', f'{target}.{self.pif_format}')
                     if not os.path.exists(local_tf_target_file) or not self._tf_targets_loaded:
                         remote_tf_target_file = f"{TARGETEDFIX_CONFIG_PATH}/{target}.{self.pif_format}"
@@ -1050,6 +1053,9 @@ class PifManager(wx.Dialog):
             if targets and len(targets) > 0:
                 # Add all targets to the combo box
                 for target in targets:
+                    # if target is a commented line, skip
+                    if target.startswith('#'):
+                        continue
                     self.tf_targets_combo.Append(target)
 
                 # Select the first target
@@ -3611,11 +3617,11 @@ class PifManager(wx.Dialog):
             has_targets = self.tf_targets_combo.GetCount() > 0 and not (self.tf_targets_combo.GetCount() == 1 and self.tf_targets_combo.GetString(0) == _("TF Targets"))
 
             self.tf_add_target_button.Enable(True)
-            self.tf_delete_target_button.Enable(has_valid_target)
-            self.tf_edit_targets_button.Enable(True)
-
-            # Push Json enabled when target selected and active_pif has valid content
             if has_valid_target:
+                self.tf_delete_target_button.Enable(has_valid_target)
+                self.tf_edit_targets_button.Enable(True)
+
+                # Push Json enabled when target selected and active_pif has valid content
                 active_data = self.active_pif_stc.GetValue().strip()
                 has_valid_json = False
                 if active_data:

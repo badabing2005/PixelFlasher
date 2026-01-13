@@ -79,7 +79,7 @@ from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
 from pif_manager import PifManager
 from message_box_ex import MessageBoxEx
-from modules import (adb_kill_server, auto_resize_boot_list,
+from pf_modules import (adb_kill_server, auto_resize_boot_list,
     check_platform_tools, flash_phone, live_flash_boot_phone,
     patch_boot_img, populate_boot_list, process_file, kb_stats_ui,
     select_firmware, set_flash_button_state, setup_for_downgrade,

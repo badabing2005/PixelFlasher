@@ -63,17 +63,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade setuptools wheel build delvewheel requests
 
-      - name: Build wxPython for ARM64
+      - name: Clone Phoenix and update submodules
         shell: pwsh
         run: |
-          git clone https://github.com/wxWidgets/Phoenix.git
+          git clone --recursive https://github.com/wxWidgets/Phoenix.git
           cd Phoenix
+          git submodule update --init --recursive
 
-          # Patch build.py to force ARM64 build on x64 Python
+      - name: Patch build.py for ARM64
+        shell: pwsh
+        run: |
+          cd Phoenix
           $content = Get-Content build.py -Raw
           $content = $content -replace "if PYTHON_MACHINE == 'ARM64':", "if True: # Force ARM64`n            PYTHON_MACHINE = 'ARM64'"
           Set-Content build.py $content
 
+      - name: Build wxPython for ARM64
+        shell: pwsh
+        run: |
+          cd Phoenix
           python build.py dox etg --nodoc sip
           python build.py build_wx
           python build.py build_py --python=python
@@ -86,6 +94,9 @@ jobs:
           # Remove wxPython from requirements.txt to prevent overwriting the custom build
           (Get-Content requirements.txt) | Where-Object { $_ -notmatch "wxPython" } | Set-Content requirements_no_wx.txt
           pip install -r requirements_no_wx.txt
+
+      - name: List modules and their versions
+        run: pip freeze
 
       - name: Build ARM64 application
         shell: cmd

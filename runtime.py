@@ -9726,6 +9726,54 @@ def get_bootloader_versions():
 
 
 # ============================================================================
+#                               Function extract_strings
+# ============================================================================
+def extract_strings(filename):
+    with open(filename, "rb") as f:
+        data = f.read()
+    return re.findall(rb'[\x20-\x7E]{4,}', data)
+
+
+# ============================================================================
+#                               Function extract_kernel_info
+# ============================================================================
+def extract_kernel_info(boot_img_path):
+    strings = [s.decode(errors="ignore") for s in extract_strings(boot_img_path)]
+    version_regex = re.compile(r'^\d+\.\d+\.\d+[-\w]+')
+    date_regex = re.compile(r'(?:#\d+ )?SMP PREEMPT .+\d{4}')
+
+    # Step 1: Get the prefix portion, don't look into multiline strings
+    prefix = None
+    for i, line in enumerate(strings):
+        if version_regex.match(line):
+            prefix = line
+            break
+
+    # Step 2: Get the longest candidate by searching all lines
+    version_regex2 = re.compile(r'\d+\.\d+\.\d+[-\w]+')
+    version_candidates = []
+    date_candidates = []
+
+    for line in strings:
+        vmatch = version_regex2.search(line)
+        if vmatch:
+            version_candidates.append(vmatch.group(0))
+        dmatch = date_regex.search(line)
+        if dmatch:
+            date_candidates.append(dmatch.group(0))
+
+    build_number = max(version_candidates, key=len) if version_candidates else None
+    build_date = max(date_candidates, key=len) if date_candidates else None
+
+    # Step 3: Filter out anything before the prefix in the longest candidate
+    if prefix and build_number and prefix in build_number:
+        idx = build_number.index(prefix)
+        build_number = build_number[idx:]
+
+    return build_number, build_date
+
+
+# ============================================================================
 #                               Function run_shell
 # ============================================================================
 # We use this when we want to capture the returncode and also selectively

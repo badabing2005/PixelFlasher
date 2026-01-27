@@ -5877,6 +5877,23 @@ class PixelFlasher(wx.Frame):
                 message += f"Firmware:                 {boot.package_path}\n"
                 message += f"Type:                     {boot.package_type}\n"
 
+                # Get kernel info
+                if partition:
+                    kernel_build, kernel_date = extract_kernel_info(boot.boot_path)
+                    if kernel_build:
+                        message += f"Selected Kernel Build:    {kernel_build}\n"
+                    if kernel_date:
+                        message += f"Selected Kernel Date:     {kernel_date}\n"
+                # if there is a boot.img file in the same folder as the boot, get its kernel info too
+                boot_dir = os.path.dirname(boot.boot_path)
+                stock_boot_path = os.path.join(boot_dir, "boot.img")
+                if os.path.exists(stock_boot_path) and stock_boot_path != boot.boot_path:
+                    stock_kernel_build, stock_kernel_date = extract_kernel_info(stock_boot_path)
+                    if stock_kernel_build:
+                        message += f"Stock Kernel Build:       {stock_kernel_build}\n"
+                    if stock_kernel_date:
+                        message += f"Stock Kernel Date:        {stock_kernel_date}\n"
+
                 if package_boot_count > 1:
                     message += f"\nINFO: Multiple PACKAGE_BOOT records found for {boot.boot_hash}."
                 print(f"{message}")

@@ -24,7 +24,17 @@ a = Analysis(['PixelFlasher.py'],
                 ('testkey_rsa4096.pem', '.'),
                 ('locale', 'locale')
             ],
-            hiddenimports=['_cffi_backend'],
+            hiddenimports=[
+    '_cffi_backend',
+    'google.protobuf',
+    'google.protobuf.descriptor',
+    'google.protobuf.message',
+    'google.protobuf.reflection',
+    'google.protobuf.symbol_database',
+    'google.protobuf.descriptor_pb2',
+    'google.protobuf.internal',
+    'google.protobuf.internal.api_implementation',
+],
             hookspath=[],
             runtime_hooks=[],
             excludes=[

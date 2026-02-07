@@ -37,7 +37,7 @@ a = Analysis(['PixelFlasher.py'],
     'google.protobuf.internal',
     'google.protobuf.internal.api_implementation',
 ],
-             hookspath=[],
+             hookspath=['./hooks'],
              runtime_hooks=[],
              excludes=[
                 'bin/busybox_arm64-v8a',

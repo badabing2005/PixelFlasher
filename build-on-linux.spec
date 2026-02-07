@@ -1,10 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
-import site
 
 block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
-             pathex=['.', site.getsitepackages()[0]],
+             pathex=['.'],
              binaries=[('bin/7zzs', 'bin')],
              datas=[
                 ("images/icon-64.png", "images"),
@@ -25,19 +24,8 @@ a = Analysis(['PixelFlasher.py'],
                 ('testkey_rsa4096.pem', '.'),
                 ('locale', 'locale')
              ],
-             hiddenimports=[
-    '_cffi_backend',
-    'google',
-    'google.protobuf',
-    'google.protobuf.descriptor',
-    'google.protobuf.message',
-    'google.protobuf.reflection',
-    'google.protobuf.symbol_database',
-    'google.protobuf.descriptor_pb2',
-    'google.protobuf.internal',
-    'google.protobuf.internal.api_implementation',
-],
-             hookspath=['./hooks'],
+             hiddenimports=['_cffi_backend'],
+             hookspath=[],
              runtime_hooks=[],
              excludes=[
                 'bin/busybox_arm64-v8a',

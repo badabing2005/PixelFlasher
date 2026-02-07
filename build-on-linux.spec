@@ -3,9 +3,12 @@ from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
+# collect_all returns (datas, binaries, hiddenimports)
+google_datas, google_binaries, google_hiddenimports = collect_all('google')
+
 a = Analysis(['PixelFlasher.py'],
              pathex=['.'],
-             binaries=[('bin/7zzs', 'bin')],
+             binaries=[('bin/7zzs', 'bin')] + google_binaries,
              datas=[
                 ("images/icon-64.png", "images"),
                 ("images/icon-dark-64.png", "images"),
@@ -24,8 +27,8 @@ a = Analysis(['PixelFlasher.py'],
                 ('android_devices.json', '.'),
                 ('testkey_rsa4096.pem', '.'),
                 ('locale', 'locale')
-             ],
-             hiddenimports=['_cffi_backend'] + collect_all('google'),
+             ] + google_datas,
+             hiddenimports=['_cffi_backend'] + google_hiddenimports,
              hookspath=[],
              runtime_hooks=[],
              excludes=[

@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
@@ -25,7 +25,7 @@ a = Analysis(['PixelFlasher.py'],
                 ('testkey_rsa4096.pem', '.'),
                 ('locale', 'locale')
              ],
-             hiddenimports=['_cffi_backend', 'google.protobuf'] + collect_submodules('google'),
+             hiddenimports=['_cffi_backend'] + collect_all('google'),
              hookspath=[],
              runtime_hooks=[],
              excludes=[

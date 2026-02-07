@@ -1,9 +1,10 @@
 # -*- mode: python -*-
+import site
 
 block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
-            pathex=['.'],
+            pathex=['.', site.getsitepackages()[0]],
             binaries=[('bin/7zz', 'bin')],
             datas=[
                 ("images/icon-64.png", "images"),
@@ -26,6 +27,7 @@ a = Analysis(['PixelFlasher.py'],
             ],
             hiddenimports=[
     '_cffi_backend',
+    'google',
     'google.protobuf',
     'google.protobuf.descriptor',
     'google.protobuf.message',

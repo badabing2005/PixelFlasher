@@ -72,12 +72,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade setuptools wheel build delvewheel requests
 
-      - name: Download and install ARM64 wxPython
+      - name: Install ARM64 wxPython
         shell: pwsh
         run: |
-          # Download pre-built ARM64 wheel from snapshot builds
-          curl -L "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl" -o wxpython-arm64.whl
-          pip install wxpython-arm64.whl
+          # Install pre-built ARM64 wheel directly from snapshot builds
+          pip install "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
 
       - name: Install requirements
         shell: pwsh

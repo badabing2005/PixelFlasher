@@ -47,15 +47,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+      - name: Download ARM64 Python
+        shell: pwsh
+        run: |
+          curl https://www.python.org/ftp/python/3.13.0/python-3.13.0-arm64.exe --output python-arm64.exe
+          ./python-arm64.exe /quiet InstallAllUsers=1 PrependPath=1
 
       - name: Install Windows SDK
         uses: GuillaumeFalourd/setup-windows10-sdk-action@v2.4
         with:
           sdk-version: 26100
+
+      - name: Create virtual environment
+        shell: pwsh
+        run: python -m venv myenv
+
+      - name: Activate virtual environment
+        shell: pwsh
+        run: .\myenv\Scripts\Activate.ps1
 
       - name: Install build tools
         shell: pwsh
@@ -63,29 +72,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade setuptools wheel build delvewheel requests
 
-      - name: Clone Phoenix and update submodules
+      - name: Download and install ARM64 wxPython
         shell: pwsh
         run: |
-          git clone --recursive https://github.com/wxWidgets/Phoenix.git
-          cd Phoenix
-          git submodule update --init --recursive
-
-      - name: Patch build.py for ARM64
-        shell: pwsh
-        run: |
-          cd Phoenix
-          $content = Get-Content build.py -Raw
-          $content = $content -replace "if PYTHON_MACHINE == 'ARM64':", "if True: # Force ARM64`n            PYTHON_MACHINE = 'ARM64'"
-          Set-Content build.py $content
-
-      - name: Build wxPython for ARM64
-        shell: pwsh
-        run: |
-          cd Phoenix
-          python build.py dox etg --nodoc sip
-          python build.py build_wx
-          python build.py build_py --python=python
-          pip install -e .
+          # Download pre-built ARM64 wheel from snapshot builds
+          curl -L "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl" -o wxpython-arm64.whl
+          pip install wxpython-arm64.whl
 
       - name: Install requirements
         shell: pwsh

@@ -5386,9 +5386,10 @@ def update_phones(device_id, mode=None):
 # ============================================================================
 #                               Function get_connected_devices
 # ============================================================================
-def get_connected_devices():
+def get_connected_devices(respect_device_filter=True, scan_all=False):
     devices = []
     phones = []
+    all_detected_device_ids = []
 
     try:
         if get_adb():
@@ -5411,12 +5412,33 @@ def get_connected_devices():
                                     continue
                                 mode = d_id[1].strip()
                                 d_id = d_id[0].strip()
+
+                                # Track this device
+                                all_detected_device_ids.append(d_id)
+
+                                # Add/update device in devices.json FIRST (before filtering)
+                                # This ensures all detected devices are tracked
+                                add_or_update_device(d_id, '', '', connected=True)
+
+                                # Check if device is enabled (unless scan_all is True)
+                                if not scan_all and respect_device_filter and not is_device_enabled(d_id):
+                                    print(f"Device {d_id} is disabled, skipping...")
+                                    continue
+
                                 true_mode = None
                                 if mode in ('recovery', 'sideload', 'rescue'):
                                     true_mode = mode
                                 device = Device(d_id, 'adb', true_mode)
                                 device.init('adb')
                                 device_details = device.get_device_details()
+
+                                # Extract device name and hardware for devices.json
+                                device_name = getattr(device, 'hardware', '') or ''
+                                hardware = getattr(device, 'hardware', '') or ''
+
+                                # Update device in devices.json
+                                add_or_update_device(d_id, device_name, hardware, connected=True)
+
                                 devices.append(device_details)
                                 phones.append(device)
                             except Exception as e:
@@ -5449,9 +5471,30 @@ def get_connected_devices():
                             if 'fastboot' in device:
                                 d_id = device.split("\t")
                                 d_id = d_id[0].strip()
+
+                                # Track this device
+                                all_detected_device_ids.append(d_id)
+
+                                # Add/update device in devices.json FIRST (before filtering)
+                                # This ensures all detected devices are tracked
+                                add_or_update_device(d_id, '', '', connected=True)
+
+                                # Check if device is enabled (unless scan_all is True)
+                                if not scan_all and respect_device_filter and not is_device_enabled(d_id):
+                                    print(f"Device {d_id} is disabled, skipping...")
+                                    continue
+
                                 device = Device(d_id, 'f.b')
                                 device.init('f.b')
                                 device_details = device.get_device_details()
+
+                                # Extract device name and hardware for devices.json
+                                device_name = getattr(device, 'hardware', '') or ''
+                                hardware = getattr(device, 'hardware', '') or ''
+
+                                # Update device in devices.json
+                                add_or_update_device(d_id, device_name, hardware, connected=True)
+
                                 devices.append(device_details)
                                 phones.append(device)
                         except Exception as e:
@@ -5459,6 +5502,9 @@ def get_connected_devices():
                             traceback.print_exc()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting fastboot devices.")
+
+        # Update connection status for all known devices
+        update_all_devices_connection_status(all_detected_device_ids)
 
         set_phones(phones)
     except Exception as e:

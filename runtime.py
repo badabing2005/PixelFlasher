@@ -1251,7 +1251,7 @@ def get_config_file_path():
 
 
 # ============================================================================
-#                               Function set_config
+#                           Function set_config
 # ============================================================================
 def set_config_file_path(value):
     global _config_file_path
@@ -1259,14 +1259,14 @@ def set_config_file_path(value):
 
 
 # ============================================================================
-#                               Function get_sys_config_path
+#                       Function get_sys_config_path
 # ============================================================================
 def get_sys_config_path():
     return user_data_dir(APPNAME, appauthor=False, roaming=True)
 
 
 # ============================================================================
-#                               Function get_config_path
+#                         Function get_config_path
 # ============================================================================
 def get_config_path():
     global _config_path
@@ -1274,7 +1274,7 @@ def get_config_path():
 
 
 # ============================================================================
-#                               Function set_config_path
+#                       Function set_config_path
 # ============================================================================
 def set_config_path(value):
     global _config_path
@@ -1282,63 +1282,248 @@ def set_config_path(value):
 
 
 # ============================================================================
-#                               Function get_labels_file_path
+#                      Function get_labels_file_path
 # ============================================================================
 def get_labels_file_path():
     return os.path.join(get_config_path(), "labels.json").strip()
 
 
 # ============================================================================
-#                               Function get_xiaomi_file_path
+#                     Function get_xiaomi_file_path
 # ============================================================================
 def get_xiaomi_file_path():
     return os.path.join(get_config_path(), "xiaomi.json").strip()
 
 
 # ============================================================================
-#                               Function get_favorite_pifs_file_path
+#                    Function get_favorite_pifs_file_path
 # ============================================================================
 def get_favorite_pifs_file_path():
     return os.path.join(get_config_path(), "favorite_pifs.json").strip()
 
 
 # ============================================================================
-#                      Function get_device_images_history_file_path
+#                 Function get_device_images_history_file_path
 # ============================================================================
 def get_device_images_history_file_path():
     return os.path.join(get_config_path(), "device_images_history.json").strip()
 
 
 # ============================================================================
-#                               Function get_coords_file_path
+#                        Function get_coords_file_path
 # ============================================================================
 def get_coords_file_path():
     return os.path.join(get_config_path(), "coords.json").strip()
 
 
 # ============================================================================
-#                               Function get_skip_urls_file_path
+#                        Function get_skip_urls_file_path
 # ============================================================================
 def get_skip_urls_file_path():
     return os.path.join(get_config_path(), "skip_urls.txt").strip()
 
 
 # ============================================================================
-#                               Function get_wifi_history_file_path
+#                        Function get_wifi_history_file_path
 # ============================================================================
 def get_wifi_history_file_path():
     return os.path.join(get_config_path(), "wireless.json").strip()
 
 
 # ============================================================================
-#                               Function get_mytools_file_path
+#                        Function get_mytools_file_path
 # ============================================================================
 def get_mytools_file_path():
     return os.path.join(get_config_path(), "mytools.json").strip()
 
 
 # ============================================================================
-#                               Function get_path_to_7z
+#                        Function get_devices_file_path
+# ============================================================================
+def get_devices_file_path():
+    return os.path.join(get_config_path(), "devices.json").strip()
+
+
+# ============================================================================
+#                           Function load_devices_json
+# ============================================================================
+def load_devices_json():
+    try:
+        file_path = get_devices_file_path()
+        if os.path.exists(file_path):
+            encoding = detect_encoding(file_path)
+            with open(file_path, 'r', encoding=encoding, errors="replace") as f:
+                data = json.load(f)
+                return data.get('devices', {})
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error loading devices.json: {e}")
+    return {}
+
+
+# ============================================================================
+#                         Function save_devices_json
+# ============================================================================
+def save_devices_json(devices_data):
+    try:
+        file_path = get_devices_file_path()
+        data = {'devices': devices_data}
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        return True
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error saving devices.json: {e}")
+        return False
+
+
+# ============================================================================
+#                    Function add_or_update_device
+# ============================================================================
+def add_or_update_device(device_id, device_name='', hardware='', connected=True):
+    try:
+        devices = load_devices_json()
+        now = datetime.now().isoformat()
+
+        if device_id not in devices:
+            # New device - add with enabled=True by default
+            devices[device_id] = {
+                'enabled': True,
+                'device_name': device_name,
+                'hardware': hardware,
+                'custom_label': '',  # Empty by default, user can set via Manage Devices
+                'first_detected': now,
+                'last_seen': now,
+                'connected': connected
+            }
+            print(f"New device detected and added to devices.json: {device_id} ({device_name})")
+        else:
+            # Update existing device
+            devices[device_id]['last_seen'] = now
+            devices[device_id]['connected'] = connected
+            if device_name:
+                devices[device_id]['device_name'] = device_name
+            if hardware:
+                devices[device_id]['hardware'] = hardware
+
+        save_devices_json(devices)
+        return True
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error updating device {device_id}: {e}")
+        return False
+
+
+# ============================================================================
+#                     Function is_device_enabled
+# ============================================================================
+def is_device_enabled(device_id):
+    try:
+        devices = load_devices_json()
+        if device_id in devices:
+            return devices[device_id].get('enabled', True)
+        # If device not in file, it's considered enabled (will be added as enabled)
+        return True
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error checking device {device_id}: {e}")
+        return True
+
+
+# ============================================================================
+#                     Function toggle_device_enabled
+# ============================================================================
+def toggle_device_enabled(device_id):
+    try:
+        devices = load_devices_json()
+        if device_id in devices:
+            current_state = devices[device_id].get('enabled', True)
+            devices[device_id]['enabled'] = not current_state
+            save_devices_json(devices)
+            return devices[device_id]['enabled']
+        return None
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error toggling device {device_id}: {e}")
+        return None
+
+
+# ============================================================================
+#                     Function get_device_display_name
+# ============================================================================
+def get_device_display_name(device_id, device_info=None):
+    # Get display name for a device. Format: device_id : custom_label or device_id : hardware
+    # Priority: custom_label > hardware > device_name > device_id
+    try:
+        devices = load_devices_json()
+        if device_id in devices:
+            # Priority 1: custom_label (user-defined)
+            custom_label = devices[device_id].get('custom_label', '')
+            if custom_label:
+                return f"{device_id} : {custom_label}"
+
+            # Priority 2: hardware
+            hardware = devices[device_id].get('hardware', '')
+            if hardware:
+                return f"{device_id} : {hardware}"
+
+            # Priority 3: device_name
+            device_name = devices[device_id].get('device_name', '')
+            if device_name:
+                return f"{device_id} : {device_name}"
+
+        # Fallback to device_info if provided
+        if device_info and hasattr(device_info, 'hardware'):
+            return f"{device_id} : {device_info.hardware}"
+        return device_id
+    except Exception:
+        return device_id
+
+
+# ============================================================================
+#                     Function update_device_custom_label
+# ============================================================================
+def update_device_custom_label(device_id, custom_label):
+    try:
+        devices = load_devices_json()
+        if device_id in devices:
+            devices[device_id]['custom_label'] = custom_label.strip()
+            save_devices_json(devices)
+            return True
+        return False
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error updating custom label for device {device_id}: {e}")
+        return False
+
+
+# ============================================================================
+#                         Function delete_device
+# ============================================================================
+def delete_device(device_id):
+    try:
+        devices = load_devices_json()
+        if device_id in devices:
+            del devices[device_id]
+            save_devices_json(devices)
+            return True
+        return False
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error deleting device {device_id}: {e}")
+        return False
+
+
+# ============================================================================
+#                Function update_all_devices_connection_status
+# ============================================================================
+def update_all_devices_connection_status(connected_device_ids):
+    try:
+        devices = load_devices_json()
+        for device_id in devices:
+            devices[device_id]['connected'] = device_id in connected_device_ids
+        save_devices_json(devices)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error updating device connection status: {e}")
+
+
+# ============================================================================
+#                        Function get_path_to_7z
 # ============================================================================
 def get_path_to_7z():
     if sys.platform == "win32":

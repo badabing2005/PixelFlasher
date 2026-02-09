@@ -90,6 +90,7 @@ from phone import get_connected_devices, update_phones
 from runtime import *
 from my_tools import MyToolsDialog
 from logcat import LogcatDialog
+from manage_devices import ManageDevicesDialog
 
 
 # For troubleshooting, set inspector = True
@@ -976,6 +977,9 @@ class PixelFlasher(wx.Frame):
                     debug("select configured device")
                     self._select_configured_device(is_init=True)
                     self._refresh_ui()
+
+                    # Refresh the Devices menu to show detected devices
+                    wx.CallAfter(self._build_devices_menu)
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for connected devices during initialization.")
                 traceback.print_exc()
@@ -1545,6 +1549,10 @@ class PixelFlasher(wx.Frame):
         # Create the Device menu
         device_menu = wx.Menu()
 
+        # Create the Devices management menu (for enable/disable scanning)
+        self.devices_menu = wx.Menu()
+        self._build_devices_menu()
+
         # Create the Toolbar menu
         tb_menu = wx.Menu()
 
@@ -1935,6 +1943,8 @@ class PixelFlasher(wx.Frame):
         self.menuBar.Append(tools_menu, _("Dev Tools"))
         # Add the My Tools menu to the menu bar
         self.menuBar.Append(self.my_tools_menu, _("&My Tools"))
+        # Add the Devices management menu to the menu bar
+        self.menuBar.Append(self.devices_menu, _("&Devices"))
         # Create an instance of GoogleImagesMenu
         self.google_images_menu = GoogleImagesMenu(self)
         # Append GoogleImagesMenu to the menu bar
@@ -2085,6 +2095,115 @@ class PixelFlasher(wx.Frame):
         self.toolbar_flags = self.get_toolbar_config()
         # Rebuild the toolbar with the updated flags
         self._build_toolbar(self.toolbar_flags, True)
+
+    # -----------------------------------------------
+    #                  _build_devices_menu
+    # -----------------------------------------------
+    def _build_devices_menu(self):
+        # Clear existing items and mapping
+        while self.devices_menu.GetMenuItemCount() > 0:
+            self.devices_menu.DestroyItem(self.devices_menu.FindItemByPosition(0))
+
+        # Initialize device menu item mapping
+        self._device_menu_map = {}
+
+        # Scan Enabled Devices
+        scan_enabled_item = self.devices_menu.Append(wx.ID_ANY, _("Scan Enabled Devices"), _("Scan only enabled devices (faster)"))
+        scan_enabled_item.SetBitmap(images.scan_24.GetBitmap() if hasattr(images, 'scan_24') else wx.NullBitmap)
+        self.Bind(wx.EVT_MENU, self._on_scan_enabled_devices, scan_enabled_item)
+
+        # Scan All Devices
+        scan_all_item = self.devices_menu.Append(wx.ID_ANY, _("Scan All Devices"), _("Scan all connected devices regardless of enable/disable settings"))
+        scan_all_item.SetBitmap(images.scan_all_24.GetBitmap() if hasattr(images, 'scan_all_24') else wx.NullBitmap)
+        self.Bind(wx.EVT_MENU, self._on_scan_all_devices, scan_all_item)
+
+        self.devices_menu.AppendSeparator()
+
+        # Load devices from devices.json
+        devices = load_devices_json()
+
+        if not devices:
+            # No devices found in config
+            no_devices_item = self.devices_menu.Append(wx.ID_ANY, _("No devices configured"), _("Connect and scan devices to populate this list"))
+            no_devices_item.Enable(False)
+        else:
+            # Add each device as a checkable menu item
+            for device_id, device_data in sorted(devices.items()):
+                enabled = device_data.get('enabled', True)
+                connected = device_data.get('connected', False)
+
+                # Build display name using get_device_display_name
+                display_name = get_device_display_name(device_id)
+
+                # Add visual indicator for connected devices
+                if connected:
+                    display_name = "● " + display_name
+                else:
+                    display_name = "○ " + display_name
+
+                menu_id = wx.NewIdRef()
+                menu_item = self.devices_menu.Append(menu_id, display_name, _("Click to enable/disable device scanning"), wx.ITEM_CHECK)
+                menu_item.Check(enabled)
+
+                # Store device_id mapping
+                self._device_menu_map[menu_id] = device_id
+
+                self.Bind(wx.EVT_MENU, self._on_device_toggle, menu_item)
+
+        # Manage Devices
+        if devices:
+            self.devices_menu.AppendSeparator()
+        manage_devices_item = self.devices_menu.Append(wx.ID_ANY, _("Manage Devices ..."), _("Manage device entries - delete, rename, enable/disable"))
+        manage_devices_item.SetBitmap(images.settings_24.GetBitmap() if hasattr(images, 'settings_24') else wx.NullBitmap)
+        self.Bind(wx.EVT_MENU, self._on_manage_devices, manage_devices_item)
+
+        # Force menu bar to refresh
+        self.menuBar.Update()
+        self.menuBar.Refresh()
+
+    # -----------------------------------------------
+    #                  _on_scan_all_devices
+    # -----------------------------------------------
+    def _on_scan_all_devices(self, event):
+        self._perform_scan(scan_all=True)
+
+    # -----------------------------------------------
+    #                  _on_scan_enabled_devices
+    # -----------------------------------------------
+    def _on_scan_enabled_devices(self, event):
+        self._perform_scan(scan_all=False)
+
+    # -----------------------------------------------
+    #                  _on_device_toggle
+    # -----------------------------------------------
+    def _on_device_toggle(self, event):
+        menu_id = event.GetId()
+        device_id = self._device_menu_map.get(menu_id)
+        if device_id:
+            new_state = toggle_device_enabled(device_id)
+            if new_state is not None:
+                status = "enabled" if new_state else "disabled"
+                print(f"Device {device_id} is now {status} for scanning.")
+                self.toast(_("Device Scan"), _("Device %s is now %s for scanning.") % (device_id, status))
+
+    # -----------------------------------------------
+    #                  _on_manage_devices
+    # -----------------------------------------------
+    def _on_manage_devices(self, event):
+        try:
+            print("\n==============================================================================")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Manage Devices")
+            print("==============================================================================")
+            puml(":Manage Devices;\n", True)
+            dlg = ManageDevicesDialog(self)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+            # Refresh the Devices menu to reflect any changes
+            self._build_devices_menu()
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Error opening Manage Devices dialog")
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  _on_help_about
@@ -3774,6 +3893,7 @@ class PixelFlasher(wx.Frame):
                 self.image_choice:                      ['custom_flash'],
                 self.custom_rom:                        ['custom_rom'],
                 self.scan_button:                       ['sdk_ok'],
+                self.scan_all_button:                   ['sdk_ok'],
                 self.wifi_adb:                          ['sdk_ok'],
                 self.device_choice:                     ['sdk_ok'],
                 self.process_firmware:                  ['firmware_selected'],
@@ -3906,38 +4026,67 @@ class PixelFlasher(wx.Frame):
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  _on_scan
+    #                  _perform_scan
     # -----------------------------------------------
-    def _on_scan(self, event):
+    def _perform_scan(self, scan_all=False):
+        # scan_all: If True, scan all devices regardless of enable/disable settings.
+        #           If False, only scan enabled devices (respects device filter).
         try:
             startScan = time.time()
+
+            # Determine scan mode text
+            if scan_all:
+                header = "User initiated Scan (All Devices)"
+                scanning_msg = "Scanning for All Devices ..."
+                puml_text = ":Scan for All Devices;"
+            else:
+                header = "User initiated Scan"
+                scanning_msg = "Scanning for Devices ..."
+                puml_text = ":Scan for Devices;"
+
             print("\n==============================================================================")
-            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Scan")
+            print(f" {datetime.now():%Y-%m-%d %H:%M:%S} {header}")
             print("==============================================================================")
+
             if get_adb():
-                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Scanning for Devices ...")
-                puml(":Scan for Devices;\n")
+                print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} {scanning_msg}")
+                puml(f"{puml_text}\n")
                 self._on_spin('start')
-                connected_devices = get_connected_devices()
+
+                # Perform the scan based on mode
+                if scan_all:
+                    connected_devices = get_connected_devices(scan_all=True)
+                else:
+                    connected_devices = get_connected_devices(respect_device_filter=True)
+
                 self.device_choice.SetItems(connected_devices)
                 d_list_string = '\n'.join(connected_devices)
                 puml(f"note right\n{d_list_string}\nend note\n")
+
                 if self.device_choice.Count == 0:
                     self.device_choice.SetSelection(-1)
                     print("⚠️ No Devices found.")
                     puml(f"note right:No Devices are found\n")
                     self.toast(_("Scan"), _("⚠️ No devices are found.."))
                     self._on_spin('stop')
+                    # Refresh the devices menu to show updated connection status
+                    wx.CallAfter(self._build_devices_menu)
                     return
+
                 print(f"{self.device_choice.Count} Device(s) are found.")
                 self._select_configured_device()
                 self._on_spin('stop')
+
                 if self.device_choice.StringSelection == '':
                     # Popup the devices dropdown
                     self.device_choice.Popup()
                     self.toast(_("Scan"), _("✅ Select your device from the list of %s found devices.") % self.device_choice.Count)
+
+                # Refresh the devices menu to show updated connection status
+                wx.CallAfter(self._build_devices_menu)
             else:
                 print("Please set Android Platform Tools Path first.")
+
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while scanning")
             traceback.print_exc()
@@ -3946,6 +4095,11 @@ class PixelFlasher(wx.Frame):
             endScan = time.time()
             print(f"Device scan elapsed time: {math.ceil(endScan - startScan)} seconds")
 
+    # -----------------------------------------------
+    #                  _on_scan
+    # -----------------------------------------------
+    def _on_scan(self, event):
+        self._perform_scan(scan_all=False)
 
     # -----------------------------------------------
     #                  _on_select_platform_tools
@@ -6541,10 +6695,14 @@ class PixelFlasher(wx.Frame):
         device_tooltip += _("(rec) device is in recovery mode\n")
         self.device_choice.SetToolTip(device_tooltip)
         self.scan_button = wx.Button(parent=panel, label=_("Scan"))
-        self.scan_button.SetToolTip(_("Scan for Devices\nPlease manually select the device after the scan is completed."))
+        self.scan_button.SetToolTip(_("Scan only enabled Devices\nPlease manually select the device after the scan is completed."))
         self.scan_button.SetBitmap(images.scan_24.GetBitmap())
+        self.scan_all_button = wx.Button(parent=panel, label=_("Scan All"))
+        self.scan_all_button.SetToolTip(_("Scan all Devices\nPlease manually select the device after the scan is completed."))
+        self.scan_all_button.SetBitmap(images.scan_all_24.GetBitmap())
         device_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         device_sizer.Add(window=self.device_choice, proportion=1, flag=wx.EXPAND)
+        device_sizer.Add(window=self.scan_all_button, flag=wx.LEFT, border=2)
         device_sizer.Add(window=self.scan_button, flag=wx.LEFT, border=2)
 
         # 3rd row Reboot buttons, device related buttons
@@ -6887,6 +7045,7 @@ class PixelFlasher(wx.Frame):
         # Connect Events
         self.device_choice.Bind(wx.EVT_COMBOBOX, self._on_select_device)
         self.scan_button.Bind(wx.EVT_BUTTON, self._on_scan)
+        self.scan_all_button.Bind(wx.EVT_BUTTON, self._on_scan_all_devices)
         self.firmware_picker.Bind(wx.EVT_FILEPICKER_CHANGED, self._on_select_firmware)
         self.platform_tools_picker.Bind(wx.EVT_DIRPICKER_CHANGED, self._on_select_platform_tools)
         self.device_label.Bind(wx.EVT_LEFT_DCLICK, self._on_adb_kill_server)
@@ -6930,6 +7089,7 @@ class PixelFlasher(wx.Frame):
         all_controls = [
             {'control': self.platform_tools_picker, 'type': 'picker'},
             {'control': self.scan_button, 'type': 'button'},
+            {'control': self.scan_all_button, 'type': 'button'},
             {'control': self.firmware_picker, 'type': 'filepickercombo'},
             {'control': self.process_firmware, 'type': 'button'},
             {'control': self.custom_rom, 'type': 'filepickercombo'},

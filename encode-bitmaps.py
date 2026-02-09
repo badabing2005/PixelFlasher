@@ -112,6 +112,7 @@ command_lines = [
     "-a -F -i -n reboot-sideload-64 images/reboot-sideload-64.png images.py",
     "-a -F -i -n right-24 images/right-24.png images.py",
     "-a -F -i -n scan-24 images/scan-24.png images.py",
+    "-a -F -i -n scan-all-24 images/scan-all-24.png images.py",
     "-a -F -i -n shell-24 images/shell-24.png images.py",
     "-a -F -i -n shell-64 images/shell-64.png images.py",
     "-a -F -i -n shell-64-disabled images/shell-64-disabled.png images.py",

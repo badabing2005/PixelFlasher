@@ -58,51 +58,49 @@ jobs:
         with:
           sdk-version: 26100
 
-      - name: Create virtual environment
-        shell: pwsh
-        run: python -m venv myenv
-
-      - name: Activate virtual environment
-        shell: pwsh
-        run: .\myenv\Scripts\Activate.ps1
-
-      - name: Install build tools
+      - name: Create virtual environment and install wxPython
         shell: pwsh
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade setuptools wheel build delvewheel requests
-
-      - name: Install ARM64 wxPython
-        shell: pwsh
-        run: |
+          python -m venv myenv
+          $venvPython = ".\myenv\Scripts\python.exe"
+          $venvPip = ".\myenv\Scripts\pip.exe"
+          
+          # Upgrade pip in venv
+          & $venvPython -m pip install --upgrade pip
+          & $venvPip install --upgrade setuptools wheel build delvewheel requests
+          
           # Download and manually extract ARM64 wheel to bypass pip platform checks
-          $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
+          $sitePackages = & $venvPython -c "import site; print(site.getsitepackages()[0])"
           Write-Host "Site-packages: $sitePackages"
           curl -L -o wxpython.whl "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
           # Extract wheel directly to site-packages
           Expand-Archive -Path wxpython.whl -DestinationPath $sitePackages -Force
-          pip install pillow numpy six
-
-      - name: Verify wxPython installation
-        shell: pwsh
-        run: |
-          python -c "import wx; print(f'wxPython version: {wx.__version__}')"
-          Get-ChildItem myenv\Lib\site-packages | Where-Object { $_.Name -like '*wx*' }
+          & $venvPip install pillow numpy six
+          
+          # Verify installation
+          & $venvPython -c "import wx; print(f'wxPython version: {wx.__version__}')"
+          Write-Host "wx contents in site-packages:"
+          Get-ChildItem $sitePackages | Where-Object { $_.Name -like '*wx*' }
 
       - name: Install requirements
         shell: pwsh
         run: |
-          pip install --upgrade pyinstaller
+          $venvPip = ".\myenv\Scripts\pip.exe"
+          & $venvPip install --upgrade pyinstaller
           # Remove wxPython from requirements.txt to prevent overwriting the custom build
           (Get-Content requirements.txt) | Where-Object { $_ -notmatch "wxPython" } | Set-Content requirements_no_wx.txt
-          pip install -r requirements_no_wx.txt
+          & $venvPip install -r requirements_no_wx.txt
 
       - name: List modules and their versions
-        run: pip freeze
+        shell: pwsh
+        run: |
+          .\myenv\Scripts\pip.exe freeze
 
       - name: Build ARM64 application
-        shell: cmd
-        run: pyinstaller --log-level=DEBUG --clean --noconfirm build-on-win-arm64.spec
+        shell: pwsh
+        run: |
+          $venvPyInstaller = ".\myenv\Scripts\pyinstaller.exe"
+          & $venvPyInstaller --log-level=DEBUG --clean --noconfirm build-on-win-arm64.spec
 
       - name: Verify Output Exists
         shell: pwsh

@@ -39,17 +39,49 @@ that PyInstaller cannot analyze when running on x64 hardware.
 """
 
 from PyInstaller.utils.hooks import collect_all, collect_dynamic_libs
-import wx
+import sys
 import os
 
-# Get the wx package directory
-wx_dir = os.path.dirname(wx.__file__)
+# Find wx without importing it (since ARM64 .pyd can't load on x64)
+# Get site-packages path from sys.path
+site_packages = None
+for path in sys.path:
+    if 'site-packages' in path:
+        site_packages = path
+        break
+
+if not site_packages:
+    # Fallback: construct from sys.executable
+    site_packages = os.path.join(os.path.dirname(sys.executable), 'Lib', 'site-packages')
+
+wx_dir = os.path.join(site_packages, 'wx')
 
 # Collect all wx files - both as datas and binaries
 # This ensures ARM64 .pyd files are included even though they can't be analyzed
-binaries = collect_dynamic_libs('wx')
-datas = collect_all('wx')
+binaries = []
+datas = []
 
-print(f"ARM64 Hook: Collected wx from {wx_dir}")
-print(f"ARM64 Hook: Found {len(binaries)} binary files")
-print(f"ARM64 Hook: Found {len(datas[0])} data files")
+# Manually collect all files from wx directory if it exists
+if os.path.exists(wx_dir):
+    for root, dirs, files in os.walk(wx_dir):
+        for file in files:
+            full_path = os.path.join(root, file)
+            # Calculate relative path for destination
+            rel_path = os.path.relpath(root, site_packages)
+            
+            # .pyd files go to binaries, everything else to datas
+            if file.endswith('.pyd') or file.endswith('.dll'):
+                binaries.append((full_path, rel_path))
+            else:
+                datas.append((full_path, rel_path))
+    
+    print(f"ARM64 Hook: Collected wx from {wx_dir}")
+    print(f"ARM64 Hook: Found {len(binaries)} binary files")
+    print(f"ARM64 Hook: Found {len(datas)} data files")
+else:
+    print(f"ARM64 Hook: WARNING - wx directory not found at {wx_dir}")
+    # Try fallback using collect functions
+    binaries = collect_dynamic_libs('wx')
+    datas = collect_all('wx')
+    print(f"ARM64 Hook (fallback): Found {len(binaries)} binary files")
+    print(f"ARM64 Hook (fallback): Found {len(datas)} data files")

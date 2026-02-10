@@ -44,7 +44,7 @@ a = Analysis(['PixelFlasher.py'],
                 'wx._html',
                 'wx._stc',
             ],
-            hookspath=[],
+            hookspath=['pyi-hooks-arm64'],
             runtime_hooks=[],
             excludes=[
                 'bin/busybox_arm64-v8a',

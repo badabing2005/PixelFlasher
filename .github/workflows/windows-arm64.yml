@@ -75,9 +75,19 @@ jobs:
       - name: Install ARM64 wxPython
         shell: pwsh
         run: |
-          # Install pre-built ARM64 wheel with platform override
-          pip install --platform win_arm64 --only-binary :all: --no-deps "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
+          # Download and manually extract ARM64 wheel to bypass pip platform checks
+          $sitePackages = python -c "import site; print(site.getsitepackages()[0])"
+          Write-Host "Site-packages: $sitePackages"
+          curl -L -o wxpython.whl "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
+          # Extract wheel directly to site-packages
+          Expand-Archive -Path wxpython.whl -DestinationPath $sitePackages -Force
           pip install pillow numpy six
+
+      - name: Verify wxPython installation
+        shell: pwsh
+        run: |
+          python -c "import wx; print(f'wxPython version: {wx.__version__}')"
+          Get-ChildItem myenv\Lib\site-packages | Where-Object { $_.Name -like '*wx*' }
 
       - name: Install requirements
         shell: pwsh

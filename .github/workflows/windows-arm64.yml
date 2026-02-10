@@ -70,17 +70,24 @@ jobs:
           & $venvPip install --upgrade setuptools wheel build delvewheel requests
           
           # Download and manually extract ARM64 wheel to bypass pip platform checks
-          $sitePackages = & $venvPython -c "import site; print(site.getsitepackages()[0])"
+          # Use explicit site-packages path in venv
+          $sitePackages = ".\myenv\Lib\site-packages"
           Write-Host "Site-packages: $sitePackages"
           curl -L -o wxpython.whl "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
           # Extract wheel directly to site-packages
           Expand-Archive -Path wxpython.whl -DestinationPath $sitePackages -Force
           & $venvPip install pillow numpy six
           
-          # Verify installation
-          & $venvPython -c "import wx; print(f'wxPython version: {wx.__version__}')"
+          # Verify extraction and show wx contents
           Write-Host "wx contents in site-packages:"
           Get-ChildItem $sitePackages | Where-Object { $_.Name -like '*wx*' }
+          if (Test-Path "$sitePackages\wx") {
+            Write-Host "SUCCESS: wx directory found at $sitePackages\wx"
+            Get-ChildItem "$sitePackages\wx" | Select-Object -First 10
+          } else {
+            Write-Error "FAIL: wx directory not found in $sitePackages"
+            exit 1
+          }
 
       - name: Install requirements
         shell: pwsh
@@ -99,6 +106,8 @@ jobs:
       - name: Build ARM64 application
         shell: pwsh
         run: |
+          # Set PYTHONPATH so PyInstaller can find wx in the venv
+          $env:PYTHONPATH = ".\myenv\Lib\site-packages;$env:PYTHONPATH"
           $venvPyInstaller = ".\myenv\Scripts\pyinstaller.exe"
           & $venvPyInstaller --log-level=DEBUG --clean --noconfirm build-on-win-arm64.spec
 

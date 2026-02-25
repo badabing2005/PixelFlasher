@@ -2158,8 +2158,9 @@ class PixelFlasher(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_manage_devices, manage_devices_item)
 
         # Force menu bar to refresh
-        self.menuBar.Update()
-        self.menuBar.Refresh()
+        if self.menuBar.IsAttached():
+            self.menuBar.Update()
+            self.menuBar.Refresh()
 
     # -----------------------------------------------
     #                  _on_scan_all_devices

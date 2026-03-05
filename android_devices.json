@@ -1,4 +1,13 @@
 {
+    "stallion": {
+        "device": "Google Pixel 10a",
+        "android_version_end_date": "March 2033",
+        "security_update_end_date": "March 2033",
+        "first_api_level": "36",
+        "bootloader_codename": "stallion",
+        "has_init_boot": true,
+        "is_pixel_watch": false
+    },
     "menari_lte": {
         "device": "Pixel Watch 4 (LTE)",
         "android_version_end_date": "October 2027",

@@ -286,5 +286,13 @@
         "Release date": "June 10, 2025",
         "Latest update": "Present",
         "Attestation Version": "KeyMint 4.0"
+    },
+    "37": {
+        "Name": "Android 17",
+        "Codename": "CinnamonBun",
+        "Version": "17",
+        "Release date": "February 13, 2026",
+        "Latest update": "Present",
+        "Attestation Version": "KeyMint 4.0"
     }
 }

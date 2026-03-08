@@ -216,36 +216,39 @@ class Device():
             return self._adb_device_info
 
     # ----------------------------------------------------------------------------
+    #                               method get_unlock_ability
+    # ----------------------------------------------------------------------------
+    def get_unlock_ability(self):
+        if self.mode != 'f.b':
+            return None
+        try:
+            theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing get_unlock_ability"
+            res = run_shell(theCmd)
+            if not (res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0):
+                return None
+
+            output = f"{res.stderr}{res.stdout}"
+            match = re.search(r"get_unlock_ability:\s*(\d+)", output)
+            if not match:
+                return None
+            return int(match.group(1))
+        except Exception:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get unlock ability.")
+            puml("#red:ERROR: Could not get unlock ability;\n", True)
+            return None
+
+    # ----------------------------------------------------------------------------
     #                               property unlock_ability
     # ----------------------------------------------------------------------------
     @property
     def unlock_ability(self):
-        if self.mode == 'adb':
-            return
-        try:
-            theCmd = f"\"{get_fastboot()}\" -s {self.id} flashing get_unlock_ability"
-            res = run_shell(theCmd)
-            if res and isinstance(res, subprocess.CompletedProcess):
-                if res.returncode != 0:
-                    return 'UNKNOWN'
-            else:
-                return 'UNKNOWN'
-            lines = (f"{res.stderr}{res.stdout}").splitlines()
-            for line in lines:
-                if "get_unlock_ability:" in line:
-                    value = line.split("get_unlock_ability:")[1].strip()
-                    if value == '1':
-                        return "Yes"
-                    elif value == '0':
-                        return "No"
-                    else:
-                        return "UNKNOWN"
-            return 'UNKNOWN'  # Value not found
-        except Exception as e:
-            traceback.print_exc()
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get unlock ability.")
-            puml("#red:ERROR: Could not get unlock ability;\n", True)
-            return 'UNKNOWN'
+        unlock_ability = self.get_unlock_ability()
+        if unlock_ability == 1:
+            return 'Yes'
+        if unlock_ability == 0:
+            return 'No'
+        return 'UNKNOWN'
 
     # ----------------------------------------------------------------------------
     #                               method get_package_details

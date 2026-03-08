@@ -104,6 +104,85 @@ jobs:
       - name: List modules and their versions
         run: python3.13 -m pip freeze
 
+      - name: Verify universal2 extension modules
+        shell: bash
+        run: |
+          python3.13 - <<'PY'
+          import importlib.machinery
+          import pathlib
+          import fnmatch
+          import site
+          import subprocess
+          import sys
+
+          ext_suffixes = tuple(importlib.machinery.EXTENSION_SUFFIXES)
+          if not ext_suffixes:
+            print("Could not determine extension suffixes.", file=sys.stderr)
+            sys.exit(1)
+
+          allowlist_patterns = [
+            # Add glob patterns for extension-module paths to exempt from universal2 checks.
+            # Example: "*/site-packages/somepkg/someext*.so"
+          ]
+
+          def iter_site_package_roots() -> list[pathlib.Path]:
+            roots = set()
+            for path in site.getsitepackages():
+              roots.add(pathlib.Path(path).resolve())
+            user_site = site.getusersitepackages()
+            if user_site:
+              roots.add(pathlib.Path(user_site).resolve())
+            return sorted(roots)
+
+          def is_extension_module(path: pathlib.Path) -> bool:
+            return any(path.name.endswith(suffix) for suffix in ext_suffixes)
+
+          def is_allowlisted(path: pathlib.Path) -> bool:
+            normalized = path.as_posix()
+            return any(fnmatch.fnmatch(normalized, pattern) for pattern in allowlist_patterns)
+
+          def check_arches(path: pathlib.Path) -> tuple[bool, str]:
+            result = subprocess.run(
+              ["lipo", "-archs", str(path)],
+              check=False,
+              capture_output=True,
+              text=True,
+            )
+            if result.returncode != 0:
+              return False, f"lipo failed: {result.stderr.strip()}"
+            archs = set(result.stdout.strip().split())
+            ok = {"arm64", "x86_64"}.issubset(archs)
+            return ok, " ".join(sorted(archs))
+
+          failures = []
+          checked = 0
+
+          for root in iter_site_package_roots():
+            if not root.exists():
+              continue
+            for path in root.rglob("*"):
+              if not path.is_file() or not is_extension_module(path):
+                continue
+              if is_allowlisted(path):
+                continue
+              checked += 1
+              ok, details = check_arches(path)
+              if not ok:
+                failures.append((path, details))
+
+          print(f"Checked {checked} compiled extension modules for universal2 slices.")
+
+          if failures:
+            print("Universal2 guard failed. Non-universal extension modules found:", file=sys.stderr)
+            for path, details in failures[:50]:
+              print(f" - {path}: {details}", file=sys.stderr)
+            if len(failures) > 50:
+              print(f" ... and {len(failures) - 50} more", file=sys.stderr)
+            sys.exit(1)
+
+          print("Universal2 guard passed: all extension modules include arm64 and x86_64.")
+          PY
+
       - name: Build application
         id: build_app
         run: ./build.sh

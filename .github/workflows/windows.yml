@@ -32,10 +32,6 @@
 
 name: Build for Windows
 
-# TODO: Remove this after June 2, 2026 when Node.js 24 becomes the default for GitHub Actions
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   workflow_call:
   workflow_dispatch:
@@ -84,6 +80,8 @@ jobs:
         run: ls dist
 
       - name: Sign Windows Executable
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         # Skip signing for pull requests as secrets aren't available
         if: ${{ github.event_name != 'pull_request' }}
         uses: skymatic/code-sign-action@v3

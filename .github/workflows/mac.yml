@@ -53,7 +53,7 @@ jobs:
       - name: Updating Homebrew Packages
         run : |
           brew upgrade
-          brew remove openssl@1.1
+          brew remove openssl@1.1 2>&1 | grep -v "configuration files have not been removed" || true
           # Clean up openssl@1.1 configuration files
           rm -rf /opt/homebrew/etc/openssl@1.1
 

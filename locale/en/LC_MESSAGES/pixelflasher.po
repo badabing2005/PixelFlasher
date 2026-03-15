@@ -503,13 +503,13 @@ msgstr ""
 msgid "Firmware SHA256"
 msgstr ""
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
 msgstr ""
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
 msgstr ""
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
 msgstr ""
 
 msgid "                                     This has a device wipe implications, please double check.\n"
@@ -3036,5 +3036,14 @@ msgid "Select a KSU asset:"
 msgstr ""
 
 msgid "All releases (including older ones)"
+msgstr ""
+
+##############################################################################
+# Additions 2026-03-15
+##############################################################################
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Android SDK version 36.0.2-14143358 is known to be buggy with disabled vbmeta verification or verity states.\n"
+msgstr ""
+
+msgid "                                     If you need to disable verity or verification, please use a different SDK version.\n\n"
 msgstr ""
 

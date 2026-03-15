@@ -512,14 +512,14 @@ msgstr "✅ 请从发现的 %s 个设备中选择你的设备。"
 msgid "Firmware SHA256"
 msgstr "固件 SHA256"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
-msgstr "    ⚠️ 警告！警告！警告！分区槽 a 的校验与分区槽 b 不一致"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+msgstr "\n    ⚠️ 警告！警告！警告！分区槽 a 的校验与分区槽 b 不一致"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
-msgstr "    ⚠️ 警告！警告！警告！当前选中的 vbmeta 校验状态与设备的校验状态不一致\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+msgstr "\n    ⚠️ 警告！警告！警告！当前选中的 vbmeta 校验状态与设备的校验状态不一致\n"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
-msgstr "    ⚠️ 警告！警告！警告！当前选中的 vbmeta 验证状态与设备的验证状态不一致\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+msgstr "\n    ⚠️ 警告！警告！警告！当前选中的 vbmeta 验证状态与设备的验证状态不一致\n"
 
 msgid "                                     This has a device wipe implications, please double check.\n"
 msgstr "                                     这可能会导致设备被清除，请务必确认。\n"

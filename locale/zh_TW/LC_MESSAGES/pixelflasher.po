@@ -510,14 +510,14 @@ msgstr "✅ 從找到的 %s 個裝置列表中選擇您的裝置。"
 msgid "Firmware SHA256"
 msgstr "韌體 SHA256"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
-msgstr "    ⚠️ 警告！警告！警告！    Slot a 的 verity / verification 與 slot b 的 verity / verification 不匹配"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+msgstr "\n    ⚠️ 警告！警告！警告！    Slot a 的 verity / verification 與 slot b 的 verity / verification 不匹配"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
-msgstr "    ⚠️ 警告！警告！警告！    當前選擇的 vbmeta verity 狀態與裝置的 verity 狀態不匹配\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+msgstr "\n    ⚠️ 警告！警告！警告！    當前選擇的 vbmeta verity 狀態與裝置的 verity 狀態不匹配\n"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
-msgstr "    ⚠️ 警告！警告！警告！    當前選擇的 vbmeta verification 狀態與裝置的 verification 狀態不匹配\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+msgstr "\n    ⚠️ 警告！警告！警告！    當前選擇的 vbmeta verification 狀態與裝置的 verification 狀態不匹配\n"
 
 msgid "                                     This has a device wipe implications, please double check.\n"
 msgstr "                                     這可能會影響裝置清除，請仔細檢查。\n"
@@ -3071,3 +3071,11 @@ msgstr ""
 msgid "All releases (including older ones)"
 msgstr ""
 
+##############################################################################
+# Additions 2026-03-15
+##############################################################################
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Android SDK version 36.0.2-14143358 is known to be buggy with disabled vbmeta verification or verity states.\n"
+msgstr ""
+
+msgid "                                     If you need to disable verity or verification, please use a different SDK version.\n\n"
+msgstr ""

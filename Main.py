@@ -3427,16 +3427,20 @@ class PixelFlasher(wx.Frame):
                     message += f"    Slot B Verity:                   {enabled_disabled(device.vbmeta.verity_b)}\n"
                     message += f"    Slot B Verification:             {enabled_disabled(device.vbmeta.verification_b)}\n"
                     if ( device.vbmeta.verity_a != device.vbmeta.verity_b ) or ( device.vbmeta.verification_a != device.vbmeta.verification_b ):
-                        alert += _("    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification")
+                        alert += _("\n    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification")
                 else:
                     message += f"    Verity:                          {enabled_disabled(device.vbmeta.verity_a)}\n"
                     message += f"    Verification:                    {enabled_disabled(device.vbmeta.verification_a)}\n"
                 # self.config.disable_verification is a disable flag, which is the inverse of device.vbmeta.verification
                 if ( device.vbmeta.verity_a == self.config.disable_verity ) or ( device.vbmeta.verity_b == self.config.disable_verity ):
-                    alert += _("    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n")
+                    alert += _("\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n")
                 if ( device.vbmeta.verification_a == self.config.disable_verification ) or ( device.vbmeta.verification_b == self.config.disable_verification ):
-                    alert += _("    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n")
+                    alert += _("\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n")
                     alert += _("                                     This has a device wipe implications, please double check.\n")
+                # If SDK version is 36.0.2-14143358, and any of the vbmeta verification or verity states are disabled, show a warning that the SDK is buggy
+                if get_sdk_version() == '36.0.2-14143358' and (self.disable_verity_checkBox.GetValue() or self.disable_verification_checkBox.GetValue()):
+                    alert += _("\n    ⚠️ WARNING! WARNING! WARNING!    Android SDK version 36.0.2-14143358 is known to be buggy with disabled vbmeta verification or verity states.\n")
+                    alert += _("                                     If you need to disable verity or verification, please use a different SDK version.\n\n")
                 message += alert
                 if alert != '':
                     self.toast(_("vbmeta Warning!"), alert)
@@ -4340,7 +4344,7 @@ class PixelFlasher(wx.Frame):
         puml(":Flash Option change;\n", True)
         puml(f"note right:Disable Verity {status}\n")
         self.config.disable_verity = status
-        self.vbmeta_alert(show_alert=False)
+        self.vbmeta_alert(show_alert=True)
         self._on_spin('stop')
 
     # -----------------------------------------------

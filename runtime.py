@@ -9670,7 +9670,7 @@ def get_rooting_app_apks():
                 'Magisk Debug',
                 'Magisk Release',
                 'Magisk Pre-Release',
-                'KitsuneMagisk Fork',
+                # 'KitsuneMagisk Fork',
                 "KernelSU",
                 'KernelSU-Next',
                 'APatch',
@@ -9732,8 +9732,9 @@ def get_rooting_app_details(channel):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Alpha processing")
             traceback.print_exc()
             return
-    elif channel == 'KitsuneMagisk Fork':
-        url = "https://1q23lyc45.github.io/canary.json"
+
+    # elif channel == 'KitsuneMagisk Fork':
+    #     url = "https://1q23lyc45.github.io/canary.json"
 
     elif channel == 'Magisk Delta Canary':
         url = "https://raw.githubusercontent.com/HuskyDG/magisk-files/main/canary.json"

@@ -511,14 +511,14 @@ msgstr "✅ Seleziona il tuo dispositivo dalla lista di %s dispositivi trovati."
 msgid "Firmware SHA256"
 msgstr "SHA256 Firmware"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
-msgstr "    ⚠️ ATTENZIONE! ATTENZIONE!    Verity / verifica dello slot A non corrisponde a verity / verifica dello slot B"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Slot a verity / verification does not match slot b verity / verification"
+msgstr "\n    ⚠️ ATTENZIONE! ATTENZIONE! ATTENZIONE!    Verity / verifica dello slot A non corrisponde a verity / verifica dello slot B"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
-msgstr "    ⚠️ ATTENZIONE! ATTENZIONE!    C'è una discrepanza tra lo stato verity vbmeta selezionato e lo stato verity del dispositivo\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verity state and device's verity state\n"
+msgstr "\n    ⚠️ ATTENZIONE! ATTENZIONE!    C'è una discrepanza tra lo stato verity vbmeta selezionato e lo stato verity del dispositivo\n"
 
-msgid "    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
-msgstr "    ⚠️ ATTENZIONE! ATTENZIONE!    C'è una discrepanza tra lo stato verification vbmeta selezionato e lo stato verification del dispositivo\n"
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    There is a mismatch of currently selected vbmeta verification state and device's verification state\n"
+msgstr "\n    ⚠️ ATTENZIONE! ATTENZIONE!    C'è una discrepanza tra lo stato verification vbmeta selezionato e lo stato verification del dispositivo\n"
 
 msgid "                                     This has a device wipe implications, please double check.\n"
 msgstr "                                     Questo implica la cancellazione dei dati del dispositivo, si prega di ricontrollare.\n"
@@ -3074,3 +3074,11 @@ msgstr "Selezioona un asset KSU:"
 msgid "All releases (including older ones)"
 msgstr "Tutte le release (incluse quelle più vecchie)"
 
+##############################################################################
+# Additions 2026-03-15
+##############################################################################
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Android SDK version 36.0.2-14143358 is known to be buggy with disabled vbmeta verification or verity states.\n"
+msgstr "\n    ⚠️ ATTENZIONE! ATTENZIONE! ATTENZIONE!    La versione 36.0.2-14143358 dell'SDK Android è nota per essere buggata con la verifica vbmeta disabilitata o stati verity.\n"
+
+msgid "                                     If you need to disable verity or verification, please use a different SDK version.\n\n"
+msgstr "                                     Se hai bisogno di disabilitare verity o la verifica, per favore usa una versione diversa dell'SDK.\n\n"

@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download ARM64 Python
         shell: pwsh
@@ -64,11 +64,11 @@ jobs:
           python -m venv myenv
           $venvPython = ".\myenv\Scripts\python.exe"
           $venvPip = ".\myenv\Scripts\pip.exe"
-          
+
           # Upgrade pip in venv
           & $venvPython -m pip install --upgrade pip
           & $venvPip install --upgrade setuptools wheel build delvewheel requests
-          
+
           # Download and manually extract ARM64 wheel to bypass pip platform checks
           # Use explicit site-packages path in venv
           $sitePackages = ".\myenv\Lib\site-packages"
@@ -77,7 +77,7 @@ jobs:
           # Extract wheel directly to site-packages
           Expand-Archive -Path wxpython.whl -DestinationPath $sitePackages -Force
           & $venvPip install pillow numpy six
-          
+
           # Verify extraction and show wx contents
           Write-Host "wx contents in site-packages:"
           Get-ChildItem $sitePackages | Where-Object { $_.Name -like '*wx*' }
@@ -140,7 +140,7 @@ jobs:
           Get-Content dist/PixelFlasher-arm64.exe.sha256
 
       - name: Upload ARM64 Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PixelFlasher-ARM64.exe Artifacts
           path: |

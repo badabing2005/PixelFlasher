@@ -71,7 +71,7 @@ jobs:
       artifact_runs: ${{ steps.check_artifacts.outputs.artifact_runs }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -238,7 +238,7 @@ jobs:
 
       # Checkout code to access workflow scripts
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

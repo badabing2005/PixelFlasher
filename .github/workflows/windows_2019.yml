@@ -45,10 +45,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.8'
 
@@ -104,7 +104,7 @@ jobs:
 
       # Upload artifacts Windows 2019
       - name: Upload Windows 2019 Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         id: upload_artifacts_windows_2019
         with:
           name: PixelFlasher_Win_2019.exe Artifacts

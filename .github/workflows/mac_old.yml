@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: List Cellar directory
         run: ls /usr/local/Cellar
@@ -58,7 +58,7 @@ jobs:
           # rm -rf /opt/homebrew/etc/openssl@1.1
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13'
 
@@ -69,7 +69,7 @@ jobs:
         run: brew install node
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -109,7 +109,7 @@ jobs:
         run: ./build.sh
 
       - name: Upload PixelFlasher.app as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: PixelFlasher.app for Older macOS Versions
           path: dist/PixelFlasher.app
@@ -127,7 +127,7 @@ jobs:
 
       # Upload artifacts macOS
       - name: Upload Old macOS Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         id: upload_artifact_old_macos
         with:
           name: PixelFlasher_MacOS_legacy.dmg Artifacts

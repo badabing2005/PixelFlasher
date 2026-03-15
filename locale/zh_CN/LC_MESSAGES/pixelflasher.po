@@ -3080,3 +3080,11 @@ msgstr ""
 msgid "All releases (including older ones)"
 msgstr ""
 
+##############################################################################
+# Additions 2026-03-15
+##############################################################################
+msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Android SDK version 36.0.2-14143358 is known to be buggy with disabled vbmeta verification or verity states.\n"
+msgstr ""
+
+msgid "                                     If you need to disable verity or verification, please use a different SDK version.\n\n"
+msgstr ""

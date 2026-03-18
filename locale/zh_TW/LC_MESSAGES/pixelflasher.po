@@ -2899,104 +2899,104 @@ msgstr "推送針對性修正 Prop"
 # Additions 2025-10-18
 ##############################################################################
 msgid "Select Device"
-msgstr ""
+msgstr "選擇裝置"
 
 msgid "Select a device:"
-msgstr ""
+msgstr "選擇一個裝置："
 
 msgid "Unknown"
-msgstr ""
+msgstr "未知"
 
 msgid "PixelFlasher guessed Kernel KMI"
-msgstr ""
+msgstr "PixelFlasher 推測的 Kernel KMI"
 
 msgid "Your device kernel KMI is unknown probably because you're using\n"
-msgstr ""
+msgstr "無法辨識您裝置的 Kernel KMI，這可能是因為您正在使用\n"
 
 msgid "a custom kernel which has stripped out the Android build tag.\n\n"
-msgstr ""
+msgstr "移除了 Android 建置標籤 (build tag) 的自訂核心。\n\n"
 
 msgid "PixelFlasher has guessed the Kernel KMI to be: %s\n\n"
-msgstr ""
+msgstr "PixelFlasher 推測的 Kernel KMI 為：%s\n\n"
 
 msgid "Are you sure you want to proceed with this guessed KMI?\n"
-msgstr ""
+msgstr "您確定要繼續使用這個推測出的 KMI 嗎？\n"
 
 ##############################################################################
 # Additions 2025-11-03
 ##############################################################################
 
 msgid "The selected path contains single quotes (').\n\nPlease rename the folder to remove the single quotes and try again."
-msgstr ""
+msgstr "所選路徑包含單引號 (')。\n\n請重新命名資料夾以移除單引號後再試一次。"
 
 msgid "Options"
-msgstr ""
+msgstr "選項"
 
 msgid "Additional Options"
-msgstr ""
+msgstr "額外選項"
 
 msgid "Select Option"
-msgstr ""
+msgstr "選擇選項"
 
 msgid "⚠️ WARNING: With Option 3, fingerprint can't be patched."
-msgstr ""
+msgstr "⚠️ 警告：使用選項 3 時，指紋無法進行修補。"
 
 msgid " (Recommended)"
-msgstr ""
+msgstr "（建議）"
 
 msgid "Latest Release"
-msgstr ""
+msgstr "最新正式版"
 
 msgid "Latest Pre-Release"
-msgstr ""
+msgstr "最新預覽版"
 
 msgid "Latest Release or Pre-Release"
-msgstr ""
+msgstr "最新正式版或預覽版"
 
 msgid "Let me choose the kernel version from a matching list"
-msgstr ""
+msgstr "讓我從符合的清單中選擇核心版本"
 
 msgid "Show all assets including non-matching ones"
-msgstr ""
+msgstr "顯示所有資源（包含不符合的項目）"
 
 msgid "Flash to active slot"
-msgstr ""
+msgstr "刷入至目前運作的插槽 (Active Slot)"
 
 msgid "Flash boot partition"
-msgstr ""
+msgstr "刷入 boot 分割區"
 
 msgid "Flash init_boot partition"
-msgstr ""
+msgstr "刷入 init_boot 分割區"
 
 msgid "Flash vendor_boot partition"
-msgstr ""
+msgstr "刷入 vendor_boot 分割區"
 
 msgid "No Reboot after flash"
-msgstr ""
+msgstr "刷入後不重新啟動"
 
 msgid "## ✅ Live Boot the stock image:\n"
-msgstr ""
+msgstr "## ✅ 即時開機 (Live Boot) 原廠映像檔：\n"
 
 msgid "## ✅ Live Boot the patched image:\n"
-msgstr ""
+msgstr "## ✅ 即時開機 (Live Boot) 修補後的映像檔：\n"
 
 msgid "## ❌ Live Booting is only supported for boot partition.\n"
-msgstr ""
+msgstr "## ❌ 即時開機 (Live Boot) 僅支援 boot 分割區。\n"
 
 msgid "## ❌ Valid image is not found that supports live booting.\n"
-msgstr ""
+msgstr "## ❌ 找不到支援即時開機 (Live Boot) 的有效映像檔。\n"
 
 msgid "## ℹ️ Select partitions that you wish to flash stock image\n"
-msgstr ""
+msgstr "## ℹ️ 選擇您想要刷入原廠映像檔的分割區\n"
 
 msgid "## ℹ️ Select the options to flash a patch image:\n"
-msgstr ""
+msgstr "## ℹ️ 選擇刷入修補映像檔的選項：\n"
 
 msgid "## ❌ The selected image is not valid.<br/>\n"
-msgstr ""
+msgstr "## ❌ 所選映像檔無效。<br/>\n"
 
 msgid "Edit script before continuing"
-msgstr ""
+msgstr "繼續前先編輯腳本"
 
 ##############################################################################
 # Additions 2025-12-28
@@ -3006,76 +3006,76 @@ msgstr ""
 # Download Progress Window
 ##############################################################################
 msgid "Downloading: %s"
-msgstr ""
+msgstr "下載中：%s"
 
 ##############################################################################
 # File Editor Window
 ##############################################################################
 msgid "Open Shell"
-msgstr ""
+msgstr "開啟 Shell"
 
 msgid "Save and Continue"
-msgstr ""
+msgstr "儲存並繼續"
 
 msgid "Cancel and Abort"
-msgstr ""
+msgstr "取消並中止"
 
 msgid "Open Folder in working directory"
-msgstr ""
+msgstr "在工作目錄中開啟資料夾"
 
 msgid "Open command shell in working directory"
-msgstr ""
+msgstr "在工作目錄中開啟指令 Shell"
 
 msgid "Open Folder in working directory\nNote: PF_FILEMANAGER needs to be set."
-msgstr ""
+msgstr "在工作目錄中開啟資料夾\n注意：需要設定 PF_FILEMANAGER。"
 
 msgid "Open Terminal shell in working directory"
-msgstr ""
+msgstr "在工作目錄中開啟終端機 Shell"
 
 msgid "Save the file and continue."
-msgstr ""
+msgstr "儲存檔案並繼續。"
 
 msgid "Cancel and Abort."
-msgstr ""
+msgstr "取消並中止。"
 
 ##############################################################################
 # Ksu Asset Selector
 ##############################################################################
 msgid "Filter:"
-msgstr ""
+msgstr "篩選："
 
 msgid "Search assets..."
-msgstr ""
+msgstr "搜尋資源..."
 
 msgid "Asset Name"
-msgstr ""
+msgstr "資源名稱"
 
 msgid "Size"
-msgstr ""
+msgstr "大小"
 
 msgid "Suggested: %s"
-msgstr ""
+msgstr "建議：%s"
 
 msgid "Please select an asset."
-msgstr ""
+msgstr "請選擇一個資源。"
 
 msgid "No Selection"
-msgstr ""
+msgstr "未選擇"
 
 msgid "Select KSU Asset"
-msgstr ""
+msgstr "選擇 KSU 資源"
 
 msgid "Select a KSU asset:"
-msgstr ""
+msgstr "選擇一個 KSU 資源："
 
 msgid "All releases (including older ones)"
-msgstr ""
+msgstr "所有版本（包含舊版本）"
 
 ##############################################################################
 # Additions 2026-03-15
 ##############################################################################
 msgid "\n    ⚠️ WARNING! WARNING! WARNING!    Android SDK version 36.0.2-14143358 is known to be buggy with disabled vbmeta verification or verity states.\n"
-msgstr ""
+msgstr "\n    ⚠️ 警告！警告！警告！    已知 Android SDK 版本 36.0.2-14143358 在停用 vbmeta 驗證或 verity 狀態時有錯誤。\n"
 
 msgid "                                     If you need to disable verity or verification, please use a different SDK version.\n\n"
-msgstr ""
+msgstr "                                     如果您需要停用 verity 或驗證，請使用其他的 SDK 版本。\n\n"

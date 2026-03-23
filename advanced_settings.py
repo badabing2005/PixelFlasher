@@ -98,6 +98,10 @@ class AdvancedSettings(wx.Dialog):
         self.spoofed_apps.ShowSearchButton(False)
 
         # only add if we're on linux
+        file_explorer_label = None
+        file_explorer_sizer = None
+        shell_label = None
+        shell_sizer = None
         if sys.platform.startswith("linux"):
             # Linux File Explorer
             file_explorer_label = wx.StaticText(scrolled_panel, label=_("Linux File Explorer:"))
@@ -465,7 +469,7 @@ class AdvancedSettings(wx.Dialog):
     def _onFontSelect(self, evt):
         facename = self.font.GetStringSelection()
         size = self.font_size.GetValue()
-        font = wx.Font(size, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName=facename)
+        font = wx.Font(size, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName=facename)
         self.sample.SetLabel(facename)
         self.sample.SetFont(font)
         self.Refresh()

@@ -83,6 +83,8 @@ class AboutDlg(wx.Dialog):
 
         # check version if we are running the latest
         l_version = check_latest_version()
+        if not l_version:
+            return
         if parse(VERSION) < parse(l_version):
             update_text = f"<p><b>Update </b> <a style=\"color: #004CE5;\" href=\"https://github.com/badabing2005/PixelFlasher/releases/latest\">Version v{l_version}</a> is available.</p>"
         else:

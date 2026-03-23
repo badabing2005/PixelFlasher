@@ -44,6 +44,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 from packaging.version import parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 from constants import *
 from runtime import *
@@ -88,10 +89,10 @@ class Vbmeta():
 
     def clear(self):
         self.type = '' # one of ["a_only", "ab", "none"]
-        self.verity_a = None
-        self.verity_b = None
-        self.verification_a = None
-        self.verification_b = None
+        self.verity_a: bool | None = None
+        self.verity_b: bool | None = None
+        self.verification_a: bool | None = None
+        self.verification_b: bool | None = None
 
 # ============================================================================
 #                               Class Magisk
@@ -99,6 +100,18 @@ class Vbmeta():
 class Magisk():
     def __init__(self, dirname):
         self.dirname = dirname
+        self.id: str = ''
+        self.name: str = ''
+        self.version: str = ''
+        self.versionCode: str = ''
+        self.author: str = ''
+        self.description: str = ''
+        self.updateJson: str = ''
+        self.updateDetails: Any = {}
+        self.updateAvailable: bool = False
+        self.updateIssue: bool = False
+        self.state: str = ''
+        self.hasAction: bool = False
 
 
 # ============================================================================
@@ -181,7 +194,7 @@ class Device():
         self.packages = {}
         self.backups = {}
         self.vbmeta = {}
-        self.props = {}
+        self.props: DeviceProps = DeviceProps()
         self._config_kallsyms = None
         self._config_kallsyms_all = None
         self._tmp_readable = None
@@ -519,7 +532,7 @@ class Device():
             if build is not None and build != '':
                 return build
             build =  self.ro_build_fingerprint
-            if self.ro_build_fingerprint != '':
+            if build and self.ro_build_fingerprint != '':
                 return build.split('/')[3]
             else:
                 return ''
@@ -657,7 +670,7 @@ class Device():
     @property
     def kmi(self):
         try:
-            match = re.search(r"\b(\d+\.\d+\.\d+-android\d+)\b", self.kernel)
+            match = re.search(r"\b(\d+\.\d+\.\d+-android\d+)\b", self.kernel) if self.kernel else None
             if match:
                 return match[1]
             else:
@@ -1254,12 +1267,12 @@ class Device():
             return -1
         except Exception as e:
             traceback.print_exc()
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an exception if reset_ota_update function.")
-            puml(f"#red:ERROR: Encountered an exception if reset_ota_update function.;\n", True)
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in reset_ota_update function")
+            puml("#red:Encountered an error while resetting OTA update;\n", True)
+            traceback.print_exc()
             return -1
         finally:
             res = self.delete("/data/local/tmp/update_engine_client", self.rooted)
-
 
     # ----------------------------------------------------------------------------
     #                               method get_vbmeta_details
@@ -1267,6 +1280,7 @@ class Device():
     def get_vbmeta_details(self):
         if self.true_mode != 'adb' or not self.rooted:
             return None
+        vbmeta = Vbmeta()
         try:
             # Use _vbmeta directly to avoid recursion through the property
             if self._vbmeta:
@@ -1278,6 +1292,8 @@ class Device():
             vbmeta.type = 'none'
             partitions = self.get_partitions()
 
+            if partitions == -1:
+                return vbmeta
             if "vbmeta_a" in partitions:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'dd if=/dev/block/bootdevice/by-name/vbmeta_a bs=1 skip=123 count=1 status=none | xxd -p\'\""
                 res = run_shell(theCmd)
@@ -1343,7 +1359,6 @@ class Device():
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get vbmeta details.")
             puml("#red:ERROR: Could not get vbmeta details.;\n", True)
             return vbmeta
-        return vbmeta
 
     # ----------------------------------------------------------------------------
     #                               method get_magisk_backups
@@ -1365,14 +1380,19 @@ class Device():
                 if item:
                     regex = re.compile(r"d.+root\sroot\s\w+\s(.*)\s\/data\/magisk_backup_(.*)")
                     m = re.findall(regex, item)
+                    backup_date = ''
+                    backup_sha1 = ''
                     if m:
                         backup_date = f"{m[0][0]}"
                         backup_sha1 = f"{m[0][1]}"
-                    backup = Backup(backup_sha1)
-                    backup.date = backup_date
-                    with contextlib.suppress(Exception):
-                        backup.firmware = self.get_firmware_from_boot(backup_sha1)
-                    self.backups[backup_sha1] = backup
+                    if backup_sha1:
+                        backup = Backup(backup_sha1)
+                        backup.date = backup_date
+                        with contextlib.suppress(Exception):
+                            firmware = self.get_firmware_from_boot(backup_sha1)
+                            if firmware:
+                                backup.firmware = firmware
+                        self.backups[backup_sha1] = backup
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get backup list.")
@@ -1404,7 +1424,8 @@ class Device():
     #                               property magisk_backups
     # ----------------------------------------------------------------------------
     @property
-    def magisk_backups(self):
+    def magisk_backups(self) -> list | str:
+        _magisk_backups = None
         if self.true_mode == 'adb' and self.rooted:
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'ls -d -1 /data/magisk_backup_*\'\""
@@ -1427,7 +1448,8 @@ class Device():
     #                               property magisk_sha1
     # ----------------------------------------------------------------------------
     @property
-    def magisk_sha1(self):
+    def magisk_sha1(self) -> str:
+        _magisk_sha1 = ''
         if self.true_mode == 'adb' and self.rooted:
             try:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'cat $(magisk --path)/.magisk/config | grep SHA1 | cut -d \'=\' -f 2\'\""
@@ -1452,6 +1474,7 @@ class Device():
     def exec_magisk_settings(self, data, runshell_mode=2):
         if self.true_mode != 'adb' or not self.rooted:
             return
+        script_path = ''
         try:
             if not data:
                 return -1
@@ -1510,13 +1533,14 @@ class Device():
                         return -1
                     else:
                         return 0
-            else:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during pfmagisk_settings script execution")
-                print(f"Return Code: {res.returncode}")
-                print(f"Stdout: {res.stdout}")
-                print(f"Stderr: {res.stderr}")
-                puml("note right:ERROR: during pfmagisk_settings script execution;\n")
-                return -1
+                else:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: during pfmagisk_settings script execution")
+                    if res and isinstance(res, subprocess.CompletedProcess):
+                        print(f"Return Code: {res.returncode}")
+                        print(f"Stdout: {res.stdout}")
+                        print(f"Stderr: {res.stderr}")
+                    puml("note right:ERROR: during pfmagisk_settings script execution;\n")
+                    return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during exec_magisk_settings operation.")
             traceback.print_exc()
@@ -1787,7 +1811,7 @@ add_hosts_module
             print("Backup completed.")
             return 0
         finally:
-            res = self.delete("/data/local/tmp/data_adb.tgz", self.rooted)
+            res = self.delete("/data/local/tmp/data_adb.tgz", self.rooted or False)
 
     # ----------------------------------------------------------------------------
     #                               Method data_adb_restore
@@ -1829,7 +1853,7 @@ add_hosts_module
                 print("Aborting ...\n")
                 return -1
             finally:
-                res = self.delete("/data/local/tmp/data_adb.tgz", self.rooted)
+                res = self.delete("/data/local/tmp/data_adb.tgz", self.rooted or False)
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: data_adb_restore function is only available in adb mode on rooted devices.")
             return -1
@@ -1993,6 +2017,7 @@ add_hosts_module
             return -1
         try:
             file_path = remove_quotes(file_path)
+            theCmd = ''
             if with_su:
                 if self.rooted:
                     debug(f"Deleting {file_path} from the device as root ...")
@@ -2019,7 +2044,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method dump_partition
     # ----------------------------------------------------------------------------
-    def dump_partition(self, file_path: str = '', slot: str = '', partition = '') -> int:
+    def dump_partition(self, file_path: str = '', slot: str = '', partition = '') -> int | tuple[int, str]:
         """Method dumps active boot / init_boot partition on device.
 
         Args:
@@ -2129,6 +2154,7 @@ add_hosts_module
             return -1, None
         try:
             file_path = remove_quotes(file_path)
+            theCmd = ''
             if with_su:
                 if self.rooted:
                     debug(f"Checking for {file_path} on the device as root ...")
@@ -2190,6 +2216,7 @@ add_hosts_module
             return -1
         try:
             dir_path = remove_quotes(dir_path)
+            theCmd = ''
             if with_su:
                 if self.rooted:
                     debug(f"Creating directory {dir_path} on the device as root ...")
@@ -2216,7 +2243,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method get_logcat
     # ----------------------------------------------------------------------------
-    def get_logcat(self, filter: str, with_su = False) -> str:
+    def get_logcat(self, filter: str, with_su = False) -> str | int:
         if self.true_mode != 'adb':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get_logcat. Device is not in ADB mode.")
             return -1
@@ -2231,11 +2258,13 @@ add_hosts_module
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'logcat -d {extra_options} \'\""
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get logcat as root. Device is not rooted.")
+                    return -1
             else:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell \"logcat -d {extra_options} \""
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess):
-                return(f"{res.stdout}\n{res.stderr}")
+                return f"{res.stdout}\n{res.stderr}"
+            return -1
         except Exception as e:
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get logcat")
@@ -2244,7 +2273,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method file_content
     # ----------------------------------------------------------------------------
-    def file_content(self, file_path: str, with_su = False, verbose = True) -> int:
+    def file_content(self, file_path: str, with_su = False, verbose = True) -> str | int:
         """Method cats the file content.
 
         Args:
@@ -2260,6 +2289,7 @@ add_hosts_module
             return -1
         try:
             file_path = remove_quotes(file_path)
+            theCmd = ''
             if with_su:
                 if self.rooted:
                     debug(f"Getting file content of {file_path} on the device as root ...")
@@ -2314,6 +2344,7 @@ add_hosts_module
         if self.true_mode != 'adb':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}. Device is not in ADB mode.")
             return -1
+        remote_file = ''
         try:
             local_file = remove_quotes(local_file)
             file_path = remove_quotes(file_path)
@@ -2351,7 +2382,7 @@ add_hosts_module
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
             return -1
         finally:
-            if with_su:
+            if with_su and remote_file:
                 res = self.delete(remote_file, with_su=True)
 
     # ----------------------------------------------------------------------------
@@ -2372,6 +2403,7 @@ add_hosts_module
         if self.true_mode != 'adb':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}. Device is not in ADB mode.")
             return -1
+        temp_remote_file = ''
         try:
             remote_file = remove_quotes(remote_file)
             local_file = remove_quotes(local_file)
@@ -2415,7 +2447,7 @@ add_hosts_module
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not pull {remote_file}")
             return -1
         finally:
-            if with_su:
+            if with_su and temp_remote_file:
                 res = self.delete(temp_remote_file, with_su=True)
 
     # ----------------------------------------------------------------------------
@@ -2438,6 +2470,7 @@ add_hosts_module
             return -1
         try:
             file_path = remove_quotes(file_path)
+            theCmd = ''
             if with_su:
                 if self.rooted:
                     debug(f"Setting permissions {permissions} on {file_path} as root ...")
@@ -2491,6 +2524,7 @@ add_hosts_module
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing aapt.")
             puml("#red:Encountered an error while pushing appt.;\n")
             traceback.print_exc()
+            return -1
 
     # ----------------------------------------------------------------------------
     #                               Method push_avbctl
@@ -2526,6 +2560,7 @@ add_hosts_module
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing avbctl")
             puml("#red:Encountered an error while pushing avbctl;\n")
             traceback.print_exc()
+            return -1
 
     # ----------------------------------------------------------------------------
     #                               Method push_update_engine_client
@@ -2552,11 +2587,12 @@ add_hosts_module
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing update_engine_client")
             puml("#red:Encountered an error while pushing update_engine_client;\n")
             traceback.print_exc()
+            return -1
 
     # ----------------------------------------------------------------------------
     #                               Method get_package_path
     # ----------------------------------------------------------------------------
-    def get_package_path(self, pkg: str, check_details = True) -> str:
+    def get_package_path(self, pkg: str, check_details = True) -> str | int:
         """Method gets a package's apk path on device.
 
         Args:
@@ -2581,6 +2617,7 @@ add_hosts_module
                     print(f"Package Path is: {pkg_path}")
                 return pkg_path
             else:
+                details = ''
                 if check_details:
                     details, pkg_path = self.get_package_details(pkg)
                     if pkg_path:
@@ -2597,7 +2634,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method get_package_label
     # ----------------------------------------------------------------------------
-    def get_package_label(self, pkg: str, pkg_path = '') -> str:
+    def get_package_label(self, pkg: str, pkg_path = '') -> str | tuple[str, str] | tuple[int, int]:
         """Method package label (App name) given a package name.
 
         Args:
@@ -2619,6 +2656,8 @@ add_hosts_module
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get package {pkg} label.")
                     return -1, -1
                 print(f"    Package Path: {pkg_path}")
+            pkg_label = ''
+            pkg_icon = ''
             print(f"Getting package {pkg} label from the device ...")
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"/data/local/tmp/aapt2 d badging {pkg_path} | grep 'application: label='\""
             res = run_shell(theCmd)
@@ -2656,7 +2695,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method get_package_permissions
     # ----------------------------------------------------------------------------
-    def get_package_permissions(self, pkg: str, pkg_path = '') -> str:
+    def get_package_permissions(self, pkg: str, pkg_path = '') -> str | int | tuple[int, int]:
         """Method package permissions (App name) given a package name.
 
         Args:
@@ -3216,6 +3255,9 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     def  get_magisk_detailed_modules(self, refresh=False):
         if self._get_magisk_detailed_modules is None or refresh == True:
+            module = None
+            line = ''
+            res = None
             try:
                 config = get_config()
                 if self.true_mode == 'adb' and self.rooted:
@@ -3334,11 +3376,11 @@ add_hosts_module
                             print(f"Stdout: {res.stdout}")
                             print(f"Stderr: {res.stderr}")
             except Exception as e:
-                self._get_magisk_detailed_modules is None
+                self._get_magisk_detailed_modules = None
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules processing")
                 traceback.print_exc()
                 print(f"    Module: {module}\n    Line: {line}")
-                print(f"    module.prop:\n-----\n{res.stdout}-----\n")
+                print(f"    module.prop:\n-----\n{res.stdout if res else ''}-----\n")
         return self._get_magisk_detailed_modules
 
     # ----------------------------------------------------------------------------
@@ -3474,6 +3516,7 @@ add_hosts_module
 
             # Parse SQLite database
             modules = []
+            conn = None
             try:
                 conn = sqlite3.connect(local_db_path)
                 cursor = conn.cursor()
@@ -3523,7 +3566,8 @@ add_hosts_module
                 modules = []
 
                 with contextlib.suppress(Exception):
-                    conn.close()
+                    if conn:
+                        conn.close()
 
             return modules
 
@@ -3709,6 +3753,7 @@ add_hosts_module
     #                               Method reboot_system
     # ----------------------------------------------------------------------------
     def reboot_system(self, timeout=60, hint='None'):
+        mode = None
         try:
             mode = self.get_device_state()
             print(f"\nRebooting device: {self.id} to system ...")
@@ -3769,6 +3814,7 @@ add_hosts_module
     #                               Method reboot_recovery
     # ----------------------------------------------------------------------------
     def reboot_recovery(self, timeout=60, hint='None'):
+        mode = None
         try:
             mode = self.get_device_state()
             print(f"\nRebooting device: {self.id} to recovery ...")
@@ -3870,6 +3916,7 @@ add_hosts_module
     #                               Method reboot_download
     # ----------------------------------------------------------------------------
     def reboot_download(self, timeout=60, hint='None'):
+        mode = None
         try:
             mode = self.get_device_state()
             print(f"\nRebooting device: {self.id} to download ...")
@@ -3913,6 +3960,7 @@ add_hosts_module
     #                               Method reboot_safemode
     # ----------------------------------------------------------------------------
     def reboot_safemode(self, timeout=60, hint='None'):
+        mode = None
         try:
             mode = self.get_device_state()
             print(f"\nRebooting device: {self.id} to safe mode ...")
@@ -3943,9 +3991,17 @@ add_hosts_module
             update_phones(self.id, mode)
 
     # ----------------------------------------------------------------------------
+    #                               Method clear_device_selection
+    # ----------------------------------------------------------------------------
+    def clear_device_selection(self):
+        # Stub — actual UI clearing is handled by the main frame.
+        pass
+
+    # ----------------------------------------------------------------------------
     #                               Method reboot_bootloader
     # ----------------------------------------------------------------------------
     def reboot_bootloader(self, fastboot_included = False, timeout=60, hint='None'):
+        mode = None
         try:
             mode = self.get_device_state()
             print(f"\nRebooting device: {self.id} to bootloader ...")
@@ -4005,6 +4061,7 @@ add_hosts_module
     #                               Method reboot_fastbootd
     # ----------------------------------------------------------------------------
     def reboot_fastboot(self, timeout=60, hint='None'):
+        mode = None
         try:
             mode = self.get_device_state()
             print(f"\nRebooting device: {self.id} to fastbootd ...")
@@ -4066,6 +4123,7 @@ add_hosts_module
     #                               Method reboot_sideload
     # ----------------------------------------------------------------------------
     def reboot_sideload(self, timeout=60, hint='None'):
+        mode = None
         try:
             mode = self.get_device_state()
             if mode == 'sideload':
@@ -4164,13 +4222,13 @@ add_hosts_module
             Exception: If an error occurs during the operation.
 
         """
+        mode = None
         try:
             if not device_id:
                 device_id = self.id
             retry_text = f"retry [{retry + 1}] times" if retry > 0 else ''
             print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} Getting device: {device_id} state {retry_text} ...")
             puml(f":Getting device: {device_id} state {retry_text};\n", True)
-            mode = None
             for i in range(retry + 1):
                 if get_adb():
                     puml(f":[{i + 1}/{retry + 1}] using get-state;\n", True)
@@ -4488,7 +4546,9 @@ add_hosts_module
                 return -1
             print("Swipe up ...")
             wm_size = self.get_wm_size()
-            x,y = wm_size.split('x')
+            if wm_size == -1:
+                return -1
+            x,y = str(wm_size).split('x')
             coords = f"{int(x) / 2} {int(int(y) * (1 - (percentage / 100)))} {int(x) / 2} {int(int(y) * percentage / 100)}"
             debug(f"coord: {coords}")
             res = self.swipe(coords)
@@ -4662,6 +4722,8 @@ add_hosts_module
                 puml(":Install magisk module;\n", True)
                 puml(f"note right:{module};\n")
                 sanitized_module = sanitize_filename(module)
+                if not sanitized_module:
+                    return -1
                 module_name = os.path.basename(sanitized_module)
                 res = self.push_file(f"\"{sanitized_module}\"", f"/sdcard/Download/{module_name}", with_su=False)
                 if res != 0:
@@ -5074,6 +5136,7 @@ add_hosts_module
             return None
         if cmd and self.mode == 'adb':
             try:
+                theCmd = ''
                 if with_su:
                     if self.rooted:
                         debug(f"Executing command: {cmd} on the device as root ...")
@@ -5105,6 +5168,7 @@ add_hosts_module
                 print("Magisk denylist is currently not supported in PixelFlasher for Magisk Delta.")
                 return
         try:
+            theCmd = ''
             if action == 'uninstall':
                 if isSystem:
                     theCmd = f"\"{get_adb()}\" -s {self.id} shell pm uninstall -k --user 0 {pkg}"
@@ -5154,7 +5218,7 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     #                               Method get_package_info
     # ----------------------------------------------------------------------------
-    def get_package_info(self, pkg: str) -> dict:
+    def get_package_info(self, pkg: str) -> dict | None:
         if self.true_mode != 'adb':
             return None
         try:
@@ -5319,6 +5383,7 @@ add_hosts_module
 #                               Function update_phones
 # ============================================================================
 def update_phones(device_id, mode=None):
+    devices = []
     try:
         phones = get_phones()
         devices = get_device_list()
@@ -5454,6 +5519,7 @@ def get_connected_devices(respect_device_filter=True, scan_all=False):
                 debug(f"Stdout: {res.stdout}")
                 debug(f"Stderr: {res.stderr}")
                 if res.stdout:
+                    device = ''
                     for device in res.stdout.split('\n'):
                         if any(keyword in device for keyword in ['device', 'recovery', 'sideload', 'rescue']):
                             if device == "List of devices attached":

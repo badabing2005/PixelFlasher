@@ -38,7 +38,7 @@ import webbrowser
 import darkdetect
 import markdown
 import wx
-import wx.html
+from wx import html as wx_html
 
 from runtime import *
 from i18n import _
@@ -110,9 +110,10 @@ class MessageBoxEx(wx.Dialog):
         message_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         if is_md:
-            self.html = wx.html.HtmlWindow(self, wx.ID_ANY, size=size)
-            message = message.strip()  # Remove leading/trailing whitespace
-            md_html = markdown.markdown(message, extensions=['extra'])
+            self.html = wx_html.HtmlWindow(self, wx.ID_ANY, size=size)
+            if message:
+                message = message.strip()  # Remove leading/trailing whitespace
+            md_html = markdown.markdown(message or "", extensions=['extra'])
 
             # Adjust colors for dark mode on Mac and Linux
             if darkdetect.isDark() and sys.platform != "win32":
@@ -130,7 +131,7 @@ class MessageBoxEx(wx.Dialog):
             else:
                 self.html.SetPage(md_html)
 
-            self.html.Bind(wx.html.EVT_HTML_LINK_CLICKED, self._onLinkClicked)
+            self.html.Bind(wx_html.EVT_HTML_LINK_CLICKED, self._onLinkClicked)
             message_sizer.Add(self.html, 1, wx.ALL | wx.EXPAND, 20)
         else:
             self.message_label = wx.StaticText(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)

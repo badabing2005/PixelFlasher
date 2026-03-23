@@ -104,7 +104,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.sm_up = self.il.Add(images.SmallUpArrow.GetBitmap())
         self.sm_dn = self.il.Add(images.SmallDnArrow.GetBitmap())
 
-        self.list  = ListCtrl(self, -1, size=(-1, -1), style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE)
+        self.list  = ListCtrl(self, -1, size=wx.Size(-1, -1), style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLACK'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
@@ -176,6 +176,8 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     #              Function PopulateList
     # -----------------------------------------------
     def PopulateList(self):
+        if not self.device:
+            return -1
         info = wx.ListItem()
         info.Mask = wx.LIST_MASK_TEXT | wx.LIST_MASK_IMAGE | wx.LIST_MASK_FORMAT
         info.Image = -1
@@ -190,6 +192,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         if res != -1:
             self.partitionCount = len(res)
             self.message_label.Label = f"{self.partitionCount} Partitions"
+            i = 0
             for i, key in enumerate(res):
                 if key:
                     index = self.list.InsertItem(self.list.GetItemCount(), key)
@@ -218,7 +221,7 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         self.Set_all_cb_clicked (True)
         itemcount = self.list.GetItemCount()
         [self.list.CheckItem(item=i, check=state) for i in range(itemcount)]
-        if state and self.device.rooted:
+        if state and self.device and self.device.rooted:
             print("checking all Partitions\n")
             self.EnableDisableButton(True)
         else:
@@ -230,7 +233,6 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     #                  onCancel
     # -----------------------------------------------
     def OnCancel(self, event):
-        self.searchCtrl.SetValue("")
         self.Refresh()
 
     # -----------------------------------------------
@@ -292,11 +294,11 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
             self.EnableDisableButton(False)
         elif i == self.partitionCount:
             self.all_checkbox.Set3StateValue(1)
-            if self.device.rooted:
+            if self.device and self.device.rooted:
                 self.EnableDisableButton(True)
         else:
             self.all_checkbox.Set3StateValue(2)
-            if self.device.rooted:
+            if self.device and self.device.rooted:
                 self.EnableDisableButton(True)
 
     # -----------------------------------------------
@@ -492,14 +494,14 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
     #                  OnpopupErase
     # -----------------------------------------------
     def OnpopupErase(self, event):
-        if self.device.rooted:
+        if self.device and self.device.rooted:
             self.ApplySingleAction(self.currentItem, 'erase')
 
     # -----------------------------------------------
     #                  OnPopupDump
     # -----------------------------------------------
     def OnPopupDump(self, event):
-        if self.device.rooted:
+        if self.device and self.device.rooted:
             self.ApplySingleAction(self.currentItem, 'dump')
 
     # -----------------------------------------------

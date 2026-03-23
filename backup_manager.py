@@ -88,7 +88,7 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.sm_up = self.il.Add(images.SmallUpArrow.GetBitmap())
         self.sm_dn = self.il.Add(images.SmallDnArrow.GetBitmap())
 
-        self.list  = ListCtrl(self, -1, size=(-1, -1), style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE)
+        self.list  = ListCtrl(self, -1, size=wx.Size(-1, -1), style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLACK'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
@@ -183,6 +183,8 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
         info.Text = "Firmware"
         self.list.InsertColumn(2, info)
 
+        if not self.device:
+            return -1
         res = self.device.get_magisk_backups()
         itemDataMap = {}
         query = self.searchCtrl.GetValue().lower()
@@ -346,6 +348,8 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  DeleteBackup
     # -----------------------------------------------
     def DeleteBackup(self, index, do_refresh = True):
+        if not self.device:
+            return
         sha1 = self.list.GetItem(index).Text
         print(f"Deleting backup {sha1}")
         self.device.delete(f"/data/magisk_backup_{sha1}/", True, True)
@@ -356,6 +360,8 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnAddBackup
     # -----------------------------------------------
     def OnAddBackup(self, e):
+        if not self.device:
+            return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed on Add Backup")
         with wx.FileDialog(self, _("boot / init_boot image to create backup of."), '', '', wildcard="Images (*.*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
             if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -399,6 +405,8 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  ZipAndPush
     # -----------------------------------------------
     def ZipAndPush(self, file_to_backup, file_sha1):
+        if not self.device:
+            return -1
         print(f"Zipping {file_to_backup} ...")
         backup_file = os.path.join(get_config_path(), 'tmp', 'boot.img.gz')
         with open(file_to_backup, 'rb') as f_in:
@@ -420,6 +428,8 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnAutoBackup
     # -----------------------------------------------
     def OnAutoBackup(self, e):
+        if not self.device:
+            return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed on Auto Create Backup")
 
         config_path = get_config_path()
@@ -630,7 +640,8 @@ class BackupManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     #                  Function Refresh
     # -----------------------------------------------
-    def Refresh(self):
+    def Refresh(self):  # type: ignore[reportIncompatibleMethodOverride]
+        # override is intentional, this Refresh needs to reload backup data rather than redraw the widget.
         print("Refreshing the backups ...\n")
         self._on_spin('start')
         self.list.ClearAll()

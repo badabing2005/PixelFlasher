@@ -15,24 +15,66 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.event.issue.body, 'Support File Status') && contains(github.event.issue.body, 'Support File Attachment') && !contains(github.event.issue.body, 'I cannot generate a support file')
     steps:
-      - name: Check for valid support file
-        id: check_support
+      - name: Extract and verify support file attachment
+        id: verify_support
         run: |
           body=$(jq -r '.issue.body // ""' "$GITHUB_EVENT_PATH")
-          if printf '%s' "$body" | grep -qi 'support_[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}_[0-9]\{2\}-[0-9]\{2\}-[0-9]\{2\}\.zip'; then
-            echo "has_support_file=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_support_file=false" >> "$GITHUB_OUTPUT"
-          fi
-        shell: bash
 
-      - name: Close Issue if no support file
-        if: steps.check_support.outputs.has_support_file == 'false'
+          has_valid_file=false
+
+          urls=$(echo "$body" | grep -o 'https://github\.com/[^ )]*' | grep 'files/[0-9]' | sort -u)
+
+          if [ -z "$urls" ]; then
+            echo "No attachment URLs found in body"
+            echo "has_valid_file=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          tmpdir=$(mktemp -d)
+          echo "Found $(echo "$urls" | wc -l) attachment URL(s), checking validity..."
+
+          for url in $urls; do
+            echo "Checking: $url"
+
+            # Download with redirect follow (-L), silent (-s), fail on error (--fail)
+            status=$(curl -L -s -o "${tmpdir}/downloaded.zip" -w "%{http_code}" --fail "$url" 2>/dev/null || echo "000")
+
+            if [ "$status" = "200" ] && [ -s "${tmpdir}/downloaded.zip" ]; then
+              echo "  Download succeeded (HTTP $status, $(wc -c < "${tmpdir}/downloaded.zip") bytes)"
+
+              # Verify it's a valid zip file
+              if unzip -tq "${tmpdir}/downloaded.zip" 2>/dev/null; then
+                echo "  Valid zip file confirmed"
+
+                # Verify contents contain only pf.dat and support.pf
+                zip_contents=$(unzip -Z1 "${tmpdir}/downloaded.zip" 2>/dev/null | sort)
+                expected=$'pf.dat\nsupport.pf'
+                if [ "$zip_contents" = "$expected" ]; then
+                  echo "  Zip contents verified: only pf.dat and support.pf present"
+                  has_valid_file=true
+                  break
+                else
+                  echo "  Zip contents are invalid. Found: $(echo "$zip_contents" | tr '\n' ' ')"
+                fi
+              else
+                echo "  Downloaded file is NOT a valid zip"
+              fi
+            else
+              echo "  Download failed (HTTP $status or empty file)"
+            fi
+          done
+
+          rm -rf "$tmpdir"
+
+          echo "has_valid_file=$has_valid_file" >> "$GITHUB_OUTPUT"
+
+      - name: Close Issue if no valid support file
+        if: steps.verify_support.outputs.has_valid_file == 'false'
         uses: peter-evans/close-issue@v3
         with:
           issue-number: ${{ github.event.issue.number }}
           comment: |
-            This issue has been automatically closed because it does not include a properly named support file.
+            This issue has been automatically closed because it does not include a valid, attached support file.
 
             ## Required Support File Format
 
@@ -43,13 +85,13 @@ jobs:
             1. Open PixelFlasher
             2. Click the "Support" button or select it from the Help menu
             3. Save the generated file (it will be automatically named correctly and encrypted for your privacy)
-            4. Attach this file to your issue
+            4. Attach this file to your issue — **you must actually drag and drop the file, not just paste a URL or filename**
 
             ## Next Steps
 
             You may reopen this issue by:
             1. Clicking the "Edit" button on your original issue
-            2. Attaching the properly named support file
+            2. Attaching the properly named support file (the .zip file itself, not a link to it)
             3. Commenting that you've added the required file
 
             Thank you for your understanding.

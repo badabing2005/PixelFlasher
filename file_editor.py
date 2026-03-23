@@ -109,8 +109,7 @@ class FileEditor(wx.Dialog):
         self.text_ctrl.SetMarginWidth(1, 30)
 
         font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        self.text_ctrl.StyleSetFont(wx.stc.STC_STYLE_DEFAULT, font)
-
+        self.text_ctrl.StyleSetFont(stc.STC_STYLE_DEFAULT, font)
         self.open_folder = wx.Button(self, label=_("Open Folder"))
         self.open_shell = wx.Button(self, label=_("Open Shell"))
         self.save_button = wx.Button(self, label=_("Save and Continue"))
@@ -149,7 +148,7 @@ class FileEditor(wx.Dialog):
         # self.Bind(wx.EVT_SIZE, self._on_resize)
 
         # fix horizontal scroll bar
-        self.text_ctrl.SetWrapMode(wx.stc.STC_WRAP_NONE)
+        self.text_ctrl.SetWrapMode(stc.STC_WRAP_NONE)
         self.text_ctrl.SetUseHorizontalScrollBar(True)
 
         # disable vertical scrolling on mouse wheel

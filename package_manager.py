@@ -273,7 +273,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         self.sm_up = self.il.Add(images.SmallUpArrow.GetBitmap())
         self.sm_dn = self.il.Add(images.SmallDnArrow.GetBitmap())
 
-        self.list  = ListCtrl(panel1, -1, size=(-1, -1), style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE)
+        self.list  = ListCtrl(panel1, -1, size=wx.Size(-1, -1), style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE)
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLACK'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
@@ -526,6 +526,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #          Function GetPackageDetails
     # -----------------------------------------------
     def GetPackageDetails(self, pkg, skip_details = False, ):
+        if not self.device:
+            return
         package = self.packages[pkg]
         labels = get_labels()
         if package.details == '':
@@ -688,6 +690,9 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnClose
     # -----------------------------------------------
     def OnClose(self, e):
+        if not self.device:
+            self.EndModal(wx.ID_CANCEL)
+            return
         try:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Close.")
             labels = get_labels()
@@ -764,6 +769,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnGetAppNames
     # -----------------------------------------------
     def OnGetAppNames(self, e):
+        if not self.device:
+            return
         self._on_spin('start')
         start = time.time()
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Get Application Names")
@@ -838,6 +845,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnExportList
     # -----------------------------------------------
     def OnExportList(self, e):
+        if not self.device:
+            return
         self._on_spin('start')
         start = time.time()
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Export List")
@@ -977,17 +986,6 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.selected_package = self.list.GetItemText(self.currentItem)
             if hasattr(self, 'add_target_button'):
                 self.add_target_button.Enable(True)
-        event.Skip()
-
-    # -----------------------------------------------
-    #                  OnColClick
-    # -----------------------------------------------
-    def OnColClick(self, event):
-        col = event.GetColumn()
-        if col == -1:
-            return # clicked outside any column.
-        rowid = self.list.GetColumn(col)
-        print(f"Sorting on Column {rowid.GetText()}")
         event.Skip()
 
     # -----------------------------------------------
@@ -1203,6 +1201,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #                  OnPopupRefresh
     # -----------------------------------------------
     def RefreshPackages(self):
+        if not self.device:
+            return
         res = self.device.get_detailed_packages()
         if res == 0:
             self.packages = self.device.packages
@@ -1221,7 +1221,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     #                  Function Refresh
     # -----------------------------------------------
-    def Refresh(self):
+    def Refresh(self):  # type: ignore[reportIncompatibleMethodOverride]
         self.list.Freeze()
         print("Refreshing the packages ...\n")
         self._on_spin('start')
@@ -1413,6 +1413,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #          Function _get_running_packages
     # -----------------------------------------------
     def _get_running_packages(self, process_filter=None):
+        if not self.device:
+            return []
         running_packages = set()
 
         try:
@@ -1471,6 +1473,8 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     #              Function push_aapt2_if_needed
     # -----------------------------------------------
     def push_aapt2_if_needed(self):
+        if not self.device:
+            return -1
         if self.aapt2_pushed_this_session:
             return 0
         try:

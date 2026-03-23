@@ -35,6 +35,7 @@
 
 import wx
 import wx.stc as stc
+from wx import adv as wx_adv
 import traceback
 import images as images
 import json
@@ -135,8 +136,8 @@ class PifManager(wx.Dialog):
         self.setup_syntax_highlighting(self.active_pif_stc)
         self.active_pif_stc.SetCaretForeground(wx.BLACK)
         font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        self.active_pif_stc.StyleSetFont(wx.stc.STC_STYLE_DEFAULT, font)
-        self.active_pif_stc.SetWrapMode(wx.stc.STC_WRAP_NONE)
+        self.active_pif_stc.StyleSetFont(stc.STC_STYLE_DEFAULT, font)
+        self.active_pif_stc.SetWrapMode(stc.STC_WRAP_NONE)
         self.active_pif_stc.SetUseHorizontalScrollBar(True)
         self.active_pif_stc.SetTabWidth(4)
         self.active_pif_stc.SetIndent(4)
@@ -242,8 +243,8 @@ class PifManager(wx.Dialog):
         self.setup_syntax_highlighting(self.console_stc)
         self.console_stc.SetCaretForeground(wx.BLACK)
         font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
-        self.console_stc.StyleSetFont(wx.stc.STC_STYLE_DEFAULT, font)
-        self.console_stc.SetWrapMode(wx.stc.STC_WRAP_NONE)
+        self.console_stc.StyleSetFont(stc.STC_STYLE_DEFAULT, font)
+        self.console_stc.SetWrapMode(stc.STC_WRAP_NONE)
         self.console_stc.SetUseHorizontalScrollBar(True)
         self.console_stc.SetTabWidth(4)
         self.console_stc.SetIndent(4)
@@ -505,8 +506,8 @@ class PifManager(wx.Dialog):
         self.pif_combo_box.Bind(wx.EVT_COMBOBOX, self.onFavoritesComboBox)
         self.import_pif_button.Bind(wx.EVT_BUTTON, self.onImportFavorites)
         #
-        self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
-        self.console_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ConsoleStcChange)
+        self.active_pif_stc.Bind(stc.EVT_STC_CHANGE, self.ActivePifStcChange)
+        self.console_stc.Bind(stc.EVT_STC_CHANGE, self.ConsoleStcChange)
         #
         self.create_pif_button.Bind(wx.EVT_BUTTON, self.onUpdatePrint)
         self.push_pif_button.Bind(wx.EVT_BUTTON, self.onPushPrint)
@@ -655,6 +656,7 @@ class PifManager(wx.Dialog):
     #              Function init
     # -----------------------------------------------
     def init(self, refresh=False):
+        assert self.config is not None
         if self.config.pif:
             with contextlib.suppress(KeyError):
                 self.add_missing_keys_checkbox.SetValue(self.config.pif['auto_fill'])
@@ -738,8 +740,8 @@ class PifManager(wx.Dialog):
         self.pif_selection_combo.Clear()
         self.pif_modules = []
 
+        found_pif_module = False
         if modules:
-            found_pif_module = False
             for module in modules:
                 if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store" or module.id == "targetedfix"):
                     self.pif_format = None
@@ -844,7 +846,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def check_pif_json(self):
         device = get_phone(True)
-        if not device.rooted:
+        if not device or not device.rooted:
             return
         # check for presence of pif.json
         if self.pif_path is None:
@@ -897,6 +899,8 @@ class PifManager(wx.Dialog):
             self.pif_format = selected_module.format
             self.pif_path = selected_module.path
             self.pif_flavor = selected_module.flavor
+        else:
+            return
 
         if selected_module.id == "tricky_store":
             self.spoofBuild_checkbox.Enable(False)
@@ -977,7 +981,7 @@ class PifManager(wx.Dialog):
     def load_tf_targets(self):
         try:
             device = get_phone(True)
-            if not device.rooted:
+            if not device or not device.rooted:
                 self.populate_tf_targets([])
                 return []
 
@@ -1159,6 +1163,7 @@ class PifManager(wx.Dialog):
     #                  pi_selection
     # -----------------------------------------------
     def pi_selection(self, selected_option):
+        assert self.config is not None
         if selected_option == "Play Integrity API Checker":
             print("Play Integrity API Checker option selected")
             self.pi_app = 'gr.nikolasspyr.integritycheck'
@@ -1228,7 +1233,8 @@ class PifManager(wx.Dialog):
             config = get_config()
             config.pif_width = dialog_x
             config.pif_height = dialog_y
-            config.pif = self.config.pif
+            if self.config is not None and self.config.pif is not None:
+                config.pif = self.config.pif
             set_config(config)
         except Exception:
             traceback.print_exc()
@@ -1249,7 +1255,7 @@ class PifManager(wx.Dialog):
     def LoadPif(self, file_path):
         try:
             device = get_phone(True)
-            if not device.rooted:
+            if not device or not device.rooted:
                 return
             self._on_spin('start')
             config_path = get_config_path()
@@ -1525,13 +1531,14 @@ class PifManager(wx.Dialog):
     def create_update_pif(self, just_push=False, filepath=None):
         try:
             device = get_phone(True)
-            if not device.rooted:
+            if not device or not device.rooted:
                 return
 
             self._on_spin('start')
             config_path = get_config_path()
             pif_prop = os.path.join(config_path, 'tmp', 'pif.json')
             json_data = None
+            data: Any = {}
 
             content = self.active_pif_stc.GetValue()
             if not just_push:
@@ -1561,7 +1568,7 @@ class PifManager(wx.Dialog):
                         f.write(content)
                 else:
                     if self.pif_format == 'prop':
-                        f.write(self.J2P(json.dumps(data, indent=4, sort_keys=self.sort_keys)))
+                        f.write(self.J2P(json.dumps(data, indent=4, sort_keys=self.sort_keys)) or '')
                     else:
                         json.dump(data, f, indent=4, sort_keys=self.sort_keys)
 
@@ -1619,7 +1626,7 @@ class PifManager(wx.Dialog):
     def get_pi_app_coords(self, child=None):
         try:
             device = get_phone()
-            if not device.rooted:
+            if not device or not device.rooted:
                 return
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Getting coordinates for {self.pi_app}")
 
@@ -1669,6 +1676,7 @@ class PifManager(wx.Dialog):
     def onGetCanaryPif(self, e):
         try:
             self._on_spin('start')
+            device_model = ''
             device = get_phone()
             if device:
                 device_model = device.hardware
@@ -2092,7 +2100,7 @@ class PifManager(wx.Dialog):
             # Create download state for potential abort
             self.download_state = DownloadState()
 
-            fingerprint, security_patch = url2fpsp(image_url, "factory", state=self.download_state)
+            fingerprint, security_patch, _ed = url2fpsp(image_url, "factory", state=self.download_state)
             if fingerprint is None or security_patch is None:
                 # Check if window was closed (abort)
                 if self.download_state is None or self.download_state.stop_event.is_set():
@@ -2106,7 +2114,7 @@ class PifManager(wx.Dialog):
                         return False
                     self.console_stc.SetValue(f"{self.console_stc.GetValue()}\n⚠️ Downloading full {source_label} factory image {override_size_limit} bytes ...\nThis may take quite a while ...")
                     wx.Yield()
-                    fingerprint, security_patch = url2fpsp(image_url, "factory", override_size_limit, state=self.download_state)
+                    fingerprint, security_patch, _ed = url2fpsp(image_url, "factory", override_size_limit, state=self.download_state)
 
             # Clear download state after completion
             self.download_state = None
@@ -2160,6 +2168,7 @@ class PifManager(wx.Dialog):
     #                  onPlayIntegrityCheck
     # -----------------------------------------------
     def onPlayIntegrityCheck(self, e):
+        device = None
         try:
             device = get_phone(True)
             if not device:
@@ -2450,6 +2459,7 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def process_props(self, prop_files):
         # sourcery skip: dict-assign-update-to-union
+        pathname = ''
         try:
             processed_dict = {}
             for pathname in reversed(prop_files):
@@ -2717,7 +2727,7 @@ class PifManager(wx.Dialog):
                                     )
             is_favorite_enabled = self.favorite_pif_button.Enabled
 
-            if (is_pif_create_update_enabled or is_targetedfix_module) and is_favorite_enabled:
+            if (is_pif_create_update_enabled or is_targetedfix_module) and is_favorite_enabled and json_data:
                 sorted_json_data = json.dumps(json5.loads(json_data), indent=4, sort_keys=True)
                 pif_hash = json_hexdigest(sorted_json_data)
                 if pif_hash in self.favorite_pifs:
@@ -2745,7 +2755,7 @@ class PifManager(wx.Dialog):
             self.pif_combo_box.SetItems(pif_labels)
 
             # temporarily unbind so that we don't trigger another ActivePifStcChange with the combo box selection
-            self.active_pif_stc.Unbind(wx.stc.EVT_STC_CHANGE, handler=self.ActivePifStcChange)
+            self.active_pif_stc.Unbind(stc.EVT_STC_CHANGE, handler=self.ActivePifStcChange)
             # Make the combo box selection
             if pif_hash is None:
                 self.pif_combo_box.SetSelection(-1)
@@ -2757,7 +2767,7 @@ class PifManager(wx.Dialog):
                 else:
                     self.pif_combo_box.SetSelection(-1)
             # rebind the event
-            self.active_pif_stc.Bind(wx.stc.EVT_STC_CHANGE, self.ActivePifStcChange)
+            self.active_pif_stc.Bind(stc.EVT_STC_CHANGE, self.ActivePifStcChange)
 
         except Exception:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in update_combo_box function")
@@ -2778,11 +2788,11 @@ class PifManager(wx.Dialog):
                 else:
                     json_string = console_data
 
-            json_dict = json5.loads(json_string)
+            json_dict = json5.loads(json_string or '')
             keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
             first_api = get_first_match(json_dict, keys)
             json_string = json.dumps(json_dict, indent=4, sort_keys=self.sort_keys)
-            processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)
+            processed_dict = self.load_json_with_rules(json_string, self.pif_flavor)  # type: ignore[arg-type]
             if self.force_first_api_checkbox.IsChecked():
                 donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=str(self.first_api_value), sort_data=self.sort_keys, keep_all=self.keep_unknown)
             else:
@@ -2833,6 +2843,7 @@ class PifManager(wx.Dialog):
     #                  onAddMissingKeysFromDevice
     # -----------------------------------------------
     def onAddMissingKeysFromDevice(self, event):
+        assert self.config is not None
         self.add_missing_keys_checkbox = event.GetEventObject()
         status = self.add_missing_keys_checkbox.GetValue()
         print(f"Add Missing Keys is set to: {status}")
@@ -2842,6 +2853,7 @@ class PifManager(wx.Dialog):
     #                  onSortKeys
     # -----------------------------------------------
     def onSortKeys(self, event):
+        assert self.config is not None
         self.sort_keys_checkbox = event.GetEventObject()
         status = self.sort_keys_checkbox.GetValue()
         self.sort_keys = status
@@ -2851,6 +2863,7 @@ class PifManager(wx.Dialog):
     #                  onKeepAllKeys
     # -----------------------------------------------
     def onKeepAllKeys(self, event):
+        assert self.config is not None
         self.keep_unknown_checkbox = event.GetEventObject()
         status = self.keep_unknown_checkbox.GetValue()
         self.keep_unknown = status
@@ -2860,6 +2873,7 @@ class PifManager(wx.Dialog):
     #                  onSpoofBuild
     # -----------------------------------------------
     def onSpoofBuild(self, event):
+        assert self.config is not None
         self.spoofBuild_checkbox = event.GetEventObject()
         status = self.spoofBuild_checkbox.GetValue()
         self.spoofBuild = status
@@ -2869,6 +2883,7 @@ class PifManager(wx.Dialog):
     #                  onSpoofProps
     # -----------------------------------------------
     def onSpoofProps(self, event):
+        assert self.config is not None
         self.spoofProps_checkbox = event.GetEventObject()
         status = self.spoofProps_checkbox.GetValue()
         self.spoofProps = status
@@ -2878,6 +2893,7 @@ class PifManager(wx.Dialog):
     #                  onApiValueChange
     # -----------------------------------------------
     def onApiValueChange(self, event):
+        assert self.config is not None
         try:
             self.first_api_value = int(self.api_value_input.GetValue())
             self.config.pif['first_api_value_when_forced'] = self.first_api_value
@@ -2890,6 +2906,7 @@ class PifManager(wx.Dialog):
     #                  onSpoofProvider
     # -----------------------------------------------
     def onSpoofProvider(self, event):
+        assert self.config is not None
         self.spoofProvider_checkbox = event.GetEventObject()
         status = self.spoofProvider_checkbox.GetValue()
         self.spoofProvider = status
@@ -2899,6 +2916,7 @@ class PifManager(wx.Dialog):
     #                  onSpoofSignature
     # -----------------------------------------------
     def onSpoofSignature(self, event):
+        assert self.config is not None
         self.spoofSignature_checkbox = event.GetEventObject()
         status = self.spoofSignature_checkbox.GetValue()
         self.spoofSignature = status
@@ -2908,6 +2926,7 @@ class PifManager(wx.Dialog):
     #                  onSpoofVendingSdk
     # -----------------------------------------------
     def onSpoofVendingSdk(self, event):
+        assert self.config is not None
         self.spoofVendingSdk_checkbox = event.GetEventObject()
         status = self.spoofVendingSdk_checkbox.GetValue()
         self.spoofVendingSdk = status
@@ -2917,6 +2936,7 @@ class PifManager(wx.Dialog):
     #                  onSpoofVendingFinger
     # -----------------------------------------------
     def onSpoofVendingFinger(self, event):
+        assert self.config is not None
         self.spoofVendingFinger_checkbox = event.GetEventObject()
         status = self.spoofVendingFinger_checkbox.GetValue()
         self.spoofVendingFinger = status
@@ -2926,6 +2946,7 @@ class PifManager(wx.Dialog):
     #                  onForceFirstAPI
     # -----------------------------------------------
     def onForceFirstAPI(self, event):
+        assert self.config is not None
         self.force_first_api_checkbox = event.GetEventObject()
         status = self.force_first_api_checkbox.GetValue()
         print(f"Force First API is set to: {status}")
@@ -2939,6 +2960,7 @@ class PifManager(wx.Dialog):
     #                  onAutoUpdatePrint
     # -----------------------------------------------
     def onAutoUpdatePrint(self, event):
+        assert self.config is not None
         self.auto_update_pif_checkbox = event.GetEventObject()
         status = self.auto_update_pif_checkbox.GetValue()
         print(f"Auto Update print is set to: {status}")
@@ -2948,6 +2970,7 @@ class PifManager(wx.Dialog):
     #                  onAutoCheckPlayIntegrity
     # -----------------------------------------------
     def onAutoCheckPlayIntegrity(self, event):
+        assert self.config is not None
         self.auto_check_pi_checkbox = event.GetEventObject()
         status = self.auto_check_pi_checkbox.GetValue()
         print(f"Auto Check Play Integrity is set to: {status}")
@@ -2957,6 +2980,7 @@ class PifManager(wx.Dialog):
     #                  onAutoRunMigrate
     # -----------------------------------------------
     def onAutoRunMigrate(self, event):
+        assert self.config is not None
         self.auto_run_migrate_checkbox = event.GetEventObject()
         status = self.auto_run_migrate_checkbox.GetValue()
         print(f"Auto run migrate.sh is set to: {status}")
@@ -2969,7 +2993,7 @@ class PifManager(wx.Dialog):
         try:
             print("Migrating pif to the latest Pifork format ...")
             device = get_phone(True)
-            if not device.rooted:
+            if not device or not device.rooted:
                 return
             if device:
                 exec_cmd = "/data/adb/modules/playintegrityfix/migrate.sh -f"
@@ -3062,6 +3086,8 @@ class PifManager(wx.Dialog):
 
         try:
             contentList = []
+            if not isinstance(contentDict, dict):
+                return json_str
             for k, v in contentDict.items():
                 if v:
                     contentList.append(f"{k}={v}")
@@ -3162,7 +3188,7 @@ class PifManager(wx.Dialog):
         try:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Tricky Store file: {filename}.")
             device = get_phone(True)
-            if not device.rooted:
+            if not device or not device.rooted:
                 return
             self._on_spin('start')
             config_path = get_config_path()
@@ -3243,6 +3269,7 @@ class PifManager(wx.Dialog):
     #                  onDisableUIAutomator
     # -----------------------------------------------
     def onDisableUIAutomator(self, event):
+        assert self.config is not None
         self.disable_uiautomator_checkbox = event.GetEventObject()
         status = self.disable_uiautomator_checkbox.GetValue()
         print(f"Disable UIAutomator is set to: {status}")
@@ -3262,7 +3289,7 @@ class PifManager(wx.Dialog):
                 return ''
 
             # Load JSON string into a dictionary
-            data = json5.loads(json_data)
+            data = json5.loads(json_data or '')
 
             # Define the mapping rules
             mapping_rules = {
@@ -3287,6 +3314,8 @@ class PifManager(wx.Dialog):
             }
 
             # Create a new dictionary with the modified keys
+            if not isinstance(data, dict):
+                return None
             modified_data = {mapping_rules.get(key, key): value for key, value in data.items()}
 
             # Discard keys with empty values if the keep_unknown is not set
@@ -3427,7 +3456,9 @@ class PifManager(wx.Dialog):
             else:
                 pif_string = active_data
 
-        pif_json = json5.loads(pif_string)
+        pif_json = json5.loads(pif_string or '{}')
+        if not isinstance(pif_json, dict):
+            pif_json = {}
         manufacturer = ''
         with contextlib.suppress(Exception):
             manufacturer = pif_json['MANUFACTURER']
@@ -3441,6 +3472,7 @@ class PifManager(wx.Dialog):
         with contextlib.suppress(Exception):
             fingerprint = pif_json['FINGERPRINT']
         build_id = ''
+        buildid = ''
         if fingerprint != '':
             pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
             match = re.search(pattern, fingerprint)
@@ -3478,7 +3510,9 @@ class PifManager(wx.Dialog):
                 # self.pif_combo_box.SetSelection(-1)
             else:
                 # Add to favorites
-                active_pif_json = json5.loads(active_pif)
+                active_pif_json = json5.loads(active_pif or '{}')
+                if not isinstance(active_pif_json, dict):
+                    active_pif_json = {}
                 brand = '[NO BRAND]'
                 model = '[NO MODEL]'
                 id = ''
@@ -3537,6 +3571,9 @@ class PifManager(wx.Dialog):
                 for pif_file in pif_files:
                     with open(os.path.join(dirpath, pif_file), 'r', encoding="ISO-8859-1", errors="replace") as f:
                         data = json5.load(f)
+                    brand = ''
+                    model = ''
+                    id = ''
                     with contextlib.suppress(KeyError):
                         brand = data['BRAND']
                     with contextlib.suppress(KeyError):
@@ -3609,8 +3646,9 @@ class PifManager(wx.Dialog):
     #                  toast
     # -----------------------------------------------
     def toast(self, title, message):
+        assert self.config is not None
         if self.config.show_notifications:
-            notification = wx.adv.NotificationMessage(title, message, parent=None, flags=wx.ICON_INFORMATION)
+            notification = wx_adv.NotificationMessage(title, message, parent=None, flags=wx.ICON_INFORMATION)
             notification.SetIcon(images.Icon_dark_256.GetIcon())
             notification.Show()
 
@@ -3679,6 +3717,7 @@ class PifManager(wx.Dialog):
                 active_data = self.active_pif_stc.GetValue().strip()
                 has_valid_json = False
                 if active_data:
+                    json_data = None
                     try:
                         if self.pif_format == 'prop':
                             json_data = self.P2J(active_data)
@@ -3689,7 +3728,7 @@ class PifManager(wx.Dialog):
                             has_valid_json = True
                     except:
                         try:
-                            json5.loads(json_data if 'json_data' in locals() else active_data)
+                            json5.loads((json_data or active_data) if 'json_data' in locals() else active_data)
                             has_valid_json = True
                         except:
                             has_valid_json = False

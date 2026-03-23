@@ -51,9 +51,12 @@ from urllib.parse import urlparse
 import darkdetect
 import wx
 import wx.adv
+from wx import adv
 import wx.lib.agw.aui as aui
 import wx.lib.inspection
 import wx.lib.mixins.inspection
+from wx.lib.inspection import InspectionTool
+from wx.lib.mixins.inspection import InspectionMixin
 import wx.lib.buttons as buttons
 from packaging.version import parse
 
@@ -175,13 +178,13 @@ class RedirectText():
 
     def write(self, string):
         global global_args
-        if hasattr(global_args, 'console_only') and global_args.console_only and sys.platform != "win32":
+        if global_args is not None and hasattr(global_args, 'console_only') and global_args.console_only and sys.platform != "win32":
             # If --console-only is set, redirect output only to the console
             sys.__stdout__.write(string)
         else:
             # Otherwise, redirect output to the text control, the console (if --console is set), and the logfile
             wx.CallAfter(self.out.AppendText, string)
-            if hasattr(global_args, 'console') and global_args.console and sys.platform != "win32":
+            if global_args is not None and hasattr(global_args, 'console') and global_args.console and sys.platform != "win32":
                 sys.__stdout__.write(string)
             if not self.logfile.closed:
                 self.logfile.write(string)
@@ -339,7 +342,7 @@ class GoogleImagesBaseMenu(wx.Menu):
 
                 with open(destination_path, 'wb') as f:
                     # Store file handle for cleanup
-                    file_handle['f'] = f
+                    file_handle['f'] = f  # type: ignore
                     for chunk in response.iter_content(chunk_size=4096):
                         if cancel_flag['cancelled']:
                             f.close()
@@ -571,6 +574,12 @@ class GoogleImagesPopupMenu(GoogleImagesBaseMenu):
         super(GoogleImagesPopupMenu, self).__init__(parent)
 
         try:
+            submenu_ota = None
+            submenu_factory = None
+            submenu_beta = None
+            submenu_canary = None
+            submenu_all_betas = None
+            download_flag = False
             if device in self.data:
                 device_data = self.data[device]
 
@@ -741,6 +750,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def initialize(self):
         try:
+            profiler = None
             if do_profiling:
                 profiler = cProfile.Profile()
                 profiler.enable()
@@ -799,6 +809,7 @@ class PixelFlasher(wx.Frame):
             print(f"Available Free Disk on PixelFlasher data drive: {str(get_free_space(get_config_path()))} GB\n")
 
             # load android_versions into a dict.
+            file_path = None
             try:
                 file_path = os.path.join(get_bundle_dir(), 'android_versions.json')
                 encoding = detect_encoding(file_path)
@@ -885,6 +896,7 @@ class PixelFlasher(wx.Frame):
                 traceback.print_exc()
 
             # check platform tools
+            res_sdk = -1
             try:
                 # If platform tools are not found, see if we're running NixOS
                 if  not self.config.platform_tools_path and not sys.platform == "win32" and os.path.exists('/etc/NIXOS'):
@@ -987,6 +999,8 @@ class PixelFlasher(wx.Frame):
             # check version if we are running the latest
             if self.config.update_check:
                 l_version = check_latest_version()
+                if not l_version:
+                    return
                 try:
                     if parse(VERSION) < parse(l_version):
                         print(f"\nA newer PixelFlasher v{l_version} can be downloaded from:")
@@ -1019,7 +1033,7 @@ class PixelFlasher(wx.Frame):
             self.spinner_label.Hide()
             self.init_complete = True
 
-            if do_profiling:
+            if do_profiling and profiler:
                 profiler.disable()
                 stats = pstats.Stats(profiler).sort_stats('tottime')  # 'tottime' for total time
                 stats.print_stats()
@@ -1094,7 +1108,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def set_ui_fonts(self):
         if self.config.customize_font:
-            font = wx.Font(self.config.pf_font_size, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName=self.config.pf_font_face)
+            font = wx.Font(self.config.pf_font_size, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName=self.config.pf_font_face)
 
             # device list
             self.device_choice.SetFont(font)
@@ -1106,7 +1120,7 @@ class PixelFlasher(wx.Frame):
             # console
             self.console_ctrl.SetFont(font)
         else:
-            font = wx.Font(9, family=wx.DEFAULT, style=wx.NORMAL, weight=wx.NORMAL, underline=False, faceName='Segoe UI')
+            font = wx.Font(9, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_NORMAL, underline=False, faceName='Segoe UI')
 
             # device list
             self.device_choice.SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL))
@@ -1334,7 +1348,7 @@ class PixelFlasher(wx.Frame):
                 self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=900)
 
             # Create Support
-            support_bmp = wx.ArtProvider.GetBitmapBundle(wx.ART_HELP, wx.ART_TOOLBAR, tsize)
+            support_bmp = wx.ArtProvider.GetBitmapBundle(wx.ART_HELP, wx.ART_TOOLBAR, wx.Size(*tsize))
             tb.AddTool(toolId=910, label=_("Support"), bitmap=support_bmp, bmpDisabled=null_bmp, kind=wx.ITEM_NORMAL, shortHelp=_("Create Support file"), longHelp=_("Create Support file"), clientData=None)
             self.Bind(wx.EVT_TOOL, self.OnToolClick, id=910)
             self.Bind(wx.EVT_TOOL_RCLICKED, self.OnToolRClick, id=910)
@@ -2362,6 +2376,8 @@ class PixelFlasher(wx.Frame):
                 return
             print("Selected options:")
             checkbox_values = get_dlg_checkbox_values()
+            if not checkbox_values:
+                return
             for i in range(len(checkboxes)):
                 print(f"{checkboxes[i]}: {bool(checkbox_values[i])}")
             print("\n")
@@ -2537,7 +2553,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     def toast(self, title, message):
         if self.config.show_notifications:
-            notification = wx.adv.NotificationMessage(title, message, parent=None, flags=wx.ICON_INFORMATION)
+            notification = adv.NotificationMessage(title, message, parent=None, flags=wx.ICON_INFORMATION)
             notification.SetIcon(images.Icon_dark_256.GetIcon())
             notification.Show()
 
@@ -2772,6 +2788,7 @@ class PixelFlasher(wx.Frame):
         result = dlg.ShowModal()
         dlg.Destroy()
 
+        redact_keybox = False
         option = result
         # option 2 - No
         if option == 2:
@@ -3751,7 +3768,7 @@ class PixelFlasher(wx.Frame):
 
             elif condition == 'has_magisk_modules':
                 device = get_phone()
-                if device.magisk_modules_summary == '':
+                if device and device.magisk_modules_summary == '':
                     return False
                 return True
 
@@ -3785,7 +3802,7 @@ class PixelFlasher(wx.Frame):
 
             elif condition == 'boot_is_not_downgrade_patched':
                 boot = get_boot()
-                if boot and 'downgrade_boot' not in boot.boot_path:
+                if boot and boot.boot_path and 'downgrade_boot' not in boot.boot_path:
                     return True
                 return False
 
@@ -4039,8 +4056,8 @@ class PixelFlasher(wx.Frame):
     def _perform_scan(self, scan_all=False):
         # scan_all: If True, scan all devices regardless of enable/disable settings.
         #           If False, only scan enabled devices (respects device filter).
+        startScan = time.time()
         try:
-            startScan = time.time()
 
             # Determine scan mode text
             if scan_all:
@@ -4151,7 +4168,7 @@ class PixelFlasher(wx.Frame):
                 return -1
             self.config.firmware_path = path.replace("'", "")
             checksum = select_firmware(self)
-            if len(checksum) == 64:
+            if isinstance(checksum, str) and len(checksum) == 64:
                 self.config.firmware_sha256 = checksum
             else:
                 self.config.firmware_sha256 = None
@@ -4494,6 +4511,8 @@ class PixelFlasher(wx.Frame):
                 return -1
 
             boot_path = boot.boot_path
+            if not boot_path:
+                return -1
             directory_path = os.path.dirname(boot_path)
             downgrade_file_name = "downgrade_boot.img"
             downgrade_file_path = os.path.join(directory_path, downgrade_file_name)
@@ -5079,7 +5098,8 @@ class PixelFlasher(wx.Frame):
 
             self._on_spin('start')
             device = get_phone()
-            device.disable_magisk_modules()
+            if device:
+                device.disable_magisk_modules()
             time.sleep(5)
             self.device_choice.SetItems(get_connected_devices())
             self._select_configured_device()
@@ -5313,6 +5333,7 @@ class PixelFlasher(wx.Frame):
         print("\n==============================================================================")
         print(f" {datetime.now():%Y-%m-%d %H:%M:%S} User initiated Data ADB Clear")
         print("==============================================================================")
+        dlg = None
         try:
             device = get_phone(True)
             if device:
@@ -5503,6 +5524,8 @@ class PixelFlasher(wx.Frame):
             if not self.config.device:
                 return
             device = get_phone(True)
+            if not device:
+                return
             self._on_spin('start')
             if device.active_slot not in ['a', 'b']:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown slot, is your device dual slot?")
@@ -5633,6 +5656,9 @@ class PixelFlasher(wx.Frame):
     #                  _on_check_keybox
     # -----------------------------------------------
     def _on_check_keybox(self, event):
+        total_keyboxes = None
+        result_categories = {}
+        longest_desc = 0
         try:
             # Select keybox files
             total_keyboxes = None
@@ -5642,6 +5668,7 @@ class PixelFlasher(wx.Frame):
                 return
 
             if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_ALT):
+                target_path = ''
                 if self.config.unmarked_entries_path and os.path.exists(self.config.unmarked_entries_path):
                     target_path = self.config.unmarked_entries_path
 
@@ -5955,10 +5982,7 @@ class PixelFlasher(wx.Frame):
 
                 # Check if the original boot_path exists in case pf_home changed.
                 original_path = boot.boot_path
-                if os.path.exists(original_path):
-                    # Path exists, keep it as is
-                    pass
-                else:
+                if original_path and not os.path.exists(original_path):
                     # Path doesn't exist, try to reconstruct it with pf_home
                     try:
                         if "boot_images4" in original_path:
@@ -5998,13 +6022,13 @@ class PixelFlasher(wx.Frame):
                         message += f"Patch Source SHA1:        {boot.patch_source_sha1}\n"
                     if boot.patch_method in ["kernelsu", "kernelsu_lkm"]:
                         message += f"Patched With KernelSU:    {boot.magisk_version}\n"
-                    if "kernelsu-next" in boot.patch_method:
+                    if boot.patch_method and "kernelsu-next" in boot.patch_method:
                         message += f"Patched With KSU-Next:    {boot.magisk_version}\n"
-                    elif "sukisu" in boot.patch_method:
+                    elif boot.patch_method and "sukisu" in boot.patch_method:
                         message += f"Patched With SukiSU:      {boot.magisk_version}\n"
-                    elif "wild_ksu" in boot.patch_method:
+                    elif boot.patch_method and "wild_ksu" in boot.patch_method:
                         message += f"Patched With Wild_KSU:      {boot.magisk_version}\n"
-                    elif "apatch" in boot.patch_method:
+                    elif boot.patch_method and "apatch" in boot.patch_method:
                         message += f"Patched With Apatch:      {boot.magisk_version}\n"
                     else:
                         message += f"Patched With Magisk:      {boot.magisk_version}\n"
@@ -6012,7 +6036,7 @@ class PixelFlasher(wx.Frame):
                 else:
                     patched = False
                     message += f"Patched:                  {patched}\n"
-                ts = datetime.fromtimestamp(boot.boot_epoch)
+                ts = datetime.fromtimestamp(boot.boot_epoch) if boot.boot_epoch else datetime.now()
                 if boot.is_odin == 1:
                     message += f"Samsung Boot:             True\n"
                 if boot.is_stock_boot == 0:
@@ -6047,7 +6071,7 @@ class PixelFlasher(wx.Frame):
                     if kernel_date:
                         message += f"Selected Kernel Date:     {kernel_date}\n"
                 # if there is a boot.img file in the same folder as the boot, get its kernel info too
-                boot_dir = os.path.dirname(boot.boot_path)
+                boot_dir = os.path.dirname(boot.boot_path) if boot.boot_path else ''
                 stock_boot_path = os.path.join(boot_dir, "boot.img")
                 if os.path.exists(stock_boot_path) and stock_boot_path != boot.boot_path:
                     stock_kernel_build, stock_kernel_date = extract_kernel_info(stock_boot_path)
@@ -6111,8 +6135,8 @@ class PixelFlasher(wx.Frame):
             if boot and boot.boot_id and boot.package_id:
                 print("Delete boot image button is pressed.")
                 puml(":Delete boot image;\n", True)
-                print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8]} ...")
-                puml(f"note right\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8]}\nend note\n")
+                print(f"Deleting boot record,  ID:{boot.boot_id}  Boot_ID:{boot.boot_hash[:8] if boot.boot_hash else 'N/A'} ...")
+                puml(f"note right\nID:{boot.boot_id}\nBoot_ID:{boot.boot_hash[:8] if boot.boot_hash else 'N/A'}\nend note\n")
 
                 # from PACKAGE, find all other package ids that have the same boot_hash
                 package_ids = find_package_ids_with_same_package_boot_hash(boot.package_boot_hash)
@@ -6124,11 +6148,11 @@ class PixelFlasher(wx.Frame):
                         delete_package_boot_record(boot.boot_id, package_id)
 
                 # Check to see if this is the last entry for the boot_id, if it is delete it,
-                delete_last_boot_record(boot.boot_id, boot.boot_path)
+                delete_last_boot_record(boot.boot_id, boot.boot_path if boot.boot_path else '')
 
                 # Check to see if this is the last entry for the package_id, if it is,
                 # delete the package from db and also delete unpacked files from factory_images cache
-                boot_dir = os.path.dirname(boot.boot_path)
+                boot_dir = os.path.dirname(boot.boot_path) if boot.boot_path else ''
                 delete_last_package_record(package_ids, boot_dir)
 
         finally:
@@ -6159,7 +6183,7 @@ class PixelFlasher(wx.Frame):
             boot = get_boot()
             if boot:
                 config_path = get_config_path()
-                working_dir = os.path.join(config_path, 'factory_images', boot.package_sig)
+                working_dir = os.path.join(config_path, 'factory_images', boot.package_sig if boot.package_sig else '')
                 open_folder(self, working_dir, False)
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware folder")
@@ -6202,11 +6226,12 @@ class PixelFlasher(wx.Frame):
     #                  _on_paste_selection
     # -----------------------------------------------
     def _on_paste_selection(self, event):
+        flag = True
         try:
             config_path = get_config_path()
             factory_images = os.path.join(config_path, 'factory_images')
             package_sig = get_firmware_id()
-            package_dir_full = os.path.join(factory_images, package_sig)
+            package_dir_full = os.path.join(factory_images, package_sig if package_sig else '')
             image_mode = self.image_choice.Items[self.image_choice.GetSelection()]
             flag = True
             pasted_filename = None
@@ -6219,7 +6244,7 @@ class PixelFlasher(wx.Frame):
                     else:
                         # if init_boot and stock, then we want to paste the stock boot.img path
                         print(f"Selected file is stock init_boot, looking for stock boot.img instead ...")
-                        boot_dir = os.path.dirname(boot.boot_path)
+                        boot_dir = os.path.dirname(boot.boot_path) if boot.boot_path else ''
                         boot_img_path = os.path.join(boot_dir, 'boot.img')
                         pasted_filename = boot_img_path
                 elif boot and boot.boot_path:
@@ -6641,7 +6666,7 @@ class PixelFlasher(wx.Frame):
             style = wx.RB_GROUP if index == 0 else 0
             self.mode_radio_button = wx.RadioButton(panel, name=f"mode-{flash_mode}", label=f"{label}", style=style)
             self.mode_radio_button.Bind(wx.EVT_RADIOBUTTON, self._on_mode_changed)
-            self.mode_radio_button.mode = flash_mode
+            setattr(self.mode_radio_button, 'mode', flash_mode)
             if flash_mode == self.config.flash_mode:
                 self.mode_radio_button.SetValue(True)
             else:
@@ -7172,9 +7197,9 @@ class PixelFlasher(wx.Frame):
 # ============================================================================
 #                               Class MySplashScreen
 # ============================================================================
-class MySplashScreen(wx.adv.SplashScreen):
+class MySplashScreen(adv.SplashScreen):
     def __init__(self):
-        wx.adv.SplashScreen.__init__(self, images.Splash_dark.GetBitmap(), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT, 20000, None, -1, wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
+        adv.SplashScreen.__init__(self, images.Splash_dark.GetBitmap(), adv.SPLASH_CENTRE_ON_SCREEN | adv.SPLASH_TIMEOUT, 20000, None, -1, wx.DefaultPosition, wx.DefaultSize, wx.NO_BORDER)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.__fc = wx.CallLater(1000, self._show_main)
 
@@ -7202,7 +7227,7 @@ class MySplashScreen(wx.adv.SplashScreen):
 # ============================================================================
 #                               Class App
 # ============================================================================
-class App(wx.App, wx.lib.mixins.inspection.InspectionMixin):
+class App(wx.App, InspectionMixin):
     def __init__(self, global_args, *args, **kwargs):
         self.global_args = global_args
         super(App, self).__init__(*args, **kwargs)
@@ -7291,7 +7316,7 @@ def main():
 
     app = App(global_args, False)
     if inspector:
-        wx.lib.inspection.InspectionTool().Show()
+        InspectionTool().Show()
 
     app.MainLoop()
 

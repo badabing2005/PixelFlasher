@@ -76,7 +76,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
         self.sm_up = self.il.Add(images.SmallUpArrow.GetBitmap())
         self.sm_dn = self.il.Add(images.SmallDnArrow.GetBitmap())
 
-        self.list = ListCtrl(self, -1, size=(-1, -1), style=wx.LC_REPORT | wx.BORDER_SUNKEN | wx.LC_SINGLE_SEL)
+        self.list = ListCtrl(self, -1, size=wx.Size(-1, -1), style=wx.LC_REPORT | wx.BORDER_SUNKEN | wx.LC_SINGLE_SEL)
 
         if sys.platform == "win32":
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLACK'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
@@ -503,7 +503,7 @@ class Wireless(wx.Dialog, listmix.ColumnSorterMixin):
     # -----------------------------------------------
     #                  Function Refresh
     # -----------------------------------------------
-    def Refresh(self):
+    def Refresh(self):  # type: ignore[reportIncompatibleMethodOverride]
         self.list.Freeze()
         self.list.ClearAll()
         itemDataMap = self.PopulateList()

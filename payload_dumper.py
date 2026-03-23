@@ -136,16 +136,16 @@ def extract_payload(payload_file_path, out='output', diff=False, old='old', imag
         data_offset = payload_file.tell()
 
         dam = um.DeltaArchiveManifest()
-        dam.ParseFromString(manifest)
-        block_size = dam.block_size
+        dam.ParseFromString(manifest)  # type: ignore[attr-defined]
+        block_size = dam.block_size  # type: ignore[attr-defined]
 
         if images == "":
-            for part in dam.partitions:
+            for part in dam.partitions:  # type: ignore[attr-defined]
                 dump_part(part)
         else:
             images_list = images.split(",")
             for image in images_list:
-                partition = [part for part in dam.partitions if part.partition_name == image]
+                partition = [part for part in dam.partitions if part.partition_name == image]  # type: ignore[attr-defined]
                 if partition:
                     dump_part(partition[0])
                 else:

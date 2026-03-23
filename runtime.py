@@ -43,6 +43,7 @@ import html
 import io
 import json
 import json5
+import logging
 import math
 import ntpath
 import os
@@ -74,12 +75,18 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, ec
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
+from cryptography.x509 import KeyUsage
+from cryptography.x509.oid import ExtensionOID
 from i18n import _, set_language
 import lz4.frame
 import requests
 import wx
+from typing import Any, TYPE_CHECKING, Optional, cast
+if TYPE_CHECKING:
+    from config import Config
 from packaging.version import parse
-from platformdirs import *
+from platformdirs import user_data_dir
+
 from constants import *
 from payload_dumper import extract_payload
 from ksu_asset_selector import show_ksu_asset_selector
@@ -132,14 +139,14 @@ _firmware_has_init_boot = False
 _rom_has_init_boot = False
 _dlg_checkbox_values = None
 # _recovery_patch = False
-_config_path = None
+_config_path = ''
 _android_versions = {}
 _android_devices = {}
 _env_variables = os.environ.copy()
 _is_ota = False
 _sdk_is_ok = False
 _low_memory = False
-_config = {}
+_config: Any = {}
 _config_file_path = ''
 _unlocked_devices = []
 _window_shown = False
@@ -153,25 +160,26 @@ _selected_boot_partition = None
 # ============================================================================
 class Boot():
     def __init__(self):
-        self.boot_id = None
-        self.boot_hash = None
-        self.boot_path = None
-        self.is_patched = None
-        self.patch_method = None
-        self.magisk_version = None
-        self.hardware = None
-        self.boot_epoch = None
-        self.package_id = None
-        self.package_boot_hash = None
-        self.package_type = None
-        self.package_sig = None
-        self.package_path = None
-        self.package_epoch = None
-        self.is_odin = None
-        self.is_stock_boot = None
-        self.is_init_boot = None
-        self.patch_source_sha1 = None
-        self.spl = None
+        self.boot_id: int | None = None
+        self.boot_hash: str | None = None
+        self.boot_path: str | None = None
+        self.is_patched: int | None = None
+        self.patch_method: str | None = None
+        self.magisk_version: str | None = None
+        self.hardware: str | None = None
+        self.boot_epoch: float | None = None
+        self.package_id: int | None = None
+        self.package_boot_hash: str | None = None
+        self.package_type: str | None = None
+        self.package_sig: str | None = None
+        self.package_path: str | None = None
+        self.package_epoch: float | None = None
+        self.is_odin: int | None = None
+        self.is_stock_boot: int | None = None
+        self.is_init_boot: int | None = None
+        self.patch_source_sha1: str | None = None
+        self.spl: str | None = None
+        self.fingerprint: str | None = None
 
 
 # ============================================================================
@@ -188,6 +196,9 @@ class BetaData:
         self.incremental = incremental
         self.security_patch = security_patch
         self.devices = devices
+        self.model_list: list | None = None
+        self.product_list: list | None = None
+        self.release_href: str | None = None
 
 
 # ============================================================================
@@ -240,6 +251,10 @@ class Coords:
 class ModuleUpdate():
     def __init__(self, url):
         self.url = url
+        self.version = None
+        self.versionCode = None
+        self.zipUrl = None
+        self.changelog = None
 
 
 # ============================================================================
@@ -248,6 +263,10 @@ class ModuleUpdate():
 class MagiskApk():
     def __init__(self, type):
         self.type = type
+        self.note_link = None
+        self.version: str | None = None
+        self.versionCode: str | None = None
+        self.link: str | None = None
 
 
 # ============================================================================
@@ -259,14 +278,14 @@ class DownloadState:
         self.downloaded_bytes = 0
         self.file_size = 0
         self.download_complete = False
-        self.fingerprint = None
-        self.security_patch = None
+        self.fingerprint: Optional[str] = None
+        self.security_patch: Optional[str] = None
 
 
 # ============================================================================
 #                               Function get_app_language
 # ============================================================================
-def get_app_language():
+def get_app_language() -> str:
     global _app_language
     return _app_language
 
@@ -274,7 +293,7 @@ def get_app_language():
 # ============================================================================
 #                               Function set_app_language
 # ============================================================================
-def set_app_language(value):
+def set_app_language(value) -> None:
     global _app_language
     _app_language = value
     # Update the actual translation system
@@ -283,7 +302,7 @@ def set_app_language(value):
 # ============================================================================
 #                               Function get_config
 # ============================================================================
-def get_config():
+def get_config() -> 'Config':
     global _config
     return _config
 
@@ -291,7 +310,7 @@ def get_config():
 # ============================================================================
 #                               Function set_config
 # ============================================================================
-def set_config(value):
+def set_config(value) -> None:
     global _config
     _config = value
 
@@ -299,7 +318,7 @@ def set_config(value):
 # ============================================================================
 #                               Function get_window_shown
 # ============================================================================
-def get_window_shown():
+def get_window_shown() -> bool:
     global _window_shown
     return _window_shown
 
@@ -307,7 +326,7 @@ def get_window_shown():
 # ============================================================================
 #                               Function set_window_shown
 # ============================================================================
-def set_window_shown(value):
+def set_window_shown(value) -> None:
     global _window_shown
     _window_shown = value
 
@@ -344,7 +363,7 @@ def remove_unlocked_device(item):
 # ============================================================================
 #                               Function get_unlocked_device
 # ============================================================================
-def get_unlocked_device():
+def get_unlocked_device() -> list:
     global _unlocked_devices
     return _unlocked_devices
 
@@ -352,7 +371,7 @@ def get_unlocked_device():
 # ============================================================================
 #                               Function set_console_widget
 # ============================================================================
-def set_console_widget(widget):
+def set_console_widget(widget) -> None:
     global _console_widget
     _console_widget = widget
 
@@ -374,7 +393,7 @@ def flush_output():
 # ============================================================================
 #                               Function get_boot
 # ============================================================================
-def get_boot():
+def get_boot() -> Boot | None:
     global _boot
     return _boot
 
@@ -382,7 +401,7 @@ def get_boot():
 # ============================================================================
 #                               Function set_boot
 # ============================================================================
-def set_boot(value):
+def set_boot(value) -> None:
     global _boot
     _boot = value
 
@@ -390,7 +409,7 @@ def set_boot(value):
 # ============================================================================
 #                               Function get_labels
 # ============================================================================
-def get_labels():
+def get_labels() -> dict:
     global _app_labels
     return _app_labels
 
@@ -398,7 +417,7 @@ def get_labels():
 # ============================================================================
 #                               Function set_labels
 # ============================================================================
-def set_labels(value):
+def set_labels(value) -> None:
     global _app_labels
     _app_labels = value
 
@@ -406,7 +425,7 @@ def set_labels(value):
 # ============================================================================
 #                               Function get_xiaomi
 # ============================================================================
-def get_xiaomi():
+def get_xiaomi() -> dict:
     global _xiaomi_list
     return _xiaomi_list
 
@@ -414,7 +433,7 @@ def get_xiaomi():
 # ============================================================================
 #                               Function set_xiaomi
 # ============================================================================
-def set_xiaomi(value):
+def set_xiaomi(value) -> None:
     global _xiaomi_list
     _xiaomi_list = value
 
@@ -422,7 +441,7 @@ def set_xiaomi(value):
 # ============================================================================
 #                               Function get_favorite_pifs
 # ============================================================================
-def get_favorite_pifs():
+def get_favorite_pifs() -> dict:
     global _favorite_pifs
     return _favorite_pifs
 
@@ -430,7 +449,7 @@ def get_favorite_pifs():
 # ============================================================================
 #                               Function set_favorite_pifs
 # ============================================================================
-def set_favorite_pifs(value):
+def set_favorite_pifs(value) -> None:
     global _favorite_pifs
     _favorite_pifs = value
 
@@ -438,7 +457,7 @@ def set_favorite_pifs(value):
 # ============================================================================
 #                               Function get_low_memory
 # ============================================================================
-def get_low_memory():
+def get_low_memory() -> bool:
     global _low_memory
     return _low_memory
 
@@ -446,7 +465,7 @@ def get_low_memory():
 # ============================================================================
 #                               Function set_low_memory
 # ============================================================================
-def set_low_memory(value):
+def set_low_memory(value) -> None:
     global _low_memory
     _low_memory = value
 
@@ -454,7 +473,7 @@ def set_low_memory(value):
 # ============================================================================
 #                               Function get_android_versions
 # ============================================================================
-def get_android_versions():
+def get_android_versions() -> dict:
     global _android_versions
     return _android_versions
 
@@ -462,7 +481,7 @@ def get_android_versions():
 # ============================================================================
 #                               Function set_android_versions
 # ============================================================================
-def set_android_versions(value):
+def set_android_versions(value) -> None:
     global _android_versions
     _android_versions = value
 
@@ -470,7 +489,7 @@ def set_android_versions(value):
 # ============================================================================
 #                               Function get_android_devices
 # ============================================================================
-def get_android_devices():
+def get_android_devices() -> dict:
     global _android_devices
     return _android_devices
 
@@ -478,7 +497,7 @@ def get_android_devices():
 # ============================================================================
 #                               Function set_android_devices
 # ============================================================================
-def set_android_devices(value):
+def set_android_devices(value) -> None:
     global _android_devices
     _android_devices = value
 
@@ -486,7 +505,7 @@ def set_android_devices(value):
 # ============================================================================
 #                               Function get_env_variables
 # ============================================================================
-def get_env_variables():
+def get_env_variables() -> dict:
     global _env_variables
     return _env_variables
 
@@ -494,7 +513,7 @@ def get_env_variables():
 # ============================================================================
 #                               Function set_env_variables
 # ============================================================================
-def set_env_variables(value):
+def set_env_variables(value) -> None:
     global _env_variables
     _env_variables = value
 
@@ -502,7 +521,7 @@ def set_env_variables(value):
 # ============================================================================
 #                               Function get_patched_with
 # ============================================================================
-def get_patched_with():
+def get_patched_with() -> str:
     global _patched_with
     return _patched_with
 
@@ -510,7 +529,7 @@ def get_patched_with():
 # ============================================================================
 #                               Function set_patched_with
 # ============================================================================
-def set_patched_with(value):
+def set_patched_with(value) -> None:
     global _patched_with
     _patched_with = value
 
@@ -518,7 +537,7 @@ def set_patched_with(value):
 # ============================================================================
 #                               Function get_db
 # ============================================================================
-def get_db():
+def get_db() -> Any | None:
     global _db
     return _db
 
@@ -526,7 +545,7 @@ def get_db():
 # ============================================================================
 #                               Function set_db
 # ============================================================================
-def set_db(value):
+def set_db(value) -> None:
     global _db
     _db = value
 
@@ -534,7 +553,7 @@ def set_db(value):
 # ============================================================================
 #                               Function get_boot_images_dir
 # ============================================================================
-def get_boot_images_dir():
+def get_boot_images_dir() -> str:
     # boot_images did not change at version 5, so we can keep on using 4
     if parse(VERSION) < parse('4.0.0'):
         return 'boot_images'
@@ -545,7 +564,7 @@ def get_boot_images_dir():
 # ============================================================================
 #                               Function get_factory_images_dir
 # ============================================================================
-def get_factory_images_dir():
+def get_factory_images_dir() -> str:
     # factory_images only changed after version 5
     if parse(VERSION) < parse('9.0.0'):
         return 'factory_images'
@@ -556,7 +575,7 @@ def get_factory_images_dir():
 # ============================================================================
 #                               Function get_pf_db
 # ============================================================================
-def get_pf_db():
+def get_pf_db() -> str:
     # we have different db schemas for each of these versions
     if parse(VERSION) < parse('4.0.0'):
         return 'PixelFlasher.db'
@@ -569,7 +588,7 @@ def get_pf_db():
 # ============================================================================
 #                               Function get_verbose
 # ============================================================================
-def get_verbose():
+def get_verbose() -> bool:
     global _verbose
     return _verbose
 
@@ -577,7 +596,7 @@ def get_verbose():
 # ============================================================================
 #                               Function set_verbose
 # ============================================================================
-def set_verbose(value):
+def set_verbose(value) -> None:
     global _verbose
     _verbose = value
 
@@ -585,7 +604,7 @@ def set_verbose(value):
 # ============================================================================
 #                               Function get_a_only
 # ============================================================================
-def get_a_only():
+def get_a_only() -> bool:
     global _a_only
     return _a_only
 
@@ -593,7 +612,7 @@ def get_a_only():
 # ============================================================================
 #                               Function set_a_only
 # ============================================================================
-def set_a_only(value):
+def set_a_only(value) -> None:
     global _a_only
     _a_only = value
 
@@ -601,7 +620,7 @@ def set_a_only(value):
 # ============================================================================
 #                   Function get_selected_boot_partition
 # ============================================================================
-def get_selected_boot_partition():
+def get_selected_boot_partition() -> str | None:
     global _selected_boot_partition
     return _selected_boot_partition
 
@@ -609,7 +628,7 @@ def get_selected_boot_partition():
 # ============================================================================
 #                   Function set_selected_boot_partition
 # ============================================================================
-def set_selected_boot_partition(value):
+def set_selected_boot_partition(value) -> None:
     global _selected_boot_partition
     _selected_boot_partition = value
 
@@ -617,7 +636,7 @@ def set_selected_boot_partition(value):
 # ============================================================================
 #                               Function get_adb
 # ============================================================================
-def get_adb():
+def get_adb() -> str | None:
     global _adb
     return _adb
 
@@ -625,7 +644,7 @@ def get_adb():
 # ============================================================================
 #                               Function set_adb
 # ============================================================================
-def set_adb(value):
+def set_adb(value) -> None:
     global _adb
     _adb = value
 
@@ -633,7 +652,7 @@ def set_adb(value):
 # ============================================================================
 #                               Function get_puml_state
 # ============================================================================
-def get_puml_state():
+def get_puml_state() -> bool:
     global _puml_enabled
     return _puml_enabled
 
@@ -641,7 +660,7 @@ def get_puml_state():
 # ============================================================================
 #                               Function set_puml_state
 # ============================================================================
-def set_puml_state(value):
+def set_puml_state(value) -> None:
     global _puml_enabled
     _puml_enabled = value
 
@@ -649,7 +668,7 @@ def set_puml_state(value):
 # ============================================================================
 #                               Function get_fastboot
 # ============================================================================
-def get_fastboot():
+def get_fastboot() -> str | None:
     global _fastboot
     return _fastboot
 
@@ -657,7 +676,7 @@ def get_fastboot():
 # ============================================================================
 #                               Function set_fastboot
 # ============================================================================
-def set_fastboot(value):
+def set_fastboot(value) -> None:
     global _fastboot
     _fastboot = value
 
@@ -665,7 +684,7 @@ def set_fastboot(value):
 # ============================================================================
 #                               Function get_adb_sha256
 # ============================================================================
-def get_adb_sha256():
+def get_adb_sha256() -> str | None:
     global _adb_sha256
     return _adb_sha256
 
@@ -673,7 +692,7 @@ def get_adb_sha256():
 # ============================================================================
 #                               Function set_adb_sha256
 # ============================================================================
-def set_adb_sha256(value):
+def set_adb_sha256(value) -> None:
     global _adb_sha256
     _adb_sha256 = value
 
@@ -681,7 +700,7 @@ def set_adb_sha256(value):
 # ============================================================================
 #                               Function get_fastboot_sha256
 # ============================================================================
-def get_fastboot_sha256():
+def get_fastboot_sha256() -> str | None:
     global _fastboot_sha256
     return _fastboot_sha256
 
@@ -689,7 +708,7 @@ def get_fastboot_sha256():
 # ============================================================================
 #                               Function set_fastboot_sha256
 # ============================================================================
-def set_fastboot_sha256(value):
+def set_fastboot_sha256(value) -> None:
     global _fastboot_sha256
     _fastboot_sha256 = value
 
@@ -697,7 +716,7 @@ def set_fastboot_sha256(value):
 # ============================================================================
 #                               Function get_phones
 # ============================================================================
-def get_phones():
+def get_phones() -> list:
     global _phones
     return _phones
 
@@ -705,7 +724,7 @@ def get_phones():
 # ============================================================================
 #                               Function set_phones
 # ============================================================================
-def set_phones(value):
+def set_phones(value) -> None:
     global _phones
     _phones = value
 
@@ -713,7 +732,7 @@ def set_phones(value):
 # ============================================================================
 #                               Function get_device_list
 # ============================================================================
-def get_device_list():
+def get_device_list() -> list:
     global _device_list
     return _device_list
 
@@ -721,7 +740,7 @@ def get_device_list():
 # ============================================================================
 #                               Function set_device_list
 # ============================================================================
-def set_device_list(value):
+def set_device_list(value) -> None:
     global _device_list
     _device_list = value
 
@@ -729,7 +748,7 @@ def set_device_list(value):
 # ============================================================================
 #                               Function get_phone_id
 # ============================================================================
-def get_phone_id():
+def get_phone_id() -> str | None:
     global _phone_id
     return _phone_id
 
@@ -737,7 +756,7 @@ def get_phone_id():
 # ============================================================================
 #                               Function set_phone_id
 # ============================================================================
-def set_phone_id(value):
+def set_phone_id(value) -> None:
     global _phone_id
     _phone_id = value
 
@@ -745,7 +764,7 @@ def set_phone_id(value):
 # ============================================================================
 #                               Function get_phone
 # ============================================================================
-def get_phone(make_sure_connected=False):
+def get_phone(make_sure_connected=False) -> Any | None:
     devices = get_phones()
     phone_id = get_phone_id()
     if phone_id and devices:
@@ -760,7 +779,7 @@ def get_phone(make_sure_connected=False):
 # ============================================================================
 #                               Function get_system_codepage
 # ============================================================================
-def get_system_codepage():
+def get_system_codepage() -> int | None:
     global _system_code_page
     return _system_code_page
 
@@ -768,7 +787,7 @@ def get_system_codepage():
 # ============================================================================
 #                               Function set_system_codepage
 # ============================================================================
-def set_system_codepage(value):
+def set_system_codepage(value) -> None:
     global _system_code_page
     _system_code_page = value
 
@@ -776,7 +795,7 @@ def set_system_codepage(value):
 # ============================================================================
 #                               Function get_magisk_package
 # ============================================================================
-def get_magisk_package():
+def get_magisk_package() -> str:
     global _magisk_package
     return _magisk_package
 
@@ -784,7 +803,7 @@ def get_magisk_package():
 # ============================================================================
 #                               Function set_magisk_package
 # ============================================================================
-def set_magisk_package(value):
+def set_magisk_package(value) -> None:
     global _magisk_package
     _magisk_package = value
 
@@ -792,7 +811,7 @@ def set_magisk_package(value):
 # ============================================================================
 #                               Function get_linux_shell
 # ============================================================================
-def get_linux_shell():
+def get_linux_shell() -> str:
     global _linux_shell
     return _linux_shell
 
@@ -800,7 +819,7 @@ def get_linux_shell():
 # ============================================================================
 #                               Function set_linux_shell
 # ============================================================================
-def set_linux_shell(value):
+def set_linux_shell(value) -> None:
     global _linux_shell
     _linux_shell = value
 
@@ -808,7 +827,7 @@ def set_linux_shell(value):
 # ============================================================================
 #                               Function get_is_ota
 # ============================================================================
-def get_ota():
+def get_ota() -> bool:
     global _is_ota
     return _is_ota
 
@@ -816,7 +835,7 @@ def get_ota():
 # ============================================================================
 #                               Function set_ota
 # ============================================================================
-def set_ota(self, value):
+def set_ota(self, value) -> None:
     global _is_ota
     _is_ota = value
     self.config.firmware_is_ota = value
@@ -831,7 +850,7 @@ def set_ota(self, value):
 # ============================================================================
 #                               Function get_sdk_state
 # ============================================================================
-def get_sdk_state():
+def get_sdk_state() -> bool:
     global _sdk_is_ok
     return _sdk_is_ok
 
@@ -839,7 +858,7 @@ def get_sdk_state():
 # ============================================================================
 #                               Function set_sdk_state
 # ============================================================================
-def set_sdk_state(value):
+def set_sdk_state(value) -> None:
     global _sdk_is_ok
     _sdk_is_ok = value
 
@@ -847,7 +866,7 @@ def set_sdk_state(value):
 # ============================================================================
 #                               Function get_firmware_hash_validity
 # ============================================================================
-def get_firmware_hash_validity():
+def get_firmware_hash_validity() -> bool:
     global _firmware_hash_valid
     return _firmware_hash_valid
 
@@ -855,7 +874,7 @@ def get_firmware_hash_validity():
 # ============================================================================
 #                               Function set_firmware_hash_validity
 # ============================================================================
-def set_firmware_hash_validity(value):
+def set_firmware_hash_validity(value) -> None:
     global _firmware_hash_valid
     _firmware_hash_valid = value
 
@@ -863,7 +882,7 @@ def set_firmware_hash_validity(value):
 # ============================================================================
 #                               Function get_firmware_has_init_boot
 # ============================================================================
-def get_firmware_has_init_boot():
+def get_firmware_has_init_boot() -> bool:
     global _firmware_has_init_boot
     return _firmware_has_init_boot
 
@@ -871,7 +890,7 @@ def get_firmware_has_init_boot():
 # ============================================================================
 #                               Function set_firmware_has_init_boot
 # ============================================================================
-def set_firmware_has_init_boot(value):
+def set_firmware_has_init_boot(value) -> None:
     global _firmware_has_init_boot
     _firmware_has_init_boot = value
 
@@ -879,7 +898,7 @@ def set_firmware_has_init_boot(value):
 # ============================================================================
 #                               Function get_rom_has_init_boot
 # ============================================================================
-def get_rom_has_init_boot():
+def get_rom_has_init_boot() -> bool:
     global _rom_has_init_boot
     return _rom_has_init_boot
 
@@ -887,7 +906,7 @@ def get_rom_has_init_boot():
 # ============================================================================
 #                               Function set_rom_has_init_boot
 # ============================================================================
-def set_rom_has_init_boot(value):
+def set_rom_has_init_boot(value) -> None:
     global _rom_has_init_boot
     _rom_has_init_boot = value
 
@@ -895,7 +914,7 @@ def set_rom_has_init_boot(value):
 # ============================================================================
 #                               Function get_dlg_checkbox_values
 # ============================================================================
-def get_dlg_checkbox_values():
+def get_dlg_checkbox_values() -> Any | None:
     global _dlg_checkbox_values
     return _dlg_checkbox_values
 
@@ -903,7 +922,7 @@ def get_dlg_checkbox_values():
 # ============================================================================
 #                               Function set_dlg_checkbox_values
 # ============================================================================
-def set_dlg_checkbox_values(value):
+def set_dlg_checkbox_values(value) -> None:
     global _dlg_checkbox_values
     _dlg_checkbox_values = value
 
@@ -911,7 +930,7 @@ def set_dlg_checkbox_values(value):
 # ============================================================================
 #                               Function get_firmware_model
 # ============================================================================
-def get_firmware_model():
+def get_firmware_model() -> str | None:
     global _firmware_model
     return _firmware_model
 
@@ -919,7 +938,7 @@ def get_firmware_model():
 # ============================================================================
 #                               Function set_firmware_model
 # ============================================================================
-def set_firmware_model(value):
+def set_firmware_model(value) -> None:
     global _firmware_model
     _firmware_model = value
 
@@ -927,7 +946,7 @@ def set_firmware_model(value):
 # ============================================================================
 #                               Function get_firmware_id
 # ============================================================================
-def get_firmware_id():
+def get_firmware_id() -> str | None:
     global _firmware_id
     return _firmware_id
 
@@ -935,7 +954,7 @@ def get_firmware_id():
 # ============================================================================
 #                               Function set_firmware_id
 # ============================================================================
-def set_firmware_id(value):
+def set_firmware_id(value) -> None:
     global _firmware_id
     _firmware_id = value
 
@@ -943,7 +962,7 @@ def set_firmware_id(value):
 # ============================================================================
 #                               Function get_custom_rom_id
 # ============================================================================
-def get_custom_rom_id():
+def get_custom_rom_id() -> str | None:
     global _custom_rom_id
     return _custom_rom_id
 
@@ -951,7 +970,7 @@ def get_custom_rom_id():
 # ============================================================================
 #                               Function set_custom_rom_id
 # ============================================================================
-def set_custom_rom_id(value):
+def set_custom_rom_id(value) -> None:
     global _custom_rom_id
     _custom_rom_id = value
 
@@ -959,7 +978,7 @@ def set_custom_rom_id(value):
 # ============================================================================
 #                               Function get_logfile
 # ============================================================================
-def get_logfile():
+def get_logfile() -> str | None:
     global _logfile
     return _logfile
 
@@ -967,7 +986,7 @@ def get_logfile():
 # ============================================================================
 #                               Function set_logfile
 # ============================================================================
-def set_logfile(value):
+def set_logfile(value) -> None:
     global _logfile
     _logfile = value
 
@@ -975,7 +994,7 @@ def set_logfile(value):
 # ============================================================================
 #                               Function get_pumlfile
 # ============================================================================
-def get_pumlfile():
+def get_pumlfile() -> str | None:
     global _pumlfile
     return _pumlfile
 
@@ -983,7 +1002,7 @@ def get_pumlfile():
 # ============================================================================
 #                               Function set_pumlfile
 # ============================================================================
-def set_pumlfile(value):
+def set_pumlfile(value) -> None:
     global _pumlfile
     _pumlfile = value
 
@@ -991,7 +1010,7 @@ def set_pumlfile(value):
 # ============================================================================
 #                               Function get_sdk_version
 # ============================================================================
-def get_sdk_version():
+def get_sdk_version() -> str | None:
     global _sdk_version
     return _sdk_version
 
@@ -999,7 +1018,7 @@ def get_sdk_version():
 # ============================================================================
 #                               Function set_sdk_version
 # ============================================================================
-def set_sdk_version(value):
+def set_sdk_version(value) -> None:
     global _sdk_version
     _sdk_version = value
 
@@ -1007,7 +1026,7 @@ def set_sdk_version(value):
 # ============================================================================
 #                               Function get_image_mode
 # ============================================================================
-def get_image_mode():
+def get_image_mode() -> str | None:
     global _image_mode
     return _image_mode
 
@@ -1015,7 +1034,7 @@ def get_image_mode():
 # ============================================================================
 #                               Function set_image_mode
 # ============================================================================
-def set_image_mode(value):
+def set_image_mode(value) -> None:
     global _image_mode
     _image_mode = value
 
@@ -1023,7 +1042,7 @@ def set_image_mode(value):
 # ============================================================================
 #                               Function get_image_path
 # ============================================================================
-def get_image_path():
+def get_image_path() -> str | None:
     global _image_path
     return _image_path
 
@@ -1031,7 +1050,7 @@ def get_image_path():
 # ============================================================================
 #                               Function set_image_path
 # ============================================================================
-def set_image_path(value):
+def set_image_path(value) -> None:
     global _image_path
     _image_path = value
 
@@ -1039,7 +1058,7 @@ def set_image_path(value):
 # ============================================================================
 #                               Function get_custom_rom_file
 # ============================================================================
-def get_custom_rom_file():
+def get_custom_rom_file() -> str | None:
     global _custom_rom_file
     return _custom_rom_file
 
@@ -1047,7 +1066,7 @@ def get_custom_rom_file():
 # ============================================================================
 #                               Function set_custom_rom_file
 # ============================================================================
-def set_custom_rom_file(value):
+def set_custom_rom_file(value) -> None:
     global _custom_rom_file
     _custom_rom_file = value
 
@@ -1055,7 +1074,7 @@ def set_custom_rom_file(value):
 # ============================================================================
 #                               Function get_message_box_title
 # ============================================================================
-def get_message_box_title():
+def get_message_box_title() -> str | None:
     global _message_box_title
     return _message_box_title
 
@@ -1063,7 +1082,7 @@ def get_message_box_title():
 # ============================================================================
 #                               Function set_message_box_title
 # ============================================================================
-def set_message_box_title(value):
+def set_message_box_title(value) -> None:
     global _message_box_title
     _message_box_title = value
 
@@ -1071,7 +1090,7 @@ def set_message_box_title(value):
 # ============================================================================
 #                               Function get_message_box_message
 # ============================================================================
-def get_message_box_message():
+def get_message_box_message() -> str | None:
     global _message_box_message
     return _message_box_message
 
@@ -1079,7 +1098,7 @@ def get_message_box_message():
 # ============================================================================
 #                               Function set_message_box_message
 # ============================================================================
-def set_message_box_message(value):
+def set_message_box_message(value) -> None:
     global _message_box_message
     _message_box_message = value
 
@@ -1087,12 +1106,14 @@ def set_message_box_message(value):
 # ============================================================================
 #                               Function get_downgrade_boot_path
 # ============================================================================
-def get_downgrade_boot_path():
+def get_downgrade_boot_path() -> tuple[str | None, bool]:
     boot = get_boot()
     if not boot:
         return None, False
 
     boot_path = boot.boot_path
+    if not boot_path:
+        return None, False
     directory_path = os.path.dirname(boot_path)
     downgrade_file_name = "downgrade_boot.img"
     downgrade_file_path = os.path.join(directory_path, downgrade_file_name)
@@ -1105,7 +1126,7 @@ def get_downgrade_boot_path():
 # ============================================================================
 #                               Function has_init_boot
 # ============================================================================
-def has_init_boot(device_codename):
+def has_init_boot(device_codename) -> bool:
     try:
         android_devices = get_android_devices()
         if not android_devices or device_codename not in android_devices:
@@ -1118,7 +1139,7 @@ def has_init_boot(device_codename):
 # ============================================================================
 #                               Function is_pixel_watch
 # ============================================================================
-def is_pixel_watch(device_codename):
+def is_pixel_watch(device_codename) -> bool:
     try:
         android_devices = get_android_devices()
         if not android_devices or device_codename not in android_devices:
@@ -1133,7 +1154,10 @@ def is_pixel_watch(device_codename):
 # ============================================================================
 def puml(message='', left_ts = False, mode='a'):
     if get_puml_state():
-        with open(get_pumlfile(), mode, encoding="ISO-8859-1", errors="replace") as puml_file:
+        pumlfile = get_pumlfile()
+        if not pumlfile:
+            return
+        with open(pumlfile, mode, encoding="ISO-8859-1", errors="replace") as puml_file:
             puml_file.write(message)
             if left_ts:
                 puml_file.write(f"note left:{datetime.now():%Y-%m-%d %H:%M:%S}\n")
@@ -1257,7 +1281,7 @@ def init_db():
 # ============================================================================
 #                               Function get_config_file_path
 # ============================================================================
-def get_config_file_path():
+def get_config_file_path() -> str | None:
     # return os.path.join(get_sys_config_path(), CONFIG_FILE_NAME).strip()
     global _config_file_path
     return _config_file_path
@@ -1266,7 +1290,7 @@ def get_config_file_path():
 # ============================================================================
 #                           Function set_config
 # ============================================================================
-def set_config_file_path(value):
+def set_config_file_path(value) -> None:
     global _config_file_path
     _config_file_path = value
 
@@ -1274,14 +1298,14 @@ def set_config_file_path(value):
 # ============================================================================
 #                       Function get_sys_config_path
 # ============================================================================
-def get_sys_config_path():
+def get_sys_config_path() -> str:
     return user_data_dir(APPNAME, appauthor=False, roaming=True)
 
 
 # ============================================================================
 #                         Function get_config_path
 # ============================================================================
-def get_config_path():
+def get_config_path() -> str:
     global _config_path
     return _config_path
 
@@ -1289,7 +1313,7 @@ def get_config_path():
 # ============================================================================
 #                       Function set_config_path
 # ============================================================================
-def set_config_path(value):
+def set_config_path(value) -> None:
     global _config_path
     _config_path = value
 
@@ -1297,63 +1321,63 @@ def set_config_path(value):
 # ============================================================================
 #                      Function get_labels_file_path
 # ============================================================================
-def get_labels_file_path():
+def get_labels_file_path() -> str:
     return os.path.join(get_config_path(), "labels.json").strip()
 
 
 # ============================================================================
 #                     Function get_xiaomi_file_path
 # ============================================================================
-def get_xiaomi_file_path():
+def get_xiaomi_file_path() -> str:
     return os.path.join(get_config_path(), "xiaomi.json").strip()
 
 
 # ============================================================================
 #                    Function get_favorite_pifs_file_path
 # ============================================================================
-def get_favorite_pifs_file_path():
+def get_favorite_pifs_file_path() -> str:
     return os.path.join(get_config_path(), "favorite_pifs.json").strip()
 
 
 # ============================================================================
 #                 Function get_device_images_history_file_path
 # ============================================================================
-def get_device_images_history_file_path():
+def get_device_images_history_file_path() -> str:
     return os.path.join(get_config_path(), "device_images_history.json").strip()
 
 
 # ============================================================================
 #                        Function get_coords_file_path
 # ============================================================================
-def get_coords_file_path():
+def get_coords_file_path() -> str:
     return os.path.join(get_config_path(), "coords.json").strip()
 
 
 # ============================================================================
 #                        Function get_skip_urls_file_path
 # ============================================================================
-def get_skip_urls_file_path():
+def get_skip_urls_file_path() -> str:
     return os.path.join(get_config_path(), "skip_urls.txt").strip()
 
 
 # ============================================================================
 #                        Function get_wifi_history_file_path
 # ============================================================================
-def get_wifi_history_file_path():
+def get_wifi_history_file_path() -> str:
     return os.path.join(get_config_path(), "wireless.json").strip()
 
 
 # ============================================================================
 #                        Function get_mytools_file_path
 # ============================================================================
-def get_mytools_file_path():
+def get_mytools_file_path() -> str:
     return os.path.join(get_config_path(), "mytools.json").strip()
 
 
 # ============================================================================
 #                        Function get_devices_file_path
 # ============================================================================
-def get_devices_file_path():
+def get_devices_file_path() -> str:
     return os.path.join(get_config_path(), "devices.json").strip()
 
 
@@ -1365,7 +1389,7 @@ _devices_json_cache_path = None
 #                           Function load_devices_json
 # Cache for devices.json to avoid repeated file I/O
 # ============================================================================
-def load_devices_json():
+def load_devices_json() -> dict:
     # Load devices.json with caching to improve performance.
     # The file is cached in memory and only reloaded if the file has been modified.
     # This reduces I/O overhead when multiple operations need device data.
@@ -1581,7 +1605,7 @@ def update_all_devices_connection_status(connected_device_ids):
 # ============================================================================
 #                        Function get_path_to_7z
 # ============================================================================
-def get_path_to_7z():
+def get_path_to_7z() -> str | None:
     if sys.platform == "win32":
         path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7z.exe')
     elif sys.platform == "darwin":
@@ -1604,7 +1628,7 @@ def delete_bundled_library(library_names):
     try:
         if not getattr(sys, 'frozen', False):
             return
-        bundle_dir = sys._MEIPASS
+        bundle_dir = getattr(sys, '_MEIPASS', '')
         debug(f"Bundle Directory: {bundle_dir}")
         if bundle_dir:
             names = library_names.split(",")
@@ -1624,11 +1648,11 @@ def delete_bundled_library(library_names):
 # ============================================================================
 # set by PyInstaller, see http://pyinstaller.readthedocs.io/en/v3.2/runtime-information.html
 # https://stackoverflow.com/questions/7674790/bundling-data-files-with-pyinstaller-onefile
-def get_bundle_dir():
+def get_bundle_dir() -> str:
     if getattr(sys, 'frozen', False):
         # noinspection PyUnresolvedReferences,PyProtectedMember
         # running in a bundle
-        return sys._MEIPASS
+        return getattr(sys, '_MEIPASS', '')
     else:
         # running live
         return os.path.dirname(os.path.abspath(__file__))
@@ -1641,6 +1665,8 @@ def check_latest_version():
     try:
         url = 'https://github.com/badabing2005/PixelFlasher/releases/latest'
         response = request_with_fallback(method='GET', url=url)
+        if isinstance(response, str):
+            return
         # look in history to find the 302, and get the location header
         location = response.history[0].headers['Location']
         # split by '/' and get the last item
@@ -1648,6 +1674,8 @@ def check_latest_version():
         # If it starts with v, remove it
         if l_version[:1] == "v":
             version = l_version[1:]
+        else:
+            version = l_version
         if version.count('.') == 2:
             version = f"{version}.0"
     except Exception:
@@ -1945,7 +1973,7 @@ def replace_file_in_zip_with_7zip(zip_path, file_to_replace, new_file_path):
             return True
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to replace {file_to_replace} in {zip_path}")
-            print(res.stderr.decode())
+            print(res.stderr)
             return False
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function replace_file_in_zip_with_7zip.")
@@ -2055,7 +2083,10 @@ def check_file_pattern_in_zip_file(zip_file_path, pattern, return_all_matches=Fa
 # ============================================================================
 def check_img_contains_file(img_file_path, file_to_check):
     try:
-        result = subprocess.run([get_path_to_7z(), 'l', img_file_path], capture_output=True, text=True)
+        path_to_7z = get_path_to_7z()
+        if not path_to_7z:
+            return []
+        result = subprocess.run([path_to_7z, 'l', img_file_path], capture_output=True, text=True)
 
         if "Unexpected end of archive" in result.stderr:
             print(f"⚠️ Warning: Unexpected end of archive in {img_file_path}")
@@ -2162,15 +2193,21 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
                         debug(f"Found: {member.name}\n")
                     return member.name
                 elif nested and member.name.endswith('.tar'):
-                    nested_tar_file_path = tar_file.extractfile(member).read()
+                    nested_tar_file = tar_file.extractfile(member)
+                    if nested_tar_file is None:
+                        continue
+                    nested_tar_file_path = nested_tar_file.read()
                     nested_file_path = check_tar_contains_file(nested_tar_file_path, file_to_check, nested=True, is_recursive=True)
                     if nested_file_path:
                         if not is_recursive:
                             debug(f"Found: {member.name}/{nested_file_path}\n")
                         return f'{member.name}/{nested_file_path}'
                 elif nested and member.name.endswith('.zip'):
-                    with tar_file.extractfile(member) as nested_zip_file:
-                        nested_zip_data = nested_zip_file.read()
+                    nested_zip_file = tar_file.extractfile(member)
+                    nested_zip_data = b''
+                    if nested_zip_file:
+                        with nested_zip_file as nested_zip_file_inner:
+                            nested_zip_data = nested_zip_file_inner.read()
 
                     # Create a temporary file to write the nested zip data
                     with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
@@ -2315,7 +2352,7 @@ def extract_sha1(binfile, length=8):
 # ============================================================================
 #                               Function compare_sha1
 # ============================================================================
-def compare_sha1(SHA1, Extracted_SHA1):
+def compare_sha1(SHA1, Extracted_SHA1) -> float | None:
     try:
         if len(SHA1) != len(Extracted_SHA1):
             print("⚠️ Warning!: The SHA1 values have different lengths")
@@ -2413,7 +2450,7 @@ Is your device is waiting for interaction? if so perform the actions manually.
 # ============================================================================
 #                               Function md5
 # ============================================================================
-def md5(fname):
+def md5(fname) -> str:
     try:
         hash_md5 = hashlib.md5()
         with open(fname, "rb") as f:
@@ -2423,6 +2460,7 @@ def md5(fname):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error computing md5.")
         traceback.print_exc()
+        return "NA Error"
 
 
 # ============================================================================
@@ -2448,7 +2486,7 @@ def json_hexdigest(json_string):
 # ============================================================================
 #                               Function sha1
 # ============================================================================
-def sha1(fname):
+def sha1(fname) -> str:
     try:
         if not fname or not os.path.exists(fname):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File [{fname}] does not exist, cannot compute sha1")
@@ -2461,12 +2499,13 @@ def sha1(fname):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha1")
         traceback.print_exc()
+        return "NA Error"
 
 
 # ============================================================================
 #                               Function sha256
 # ============================================================================
-def sha256(fname):
+def sha256(fname) -> str:
     try:
         hash_sha256 = hashlib.sha256()
         with open(fname, "rb") as f:
@@ -2476,6 +2515,7 @@ def sha256(fname):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha256")
         traceback.print_exc()
+        return "NA Error"
 
 
 # ============================================================================
@@ -2512,10 +2552,10 @@ def create_boot_tar(dir, source='boot.img', dest='boot.tar'):
 # ============================================================================
 #                               Function get_code_page
 # ============================================================================
-def get_code_page():
+def get_code_page() -> int:
     try:
         if sys.platform != "win32":
-            return
+            return 0
         cp = get_system_codepage()
         if cp:
             print(f"Active code page: {cp}")
@@ -2541,13 +2581,13 @@ def get_code_page():
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting codepage.")
         traceback.print_exc()
+    return 0
 
 
 # ============================================================================
 #                               Function Which
 # ============================================================================
-def which(program):
-    import os
+def which(program) -> str | None:
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -2567,7 +2607,7 @@ def which(program):
 # ============================================================================
 #                               Function remove_quotes
 # ============================================================================
-def remove_quotes(string):
+def remove_quotes(string) -> str:
     if string and string.startswith('"') and string.endswith('"'):
         # Remove existing double quotes
         string = string[1:-1]
@@ -2608,7 +2648,7 @@ def create_support_zip():
 
         # copy the loaded config json if it is different
         current_config = get_config_file_path()
-        if to_copy != current_config:
+        if to_copy != current_config and current_config:
             filename = ntpath.basename(current_config)
             folder = os.path.dirname(current_config)
             if filename.lower() == "pixelflasher.json":
@@ -2722,58 +2762,40 @@ def create_support_zip():
 # ============================================================================
 #                               Function sanitize_filename
 # ============================================================================
-def sanitize_filename(filepath, split=False):
+def sanitize_filename(filepath) -> str | None:
     try:
         # Check if the file exists
         if not os.path.exists(filepath):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {filepath} does not exist.")
-            if split:
-                return None, None
-            else:
-                return None
+            return None
 
-        directory = os.path.dirname(filepath)
         filename = os.path.basename(filepath)
-
         suspect_chars = '<>:"|?*()&;'
 
         # Check if filename needs sanitization
-        needs_sanitization = any(char in filename for char in suspect_chars)
-
-        if not needs_sanitization:
-            if split:
-                return directory, filename
-            else:
-                return filepath
+        if not any(char in filename for char in suspect_chars):
+            return filepath
 
         # Create sanitized filename by replacing suspect chars with underscore
         sanitized_filename = filename
         for char in suspect_chars:
             sanitized_filename = sanitized_filename.replace(char, '_')
 
-        # Create temp file in system temp directory
-        temp_dir = tempfile.gettempdir()
-        temp_filepath = os.path.join(temp_dir, sanitized_filename)
-
-        # Copy the original file to temp location with sanitized name
-        # Use copy2 to preserve timestamps and metadata
+        # Copy the original file to a temp location with the sanitized name
+        temp_filepath = os.path.join(tempfile.gettempdir(), sanitized_filename)
         shutil.copy2(filepath, temp_filepath)
-
-        if split:
-            return temp_dir, sanitized_filename
-        else:
-            return temp_filepath
+        return temp_filepath
 
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while sanitizing filepath {filepath}")
         traceback.print_exc()
-        return None, None
+        return None
 
 
 # ============================================================================
 #                               Function sanitize_file
 # ============================================================================
-def sanitize_file(filename):
+def sanitize_file(filename) -> str:
     try:
         debug(f"Sanitizing {filename} ...")
         with contextlib.suppress(Exception):
@@ -2802,12 +2824,13 @@ def sanitize_file(filename):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while sanitizing {filename}")
         traceback.print_exc()
+    return ""
 
 
 # ============================================================================
 #                               Function sanitize_db
 # ============================================================================
-def sanitize_db(filename):
+def sanitize_db(filename) -> str:
     try:
         debug(f"Sanitizing {filename} ...")
         con = sl.connect(filename)
@@ -2840,6 +2863,7 @@ def sanitize_db(filename):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while sanitizing db {filename}.")
         traceback.print_exc()
+    return ""
 
 
 # ============================================================================
@@ -2861,7 +2885,7 @@ def encrypt_sk(session_key, output_file_name, public_key=None):
                 backend=default_backend()
             )
 
-        encrypted_session_key = public_key.encrypt(
+        encrypted_session_key = cast('Any', public_key).encrypt(
             session_key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -2952,6 +2976,8 @@ def check_module_update(url):
                 setattr(mu, 'changelog', data['changelog'])
                 headers = {}
                 response = request_with_fallback(method='GET', url=mu.changelog, headers=headers, data=payload)
+                if isinstance(response, str):
+                    return mu
                 setattr(mu, 'changelog', response.text)
                 return mu
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module update URL has issues, inform the module author: {url}")
@@ -2974,7 +3000,7 @@ def check_module_update(url):
 # ============================================================================
 #                               Function get_free_space
 # ============================================================================
-def get_free_space(path=''):
+def get_free_space(path='') -> int:
     try:
         path_to_check = path or tempfile.gettempdir()
         path_to_check = os.path.realpath(path_to_check)
@@ -2987,12 +3013,13 @@ def get_free_space(path=''):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting free space.")
         traceback.print_exc()
+    return 0
 
 
 # ============================================================================
 #                               Function get_free_memory
 # ============================================================================
-def get_free_memory():
+def get_free_memory() -> tuple[int, int]:
     memory = psutil.virtual_memory()
     free_memory = memory.available
     total_memory = memory.total
@@ -3002,11 +3029,12 @@ def get_free_memory():
 # ============================================================================
 #                               Function format_memory_size
 # ============================================================================
-def format_memory_size(size_bytes):
+def format_memory_size(size_bytes) -> str:
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024:
             return f"{size_bytes:.2f} {unit}"
         size_bytes /= 1024
+    return ""
 
 
 # ============================================================================
@@ -3128,7 +3156,7 @@ def parse_device_list_html(ul_content):
 # ============================================================================
 #                 Function get_gsi_data
 # ============================================================================
-def get_gsi_data(force_version=None):
+def get_gsi_data(force_version=None) -> tuple[BetaData | None, bool | None]:
     try:
         error = False
         # URLs
@@ -3139,7 +3167,7 @@ def get_gsi_data(force_version=None):
         response = request_with_fallback('GET', gsi_url)
         if response == 'ERROR' or response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch GSI HTML")
-            return None, None
+            return None, False
         gsi_html = response.text
 
         # Parse GSI HTML
@@ -3150,7 +3178,7 @@ def get_gsi_data(force_version=None):
         pos = gsi_html.find(id_to_find)
         if pos == -1:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: GSI version {force_version} not found in HTML")
-            return None, None
+            return None, False
         # Move to that position
         gsi_html = gsi_html[pos:]
         # Parse the HTML again with the new gsi_html
@@ -3164,7 +3192,7 @@ def get_gsi_data(force_version=None):
         release = soup.find('a', string=lambda x: x and 'corresponding Google Pixel builds' in x)
         if not release:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Release version not found")
-            return None, None
+            return None, False
 
         href = release['href']
         release_version = href.split('/')[3]
@@ -3205,7 +3233,7 @@ def get_gsi_data(force_version=None):
                 print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Could not extract date from build ID: {build_id}")
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build ID not found")
-            return None, None
+            return None, False
 
         if security_patch_level_text:
             security_patch_level_date = security_patch_level_text.split('Security patch level: ')[1].split('\n')[0]
@@ -3222,7 +3250,7 @@ def get_gsi_data(force_version=None):
             beta_expiry_date = beta_expiry.strftime('%Y-%m-%d')
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Security patch level date not found")
-            return None, None
+            return None, False
 
         # Find the incremental value
         incremental = None
@@ -3231,7 +3259,7 @@ def get_gsi_data(force_version=None):
             incremental = match.group(1)
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incremental not found")
-            return None, None
+            return None, False
 
         devices = []
         table = soup.find('table')
@@ -3287,7 +3315,7 @@ def get_gsi_data(force_version=None):
 # ============================================================================
 #                 Function get_beta_links
 # ============================================================================
-def get_beta_links():
+def get_beta_links() -> tuple[BetaData | None, BetaData | None, bool | None, bool | None]:
     try:
         url_base = "https://developer.android.com/about/versions"
 
@@ -3296,7 +3324,7 @@ def get_beta_links():
         ota_data = None
         factory_data = None
         if latest_version == -1:
-            return None, None, None, None
+            return None, None, False, False
 
 
         # Fetch OTA HTML
@@ -3315,7 +3343,7 @@ def get_beta_links():
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting beta links.")
         traceback.print_exc()
-        return None, None, None, None
+        return None, None, False, False
 
 
 # ============================================================================
@@ -3542,7 +3570,7 @@ def get_telegram_factory_images(max_pages=3):
 # ============================================================================
 #                 Function get_api_level
 # ============================================================================
-def get_api_level(android_version):
+def get_api_level(android_version) -> int:
     try:
         version_data = get_android_versions()
         # Create reverse lookup from API version to Android version
@@ -3554,7 +3582,7 @@ def get_api_level(android_version):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get API level for Android version {android_version}")
         traceback.print_exc()
-        return None
+        return 0
 
 
 # ============================================================================
@@ -3715,8 +3743,9 @@ def get_canary_miner(device_model='random', default_selection=None, miner_url=No
                 canary_url = only_file['path']
                 canary_device = only_file['device']
             else:
-                canary_url, canary_device = select_pif_device(file_list, default_selection, device_type="Canary")
-            if not canary_url:
+                result = select_pif_device(file_list, default_selection, device_type="Canary")
+                canary_url, canary_device = result if result is not None else (None, False)
+            if not canary_url or not canary_device:
                 return "Selection cancelled."
         elif not canary_url:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Canary PIF for device model: {device_model}")
@@ -3738,7 +3767,7 @@ def get_canary_miner(device_model='random', default_selection=None, miner_url=No
 # ============================================================================
 #                 Function select_pif_device
 # ============================================================================
-def select_pif_device(devices_data, default_selection=None, device_type=""):
+def select_pif_device(devices_data, default_selection=None, device_type="") -> tuple[str, str] | tuple[None, bool] | None:
     try:
         from device_selector import show_device_selector
         selected_device = show_device_selector(
@@ -3755,15 +3784,17 @@ def select_pif_device(devices_data, default_selection=None, device_type=""):
             return pif_url, pif_device
         else:
             print("Selection cancelled.")
-            return None, None
+            return None, False
     except ImportError:
-        selected_url = None
+        return None, False
 
 
 # ============================================================================
 #                 Function get_beta_pif
 # ============================================================================
 def get_beta_pif(device_model='random', force_version=None, state=None):
+    canary_url: str | None = None
+    canary_device: str | bool | None = None
     # Get the latest Android version
     latest_version, latest_version_url = get_latest_android_version(force_version)
     print(f"Selected Version:         {latest_version}")
@@ -3773,6 +3804,13 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
 
     canary_data = False
     beta_type = "Beta"
+    fingerprint = None
+    security_patch = None
+    model_list = []
+    product_list = []
+    build_id = ''
+    incremental = ''
+    expiry_date = ''
     if force_version and str(force_version).startswith('CANARY'):
         # moved this logic to pif manager
         # the code should never get here
@@ -3972,6 +4010,14 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
 
         fingerprint = None
         security_patch = None
+        model_list = []
+        product_list = []
+        build_id = ''
+        incremental = ''
+        expiry_date = ''
+        model = ''
+        product = ''
+        device = ''
         for data in newest_data:
             if data in ['ota', 'ota_error'] and ota_data:
                 print("  Extracting PIF from Beta OTA ...")
@@ -4011,7 +4057,7 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                     selected_url = ota_data.__dict__['devices'][-1]['url']
                     debug(f"  Using last OTA device: {ota_data.__dict__['devices'][-1]['zip_filename']}")
                 # Grab fp and sp from selected OTA zip
-                fingerprint, security_patch = url2fpsp(selected_url, "ota", state=state)
+                fingerprint, security_patch, _expiry = url2fpsp(selected_url, "ota", state=state)
                 # Check if abort was triggered (but not if we got valid results - stop_event is set on success too)
                 if state and state.stop_event.is_set() and (not fingerprint or not security_patch):
                     debug("Processing aborted by user in OTA")
@@ -4060,7 +4106,7 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                     selected_url = factory_data.__dict__['devices'][-1]['url']
                     debug(f"  Using last Factory device: {factory_data.__dict__['devices'][-1]['zip_filename']}")
                 # Grab fp and sp from selected Factory zip
-                fingerprint, security_patch = url2fpsp(selected_url, "factory", state=state)
+                fingerprint, security_patch, _expiry = url2fpsp(selected_url, "factory", state=state)
                 # Check if abort was triggered (but not if we got valid results - stop_event is set on success too)
                 if state and state.stop_event.is_set() and (not fingerprint or not security_patch):
                     debug("Processing aborted by user in Factory")
@@ -4074,7 +4120,7 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                         break
             elif data in ['gsi', 'gsi_error'] and gsi_data:
                 print(f"  Extracting beta print from GSI data version {latest_version} ...")
-                fingerprint, security_patch = url2fpsp(gsi_data.__dict__['devices'][0]['url'], "gsi", state=state)
+                fingerprint, security_patch, _expiry = url2fpsp(gsi_data.__dict__['devices'][0]['url'], "gsi", state=state)
                 # Check if abort was triggered (but not if we got valid results - stop_event is set on success too)
                 if state and state.stop_event.is_set() and (not fingerprint or not security_patch):
                     debug("Processing aborted by user in GSI")
@@ -4193,6 +4239,9 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
         print(f"Pixel Beta Profile/Fingerprint:\n{json_string}")
         return json_string
     else:
+        model = ''
+        product = ''
+        device = ''
         if model_list and product_list:
             model, product, device = set_random_beta()
         else:
@@ -4220,13 +4269,13 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
 # ============================================================================
 #                               Function get_beta_data
 # ============================================================================
-def get_beta_data(url):
+def get_beta_data(url) -> tuple[BetaData | None, bool | None]:
     try:
         debug(f"Fetching beta data from URL: {url}")
         response = requests.get(url)
         if response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {url}")
-            return None, None
+            return None, False
         ota_html = response.text
 
         soup = BeautifulSoup(ota_html, 'html.parser')
@@ -4234,7 +4283,7 @@ def get_beta_data(url):
         # check if the page has beta in it.
         if 'beta' not in soup.get_text().lower():
             # print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: 'Beta' not found For URL: {url}")
-            return None, None
+            return None, False
 
         # Extract information from the first table
         table = soup.find('table', class_='responsive fixed')
@@ -4299,7 +4348,7 @@ def get_beta_data(url):
                 build = data.get('builds')
             if not build:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build(s) not found in the data.")
-                return None, None
+                return None, False
             else:
                 # we might get an output like this: 'BP31.250610.004\n      BP31.250610.004.A1 (Pixel 6, 6 Pro)'
                 # we need to extract the first build from it, but we also need to keep the other builds for later
@@ -4333,11 +4382,13 @@ def get_beta_data(url):
             beta_expiry_date = (datetime.now() + timedelta(weeks=6)).strftime('%Y-%m-%d')
         else:
             # print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Required table is not found on the page.")
-            return None, None
+            return None, False
 
         # Extract information from the second table
         devices = []
         table = soup.find('table', id='images')
+        if table is None:
+            return None, False
         rows = table.find_all('tr')[1:]  # Skip the header row
         error = False
         for row in rows:
@@ -4427,7 +4478,8 @@ def get_latest_android_version(force_version=None):
         href = link.get('href')
         if href and re.match(r'https:\/\/developer\.android\.com\/about\/versions\/\d+', href):
             # capture the d+ part
-            link_version = int(re.search(r'\d+', href).group())
+            match = re.search(r'\d+', href)
+            link_version = int(match.group()) if match else 0
             if force_version and not str(force_version).startswith('CANARY'):
                 if link_version == force_version:
                     version = link_version
@@ -4531,7 +4583,7 @@ def resolve_url_redirects(url, max_redirects=5):
 # ============================================================================
 #                Function get_fp_sp_from_ota_http_range
 # ============================================================================
-def get_fp_sp_from_ota_http_range(url, state=None, chunk_size=8*1024*1024, overlap=200):
+def get_fp_sp_from_ota_http_range(url, state=None, chunk_size=8*1024*1024, overlap=200) -> tuple[str | None, str | None]:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
@@ -4631,13 +4683,14 @@ def get_fp_sp_from_ota_http_range(url, state=None, chunk_size=8*1024*1024, overl
 # ============================================================================
 #                               Function url2fpsp
 # ============================================================================
-def url2fpsp(url, image_type, override_size_limit=None, state=None):
+def url2fpsp(url, image_type, override_size_limit=None, state=None) -> tuple[str | None, str | None, str | None]:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
-            fingerprint = None
-            security_patch = None
+            fingerprint: str | None = None
+            security_patch: str | None = None
+            expiry_date: str | None = None
 
             # For OTA images, use HTTP Range requests (more efficient for smaller files)
             if image_type == 'ota':
@@ -4662,7 +4715,7 @@ def url2fpsp(url, image_type, override_size_limit=None, state=None):
                 content = partial_extract(end_content, "build.prop")
                 if content is None:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract build.prop from GSI content")
-                    return None, None
+                    return None, None, None
                 content_str = content.decode('utf-8', errors='ignore')
                 fingerprint_match = re.search(r"ro\.system\.build\.fingerprint=(.+)", content_str)
                 security_patch_match = re.search(r"ro\.build\.version\.security_patch=(.+)", content_str)
@@ -4686,21 +4739,22 @@ def url2fpsp(url, image_type, override_size_limit=None, state=None):
 
             else:
                 print(f"Invalid image type: {image_type}")
-                return None, None
+                return None, None, None
 
             # debug("FINGERPRINT:", fingerprint)
             # debug("SECURITY_PATCH:", security_patch)
-            return fingerprint, security_patch
+            return fingerprint, security_patch, None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in url2fpsp function")
         traceback.print_exc()
-        return None, None
+        return None, None, None
 
 
 # ============================================================================
 #                Function get_fp_sp_from_incremental_remote_file
 # ============================================================================
-def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, overlap=None, fallback_size=60*1024*1024, state=None):
+def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, overlap=None, fallback_size=60*1024*1024, state=None) -> tuple[str | None, str | None]:
+    temp_file_path = None
     try:
         # Use provided state or create new one
         if state is None:
@@ -4810,12 +4864,12 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, ove
             if state.file_size > 0:
                 # Always show processing progress
                 percent = (actual_end * 100) // state.file_size
-                debug(f"Processing bytes 0x{start_pos:x} to 0x{actual_end:x} ({percent}%)")
+                print(f"Processing bytes 0x{start_pos:x} to 0x{actual_end:x} ({percent}%)")
 
                 # Show download progress only if not 100% complete
                 if state.downloaded_bytes < state.file_size:
                     percent_dl = (state.downloaded_bytes * 100) // state.file_size
-                    debug(f"Downloaded {state.downloaded_bytes}/{state.file_size} bytes ({percent_dl}%)")
+                    print(f"Downloaded {state.downloaded_bytes}/{state.file_size} bytes ({percent_dl}%)")
             else:
                 debug(f"Processing bytes 0x{start_pos:x} to 0x{actual_end:x}")
 
@@ -4856,30 +4910,31 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, ove
                         if prop_files:
                             # Parse prop files into a dictionary
                             processed_dict = {}
-                            for pathname in prop_files:
+                            for pathname in reversed(prop_files):
                                 with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
                                     content = f.readlines()
                                 contentList = [x.strip().split('#')[0].split('=', 1) for x in content if '=' in x.split('#')[0]]
                                 contentDict = dict(contentList)
                                 processed_dict.update(contentDict)
 
+                                # Apply the substitution to the values in processed_dict
+                                for k, v in contentDict.items():
+                                    for x in v.split('$')[1:]:
+                                        key = re.findall(r'\w+', x)[0]
+                                        v = v.replace(f'${key}', processed_dict[key])
+                                    processed_dict[k] = v.strip()
+
                             # Extract fingerprint
                             if fingerprint is None:
                                 fp_keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
-                                for key in fp_keys:
-                                    if key in processed_dict:
-                                        fingerprint = processed_dict[key]
-                                        debug(f"Found fingerprint from build.prop: {fingerprint}")
-                                        break
+                                fingerprint = get_first_match(processed_dict, fp_keys, exclude_values=['generic', 'mainline', 'unknown'])
+                                debug(f"Found fingerprint from build.prop: {fingerprint}")
 
                             # Extract security_patch
                             if security_patch is None:
                                 sp_keys = ['ro.build.version.security_patch', 'ro.system.build.version.security_patch', 'ro.vendor.build.version.security_patch']
-                                for key in sp_keys:
-                                    if key in processed_dict:
-                                        security_patch = processed_dict[key]
-                                        debug(f"Found security_patch from build.prop: {security_patch}")
-                                        break
+                                security_patch = get_first_match(processed_dict, sp_keys, exclude_values=['generic', 'mainline', 'unknown'])
+                                debug(f"Found security_patch from build.prop: {security_patch}")
 
                             if fingerprint and security_patch:
                                 debug(f"Successfully extracted from full file processing")
@@ -4906,7 +4961,7 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, ove
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_fp_sp_from_incremental_remote_file")
         traceback.print_exc()
         # Clean up temp file on exception
-        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+        if 'temp_file_path' in locals() and temp_file_path and os.path.exists(temp_file_path):
             try:
                 os.remove(temp_file_path)
                 debug(f"Deleted temp file after exception: {temp_file_path}")
@@ -5023,7 +5078,6 @@ def fetch_canary_miner_catalog(catalog_path=None):
         catalog_path = os.path.join(get_config_path(), 'canary_miner_catalog.json').strip()
 
     try:
-        from constants import CANARY_MINER_CATALOG_URL
         catalog_url = CANARY_MINER_CATALOG_URL
         if 'github.com' in catalog_url and '/blob/' in catalog_url:
             catalog_url = catalog_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
@@ -5033,7 +5087,7 @@ def fetch_canary_miner_catalog(catalog_path=None):
             return None, catalog_path
 
         content = res.content if hasattr(res, 'content') else res.text
-        text = content if isinstance(content, str) else content.decode('utf-8', errors='replace')
+        text = content if isinstance(content, str) else (bytes(content).decode('utf-8', errors='replace') if isinstance(content, (bytes, memoryview)) else str(content))
 
         try:
             catalog_json = json.loads(text)
@@ -5061,16 +5115,19 @@ def get_google_images(save_to=None):
 
         # Fetch the Beta OTA and Beta Factory image data
         ota_beta_data, factory_beta_data, ota_error, factory_error = get_beta_links()
-        if ota_beta_data.build:
+        if ota_beta_data and ota_beta_data.build:
             ota_build_id = ota_beta_data.build
         else:
             ota_build_id = ''
-        if factory_beta_data.build:
+        if factory_beta_data and factory_beta_data.build:
             factory_build_id = factory_beta_data.build
         else:
             factory_build_id = ''
 
         for image_type in ['ota', 'factory', 'ota-watch', 'factory-watch']:
+            url = ''
+            download_type = ''
+            device_type = ''
             if image_type == 'ota':
                 url = "https://developers.google.com/android/ota"
                 download_type = "ota"
@@ -5089,10 +5146,10 @@ def get_google_images(save_to=None):
                 device_type = "watch"
 
             response = request_with_fallback(method='GET', url=url, headers=COOKIE)
+            marlin_flag = False
             if response != 'ERROR':
-                html = response.content
+                html = response.text
                 soup = BeautifulSoup(html, 'html.parser')
-                marlin_flag = False
 
                 # Find all the <h2> elements containing device names
                 device_elements = soup.find_all('h2')
@@ -5424,6 +5481,8 @@ def download_file(url, filename=None, callback=None, stream=True):
         if not filename:
             filename = os.path.basename(urlparse(url).path)
         downloaded_file_path = os.path.join(config_path, 'tmp', filename)
+        if isinstance(response, str):
+            return 'ERROR'
         with open(downloaded_file_path, "wb") as fd:
             for chunk in response.iter_content(chunk_size=131072):
                 fd.write(chunk)
@@ -5447,11 +5506,13 @@ def download_file(url, filename=None, callback=None, stream=True):
 # ============================================================================
 #                               Function get_first_match
 # ============================================================================
-def get_first_match(dictionary, keys):
+def get_first_match(dictionary, keys, exclude_values=None):
     try:
         for key in keys:
             if key in dictionary:
                 value = dictionary[key]
+                if exclude_values and any(str(v).lower() in str(value).lower() for v in exclude_values):
+                    continue
                 break
         else:
             value = ''
@@ -5478,7 +5539,7 @@ def delete_keys_from_dict(dictionary, keys):
 # ============================================================================
 #                               Function is_valid_json
 # ============================================================================
-def is_valid_json(json_str):
+def is_valid_json(json_str) -> bool:
     try:
         json.loads(json_str)
         return True
@@ -5507,6 +5568,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         if module_versionCode == 0:
             module_versionCode = 9999999
         android_devices = get_android_devices()
+        device_dict = {}
         autofill = False
         if add_missing_keys:
             device = get_phone()
@@ -5526,11 +5588,11 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         fp_ro_build_type = ''
         fp_ro_build_tags = ''
         keys = ['ro.build.fingerprint', 'ro.system.build.fingerprint', 'ro.product.build.fingerprint', 'ro.vendor.build.fingerprint']
-        ro_build_fingerprint = get_first_match(the_dict, keys)
+        ro_build_fingerprint = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_fingerprint != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_build_fingerprint == '':
-            ro_build_fingerprint = get_first_match(device_dict, keys)
+            ro_build_fingerprint = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_fingerprint:
             # Let's extract props from fingerprint in case we need them
             pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
@@ -5547,52 +5609,52 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
 
         # PRODUCT
         keys = ['ro.product.name', 'ro.product.system.name', 'ro.product.product.name', 'ro.product.vendor.name', 'ro.vendor.product.name']
-        ro_product_name = get_first_match(the_dict, keys)
+        ro_product_name = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_product_name != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (not ro_product_name or any(keyword in ro_product_name.lower() for keyword in ['mainline', 'generic'])) and fp_ro_product_name:
             debug(f"Properties for PRODUCT are extracted from FINGERPRINT: {fp_ro_product_name}")
             ro_product_name = fp_ro_product_name
         if autofill and ro_product_name == '':
-            ro_product_name = get_first_match(device_dict, keys)
+            ro_product_name = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # DEVICE (ro.build.product os fallback, keep it last)
         keys = ['ro.product.device', 'ro.product.system.device', 'ro.product.product.device', 'ro.product.vendor.device', 'ro.vendor.product.device', 'ro.build.product']
-        ro_product_device = get_first_match(the_dict, keys)
+        ro_product_device = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_product_device != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (not ro_product_device or any(keyword in ro_product_device.lower() for keyword in ['mainline', 'generic'])) and fp_ro_product_device:
             debug(f"Properties for DEVICE are extracted from FINGERPRINT: {fp_ro_product_device}")
             ro_product_device = fp_ro_product_device
         if autofill and ro_product_device == '':
-            ro_product_device = get_first_match(device_dict, keys)
+            ro_product_device = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # MANUFACTURER
         keys = ['ro.product.manufacturer', 'ro.product.system.manufacturer', 'ro.product.product.manufacturer', 'ro.product.vendor.manufacturer', 'ro.vendor.product.manufacturer']
-        ro_product_manufacturer = get_first_match(the_dict, keys)
+        ro_product_manufacturer = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_product_manufacturer != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_product_manufacturer == '':
-            ro_product_manufacturer = get_first_match(device_dict, keys)
+            ro_product_manufacturer = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # BRAND
         keys = ['ro.product.brand', 'ro.product.system.brand', 'ro.product.product.brand', 'ro.product.vendor.brand', 'ro.vendor.product.brand']
-        ro_product_brand = get_first_match(the_dict, keys)
+        ro_product_brand = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_product_brand != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_product_brand is None or ro_product_brand == '') and fp_ro_product_brand != '':
             debug(f"Properties for BRAND are not found, using value from FINGERPRINT: {fp_ro_product_brand}")
             ro_product_brand = fp_ro_product_brand
         if autofill and ro_product_brand == '':
-            ro_product_brand = get_first_match(device_dict, keys)
+            ro_product_brand = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # MODEL
         keys = ['ro.product.model', 'ro.product.system.model', 'ro.product.product.model', 'ro.product.vendor.model', 'ro.vendor.product.model']
-        ro_product_model = get_first_match(the_dict, keys)
+        ro_product_model = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if (not ro_product_model or any(keyword in ro_product_model.lower() for keyword in ['mainline', 'generic'])):
             ro_product_model_bak = ro_product_model
             # get it from vendor/build.prop (ro.product.vendor.model)
-            ro_product_vendor_model = get_first_match(the_dict, ['ro.product.vendor.model'])
+            ro_product_vendor_model = get_first_match(the_dict, ['ro.product.vendor.model'], exclude_values=['generic', 'mainline', 'unknown'])
             if ro_product_vendor_model and ro_product_vendor_model != '':
                 ro_product_model = ro_product_vendor_model
             else:
@@ -5607,91 +5669,91 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
         if ro_product_model != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_product_model == '':
-            ro_product_model = get_first_match(device_dict, keys)
+            ro_product_model = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # SECURITY_PATCH
         keys = ['ro.build.version.security_patch', 'ro.vendor.build.security_patch']
-        ro_build_version_security_patch = get_first_match(the_dict, keys)
+        ro_build_version_security_patch = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_version_security_patch != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_build_version_security_patch == '':
-            ro_build_version_security_patch = get_first_match(device_dict, keys)
+            ro_build_version_security_patch = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # FIRST_API_LEVEL
         keys = ['ro.product.first_api_level', 'ro.board.first_api_level', 'ro.board.api_level', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.build.version.sdk', 'ro.system.build.version.sdk', 'ro.vendor.build.version.sdk', 'ro.product.build.version.sdk']
         if set_first_api:
             ro_product_first_api_level = set_first_api
         else:
-            ro_product_first_api_level = get_first_match(the_dict, keys)
+            ro_product_first_api_level = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
             if ro_product_first_api_level and int(ro_product_first_api_level) > 32:
                 ro_product_first_api_level = '32'
             if autofill and ro_product_first_api_level == '':
-                ro_product_first_api_level = get_first_match(device_dict, keys)
+                ro_product_first_api_level = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_product_first_api_level != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
 
         # BUILD_ID
         keys = ['ro.build.id']
-        ro_build_id = get_first_match(the_dict, keys)
+        ro_build_id = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_id != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_id is None or ro_build_id == '') and fp_ro_build_id != '':
             debug(f"Properties for ID are not found, using value from FINGERPRINT: {fp_ro_build_id}")
             ro_build_id = fp_ro_build_id
         if autofill and ro_build_id == '':
-            ro_build_id = get_first_match(device_dict, keys)
+            ro_build_id = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # RELEASE
         keys = ['ro.build.version.release']
-        ro_build_version_release = get_first_match(the_dict, keys)
+        ro_build_version_release = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_version_release != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_version_release is None or ro_build_version_release == '') and fp_ro_build_version_release != '':
             debug(f"Properties for RELEASE are not found, using value from FINGERPRINT: {fp_ro_build_version_release}")
             ro_build_version_release = fp_ro_build_version_release
         if autofill and ro_build_version_release == '':
-            ro_build_version_release = get_first_match(device_dict, keys)
+            ro_build_version_release = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # INCREMENTAL
         keys = ['ro.build.version.incremental']
-        ro_build_version_incremental = get_first_match(the_dict, keys)
+        ro_build_version_incremental = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_version_incremental != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_version_incremental is None or ro_build_version_incremental == '') and fp_ro_build_version_incremental != '':
             debug(f"Properties for INCREMENTAL are not found, using value from FINGERPRINT: {fp_ro_build_version_incremental}")
             ro_build_version_incremental = fp_ro_build_version_incremental
         if autofill and ro_build_version_incremental == '':
-            ro_build_version_incremental = get_first_match(device_dict, keys)
+            ro_build_version_incremental = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # TYPE
         keys = ['ro.build.type']
-        ro_build_type = get_first_match(the_dict, keys)
+        ro_build_type = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_type != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_type is None or ro_build_type == '') and fp_ro_build_type != '':
             debug(f"Properties for TYPE are not found, using value from FINGERPRINT: {fp_ro_build_type}")
             ro_build_type = fp_ro_build_type
         if autofill and ro_build_type == '':
-            ro_build_type = get_first_match(device_dict, keys)
+            ro_build_type = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # TAGS
         keys = ['ro.build.tags']
-        ro_build_tags = get_first_match(the_dict, keys)
+        ro_build_tags = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_build_tags != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if (ro_build_tags is None or ro_build_tags == '') and fp_ro_build_tags != '':
             debug(f"Properties for TAGS are not found, using value from FINGERPRINT: {fp_ro_build_tags}")
             ro_build_tags = fp_ro_build_tags
         if autofill and ro_build_tags == '':
-            ro_build_tags = get_first_match(device_dict, keys)
+            ro_build_tags = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # VNDK_VERSION
         keys = ['ro.vndk.version', 'ro.product.vndk.version']
-        ro_vndk_version = get_first_match(the_dict, keys)
+        ro_vndk_version = get_first_match(the_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
         if ro_vndk_version != '':
             the_dict = delete_keys_from_dict(the_dict, keys)
         if autofill and ro_vndk_version == '':
-            ro_vndk_version = get_first_match(device_dict, keys)
+            ro_vndk_version = get_first_match(device_dict, keys, exclude_values=['generic', 'mainline', 'unknown'])
 
         # Get any missing FINGERPRINT fields
         ffp_ro_product_brand = fp_ro_product_brand if fp_ro_product_brand != '' else ro_product_brand
@@ -5776,7 +5838,7 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
             modified_donor_data = donor_data
 
         # Keep unknown props if the flag is set
-        if keep_all:
+        if keep_all and the_dict:
             for key, value in the_dict.items():
                 if key not in modified_donor_data:
                     modified_donor_data[key] = value
@@ -5801,14 +5863,15 @@ def process_dict(the_dict, add_missing_keys=False, pif_flavor='', set_first_api=
 # ============================================================================
 #                               Function detect_encoding
 # ============================================================================
-def detect_encoding(filename):
+def detect_encoding(filename) -> str:
     try:
         with open(filename, 'rb') as file:
             result = chardet.detect(file.read())
-        return result['encoding']
+        return result['encoding'] or 'utf-8'
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in detect_encoding function")
         traceback.print_exc()
+        return "utf-8"
 
 
 # ============================================================================
@@ -5880,6 +5943,7 @@ def process_pi_xml_spic(filename):
                 value_end_pos = xml_content.find('"', value_start_pos)
                 value_after_index_3 = xml_content[value_start_pos:value_end_pos]
                 debug(value_after_index_3)
+                result = ''
                 if value_after_index_3 == "NO_INTEGRITY":
                     result = "[✗] [✗] [✗]"
                 elif value_after_index_3 == "MEETS_BASIC_INTEGRITY":
@@ -6002,6 +6066,7 @@ def process_pi_xml_tb(filename):
                     device_integrity = xml_content[value_start_pos:value_end_pos]
 
 
+                    strong_integrity = ''
                     strong_integrity_pos = xml_content.find('"Strong integrity"', value_end_pos)
                     # If "Device integrity" is found, continue looking for text=
                     if strong_integrity_pos != -1:
@@ -6104,6 +6169,7 @@ def process_pi_xml_yasnac(filename):
                     cts_profile_match = xml_content[value_start_pos:value_end_pos]
 
 
+                    evaluation_type = ''
                     evaluation_type_pos = xml_content.find('"Evaluation type"', value_end_pos)
                     # If "Evaluation type" is found, continue looking for text=
                     if evaluation_type_pos != -1:
@@ -6144,10 +6210,12 @@ def get_xiaomi_apk(filename):
         # Fetch RSS feed and extract the latest link
         print("Checking for latest xiaomi apk link ...")
         response = request_with_fallback(method='GET', url=XIAOMI_URL)
-
+        if isinstance(response, str):
+            return
         latest_link = response.text.split('<link>')[2].split('</link>')[0]
         print(f"Xiaomi apk link: {latest_link}")
         match = re.search(r'([^/]+\.apk)', latest_link)
+        key = ''
         value = None
         if match:
             apk_name = match[1]
@@ -6200,7 +6268,11 @@ def axml2xml(inputfile, outputfile=None):
             if not ap.get_buff():
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to decode {inputfile} - unsupported format.")
                 return
-            buff = ap.get_xml_obj().toprettyxml()
+            buff = ap.get_xml_obj()
+            if buff is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get XML object from {inputfile}.")
+                return
+            buff = buff.toprettyxml()
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: XML input file {inputfile} is not found.")
             return
@@ -6292,6 +6364,7 @@ def get_xiaomi_pif():  # sourcery skip: move-assign
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Xiaomi download failed.")
 
         # Decode xml
+        xiaomi_xml_content = None
         if path.exists(xiaomi_axml):
             xiaomi_xml_content = axml2xml(os.path.join(xiaomi_axml, to_extract), xiaomi_xml)
             xiaomi_pifs.setdefault(key, {})["xml_path"] = xiaomi_xml
@@ -6404,7 +6477,7 @@ def get_pif_from_image(image_file):
             img_archive = os.path.join(temp_dir_path, "system.img")
             if os.path.exists(img_archive):
                 found_system_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                if found_system_build_prop:
+                if isinstance(found_system_build_prop, str) and found_system_build_prop:
                     print(f"Extracting build.prop from {img_archive} ...")
                     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_system_build_prop}"
                     debug(theCmd)
@@ -6422,7 +6495,7 @@ def get_pif_from_image(image_file):
             img_archive = os.path.join(temp_dir_path, "vendor.img")
             if os.path.exists(img_archive):
                 found_vendor_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                if found_vendor_img_prop:
+                if isinstance(found_vendor_img_prop, str) and found_vendor_img_prop:
                     print(f"Extracting build.prop from {img_archive} ...")
                     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_vendor_img_prop}"
                     debug(theCmd)
@@ -6440,7 +6513,7 @@ def get_pif_from_image(image_file):
             img_archive = os.path.join(temp_dir_path, "product.img")
             if os.path.exists(img_archive):
                 found_product_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                if found_product_img_prop:
+                if isinstance(found_product_img_prop, str) and found_product_img_prop:
                     print(f"Extracting build.prop from {img_archive} ...")
                     theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_product_img_prop}"
                     debug(theCmd)
@@ -6494,6 +6567,7 @@ def get_pif_from_image(image_file):
             process_system_vendor_product_images()
             return props_path
 
+        found_flash_all_sh = None
         found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
         if found_flash_all_bat:
             found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
@@ -6502,7 +6576,8 @@ def get_pif_from_image(image_file):
             # -----------------------------
             # Pixel factory file
             # -----------------------------
-            package_sig = found_flash_all_bat.split('/')[0]
+            bat_path = found_flash_all_bat if isinstance(found_flash_all_bat, str) else (found_flash_all_bat[0] if found_flash_all_bat else '')
+            package_sig = bat_path.split('/')[0]
             if not package_sig:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract package signature from {found_flash_all_bat}")
                 return
@@ -6606,7 +6681,7 @@ def get_pif_from_image(image_file):
 
         else:
             found_ap = check_file_pattern_in_zip_file(file_to_process, "AP_*.tar.md5")
-            if found_ap is not None and found_ap != "":
+            if isinstance(found_ap, str) and found_ap:
                 # -----------------------------
                 # Samsung firmware
                 # -----------------------------
@@ -6654,10 +6729,12 @@ def get_pif_from_image(image_file):
                 # get a file listing
                 file_list = get_file_list_from_directory(temp_dir_path)
                 found_fota_zip = False
-                for file_path in file_list:
-                    if "fota.zip" in file_path:
-                        found_fota_zip = True
-                        break
+                file_path = ''
+                if file_list:
+                    for file_path in file_list:
+                        if "fota.zip" in file_path:
+                            found_fota_zip = True
+                            break
 
                 if found_fota_zip:
                     # extract fota.zip
@@ -7219,28 +7296,6 @@ def get_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
 
 
 # ============================================================================
-#                 Function get_gh_latest_any_asset_regex
-# ============================================================================
-def get_gh_latest_release_asset_regex(user, repo, asset_name_pattern):
-    try:
-        release_object = get_gh_release_object(user=user, repo=repo, include_prerelease=False, latest_any=True)
-        if release_object is None:
-            print(f"No releases found for {user}/{repo}")
-            return
-        asset = gh_asset_utility(release_object=release_object, asset_name_pattern=asset_name_pattern, download=False)
-        if asset:
-            print(f"Found asset: {asset}")
-            return asset
-        else:
-            print(f"No asset matches the pattern {asset_name_pattern} in the latest release of {user}/{repo}")
-            return None
-    except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_gh_latest_release_asset_regex function")
-        traceback.print_exc()
-        return None
-
-
-# ============================================================================
 #                 Function gh_asset_utility
 # ============================================================================
 def gh_asset_utility(release_object, asset_name_pattern, download):
@@ -7302,6 +7357,8 @@ def get_gh_latest_release_version(user, repo, include_prerelease=False):
         # Get all releases
         url = f"https://api.github.com/repos/{user}/{repo}/releases"
         response = request_with_fallback(method='GET', url=url)
+        if isinstance(response, str):
+            return None
         releases = response.json()
 
         # Filter releases based on the include_prerelease flag
@@ -7332,6 +7389,8 @@ def get_gh_release_object(user, repo, include_prerelease=False, latest_any=False
         # Get everything about releases
         url = f"https://api.github.com/repos/{user}/{repo}/releases"
         response = request_with_fallback(method='GET', url=url)
+        if isinstance(response, str):
+            return None
         if response.status_code != 200:
             print(f"Failed to fetch releases from {user}/{repo}. HTTP Status Code: {response.status_code}")
             return None
@@ -7442,7 +7501,7 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False, no
 # ============================================================================
 #                               Function check_internet
 # ============================================================================
-def check_internet():
+def check_internet() -> bool:
     url = "http://www.google.com"
     timeout = 5
     try:
@@ -7496,6 +7555,7 @@ def check_kb(filename, force_fresh=False):
     try:
         # Load kb_index
         config = get_config()
+        kb_index = {}
         if config.kb_index:
             kb_index = load_kb_index()
 
@@ -7570,6 +7630,7 @@ def check_kb(filename, force_fresh=False):
         print(f"\nChecking keybox: {filename} ...")
 
         # Calculate file hash for kb_index
+        file_hash = ''
         if config.kb_index:
             file_hash = sha1(filename)
 
@@ -7607,7 +7668,7 @@ def check_kb(filename, force_fresh=False):
             print("❌ ERROR: Missing NumberOfKeyboxes element")
             results.append('invalid_structure')
             return results
-        expected_keyboxes = int(num_keyboxes.text)
+        expected_keyboxes = int(num_keyboxes.text or '0')
         print(f"Expected number of keyboxes: {expected_keyboxes}")
 
         # 3. Process each Keybox
@@ -7621,6 +7682,7 @@ def check_kb(filename, force_fresh=False):
             print(f"⚠️ WARNING: NumberOfKeyboxes ({expected_keyboxes}) does not match actual keyboxes found ({len(keyboxes)})")
 
         k = 1
+        keybox_data_collection = {}
         for keybox in keyboxes:
             wx.Yield()
             device_id = keybox.get('DeviceID')
@@ -7672,7 +7734,7 @@ def check_kb(filename, force_fresh=False):
                     results.append('invalid_chain')
                     continue
 
-                expected_certs = int(num_certs_elem.text)
+                expected_certs = int(num_certs_elem.text or '0')
                 actual_certs = len(cert_chain.findall('Certificate'))
                 if actual_certs != expected_certs:
                     print(f"  ⚠️ WARNING: NumberOfCertificates ({expected_certs}) does not match actual certificates found ({actual_certs})")
@@ -7691,7 +7753,7 @@ def check_kb(filename, force_fresh=False):
                 try:
                     cert_chain = []
                     # Parse private key from the keybox
-                    private_key_text = private_key.text.strip()
+                    private_key_text = (private_key.text or '').strip()
                     private_key_text = re.sub(re.compile(r'^\s+', re.MULTILINE), '', private_key_text)
                     private_key_text = clean_pem_key(private_key_text)
                     private_key_obj = None
@@ -7715,7 +7777,7 @@ def check_kb(filename, force_fresh=False):
                     tab_text = ""
                     for cert in certs:
                         wx.Yield()
-                        cert_text = cert.text.strip()
+                        cert_text = (cert.text or '').strip()
                         parsed_cert = x509.load_pem_x509_certificate(cert_text.encode())
                         cert_chain.append(parsed_cert)
                         ecdsa_leaf = "valid"
@@ -7754,26 +7816,26 @@ def check_kb(filename, force_fresh=False):
                         if crl_distribution_points:
                             print(f'{tab_text}CRL Distribution Points: {crl_distribution_points}')
                         expired_text = ""
-                        if expiry < datetime.now(timezone.utc):
+                        if expiry and expiry < datetime.now(timezone.utc):
                             expired_text = " (EXPIRED)"
-                        print(f"{tab_text}Validity:                {parsed.not_valid_before_utc.date()} to {expiry.date()} {expired_text}\n")
+                        print(f"{tab_text}Validity:                {parsed.not_valid_before_utc.date()} to {expiry.date() if expiry else 'Unknown'} {expired_text}\n")
 
-                        if "Software Attestation" in cert_issuer:
+                        if cert_issuer and "Software Attestation" in cert_issuer:
                             is_sw_signed = True
                             cert_status = "sw_signed"
 
                         if issuer_sn in ['f92009e853b6b045']:
                             is_google_signed = True
 
-                        if expiry < datetime.now(timezone.utc):
+                        if expiry and expiry < datetime.now(timezone.utc):
                             is_expired = True
                             print(f"{tab_text}❌❌❌ Certificate is EXPIRED")
                             cert_status = "expired"
-                        elif expiry < datetime.now(timezone.utc) + timedelta(days=30):
+                        elif expiry and expiry < datetime.now(timezone.utc) + timedelta(days=30):
                             expiring_soon = True
                             print(f"{tab_text}⚠️ Certificate is EXPIRING SOON")
 
-                        if cert_sn.strip().lower() in (sn.strip().lower() for sn in crl["entries"].keys()):
+                        if crl and cert_sn and cert_sn.strip().lower() in (sn.strip().lower() for sn in crl["entries"].keys()):
                             print(f"{tab_text}❌❌❌ Certificate is REVOKED")
                             print(f"{tab_text}❌❌❌ Reason: {crl['entries'][cert_sn]['reason']} ***")
                             is_revoked = True
@@ -7805,14 +7867,14 @@ def check_kb(filename, force_fresh=False):
                                 keybox_data_collection["ecdsa_leaf"] = ecdsa_leaf
                                 keybox_data_collection["ecdsa_length"] = chain_length
                                 keybox_data_collection["ecdsa_not_before"] = parsed.not_valid_before_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
-                                keybox_data_collection["ecdsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC")
+                                keybox_data_collection["ecdsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC") if expiry else ''
                             elif algorithm == "rsa" and tab_text == "  ":
                                 keybox_data_collection["rsa_sn"] = cert_sn
                                 keybox_data_collection["rsa_issuer"] = formatted_issuer
                                 keybox_data_collection["rsa_leaf"] = rsa_leaf
                                 keybox_data_collection["rsa_length"] = chain_length
                                 keybox_data_collection["rsa_not_before"] = parsed.not_valid_before_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
-                                keybox_data_collection["rsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC")
+                                keybox_data_collection["rsa_not_after"] = expiry.strftime("%Y-%m-%d %H:%M:%S UTC") if expiry else ''
 
                     if config.kb_index:
                         keybox_data_collection["ecdsa_chain"] = ecdsa_chain
@@ -8125,9 +8187,6 @@ def clean_pem_key(key_text):
 #                               Function to parse the certificate
 # ============================================================================
 def parse_cert(cert):
-    import logging
-    from cryptography.x509.oid import ExtensionOID
-
     cert = "\n".join(line.strip() for line in cert.strip().split("\n"))
     parsed = x509.load_pem_x509_certificate(cert.encode(), default_backend())
     issuer = None
@@ -8162,26 +8221,26 @@ def parse_cert(cert):
         logging.error(f"Expiry extraction failed: {e}")
     try:
         key_usage_ext = parsed.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE)
-        key_usage = key_usage_ext.value
+        key_usage_typed: KeyUsage = cast(KeyUsage, key_usage_ext.value)
         allowed_usages = []
-        if key_usage.digital_signature:
+        if key_usage_typed.digital_signature:
             allowed_usages.append("Digital Signature")
-        if key_usage.content_commitment:
+        if key_usage_typed.content_commitment:
             allowed_usages.append("Content Commitment")
-        if key_usage.key_encipherment:
+        if key_usage_typed.key_encipherment:
             allowed_usages.append("Key Encipherment")
-        if key_usage.data_encipherment:
+        if key_usage_typed.data_encipherment:
             allowed_usages.append("Data Encipherment")
-        if key_usage.key_agreement:
+        if key_usage_typed.key_agreement:
             allowed_usages.append("Key Agreement")
             # Only check encipher_only and decipher_only if key_agreement is True
-            if key_usage.encipher_only:
+            if key_usage_typed.encipher_only:
                 allowed_usages.append("Encipher Only")
-            if key_usage.decipher_only:
+            if key_usage_typed.decipher_only:
                 allowed_usages.append("Decipher Only")
-        if key_usage.key_cert_sign:
+        if key_usage_typed.key_cert_sign:
             allowed_usages.append("Certificate Signing")
-        if key_usage.crl_sign:
+        if key_usage_typed.crl_sign:
             allowed_usages.append("CRL Signing")
         if allowed_usages:
             key_usages = ", ".join(allowed_usages)
@@ -8193,7 +8252,7 @@ def parse_cert(cert):
         crl_ext = parsed.extensions.get_extension_for_oid(ExtensionOID.CRL_DISTRIBUTION_POINTS)
         if crl_ext:
             crl_points = []
-            for point in crl_ext.value:
+            for point in cast(list, crl_ext.value):
                 if point.full_name:
                     for name in point.full_name:
                         if name.value:
@@ -8211,9 +8270,9 @@ def parse_cert(cert):
 #                               Function to format the DN string
 # ============================================================================
 def format_dn(dn):
+    sn = ''
     try:
         formatted = []
-        sn = ""
         # Split the DN string by commas not preceded by a backslash (escape character)
         parts = re.split(r'(?<!\\),', dn)
         for part in parts:
@@ -9236,12 +9295,12 @@ def update_kb_index_with_crl():
 # ============================================================================
 #                               Function get_boot_image_info
 # ============================================================================
-def get_boot_image_info(boot_image_path):
+def get_boot_image_info(boot_image_path) -> Any:
     try:
         tool = avbtool.AvbTool()
         if not os.path.exists(boot_image_path):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image file not found: {boot_image_path}")
-            return
+            return None
         info = tool.run(['avbtool.py','info_image', '--image', boot_image_path])
         print('')
         return info
@@ -9299,6 +9358,7 @@ def run_tool(tool_details):
         arguments = tool_details['arguments']
         directory = tool_details['directory']
         method = tool_details.get('method', 'Method 3')
+        shell_method = 'run_shell3'
         if method == 'Method 1':
             shell_method = 'run_shell'
         elif method == 'Method 2':
@@ -9589,7 +9649,7 @@ def delete_last_package_record(package_ids, boot_dir):
 # ============================================================================
 #               Function insert_boot_record
 # ============================================================================
-def insert_boot_record(boot_hash, file_path, is_patched, magisk_version, hardware, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1):
+def insert_boot_record(boot_hash, file_path, is_patched, magisk_version, hardware, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1) -> int | None:
     con = get_db_con()
     if con is None:
         return None
@@ -9624,7 +9684,7 @@ def insert_boot_record(boot_hash, file_path, is_patched, magisk_version, hardwar
 # ============================================================================
 #               Function insert_package_boot_record
 # ============================================================================
-def insert_package_boot_record(package_id, boot_id):
+def insert_package_boot_record(package_id, boot_id) -> int | None:
     con = get_db_con()
     if con is None:
         return None
@@ -9659,9 +9719,10 @@ def insert_package_boot_record(package_id, boot_id):
 # ============================================================================
 #                               Function magisk_apks
 # ============================================================================
-def get_rooting_app_apks():
+def get_rooting_app_apks() -> list | None:
     global _rooting_app_apks
     if _rooting_app_apks is None:
+        i = ''
         try:
             apks = []
             mlist = [
@@ -9689,7 +9750,7 @@ def get_rooting_app_apks():
                     apks.append(apk)
             _rooting_app_apks = apks
         except Exception as e:
-            _rooting_app_apks is None
+            _rooting_app_apks = None
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Rooting App downloads link: {i} processing")
             traceback.print_exc()
     return _rooting_app_apks
@@ -9698,7 +9759,7 @@ def get_rooting_app_apks():
 # ============================================================================
 #                               Function get_rooting_app_details
 # ============================================================================
-def get_rooting_app_details(channel):
+def get_rooting_app_details(channel) -> MagiskApk | None:
     ma = MagiskApk(channel)
     if channel == 'Magisk Stable':
         url = "https://raw.githubusercontent.com/topjohnwu/magisk-files/master/stable.json"
@@ -9718,8 +9779,12 @@ def get_rooting_app_details(channel):
             info_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/public_releases?scope=tester"
             release_endpoint = "https://install.appcenter.ms/api/v0.1/apps/vvb2060/magisk/distribution_groups/public/releases/{}"
             res = request_with_fallback(method='GET', url=info_endpoint)
+            if isinstance(res, str):
+                return
             latest_id = res.json()[0]['id']
             res = request_with_fallback(method='GET', url=release_endpoint.format(latest_id))
+            if isinstance(res, str):
+                return
             latest_release = res.json()
             setattr(ma, 'version', latest_release['short_version'])
             setattr(ma, 'versionCode', latest_release['version'])
@@ -9857,7 +9922,7 @@ def get_rooting_app_details(channel):
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
-                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^KernelSU_Next(?!.*spoofed).*\.apk$', download=False)
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'(?i)^KernelSU_Next(?!.*spoofed).*\.apk$', download=False)
                 if release_notes is None:
                     release_version = "No release notes available"
                 if release_url is None:
@@ -9929,7 +9994,7 @@ def get_rooting_app_details(channel):
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
-                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'^Wild_KSU(?!.*spoofed).*\.apk$', download=False)
+                release_url = gh_asset_utility(release_object=release, asset_name_pattern=r'(?i)^Wild_KSU(?!.*spoofed).*\.apk$', download=False)
                 if release_notes is None:
                     release_version = "No release notes available"
                 if release_url is None:
@@ -10100,6 +10165,8 @@ This is a special Magisk build\n\n
             'Content-Type': "application/json"
         }
         response = request_with_fallback(method='GET', url=url, headers=headers, data=payload)
+        if isinstance(response, str):
+            return
         if response.status_code != 200:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk downloads links: {url}")
             return
@@ -10117,6 +10184,9 @@ This is a special Magisk build\n\n
         with contextlib.suppress(Exception):
             setattr(ma, 'release_notes', '')
             response = request_with_fallback(method='GET', url=ma.note_link, headers=headers, data=payload)
+            if isinstance(response, str):
+                setattr(ma, 'release_notes', '')
+                return ma
             if response.status_code != 200:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get Magisk download release_notes: {url}")
                 return
@@ -10164,6 +10234,7 @@ def is_bootloader_version_older(version, min_version):
 #                    Function get_bootloader_versions
 # ============================================================================
 def get_bootloader_versions():
+    temp_dir = None
     try:
         device = get_phone()
         if not device:
@@ -10334,10 +10405,11 @@ def get_bootloader_versions():
     except IOError:
         traceback.print_exc()
     finally:
-        try:
-            shutil.rmtree(temp_dir)
-        except Exception as e:
-            debug(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: cleaning up temp directory: {str(e)}")
+        if temp_dir:
+            try:
+                shutil.rmtree(temp_dir)
+            except Exception as e:
+                debug(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: cleaning up temp directory: {str(e)}")
 
 
 # ============================================================================
@@ -10395,6 +10467,7 @@ def extract_kernel_info(boot_img_path):
 # output what we want to console. Nothing is sent to console, both stdout and
 # stderr are only available when the call is completed.
 def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
+    process = None
     try:
         flush_output()
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding=encoding, errors="replace", env=get_env_variables())
@@ -10408,8 +10481,9 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
         puml("#red:Command {cmd} timed out;\n", True)
         puml(f"note right\n{e}\nend note\n")
         # Send CTRL + C signal to the process
-        process.send_signal(signal.SIGTERM)
-        process.terminate()
+        if process is not None:
+            process.send_signal(signal.SIGTERM)
+            process.terminate()
         return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
 
     except Exception as e:
@@ -10460,8 +10534,10 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='utf-
                 env=env
             )
 
-        print
+        print()
         while True:
+            if proc.stdout is None:
+                break
             line = proc.stdout.readline()
             wx.YieldIfNeeded()
             if line.strip() != "":
@@ -10514,10 +10590,12 @@ def run_shell3(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
         proc = subprocess.Popen(**proc_args)
 
         def read_output():
-            print
+            print()
             start_time = time.time()
             output = []
             while True:
+                if proc.stdout is None:
+                    break
                 line = proc.stdout.readline()
                 wx.YieldIfNeeded()
                 if line.strip() != "":

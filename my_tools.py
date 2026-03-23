@@ -467,7 +467,7 @@ class MyToolsDialog(wx.Dialog):
     # -----------------------------------------------
     #                  Function Refresh
     # -----------------------------------------------
-    def Refresh(self):
+    def Refresh(self):  # type: ignore[reportIncompatibleMethodOverride]
         self.list.Freeze()
         self.list.ClearAll()
         self.PopulateList()

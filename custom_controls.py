@@ -137,7 +137,7 @@ class FilePickerComboBox(wx.Panel):
             with open(self.history_file, 'w', encoding='utf-8') as f:
                 json.dump(self.history, f)
 
-    def Bind(self, event, handler):
+    def Bind(self, event, handler):  # type: ignore[reportIncompatibleMethodOverride]
         if event == wx.EVT_FILEPICKER_CHANGED:
             self.handler = handler
             self.combo_box.Bind(wx.EVT_COMBOBOX, self._on_combo_box_change)
@@ -312,6 +312,7 @@ class ResizableButtonFilePickerCtrl(wx.FilePickerCtrl):
 #                    Function _open_device_image_download_link
 # ============================================================================
 def open_device_image_download_link(url):
+    hardware = ''
     try:
         with contextlib.suppress(Exception):
             device = get_phone()

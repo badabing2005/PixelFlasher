@@ -84,6 +84,7 @@ def get_values(thelist, update):
     print(file5)
     with open(file5, "rt", encoding='ISO-8859-1', errors="replace") as fin:
         data = fin.read()
+    r = None
     for item in s5:
         r = re.findall(item, data)
         if r:

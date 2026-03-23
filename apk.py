@@ -201,7 +201,7 @@ class BuffHandle:
 
     def read(self, size) :
         if isinstance(size, SV) :
-            size = size.value
+            size = size.get_value()
 
         buff = self.__buff[ self.__idx : self.__idx + size ]
         self.__idx += size
@@ -589,19 +589,23 @@ class AXMLPrinter:
         self.buff = ''
 
         while True:
+            if self.axml is None:
+                break
             _type = self.axml.next()
+            if _type is None:
+                break
 #           print "tagtype = ", _type
 
             if _type == START_DOCUMENT:
                 self.buff += '<?xml version="1.0" encoding="utf-8"?>\n'
             elif _type == START_TAG:
                 # self.buff += '<' + self.getPrefix(self.axml.getPrefix()) + self.axml.getName() + '\n'
-                self.buff += f'<{self.getPrefix(self.axml.getPrefix())}{self.axml.getName()}\n'
-                self.buff += self.axml.getXMLNS()
+                self.buff += f'<{self.getPrefix(self.axml.getPrefix())}{self.axml.getName()}\n'  # type: ignore[reportOptionalMemberAccess]
+                self.buff += self.axml.getXMLNS()  # type: ignore[reportOptionalMemberAccess]
 
-                for i in range(0, int(self.axml.getAttributeCount())):
+                for i in range(0, int(self.axml.getAttributeCount())):  # type: ignore[reportOptionalMemberAccess]
                     self.buff += "%s%s=\"%s\"\n" % ( self.getPrefix(
-                        self.axml.getAttributePrefix(i) ), self.axml.getAttributeName(i), self._escape( self.getAttributeValue( i ) ) )
+                        self.axml.getAttributePrefix(i) ), self.axml.getAttributeName(i), self._escape( self.getAttributeValue( i ) ) )  # type: ignore[reportOptionalMemberAccess]
 
                 # Modify by liyansong2018
                 # self.buff += '>\n'
@@ -610,12 +614,12 @@ class AXMLPrinter:
             elif _type == END_TAG :
                 # self.buff += "</%s%s>\n" % ( self.getPrefix( self.axml.getPrefix() ), self.axml.getName() )
                 # self.buff += "</%s%s>" % ( self.getPrefix( self.axml.getPrefix() ), self.axml.getName() )
-                self.buff += f"</{self.getPrefix(self.axml.getPrefix())}{self.axml.getName()}>"
+                self.buff += f"</{self.getPrefix(self.axml.getPrefix())}{self.axml.getName()}>"  # type: ignore[reportOptionalMemberAccess]
 
             elif _type == TEXT :
                 # self.buff += "%s\n" % self.axml.getText()
                 # self.buff += "%s" % self.axml.getText()
-                self.buff += f"{self.axml.getText()}"
+                self.buff += f"{self.axml.getText()}"  # type: ignore[reportOptionalMemberAccess]
 
             elif _type == END_DOCUMENT :
                 break

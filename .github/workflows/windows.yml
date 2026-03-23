@@ -80,8 +80,6 @@ jobs:
         run: ls dist
 
       - name: Sign Windows Executable
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         # Skip signing for pull requests as secrets aren't available
         if: ${{ github.event_name != 'pull_request' }}
         uses: skymatic/code-sign-action@v3

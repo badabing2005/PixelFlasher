@@ -41,7 +41,7 @@ import darkdetect
 import markdown
 import traceback
 import wx
-import wx.html
+from wx import html as wx_html
 import wx.lib.mixins.listctrl as listmix
 import wx.lib.wxpTag
 
@@ -54,7 +54,7 @@ from i18n import _
 # ============================================================================
 #                               Class HtmlWindow
 # ============================================================================
-class HtmlWindow(wx.html.HtmlWindow):
+class HtmlWindow(wx_html.HtmlWindow):
     def OnLinkClicked(self, link):
         webbrowser.open(link.GetHref())
 
@@ -106,7 +106,7 @@ class MagiskDownloads(wx.Dialog):
         else:
             self.il = wx.ImageList(16, 16)
             self.idx1 = self.il.Add(images.official_16.GetBitmap())
-        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 20), style = wx.LC_REPORT)
+        self.list  = ListCtrl(self, -1, size=wx.Size(-1, self.CharHeight * 20), style = wx.LC_REPORT)
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         device = get_phone(True)
@@ -128,9 +128,11 @@ class MagiskDownloads(wx.Dialog):
             self.list.SetHeaderAttr(wx.ItemAttr(wx.Colour('BLUE'),wx.Colour('DARK GREY'), wx.Font(wx.FontInfo(10).Bold())))
 
         i = 0
+        if not apks:
+            return
         for apk in apks:
+            index = self.list.InsertItem(i, apk.type if apk.type else '')
             if apk.type:
-                index = self.list.InsertItem(i, apk.type)
                 if apk.type in ('stable', 'beta', 'canary', 'debug'):
                     self.list.SetItemColumnImage(i, 0, 0)
                 else:
@@ -286,7 +288,7 @@ class MagiskDownloads(wx.Dialog):
         url = self.list.GetItem(self.currentItem, 3).Text
         version = self.list.GetItem(self.currentItem, 1).Text
         versionCode = self.list.GetItem(self.currentItem, 2).Text
-        app = self.channel.replace(' ', '_')
+        app = (self.channel or '').replace(' ', '_')
         filename = f"{app}_{version}_{versionCode}.apk"
         dialog = wx.FileDialog(None, _("Save File"), defaultFile=filename, wildcard="All files (*.*)|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dialog.ShowModal() == wx.ID_OK:
@@ -337,6 +339,8 @@ class MagiskDownloads(wx.Dialog):
             self.package = self.list.GetItemText(row, col=4)
             device = get_phone()
             apks = get_rooting_app_apks()
+            if not apks:
+                return
             self.download_button.Enable(True)
             release_notes = apks[row].release_notes
             # convert markdown to html
@@ -354,14 +358,14 @@ class MagiskDownloads(wx.Dialog):
     def _onOk(self, e):
         proceed = True
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
-        app = self.channel.replace(' ', '_')
+        app = (self.channel or '').replace(' ', '_')
         filename = f"{app}_{self.version}_{self.versionCode}.apk"
         device = get_phone(True)
         if not device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device to be able to install.")
             return
 
-        if 'Namelesswonder' in self.url and not device.has_init_boot:
+        if self.url and 'Namelesswonder' in self.url and not device.has_init_boot:
             print(f"WARNING: The selected Magisk is not supported for your device: {device.hardware}")
             print("         Only Pixel 7 (panther) and Pixel 7 Pro (cheetah) and Pixel 7a (lynx) and Pixel Tablet (tangorpro) are currently supported.")
             print("         See details at: https://xdaforums.com/t/magisk-magisk-zygote64_32-enabling-32-bit-support-for-apps.4521029/")

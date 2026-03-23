@@ -39,7 +39,7 @@ import traceback
 import images as images
 import darkdetect
 import markdown
-import wx.html
+from wx import html as wx_html
 import webbrowser
 from datetime import datetime
 from runtime import *
@@ -51,7 +51,7 @@ from i18n import _
 # ============================================================================
 #                               Class HtmlWindow
 # ============================================================================
-class HtmlWindow(wx.html.HtmlWindow):
+class HtmlWindow(wx_html.HtmlWindow):
     def OnLinkClicked(self, link):
         webbrowser.open(link.GetHref())
 
@@ -122,7 +122,7 @@ class MagiskModules(wx.Dialog):
         else:
             self.il = wx.ImageList(16, 16)
             self.idx1 = self.il.Add(images.download_16.GetBitmap())
-        self.list  = ListCtrl(self, -1, size=(-1, self.CharHeight * 18), style = wx.LC_REPORT | wx.LC_SINGLE_SEL )
+        self.list  = ListCtrl(self, -1, size=wx.Size(-1, self.CharHeight * 18), style = wx.LC_REPORT | wx.LC_SINGLE_SEL )
         self.list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         # Change Log
@@ -310,6 +310,7 @@ class MagiskModules(wx.Dialog):
     #              Function PopulateList
     # -----------------------------------------------
     def PopulateList(self, refresh=False):
+        assert self.device is not None
         if "apatch" in self.device.su_version.lower():
             modules = self.device.get_apatch_detailed_modules(refresh)
             self.enable_zygisk_button.Enable(False)
@@ -461,15 +462,17 @@ class MagiskModules(wx.Dialog):
     def onItemSelected(self, event):
         self.currentItem = event.Index
         device = get_phone()
+        if not device:
+            return
         if not device.rooted:
             return
         print(f"Magisk Module {self.list.GetItemText(self.currentItem)} is selected.")
         # puml(f":Select Magisk Module {self.list.GetItemText(self.currentItem)};\n")
 
         # Get the module object for the selected item
-        if "apatch" in self.device.su_version.lower():
+        if "apatch" in (self.device.su_version if self.device else '').lower():
             modules = device.get_apatch_detailed_modules(refresh=False)
-        elif "kernelsu" in self.device.su_version.lower():
+        elif "kernelsu" in (self.device.su_version if self.device else '').lower():
             modules = device.get_ksu_detailed_modules(refresh=False)
         else:
             modules = device.get_magisk_detailed_modules(refresh=False)
@@ -483,7 +486,7 @@ class MagiskModules(wx.Dialog):
         else:
             self.update_module_button.Enable(False)
         # if module has has_action then enable run action button
-        if self.module.hasAction == 'True' or "apatch" in self.device.su_version.lower() or "kernelsu" in self.device.su_version.lower():
+        if self.module.hasAction == 'True' or "apatch" in (self.device.su_version if self.device else '').lower() or "kernelsu" in (self.device.su_version if self.device else '').lower():
             self.run_action_button.Enable(True)
         else:
             self.run_action_button.Enable(False)
@@ -510,6 +513,8 @@ class MagiskModules(wx.Dialog):
     def onEnableZygisk(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             print("Enable Zygisk")
@@ -529,6 +534,8 @@ class MagiskModules(wx.Dialog):
     def onDisableZygisk(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             print("Disable Zygisk")
@@ -548,6 +555,8 @@ class MagiskModules(wx.Dialog):
     def onEnableDenylist(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             print("Enable Denylist")
@@ -565,6 +574,8 @@ class MagiskModules(wx.Dialog):
     def onDisableDenylist(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             print("Disable Denylist")
@@ -582,6 +593,8 @@ class MagiskModules(wx.Dialog):
     def onSuperuserAccess(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             buttons_text = [_("Disabled"), _("Apps Only"), _("ADB Only"), _("Apps and ADB"), _("Cancel")]
@@ -641,6 +654,8 @@ class MagiskModules(wx.Dialog):
     def onSystemlessHosts(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             print("Add Systemless Hosts")
@@ -659,9 +674,11 @@ class MagiskModules(wx.Dialog):
     def onInstallPif(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
-            buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", "Tricky Store OSS", "TEESimulator","TargetedFix", _("Cancel")]
+            buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", "Tricky Store OSS", "TEESimulator", "TEESimulator-RS", "TargetedFix", _("Cancel")]
             dlg = MessageBoxEx(
                 parent=self,
                 title=_('PIF Module'),
@@ -698,6 +715,8 @@ class MagiskModules(wx.Dialog):
             elif result == 4:
                 gh_latest_url = get_gh_latest_release_asset_regex('JingMatrix', 'TEESimulator', r'^TEESimulator.*\-Release\.zip$')
             elif result == 5:
+                gh_latest_url = get_gh_latest_release_asset_regex('Enginex0', 'TEESimulator-RS', r'^TEESimulator-RS.*\-Release\.zip$')
+            elif result == 6:
                 module_update_url = TARGETEDFIX_UPDATE_URL
                 # gh_latest_url = get_gh_latest_release_asset_regex('VisionR1', 'TargetedFix', r'^TargetedFix.*\.zip$')
                 # gh_latest_url = get_gh_pre_release_asset_regex('VisionR1', 'TargetedFix', r'^TargetedFix.*\.zip$')
@@ -711,7 +730,8 @@ class MagiskModules(wx.Dialog):
                 url = gh_latest_url
             elif module_update_url is not None:
                 url_obj = check_module_update(module_update_url)
-                url = url_obj.zipUrl
+                if url_obj is not None:
+                    url = url_obj.zipUrl
             if url is None or url == '':
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get module download link.")
                 print("Aborting ...\n")
@@ -736,6 +756,8 @@ class MagiskModules(wx.Dialog):
     def onInstallZygiskNext(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             module_update_url = ZYGISK_NEXT_UPDATE_URL
@@ -765,10 +787,12 @@ class MagiskModules(wx.Dialog):
         # run the action.sh script
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             self._on_spin('start')
-            res = device.magisk_run_module_action(self.module.dirname)
+            res = device.magisk_run_module_action(self.module.dirname if self.module else '')
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules run action.")
             traceback.print_exc()
@@ -781,13 +805,15 @@ class MagiskModules(wx.Dialog):
     def onUninstallModule(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             id = self.list.GetItem(self.currentItem, 0).Text
             name = self.list.GetItem(self.currentItem, 1).Text
-            if "apatch" in self.device.su_version.lower():
+            if "apatch" in (self.device.su_version if self.device else '').lower():
                 modules = device.get_apatch_detailed_modules()
-            elif "kernelsu" in self.device.su_version.lower():
+            elif "kernelsu" in (self.device.su_version if self.device else '').lower():
                 modules = device.get_ksu_detailed_modules()
             else:
                 modules = device.get_magisk_detailed_modules()
@@ -819,6 +845,8 @@ class MagiskModules(wx.Dialog):
     def onUpdateModule(self, e):
         try:
             device = get_phone(True)
+            if not device:
+                return
             if not device.rooted:
                 return
             id = self.list.GetItem(self.currentItem, 0).Text
@@ -844,6 +872,8 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onInstallModule(self, e):
         device = get_phone(True)
+        if not device:
+            return
         if not device.rooted:
             return
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Install Module.")
@@ -896,12 +926,15 @@ class MagiskModules(wx.Dialog):
     # -----------------------------------------------
     def onOk(self, e):
         device = get_phone(True)
+        if not device:
+            self.EndModal(wx.ID_OK)
+            return
         if not device.rooted:
             self.EndModal(wx.ID_OK)
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Ok.")
-        if "apatch" in self.device.su_version.lower():
+        if "apatch" in (self.device.su_version if self.device else '').lower():
             modules = device.get_apatch_detailed_modules()
-        elif "kernelsu" in self.device.su_version.lower():
+        elif "kernelsu" in (self.device.su_version if self.device else '').lower():
             modules = device.get_ksu_detailed_modules()
         else:
             modules = device.get_magisk_detailed_modules()

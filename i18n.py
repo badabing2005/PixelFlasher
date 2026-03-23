@@ -380,6 +380,8 @@ def get_language():
         from runtime import get_config_file_path, init_config_path
         init_config_path()
         config_file = get_config_file_path()
+        if not config_file:
+            return
         try:
             with open(config_file, 'r', encoding='utf-8', errors='replace') as f:
                 data = json.load(f)

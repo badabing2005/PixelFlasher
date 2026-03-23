@@ -34,6 +34,7 @@ name: Build for All platforms
 
 env:
   ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 # Controls when the workflow will run
 on:

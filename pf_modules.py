@@ -49,7 +49,7 @@ from datetime import datetime
 
 import wx
 from packaging.version import parse
-from platformdirs import *
+from platformdirs import user_data_dir, user_config_dir, user_cache_dir, user_log_dir
 from i18n import _
 
 from constants import *
@@ -66,7 +66,7 @@ console_widget = None
 #                               Class FlashFile
 # ============================================================================
 class FlashFile():
-    def __init__(self, linenum = '', platform = '', type = '', command = '', action = '', arg1 = '', arg2 = ''):
+    def __init__(self, linenum: int | str = '', platform = '', type = '', command = '', action = '', arg1 = '', arg2 = ''):
         # Instance variables
         self.linenum = linenum
         self.platform = platform
@@ -485,7 +485,8 @@ def get_flash_settings(self):
             message_en += "Custom Rom File:        %s\n" % p_custom_rom_path
             rom_file = ntpath.basename(p_custom_rom_path)
             set_custom_rom_file(rom_file)
-        message_en += "\nBoot image:             %s / %s \n" % (boot.boot_hash[:8], boot.package_boot_hash[:8])
+        if not boot: return ''
+        message_en += "\nBoot image:             %s / %s \n" % ((boot.boot_hash or '')[:8], (boot.package_boot_hash or '')[:8])
         message_en += "                        From: %s\n" % boot.package_path
         if boot and boot.is_patched:
             if boot.patch_method:
@@ -504,7 +505,8 @@ def get_flash_settings(self):
             message += _("Custom Rom File:        %s\n") % p_custom_rom_path
             rom_file = ntpath.basename(p_custom_rom_path)
             set_custom_rom_file(rom_file)
-        message += _("\nBoot image:             %s / %s \n") % (boot.boot_hash[:8], boot.package_boot_hash[:8])
+        if not boot: return ''
+        message += _("\nBoot image:             %s / %s \n") % ((boot.boot_hash or '')[:8], (boot.package_boot_hash or '')[:8])
         message += _("                        From: %s\n") % boot.package_path
         if boot and boot.is_patched:
             if boot.patch_method:
@@ -561,14 +563,14 @@ def set_flash_button_state(self):
     try:
         boot = get_boot()
         factory_images = os.path.join(get_config_path(), 'factory_images')
-        if boot and os.path.exists(boot.boot_path) and os.path.exists(os.path.join(factory_images, boot.package_sig)):
+        if boot and boot.boot_path and os.path.exists(boot.boot_path) and boot.package_sig and os.path.exists(os.path.join(factory_images, boot.package_sig)):
             self.flash_button.Enable()
         else:
             self.flash_button.Disable()
             if boot:
-                if not os.path.exists(boot.boot_path):
+                if boot.boot_path and not os.path.exists(boot.boot_path):
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image {boot.boot_path} does not exist.")
-                if not os.path.exists(os.path.join(factory_images, boot.package_sig)):
+                if boot.package_sig and not os.path.exists(os.path.join(factory_images, boot.package_sig)):
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Package {os.path.join(factory_images, boot.package_sig)} does not exist.")
             # else:
             #     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image is not selected.")
@@ -589,6 +591,7 @@ def select_firmware(self):
         if extension in ['.zip', '.tgz', '.tar']:
             print(f"The following firmware is selected: {firmware}")
 
+            firmware_hash = None
             if self.config.check_for_firmware_hash_validity:
                 print("Calculating SHA-256 checksum of the selected firmware, please wait ...")
                 wx.Yield()
@@ -695,7 +698,7 @@ def process_file(self, file_type):
 
             puml(f"note right:{file_to_process}\n")
             package_sig = get_firmware_id()
-            package_dir_full = os.path.join(factory_images, package_sig)
+            package_dir_full = os.path.join(factory_images, package_sig or '')
             wx.Yield()
             found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
             wx.Yield()
@@ -719,7 +722,7 @@ def process_file(self, file_type):
                 # assume Pixel factory file
                 if self.config.check_for_firmware_hash_validity:
                     print("Detected Pixel firmware")
-                package_sig = found_flash_all_bat.split('/')[0]
+                package_sig = str(found_flash_all_bat).split('/')[0]
                 package_dir_full = os.path.join(factory_images, package_sig)
                 image_file_path = os.path.join(package_dir_full, f"image-{package_sig}.zip")
                 # Unzip the factory image
@@ -812,6 +815,7 @@ def process_file(self, file_type):
                 found_csc = ''
                 found_home_csc = ''
                 # see if we find AP_*.tar.md5, if yes set is_samsung flag
+                if not file_list: return
                 for file in file_list:
                     wx.Yield()
                     if not found_ap and fnmatch.fnmatch(file, patterns['AP']):
@@ -843,6 +847,7 @@ def process_file(self, file_type):
                     res = run_shell2(theCmd)
                     wx.Yield()
                     # see if there is boot.img.lz4 in AP file
+                    boot_image_file = ''
                     found_boot_img_lz4 = check_archive_contains_file(archive_file_path=image_file_path, file_to_check="boot.img.lz4", nested=False)
                     if found_boot_img_lz4:
                         boot_image_file = "boot.img.lz4"
@@ -933,13 +938,14 @@ def process_file(self, file_type):
                 print("Detected a ROM, with payload.bin")
                 is_payload_bin = True
             package_sig = get_custom_rom_id()
-            package_dir_full = os.path.join(factory_images, package_sig)
+            package_dir_full = os.path.join(factory_images, package_sig or '')
             image_file_path = file_to_process
             puml(f"note right:{image_file_path}\n")
 
         # delete all files in tmp folder to make sure we're dealing with new files only.
         wx.Yield()
         delete_all(tmp_dir_full)
+        boot_file_name = ''
 
         if is_payload_bin:
             # extract the payload.bin into a temporary directory
@@ -1035,6 +1041,7 @@ def process_file(self, file_type):
                 return
 
             files_to_extract = ''
+            boot_file_name = ''
             if found_boot_img:
                 boot_file_name = 'boot.img'
                 files_to_extract += 'boot.img '
@@ -1234,6 +1241,7 @@ def process_flash_all_file(filepath):
         with open(filepath) as fp:
             #1st line, platform
             line = fp.readline()
+            filetype = ''
             if line[:9] == "@ECHO OFF":
                 filetype = 'bat'
             elif line[:9] == "#!/bin/sh":
@@ -1337,6 +1345,7 @@ def process_flash_all_file(filepath):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing flash_all file")
         puml("#red:Encountered an error while processing flash_all file;\n")
         traceback.print_exc()
+        return "ERROR"
 
 
 # ============================================================================
@@ -1348,6 +1357,7 @@ def setup_for_downgrade(self):
         if not device:
             print("\nNo device is selected!")
             self.clear_device_selection()
+            return
         config_path = get_config_path()
         tmp_dir_full = os.path.join(config_path, 'tmp')
         current_boot_img = os.path.join(tmp_dir_full, 'current_boot.img')
@@ -1357,6 +1367,9 @@ def setup_for_downgrade(self):
             return -1
 
         boot_path = boot.boot_path
+        if not boot_path:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image path is not set.")
+            return -1
         directory_path = os.path.dirname(boot_path)
         target_boot_img = os.path.join(directory_path, 'boot.img')
         downgrade_file_name = "downgrade_boot.img"
@@ -1423,6 +1436,7 @@ def setup_for_downgrade(self):
 
 '''
         message += f"<pre>Rooted:                                   {device_is_rooted}\n"
+        device_spl = ''
         with contextlib.suppress(Exception):
             message += f"Current Target boot.security_patch:       {target_boot_info['com.android.build.boot.security_patch']}\n"
             device_spl = ''
@@ -1496,7 +1510,7 @@ def setup_for_downgrade(self):
 
         # option 3 - Specify SPL value manually
         elif option == 3:
-            if checkbox_values[1]:
+            if checkbox_values is not None and checkbox_values[1]:
                 dlg = MessageBoxEx(
                     parent=None,
                     title=_("Warning"),
@@ -1521,7 +1535,8 @@ def setup_for_downgrade(self):
                 dlg.CentreOnParent(wx.BOTH)
                 dlg.ShowModal()
                 dlg.Destroy()
-            checkbox_values[1] = False
+            if checkbox_values is not None:
+                checkbox_values[1] = False
             dialog = wx.TextEntryDialog(None, "Enter the SPL value (YYYY-MM-DD):", "Enter SPL value", device_spl, style=wx.OK | wx.CANCEL)
             while True:
                 if dialog.ShowModal() == wx.ID_OK:
@@ -1548,6 +1563,7 @@ def setup_for_downgrade(self):
 
         # Perform the patching
         start_1 = time.time()
+        current_boot_info = None
         if current_spl == '':
             print(f"\n=== Getting AVB info for Current boot.img [{current_boot_img}] ...")
             current_boot_info = get_boot_image_info(current_boot_img)
@@ -1567,7 +1583,7 @@ def setup_for_downgrade(self):
             print("Aborting ...\n")
             return -1
         try:
-            if target_spl >= current_spl and not checkbox_values[1]:
+            if target_spl >= current_spl and not (checkbox_values is not None and checkbox_values[1]):
                 print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: The target boot.img is not a downgrade.\nAre you sure want to continue?")
                 dlg = MessageBoxEx(
                 parent=None,
@@ -1604,12 +1620,12 @@ def setup_for_downgrade(self):
             return -1
 
         print("Proceeding with downgrade patching ...")
-        if checkbox_values[1]:
+        if checkbox_values is not None and checkbox_values[1] and current_boot_info is not None:
             print(f"\n=== Patching fingerprint in Current boot.img [{current_boot_img}] ...")
             fingerprint = current_boot_info['com.android.build.boot.fingerprint']
         else:
             fingerprint = target_boot_info['com.android.build.boot.fingerprint']
-        if checkbox_values[0]:
+        if checkbox_values is not None and checkbox_values[0]:
             security = current_spl
         else:
             security = target_boot_info['com.android.build.boot.security_patch']
@@ -1651,10 +1667,10 @@ def setup_for_downgrade(self):
         is_init_boot = 0
         patch_source_sha1 = sha1(target_boot_img)
         boot_record_id = insert_boot_record(boot_hash, file_path, is_patched, magisk_version, hardware, patch_method, is_odin, is_stock_boot, is_init_boot, patch_source_sha1)
-        if boot_record_id > 0:
+        if boot_record_id is not None and boot_record_id > 0:
             # create PACKAGE_BOOT db record
             package_boot_id = insert_package_boot_record(boot.package_id, boot_record_id)
-            if not package_boot_id > 0:
+            if not (package_boot_id is not None and package_boot_id > 0):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create a DB record for downgrade_boot.img")
                 puml("#red:Could not create a DB record for downgrade_boot.img;\n")
                 return -1
@@ -2107,6 +2123,9 @@ def manual_magisk(self, boot_file_name):
         print("==============================================================================")
 
         device = get_phone(True)
+        if not device:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
+            return -1
 
         if not device.is_display_unlocked():
             title = _("Display is Locked!")
@@ -2290,7 +2309,7 @@ def get_all_dialog_values(dlg):
 # ============================================================================
 #                               Function kernel_flavors
 # ============================================================================
-def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendation, checkbox_initial_values=None):
+def kernel_flavors(self, default_button, radio_initial_value, kernel_recommendation, checkbox_initial_values=None) -> dict:
     title = "Select the kernel flavor"
     button_texts = ["KernelSU", "KernelSU-Next", "WildKernels", "ShirkNeko", "MiRinFork", "Manual", "Cancel"]
     if default_button < 1 or default_button > len(button_texts):
@@ -2384,49 +2403,50 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # ==========================================
     # Sub Function  ensure_root_app_installed
     # ==========================================
-    def ensure_root_app_installed(app_type='KernelSU'):
+    def ensure_root_app_installed(app_type='KernelSU') -> tuple:
+        assert device is not None
         config_path = get_config_path()
 
         if app_type == 'KernelSU-Next':
             repo_user = 'rifsxd'
             repo_name = 'KernelSU-Next'
             pattern = r'^KernelSU_Next(?!.*spoofed).*\.apk$'
-            path_getter = lambda: device.ksu_next_path
+            path_getter = lambda: device.ksu_next_path  # type: ignore[union-attr]
             app_name = "KernelSU-Next"
             package_name = KSU_NEXT_PKG_NAME
         elif app_type == 'APatch':
             repo_user = 'bmax121'
             repo_name = 'APatch'
             pattern = r'^APatch_.*\.apk$'
-            path_getter = lambda: device.apatch_path
+            path_getter = lambda: device.apatch_path  # type: ignore[union-attr]
             app_name = "APatch"
             package_name = APATCH_PKG_NAME
         elif app_type == 'SukiSU':
             repo_user = 'SukiSU-Ultra'
             repo_name = 'SukiSU-Ultra'
             pattern = r'^SukiSU_(?!.*spoofed).*\.apk$'
-            path_getter = lambda: device.sukisu_path
+            path_getter = lambda: device.sukisu_path  # type: ignore[union-attr]
             app_name = "SukiSU"
             package_name = SUKISU_PKG_NAME
         elif app_type == 'Wild_KSU':
             repo_user = 'WildKernels'
             repo_name = 'Wild_KSU'
             pattern = r'^Wild_KSU(?!.*spoofed).*\.apk$'
-            path_getter = lambda: device.wild_ksu_path
+            path_getter = lambda: device.wild_ksu_path  # type: ignore[union-attr]
             app_name = "Wild_KSU"
             package_name = WILD_KSU_PKG_NAME
         elif app_type == "KernelSU-Legacy":
             repo_user = 'rsuntk'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
-            path_getter = lambda: device.ksu_path
+            path_getter = lambda: device.ksu_path  # type: ignore[union-attr]
             app_name = "KernelSU"
             package_name = KERNEL_SU_PKG_NAME
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
-            path_getter = lambda: device.ksu_path
+            path_getter = lambda: device.ksu_path  # type: ignore[union-attr]
             app_name = "KernelSU"
             package_name = KERNEL_SU_PKG_NAME
 
@@ -2618,6 +2638,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                                 self.config.save(get_config_file_path())
                             version, version_code = device.get_app_version(package_name)
                             return True, app_path, None, version, version_code
+                        else:
+                            return False, None, "Could not determine package name from APK", None, None
                     else:
                         # Push APK to phone
                         res = device.push_file(selected_apk, "/data/local/tmp/user_provided_app.apk")
@@ -2636,12 +2658,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # Sub Function       patch_script
     # ==========================================
     def patch_magisk_script(patch_method):
+        assert device is not None
         print("Creating pf_patch.sh script ...")
         if self.config.use_busybox_shell and patch_method == "rooted":
             # busybox_shell_cmd = "export ASH_STANDALONE=1; /data/adb/magisk/busybox ash"
             busybox_shell_cmd = "/data/adb/magisk/busybox ash"
         else:
             busybox_shell_cmd = ""
+        path_to_busybox = ''
         if patch_method == "rooted":
             patch_label = "rooted Magisk"
             script_path = "/data/adb/magisk/pf_patch.sh"
@@ -2880,6 +2904,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # Sub Function       patch_kernelsu_script
     # ==========================================
     def patch_kernelsu_script(kernelsu_version):
+        assert device is not None
         if 'KernelSU-Next' in patch_flavor:
             patch_label = "KernelSU-Next App"
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Next')
@@ -3047,6 +3072,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # Sub Function     patch_kernelsu_lkm_script
     # ==========================================
     def patch_kernelsu_lkm_script():
+        assert device is not None
         if 'KernelSU-Next' in patch_flavor:
             patch_label = "KernelSU-Next App"
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Next')
@@ -3115,19 +3141,21 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         mountType = ""
+        ksud_mount = ''
         # Patch flavor based cmd selector
         if self.config.force_ksud_mount_selection or patch_flavor == 'Wild_KSU_LKM' or (patch_flavor == 'KernelSU-Next_LKM' and version_code_int < 32857) :
             magiskboot = "magiskboot"
             # show a question dialog to ask the user to select mount type MagicMount or OverlayFS
             title = "Select dynamic module mount system"
-            buttons_text = ["MagicMount", "OverlayFS", "None", "Cancel"]
+            buttons_text = ["MagicMount", "OverlayFS", "Dynamic", "Cancel"]
             message = f'''
 ## Select dynamic module mount
 
 - **System MagicMount**
-  `Magic Mount is more stable and compatible (when supported).`
+  `Magic Mount is more stable and compatible (when supported, mostly older versions).`
 - **OverlayFS**
-- **None**
+- **Dynamic**
+  `Recommended for newer versions.`
 
 '''
             print(f"\n*** Dialog ***\n{message}\n______________\n")
@@ -3136,10 +3164,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 title=title,
                 message=message,
                 button_texts=buttons_text,
-                default_button=1,
+                default_button=3,
                 disable_buttons=[],
                 is_md=True,
-                size=[650,200],
+                size=[650,240],
                 checkbox_labels=None,
                 checkbox_initial_values=None,
                 disable_checkboxes=None,
@@ -3167,7 +3195,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             elif result == 3:
                 ksud_mount = "ksud"
                 mountType = ""
-                print("User selected None for dynamic module mount system.")
+                print("User selected None / Dynamic for dynamic module mount system.")
             if result == 4:
                 print("⚠️ User cancelled, Aborting ...")
                 return -1, ""
@@ -3323,6 +3351,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # Sub Function     patch_apatch_script
     # ==========================================
     def patch_apatch_script(patch_method="app", kernel_patch_version=""):
+        assert device is not None
+        path_to_busybox = ''
         dialog = wx.TextEntryDialog(None,
             "The SUPERKEY has higher privileges than root access.\n"
             "Weak or compromised keys can result in unauthorized control of your device.\n"
@@ -3557,6 +3587,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     # Sub Function     magisk_not_found
     # ==========================================
     def magisk_not_found():
+        assert device is not None
         print("Unable to find magisk on the phone, perhaps it is hidden?")
         puml("#orange:Magisk not found;\n")
         # Message to Launch Manually and Patch
@@ -3642,6 +3673,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         print(f"Patching on hardware: {device.hardware}")
 
     # If patch_flavor is KernelSU* check if the device is a Pixel device and if the kernel is KMI
+    kmi = ''
+    anykernel = False
     if patch_flavor in ['KernelSU', 'KernelSU_LKM','KernelSU-Next', 'KernelSU_Next_LKM', 'SukiSU', 'SukiSU_LKM', 'Wild_KSU', 'Wild_KSU_LKM', 'KernelSU-Legacy']:
         if self.config.override_kmi:
             title = _("Kernel KMI Override")
@@ -3749,6 +3782,9 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             puml("#red:KernelSU (Next) / SukiSU / Wild_KSU is only supported on Pixel Devices;\n}\n")
             return
 
+    file_to_patch: str = ""
+    file_sha1: str = ""
+
     if patch_flavor == 'Custom':
         with wx.FileDialog(self, "boot / init_boot image to create patch from.", '', '', wildcard="Images (*.*.img)|*.img", style=wx.FD_OPEN) as fileDialog:
             puml(":Select boot image to patch;\n")
@@ -3788,6 +3824,8 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     init_boot_path = None
     config_path = get_config_path()
     factory_images = os.path.join(config_path, 'factory_images')
+    boot = None
+    init_boot_img = ''
     if patch_flavor == 'Custom':
         boot_path = file_to_patch
         boot_file_name = os.path.basename(boot_path)
@@ -3796,7 +3834,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         boot_img = f"{filename}_{stock_sha1}.img"
         patch_name = "magisk_patched"
         patched_img = f"{patch_name}_{file_sha1[:8]}.img"
-        package_dir_full = os.path.join(factory_images, get_firmware_id())
+        package_dir_full = os.path.join(factory_images, get_firmware_id() or '')
         is_odin = 0
     else:
         boot = get_boot()
@@ -3804,7 +3842,11 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             print("\nPlease select a boot image!")
             return -1
 
+        assert boot is not None
         boot_path = boot.boot_path
+        if not boot_path:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image path is not set.")
+            return -1
         boot_directory = os.path.dirname(boot_path)
         boot_exists = False
         init_boot_exists = False
@@ -3816,6 +3858,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             boot_exists = True
         else:
             disabled_buttons.append(1) # "boot.img"
+        stock_init_sha1 = ''
         if os.path.exists(os.path.join(boot_directory, 'init_boot.img')):
             init_boot_exists = True
             init_boot_path = os.path.join(boot_directory, 'init_boot.img')
@@ -3828,6 +3871,9 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             disabled_buttons.append(3) # "vendor_boot.img"
 
         # Determine the recommendation based on the patch flavor and available images
+        recommendation = None
+        app_name = ''
+        app_version = ''
         if patch_flavor == 'Magisk':
             app_version = device.get_uncached_magisk_app_version()
             app_name = "Magisk"
@@ -3916,6 +3962,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             boot_path = os.path.join(boot_directory, 'vendor_boot.img')
 
         # Determine the patch image based on the recommendation
+        assert recommendation is not None
         if self.config.offer_patch_methods:
             title = "Patching decision"
             buttons_text = ["Use boot.img", "Use init_boot.img", "Use vendor_boot", "Custom", "Cancel"]
@@ -4024,13 +4071,14 @@ Unless you know what you're doing, it is recommended that you choose the default
         boot_file_name = os.path.basename(boot_path)
         filename, unused = os.path.splitext(boot_file_name)
         boot_img = f"{filename}_{stock_sha1}.img"
+        init_boot_img = ''
         if init_boot_path is not None:
             init_boot_file_name = os.path.basename(init_boot_path)
             init_filename, unused = os.path.splitext(init_boot_file_name)
             init_boot_img = f"{init_filename}_{stock_init_sha1}.img"
         patch_name = f"{patch_flavor.lower()}_patched"
-        patched_img = f"{patch_name}_{boot.boot_hash[:8]}.img"
-        package_dir_full = os.path.join(factory_images, boot.package_sig)
+        patched_img = f"{patch_name}_{(boot.boot_hash or '')[:8]}.img"
+        package_dir_full = os.path.join(factory_images, boot.package_sig or '')
         is_odin = boot.is_odin
     boot_images = os.path.join(config_path, get_boot_images_dir())
     tmp_dir_full = os.path.join(config_path, 'tmp')
@@ -4046,8 +4094,9 @@ Unless you know what you're doing, it is recommended that you choose the default
         return
 
     if patch_flavor != 'Custom':
+        assert boot is not None
         # Extract phone model from boot.package_sig and warn the user if it is not from the current phone model
-        package_sig = boot.package_sig.split("-")
+        package_sig = (boot.package_sig or '').split("-")
         try:
             firmware_model = package_sig[0]
         except Exception as e:
@@ -4149,6 +4198,7 @@ Unless you know what you're doing, it is recommended that you choose the default
 
     # KernelSU
     if patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU', 'KernelSU-Legacy']:
+        assert kmi is not None
         magiskboot_created = False
         if is_rooted:
             res, unused = device.check_file("/data/adb/magisk/magiskboot", True)
@@ -4213,6 +4263,9 @@ Unless you know what you're doing, it is recommended that you choose the default
         elif patch_flavor == 'KernelSU-Legacy':
             method = 88
             res = kernel_flavors(self, default_button=1, radio_initial_value=0, kernel_recommendation="KernelSU", checkbox_initial_values=[False, False])
+        else:
+            print(f"⚠️ Unsupported kernel patch flavor: {patch_flavor}, Aborting ...")
+            return -1
 
         # Check if the user canceled
         if res['button'] == 7:  # Cancel button
@@ -4220,6 +4273,9 @@ Unless you know what you're doing, it is recommended that you choose the default
             return -1
 
         # Check the radio button selection
+        include_prerelease = False
+        latest_any = False
+        all_releases = False
         if res['radio_selection'] == 0:     # Release builds only
             include_prerelease = False
             latest_any = False
@@ -4248,6 +4304,10 @@ Unless you know what you're doing, it is recommended that you choose the default
         print(f"Checkbox values received: {checkbox_values}")
 
         # Check what the user selected
+        user = ''
+        repo = ''
+        custom_kernel = None
+        chosen_kernel = ''
         if res['button'] == 1:
             # KernelSU
             user='tiann'
@@ -4297,6 +4357,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             return -1
 
         if res['button'] != 6:
+            assert anykernel is not None
             # download the selected KernelSU generic kernel image
             kernel_su_gz_file = download_ksu_latest_release_asset(
                                     user=user,
@@ -4458,6 +4519,11 @@ Unless you know what you're doing, it is recommended that you choose the default
         if not magiskboot_created:
             # Find latest Magisk to download
             apk = get_rooting_app_details('Magisk Stable')
+            if apk is None:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Stable version.")
+                puml("#red:Could not find Magisk Stable version;\n")
+                print("Aborting ...\n}\n")
+                return
             filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
             download_file(apk.link, filename)
             magisk_apk = os.path.join(tmp_path, filename)
@@ -4559,9 +4625,11 @@ Unless you know what you're doing, it is recommended that you choose the default
         puml(f"note right\nMagisk Manager Version: {m_app_version}\nMagisk Version:         {m_version}\nend note\n")
 
         # if selected firmware is Pixel and December 2025 or newer, and Magisk version is less than 30.6, warn the user
+        assert boot is not None
         if boot.spl:
             spl_date = datetime.strptime(boot.spl, '%Y-%m-%d')
             dec_2025 = datetime.strptime('2025-12-01', '%Y-%m-%d')
+            mm_version = 0
             try:
                 device_type = get_android_devices()[device.hardware]
                 mm_version = max(m_app_version, m_version)
@@ -4579,6 +4647,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                     puml("#pink:User cancelled creating a patch;\n}\n")
                     return -1
 
+        disabled_buttons = []
         if is_rooted and magisk_version:
             method = 1  # rooted
             # disable app method if app is not found or is hidden.
@@ -4690,6 +4759,10 @@ Unless you know what you're doing, it is recommended that you take the default s
                 print(f"Recovery: {recovery}")
 
     # Perform the patching
+    m_app_version = 0
+    chosen_kernel = ''
+    kernelsu_version = None
+    kernel_patch_version = None
     if method == 1:
         patch_method = 'root'
         patched_img = patch_magisk_script("rooted")
@@ -4774,7 +4847,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     elif method == 91:
         # APatch Alternate
         patch_method = 'apatch_manual'
-        patched_img = patch_apatch_script("manual", kernel_patch_version)
+        patched_img = patch_apatch_script("manual", kernel_patch_version or "")
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected patch method.")
         puml("#red:Unexpected patch method;\nnote right:Abort\n}\n", True)
@@ -4900,9 +4973,10 @@ Unless you know what you're doing, it is recommended that you take the default s
                 puml(f"{padded_boot_file_name}           sha1: {boot_sha1_long}\n")
                 puml("end note\n")
                 confidence = compare_sha1(patched_sha1, boot_sha1_long)
-                print(f"The confidence level is: {confidence * 100}%")
-                puml(f":Confidence level: {confidence * 100}%;\n")
-                if confidence < 0.5:
+                if confidence is not None:
+                    print(f"The confidence level is: {confidence * 100}%")
+                    puml(f":Confidence level: {confidence * 100}%;\n")
+                if confidence is None or confidence < 0.5:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Something is wrong with the patched file SHA1, we got a low match confidence.\n")
                     print("Please compare the two sha1 strings and decide for yourself if this is acceptable to use.")
                     puml(f"#red:ERROR: Something is wrong with the patched file\nSHA1: {patched_sha1}\nExpected SHA1: {boot_sha1};\n", True)
@@ -4928,7 +5002,8 @@ Unless you know what you're doing, it is recommended that you take the default s
             shutil.copy(patched_img_file, fileDialog.GetPath(), follow_symlinks=True)
     else:
         # if a matching patched.img is not found, store it.
-        cached_boot_img_dir_full = os.path.join(boot_images, boot.boot_hash)
+        assert boot is not None
+        cached_boot_img_dir_full = os.path.join(boot_images, boot.boot_hash or '')
         if kernel_su_gz_file:
             # if kernel_su_gz_file is full path, just keep the file name (manual case)
             kernel_su_gz_file = os.path.basename(kernel_su_gz_file)
@@ -4973,7 +5048,7 @@ Unless you know what you're doing, it is recommended that you take the default s
                 debug(f"ERROR: Something went wrong while inserting BOOT record id={boot_id} for boot_hash: {checksum}\n")
 
         # create PACKAGE_BOOT db record
-        if boot.package_id > 0 and boot_id > 0:
+        if (boot.package_id or 0) > 0 and boot_id > 0:
             debug(f"Creating PACKAGE_BOOT record, package_id: {boot.package_id} boot_id: {boot_id}")
             sql = 'INSERT INTO PACKAGE_BOOT (package_id, boot_id, epoch) values(?, ?, ?) ON CONFLICT (package_id, boot_id) DO NOTHING'
             data = (boot.package_id, boot_id, time.time())
@@ -5059,7 +5134,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             firmware_model = boot.hardware
         else:
             # Extract phone model from boot.package_sig
-            package_sig_array = boot.package_sig.split("-")
+            package_sig_array = (boot.package_sig or '').split("-")
             try:
                 firmware_model = package_sig_array[0]
             except Exception as e:
@@ -5225,9 +5300,9 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             message += f"Patched With SukiSU:    {boot.magisk_version}\n"
         elif boot.patch_method in ["wild_ksu", "wild_ksu_lkm"]:
             message += f"Patched With Wild_KSU:  {boot.magisk_version}\n"
-        elif "kernelsu-next" in boot.patch_method:
+        elif boot.patch_method and "kernelsu-next" in boot.patch_method:
             message += f"Patched With KSU-Next:  {boot.magisk_version}\n"
-        elif "apatch" in boot.patch_method:
+        elif boot.patch_method and "apatch" in boot.patch_method:
             message += f"Patched With Apatch:    {boot.magisk_version}\n"
         else:
             message += f"Patched With Magisk:    {boot.magisk_version}\n"
@@ -5394,50 +5469,50 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 if selected_radio_index == 0:
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                     if os.path.exists(vendor_boot_to_flash):
                         data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                 elif selected_radio_index == 1:
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                     if os.path.exists(vendor_boot_to_flash):
                         data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                 elif selected_radio_index == 2:
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                         data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                         data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                     if os.path.exists(vendor_boot_to_flash):
                         data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                         data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                 data_win += "\n"
                 data_linux += "\n"
 
@@ -5475,50 +5550,50 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 if selected_radio_index == 0:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                     if os.path.exists(vendor_boot_to_flash):
                         data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                 if selected_radio_index == 1:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                     if os.path.exists(vendor_boot_to_flash):
                         data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                 if selected_radio_index == 2:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                         data_win += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                         data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                     if os.path.exists(vendor_boot_to_flash):
                         data_win += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                         data_win += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{os.path.join(selected_dir, "vendor_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                 data_win += "\n"
                 data_linux += "\n"
 
@@ -5556,50 +5631,50 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 if selected_radio_index == 0:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                 if selected_radio_index == 1:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                 if selected_radio_index == 2:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                         data_win += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                         data_linux += "echo Flashing stock boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash boot \"{os.path.join(selected_dir, "boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash boot "{os.path.join(selected_dir, "boot.img")}"\n\n'
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                         data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
 
                         data_linux += "echo Flashing stock init_boot partition to active slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                         data_linux += "echo Flashing stock init_boot partition to inactive slot ... \n"
-                        data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash init_boot \"{os.path.join(selected_dir, "init_boot.img")}\"\n\n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                 data_win += "\n"
                 data_linux += "\n"
 
@@ -5733,6 +5808,8 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             return -1
 
     done_flashing = False
+    startFlash: float = 0.0
+    endFlash: float = 0.0
     if mode == 'fastboot' and get_fastboot():
         # Check for bootloader unlocked
         if self.config.check_for_bootloader_unlocked:
@@ -5820,7 +5897,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             self.refresh_device(device_id)
             message_after_flashing()
             return
-        elif option == 'Flash' and not checkbox_values2[0]:
+        elif option == 'Flash' and checkbox_values2 and not checkbox_values2[0]:
             puml(":Reboot to System;\n")
             device.reboot_system()
     else:
@@ -5841,6 +5918,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 #                               Function flash_phone
 # ============================================================================
 def flash_phone(self):
+    temp_dir = None
     try:
         # 1 Do the necessary validations
         # 2 Prepare the necessary script contents
@@ -5872,6 +5950,7 @@ def flash_phone(self):
         device_id = device.id
 
         # check for boot selection except for custom flash
+        boot = None
         if self.config.flash_mode != 'customFlash':
             boot = get_boot()
             if not boot:
@@ -5882,12 +5961,13 @@ def flash_phone(self):
 
         # Check if we're flashing older OTA
         if self.config.flash_mode == 'OTA':
+            assert boot is not None
             print("Checking OTA version against the currently installed firmware.")
             print(f"Firmware ID:                  {get_firmware_id()}")
             print(f"Currently installed firmware: {device.build}")
             pattern1 = r'(?:.*)-(?:.*)-(?:.*)\.(\d{6})\.(?:.*)'
             pattern2 = r'(?:.*)\.(\d{6})\.(?:.*)'
-            match1 = re.search(pattern1, get_firmware_id())
+            match1 = re.search(pattern1, get_firmware_id() or '')
             match2 = re.search(pattern2, device.build)
             if match1 and match2:
                 number1 = int(match1.group(1))
@@ -5976,6 +6056,7 @@ def flash_phone(self):
         config_path = get_config_path()
         factory_images = os.path.join(config_path, 'factory_images')
         temp_dir = None
+        package_sig = ''
 
         if self.config.advanced_options and self.config.flash_mode == 'customFlash':
             package_dir_full = os.path.join(config_path, 'tmp')
@@ -6060,7 +6141,7 @@ def flash_phone(self):
                 zip_image_path = os.path.join(package_dir_full, zip_image_name)
                 # copy the downgrade_boot.img to downgrade directory
                 downgrade_file_path, downgrade_boot_exists = get_downgrade_boot_path()
-                if downgrade_boot_exists:
+                if downgrade_boot_exists and downgrade_file_path:
                     patched_boot_file = os.path.join(downgrade_dir, 'boot.img')
                     debug(f"Copying downgrade_boot.img to {patched_boot_file}")
                     shutil.copy(downgrade_file_path, patched_boot_file)
@@ -6093,6 +6174,7 @@ def flash_phone(self):
         fastboot_options = ''
         fastboot_options2 = ''
         sideload_options = ''
+        image_mode = None
         if self.config.advanced_options:
             if self.config.flash_both_slots:
                 fastboot_options += '--slot all '
@@ -6152,6 +6234,7 @@ def flash_phone(self):
             version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
             version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
         else:
+            assert boot is not None
             version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
             version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
 
@@ -6232,9 +6315,10 @@ def flash_phone(self):
         # do the standard flash mode
         #---------------------------
         else:
+            assert boot is not None
             add_echo =''
             # check for boot file
-            if not os.path.exists(boot.boot_path):
+            if not boot.boot_path or not os.path.exists(boot.boot_path):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot file: {boot.boot_path} is not found.")
                 print("Aborting ...\n")
                 puml("#red:boot file is not found;\n}\n")
@@ -6318,6 +6402,7 @@ def flash_phone(self):
             # If OTA
             # ----------
             if self.config.flash_mode == 'OTA':
+                assert boot is not None
                 indent = "    "
                 data_win = "@echo off\n"
                 data_win += "setlocal enabledelayedexpansion\n"
@@ -6357,9 +6442,10 @@ def flash_phone(self):
             # If not OTA
             # ----------
             else:
+                assert boot is not None
                 indent = ""
                 # Check if the patch file is made by Magisk Zygote64_32
-                if "zygote64_32" in boot.magisk_version.lower():
+                if "zygote64_32" in (boot.magisk_version or '').lower():
                     # Check we have Magisk Zygote64_32 rooted system already
                     warn = False
                     if device.rooted:
@@ -6434,6 +6520,7 @@ def flash_phone(self):
                     print("Aborting ...\n")
                     puml("#red:Error processing flash_all.sh file;\n}\n")
                     return -1
+                assert isinstance(flash_all_win32, list) and isinstance(flash_all_linux, list)
                 s1 = ''
                 s2 = ''
                 for f in flash_all_win32:
@@ -6460,6 +6547,8 @@ def flash_phone(self):
                     flash_all_file = flash_all_win32
                 else:
                     flash_all_file = flash_all_linux
+                sleep_line_win = ''
+                sleep_line_linux = ''
                 for f in flash_all_file:
                     if f.type == 'init':
                         data_win += f"{f.full_line}\n"
@@ -6527,7 +6616,7 @@ def flash_phone(self):
                             data_win += f"{add_echo}\"{get_fastboot()}\" -s {device_id} {fastboot_options2} {action} {arg1}\n"
                             data_linux += f"{add_echo}\"{get_fastboot()}\" -s {device_id} {fastboot_options2} {action} {arg1}\n"
                         # echo add testing of fastbootd mode if we are in dry run mode and sdk < 34
-                        sdk_version_components = get_sdk_version().split('.')
+                        sdk_version_components = (get_sdk_version() or '').split('.')
                         sdk_major_version = int(sdk_version_components[0])
                         if self.config.flash_mode == 'dryRun' and sdk_major_version < 34:
                             data_tmp = "\necho This is a test for fastbootd mode ...\n"
@@ -6550,6 +6639,47 @@ def flash_phone(self):
 
             title = "Flash Options"
             message = "%s%s \n" % (get_flash_settings(self), message)
+
+        # ============================================
+        # Sub Function                refresh_and_done
+        # ============================================
+        def refresh_and_done(final_message=False):
+            # nonlocal device
+            print("Sleeping 10 seconds ...")
+            puml(f":Sleeping 10 seconds;\n", True)
+            time.sleep(10)
+            self.refresh_device(device_id)
+            device = get_phone()
+            ### Done
+            endFlash = time.time()
+            print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
+            print("------------------------------------------------------------------------------\n")
+            puml("#cee7ee:End Flashing;\n", True)
+            puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
+            self.toast(_("Flash action"), _("✅ Flashing elapsed time: %s seconds") % (math.ceil(endFlash - startFlash)))
+            puml("}\n")
+            os.chdir(cwd)
+            # if we're sideloading OTA, we should open logcat to show the merging of the OTA
+            if self.config.flash_mode == 'OTA':
+                if device:
+                    self.toast(_("⚠️ Wait for OTA Merging completion."), _("WARNING! Please wait for the OTA merging to complete.\nCheck the logcat window for the completion message.\nYou can close the logcat window when done."))
+                    print("\n===================================================================")
+                    print("  Opening logcat to show the merging of the OTA progress.")
+                    print("  Please wait until the merging is complete.")
+                    print("  When the merging is complete, you should see a message:")
+                    print("      ActionProcessor: finished ... ErrorCode::kSuccess")
+                    print("  You can close the logcat window when done.")
+                    print("  If logcat windows is closed before the merging is complete,")
+                    print("  (this can happen when you unlock the screen)")
+                    print("  you can open it again from PixelFlasher menu:")
+                    print("      Device | Logcat filter: update_engine")
+                    print("  If you get a blank logcat, this could happen, just play it safe")
+                    print("  and wait 10 minutes before you reboot again.")
+                    print("===================================================================\n")
+                    device.open_update_engine_logcat()
+            if final_message:
+                message_after_flashing()
+
 
         # ============================================
         # Sub Function     reboot_device_to_bootloader
@@ -6652,6 +6782,7 @@ def flash_phone(self):
         puml(f"note right\n{message}\nend note\n")
         puml(":Script;\n")
         puml(f"note right\nFlash Script\n====\n{data}\nend note\n")
+        result = 3
         try:
             dlg = MessageBoxEx(
                 parent=None,
@@ -6807,6 +6938,7 @@ def flash_phone(self):
         # ==========================================
         def apply_patch_if_needed():
             nonlocal device
+            assert boot is not None
             # flash patched boot / init_boot if dry run is not selected.
             if self.config.check_for_bootloader_unlocked and (not boot.is_stock_boot and self.config.flash_mode != 'dryRun'):
                 res = is_device_unlocked(self, device)
@@ -6918,6 +7050,7 @@ def flash_phone(self):
         # ==========================================
         def compare_slots():
             nonlocal device
+            assert device is not None
             # If we're doing Sideload image flashing
             if self.config.flash_mode == 'OTA':
                 # check slot
@@ -6982,6 +7115,7 @@ def flash_phone(self):
         def get_device_mode(expect_bootloader=False):
             nonlocal device
             nonlocal device_id
+            assert device is not None
             mode = device.get_device_state(device_id=device_id, timeout=60, retry=3)
             if mode and mode != "ERROR":
                 print(f"Currently the device is in {mode} mode.")
@@ -7005,46 +7139,6 @@ def flash_phone(self):
                 print("ERROR: Device could not be detected")
                 print("Aborting ...\n")
                 return -1
-
-        # ============================================
-        # Sub Function                refresh_and_done
-        # ============================================
-        def refresh_and_done(final_message=False):
-            # nonlocal device
-            print("Sleeping 10 seconds ...")
-            puml(f":Sleeping 10 seconds;\n", True)
-            time.sleep(10)
-            self.refresh_device(device_id)
-            device = get_phone()
-            ### Done
-            endFlash = time.time()
-            print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
-            print("------------------------------------------------------------------------------\n")
-            puml("#cee7ee:End Flashing;\n", True)
-            puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
-            self.toast(_("Flash action"), _("✅ Flashing elapsed time: %s seconds") % (math.ceil(endFlash - startFlash)))
-            puml("}\n")
-            os.chdir(cwd)
-            # if we're sideloading OTA, we should open logcat to show the merging of the OTA
-            if self.config.flash_mode == 'OTA':
-                if device:
-                    self.toast(_("⚠️ Wait for OTA Merging completion."), _("WARNING! Please wait for the OTA merging to complete.\nCheck the logcat window for the completion message.\nYou can close the logcat window when done."))
-                    print("\n===================================================================")
-                    print("  Opening logcat to show the merging of the OTA progress.")
-                    print("  Please wait until the merging is complete.")
-                    print("  When the merging is complete, you should see a message:")
-                    print("      ActionProcessor: finished ... ErrorCode::kSuccess")
-                    print("  You can close the logcat window when done.")
-                    print("  If logcat windows is closed before the merging is complete,")
-                    print("  (this can happen when you unlock the screen)")
-                    print("  you can open it again from PixelFlasher menu:")
-                    print("      Device | Logcat filter: update_engine")
-                    print("  If you get a blank logcat, this could happen, just play it safe")
-                    print("  and wait 10 minutes before you reboot again.")
-                    print("===================================================================\n")
-                    device.open_update_engine_logcat()
-            if final_message:
-                message_after_flashing()
 
         # -------------------------------------------------------------------------
         # 5 Finish up Do the additional checks and flashing / rebooting
@@ -7100,6 +7194,7 @@ def flash_phone(self):
                     title = _("Device is not detected.")
                     buttons_text = [_("Done rebooting to bootloader, continue"), _("Cancel")]
                     action_text = 'bootloader'
+                    assert boot is not None
                     if boot.is_stock_boot:
                         buttons_text = [_("Done rebooting to system, continue"), _("Cancel")]
                         action_text = 'system'
@@ -7195,6 +7290,7 @@ def flash_phone(self):
             # We need to have user interaction to continue further.
             else:
                 # Determine if we need to root, otherwise just display a message to reboot to system
+                assert boot is not None
                 if self.config.disable_verity or self.config.disable_verification or not boot.is_stock_boot:
                     # display a popup to ask the user to select "Reboot to bootloader" and hit to continue here when done
                     title = _("Waiting for user interaction")

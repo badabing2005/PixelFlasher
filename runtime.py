@@ -1612,6 +1612,8 @@ def get_path_to_7z() -> str | None:
         path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zz')
     else:
         path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zzs')
+        if not os.path.exists(path_to_7z):
+            path_to_7z =  os.path.join(get_bundle_dir(),'bin', '7zz')
 
     if not os.path.exists(path_to_7z):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {path_to_7z} is not found")

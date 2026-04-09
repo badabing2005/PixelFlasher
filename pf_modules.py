@@ -3593,8 +3593,9 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         # Message to Launch Manually and Patch
         title = _("Magisk Manager is not detected.")
         message_en =  f"WARNING: Magisk Manager [{self.config.magisk}] is not found on the phone\n\n"
-        message_en += "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
+        message_en += "This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n"
         message_en += "If it is installed and hidden, then you should abort and then unhide it.\n"
+        message_en += "If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n"
         message_en += "If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n"
         message_en += "WARNING: Do not install Magisk again if it is currently hidden.\n"
         message_en += "Do you want PixelFlasher to download and install Magisk?\n"
@@ -3602,8 +3603,9 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         message_en += "Click OK to continue with Magisk installation.\n"
         message_en += "or Hit CANCEL to abort."
         message =  _("WARNING: Magisk Manager [%s] is not found on the phone\n\n") % self.config.magisk
-        message += _("This could be either because it is hidden, or it is not installed (most likely not installed)\n\n")
+        message += _("This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n")
         message += _("If it is installed and hidden, then you should abort and then unhide it.\n")
+        message += _("If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n")
         message += _("If Magisk is not installed, PixelFlasher can install it for you and use it for patching.\n\n")
         message += _("WARNING: Do not install Magisk again if it is currently hidden.\n")
         message += _("Do you want PixelFlasher to download and install Magisk?\n")
@@ -4195,6 +4197,10 @@ Unless you know what you're doing, it is recommended that you choose the default
 
     is_rooted = device.rooted
     kernel_su_gz_file = None
+    m_app_version = 0
+    chosen_kernel = ''
+    kernelsu_version = None
+    kernel_patch_version = None
 
     # KernelSU
     if patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU', 'KernelSU-Legacy']:
@@ -4759,10 +4765,6 @@ Unless you know what you're doing, it is recommended that you take the default s
                 print(f"Recovery: {recovery}")
 
     # Perform the patching
-    m_app_version = 0
-    chosen_kernel = ''
-    kernelsu_version = None
-    kernel_patch_version = None
     if method == 1:
         patch_method = 'root'
         patched_img = patch_magisk_script("rooted")

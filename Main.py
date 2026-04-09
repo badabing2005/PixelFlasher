@@ -3281,6 +3281,7 @@ class PixelFlasher(wx.Frame):
         message = '=======================================\n'
         message += f"Selected Device on {datetime.now():%Y-%m-%d %H:%M:%S}:\n"
         message += '=======================================\n'
+        wx.Yield()
         message += f"    Device ID:                       {device.id}\n"
         message += f"    Device Mode:                     {device.true_mode}\n"
         if device.mode == 'f.b' or device.true_mode == 'adb':
@@ -3296,6 +3297,7 @@ class PixelFlasher(wx.Frame):
                     message += f"    Device Security Update End Date: {android_device['security_update_end_date']}\n"
             message += f"    Has init_boot partition:         {device.has_init_boot}\n"
             message += f"    Device Bootloader Version:       {device.get_prop('version-bootloader', 'ro.bootloader')}\n"
+        wx.Yield()
         if device.true_mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"
             message += f"    /data/local/tmp accessible:      {device.tmp_readable}\n"
@@ -3318,8 +3320,10 @@ class PixelFlasher(wx.Frame):
                     message += f"    Android Codename:                {android_version['Codename']}\n"
                     message += f"    Android Release Date:            {android_version['Release date']}\n"
                     message += f"    Android Latest Update:           {android_version['Latest update']}\n"
+            wx.Yield()
             if device.rooted:
                 message += self.get_vbmeta(device)
+            wx.Yield()
             if device.true_mode != 'sideload':
                 message += f"    Device Architecture:             {device.architecture}\n"
                 message += f"    Device Kernel:                   {device.kernel}\n"
@@ -3352,30 +3356,38 @@ class PixelFlasher(wx.Frame):
                 message += f"    ro.vendor.product.cpu.abilist32: {device.get_prop('ro.vendor.product.cpu.abilist32')}\n"
                 message += f"    ro.boot.hw.soc.sec-ar:           {device.get_prop('ro.boot.hw.soc.sec-ar')}\n"
                 message += f"    ro.boot.hw.soc.nonsec-ar:        {device.get_prop('ro.boot.hw.soc.nonsec-ar')}\n"
+                wx.Yield()
                 m_app_version = device.magisk_app_version
                 if m_app_version:
                     message += f"    Magisk Manager Version:          {m_app_version}\n"
                     # message += f"    Magisk Path:                     {device.magisk_path}\n"
                     message += f"      Checked for Package:           {self.config.magisk}\n"
                 k_app_version = device.ksu_app_version
+                wx.Yield()
                 if k_app_version:
                     message += f"    KernelSU App Version:            {k_app_version}\n"
                 s_app_version = device.sukisu_app_version
+                wx.Yield()
                 if s_app_version:
                     message += f"    SukiSU App Version:              {s_app_version}\n"
                 w_app_version = device.wild_ksu_app_version
+                wx.Yield()
                 if w_app_version:
                     message += f"    Wild_KSU App Version:            {w_app_version}\n"
                 k_next_app_version = device.ksu_next_app_version
+                wx.Yield()
                 if k_next_app_version:
                     message += f"    KernelSU Next App Version:       {k_next_app_version}\n"
                 a_app_version = device.apatch_app_version
+                wx.Yield()
                 if a_app_version:
                     message += f"    APatch App Version:              {a_app_version}\n"
                 a_next_app_version = device.apatch_next_app_version
+                wx.Yield()
                 if a_next_app_version:
                     message += f"    APatch Next App Version:         {a_next_app_version}\n"
         elif device.mode == 'f.b':
+            wx.Yield()
             message += f"    Device Unlocked:                 {device.unlocked}\n"
             if not device.unlocked:
                 message += f"    Device Unlockable:               {device.unlock_ability}\n"
@@ -3388,21 +3400,25 @@ class PixelFlasher(wx.Frame):
             message += f"    ap-ar-s:                         {device.get_prop('ap-ar-s')}\n"
             message += f"    ap-ar-ns:                        {device.get_prop('ap-ar-ns')}\n"
             message += f"    PF Bootloader Status:            {device.get_bl_status().upper()}\n"
+        wx.Yield()
         if device.rooted:
             message += f"    Device Rooted with:              {device.su_version}\n"
             message += f"    SU Version:                      {device.root_version}\n"
+            wx.Yield()
             if "apatch" in device.su_version.lower():
                 a_version = device.apatch_version
                 message += f"      APatch Version:                {a_version}\n"
                 message += "      Apatch Modules:\n"
                 modules = device.apatch_modules_summary
                 message += f"{modules}"
+                wx.Yield()
             elif "kernelsu" in device.su_version.lower():
                 k_version = device.ksu_version
                 message += f"      KSUd Version:                  {k_version}\n"
                 message += "      KSUd Modules:\n"
                 modules = device.ksu_modules_summary
                 message += f"{modules}"
+                wx.Yield()
             else:
                 m_version = device.magisk_version
                 message += f"      Magisk Version:                {m_version}\n"
@@ -3412,6 +3428,7 @@ class PixelFlasher(wx.Frame):
                 message += "      Magisk Modules:\n"
                 modules = device.magisk_modules_summary
                 message += f"{modules}"
+            wx.Yield()
             if "lsposed" in modules.lower():
                 message += "      LSPosed Modules:\n"
                 message += f"{device.lsposed_modules_summary}"
@@ -3425,6 +3442,7 @@ class PixelFlasher(wx.Frame):
         self._check_for_bad_kernel(device.kernel)
         end = time.time()
         print(f"Device Load time: {math.ceil(end - start)} seconds")
+        wx.Yield()
 
     # -----------------------------------------------
     #                  get_vbmeta
@@ -3563,6 +3581,7 @@ class PixelFlasher(wx.Frame):
             if self.config.device:
                 count = 0
                 for device in get_phones():
+                    wx.Yield()
                     if device.id == self.config.device:
                         self.device_choice.Select(count)
                         set_phone_id(device.id)
@@ -3578,6 +3597,7 @@ class PixelFlasher(wx.Frame):
                 id = id[2]
                 self.config.device = id
                 for device in get_phones():
+                    wx.Yield()
                     if device.id == id:
                         set_phone_id(device.id)
                         puml(f":Select Device;\n", True)

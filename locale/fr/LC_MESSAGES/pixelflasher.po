@@ -1611,9 +1611,6 @@ msgstr "Magisk Manager n'est pas détecté."
 msgid "WARNING: Magisk Manager [%s] is not found on the phone\n\n"
 msgstr "ATTENTION : Magisk Manager [%s] n'est pas trouvé sur le téléphone\n\n"
 
-msgid "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
-msgstr "Cela pourrait être soit parce qu'il est caché, soit parce qu'il n'est pas installé (probablement pas installé)\n\n"
-
 msgid "If it is installed and hidden, then you should abort and then unhide it.\n"
 msgstr "S'il est installé et caché, vous devriez abandonner puis le démasquer.\n"
 
@@ -3082,3 +3079,11 @@ msgstr "\n    ⚠️ AVERTISSEMENT ! AVERTISSEMENT ! AVERTISSEMENT !    La versi
 msgid "                                     If you need to disable verity or verification, please use a different SDK version.\n\n"
 msgstr "                                     Si vous devez désactiver verity ou la vérification, veuillez utiliser une version différente du SDK.\n\n"
 
+##############################################################################
+# Additions 2026-04-08
+##############################################################################
+msgid "This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n"
+msgstr ""
+
+msgid "If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n"
+msgstr ""

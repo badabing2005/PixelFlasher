@@ -278,6 +278,7 @@ class DownloadState:
         self.downloaded_bytes = 0
         self.file_size = 0
         self.download_complete = False
+        self.download_error = False
         self.fingerprint: Optional[str] = None
         self.security_patch: Optional[str] = None
 
@@ -4900,6 +4901,11 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, ove
                 debug(f"Download incomplete ({state.downloaded_bytes}/{state.file_size} bytes), cannot use fallback")
                 return None, None
 
+            # Check if download ended with an error (e.g. timeout after all retries)
+            if state.download_error:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Download did not complete successfully ({state.downloaded_bytes}/{state.file_size} bytes). Skipping full-file processing.")
+                return None, None
+
             if os.path.exists(temp_file_path):
                 debug(f"Processing full file with get_pif_from_image: {temp_file_path}")
                 try:
@@ -4974,43 +4980,74 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, ove
 #                Function download_thread
 # ============================================================================
 def download_thread(state, url, temp_file_path):
+    max_retries = 3
+    attempt = 0
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
-            # Get file size first
-            response_head = requests.head(url, verify=False, timeout=30)
-            state.file_size = int(response_head.headers.get('Content-Length', 0))
-            debug(f"File size: {state.file_size} bytes")
+            while attempt < max_retries and not state.stop_event.is_set():
+                attempt += 1
+                resume_pos = state.downloaded_bytes
+                if resume_pos > 0:
+                    debug(f"Resuming download from byte {resume_pos} (attempt {attempt}/{max_retries})")
+                else:
+                    debug(f"Starting download (attempt {attempt}/{max_retries})")
 
-            # Open temp file for writing
-            temp_file = open(temp_file_path, 'wb')
+                try:
+                    # Open temp file — append if resuming, write fresh otherwise
+                    file_mode = 'ab' if resume_pos > 0 else 'wb'
+                    headers = {"Accept-Encoding": "identity"}
+                    if resume_pos > 0:
+                        headers["Range"] = f"bytes={resume_pos}-"
 
-            # Stream download
-            headers = {"Accept-Encoding": "identity"}
-            response = requests.get(url, headers=headers, stream=True, verify=False, timeout=60)
+                    response = requests.get(url, headers=headers, stream=True, verify=False, timeout=60)
 
-            try:
-                while not state.stop_event.is_set():
-                    data = response.raw.read(8192)
+                    if resume_pos > 0:
+                        content_range = response.headers.get('Content-Range', '')
+                        # Content-Range: bytes 1234-5678/9999
+                        cr_match = re.search(r'/(\d+)$', content_range)
+                        if cr_match:
+                            state.file_size = int(cr_match.group(1))
+                    else:
+                        cl = response.headers.get('Content-Length', 0)
+                        if cl:
+                            state.file_size = int(cl)
+                    debug(f"File size: {state.file_size} bytes")
 
-                    if not data:
-                        # Check if we've reached end of stream
-                        time.sleep(0.1)
-                        data = response.raw.read(8192)
-                        if not data:
-                            break
+                    with open(temp_file_path, file_mode) as temp_file:
+                        while not state.stop_event.is_set():
+                            data = response.raw.read(8192)
 
-                    temp_file.write(data)
-                    state.downloaded_bytes += len(data)
+                            if not data:
+                                # Check if we've reached end of stream
+                                time.sleep(0.1)
+                                data = response.raw.read(8192)
+                                if not data:
+                                    break
 
-            finally:
-                temp_file.close()
-                state.download_complete = True
-                debug(f"Download thread complete: {state.downloaded_bytes} bytes")
+                            temp_file.write(data)
+                            state.downloaded_bytes += len(data)
+
+                    # If we reach here without exception the download finished
+                    state.download_complete = True
+                    debug(f"Download thread complete: {state.downloaded_bytes} bytes")
+                    return
+
+                except Exception as e:
+                    debug(f"Download thread error on attempt {attempt}/{max_retries}: {e}")
+                    if attempt >= max_retries:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Download failed after {max_retries} attempts: {e}")
+                        state.download_error = True
+                    else:
+                        debug(f"Retrying download...")
+                        time.sleep(2)
 
     except Exception as e:
-        debug(f"Download thread error: {e}")
+        debug(f"Download thread fatal error: {e}")
+        state.download_error = True
+    finally:
+        # Always mark complete so the main loop is not left waiting
         state.download_complete = True
 
 

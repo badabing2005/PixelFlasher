@@ -1575,9 +1575,6 @@ msgstr ""
 msgid "WARNING: Magisk Manager [%s] is not found on the phone\n\n"
 msgstr ""
 
-msgid "This could be either because it is hidden, or it is not installed (most likely not installed)\n\n"
-msgstr ""
-
 msgid "If it is installed and hidden, then you should abort and then unhide it.\n"
 msgstr ""
 
@@ -3047,3 +3044,11 @@ msgstr ""
 msgid "                                     If you need to disable verity or verification, please use a different SDK version.\n\n"
 msgstr ""
 
+##############################################################################
+# Additions 2026-04-08
+##############################################################################
+msgid "This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n"
+msgstr ""
+
+msgid "If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n"
+msgstr ""

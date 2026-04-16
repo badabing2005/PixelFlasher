@@ -34,23 +34,35 @@
 # <https://www.gnu.org/licenses/>.
 
 import wx
+import wx.lib.mixins.listctrl as listmix
+import images
 from i18n import _
+
+
+# ============================================================================
+#                               Class ListCtrl
+# ============================================================================
+class ListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
+    def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
+        listmix.ListCtrlAutoWidthMixin.__init__(self)
 
 
 # ============================================================================
 #                               Class DeviceSelectorDialog
 # ============================================================================
-class DeviceSelectorDialog(wx.Dialog):
+class DeviceSelectorDialog(wx.Dialog, listmix.ColumnSorterMixin):
 
     # ============================================================================
     #                               Function __init__
     # ============================================================================
-    def __init__(self, parent, devices, title=_("Select Device"), message=_("Select a device:"), select_device=None):
-        super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+    def __init__(self, parent, devices, title=_("Select Device"), message=_("Select a device:"), select_device=None, show_filename=True):
+        wx.Dialog.__init__(self, parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.devices = devices
         self.selected_device = None
         self._select_device = select_device
+        self.show_filename = show_filename
 
         self._create_ui(message)
         self._bind_events()
@@ -67,18 +79,45 @@ class DeviceSelectorDialog(wx.Dialog):
         message_label = wx.StaticText(self, label=message)
         main_sizer.Add(message_label, 0, wx.ALL | wx.EXPAND, 10)
 
+        # Sort arrow images
+        self.il = wx.ImageList(16, 16)
+        self.sm_up = self.il.Add(images.SmallUpArrow.GetBitmap())
+        self.sm_dn = self.il.Add(images.SmallDnArrow.GetBitmap())
+
         # Device list
-        self.device_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
-        self.device_list.AppendColumn("Device", width=200)
-        self.device_list.AppendColumn("Filename", width=500)
+        self.device_list = ListCtrl(self, -1, style=wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.BORDER_NONE)
+        self.device_list.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
+        self.device_list.AppendColumn(_("Device"), width=200)
+        if self.show_filename:
+            self.device_list.AppendColumn(_("Filename"), width=400)
+
+        has_dates = any('last_updated' in d for d in self.devices)
+        if has_dates:
+            self.device_list.AppendColumn(_("Last Updated"), width=110)
 
         # Populate the list
+        self.itemDataMap = {}
         selected_index = None
 
         for i, device in enumerate(self.devices):
             index = self.device_list.InsertItem(i, device.get('device', 'Unknown'))
-            self.device_list.SetItem(index, 1, device.get('zip_filename', ''))
+            self.device_list.SetItemColumnImage(index, 0, -1)  # suppress row icon
+            col = 1
+            if self.show_filename:
+                self.device_list.SetItem(index, col, device.get('zip_filename', ''))
+                col += 1
+            if has_dates:
+                self.device_list.SetItem(index, col, device.get('last_updated', ''))
             self.device_list.SetItemData(index, i)
+
+            # Build sort map tuple, must match column order
+            map_vals = [device.get('device', '')]
+            if self.show_filename:
+                map_vals.append(device.get('zip_filename', ''))
+            if has_dates:
+                map_vals.append(device.get('last_updated', ''))
+            self.itemDataMap[i] = tuple(map_vals)
+
             if selected_index is None and self._matches_select_device(device):
                 selected_index = index
 
@@ -88,6 +127,10 @@ class DeviceSelectorDialog(wx.Dialog):
             self.device_list.EnsureVisible(selected_index)
         elif self.devices:
             self.device_list.Select(0)
+
+        # Init column sorter, must be after itemDataMap and device_list are ready
+        num_cols = 1 + (1 if self.show_filename else 0) + (1 if has_dates else 0)
+        listmix.ColumnSorterMixin.__init__(self, num_cols)
 
         main_sizer.Add(self.device_list, 1, wx.ALL | wx.EXPAND, 10)
 
@@ -105,6 +148,20 @@ class DeviceSelectorDialog(wx.Dialog):
         main_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
 
         self.SetSizer(main_sizer)
+
+    # ============================================================================
+    #                               Function GetListCtrl
+    # ============================================================================
+    # Used by ColumnSorterMixin
+    def GetListCtrl(self):
+        return self.device_list
+
+    # ============================================================================
+    #                               Function GetSortImages
+    # ============================================================================
+    # Used by ColumnSorterMixin
+    def GetSortImages(self):
+        return (self.sm_dn, self.sm_up)
 
     # ============================================================================
     #                               Function _matches_select_device
@@ -196,7 +253,7 @@ class DeviceSelectorDialog(wx.Dialog):
 # ============================================================================
 #                               Function show_device_selector
 # ============================================================================
-def show_device_selector(parent, devices, title=_("Select Device"), message=_("Select a device:"), select_device=None):
+def show_device_selector(parent, devices, title=_("Select Device"), message=_("Select a device:"), select_device=None, show_filename=True):
     """
     Show device selector dialog and return selected device.
 
@@ -206,6 +263,7 @@ def show_device_selector(parent, devices, title=_("Select Device"), message=_("S
         title: Dialog title
         message: Message to display above the list
         select_device: Preferred device (dict or string identifier) to pre-select if available
+        show_filename: Whether to show the Filename column (default True)
 
     Returns:
         Selected device dictionary or None if cancelled
@@ -214,7 +272,7 @@ def show_device_selector(parent, devices, title=_("Select Device"), message=_("S
         wx.MessageBox(_("No devices available."), _("Error"), wx.OK | wx.ICON_ERROR, parent)
         return None
 
-    dialog = DeviceSelectorDialog(parent, devices, title, message, select_device=select_device)
+    dialog = DeviceSelectorDialog(parent, devices, title, message, select_device=select_device, show_filename=show_filename)
 
     try:
         if dialog.ShowModal() == wx.ID_OK:

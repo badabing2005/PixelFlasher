@@ -56,6 +56,7 @@ import sys
 import random
 import tarfile
 import tempfile
+import concurrent.futures
 import threading
 import time
 import traceback
@@ -3718,21 +3719,53 @@ def get_canary_miner(device_model='random', default_selection=None, miner_url=No
         page_html = response.text
         file_list = []
         directory = path.basename(urlparse(miner_url).path) or "devices"
+
+        # Build file list from the embedded JSON (deduplicated, GitHub repeats entries)
         file_pattern = rf'{{"name":"([^"]+)","path":"({re.escape(directory)}/[^"]+)","contentType":"file"}}'
-        matches = re.findall(file_pattern, page_html)
-        for match in matches:
+        seen_paths = set()
+        for match in re.findall(file_pattern, page_html):
             file_name = match[0]
             if '.pif.prop' not in file_name:
                 continue
+            repo_file_path = match[1]
+            if repo_file_path in seen_paths:
+                continue
+            seen_paths.add(repo_file_path)
             file_name = file_name.replace('.pif.prop', '')
-            file_path = match[1]
-            file_path = f"https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/{file_path}"
-            file_list.append({"device": file_name, "path": file_path})
+            file_path = f"https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/{repo_file_path}"
+            file_list.append({"device": file_name, "path": file_path, "repo_path": repo_file_path})
             if device_model != 'random' and device_model != '_select_' and device_model in file_name:
                 canary_url = file_path
                 canary_device = device_model
 
         debug(f"Found {len(file_list)} Canary PIF files")
+
+        # Fetch per-file last-commit dates via GitHub API
+        if device_model == '_select_' and file_list:
+            parsed_miner = urlparse(miner_url)
+            miner_pp = [p for p in parsed_miner.path.split('/') if p]
+            if parsed_miner.netloc in ('github.com', 'www.github.com') and len(miner_pp) >= 2:
+                gh_owner, gh_repo = miner_pp[0], miner_pp[1]
+
+                def _fetch_commit_date(item):
+                    try:
+                        r = requests.get(
+                            f"https://api.github.com/repos/{gh_owner}/{gh_repo}/commits",
+                            params={"path": item['repo_path'], "per_page": 1},
+                            timeout=10
+                        )
+                        if r.status_code == 200:
+                            data = r.json()
+                            if data:
+                                item['last_updated'] = data[0]['commit']['committer']['date'][:10]
+                    except Exception:
+                        pass
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=len(file_list)) as executor:
+                    list(executor.map(_fetch_commit_date, file_list))
+                dates_found = sum(1 for item in file_list if 'last_updated' in item)
+                debug(f"Fetched commit dates for {dates_found}/{len(file_list)} files")
+
         if device_model == 'random':
             selected_file = random.choice(file_list)
             canary_url = selected_file['path']
@@ -3744,7 +3777,7 @@ def get_canary_miner(device_model='random', default_selection=None, miner_url=No
                 canary_url = only_file['path']
                 canary_device = only_file['device']
             else:
-                result = select_pif_device(file_list, default_selection, device_type="Canary")
+                result = select_pif_device(file_list, default_selection, device_type="Canary", show_filename=False)
                 canary_url, canary_device = result if result is not None else (None, False)
             if not canary_url or not canary_device:
                 return "Selection cancelled."
@@ -3768,7 +3801,7 @@ def get_canary_miner(device_model='random', default_selection=None, miner_url=No
 # ============================================================================
 #                 Function select_pif_device
 # ============================================================================
-def select_pif_device(devices_data, default_selection=None, device_type="") -> tuple[str, str] | tuple[None, bool] | None:
+def select_pif_device(devices_data, default_selection=None, device_type="", show_filename=True) -> tuple[str, str] | tuple[None, bool] | None:
     try:
         from device_selector import show_device_selector
         selected_device = show_device_selector(
@@ -3776,7 +3809,8 @@ def select_pif_device(devices_data, default_selection=None, device_type="") -> t
             devices=devices_data,
             title=f"Select {device_type} Device",
             message=f"Select a {device_type} device:",
-            select_device=default_selection
+            select_device=default_selection,
+            show_filename=show_filename
         )
         if selected_device:
             pif_url = selected_device['path']

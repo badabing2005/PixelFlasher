@@ -3083,7 +3083,20 @@ msgstr "                                     Si vous devez désactiver verity ou
 # Additions 2026-04-08
 ##############################################################################
 msgid "This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n"
-msgstr ""
+msgstr "Cela peut être soit parce qu'il est caché, pas installé ou que les choses ont changé en dehors de PixelFlasher\n\n"
 
 msgid "If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n"
-msgstr ""
+msgstr "Si les choses ont été modifiées en dehors de PixelFlasher, alors rafraîchissez le téléphone en utilisant le bouton Scan.\n"
+
+##############################################################################
+# Additions 2026-05-11
+##############################################################################
+msgid "      ⚠️ WARNING: Bootloader version %s is older than the minimum ARB safe version %s\n"
+msgstr "      ⚠️ AVERTISSEMENT : La version du bootloader %s est plus ancienne que la version minimale ARB sécurisée %s\n"
+
+msgid "WARNING! ARB Affected"
+msgstr "AVERTISSEMENT ! Affecté par ARB"
+
+msgid "⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s"
+msgstr "⚠️ La version du bootloader : %s est plus ancienne que la version minimale ARB sécurisée : %s"
+

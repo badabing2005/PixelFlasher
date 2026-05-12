@@ -3084,7 +3084,21 @@ msgstr "                                     Se hai bisogno di disabilitare veri
 # Additions 2026-04-08
 ##############################################################################
 msgid "This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n"
-msgstr ""
+msgstr "Questo potrebbe essere dovuto al fatto che è nascosto, non installato o le cose sono cambiate al di fuori di PixelFlasher\n\n"
 
 msgid "If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n"
-msgstr ""
+msgstr "Se le cose sono state cambiate al di fuori di PixelFlasher, allora aggiorna il telefono usando il pulsante Scansione.\n"
+
+##############################################################################
+# Additions 2026-05-11
+##############################################################################
+msgid "      ⚠️ WARNING: Bootloader version %s is older than the minimum ARB safe version %s\n"
+msgstr "      ⚠️ ATTENZIONE: La versione del bootloader %s è più vecchia della versione minima ARB sicura %s\n"
+
+msgid "WARNING! ARB Affected"
+msgstr "ATTENZIONE! ARB Interessato"
+
+msgid "⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s"
+msgstr "⚠️ La versione del bootloader: %s è più vecchia della versione minima ARB sicura: %s"
+
+

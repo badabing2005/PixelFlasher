@@ -35,7 +35,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '9.0.2.0'
+VERSION = '9.0.3.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -67,7 +67,6 @@ APATCH_NEXT_PKG_NAME = 'me.garfieldhan.apatch.next'
 ZYGISK_NEXT_UPDATE_URL = 'https://api.nullptr.icu/android/zygisk-next/static/update.json'
 ANDROID_CANARY_VERSION = 'CANARY_r03'
 TARGETEDFIX_CONFIG_PATH = '/data/adb/modules/targetedfix/config'
-CANARY_MINER_CATALOG_URL = 'https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/catalog.json'
 
 # https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/page-518#post-89308909
 BANNED_KERNELS = [
@@ -129,3 +128,18 @@ LANGUAGE_NAMES = {
     'zh_CN': '简体中文 (Simplified Chinese)',
     'zh_TW': '繁體中文 (Traditional Chinese)'
 }
+
+# Minimum safe bootloader version to avoid ARB issues.
+MIN_SAFE_BOOTLOADER_VERSIONS = {
+    "bluejay": "15.3-13239612",
+    "oriole": "15.3-13239612",
+    "raven": "15.3-13239612",
+    "akita": "15.3-13266201",
+    "shiba": "15.3-13272266",
+    "husky": "15.3-13272266",
+    "frankel": "17.1-15016913",
+    "blazer": "17.1-15016913",
+    "mustang": "17.1-15016913",
+    "rango": "17.1-15016913"
+}
+

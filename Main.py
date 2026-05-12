@@ -3296,7 +3296,20 @@ class PixelFlasher(wx.Frame):
                     message += f"    Device Version End Date:         {android_device['android_version_end_date']}\n"
                     message += f"    Device Security Update End Date: {android_device['security_update_end_date']}\n"
             message += f"    Has init_boot partition:         {device.has_init_boot}\n"
-            message += f"    Device Bootloader Version:       {device.get_prop('version-bootloader', 'ro.bootloader')}\n"
+            d_bootloader_version = device.get_prop('version-bootloader', 'ro.bootloader')
+            message += f"    Device Bootloader Version:       {d_bootloader_version}\n"
+            if d_bootloader_version and d_bootloader_version != 'unknown':
+                min_safe_version = MIN_SAFE_BOOTLOADER_VERSIONS.get(device.hardware)
+                if min_safe_version:
+                    actual_bootloader_version = d_bootloader_version
+                    if not actual_bootloader_version[0].isdigit() and '-' in actual_bootloader_version:
+                        candidate_version = actual_bootloader_version.split('-', 1)[1]
+                        if candidate_version and candidate_version[0].isdigit():
+                            actual_bootloader_version = candidate_version
+                    if is_bootloader_version_older(actual_bootloader_version, min_safe_version):
+                        message += _("      ⚠️ WARNING: Bootloader version %s is older than the minimum ARB safe version %s\n") % (d_bootloader_version, min_safe_version)
+                        self.toast(_("WARNING! ARB Affected"), _("⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s") % (d_bootloader_version, min_safe_version))
+
         wx.Yield()
         if device.true_mode == 'adb':
             message += f"    Device is Rooted:                {device.rooted}\n"

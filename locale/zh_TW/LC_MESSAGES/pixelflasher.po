@@ -3085,3 +3085,16 @@ msgstr ""
 
 msgid "If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n"
 msgstr ""
+
+##############################################################################
+# Additions 2026-05-11
+##############################################################################
+msgid "      ⚠️ WARNING: Bootloader version %s is older than the minimum ARB safe version %s\n"
+msgstr ""
+
+msgid "WARNING! ARB Affected"
+msgstr ""
+
+msgid "⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s"
+msgstr ""
+

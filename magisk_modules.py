@@ -675,8 +675,10 @@ class MagiskModules(wx.Dialog):
         try:
             device = get_phone(True)
             if not device:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
                 return
             if not device.rooted:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected device is not rooted.")
                 return
             buttons_text = [_("osm0sis PlayIntegrityFork"), "TrickyStore", "Tricky Store OSS", "TEESimulator", "TEESimulator-RS", "TargetedFix", _("Cancel")]
             dlg = MessageBoxEx(

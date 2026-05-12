@@ -3732,7 +3732,7 @@ def get_canary_miner(device_model='random', default_selection=None, miner_url=No
                 continue
             seen_paths.add(repo_file_path)
             file_name = file_name.replace('.pif.prop', '')
-            file_path = f"https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/main/{repo_file_path}"
+            file_path = f"https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/{get_config().canary_miner_channel}/{repo_file_path}"
             file_list.append({"device": file_name, "path": file_path, "repo_path": repo_file_path})
             if device_model != 'random' and device_model != '_select_' and device_model in file_name:
                 canary_url = file_path
@@ -5149,7 +5149,7 @@ def fetch_canary_miner_catalog(catalog_path=None):
         catalog_path = os.path.join(get_config_path(), 'canary_miner_catalog.json').strip()
 
     try:
-        catalog_url = CANARY_MINER_CATALOG_URL
+        catalog_url = f'https://raw.githubusercontent.com/Vagelis1608/get_the_canary_miner/refs/heads/{get_config().canary_miner_channel}/catalog.json'
         if 'github.com' in catalog_url and '/blob/' in catalog_url:
             catalog_url = catalog_url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/')
 
@@ -8808,7 +8808,9 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                         'ecdsa_leaf': ecdsa_leaf,
                         'ecdsa_chain': ecdsa_chain,
                         'rsa_leaf': rsa_leaf,
-                        'rsa_chain': rsa_chain
+                        'rsa_chain': rsa_chain,
+                        'ecdsa_not_after': entry.get('ecdsa_not_after', ''),
+                        'rsa_not_after': entry.get('rsa_not_after', '')
                     })
 
                     # Count unique file entries with valid certificates
@@ -8837,7 +8839,9 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                         'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
                         'rsa_issuer': entry.get('rsa_issuer', ''),
                         'rsa_leaf': rsa_leaf,
-                        'rsa_chain': rsa_chain
+                        'rsa_chain': rsa_chain,
+                        'ecdsa_not_after': entry.get('ecdsa_not_after', ''),
+                        'rsa_not_after': entry.get('rsa_not_after', '')
                     })
 
                 # Count entries with valid ECDSA leaf but revoked ECDSA chain
@@ -8854,7 +8858,9 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                             'rsa_leaf': rsa_leaf,
                             'rsa_chain': rsa_chain,
                             'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
-                            'rsa_issuer': entry.get('rsa_issuer', '')
+                            'rsa_issuer': entry.get('rsa_issuer', ''),
+                            'ecdsa_not_after': entry.get('ecdsa_not_after', ''),
+                            'rsa_not_after': entry.get('rsa_not_after', '')
                         })
 
                 if ecdsa_leaf_valid and ecdsa_chain_valid and rsa_leaf_valid and rsa_chain_valid:
@@ -8864,7 +8870,9 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                         'files': files,
                         'file_count': len(files),
                         'ecdsa_issuer': entry.get('ecdsa_issuer', ''),
-                        'rsa_issuer': entry.get('rsa_issuer', '')
+                        'rsa_issuer': entry.get('rsa_issuer', ''),
+                        'ecdsa_not_after': entry.get('ecdsa_not_after', ''),
+                        'rsa_not_after': entry.get('rsa_not_after', '')
                     })
 
                 # Collect unique issuers
@@ -8991,6 +8999,10 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                 file_path = entry['file'].get('path', '') if isinstance(entry['file'], dict) else str(entry['file'])
                 print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
                 print(f"     Status: ECDSA({entry['ecdsa_leaf']}/{entry['ecdsa_chain']}) RSA({entry['rsa_leaf']}/{entry['rsa_chain']})")
+                if entry.get('ecdsa_not_after'):
+                    print(f"     ECDSA expires: {entry['ecdsa_not_after']}")
+                if entry.get('rsa_not_after'):
+                    print(f"     RSA expires:   {entry['rsa_not_after']}")
                 print(f"     File: {file_path}")
                 print()
 
@@ -9006,6 +9018,10 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                     print(f"     ECDSA Issuer: {entry['ecdsa_issuer']}")
                     if entry['rsa_issuer']:
                         print(f"     RSA Issuer: {entry['rsa_issuer']}")
+                    if entry.get('ecdsa_not_after'):
+                        print(f"     ECDSA expires: {entry['ecdsa_not_after']}")
+                    if entry.get('rsa_not_after'):
+                        print(f"     RSA expires:   {entry['rsa_not_after']}")
                     print(f"     Files: {entry['file_count']}")
                     # List the actual files
                     kb_entry = kb_index.get(entry['ecdsa_sn'], {})
@@ -9024,6 +9040,10 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                     print(f"{i:3d}. ECDSA SN: {entry['ecdsa_sn']}")
                     print(f"     ECDSA Issuer: {entry['ecdsa_issuer']}")
                     print(f"     RSA Issuer: {entry['rsa_issuer']}")
+                    if entry.get('ecdsa_not_after'):
+                        print(f"     ECDSA expires: {entry['ecdsa_not_after']}")
+                    if entry.get('rsa_not_after'):
+                        print(f"     RSA expires:   {entry['rsa_not_after']}")
                     print(f"     Files: {entry['file_count']}")
                     # List the actual files
                     kb_entry = kb_index.get(entry['ecdsa_sn'], {})
@@ -9045,6 +9065,10 @@ def kb_stats(verbose=False, list_unique_files=False, list_valid_entries=False, l
                 print(f"     ECDSA Issuer: {entry['ecdsa_issuer']}")
                 if entry['rsa_issuer']:
                     print(f"     RSA Issuer: {entry['rsa_issuer']}")
+                if entry.get('ecdsa_not_after'):
+                    print(f"     ECDSA expires: {entry['ecdsa_not_after']}")
+                if entry.get('rsa_not_after'):
+                    print(f"     RSA expires:   {entry['rsa_not_after']}")
                 print(f"     Files: {entry['file_count']}")
                 # List the actual files
                 kb_entry = kb_index.get(entry['ecdsa_sn'], {})
@@ -10434,14 +10458,7 @@ def get_bootloader_versions():
             return
 
         # Define the minimum safe versions for different ARB effected devices
-        min_versions = {
-            "bluejay": "15.3-13239612",
-            "oriole": "15.3-13239612",
-            "raven": "15.3-13239612",
-            "akita": "15.3-13266201",
-            "shiba": "15.3-13272266",
-            "husky": "15.3-13272266"
-        }
+        min_versions = MIN_SAFE_BOOTLOADER_VERSIONS
 
         print("\n=================================================")
         print(f"Slot A Bootloader Version: {abl_a_version}")

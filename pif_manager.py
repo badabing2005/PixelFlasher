@@ -1681,6 +1681,8 @@ class PifManager(wx.Dialog):
             if device:
                 device_model = device.hardware
             buttons_text = [_("Canary Device"), "Canary Emulator", "Beta Device", _("Cancel")]
+            radio_labels = ["Stable Channel (Recommended)", "Main Channel"]
+            radio_initial_value = 0 if get_config().canary_miner_channel == 'stable' else 1
             dlg = MessageBoxEx(
                 parent=self,
                 title=_('Canary Miner Selection'),
@@ -1697,22 +1699,30 @@ class PifManager(wx.Dialog):
                 checkbox_labels2=None,
                 checkbox_initial_values2=None,
                 disable_checkboxes2=None,
-                radio_labels=None,
-                radio_initial_value=None,
+                radio_labels=radio_labels,
+                radio_initial_value=radio_initial_value,
                 disable_radios=None,
                 vertical_radios=False
             )
             dlg.CentreOnParent(wx.BOTH)
             result = dlg.ShowModal()
+            dialog_values = dlg.return_value
             dlg.Destroy()
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
             miner_url = None
+            channel = get_config().canary_miner_channel
+            selected_radio_index = dialog_values.get('radio') if dialog_values else None
+            if selected_radio_index is not None:
+                if selected_radio_index == 0:
+                    channel = 'stable'
+                else:
+                    channel = 'main'
             if result == 1:
-                miner_url = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/devices"
+                miner_url = f"https://github.com/Vagelis1608/get_the_canary_miner/tree/{channel}/devices"
             elif result == 2:
-                miner_url = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/emulator"
+                miner_url = f"https://github.com/Vagelis1608/get_the_canary_miner/tree/{channel}/emulator"
             elif result == 3:
-                miner_url = "https://github.com/Vagelis1608/get_the_canary_miner/tree/main/betas"
+                miner_url = f"https://github.com/Vagelis1608/get_the_canary_miner/tree/{channel}/betas"
             else:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
                 print("Aborting ...\n")

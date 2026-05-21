@@ -71,7 +71,10 @@ jobs:
 
       - name: Install wxPython
         run: |
-          python3 -m pip install wxPython==4.2.2
+          # 1) Try binary wheels only (fast)
+          # 2) Fallback to pip source build if wheels not available
+          # 3) Final fallback: install system wxGTK package if build fails
+          python3 -m pip install --only-binary :all: wxPython==4.2.2 || python3 -m pip install wxPython==4.2.2 || (sudo apt-get update && sudo apt-get install -y python3-wxgtk4.0 python3.11-wxgtk4.0)
 
       - name: Install requirements
         run: python3 -m pip install -r requirements.txt

@@ -19,4 +19,6 @@ chardet>=5.2.0,<7
 cryptography>=42.0.5
 rsa>=4.9
 polib>=1.1.1
-wxPython==4.2.2
+# wxPython installed separately per-platform:
+# - Windows: pip install wxPython==4.2.2 (wheels available)
+# - Linux/AppImage: sudo apt-get install python3-wxgtk4.0 (apt package)

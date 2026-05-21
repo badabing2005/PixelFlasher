@@ -3100,3 +3100,24 @@ msgstr "AVERTISSEMENT ! Affecté par ARB"
 msgid "⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s"
 msgstr "⚠️ La version du bootloader : %s est plus ancienne que la version minimale ARB sécurisée : %s"
 
+##############################################################################
+# Additions 2026-05-20
+##############################################################################
+msgid "WARNING: The selected image's SPL (%s)\n"
+msgstr "AVERTISSEMENT : Le SPL de l'image sélectionnée (%s)\n"
+
+msgid "does not match the device's build SPL (%s).\n\n"
+msgstr "ne correspond pas au SPL de build de l'appareil (%s).\n\n"
+
+msgid "The image might not be compatible.\n"
+msgstr "L'image pourrait ne pas être compatible.\n"
+
+msgid "Proceed only if you are absolutely certain.\n\n"
+msgstr "Procédez uniquement si vous en êtes absolument certain.\n\n"
+
+msgid "Click OK to continue or CANCEL to abort.\n"
+msgstr "Cliquez sur OK pour continuer ou ANNULER pour abandonner.\n"
+
+msgid "Flash vendor_kernel_boot partition"
+msgstr "Flasher la partition vendor_kernel_boot"
+

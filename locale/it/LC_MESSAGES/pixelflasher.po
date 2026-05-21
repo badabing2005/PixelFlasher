@@ -3101,4 +3101,25 @@ msgstr "ATTENZIONE! ARB Interessato"
 msgid "⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s"
 msgstr "⚠️ La versione del bootloader: %s è più vecchia della versione minima ARB sicura: %s"
 
+##############################################################################
+# Additions 2026-05-20
+##############################################################################
+msgid "WARNING: The selected image's SPL (%s)\n"
+msgstr "ATTENZIONE: SPL dell'immagine selezionata (%s)\n"
+
+msgid "does not match the device's build SPL (%s).\n\n"
+msgstr "non corrisponde alla SPL build del dispositivo (%s).\n\n"
+
+msgid "The image might not be compatible.\n"
+msgstr "L'immagine potrebbe non essere compatibile.\n"
+
+msgid "Proceed only if you are absolutely certain.\n\n"
+msgstr "Procedi solo se sei assolutamente certo.\n\n"
+
+msgid "Click OK to continue or CANCEL to abort.\n"
+msgstr "Clicca OK per continuare o CANCELLA per abortire.\n"
+
+msgid "Flash vendor_kernel_boot partition"
+msgstr "Flash partizione vendor_kernel_boot"
+
 

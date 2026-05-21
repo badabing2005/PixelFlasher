@@ -3098,3 +3098,24 @@ msgstr ""
 msgid "⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s"
 msgstr ""
 
+##############################################################################
+# Additions 2026-05-20
+##############################################################################
+msgid "WARNING: The selected image's SPL (%s)\n"
+msgstr ""
+
+msgid "does not match the device's build SPL (%s).\n\n"
+msgstr ""
+
+msgid "The image might not be compatible.\n"
+msgstr ""
+
+msgid "Proceed only if you are absolutely certain.\n\n"
+msgstr ""
+
+msgid "Click OK to continue or CANCEL to abort.\n"
+msgstr ""
+
+msgid "Flash vendor_kernel_boot partition"
+msgstr ""
+

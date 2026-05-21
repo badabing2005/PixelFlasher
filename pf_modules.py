@@ -158,7 +158,7 @@ def set_android_product_out(sdk_path):
 # ============================================================================
 #                               Function populate_boot_list
 # ============================================================================
-def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
+def populate_boot_list(self, sortColumn=None, sorting_direction='ASC', select_first_item=False):
     try:
         self.list.DeleteAllItems()
         con = get_db_con()
@@ -258,6 +258,7 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
             i = 0
             full_ota = None
             paths_to_update = []  # Store boot_id and new paths for updating after loop
+            selected_unpatched_index = None
 
             for row in data:
                 boot_id = row[0]
@@ -273,6 +274,9 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
                 package_path = row[12] or ''
                 if self.config.firmware_path == package_path:
                     full_ota = row[15]
+
+                if select_first_item and selected_unpatched_index is None and row[3] == 0:
+                    selected_unpatched_index = i
 
                 # Path verification logic to handle modified pf_home
                 if not os.path.exists(boot_path) and "boot_images4" in boot_path:
@@ -332,15 +336,25 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC'):
 
         auto_resize_boot_list(self)
 
-        # disable buttons
-        self.config.boot_id = None
-        self.config.selected_boot_md5 = None
-        if self.list.ItemCount == 0 :
-            if self.config.firmware_path:
-                print("\nPlease Process the firmware!")
+        if select_first_item and selected_unpatched_index is not None:
+            rect = self.list.GetItemRect(selected_unpatched_index)
+            class _FakeEvent:
+                def __init__(self, pos):
+                    self._pos = pos
+
+                def GetPosition(self):
+                    return self._pos
+
+            self._on_boot_selected(_FakeEvent((rect.x + 1, rect.y + 1)))
         else:
-            print("\nPlease select a boot image!")
-        self.update_widget_states()
+            self.config.boot_id = None
+            self.config.selected_boot_md5 = None
+            if self.list.ItemCount == 0 :
+                if self.config.firmware_path:
+                    print("\nPlease Process the firmware!")
+            else:
+                print("\nPlease select a boot image!")
+            self.update_widget_states()
         # we need to do this, otherwise the focus goes on the next control, which is a radio button, and undesired.
         self.process_firmware.SetFocus()
     except Exception as e:
@@ -712,6 +726,8 @@ def process_file(self, file_type):
             wx.Yield()
             found_vendor_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_boot.img", nested=True)
             wx.Yield()
+            found_vendor_kernel_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_kernel_boot.img", nested=True)
+            wx.Yield()
             found_boot_img_lz4 = ''
             set_firmware_has_init_boot(False)
             set_ota(self, False)
@@ -930,6 +946,8 @@ def process_file(self, file_type):
             wx.Yield()
             found_vendor_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_boot.img", nested=False)
             wx.Yield()
+            found_vendor_kernel_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_kernel_boot.img", nested=False)
+            wx.Yield()
             set_rom_has_init_boot(False)
             if found_init_boot_img:
                 set_rom_has_init_boot(True)
@@ -1023,6 +1041,10 @@ def process_file(self, file_type):
                     boot_img_file = os.path.join(package_dir_full, 'vendor_boot.img')
                     debug(f"Copying {boot_img_file}")
                     shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'vendor_boot.img'), follow_symlinks=True)
+                if os.path.exists(os.path.join(package_dir_full, 'vendor_kernel_boot.img')):
+                    boot_img_file = os.path.join(package_dir_full, 'vendor_kernel_boot.img')
+                    debug(f"Copying {boot_img_file}")
+                    shutil.copy(boot_img_file, os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), follow_symlinks=True)
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered while processing payload.bin")
                 traceback.print_exc()
@@ -1053,6 +1075,8 @@ def process_file(self, file_type):
                 files_to_extract += 'vbmeta.img '
             if found_vendor_boot_img:
                 files_to_extract += 'vendor_boot.img '
+            if found_vendor_kernel_boot_img:
+                files_to_extract += 'vendor_kernel_boot.img '
             files_to_extract = files_to_extract.strip()
 
             if not is_odin:
@@ -1142,11 +1166,16 @@ def process_file(self, file_type):
             if found_vendor_boot_img and os.path.exists(package_dir_full):
                 shutil.copy(os.path.join(tmp_dir_full, 'vendor_boot.img'), package_dir_full, follow_symlinks=True)
                 shutil.copy(os.path.join(tmp_dir_full, 'vendor_boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
+            if found_vendor_kernel_boot_img and os.path.exists(package_dir_full):
+                shutil.copy(os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), package_dir_full, follow_symlinks=True)
+                shutil.copy(os.path.join(tmp_dir_full, 'vendor_kernel_boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
         else:
             if found_init_boot_img and os.path.exists(os.path.join(package_dir_full, 'boot.img')):
                 shutil.copy(os.path.join(package_dir_full, 'boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
             if os.path.exists(os.path.join(package_dir_full, 'vendor_boot.img')):
                 shutil.copy(os.path.join(package_dir_full, 'vendor_boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
+            if os.path.exists(os.path.join(package_dir_full, 'vendor_kernel_boot.img')):
+                shutil.copy(os.path.join(package_dir_full, 'vendor_kernel_boot.img'), cached_boot_img_dir_full, follow_symlinks=True)
 
         # Let's see if we have a record for the firmware/rom being processed
         print(f"Checking DB entry for PACKAGE: {file_to_process}")
@@ -3853,6 +3882,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         boot_exists = False
         init_boot_exists = False
         vendor_boot_exists = False
+        vendor_kernel_boot_exists = False
         disabled_buttons = []
 
         # check if
@@ -3871,6 +3901,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             vendor_boot_exists = True
         else:
             disabled_buttons.append(3) # "vendor_boot.img"
+        if os.path.exists(os.path.join(boot_directory, 'vendor_kernel_boot.img')):
+            vendor_kernel_boot_exists = True
+        else:
+            disabled_buttons.append(4) # "vendor_kernel_boot.img"
 
         # Determine the recommendation based on the patch flavor and available images
         recommendation = None
@@ -4765,6 +4799,9 @@ Unless you know what you're doing, it is recommended that you take the default s
                 print(f"Recovery: {recovery}")
 
     # Perform the patching
+    gki_used = ""
+    if kernel_su_gz_file:
+        gki_used = f"_{os.path.splitext(os.path.basename(str(kernel_su_gz_file)))[0]}"
     if method == 1:
         patch_method = 'root'
         patched_img = patch_magisk_script("rooted")
@@ -4797,7 +4834,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img = patch_magisk_script("other")
     elif method == 80:
         # KernelSU
-        patch_method = f'kernelsu_{chosen_kernel.lower()}'
+        patch_method = f'kernelsu{gki_used}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 81:
@@ -4807,7 +4844,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img, mountType = patch_kernelsu_lkm_script()
     elif method == 82:
         # KernelSU Next
-        patch_method = f'kernelsu-next_{chosen_kernel.lower()}'
+        patch_method = f'kernelsu-next_{gki_used}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 83:
@@ -4815,10 +4852,11 @@ Unless you know what you're doing, it is recommended that you take the default s
         patch_method = 'kernelsu-next_lkm'
         # set_patched_with(ksu_app_version)
         patched_img, mountType = patch_kernelsu_lkm_script()
-        patch_method = f"{patch_method}_{mountType}"
+        if mountType:
+            patch_method = f"{patch_method}_{mountType}"
     elif method == 84:
         # SukiSU
-        patch_method = f'sukisu_{chosen_kernel.lower()}'
+        patch_method = f'sukisu{gki_used}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 85:
@@ -4828,7 +4866,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img, mountType = patch_kernelsu_lkm_script()
     elif method == 86:
         # Wild_KSU
-        patch_method = f'wild_ksu_{chosen_kernel.lower()}'
+        patch_method = f'wild_ksu{gki_used}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 87:
@@ -4838,7 +4876,7 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img, mountType = patch_kernelsu_lkm_script()
     elif method == 88:
         # KernelSU-Legacy
-        patch_method = f'kernelsu_{chosen_kernel.lower()}'
+        patch_method = f'kernelsu{gki_used}'
         set_patched_with(kernelsu_version)
         patched_img = patch_kernelsu_script(kernelsu_version)
     elif method == 90:
@@ -5102,7 +5140,6 @@ Unless you know what you're doing, it is recommended that you take the default s
 
     populate_boot_list(self)
 
-
 # ============================================================================
 #                               Function live_flash_boot_phone
 # ============================================================================
@@ -5198,8 +5235,14 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     boot_file = os.path.join(boot_dir, "boot.img")
     init_boot_file = os.path.join(boot_dir, "init_boot.img")
     vendor_boot_file = os.path.join(boot_dir, "vendor_boot.img")
+    vendor_kernel_boot_file = os.path.join(boot_dir, "vendor_kernel_boot.img")
     selected_image = ntpath.basename(boot_img_path)
     selected_dir = os.path.dirname(boot_img_path)
+
+    # Check SPL compatibility for Pixel devices
+    spl_check_result = check_pixel_spl_compatibility(firmware_model, boot.spl, device.build)
+    if spl_check_result == -1:
+        return -1
 
     # setup the dialog options
     title = f"{option} Boot"
@@ -5207,9 +5250,9 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     size = (940, 440)
     button_texts = [_("OK"), _("Cancel")]
     radio_labels = [_('Flash to active slot'), _('Flash to inactive slot'), _('Flash to both slots')]
-    checkbox_labels = [_('Flash boot partition'), _('Flash init_boot partition'), _('Flash vendor_boot partition')]
+    checkbox_labels = [_('Flash boot partition'), _('Flash init_boot partition'), _('Flash vendor_boot partition'), _('Flash vendor_kernel_boot partition')]
     checkbox_labels2 = [_('No Reboot after flash'), _('Flash stock to other partitions (if available)')]
-    checkbox_initial_values = [False, False, False]
+    checkbox_initial_values = [False, False, False, False]
     disable_checkboxes = None
     checkbox_initial_values2 = [False]
     disable_checkboxes2 = None
@@ -5226,7 +5269,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         disable_checkboxes2 = [1, 2]  # no reboot doesn't make sense for live booting, same with flashing stock to other partitions
         checkbox_initial_values2=[False]
         disable_radios = [1, 2, 3]
-        disable_checkboxes = [1, 2, 3]
+        disable_checkboxes = [1, 2, 3, 4]
 
         if boot.is_patched != 1 and os.path.exists(os.path.join(selected_dir, "boot.img")):
             checkbox_initial_values=[True, False, False]
@@ -5263,13 +5306,17 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 checkbox_initial_values[2] = True
             else:
                 disable_checkboxes.append(3)
+            if os.path.exists(vendor_kernel_boot_file):
+                checkbox_initial_values[3] = True
+            else:
+                disable_checkboxes.append(4)
             # Convert to None if empty, or keep the list if it has items
             disable_checkboxes = disable_checkboxes if disable_checkboxes else None
             message += _("## ℹ️ Select partitions that you wish to flash stock image\n")
         else:
             # patched
             flash_message = _("## ℹ️ Select the options to flash a patch image:\n")
-            disable_checkboxes = [1, 2, 3]
+            disable_checkboxes = [1, 2, 3, 4]
             if partition == "boot" and os.path.exists(boot_file):
                 checkbox_initial_values=[True, False, False]
             elif partition == "init_boot" and os.path.exists(init_boot_file):
@@ -5419,14 +5466,19 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     data_linux += version_sig_linux
     data_win += r'PATH=%PATH%;"%SYSTEMROOT%\System32"' + "\n\n"
 
-    if boot.is_patched != 1:
-        boot_to_flash = os.path.join(selected_dir, "boot.img")
-        init_boot_to_flash = os.path.join(selected_dir, "init_boot.img")
-        vendor_boot_to_flash = os.path.join(selected_dir, "vendor_boot.img")
-    else:
-        boot_to_flash = boot_img_path
-        init_boot_to_flash = boot_img_path
-        vendor_boot_to_flash = boot_img_path
+    boot_to_flash = os.path.join(selected_dir, "boot.img")
+    init_boot_to_flash = os.path.join(selected_dir, "init_boot.img")
+    vendor_boot_to_flash = os.path.join(selected_dir, "vendor_boot.img")
+    vendor_kernel_boot_to_flash = os.path.join(selected_dir, "vendor_kernel_boot.img")
+    if boot.is_patched == 1:
+        if partition == "boot":
+            boot_to_flash = boot_img_path
+        elif partition == "init_boot":
+            init_boot_to_flash = boot_img_path
+        elif partition == "vendor_boot":
+            vendor_boot_to_flash = boot_img_path
+        elif partition == "vendor_kernel_boot":
+            vendor_kernel_boot_to_flash = boot_img_path
 
     # Live
     if option == 'Live' and checkbox_values and checkbox_values[0]:
@@ -5481,6 +5533,12 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
                         data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
                         data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
+                    if os.path.exists(vendor_kernel_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
                 elif selected_radio_index == 1:
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to inactive slot ... \n"
@@ -5494,6 +5552,12 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
                         data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
+                    if os.path.exists(vendor_kernel_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
                 elif selected_radio_index == 2:
                     if os.path.exists(init_boot_to_flash):
                         data_win += "echo Flashing stock init_boot partition to active slot ... \n"
@@ -5515,6 +5579,16 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                         data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
                         data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
+                    if os.path.exists(vendor_kernel_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
                 data_win += "\n"
                 data_linux += "\n"
 
@@ -5562,6 +5636,12 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
                         data_linux += "echo Flashing stock vendor_boot partition to active slot ... \n"
                         data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
+                    if os.path.exists(vendor_kernel_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
                 if selected_radio_index == 1:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to inactive slot ... \n"
@@ -5575,6 +5655,12 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
                         data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
+                    if os.path.exists(vendor_kernel_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
                 if selected_radio_index == 2:
                     if os.path.exists(boot_to_flash):
                         data_win += "echo Flashing stock boot partition to active slot ... \n"
@@ -5596,6 +5682,16 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                         data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
                         data_linux += "echo Flashing stock vendor_boot partition to inactive slot ... \n"
                         data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_boot "{os.path.join(selected_dir, "vendor_boot.img")}"\n\n'
+                    if os.path.exists(vendor_kernel_boot_to_flash):
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+                        data_win += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_win += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to active slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
+                        data_linux += "echo Flashing stock vendor_kernel_boot partition to inactive slot ... \n"
+                        data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash vendor_kernel_boot "{os.path.join(selected_dir, "vendor_kernel_boot.img")}"\n\n'
                 data_win += "\n"
                 data_linux += "\n"
 
@@ -5626,6 +5722,17 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_boot \"{vendor_boot_to_flash}\"\n"
                 data_linux += "echo Flashing vendor_boot partition to inactive slot ... \n"
                 data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_boot \"{vendor_boot_to_flash}\"\n"
+            if selected_radio_index == 3:
+                # both slots
+                data_win += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+                data_win += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+                data_linux += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
             data_win += "\n"
             data_linux += "\n"
             # If flash stock to other partitions is selected
@@ -5679,6 +5786,47 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                         data_linux += f'"{get_fastboot()}" -s {device_id} --slot other flash init_boot "{os.path.join(selected_dir, "init_boot.img")}"\n\n'
                 data_win += "\n"
                 data_linux += "\n"
+
+        # if vendor_kernel_boot is selected
+        if checkbox_values and checkbox_values[3]:
+            if selected_radio_index == 0:
+                # active slot
+                data_win += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+            elif selected_radio_index == 1:
+                # inactive slot
+                data_win += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+            if selected_radio_index == 2:
+                # both slots
+                data_win += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+                data_win += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+                data_linux += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+            if selected_radio_index == 3:
+                # both slots
+                data_win += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+                data_win += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_win += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+
+                data_linux += "echo Flashing vendor_kernel_boot partition to active slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+                data_linux += "echo Flashing vendor_kernel_boot partition to inactive slot ... \n"
+                data_linux += f"\"{get_fastboot()}\" -s {device_id} --slot other flash vendor_kernel_boot \"{vendor_kernel_boot_to_flash}\"\n"
+            data_win += "\n"
+            data_linux += "\n"
 
     # save the scripts
     f_win.write(data_win)

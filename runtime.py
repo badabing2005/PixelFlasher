@@ -4205,7 +4205,12 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                             security_patch = security_patch_level  # Fallback to original value
                     if not fingerprint:
                         build_id = gsi_data.__dict__['build']
-                        fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{latest_version}/{build_id}/{incremental}:user/release-keys"
+                        if latest_version and str(latest_version).startswith("17"):
+                            # for Android 17, the version in the fingerprint is "CinnamonBun" (Android 17's codename), not "17"
+                            AndroidCode = "CinnamonBun"
+                        else:
+                            AndroidCode = latest_version
+                        fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{AndroidCode}/{build_id}/{incremental}:user/release-keys"
                     if fingerprint and security_patch:
                         break
 
@@ -10546,6 +10551,77 @@ def extract_kernel_info(boot_img_path):
         build_number = build_number[idx:]
 
     return build_number, build_date
+
+
+# ============================================================================
+#                          Function check_pixel_spl_compatibility
+# ============================================================================
+def check_pixel_spl_compatibility(firmware_model, boot_spl, device_build):
+    # Check if device is a Pixel device and compare SPL values.
+    # Returns: -1 if user aborts due to SPL mismatch, 0 if check passes or device is not Pixel
+    is_pixel_device = False
+    if firmware_model:
+        try:
+            android_devices_file = os.path.join(os.path.dirname(__file__), 'android_devices.json')
+            with open(android_devices_file, 'r') as f:
+                android_devices = json.load(f)
+                # If firmware_model exists in android_devices.json, it's a Pixel device
+                if firmware_model in android_devices:
+                    is_pixel_device = True
+        except Exception as e:
+            debug(f"Error checking if device is Pixel in android_devices.json: {e}")
+
+    if not is_pixel_device:
+        return 0
+
+    device_spl_value = None
+
+    # Extract date from device.build (e.g., 'BP3A.251005.004.B1' -> '2025-10-05')
+    if device_build:
+        try:
+            # Look for YYMMDD pattern in the build string (positions 3-8 typically)
+            match = re.search(r'\.(\d{2})(\d{2})(\d{2})', device_build)
+            if match:
+                yy, mm, dd = match.groups()
+                # Convert YY to full year (assuming 20YY for recent builds)
+                yyyy = f"20{yy}"
+                device_spl_value = f"{yyyy}-{mm}-{dd}"
+                debug(f"Extracted device build SPL: {device_spl_value} from {device_build}")
+        except Exception as e:
+            debug(f"Error extracting date from device.build: {e}")
+
+    # Compare SPL values and show warning if they don't match
+    if boot_spl and device_spl_value and boot_spl != device_spl_value:
+        title = _("SPL Mismatch Warning")
+        message_en = f"WARNING: The selected image's SPL ({boot_spl})\n"
+        message_en += f"does not match the device's build SPL ({device_spl_value}).\n\n"
+        message_en += "The image might not be compatible.\n"
+        message_en += "Proceed only if you are absolutely certain.\n\n"
+        message_en += "Click OK to continue or CANCEL to abort.\n"
+
+        message = _("WARNING: The selected image's SPL (%s)\n") % boot_spl
+        message += _("does not match the device's build SPL (%s).\n\n") % device_spl_value
+        message += _("The image might not be compatible.\n")
+        message += _("Proceed only if you are absolutely certain.\n\n")
+        message += _("Click OK to continue or CANCEL to abort.\n")
+
+        print(f"\n*** Dialog ***\n{message_en}\n______________\n")
+        puml("#orange:SPL Mismatch WARNING;\n", True)
+        puml(f"note right\n{message_en}\nend note\n")
+
+        dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            print("User pressed OK despite SPL mismatch.")
+            puml(":User Pressed OK to continue despite SPL mismatch;\n")
+            return 0
+        else:
+            print("User pressed CANCEL due to SPL mismatch.")
+            puml("#pink:User Pressed CANCEL due to SPL mismatch;\n}\n")
+            print("Aborting ...\n")
+            return -1
+
+    return 0
 
 
 # ============================================================================

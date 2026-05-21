@@ -2259,12 +2259,6 @@ msgstr "安装 Pif / Tricky Store 模块"
 msgid "Install Play Integrity Fix related modules."
 msgstr "安装 Play Integrity 修复模块。"
 
-msgid "Install ZygiskNext Module"
-msgstr "安装 ZygiskNext 模块"
-
-msgid "Install ZygiskNext module."
-msgstr "安装 ZygiskNext 模块。"
-
 msgid "Systemless Hosts"
 msgstr "无系统 Hosts"
 
@@ -3127,4 +3121,7 @@ msgstr ""
 
 msgid "Flash vendor_kernel_boot partition"
 msgstr ""
+
+msgid "Install Zygisk Module"
+msgstr "安装 Zygisk 模块"
 

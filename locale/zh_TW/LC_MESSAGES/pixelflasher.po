@@ -2250,12 +2250,6 @@ msgstr "安裝 Pif / TS 模組"
 msgid "Install Play Integrity Fix related modules."
 msgstr "安裝 Play Integrity Fix 相關模組。"
 
-msgid "Install ZygiskNext Module"
-msgstr "安裝 ZygiskNext 模組。"
-
-msgid "Install ZygiskNext module."
-msgstr "安裝 ZygiskNext 模組。"
-
 msgid "Systemless Hosts"
 msgstr "系統無關的 Hosts"
 
@@ -3118,4 +3112,7 @@ msgstr ""
 
 msgid "Flash vendor_kernel_boot partition"
 msgstr ""
+
+msgid "Install Zygisk Module"
+msgstr "安裝 Zygisk 模組。"
 

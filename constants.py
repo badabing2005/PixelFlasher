@@ -35,7 +35,7 @@
 
 APPNAME = 'PixelFlasher'
 CONFIG_FILE_NAME = 'PixelFlasher.json'
-VERSION = '9.1.0.0'
+VERSION = '9.1.1.0'
 SDKVERSION = '33.0.3'
 MAIN_WIDTH = 1400
 MAIN_HEIGHT = 1040
@@ -65,6 +65,8 @@ WILD_KSU_PKG_NAME = 'com.twj.wksu'
 APATCH_PKG_NAME = 'me.bmax.apatch'
 APATCH_NEXT_PKG_NAME = 'me.garfieldhan.apatch.next'
 ZYGISK_NEXT_UPDATE_URL = 'https://api.nullptr.icu/android/zygisk-next/static/update.json'
+REZYGISK_UPDATE_URL = 'https://raw.githubusercontent.com/ThePedroo/RemoteFiles/refs/heads/main/ReZygisk/update.json'
+NEOZYGISK_UPDATE_URL = 'https://raw.githubusercontent.com/JingMatrix/NeoZygisk/master/module/zygisk.json'
 ANDROID_CANARY_VERSION = 'CANARY_r03'
 TARGETEDFIX_CONFIG_PATH = '/data/adb/modules/targetedfix/config'
 

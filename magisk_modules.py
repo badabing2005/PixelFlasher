@@ -159,9 +159,9 @@ class MagiskModules(wx.Dialog):
         self.pif_install_button = wx.Button(self, wx.ID_ANY, _("Install Pif / TS / TargetedFix Module"), wx.DefaultPosition, wx.DefaultSize, 0)
         self.pif_install_button.SetToolTip(_("Install Play Integrity Fix related modules."))
 
-        # ZygiskNext Install button
-        self.zygisk_next_install_button = wx.Button(self, wx.ID_ANY, _("Install ZygiskNext Module"), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.zygisk_next_install_button.SetToolTip(_("Install ZygiskNext module."))
+        # Zygisk Install button
+        self.zygisk_install_button = wx.Button(self, wx.ID_ANY, _("Install Zygisk Module"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.zygisk_install_button.SetToolTip(_("Install ZygiskNext, ReZygisk or NeoZygisk module."))
 
         # Systemless hosts button
         self.systemless_hosts_button = wx.Button(self, wx.ID_ANY, _("Systemless Hosts"), wx.DefaultPosition, wx.DefaultSize, 0)
@@ -204,7 +204,7 @@ class MagiskModules(wx.Dialog):
         self.uninstall_module_button.SetMinSize((button_width, -1))
         self.run_action_button.SetMinSize((button_width, -1))
         self.pif_install_button.SetMinSize((button_width, -1))
-        self.zygisk_next_install_button.SetMinSize((button_width, -1))
+        self.zygisk_install_button.SetMinSize((button_width, -1))
         self.systemless_hosts_button.SetMinSize((button_width, -1))
         self.enable_zygisk_button.SetMinSize((button_width, -1))
         self.disable_zygisk_button.SetMinSize((button_width, -1))
@@ -245,7 +245,7 @@ class MagiskModules(wx.Dialog):
         v_buttons_sizer.Add(self.uninstall_module_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.run_action_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.pif_install_button, 0, wx.TOP | wx.RIGHT, 5)
-        v_buttons_sizer.Add(self.zygisk_next_install_button, 0, wx.TOP | wx.RIGHT, 5)
+        v_buttons_sizer.Add(self.zygisk_install_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.systemless_hosts_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.enable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.disable_zygisk_button, 0, wx.TOP | wx.RIGHT, 5)
@@ -283,7 +283,7 @@ class MagiskModules(wx.Dialog):
         self.uninstall_module_button.Bind(wx.EVT_BUTTON, self.onUninstallModule)
         self.run_action_button.Bind(wx.EVT_BUTTON, self.onRunModuleAction)
         self.pif_install_button.Bind(wx.EVT_BUTTON, self.onInstallPif)
-        self.zygisk_next_install_button.Bind(wx.EVT_BUTTON, self.onInstallZygiskNext)
+        self.zygisk_install_button.Bind(wx.EVT_BUTTON, self.onInstallZygiskModule)
         self.systemless_hosts_button.Bind(wx.EVT_BUTTON, self.onSystemlessHosts)
         self.enable_zygisk_button.Bind(wx.EVT_BUTTON, self.onEnableZygisk)
         self.disable_zygisk_button.Bind(wx.EVT_BUTTON, self.onDisableZygisk)
@@ -381,7 +381,7 @@ class MagiskModules(wx.Dialog):
                     self.uninstall_module_button.Enable(False)
                     self.run_action_button.Enable(False)
                     self.pif_install_button.Enable(False)
-                    self.zygisk_next_install_button.Enable(False)
+                    self.zygisk_install_button.Enable(False)
                     self.enable_zygisk_button.Enable(False)
                     self.disable_zygisk_button.Enable(False)
                     self.systemless_hosts_button.Enable(False)
@@ -753,16 +753,55 @@ class MagiskModules(wx.Dialog):
             self._on_spin('stop')
 
     # -----------------------------------------------
-    #                  onInstallZygiskNext
+    #                  onInstallZygiskModule
     # -----------------------------------------------
-    def onInstallZygiskNext(self, e):
+    def onInstallZygiskModule(self, e):
         try:
             device = get_phone(True)
             if not device:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
                 return
             if not device.rooted:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected device is not rooted.")
                 return
-            module_update_url = ZYGISK_NEXT_UPDATE_URL
+            buttons_text = [_("ZygiskNext"), _("ReZygisk"), _("NeoZygisk"), _("Cancel")]
+            dlg = MessageBoxEx(
+                parent=self,
+                title=_('Zygisk Module'),
+                message=_("Select the Zygisk module you want to install"),
+                button_texts=buttons_text,
+                default_button=1,
+                disable_buttons=None,
+                is_md=False,
+                size=(800, 600),
+                checkbox_labels=None,
+                checkbox_initial_values=None,
+                disable_checkboxes=None,
+                vertical_checkboxes=False,
+                checkbox_labels2=None,
+                checkbox_initial_values2=None,
+                disable_checkboxes2=None,
+                radio_labels=None,
+                radio_initial_value=None,
+                disable_radios=None,
+                vertical_radios=False
+            )
+            dlg.CentreOnParent(wx.BOTH)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {buttons_text[result -1]}")
+            module_update_url = None
+            if result == 1:
+                module_update_url = ZYGISK_NEXT_UPDATE_URL
+            elif result == 2:
+                module_update_url = REZYGISK_UPDATE_URL
+            elif result == 3:
+                module_update_url = NEOZYGISK_UPDATE_URL
+            else:
+                print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
+                print("Aborting ...\n")
+                return -1
+
             url = check_module_update(module_update_url)
             if url is None:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get module download link.")
@@ -771,13 +810,13 @@ class MagiskModules(wx.Dialog):
 
             self._on_spin('start')
             downloaded_file_path = download_file(url.zipUrl)
-            print(f"Installing ZygiskNext module. URL: {downloaded_file_path} ...")
+            print(f"Installing Zygisk module. URL: {downloaded_file_path} ...")
             res = device.magisk_install_module(downloaded_file_path)
             if res == 0:
                 self.outputMessage(_("## You need to reboot your device to complete the installation."))
             self.refresh_modules()
         except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during ZygiskNext module installation.")
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Zygisk module installation.")
             traceback.print_exc()
         finally:
             self._on_spin('stop')

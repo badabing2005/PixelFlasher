@@ -2253,12 +2253,6 @@ msgstr "Installa Modulo Pif / TS"
 msgid "Install Play Integrity Fix related modules."
 msgstr "Installa moduli relativi a Play Integrity Fix."
 
-msgid "Install ZygiskNext Module"
-msgstr "Installa Modulo ZygiskNext"
-
-msgid "Install ZygiskNext module."
-msgstr "Installa modulo ZygiskNext."
-
 msgid "Systemless Hosts"
 msgstr "Host Systemless"
 
@@ -3121,5 +3115,8 @@ msgstr "Clicca OK per continuare o CANCELLA per abortire.\n"
 
 msgid "Flash vendor_kernel_boot partition"
 msgstr "Flash partizione vendor_kernel_boot"
+
+msgid "Install Zygisk Module"
+msgstr "Installa Modulo Zygisk"
 
 

@@ -64,7 +64,7 @@ jobs:
         run: |
           python --version
           pip install -U six wheel setuptools
-          pip install -U -f https://extras.wxpython.org/wxPython4/extras/4.2.2 wxPython
+          pip install -U wxPython==4.2.2
         shell: powershell
 
       - name: Install requirements

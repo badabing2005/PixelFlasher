@@ -62,8 +62,10 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install wxPython
-        run: pip install wxPython
+      - name: Install wxPython (pin universal wheel)
+        run: |
+          # Pin to 4.2.2 and prefer binary wheels to ensure universal2 compatibility
+          pip install --only-binary :all: -U wxPython==4.2.2
 
       - name: Install node
         run: brew install node

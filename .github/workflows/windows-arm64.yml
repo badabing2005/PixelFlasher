@@ -69,13 +69,9 @@ jobs:
           & $venvPython -m pip install --upgrade pip
           & $venvPip install --upgrade setuptools wheel build delvewheel requests
 
-          # Download and manually extract ARM64 wheel to bypass pip platform checks
-          # Use explicit site-packages path in venv
-          $sitePackages = ".\myenv\Lib\site-packages"
-          Write-Host "Site-packages: $sitePackages"
-          curl -L -o wxpython.whl "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
-          # Extract wheel directly to site-packages
-          Expand-Archive -Path wxpython.whl -DestinationPath $sitePackages -Force
+          # Install wxPython for ARM64 - Note: wxPython ARM64 support is limited
+          # Standard pip installation
+          & $venvPip install wxPython==4.2.2
           & $venvPip install pillow numpy six
 
           # Verify extraction and show wx contents

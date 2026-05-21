@@ -71,7 +71,7 @@ jobs:
 
       - name: Install wxPython
         run: |
-          python3 -m pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp310-cp310-linux_x86_64.whl
+          python3 -m pip install wxPython==4.2.2
 
       - name: Install requirements
         run: python3 -m pip install -r requirements.txt

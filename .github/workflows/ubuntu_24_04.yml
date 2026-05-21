@@ -47,10 +47,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
+      - name: Ensure system Python 3 is available
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-venv python3-pip
+          python3 --version
 
       - name: Install wxPython prerequisites
         run: |
@@ -72,7 +73,7 @@ jobs:
 
       - name: Create virtual environment, install dependencies, and build
         run: |
-          python -m venv myenv
+          /usr/bin/python3 -m venv myenv --system-site-packages
           . myenv/bin/activate
           python --version
           pip install -U pip

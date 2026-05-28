@@ -65,10 +65,10 @@ jobs:
       commit_sha: ${{ steps.get_sha.outputs.commit_sha }}
       build_windows: ${{ steps.check_artifacts.outputs.build_windows }}
       # build_windows_arm64: ${{ steps.check_artifacts.outputs.build_windows_arm64 }}
-      # build_ubuntu_22_04: ${{ steps.check_artifacts.outputs.build_ubuntu_22_04 }}
-      # build_ubuntu_24_04: ${{ steps.check_artifacts.outputs.build_ubuntu_24_04 }}
+      build_ubuntu_22_04: ${{ steps.check_artifacts.outputs.build_ubuntu_22_04 }}
+      build_ubuntu_24_04: ${{ steps.check_artifacts.outputs.build_ubuntu_24_04 }}
       build_mac: ${{ steps.check_artifacts.outputs.build_mac }}
-      # build_appimage: ${{ steps.check_artifacts.outputs.build_appimage }}
+      build_appimage: ${{ steps.check_artifacts.outputs.build_appimage }}
       artifact_runs: ${{ steps.check_artifacts.outputs.artifact_runs }}
     steps:
       - name: Checkout code
@@ -193,17 +193,17 @@ jobs:
   #   uses: ./.github/workflows/windows-arm64.yml
   #   secrets: inherit
 
-  # build_ubuntu_22_04:
-  #   needs: check_artifacts
-  #   if: ${{ needs.check_artifacts.outputs.build_ubuntu_22_04 == 'true' }}
-  #   uses: ./.github/workflows/ubuntu_22_04.yml
-  #   secrets: inherit
+  build_ubuntu_22_04:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_ubuntu_22_04 == 'true' }}
+    uses: ./.github/workflows/ubuntu_22_04.yml
+    secrets: inherit
 
-  # build_ubuntu_24_04:
-  #   needs: check_artifacts
-  #   if: ${{ needs.check_artifacts.outputs.build_ubuntu_24_04 == 'true' }}
-  #   uses: ./.github/workflows/ubuntu_24_04.yml
-  #   secrets: inherit
+  build_ubuntu_24_04:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_ubuntu_24_04 == 'true' }}
+    uses: ./.github/workflows/ubuntu_24_04.yml
+    secrets: inherit
 
   build_mac:
     needs: check_artifacts
@@ -211,16 +211,15 @@ jobs:
     uses: ./.github/workflows/mac.yml
     secrets: inherit
 
-  # build_appimage:
-  #   needs: check_artifacts
-  #   if: ${{ needs.check_artifacts.outputs.build_appimage == 'true' }}
-  #   uses: ./.github/workflows/appimage-x86_64.yml
-  #   secrets: inherit
+  build_appimage:
+    needs: check_artifacts
+    if: ${{ needs.check_artifacts.outputs.build_appimage == 'true' }}
+    uses: ./.github/workflows/appimage-x86_64.yml
+    secrets: inherit
 
   deploy:
     # Make deploy conditional on the check_artifacts job and all build jobs
-    # needs: [check_artifacts, build_windows, build_ubuntu_22_04, build_ubuntu_24_04, build_mac, build_appimage]
-    needs: [check_artifacts, build_windows, build_mac]
+    needs: [check_artifacts, build_windows, build_ubuntu_22_04, build_ubuntu_24_04, build_mac, build_appimage]
     # Run only on tag push or manual workflow run, and even if some builds are skipped
     if: always() && (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
 
@@ -257,16 +256,12 @@ jobs:
           echo "Using commit SHA: ${COMMIT_SHA}"
 
           # List of required artifacts - must match those in check_artifacts job
-          # ARTIFACTS=(
-          #   "PixelFlasher.exe Artifacts"
-          #   "PixelFlasher_Ubuntu_22_04 Artifacts"
-          #   "PixelFlasher_Ubuntu_24_04 Artifacts"
-          #   "PixelFlasher_MacOS.dmg Artifacts"
-          #   "PixelFlasher-x86_64.AppImage Artifacts"
-          # )
           ARTIFACTS=(
             "PixelFlasher.exe Artifacts"
+            "PixelFlasher_Ubuntu_22_04 Artifacts"
+            "PixelFlasher_Ubuntu_24_04 Artifacts"
             "PixelFlasher_MacOS.dmg Artifacts"
+            "PixelFlasher-x86_64.AppImage Artifacts"
           )
 
           # Get all workflow runs for this commit

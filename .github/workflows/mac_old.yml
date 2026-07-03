@@ -94,19 +94,22 @@ jobs:
         run: python3.13 -m venv myenv
         shell: bash
 
-      - name: Activate virtual environment
-        run: source myenv/bin/activate
+      - name: Install requirements
+        run: |
+          ./myenv/bin/python -m pip install --upgrade pip
+          ./myenv/bin/python -m pip install -r requirements.txt
         shell: bash
 
-      - name: Install requirements
-        run: python3.13 -m pip install -r requirements.txt
-
       - name: List modules and their versions
-        run: python3.13 -m pip freeze
+        run: ./myenv/bin/python -m pip freeze
+        shell: bash
 
       - name: Build application
         id: build_app
-        run: ./build.sh
+        run: |
+          export PATH="$PWD/myenv/bin:$PATH"
+          ./build.sh
+        shell: bash
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v7

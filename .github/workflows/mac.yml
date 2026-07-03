@@ -94,20 +94,20 @@ jobs:
         run: python3.13 -m venv myenv
         shell: bash
 
-      - name: Activate virtual environment
-        run: source myenv/bin/activate
+      - name: Install requirements
+        run: |
+          ./myenv/bin/python -m pip install --upgrade pip
+          PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" ./myenv/bin/python -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
         shell: bash
 
-      - name: Install requirements
-        run: PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
-
       - name: List modules and their versions
-        run: python3.13 -m pip freeze
+        run: ./myenv/bin/python -m pip freeze
+        shell: bash
 
       - name: Verify universal2 extension modules
         shell: bash
         run: |
-          python3.13 - <<'PY'
+          ./myenv/bin/python - <<'PY'
           import importlib.machinery
           import pathlib
           import fnmatch
@@ -185,7 +185,10 @@ jobs:
 
       - name: Build application
         id: build_app
-        run: ./build.sh
+        run: |
+          export PATH="$PWD/myenv/bin:$PATH"
+          ./build.sh
+        shell: bash
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v7

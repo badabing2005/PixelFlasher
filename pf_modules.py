@@ -3171,6 +3171,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         mountType = ""
         ksud_mount = ''
+        skip_magiskboot = False
         # Patch flavor based cmd selector
         if self.config.force_ksud_mount_selection or patch_flavor == 'Wild_KSU_LKM' or (patch_flavor == 'KernelSU-Next_LKM' and version_code_int < 32857) :
             magiskboot = "magiskboot"
@@ -3235,6 +3236,15 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         else:
             ksud_mount = "ksud"
             magiskboot = "magiskboot"
+        if patch_flavor == 'SukiSU_LKM' and version_code_int >= 40796:
+            # as of SukiSU 4.1.3 (version code 40796), magiskboot flag is not accepted
+            skip_magiskboot = True
+        if patch_flavor == 'KernelSU_LKM' and version_code_int >= 32525:
+            # as of KernelSU 3.2.5 (version code 32525), magiskboot flag is not accepted
+            skip_magiskboot = True
+        if patch_flavor == 'KernelSU-Next_LKM' and version_code_int >= 33214:
+            # as of KernelSU 3.3.0 (version code 33214), magiskboot flag is not accepted
+            skip_magiskboot = True
 
         # Create the patch script
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
@@ -3275,7 +3285,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 kmi_override = f" --kmi {self.config.override_kmi}"
                 data += "echo \"Overriding KMI ...\"\n"
             data += "NEWEST_FILE1=$(ls -t | head -n 1)\n"
-            data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot {magiskboot} {kmi_override} | tee temp_file\n"
+            if skip_magiskboot:
+                data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} {kmi_override} | tee temp_file\n"
+            else:
+                data += f"./{ksud_mount} boot-patch -b {self.config.phone_path}/{boot_img} --magiskboot {magiskboot} {kmi_override} | tee temp_file\n"
 
             data += "OUTPUT_FILE=$(grep -o '/data/local/tmp/pf/assets/[^ ]*' \"temp_file\" | tail -n 1 | xargs basename)\n"
             data += "echo \"OUTPUT_FILE: [${OUTPUT_FILE}]\"\n"

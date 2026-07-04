@@ -123,6 +123,8 @@ jobs:
           allowlist_patterns = [
             # Add glob patterns for extension-module paths to exempt from universal2 checks.
             # Example: "*/site-packages/somepkg/someext*.so"
+            # Skip cryptography's Rust extension which may be single-arch on some runners
+            "*/site-packages/cryptography/hazmat/bindings/*",
           ]
 
           def iter_site_package_roots() -> list[pathlib.Path]:

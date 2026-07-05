@@ -52,10 +52,12 @@ jobs:
 
       - name: Updating Homebrew Packages
         run : |
-          brew untap aws/tap || true
+          if brew tap-info aws/tap >/dev/null 2>&1; then
+            brew untap aws/tap
+          fi
+          rm -rf /opt/homebrew/etc/openssl@1.1
           if brew list --formula | grep -q '^openssl@1\.1$'; then
-            brew uninstall openssl@1.1
-            rm -rf /opt/homebrew/etc/openssl@1.1
+            brew uninstall --ignore-dependencies openssl@1.1 || true
           fi
 
       - name: Set up Python 3.13

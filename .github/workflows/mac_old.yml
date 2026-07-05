@@ -70,7 +70,9 @@ jobs:
 
       - name: Install node
         run: |
-          brew untap aws/tap || true
+          if brew tap-info aws/tap >/dev/null 2>&1; then
+            brew untap aws/tap
+          fi
           brew install node
 
       - name: Set up Node.js

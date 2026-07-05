@@ -80,21 +80,18 @@ jobs:
         run: ls dist
 
       - name: Sign Windows Executable
+        # Skip signing for pull requests as secrets aren't available
         if: ${{ github.event_name != 'pull_request' }}
-        shell: pwsh
-        run: |
-          $certBytes = [Convert]::FromBase64String($env:CERTIFICATE)
-          [IO.File]::WriteAllBytes('cert.pfx', $certBytes)
-          $password = $env:CERT_PASSWORD
-          $timestampUrl = 'http://timestamp.digicert.com'
-          $files = Get-ChildItem dist -Filter *.exe -File
-          if ($files.Count -eq 0) { throw 'No executable files found to sign' }
-          foreach ($file in $files) {
-            Write-Host "Signing $($file.FullName)"
-            & signtool sign /fd SHA256 /a /f cert.pfx /p $password /tr $timestampUrl /td SHA256 /v $file.FullName
-            if ($LASTEXITCODE -ne 0) { throw "signtool failed for $($file.FullName)" }
-          }
-          Remove-Item cert.pfx -Force
+        uses: skymatic/code-sign-action@v3
+        with:
+          certificate: '${{ secrets.CERTIFICATE }}'
+          password: '${{ secrets.CERT_PASSWORD }}'
+          certificatesha1: '${{ secrets.CERTHASH }}'
+          certificatename: '${{ secrets.CERTNAME }}'
+          description: 'PixelFlasher'
+          timestampUrl: 'http://timestamp.digicert.com'
+          folder: 'dist'
+          recursive: false
 
       - name: Get sha256
         run: |

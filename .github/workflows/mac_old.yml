@@ -52,10 +52,12 @@ jobs:
 
       - name: Updating Homebrew Packages
         run : |
+          brew untap aws/tap || true
           brew upgrade
-          brew remove openssl@1.1
-          # # Clean up openssl@1.1 configuration files
-          # rm -rf /opt/homebrew/etc/openssl@1.1
+          if brew list --formula | grep -q '^openssl@1\.1$'; then
+            brew uninstall openssl@1.1
+            rm -rf /opt/homebrew/etc/openssl@1.1
+          fi
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v6
@@ -66,12 +68,14 @@ jobs:
         run: pip install wxPython
 
       - name: Install node
-        run: brew install node
+        run: |
+          brew untap aws/tap || true
+          brew install node
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install ImageMagick
         run: brew install imagemagick

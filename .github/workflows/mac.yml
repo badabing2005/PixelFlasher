@@ -53,7 +53,6 @@ jobs:
       - name: Updating Homebrew Packages
         run : |
           brew untap aws/tap || true
-          brew upgrade
           if brew list --formula | grep -q '^openssl@1\.1$'; then
             brew uninstall openssl@1.1
             rm -rf /opt/homebrew/etc/openssl@1.1

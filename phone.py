@@ -3521,39 +3521,97 @@ add_hosts_module
                 conn = sqlite3.connect(local_db_path)
                 cursor = conn.cursor()
 
-                # Different versions of lsposed have different tables
-                # check if auto_include column exists
+                # Different versions of lsposed have different schemas
+                # check table columns and build SELECT dynamically
                 cursor.execute("PRAGMA table_info(modules)")
                 columns = [column[1] for column in cursor.fetchall()]
-                has_auto_include = 'auto_include' in columns
 
-                # Build query based on available columns
-                if has_auto_include:
-                    cursor.execute("""
-                        SELECT mid, module_pkg_name, apk_path, enabled, auto_include
-                        FROM modules
-                    """)
+                # determine id column (mid, id, module_id, etc.)
+                id_real = None
+                for candidate in ('mid', 'id', 'module_id', 'moduleId'):
+                    if candidate in columns:
+                        id_real = candidate
+                        break
+
+                if id_real:
+                    id_select = "m.%s AS mid" % id_real
                 else:
-                    cursor.execute("""
-                        SELECT mid, module_pkg_name, apk_path, enabled
-                        FROM modules
-                    """)
+                    # fall back to package name as identifier
+                    id_select = "m.module_pkg_name AS mid"
 
+                # check if modules table already has enabled
+                has_enabled = 'enabled' in columns
+
+                # prepare modules_state join only if needed and available
+                use_modules_state = False
+                state_pkg_col = None
+                state_enabled_col = None
+                if not has_enabled:
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='modules_state'")
+                    if cursor.fetchone():
+                        cursor.execute("PRAGMA table_info(modules_state)")
+                        ms_cols = [c[1] for c in cursor.fetchall()]
+                        # find package-key column in modules_state
+                        for candidate in ('module_pkg_name', 'pkg_name', 'package_name', 'name'):
+                            if candidate in ms_cols:
+                                state_pkg_col = candidate
+                                break
+                        if state_pkg_col:
+                            # find enabled column in modules_state
+                            for candidate in ('enabled', 'is_enabled', 'enable'):
+                                if candidate in ms_cols:
+                                    state_enabled_col = candidate
+                                    break
+                            if state_enabled_col:
+                                use_modules_state = True
+
+                # build SELECT list
+                select_exprs = [id_select, 'm.module_pkg_name', 'm.apk_path']
+                select_keys = ['mid', 'module_pkg_name', 'apk_path']
+                if has_enabled:
+                    select_exprs.append('m.enabled AS enabled')
+                    select_keys.append('enabled')
+                elif use_modules_state:
+                    # pull enabled from modules_state via join
+                    select_exprs.append(f's.{state_enabled_col} AS enabled')
+                    select_keys.append('enabled')
+
+                # build base query and join only when necessary
+                query = f"SELECT {', '.join(select_exprs)} FROM modules m"
+                if not has_enabled and use_modules_state:
+                    query += f" JOIN modules_state s ON m.module_pkg_name = s.{state_pkg_col}"
+
+                # debug(f"LSPosed SQL: {query}")
+                cursor.execute(query)
                 rows = cursor.fetchall()
+
+                def parse_enabled(value):
+                    if isinstance(value, bool):
+                        return value
+                    if value is None:
+                        return True
+                    if isinstance(value, int):
+                        return value != 0
+                    if isinstance(value, str):
+                        normalized = value.strip().lower()
+                        if normalized in ('0', 'false', 'no', 'off', 'n'):
+                            return False
+                        return normalized != ''
+                    return bool(value)
+
                 for row in rows:
-                    if has_auto_include:
-                        mid, module_pkg_name, apk_path, enabled, auto_include = row
-                    else:
-                        mid, module_pkg_name, apk_path, enabled = row
-                        auto_include = False  # Default value when column doesn't exist
+                    row_map = dict(zip(select_keys, row))
+                    mid = row_map.get('mid')
+                    module_pkg_name = row_map.get('module_pkg_name', '') or ''
+                    apk_path = row_map.get('apk_path', '') or ''
+                    enabled = parse_enabled(row_map.get('enabled'))
 
                     module = {
                         'id': str(mid),
-                        'name': module_pkg_name or '',
-                        'package_name': module_pkg_name or '',
-                        'apk_path': apk_path or '',
-                        'enabled': bool(enabled),
-                        'auto_include': bool(auto_include)
+                        'name': module_pkg_name,
+                        'package_name': module_pkg_name,
+                        'apk_path': apk_path,
+                        'enabled': enabled
                     }
                     modules.append(module)
 

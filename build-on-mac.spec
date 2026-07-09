@@ -25,7 +25,7 @@ a = Analysis(['PixelFlasher.py'],
                 ('locale', 'locale')
             ],
             hiddenimports=['_cffi_backend'],
-            hookspath=['./pyi-hooks-arm64'],
+            hookspath=[],
             runtime_hooks=[],
             excludes=[
                 'bin/busybox_arm64-v8a',

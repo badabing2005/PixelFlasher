@@ -107,6 +107,39 @@ jobs:
           PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" ./myenv/bin/python -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
         shell: bash
 
+      # cryptography may resolve to an arm64-only wheel on Apple Silicon runners.
+      # Force the published universal2 wheel so PyInstaller target_arch=universal2
+      # can include cryptography.hazmat.bindings._rust (required at runtime).
+      - name: Force universal2 cryptography wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          WHEEL_DIR="$(mktemp -d)"
+          ./myenv/bin/python -m pip uninstall -y cryptography
+          ./myenv/bin/python -m pip download 'cryptography>=42.0.5,<49' \
+            --platform macosx_10_9_universal2 \
+            --python-version 313 \
+            --only-binary=:all: \
+            --no-deps \
+            --dest "$WHEEL_DIR"
+          ls -la "$WHEEL_DIR"
+          ./myenv/bin/python -m pip install --no-cache-dir --no-index --find-links "$WHEEL_DIR" cryptography
+          RUST_SO="$(./myenv/bin/python - <<'PY'
+          import pathlib
+          import cryptography
+          root = pathlib.Path(cryptography.__file__).resolve().parent
+          matches = sorted(root.rglob('_rust*.so'))
+          if not matches:
+              raise SystemExit('cryptography._rust extension not found after install')
+          print(matches[0])
+          PY
+          )"
+          echo "cryptography _rust extension: $RUST_SO"
+          ARCHS="$(lipo -archs "$RUST_SO")"
+          echo "architectures: $ARCHS"
+          echo "$ARCHS" | grep -qw arm64
+          echo "$ARCHS" | grep -qw x86_64
+
       - name: List modules and their versions
         run: ./myenv/bin/python -m pip freeze
         shell: bash
@@ -127,11 +160,11 @@ jobs:
             print("Could not determine extension suffixes.", file=sys.stderr)
             sys.exit(1)
 
+          # Keep empty unless a dependency is intentionally single-arch AND
+          # excluded from the frozen app. Do not allowlist cryptography —
+          # its _rust extension must be universal2 for the macOS build.
           allowlist_patterns = [
-            # Add glob patterns for extension-module paths to exempt from universal2 checks.
             # Example: "*/site-packages/somepkg/someext*.so"
-            # Skip cryptography's Rust extension which may be single-arch on some runners
-            "*/site-packages/cryptography/hazmat/bindings/*",
           ]
 
           def iter_site_package_roots() -> list[pathlib.Path]:
@@ -198,6 +231,30 @@ jobs:
           export PATH="$PWD/myenv/bin:$PATH"
           ./build.sh
         shell: bash
+
+      # Guard against shipping another build that omits cryptography's Rust
+      # binding (the v9.1.3.0 launch crash) or that embeds a single-arch .so.
+      - name: Smoke-check cryptography._rust in app bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="dist/PixelFlasher.app"
+          test -d "$APP"
+          FOUND=0
+          while IFS= read -r so; do
+            FOUND=1
+            echo "Found: $so"
+            ARCHS="$(lipo -archs "$so")"
+            echo "  architectures: $ARCHS"
+            echo "$ARCHS" | grep -qw arm64
+            echo "$ARCHS" | grep -qw x86_64
+          done < <(find "$APP" -type f \( -name '_rust*.so' -o -name '_rust*.dylib' \))
+          if [[ "$FOUND" -eq 0 ]]; then
+            echo "ERROR: cryptography.hazmat.bindings._rust not found in $APP" >&2
+            echo "This is the ModuleNotFoundError launch-crash failure mode." >&2
+            exit 1
+          fi
+          echo "cryptography._rust present and universal2 in app bundle."
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v7

@@ -16,7 +16,10 @@ psutil>=5.9.5
 json5>=0.9.14
 bs4>=0.0.1
 chardet>=5.2.0,<7
-cryptography>=42.0.5
+# cryptography 49+ ships macOS arm64-only wheels (no universal2 / x86_64).
+# PixelFlasher's macOS build targets universal2, so stay on <49 until
+# pyca/cryptography publishes fat macOS wheels again.
+cryptography>=42.0.5,<49
 rsa>=4.9
 polib>=1.1.1
 # # Use pre-built wheels for wxPython

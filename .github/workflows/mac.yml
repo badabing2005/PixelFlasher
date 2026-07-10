@@ -41,7 +41,7 @@ on:
 
 jobs:
   build_mac:
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout code
@@ -52,13 +52,10 @@ jobs:
 
       - name: Updating Homebrew Packages
         run : |
-          if brew tap-info aws/tap >/dev/null 2>&1; then
-            brew untap aws/tap
-          fi
+          brew upgrade
+          brew remove openssl@1.1 2>&1 | grep -v "configuration files have not been removed" || true
+          # Clean up openssl@1.1 configuration files
           rm -rf /opt/homebrew/etc/openssl@1.1
-          if brew list --formula | grep -q '^openssl@1\.1$'; then
-            brew uninstall --ignore-dependencies openssl@1.1 || true
-          fi
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v6
@@ -69,16 +66,12 @@ jobs:
         run: pip install wxPython
 
       - name: Install node
-        run: |
-          if brew tap-info aws/tap >/dev/null 2>&1; then
-            brew untap aws/tap
-          fi
-          brew install node
+        run: brew install node
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: '20'
 
       - name: Install ImageMagick
         run: brew install imagemagick
@@ -101,20 +94,20 @@ jobs:
         run: python3.13 -m venv myenv
         shell: bash
 
-      - name: Install requirements
-        run: |
-          ./myenv/bin/python -m pip install --upgrade pip
-          PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" ./myenv/bin/python -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
+      - name: Activate virtual environment
+        run: source myenv/bin/activate
         shell: bash
 
+      - name: Install requirements
+        run: PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
+
       - name: List modules and their versions
-        run: ./myenv/bin/python -m pip freeze
-        shell: bash
+        run: python3.13 -m pip freeze
 
       - name: Verify universal2 extension modules
         shell: bash
         run: |
-          ./myenv/bin/python - <<'PY'
+          python3.13 - <<'PY'
           import importlib.machinery
           import pathlib
           import fnmatch
@@ -130,8 +123,6 @@ jobs:
           allowlist_patterns = [
             # Add glob patterns for extension-module paths to exempt from universal2 checks.
             # Example: "*/site-packages/somepkg/someext*.so"
-            # Skip cryptography's Rust extension which may be single-arch on some runners
-            "*/site-packages/cryptography/hazmat/bindings/*",
           ]
 
           def iter_site_package_roots() -> list[pathlib.Path]:
@@ -194,10 +185,7 @@ jobs:
 
       - name: Build application
         id: build_app
-        run: |
-          export PATH="$PWD/myenv/bin:$PATH"
-          ./build.sh
-        shell: bash
+        run: ./build.sh
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v7

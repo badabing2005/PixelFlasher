@@ -72,7 +72,7 @@ class AdvancedSettings(wx.Dialog):
         scrolled_panel = wx.ScrolledWindow(self, style=wx.VSCROLL | wx.HSCROLL)
         middle_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        fgs1 = wx.FlexGridSizer(cols=2, vgap=10, hgap=10)
+        fgs1 = wx.FlexGridSizer(cols=2, vgap=5, hgap=10)
         # this makes the second column expandable (index starts at 0)
         fgs1.AddGrowableCol(1, 1)
         # this makes the height expandable
@@ -191,6 +191,14 @@ class AdvancedSettings(wx.Dialog):
         self.force_codepage_checkbox.SetToolTip(_("Uses specified code page instead of system code page"))
         self.code_page = wx.TextCtrl(parent=scrolled_panel, id=wx.ID_ANY, size=(-1, -1))
 
+        # Reboot to system timeout
+        self.reboot_to_system_timeout_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("Reboot to system timeout (seconds)"))
+        self.reboot_to_system_timeout_label.SetToolTip(_("Sets the timeout for rebooting to system"))
+        self.reboot_to_system_timeout = wx.SearchCtrl(scrolled_panel, style=wx.TE_LEFT)
+        self.reboot_to_system_timeout.ShowCancelButton(True)
+        self.reboot_to_system_timeout.SetDescriptiveText(_("Example: 90"))
+        self.reboot_to_system_timeout.ShowSearchButton(False)
+
         # Delete Bundle libs
         self.delete_bundled_libs_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("Delete bundled libs"))
         self.delete_bundled_libs_label.SetToolTip(_("The listed libraries would be deleted from the PF bundle to allow system defined ones to be used."))
@@ -236,9 +244,9 @@ class AdvancedSettings(wx.Dialog):
         self.scrcpy_path_picker.SetToolTip(_("Select scrcpy executable"))
         self.scrcpy_h1sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.scrcpy_h1sizer.Add(window=self.scrcpy_path_label, proportion=0, flag=wx.EXPAND)
-        self.scrcpy_h1sizer.AddSpacer(10)
+        self.scrcpy_h1sizer.AddSpacer(5)
         self.scrcpy_h1sizer.Add(window=self.scrcpy_link, proportion=0, flag=wx.EXPAND)
-        self.scrcpy_h1sizer.AddSpacer(10)
+        self.scrcpy_h1sizer.AddSpacer(5)
         self.scrcpy_h1sizer.Add(window=self.scrcpy_path_picker, proportion=1, flag=wx.EXPAND)
 
         # scrcpy 2nd row flags
@@ -254,9 +262,9 @@ class AdvancedSettings(wx.Dialog):
         scrcpy_vsizer.Add(self.scrcpy_flags, proportion=1, flag=wx.ALL|wx.EXPAND, border=5)
         #
         scrcpy_outer_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        scrcpy_outer_sizer.AddSpacer(20)
+        scrcpy_outer_sizer.AddSpacer(5)
         scrcpy_outer_sizer.Add(scrcpy_vsizer, proportion=1, flag=wx.EXPAND, border=10)
-        scrcpy_outer_sizer.AddSpacer(20)
+        scrcpy_outer_sizer.AddSpacer(5)
 
         # Set Widget values from config
         self.advanced_options_checkbox.SetValue(self.Parent.config.advanced_options)
@@ -280,6 +288,7 @@ class AdvancedSettings(wx.Dialog):
         self.sanitize_support_files.SetValue(self.Parent.config.sanitize_support_files)
         self.kb_index_cb.SetValue(self.Parent.config.kb_index)
         self.force_codepage_checkbox.SetValue(self.Parent.config.force_codepage)
+        self.reboot_to_system_timeout.SetValue(str(self.Parent.config.reboot_to_system_timeout))
         self.delete_bundled_libs.SetValue(self.Parent.config.delete_bundled_libs)
         self.override_kmi.SetValue(self.Parent.config.override_kmi)
         self.code_page.SetValue(str(self.Parent.config.custom_codepage))
@@ -359,6 +368,9 @@ class AdvancedSettings(wx.Dialog):
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
         fgs1.Add(self.code_page, 1, wx.EXPAND)
 
+        fgs1.Add(self.reboot_to_system_timeout_label, 0, wx.EXPAND)
+        fgs1.Add(self.reboot_to_system_timeout, 1, wx.EXPAND)
+
         fgs1.Add(self.delete_bundled_libs_label, 0, wx.EXPAND)
         fgs1.Add(self.delete_bundled_libs, 1, wx.EXPAND)
 
@@ -422,7 +434,7 @@ class AdvancedSettings(wx.Dialog):
         screen_max_width = int(screen_width * 0.9)
         screen_max_height = int(screen_height * 0.9)
         self.max_width = min(screen_max_width, 914)
-        self.max_height = min(screen_max_height, 1250)
+        self.max_height = min(screen_max_height, 1150)
         debug(f"Max Dialog Size: {self.max_width} x {self.max_height}")
         self.SetMaxSize(wx.Size(self.max_width, self.max_height))
         self.SetSizeHints(self.GetMinSize(), self.GetMaxSize())
@@ -595,6 +607,15 @@ class AdvancedSettings(wx.Dialog):
             self.Parent.config.force_codepage = self.force_codepage_checkbox.GetValue()
             if self.code_page.GetValue() and self.code_page.GetValue().isnumeric():
                 self.Parent.config.custom_codepage = int(self.code_page.GetValue())
+
+            value = self.reboot_to_system_timeout.GetValue()
+            if value not in ('', None) and value.isnumeric():
+                value = int(value)
+            else:
+                value = 90
+            if value != self.Parent.config.reboot_to_system_timeout:
+                sys.stdout.write(f"Setting Reboot to system timeout to: {value}\n")
+                self.Parent.config.reboot_to_system_timeout = value
 
             value = self.delete_bundled_libs.GetValue()
             if value is None:

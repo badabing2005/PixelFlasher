@@ -127,6 +127,7 @@ class Config():
         self.pif_chunk_size = 8*1024*1024  # 8MB default
         self.pif_chunk_overlap = 200        # 200 bytes default
         self.canary_miner_channel = 'stable'  # can be 'stable' or 'main', default to 'stable'
+        self.reboot_to_system_timeout = 90
 
         self.toolbar = {
             'tb_position': 'top',
@@ -355,6 +356,8 @@ class Config():
                     conf.pif_chunk_overlap = data['pif_chunk_overlap']
                 with contextlib.suppress(KeyError):
                     conf.canary_miner_channel = data['canary_miner_channel']
+                with contextlib.suppress(KeyError):
+                    conf.reboot_to_system_timeout = data['reboot_to_system_timeout']
 
                 # read the toolbar section
                 with contextlib.suppress(KeyError):
@@ -564,7 +567,8 @@ class Config():
             'force_ksud_mount_selection': self.force_ksud_mount_selection,
             'pif_chunk_size': self.pif_chunk_size,
             'pif_chunk_overlap': self.pif_chunk_overlap,
-            'canary_miner_channel': self.canary_miner_channel
+            'canary_miner_channel': self.canary_miner_channel,
+            'reboot_to_system_timeout': self.reboot_to_system_timeout
         }
         with open(file_path, 'w', encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             json.dump(data, f, indent=4)

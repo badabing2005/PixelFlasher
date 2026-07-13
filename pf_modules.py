@@ -7241,7 +7241,10 @@ def flash_phone(self):
                     if wipe_flag:
                         timeout = None
                     else:
-                        timeout = 90
+                        if self.config.reboot_to_system_timeout:
+                            timeout = self.config.reboot_to_system_timeout
+                        else:
+                            timeout = 90
                     res = device.reboot_system(timeout=timeout)
                     if res == -1:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to system")

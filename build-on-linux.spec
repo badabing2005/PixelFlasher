@@ -1,10 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
+import platform
 
 block_cipher = None
 
+# Use 7zzs (static) on x86_64, 7zz (dynamic) on aarch64
+if platform.machine() == 'aarch64':
+    seven_zip_bin = 'bin/7zz'
+else:
+    seven_zip_bin = 'bin/7zzs'
+
 a = Analysis(['PixelFlasher.py'],
              pathex=['.'],
-             binaries=[('bin/7zzs', 'bin')],
+             binaries=[(seven_zip_bin, 'bin')],
              datas=[
                 ("images/icon-64.png", "images"),
                 ("images/icon-dark-64.png", "images"),

@@ -757,7 +757,7 @@ class PixelFlasher(wx.Frame):
             t = f":{datetime.now():%Y-%m-%d %H:%M:%S}"
             print(f"PixelFlasher {VERSION} started on {t}")
             puml(f"{t};\n")
-            puml(f"#palegreen:PixelFlasher {VERSION} started;\n")
+            puml(f":PixelFlasher {VERSION} started;<<#palegreen>>\n")
             start = time.time()
 
             print(f"Platform: {sys.platform}")
@@ -883,12 +883,12 @@ class PixelFlasher(wx.Frame):
                         # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
                         if firmware_hash[:8] in self.config.firmware_path:
                             print(f"✅ Expected to match {firmware_hash[:8]} in the firmware filename and did. This is good!")
-                            puml(f"#CDFFC8:Checksum matches portion of the firmware filename {self.config.firmware_path};\n")
+                            puml(f":Checksum matches portion of the firmware filename {self.config.firmware_path};<<#CDFFC8>>\n")
                             # self.toast(_("Firmware SHA256"), _("✅ SHA256 of the selected file matches the segment in the filename."))
                             set_firmware_hash_validity(True)
                         else:
                             print(f"⚠️ WARNING: Expected to match {firmware_hash[:8]} in the firmware filename but didn't, please double check to make sure the checksum is good.")
-                            puml("#orange:Unable to match the checksum in the filename;\n")
+                            puml(":Unable to match the checksum in the filename;<<#orange>>\n")
                             self.toast(_("Firmware SHA256"), _("⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good."))
                             set_firmware_hash_validity(False)
             except Exception as e:
@@ -2414,7 +2414,7 @@ class PixelFlasher(wx.Frame):
     def _on_close(self, event):
         self.config.pos_x, self.config.pos_y = self.GetPosition()
         self.config.save(get_config_file_path())
-        puml("#palegreen:Exit PixelFlasher;\nend\n@enduml\n")
+        puml(":Exit PixelFlasher;<<#palegreen>>\nend\n@enduml\n")
         wx.Exit()
 
     # -----------------------------------------------
@@ -3508,7 +3508,7 @@ class PixelFlasher(wx.Frame):
                 print(f"⚠️ WARNING! Problematic Kernel: {kernel} is installed. Play Integrity would possibly fail.")
                 print(f"Kernel string: {bad_kernel} is known to be banned.\n")
                 self.toast(_("WARNING! Banned Kernel"), _("⚠️ Kernel string: %s is known to be banned.\nPlay Integrity would possibly fail.") % bad_kernel)
-                puml(f"#red:Kernel: {kernel} is detected;\n")
+                puml(f":Kernel: {kernel} is detected;<<#red>>\n")
                 puml("note right:This kernel is known to be banned")
 
     # -----------------------------------------------
@@ -3526,17 +3526,17 @@ class PixelFlasher(wx.Frame):
 
             if bad_m_version and bad_m_app_version:
                 dlg = wx.MessageDialog(None, f"Magisk Version: {m_version} is detected.\nMagisk Manager Version: {m_app_version} is detected.\n\nThese versions of Magisk are known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Versions.',wx.OK | wx.ICON_EXCLAMATION)
-                puml(f"#red:Magisk Version: {m_version} is detected\nMagisk Manager Version: {m_app_version} is detected;\n")
+                puml(f":Magisk Version: {m_version} is detected\nMagisk Manager Version: {m_app_version} is detected;<<#red>>\n")
                 puml("note right:These versions of Magisk are known to have problems.")
                 result = dlg.ShowModal()
             elif bad_m_version:
                 dlg = wx.MessageDialog(None, f"Magisk Version: {m_version} is detected.\nThis version of Magisk is known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Version.',wx.OK | wx.ICON_EXCLAMATION)
-                puml(f"#red:Magisk Version: {m_version} is detected;\n")
+                puml(f":Magisk Version: {m_version} is detected;<<#red>>\n")
                 puml("note right:This version of Magisk is known to have problems.")
                 result = dlg.ShowModal()
             elif bad_m_app_version:
                 dlg = wx.MessageDialog(None, f"Magisk Manager Version: {m_app_version} is detected.\nThis version of Magisk Manager is known to have issues.\nRecommendation: Install stable version or one that is known to be good.",'Problematic Magisk Manager Version.',wx.OK | wx.ICON_EXCLAMATION)
-                puml(f"#red:Magisk Manager Version: {m_app_version} is detected;\n")
+                puml(f":Magisk Manager Version: {m_app_version} is detected;<<#red>>\n")
                 puml("note right:This version of Magisk Manager is known to have problems;\n")
                 result = dlg.ShowModal()
 
@@ -4328,7 +4328,7 @@ class PixelFlasher(wx.Frame):
                 self.update_widget_states()
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {custom_rom_path} is not a valid archive.")
-                puml("#red:The selected ROM file is not valid;\n")
+                puml(":The selected ROM file is not valid;<<#red>>\n")
                 self.custom_rom.SetPath('')
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting rom")

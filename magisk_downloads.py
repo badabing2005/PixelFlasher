@@ -398,7 +398,7 @@ class MagiskDownloads(wx.Dialog):
             else:
                 print("User pressed cancel.")
                 print("Aborting ...\n")
-                # puml("#pink:User Pressed Cancel to abort;\n}\n")
+                # puml(":User Pressed Cancel to abort;<<#pink>>\n}\n")
                 proceed = False
         if proceed:
             self._on_spin('start')

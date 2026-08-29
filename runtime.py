@@ -1155,6 +1155,30 @@ def is_pixel_watch(device_codename) -> bool:
 #                               Function puml
 # ============================================================================
 def puml(message='', left_ts = False, mode='a'):
+    # # Normalize deprecated color-prefix syntax (#color:Message) to
+    # # the new PlantUML colour tag syntax (:Message;<<#color>>)
+    # try:
+    #     import re
+    #     if isinstance(message, str):
+    #         m = re.match(r"^\s*#(?P<color>[A-Za-z0-9]+):(.*)$", message, re.DOTALL)
+    #         if m:
+    #             color = m.group('color')
+    #             rest = m.group(2)
+    #             # preserve trailing newlines
+    #             trailing_newlines = ''
+    #             while rest.endswith('\n'):
+    #                 trailing_newlines = '\n' + trailing_newlines
+    #                 rest = rest[:-1]
+    #             rest = rest.rstrip()
+    #             # ensure message ends with a single semicolon before colour tag
+    #             if not rest.endswith(';'):
+    #                 rest = rest + ';'
+    #             # prepend ':' as PlantUML requires and append colour tag using <<#color>>
+    #             message = f":{rest};<<#{color}>>{trailing_newlines}"
+    # except Exception:
+    #     # normalization is best-effort; fall back to original message
+    #     pass
+
     if get_puml_state():
         pumlfile = get_pumlfile()
         if not pumlfile:
@@ -7692,12 +7716,12 @@ def extract_magiskboot(apk_path, architecture, output_path):
             debug(f"Stderr: {res.stderr}")
             if res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
-                puml("#red:ERROR: Could not extract image;\n")
+                puml(":ERROR: Could not extract image;<<#red>>\n")
                 print("Aborting ...\n")
                 return
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {apk_path}")
-            puml("#red:ERROR: Could not extract image;\n")
+            puml(":ERROR: Could not extract image;<<#red>>\n")
             print("Aborting ...\n")
             return
 
@@ -9719,7 +9743,7 @@ def find_package_ids_with_same_package_boot_hash(boot_hash):
         return package_ids
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while fetching package IDs.")
-        puml("#red:Encountered an error while fetching package IDs;\n", True)
+        puml(":Encountered an error while fetching package IDs;<<#red>>\n", True)
         traceback.print_exc()
         return []
 
@@ -9747,7 +9771,7 @@ def get_package_sig(package_id):
                 return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while fetching package_sig.")
-        puml("#red:Encountered an error while fetching package_sig;\n", True)
+        puml(":Encountered an error while fetching package_sig;<<#red>>\n", True)
         traceback.print_exc()
         return None
 
@@ -9775,7 +9799,7 @@ def get_boot_id_by_file_path(file_path):
                 return None
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function get_boot_id_by_file_path.")
-        puml("#red:Encountered an error in function get_boot_id_by_file_path;\n", True)
+        puml(":Encountered an error in function get_boot_id_by_file_path;<<#red>>\n", True)
         traceback.print_exc()
         return None
 
@@ -9799,7 +9823,7 @@ def delete_package_boot_record(boot_id, package_id):
         return True
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_package_boot_record.")
-        puml("#red:Encountered an error in function delete_package_boot_record;\n", True)
+        puml(":Encountered an error in function delete_package_boot_record;<<#red>>\n", True)
         traceback.print_exc()
         return False
 
@@ -9836,7 +9860,7 @@ def delete_boot_record(boot_id, delete_file=''):
                 print(f"⚠️ Warning: Boot file: {delete_file} does not exist")
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_boot_record.")
-        puml("#red:Encountered an error in function delete_boot_record;\n", True)
+        puml(":Encountered an error in function delete_boot_record;<<#red>>\n", True)
         traceback.print_exc()
         return None
 
@@ -9860,7 +9884,7 @@ def delete_last_boot_record(boot_id, boot_path=''):
         return True
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_last_boot_record.")
-        puml("#red:Encountered an error in function delete_last_boot_record;\n", True)
+        puml(":Encountered an error in function delete_last_boot_record;<<#red>>\n", True)
         traceback.print_exc()
         print("Aborting ...")
         return False
@@ -9915,7 +9939,7 @@ def delete_last_package_record(package_ids, boot_dir):
         return True
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function delete_last_package_record.")
-        puml("#red:Encountered an error in function delete_last_package_record;\n", True)
+        puml(":Encountered an error in function delete_last_package_record;<<#red>>\n", True)
         traceback.print_exc()
         print("Aborting ...")
         return False
@@ -9945,13 +9969,13 @@ def insert_boot_record(boot_hash, file_path, is_patched, magisk_version, hardwar
             debug(f"DB BOOT record ID: {boot_id}")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while inserting BOOT record.")
-            puml("#red:Encountered an error while inserting BOOT record;\n", True)
+            puml(":Encountered an error while inserting BOOT record;<<#red>>\n", True)
             traceback.print_exc()
             boot_id = 0
         return boot_id
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function insert_boot_record.")
-        puml("#red:Encountered an error in function insert_boot_record;\n", True)
+        puml(":Encountered an error in function insert_boot_record;<<#red>>\n", True)
         traceback.print_exc()
         return 0
 
@@ -9980,13 +10004,13 @@ def insert_package_boot_record(package_id, boot_id) -> int | None:
             debug(f"DB Package_Boot record ID: {package_boot_id}\n")
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while inserting PACKAGE_BOOT record.")
-            puml("#red:Encountered an error while inserting PACKAGE_BOOT record;\n", True)
+            puml(":Encountered an error while inserting PACKAGE_BOOT record;<<#red>>\n", True)
             traceback.print_exc()
             package_boot_id = 0
         return package_boot_id
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in function insert_package_boot_record.")
-        puml("#red:Encountered an error in function insert_package_boot_record;\n", True)
+        puml(":Encountered an error in function insert_package_boot_record;<<#red>>\n", True)
         traceback.print_exc()
         return 0
 
@@ -10518,19 +10542,19 @@ def get_bootloader_versions():
 
         if not device.rooted:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device is not rooted.")
-            puml("#red:Device is not rooted;\n}\n")
+            puml(":Device is not rooted;<<#red>>\n}\n")
             return
 
         res = device.get_partitions()
         if res == -1:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to get partitions from the device, aborting ...")
-            puml("#red:Failed to get partitions from the device;\n}\n")
+            puml(":Failed to get partitions from the device;<<#red>>\n}\n")
             return
 
 
         if 'abl_a' not in res or 'abl_b' not in res:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device does not have abl_a and/or abl_b partitions, aborting ...")
-            puml("#red:Device does not have abl_a and abl_b partitions;\n}\n")
+            puml(":Device does not have abl_a and abl_b partitions;<<#red>>\n}\n")
             return
 
         # first delete existing abl_a and abl_b dumps if it exists on the phone
@@ -10538,25 +10562,25 @@ def get_bootloader_versions():
         res = device.delete(path, True)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to delete old abl_a image from the phone;\n}\n")
+            puml(":Failed to delete old abl_a image from the phone;<<#red>>\n}\n")
             return
         path = "/data/local/tmp/abl_b.img"
         res = device.delete(path, True)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to delete old abl_b image from the phone;\n}\n")
+            puml(":Failed to delete old abl_b image from the phone;<<#red>>\n}\n")
             return
 
         # dump abl_a and abl_b to the phone
         res, file_path = device.dump_partition(partition='abl', slot='a')
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to dump abl_a partition to the phone;\n}\n")
+            puml(":Failed to dump abl_a partition to the phone;<<#red>>\n}\n")
             return
         res, file_path = device.dump_partition(partition='abl', slot='b')
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to dump abl_a partition to the phone;\n}\n")
+            puml(":Failed to dump abl_a partition to the phone;<<#red>>\n}\n")
             return
 
         # pull abl_a and abl_b from the phone
@@ -10565,7 +10589,7 @@ def get_bootloader_versions():
         res = device.pull_file(path, os.path.join(temp_dir, "abl_a.img"), False)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to pull abl_a image from the phone;\n}\n")
+            puml(":Failed to pull abl_a image from the phone;<<#red>>\n}\n")
             res = device.delete(path, True)
             return
         res = device.delete(path, True)
@@ -10573,7 +10597,7 @@ def get_bootloader_versions():
         res = device.pull_file(path, os.path.join(temp_dir, "abl_b.img"), False)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to pull abl_b image from the phone;\n}\n")
+            puml(":Failed to pull abl_b image from the phone;<<#red>>\n}\n")
             res = device.delete(path, True)
             return
         res = device.delete(path, True)
@@ -10617,7 +10641,7 @@ def get_bootloader_versions():
                     break
         if abl_a_version is None:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find bootloader version in abl_a.img")
-            puml("#red:Could not find bootloader version in abl_a.img;\n}\n")
+            puml(":Could not find bootloader version in abl_a.img;<<#red>>\n}\n")
             return
 
         # Process abl_b
@@ -10634,7 +10658,7 @@ def get_bootloader_versions():
                     break
         if abl_b_version is None:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find bootloader version in abl_b.img")
-            puml("#red:Could not find bootloader version in abl_b.img;\n}\n")
+            puml(":Could not find bootloader version in abl_b.img;<<#red>>\n}\n")
             return
 
         # Define the minimum safe versions for different ARB effected devices
@@ -10781,7 +10805,7 @@ def check_pixel_spl_compatibility(firmware_model, boot_spl, device_build):
         message += _("Click OK to continue or CANCEL to abort.\n")
 
         print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-        puml("#orange:SPL Mismatch WARNING;\n", True)
+        puml(":SPL Mismatch WARNING;<<#orange>>\n", True)
         puml(f"note right\n{message_en}\nend note\n")
 
         dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
@@ -10792,7 +10816,7 @@ def check_pixel_spl_compatibility(firmware_model, boot_spl, device_build):
             return 0
         else:
             print("User pressed CANCEL due to SPL mismatch.")
-            puml("#pink:User Pressed CANCEL due to SPL mismatch;\n}\n")
+            puml(":User Pressed CANCEL due to SPL mismatch;<<#pink>>\n}\n")
             print("Aborting ...\n")
             return -1
 
@@ -10817,7 +10841,7 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
 
     except subprocess.TimeoutExpired as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
-        puml("#red:Command {cmd} timed out;\n", True)
+        puml(":Command {cmd} timed out;<<#red>>\n", True)
         puml(f"note right\n{e}\nend note\n")
         # Send CTRL + C signal to the process
         if process is not None:
@@ -10828,7 +10852,7 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell {cmd}")
         traceback.print_exc()
-        puml("#red:Encountered an error;\n", True)
+        puml(":Encountered an error;<<#red>>\n", True)
         puml(f"note right\n{e}\nend note\n")
         raise e
         # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')
@@ -10886,7 +10910,7 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='utf-
             if timeout is not None and time.time() > timeout:
                 proc.terminate()
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
-                puml("#red:Command timed out;\n", True)
+                puml(":Command timed out;<<#red>>\n", True)
                 puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
                 return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='', stderr='')
         proc.wait()
@@ -10896,7 +10920,7 @@ def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='utf-
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell2 {cmd}")
         traceback.print_exc()
-        puml("#red:Encountered an error;\n", True)
+        puml(":Encountered an error;<<#red>>\n", True)
         puml(f"note right\n{e}\nend note\n")
         raise e
         # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')
@@ -10945,7 +10969,7 @@ def run_shell3(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
                 if timeout is not None and time.time() - start_time > timeout:
                     proc.terminate()
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Command {cmd} timed out after {timeout} seconds")
-                    puml("#red:Command timed out;\n", True)
+                    puml(":Command timed out;<<#red>>\n", True)
                     puml(f"note right\nCommand {cmd} timed out after {timeout} seconds\nend note\n")
                     return subprocess.CompletedProcess(args=cmd, returncode=-1, stdout='\n'.join(output), stderr='')
 
@@ -10957,7 +10981,7 @@ def run_shell3(cmd, timeout=None, detached=False, directory=None, encoding='ISO-
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while executing run_shell3 {cmd}")
         traceback.print_exc()
-        puml("#red:Encountered an error;\n", True)
+        puml(":Encountered an error;<<#red>>\n", True)
         puml(f"note right\n{e}\nend note\n")
         raise e
         # return subprocess.CompletedProcess(args=cmd, returncode=-2, stdout='', stderr='')

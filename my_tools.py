@@ -286,7 +286,7 @@ class MyToolsDialog(wx.Dialog):
                 self._on_spin('stop')
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while adding to mytools")
-            puml("#red:Encountered an error while adding to mytools;\n")
+            puml(":Encountered an error while adding to mytools;<<#red>>\n")
             self._on_spin('stop')
             traceback.print_exc()
 
@@ -301,7 +301,7 @@ class MyToolsDialog(wx.Dialog):
                 self._on_spin('stop')
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while adding to mytools")
-            puml("#red:Encountered an error while adding to mytools;\n")
+            puml(":Encountered an error while adding to mytools;<<#red>>\n")
             self._on_spin('stop')
             traceback.print_exc()
 

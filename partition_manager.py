@@ -356,14 +356,14 @@ IT IS YOUR RESPONSIBILITY TO ENSURE THAT YOU KNOW WHAT YOU ARE DOING.
         res = self.device.delete(path)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to delete old partition image from the phone;\n}\n")
+            puml(":Failed to delete old partition image from the phone;<<#red>>\n}\n")
             return
 
         # partition dump on the phone
         res, file_path = self.device.dump_partition(file_path=path, partition=partition)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to dump partition on the phone;\n}\n")
+            puml(":Failed to dump partition on the phone;<<#red>>\n}\n")
             return
 
         if multiple:

@@ -126,7 +126,7 @@ def check_platform_tools(self):
                 return
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected path {self.config.platform_tools_path} does not have adb and or fastboot")
-                puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:The selected path does not have adb and or fastboot\n")
+                puml(f":Selected Platform Tools;<<#red>>\nnote left: {self.config.platform_tools_path}\nnote right:The selected path does not have adb and or fastboot\n")
                 self.config.platform_tools_path = None
                 set_adb(None)
                 set_fastboot(None)
@@ -359,7 +359,7 @@ def populate_boot_list(self, sortColumn=None, sorting_direction='ASC', select_fi
         self.process_firmware.SetFocus()
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while populating boot list")
-        puml("#red:Encountered an error while populating boot list;\n")
+        puml(":Encountered an error while populating boot list;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -386,7 +386,7 @@ def auto_resize_boot_list(self):
         self.list.SetColumnWidth(self.list.ColumnCount - 1, available_width)
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while auto resizing boot list")
-        puml("#red:Encountered an error while auto resizing boot list;\n")
+        puml(":Encountered an error while auto resizing boot list;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -426,11 +426,11 @@ def identify_sdk_version(self):
                                     style=wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION
                                 )
                                 result = dlg.ShowModal()
-                                puml(f"#red:Selected Platform Tools;\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
+                                puml(f":Selected Platform Tools;<<#red>>\nnote left: {self.config.platform_tools_path}\nnote right:ERROR: Detected old or problematic Android Platform Tools version {sdk_version}\n")
                                 if result == wx.ID_YES:
                                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User accepted the bad version {sdk_version} of Android platform tools.")
                                     set_sdk_state(True)
-                                    puml("#red:User wanted to proceed regardless;\n")
+                                    puml(":User wanted to proceed regardless;<<#red>>\n")
                                 else:
                                     print("Bad Android platform tools is not accepted. For your protection, disabling device selection.")
                                     print("Please update Android SDK.\n")
@@ -446,7 +446,7 @@ def identify_sdk_version(self):
                             #                 'e8e6b8f4e8d69401967d16531308b48f144202e459662eae656a0c6e68c2741f',
                             #                 '29c66b605521dea3c3e32f3b1fd7c30a1637ec3eb729820a48bd6827e4659a20')):
                             #     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected Android Platform Tools version {sdkver} has known issues, please select another version.")
-                            #     puml(f"#red:Android Platform Tools version {sdkver} has known issues;\n")
+                            #     puml(f":Android Platform Tools version {sdkver} has known issues;<<#red>>\n")
                             #     dlg = wx.MessageDialog(None, f"Android Platform Tools version {sdkver} has known issues, please select another version.",f"Android Platform Tools {sdkver}",wx.OK | wx.ICON_EXCLAMATION)
                             #     result = dlg.ShowModal()
                             #     break
@@ -462,14 +462,14 @@ def identify_sdk_version(self):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools version is not available or is too old.")
         print("                           For your protection, disabling device selection.")
         print("                           Please select valid Android SDK.\n")
-        puml("#pink:For your protection, disabled device selection;\n")
+        puml(":For your protection, disabled device selection;<<#pink>>\n")
         self.config.device = None
         self.device_choice.SetItems([''])
         self.device_choice.Select(-1)
         return -1
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while identifying sdk version")
-        puml("#red:Encountered an error while identifying sdk version;\n")
+        puml(":Encountered an error while identifying sdk version;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -533,7 +533,7 @@ def get_flash_settings(self):
         return message
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while getting flash settings")
-        puml("#red:Encountered an error while while getting flash settings;\n")
+        puml(":Encountered an error while while getting flash settings;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -549,7 +549,7 @@ def adb_kill_server(self):
             res = run_shell(theCmd)
             if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
                 print("returncode: 0")
-                puml(f"#palegreen:Succeeded;\n")
+                puml(f":Succeeded;<<#palegreen>>\n")
                 self.device_choice.SetItems(get_connected_devices())
                 self._select_configured_device()
                 return 0
@@ -558,15 +558,15 @@ def adb_kill_server(self):
                 print(f"Return Code: {res.returncode}")
                 print(f"Stdout: {res.stdout}")
                 print(f"Stderr: {res.stderr}")
-                puml(f"#red:**Failed**\n{res.stderr}\n{res.stdout};\n")
+                puml(f":**Failed**\n{res.stderr}\n{res.stdout};<<#red>>\n")
                 return -1
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing Android platform tools.\n")
-            puml(f"#red:Missing Android platform tools;\n")
+            puml(f":Missing Android platform tools;<<#red>>\n")
             return -1
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while killing adb server.")
-        puml("#red:Encountered an error while killing adb server;\n")
+        puml(":Encountered an error while killing adb server;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -616,12 +616,12 @@ def select_firmware(self):
                 # Check to see if the first 8 characters of the checksum is in the filename, Google published firmwares do have this.
                 if firmware_hash and firmware_hash[:8] in firmware:
                     print(f"✅ Expected to match {firmware_hash[:8]} in the filename and did. This is good!")
-                    puml(f"#CDFFC8:Checksum matches portion of the filename {firmware};\n")
+                    puml(f":Checksum matches portion of the filename {firmware};<<#CDFFC8>>\n")
                     self.toast("_(✅ Firmware SHA256 Match", _("SHA256 of %s%s matches the segment in the filename.") % (filename, extension))
                     set_firmware_hash_validity(True)
                 else:
                     print(f"⚠️ WARNING: Expected to match {firmware_hash[:8]} in the {filename}{extension} but didn't, please double check to make sure the checksum is good.")
-                    puml("#orange:Unable to match the checksum in the filename;\n")
+                    puml(":Unable to match the checksum in the filename;<<#orange>>\n")
                     self.toast(_("⚠️ Firmware SHA256 Mismatch"), _("WARNING! SHA256 of %s%s does not match segments in the filename.\nPlease double check to make sure the checksum is good.") % (filename, extension))
                     set_firmware_hash_validity(False)
 
@@ -655,13 +655,13 @@ def select_firmware(self):
                 return 'Checksum validity check is disabled!'
         else:
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The selected file {firmware} is not a valid archive file.")
-            puml("#red:The selected firmware is not valid;\n")
+            puml(":The selected firmware is not valid;<<#red>>\n")
             self.config.firmware_path = None
             self.firmware_picker.SetPath('')
             return 'Select Pixel Firmware'
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while selecting ota/firmware file:")
-        puml("#red:Encountered an error while selecting ota/firmware file;\n")
+        puml(":Encountered an error while selecting ota/firmware file;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -676,7 +676,7 @@ def process_file(self, file_type):
         print("==============================================================================")
         print(f"Low memory option:     {self.config.low_mem}")
         print(get_printable_memory())
-        puml(f"#cyan:Process {file_type};\n", True)
+        puml(f":Process {file_type};<<#cyan>>\n", True)
         config_path = get_config_path()
         path_to_7z = get_path_to_7z()
         boot_images = os.path.join(config_path, get_boot_images_dir())
@@ -707,7 +707,7 @@ def process_file(self, file_type):
                 print("⚠️ WARNING: The selected firmware file is larger than 3GB.")
                 print("This could take a while to process, please be patient.")
                 print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-                puml("#orange:Large firmware file detected;\n")
+                puml(":Large firmware file detected;<<#orange>>\n")
                 wx.Yield()
 
             puml(f"note right:{file_to_process}\n")
@@ -753,13 +753,13 @@ def process_file(self, file_type):
                     debug(f"Stderr: {res.stderr}")
                     if res.returncode != 0:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
-                        puml("#red:ERROR: Could not extract image;\n")
+                        puml(":ERROR: Could not extract image;<<#red>>\n")
                         print("Aborting ...\n")
                         self.toast(_("Process action"), _("❌ Could not extract %s") % file_to_process)
                         return
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {file_to_process}")
-                    puml("#red:ERROR: Could not extract image;\n")
+                    puml(":ERROR: Could not extract image;<<#red>>\n")
                     print("Aborting ...\n")
                     self.toast(_("Process action"), "❌ Could not extract %s" % file_to_process)
                     return
@@ -772,7 +772,7 @@ def process_file(self, file_type):
                     print("If it is not an official Pixel factory image, please check the author's documentation for more information.")
                     print("Do not flash this image if you are not sure how to proceed, it may brick your device!")
                     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-                    puml("#orange:Possible Non-Pixel factory image found;\n")
+                    puml(":Possible Non-Pixel factory image found;<<#orange>>\n")
                     image_file_path = None
                 wx.Yield()
             elif found_boot_img or found_init_boot_img:
@@ -794,13 +794,13 @@ def process_file(self, file_type):
                     message += _("Click OK to accept and continue.\n")
                     message += _("or Hit CANCEL to abort.")
                     print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-                    puml("#orange:WARNING;\n", True)
+                    puml(":WARNING;<<#orange>>\n", True)
                     puml(f"note right\n{message_en}\nend note\n")
                     dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
                     result = dlg.ShowModal()
                     if result != wx.ID_OK:
                         print("User pressed cancel.")
-                        puml("#pink:User Pressed Cancel to abort;\n")
+                        puml(":User Pressed Cancel to abort;<<#pink>>\n")
                         print("Aborting ...\n")
                         return
                     print("User pressed ok.")
@@ -887,7 +887,7 @@ def process_file(self, file_type):
                             debug(f"Stderr: {res.stderr}")
                             if res.returncode != 0:
                                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_image_file}")
-                                puml(f"#red:ERROR: Could not extract {boot_image_file};\n")
+                                puml(f":ERROR: Could not extract {boot_image_file};<<#red>>\n")
                                 print("Aborting ...\n")
                                 self.toast(_("Process action"), "❌ Could not extract %s." % boot_image_file)
                                 return
@@ -902,19 +902,19 @@ def process_file(self, file_type):
                                     found_boot_img = 'boot.img'
                                 else:
                                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not unpack {boot_image_file}")
-                                    puml("#red:ERROR: Could not unpack {boot_image_file};\n")
+                                    puml(":ERROR: Could not unpack {boot_image_file};<<#red>>\n")
                                     print("Aborting ...\n")
                                     self.toast(_("Process action"), _("❌ Could not unpack %s.") % boot_image_file)
                                     return
                         else:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_image_file}")
-                            puml(f"#red:ERROR: Could not extract {boot_image_file};\n")
+                            puml(f":ERROR: Could not extract {boot_image_file};<<#red>>\n")
                             print("Aborting ...\n")
                             self.toast(_("Process action"), _("❌ Could not extract %s.") % boot_image_file)
                             return
                     else:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find {boot_image_file}")
-                        puml(f"#red:ERROR: Could not find {boot_image_file};\n")
+                        puml(f":ERROR: Could not find {boot_image_file};<<#red>>\n")
                         print("Aborting ...\n")
                         self.toast(_("Process action"), _("❌ Could not find %s.") % boot_image_file)
                         return
@@ -935,7 +935,7 @@ def process_file(self, file_type):
                 print("⚠️ WARNING: The selected ROM file is larger than 3GB.")
                 print("This could take a while to process, please be patient.")
                 print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-                puml("#orange:Large firmware file detected;\n")
+                puml(":Large firmware file detected;<<#orange>>\n")
                 wx.Yield()
             wx.Yield()
             found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=False)
@@ -985,13 +985,13 @@ def process_file(self, file_type):
                     debug(f"Stderr: {res.stderr}")
                     if res.returncode != 0:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
-                        puml("#red:ERROR: Could not extract payload.bin;\n")
+                        puml(":ERROR: Could not extract payload.bin;<<#red>>\n")
                         print("Aborting ...\n")
                         self.toast(_("Process action"), _("❌ Could not extract payload.bin."))
                         return
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
-                    puml("#red:ERROR: Could not extract payload.bin;\n")
+                    puml(":ERROR: Could not extract payload.bin;<<#red>>\n")
                     print("Aborting ...\n")
                     self.toast(_("Process action"), _("❌ Could not extract payload.bin."))
                     return
@@ -1057,7 +1057,7 @@ def process_file(self, file_type):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: The firmware file did not have the expected structure / contents.")
                 if file_type == 'firmware':
                     print(f"Please check {self.config.firmware_path} to make sure it is a valid factory image file.")
-                    puml("#red:The selected firmware is not valid;\n")
+                    puml(":The selected firmware is not valid;<<#red>>\n")
                 print("Aborting ...\n")
                 self.toast(_("Process action"), _("❌ The selected firmware is not valid."))
                 return
@@ -1083,7 +1083,7 @@ def process_file(self, file_type):
                 if not files_to_extract:
                     print(f"Nothing to extract from {file_type}")
                     print("Aborting ...")
-                    puml("#red:Nothing to extract from {file_type};\n")
+                    puml(":Nothing to extract from {file_type};<<#red>>\n")
                     self.toast(_("Process action"), _("⚠️ Nothing to extract from %s") % file_type)
                     return
 
@@ -1096,7 +1096,7 @@ def process_file(self, file_type):
                         res = extract_from_nested_tgz(image_file_path, files_to_extract, tmp_dir_full)
                         if not res:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-                            puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                            puml(f":ERROR: Could not extract {boot_file_name};<<#red>>\n")
                             self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
                             print("Aborting ...\n")
                             return
@@ -1112,13 +1112,13 @@ def process_file(self, file_type):
                             debug(f"Stderr: {res.stderr}")
                             if res.returncode != 0:
                                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-                                puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                                puml(f":ERROR: Could not extract {boot_file_name};<<#red>>\n")
                                 self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
                                 print("Aborting ...\n")
                                 return
                         else:
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}.")
-                            puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+                            puml(f":ERROR: Could not extract {boot_file_name};<<#red>>\n")
                             self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
                             print("Aborting ...\n")
                             return
@@ -1132,7 +1132,7 @@ def process_file(self, file_type):
         if not os.path.exists(boot_img_file):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract {boot_file_name}, ")
             print(f"Please make sure the file: {image_file_path} has {boot_file_name} in it.")
-            puml(f"#red:ERROR: Could not extract {boot_file_name};\n")
+            puml(f":ERROR: Could not extract {boot_file_name};<<#red>>\n")
             print("Aborting ...\n")
             self.toast(_("Process action"), _("❌ Could not extract %s") % boot_file_name)
             return
@@ -1372,7 +1372,7 @@ def process_flash_all_file(filepath):
             return flash_file_lines
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing flash_all file")
-        puml("#red:Encountered an error while processing flash_all file;\n")
+        puml(":Encountered an error while processing flash_all file;<<#red>>\n")
         traceback.print_exc()
         return "ERROR"
 
@@ -1404,28 +1404,28 @@ def setup_for_downgrade(self):
         downgrade_file_name = "downgrade_boot.img"
         downgrade_file_path = os.path.join(directory_path, downgrade_file_name)
 
-        puml("#cyan:Create Downgrade Patch;\n", True)
+        puml(":Create Downgrade Patch;<<#cyan>>\n", True)
         puml("partition \"**Create Downgrade Patch**\" {\n")
 
         # Make sure platform-tools is set
         if not self.config.platform_tools_path:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
             print("Aborting ...\n")
-            puml("#red:Valid Android Platform Tools is not selected;\n}\n")
+            puml(":Valid Android Platform Tools is not selected;<<#red>>\n}\n")
             return
 
         # Make sure boot image is selected
         if not self.config.boot_id:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
             print("Aborting ...\n")
-            puml("#red:Valid boot image is not selected;\n}\n")
+            puml(":Valid boot image is not selected;<<#red>>\n}\n")
             return
 
         # make sure the target_boot_img exists
         if not os.path.exists(target_boot_img):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image {target_boot_img} does not exist.")
             print("Aborting ...\n")
-            puml("#red:Boot image does not exist;\n}\n")
+            puml(":Boot image does not exist;<<#red>>\n}\n")
             self._on_spin('stop')
             return
 
@@ -1518,13 +1518,13 @@ def setup_for_downgrade(self):
             res, file_path = device.dump_partition(file_path='/data/local/tmp/current_boot.img', partition=partition)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to dump partition on the phone;\n}\n")
+                puml(":Failed to dump partition on the phone;<<#red>>\n}\n")
                 return -1
             # pull the boot.img from the device
             res = device.pull_file('/data/local/tmp/current_boot.img', current_boot_img)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to pull boot.img from the phone;\n}\n")
+                puml(":Failed to pull boot.img from the phone;<<#red>>\n}\n")
                 return -1
 
         # option 2 - Patch com.android.build.boot.fingerprint
@@ -1608,7 +1608,7 @@ def setup_for_downgrade(self):
         print(f"Target Security Patch: {target_spl}")
         if current_spl == '' or target_spl == '':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not determine the security patch levels.")
-            puml("#red:Could not determine the security patch levels;\n")
+            puml(":Could not determine the security patch levels;<<#red>>\n")
             print("Aborting ...\n")
             return -1
         try:
@@ -1640,11 +1640,11 @@ def setup_for_downgrade(self):
                 dlg.Destroy()
                 if result != wx.ID_YES:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled patching.")
-                    puml("#pink:User cancelled patching;\n}\n")
+                    puml(":User cancelled patching;<<#pink>>\n}\n")
                     return -1
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while comparing the security patch levels.")
-            puml("#red:Encountered an error while while comparing the security patch levels;\n")
+            puml(":Encountered an error while while comparing the security patch levels;<<#red>>\n")
             traceback.print_exc()
             return -1
 
@@ -1701,11 +1701,11 @@ def setup_for_downgrade(self):
             package_boot_id = insert_package_boot_record(boot.package_id, boot_record_id)
             if not (package_boot_id is not None and package_boot_id > 0):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create a DB record for downgrade_boot.img")
-                puml("#red:Could not create a DB record for downgrade_boot.img;\n")
+                puml(":Could not create a DB record for downgrade_boot.img;<<#red>>\n")
                 return -1
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create a DB record for downgrade_boot.img")
-            puml("#red:Could not create a DB record for downgrade_boot.img;\n")
+            puml(":Could not create a DB record for downgrade_boot.img;<<#red>>\n")
             return -1
 
         end_1 = time.time()
@@ -1715,7 +1715,7 @@ def setup_for_downgrade(self):
 
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while preparing a downgrade patch")
-        puml("#red:Encountered an error while preparing a downgrade patch;\n")
+        puml(":Encountered an error while preparing a downgrade patch;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -1788,7 +1788,7 @@ def kb_stats_ui(self):
             kb_stats(verbose=checkbox_values[0], list_unique_files=checkbox_values[1], list_valid_entries=checkbox_values[2], list_non_common_entries=checkbox_values[3], add_missing_files=checkbox_values[4], target_path=target_path, check_file_existence=checkbox_values[5], list_non_existent=checkbox_values[6], remove_non_existent=checkbox_values[7])
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing kb_stats_ui")
-        puml("#red:Encountered an error while processing kb_stats_ui;\n")
+        puml(":Encountered an error while processing kb_stats_ui;<<#red>>\n")
         traceback.print_exc()
 
 
@@ -1871,7 +1871,7 @@ def drive_magisk(self, boot_file_name):
     # # res = device.uiautomator_dump(dump_file)
     # # if res == -1:
     # #     print("Aborting ...\n")
-    # #     puml("#red:Failed to uiautomator dump;\n}\n")
+    # #     puml(":Failed to uiautomator dump;<<#red>>\n}\n")
     # #     return -1
 
     # # # Pull view1.xml
@@ -1880,7 +1880,7 @@ def drive_magisk(self, boot_file_name):
     # # res = device.pull_file(dump_file, view_file)
     # # if res != 0:
     # #     print("Aborting ...\n")
-    # #     puml("#red:Failed to pull uiautomator dump from the phone;\n}\n")
+    # #     puml(":Failed to pull uiautomator dump from the phone;<<#red>>\n}\n")
     # #     return
 
     # # # get view1 bounds / click coordinates
@@ -1902,7 +1902,7 @@ def drive_magisk(self, boot_file_name):
     # # res = device.click(coords)
     # # if res == -1:
     # #     print("Aborting ...\n")
-    # #     puml("#red:Failed to click;\n}\n")
+    # #     puml(":Failed to click;<<#red>>\n}\n")
     # #     return -1
 
     # # # Sleep 2 seconds
@@ -1919,7 +1919,7 @@ def drive_magisk(self, boot_file_name):
     # res = device.uiautomator_dump(dump_file)
     # if res == -1:
     #     print("Aborting ...\n")
-    #     puml("#red:Failed to uiautomator dump;\n}\n")
+    #     puml(":Failed to uiautomator dump;<<#red>>\n}\n")
     #     return -1
 
     # # Pull view2.xml
@@ -1928,7 +1928,7 @@ def drive_magisk(self, boot_file_name):
     # res = device.pull_file(dump_file, view2)
     # if res != 0:
     #     print("Aborting ...\n")
-    #     puml("#red:Failed to pull uiautomator dump from the phone;\n}\n")
+    #     puml(":Failed to pull uiautomator dump from the phone;<<#red>>\n}\n")
     #     return
 
     # # Pull view2.xml
@@ -2263,7 +2263,7 @@ def manual_magisk(self, boot_file_name):
         return -1
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running manual Magisk")
-        puml("#red:Encountered an error while running manual Magisk;\n")
+        puml(":Encountered an error while running manual Magisk;<<#red>>\n")
         traceback.print_exc()
 
 # ============================================
@@ -2724,7 +2724,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 puml(":Other Magisk Application for patch use ;\n")
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("⚠️ User cancelled.")
-                    puml("#pink:User Cancelled;\n")
+                    puml(":User Cancelled;<<#pink>>\n")
                     return -1
                 other_magisk = fileDialog.GetPath()
                 print(f"\nSelected {other_magisk} for patch use.")
@@ -2733,13 +2733,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             res = device.push_file(f"\"{other_magisk}\"", f"{self.config.phone_path}/Magisk-Uploaded.apk", with_su=perform_as_root)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to transfer Magisk Application to the phone;\n")
+                puml(":Failed to transfer Magisk Application to the phone;<<#red>>\n")
                 return -1
             with_version = "Other"
             with_version_code = "Other"
         else:
             print(f"ERROR: Unsupported patch method: {patch_method}")
-            puml("#red:Unsupported patch method;\n")
+            puml(":Unsupported patch method;<<#red>>\n")
             return -1
 
         set_patched_with(with_version)
@@ -2871,14 +2871,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.push_file(f"{dest}", script_path, with_su=perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer Patch Script to the phone;\n")
+            puml(":Failed to transfer Patch Script to the phone;<<#red>>\n")
             return -1
 
         # set the permissions.
         res = device.set_file_permissions(script_path, "755", perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to set the executable bit on patch script;\n")
+            puml(":Failed to set the executable bit on patch script;<<#red>>\n")
             return -1
 
         if patch_method in ["app", "other"]:
@@ -2886,14 +2886,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to transfer busybox to the phone;\n")
+                puml(":Failed to transfer busybox to the phone;<<#red>>\n")
                 return -1
 
             # set the permissions.
             res = device.set_file_permissions("/data/local/tmp/busybox", "755")
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to set the executable bit on busybox;\n")
+                puml(":Failed to set the executable bit on busybox;<<#red>>\n")
                 return -1
 
         #------------------------------------
@@ -2910,7 +2910,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.file_content("/data/local/tmp/pf_patch.log")
         if res == -1:
             print("Aborting ...\n")
-            puml("#red:Failed to pull pf_patch.log from the phone;\n")
+            puml(":Failed to pull pf_patch.log from the phone;<<#red>>\n")
             return -1
         else:
             lines = res.split("\n")
@@ -2924,7 +2924,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                puml(":Failed to delete pf_patch.log from the phone;<<#red>>\n")
                 return -1
 
         return patched_img
@@ -2939,7 +2939,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Next')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1
             VERSION_VAR = "KSU_NEXT_VERSION"
@@ -2949,7 +2949,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('SukiSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1
             VERSION_VAR = "SUKISU_VERSION"
@@ -2959,7 +2959,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('Wild_KSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1
             VERSION_VAR = "WILD_KSU_VERSION"
@@ -2969,7 +2969,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Legacy')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1
             VERSION_VAR = "KSU_VERSION"
@@ -2979,7 +2979,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1
             VERSION_VAR = "KSU_VERSION"
@@ -3056,14 +3056,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.push_file(f"{dest}", script_path, with_su=perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer Patch Script to the phone;\n")
+            puml(":Failed to transfer Patch Script to the phone;<<#red>>\n")
             return -1
 
         # set the permissions.
         res = device.set_file_permissions(script_path, "755", perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to set the executable bit on patch script;\n")
+            puml(":Failed to set the executable bit on patch script;<<#red>>\n")
             return -1
 
         #------------------------------------
@@ -3080,7 +3080,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.file_content("/data/local/tmp/pf_patch.log")
         if res == -1:
             print("Aborting ...\n")
-            puml("#red:Failed to pull pf_patch.log from the phone;\n")
+            puml(":Failed to pull pf_patch.log from the phone;<<#red>>\n")
             return -1
         else:
             lines = res.split("\n")
@@ -3092,7 +3092,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                puml(":Failed to delete pf_patch.log from the phone;<<#red>>\n")
                 return -1
 
         return patched_img
@@ -3107,7 +3107,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Next')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1, ""
             VERSION_VAR = "KSU_NEXT_VERSION"
@@ -3117,7 +3117,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('SukiSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1, ""
             VERSION_VAR = "SUKISU_VERSION"
@@ -3127,7 +3127,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('Wild_KSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1, ""
             VERSION_VAR = "WILD_KSU_VERSION"
@@ -3137,7 +3137,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU-Legacy')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1, ""
             VERSION_VAR = "KSU_VERSION"
@@ -3147,7 +3147,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             success, flavor_path, error_msg, with_version, with_version_code = ensure_root_app_installed('KernelSU')
             if not success:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-                puml(f"#red:{error_msg};\n")
+                puml(f":{error_msg};<<#red>>\n")
                 print("Aborting ...\n")
                 return -1, ""
             VERSION_VAR = "KSU_VERSION"
@@ -3332,28 +3332,28 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.push_file(f"{dest}", script_path, with_su=perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer Patch Script to the phone;\n")
+            puml(":Failed to transfer Patch Script to the phone;<<#red>>\n")
             return -1, mountType
 
         # set the permissions.
         res = device.set_file_permissions(script_path, "755", perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to set the executable bit on patch script;\n")
+            puml(":Failed to set the executable bit on patch script;<<#red>>\n")
             return -1, mountType
 
         # Transfer busybox to the phone
         res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer busybox to the phone;\n")
+            puml(":Failed to transfer busybox to the phone;<<#red>>\n")
             return -1, mountType
 
         # set the permissions.
         res = device.set_file_permissions("/data/local/tmp/busybox", "755")
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to set the executable bit on busybox;\n")
+            puml(":Failed to set the executable bit on busybox;<<#red>>\n")
             return -1, mountType
 
         #------------------------------------
@@ -3370,7 +3370,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.file_content("/data/local/tmp/pf_patch.log")
         if res == -1:
             print("Aborting ...\n")
-            puml("#red:Failed to pull pf_patch.log from the phone;\n")
+            puml(":Failed to pull pf_patch.log from the phone;<<#red>>\n")
             return -1, mountType
         else:
             lines = res.split("\n")
@@ -3384,7 +3384,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                puml(":Failed to delete pf_patch.log from the phone;<<#red>>\n")
                 return -1, mountType
 
         return patched_img, mountType
@@ -3425,7 +3425,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             perform_as_root = False
         else:
             print(f"ERROR: Unsupported patch method: {patch_method}")
-            puml("#red:Unsupported patch method;\n")
+            puml(":Unsupported patch method;<<#red>>\n")
             return -1
 
         skip_magiskboot = False
@@ -3467,15 +3467,15 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     superkey = dialog.GetValue()
                     if len(superkey) < 8:
                         print("Superkey is too short. It should be at least 8 characters.")
-                        puml("#red:Superkey is too short. It should be at least 8 characters.;\n")
+                        puml(":Superkey is too short. It should be at least 8 characters.;<<#red>>\n")
                         continue
                     if not any(char.isdigit() for char in superkey):
                         print("Superkey should include at least one number.")
-                        puml("#red:Superkey should include at least one number.;\n")
+                        puml(":Superkey should include at least one number.;<<#red>>\n")
                         continue
                     if not any(char.isalpha() for char in superkey):
                         print("Superkey should include at least one letter.")
-                        puml("#red:Superkey should include at least one letter.;\n")
+                        puml(":Superkey should include at least one letter.;<<#red>>\n")
                         continue
                     break  # Valid input received
                 else:
@@ -3551,7 +3551,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     data += "mv kernel kernel-b\n"
                 else:
                     print("ERROR: boot.img not found")
-                    puml("#red:boot.img not found;\n")
+                    puml(":boot.img not found;<<#red>>\n")
                     return -1
                 data += "echo \"Creating a patch ...\"\n"
                 if skip_superkey:
@@ -3614,14 +3614,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.push_file(f"{dest}", script_path, with_su=perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer Patch Script to the phone;\n")
+            puml(":Failed to transfer Patch Script to the phone;<<#red>>\n")
             return -1
 
         # set the permissions.
         res = device.set_file_permissions(script_path, "755", perform_as_root)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to set the executable bit on patch script;\n")
+            puml(":Failed to set the executable bit on patch script;<<#red>>\n")
             return -1
 
         if patch_method in ["app", "other"]:
@@ -3629,14 +3629,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             res = device.push_file(f"{path_to_busybox}", "/data/local/tmp/busybox")
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to transfer busybox to the phone;\n")
+                puml(":Failed to transfer busybox to the phone;<<#red>>\n")
                 return -1
 
             # set the permissions.
             res = device.set_file_permissions("/data/local/tmp/busybox", "755")
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to set the executable bit on busybox;\n")
+                puml(":Failed to set the executable bit on busybox;<<#red>>\n")
                 return -1
 
         #------------------------------------
@@ -3653,7 +3653,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         res = device.file_content("/data/local/tmp/pf_patch.log")
         if res == -1:
             print("Aborting ...\n")
-            puml("#red:Failed to pull pf_patch.log from the phone;\n")
+            puml(":Failed to pull pf_patch.log from the phone;<<#red>>\n")
             return -1
         else:
             lines = res.split("\n")
@@ -3667,7 +3667,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             res = device.delete("/data/local/tmp/pf_patch.log", perform_as_root)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to delete pf_patch.log from the phone;\n")
+                puml(":Failed to delete pf_patch.log from the phone;<<#red>>\n")
                 return -1
 
         return patched_img
@@ -3678,7 +3678,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     def magisk_not_found():
         assert device is not None
         print("Unable to find magisk on the phone, perhaps it is hidden?")
-        puml("#orange:Magisk not found;\n")
+        puml(":Magisk not found;<<#orange>>\n")
         # Message to Launch Manually and Patch
         title = _("Magisk Manager is not detected.")
         message_en =  f"WARNING: Magisk Manager [{self.config.magisk}] is not found on the phone\n\n"
@@ -3729,12 +3729,12 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     return 0
                 else:
                     print("Magisk Manager is still not detected.\nAborting ...\n")
-                    puml("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n", True)
+                    puml(":Magisk Manager is still not detected;<<#red>>\nnote right:Abort\n}\n", True)
                     return -1
             except Exception:
                 traceback.print_exc()
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed Magisk is still not detected.")
-                puml("#red:Magisk Manager is still not detected;\nnote right:Abort\n}\n", True)
+                puml(":Magisk Manager is still not detected;<<#red>>\nnote right:Abort\n}\n", True)
                 print("Aborting ...\n")
                 return -1
         return -1
@@ -3750,7 +3750,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     print("==============================================================================")
     print(f" {datetime.now():%Y-%m-%d %H:%M:%S} PixelFlasher {VERSION}          Patching {patch_flavor} boot")
     print("==============================================================================")
-    puml(f"#cyan:Create {custom_text}Patch;\n", True)
+    puml(f":Create {custom_text}Patch;<<#cyan>>\n", True)
     puml("partition \"**Create Patch**\" {\n")
 
     # get device
@@ -3758,7 +3758,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
     if not device:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
         print("Aborting ...\n")
-        puml("#red:Valid device is not selected;\n}\n")
+        puml(":Valid device is not selected;<<#red>>\n}\n")
         return
     else:
         print(f"Patching on hardware: {device.hardware}")
@@ -3856,14 +3856,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unsupported Kernel KMI [{kmi}]")
                 print("Aborting ...\n")
-                puml("#red:Unsupported Kernel KMI [{kmi}];\n}\n")
+                puml(":Unsupported Kernel KMI [{kmi}];<<#red>>\n}\n")
                 return
         anykernel = False
         pixel_devices = get_android_devices()
         if not device.is_gki and patch_flavor != 'KernelSU-Legacy':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Incompatible Kernel KMI")
             print("Aborting ...\n")
-            puml("#red:Incompatible Kernel KMI;\n}\n")
+            puml(":Incompatible Kernel KMI;<<#red>>\n}\n")
             return
         if device.hardware in pixel_devices:
             anykernel = True
@@ -3882,7 +3882,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             message += _("Do you want to continue regardless?\n")
             message += _("Click Yes to continue or Hit No to abort.")
             print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-            puml("#orange:Assume Pixel Device;\n", True)
+            puml(":Assume Pixel Device;<<#orange>>\n", True)
             puml(f"note right\n{message_en}\nend note\n")
             dlg = wx.MessageDialog(None, message, title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
@@ -3904,7 +3904,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             puml(":Select boot image to patch;\n")
             if fileDialog.ShowModal() == wx.ID_CANCEL:
                 print("User cancelled boot selection.")
-                puml("#pink:User Cancelled;\n}\n")
+                puml(":User Cancelled;<<#pink>>\n}\n")
                 return
             # save the current contents in the file
             file_to_patch = fileDialog.GetPath()
@@ -3916,14 +3916,14 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         if not self.config.boot_id:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select a boot image.")
             print("Aborting ...\n")
-            puml("#red:Valid boot image is not selected;\n}\n")
+            puml(":Valid boot image is not selected;<<#red>>\n}\n")
             return
 
     # Make sure platform-tools is set
     if not self.config.platform_tools_path:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Select Android Platform Tools (ADB)")
         print("Aborting ...\n")
-        puml("#red:Valid Android Platform Tools is not selected;\n}\n")
+        puml(":Valid Android Platform Tools is not selected;<<#red>>\n}\n")
         return
 
     # Make sure the phone is in adb mode.
@@ -3931,7 +3931,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {device.id} is not in adb mode.")
         print("Perhaps a Scan is necessary?")
         print("Aborting ...\n")
-        puml("#red:Device is not in ADB mode;\n}\n")
+        puml(":Device is not in ADB mode;<<#red>>\n}\n")
         return
 
     start = time.time()
@@ -4003,7 +4003,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             else:
                 recommendation = 4 # "Custom"
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img or init_boot.img is not found in the selected boot directory.")
-                puml("#red:boot.img or init_boot.img is not found;\n")
+                puml(":boot.img or init_boot.img is not found;<<#red>>\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
 
         elif patch_flavor in ['KernelSU', 'KernelSU-Next', 'SukiSU', 'Wild_KSU', 'KernelSU-Legacy']:
@@ -4027,7 +4027,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             else:
                 recommendation = 4 # "Custom"
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found in the selected boot directory.")
-                puml("#red:boot.img is not found;\n")
+                puml(":boot.img is not found;<<#red>>\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
 
         elif patch_flavor in ['KernelSU_LKM', 'KernelSU-Next_LKM', 'SukiSU_LKM', 'Wild_KSU_LKM']:
@@ -4054,11 +4054,11 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             else:
                 recommendation = 4 # "Custom"
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vendor_boot.img, init_boot.img or boot.img is not found in the selected boot directory.")
-                puml("#red:vendor_boot.img, init_boot.img or boot.img is not found;\n")
+                puml(":vendor_boot.img, init_boot.img or boot.img is not found;<<#red>>\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
             if not recommendation:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to determine which image to patch for {patch_flavor}.")
-                puml("#red:Unable to determine which image to patch;\n")
+                puml(":Unable to determine which image to patch;<<#red>>\n")
                 print("Aborting ...\n}\n")
                 return -1
 
@@ -4070,7 +4070,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             else:
                 recommendation = 4 # "Custom"
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot.img is not found in the selected boot directory.")
-                puml("#red:boot.img is not found;\n")
+                puml(":boot.img is not found;<<#red>>\n")
                 print("You can select custom option and provide a file to be patched.\n\n")
 
         if recommendation == 1:
@@ -4166,7 +4166,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                     puml(":Select image to patch;\n")
                     if fileDialog.ShowModal() == wx.ID_CANCEL:
                         print("User cancelled image selection.")
-                        puml("#pink:User Cancelled;\n}\n")
+                        puml(":User Cancelled;<<#pink>>\n}\n")
                         return -1
                     # save the current contents in the file
                     boot_path = fileDialog.GetPath()
@@ -4182,7 +4182,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                 return -1
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Invalid selection in patching decision dialog.")
-                puml("#red:Invalid selection in patching decision dialog;\n}\n")
+                puml(":Invalid selection in patching decision dialog;<<#red>>\n}\n")
                 print("Aborting ...\n")
                 return -1
 
@@ -4208,7 +4208,7 @@ Unless you know what you're doing, it is recommended that you choose the default
     # check if boot_file_name got extracted (if not probably the zip does not have it)
     if not os.path.exists(boot_path):
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You have selected the Patch option, however boot file is not found.")
-        puml("#red:Cannot patch an already patched file;\n")
+        puml(":Cannot patch an already patched file;<<#red>>\n")
         print("Aborting ...\n}\n")
         return
 
@@ -4236,7 +4236,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             message += "Click OK to accept and continue.\n"
             message += "or Hit CANCEL to abort."
             print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-            puml("#orange:WARNING;\n", True)
+            puml(":WARNING;<<#orange>>\n", True)
             puml(f"note right\n{message_en}\nend note\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
@@ -4245,7 +4245,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                 puml(":User Pressed OK to continue;\n")
             else:
                 print("User pressed cancel.")
-                puml("#pink:User Pressed Cancel to abort;\n}\n")
+                puml(":User Pressed Cancel to abort;<<#pink>>\n}\n")
                 print("Aborting ...\n")
                 return
 
@@ -4255,7 +4255,7 @@ Unless you know what you're doing, it is recommended that you choose the default
     res = device.delete(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print("Aborting ...\n")
-        puml("#red:Failed to delete old boot image from the phone;\n}\n")
+        puml(":Failed to delete old boot image from the phone;<<#red>>\n}\n")
         return
 
     # check if delete worked.
@@ -4263,7 +4263,7 @@ Unless you know what you're doing, it is recommended that you choose the default
     res, unused = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 0:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to delete old boot image from the phone\nAborting ...\n")
-        puml("#red:Failed to delete old boot image from the phone;\n}\n")
+        puml(":Failed to delete old boot image from the phone;<<#red>>\n}\n")
         return
 
     # delete existing {patch_name} from phone
@@ -4271,7 +4271,7 @@ Unless you know what you're doing, it is recommended that you choose the default
     print(f"\nDeleting {patch_name} from the phone ...")
     res = device.delete(f"{self.config.phone_path}/{patch_name}*.img")
     if res != 0:
-        puml(f"#red:Failed to delete old {patch_name}.img;\n")
+        puml(f":Failed to delete old {patch_name}.img;<<#red>>\n")
         print("Aborting ...\n}\n")
         return
 
@@ -4279,7 +4279,7 @@ Unless you know what you're doing, it is recommended that you choose the default
     print(f"\nMaking sure {file} is not on the phone ...")
     res, unused = device.check_file(f"{self.config.phone_path}/{patch_name}*.img")
     if res != 0:
-        puml(f"#red:Failed to delete old {patch_name}.img;\n")
+        puml(f":Failed to delete old {patch_name}.img;<<#red>>\n")
         print("Aborting ...\n}\n")
         return
 
@@ -4287,21 +4287,21 @@ Unless you know what you're doing, it is recommended that you choose the default
     print(f"\nTransferring {boot_img} to the phone ...")
     res = device.push_file(f"{boot_path}", f"{self.config.phone_path}/{boot_img}")
     if res != 0:
-        puml("#red:Failed to transfer the boot file to the phone;\n")
+        puml(":Failed to transfer the boot file to the phone;<<#red>>\n")
         print("Aborting ...\n}\n")
         return
     if patch_flavor == 'APatch' and init_boot_path is not None:
         # transfer init_boot.img to the phone as the RAMDISK is in the init_boot.img and is needed for patching
         res = device.push_file(f"{init_boot_path}", f"{self.config.phone_path}/{init_boot_img}")
         if res != 0:
-            puml("#red:Failed to transfer the init_boot file to the phone;\n")
+            puml(":Failed to transfer the init_boot file to the phone;<<#red>>\n")
             print("Aborting ...\n}\n")
             return
         # check if transfer worked.
         res, unused = device.check_file(f"{self.config.phone_path}/{init_boot_img}")
         if res != 1:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer the init_boot file to the phone;\n}\n")
+            puml(":Failed to transfer the init_boot file to the phone;<<#red>>\n}\n")
             return
 
     # check if transfer worked.
@@ -4309,7 +4309,7 @@ Unless you know what you're doing, it is recommended that you choose the default
     res, unused = device.check_file(f"{self.config.phone_path}/{boot_img}")
     if res != 1:
         print("Aborting ...\n")
-        puml("#red:Failed to transfer the boot file to the phone;\n}\n")
+        puml(":Failed to transfer the boot file to the phone;<<#red>>\n}\n")
         return
 
     is_rooted = device.rooted
@@ -4337,7 +4337,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             apk = get_rooting_app_details('Magisk Stable')
             if apk is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Stable version.")
-                puml("#red:Could not find Magisk Stable version;\n")
+                puml(":Could not find Magisk Stable version;<<#red>>\n")
                 print("Aborting ...\n}\n")
                 return
             filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
@@ -4351,7 +4351,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             res = device.push_file(os.path.join(tmp_path, 'magiskboot'), '/data/local/tmp/magiskboot', False)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to transfer magiskboot to the phone;\n")
+                puml(":Failed to transfer magiskboot to the phone;<<#red>>\n")
                 return
 
 
@@ -4469,7 +4469,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                 puml(":Select kernel image to use;\n")
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled kernel image selection.")
-                    puml("#pink:User Cancelled;\n}\n")
+                    puml(":User Cancelled;<<#pink>>\n}\n")
                     return
                 # save the current contents in the file
                 kernel_su_gz_file = fileDialog.GetPath()
@@ -4516,7 +4516,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                 # check if Image exists
                 if not os.path.exists(os.path.join(tmp_path, 'Image.lz4')):
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract Image or Image.lz4 from: {kernelsu_image}.")
-                    puml("#red:Could not extract Image from: {kernelsu_image};\n")
+                    puml(":Could not extract Image from: {kernelsu_image};<<#red>>\n")
                     print("Aborting ...\n}\n")
                     return
                 else:
@@ -4525,7 +4525,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                     res = device.push_file(os.path.join(tmp_path, 'Image.lz4'), '/data/local/tmp/Image', False)
                     if res != 0:
                         print("Aborting ...\n")
-                        puml("#red:Failed to transfer Image to the phone;\n")
+                        puml(":Failed to transfer Image to the phone;<<#red>>\n")
                         return
             else:
                 print(f"Extracted Image from: {kernelsu_image} version {kernelsu_version} into {tmp_path}")
@@ -4533,7 +4533,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                 res = device.push_file(os.path.join(tmp_path, 'Image'), '/data/local/tmp/Image', False)
                 if res != 0:
                     print("Aborting ...\n")
-                    puml("#red:Failed to transfer Image to the phone;\n")
+                    puml(":Failed to transfer Image to the phone;<<#red>>\n")
                     return
 
     # KernelSU_LKM
@@ -4561,7 +4561,7 @@ Unless you know what you're doing, it is recommended that you choose the default
         success, apatch_app_path, error_msg, with_version, with_version_code = ensure_root_app_installed('APatch')
         if not success:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-            puml(f"#red:{error_msg};\n")
+            puml(f":{error_msg};<<#red>>\n")
             print("Aborting ...\n}\n")
             return
 
@@ -4574,26 +4574,26 @@ Unless you know what you're doing, it is recommended that you choose the default
         success, apatch_app_path, error_msg, with_version, with_version_code = ensure_root_app_installed('APatch')
         if not success:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-            puml(f"#red:{error_msg};\n")
+            puml(f":{error_msg};<<#red>>\n")
             print("Aborting ...\n}\n")
             return
         compatible = True
         # Check for CONFIG_KALLSYMS=y in the kernel config
         if device.config_kallsyms != 'CONFIG_KALLSYMS=y':
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch requires CONFIG_KALLSYMS=y in the kernel config.")
-            puml("#red:APatch requires CONFIG_KALLSYMS=y in the kernel config;\n")
+            puml(":APatch requires CONFIG_KALLSYMS=y in the kernel config;<<#red>>\n")
             compatible = False
         # Make sure kernel version is supported by APatch 3.18 - 6.1
         try:
             kernel_version = float(device.get_prop('ro.kernel.version'))
             if kernel_version < 3.18 or kernel_version > 6.1:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch only supports kernel versions 3.18 - 6.1")
-                puml("#red:APatch only supports kernel versions 3.18 - 6.1;\n")
+                puml(":APatch only supports kernel versions 3.18 - 6.1;<<#red>>\n")
                 compatible = False
         except Exception as e:
             print(f"Error processing kernel version: {e}")
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: APatch only supports kernel versions 3.18 - 6.1")
-            puml("#red:APatch only supports kernel versions 3.18 - 6.1;\n")
+            puml(":APatch only supports kernel versions 3.18 - 6.1;<<#red>>\n")
             compatible = False
 
         if not compatible:
@@ -4610,7 +4610,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             message += _("Click Yes to continue with APatch Manual Patching\n")
             message += _("or Hit No to abort.")
             print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-            puml("#orange:APatch Manual Patching;\n", True)
+            puml(":APatch Manual Patching;<<#orange>>\n", True)
             puml(f"note right\n{message_en}\nend note\n")
             dlg = wx.MessageDialog(None, message, title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
@@ -4626,7 +4626,7 @@ Unless you know what you're doing, it is recommended that you choose the default
         success, apatch_app_path, error_msg, with_version, with_version_code = ensure_root_app_installed('APatch')
         if not success:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {error_msg}")
-            puml(f"#red:{error_msg};\n")
+            puml(f":{error_msg};<<#red>>\n")
             print("Aborting ...\n}\n")
             return
         magiskboot_created = False
@@ -4644,7 +4644,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             apk = get_rooting_app_details('Magisk Stable')
             if apk is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not find Magisk Stable version.")
-                puml("#red:Could not find Magisk Stable version;\n")
+                puml(":Could not find Magisk Stable version;<<#red>>\n")
                 print("Aborting ...\n}\n")
                 return
             filename = f"magisk_{apk.version}_{apk.versionCode}.apk"
@@ -4658,7 +4658,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             res = device.push_file(os.path.join(tmp_path, 'magiskboot'), '/data/local/tmp/magiskboot', False)
             if res != 0:
                 print("Aborting ...\n")
-                puml("#red:Failed to transfer magiskboot to the phone;\n")
+                puml(":Failed to transfer magiskboot to the phone;<<#red>>\n")
                 return
 
         kernel_patch_version_prerelease = get_gh_latest_release_version('bmax121', 'KernelPatch', True)
@@ -4678,7 +4678,7 @@ Unless you know what you're doing, it is recommended that you choose the default
         message += _("Click No to download the latest Release versions: %s\n") % kernel_patch_version_release
         message += _("or Hit CANCEL to abort.")
         print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-        puml("#orange:Download Latest KernelPatch Tools;\n", True)
+        puml(":Download Latest KernelPatch Tools;<<#orange>>\n", True)
         puml(f"note right\n{message_en}\nend note\n")
         dlg = wx.MessageDialog(None, message, title, wx.YES_NO | wx.CANCEL | wx.ICON_EXCLAMATION)
         result = dlg.ShowModal()
@@ -4714,14 +4714,14 @@ Unless you know what you're doing, it is recommended that you choose the default
         res = device.push_file(os.path.join(tmp_path, 'kptools-android'), '/data/local/tmp/kptools-android', False)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer kptools-android to the phone;\n")
+            puml(":Failed to transfer kptools-android to the phone;<<#red>>\n")
             return
 
         # transfer kpimg-android to the phone
         res = device.push_file(os.path.join(tmp_path, 'kpimg-android'), '/data/local/tmp/kpimg-android', False)
         if res != 0:
             print("Aborting ...\n")
-            puml("#red:Failed to transfer kpimg-android to the phone;\n")
+            puml(":Failed to transfer kpimg-android to the phone;<<#red>>\n")
             return
 
     # Magisk
@@ -4762,12 +4762,12 @@ Unless you know what you're doing, it is recommended that you choose the default
                 self.toast(_("WARNING! Incompatible Magisk"), _("⚠️ Magisk versions older than 30.6 may not work correctly on this firmware.."))
                 print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Your device firmware date is {boot.spl}, which is December 2025 or newer.")
                 print("Magisk versions older than 30.6 may not work correctly on this firmware.\n")
-                puml("#orange:WARNING: Magisk versions older than 30.6 may not work correctly on December 2025 or newer firmware;\n")
+                puml(":WARNING: Magisk versions older than 30.6 may not work correctly on December 2025 or newer firmware;<<#orange>>\n")
                 dlg = wx.MessageDialog(None, _("⚠️ Magisk versions older than 30.6 may not work correctly on this firmware.\nAre you sure want to continue?"), _("Incompatible Magisk"), wx.YES_NO | wx.ICON_EXCLAMATION)
                 result = dlg.ShowModal()
                 if result != wx.ID_YES:
                     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled creating a patch.")
-                    puml("#pink:User cancelled creating a patch;\n}\n")
+                    puml(":User cancelled creating a patch;<<#pink>>\n}\n")
                     return -1
 
         disabled_buttons = []
@@ -4780,7 +4780,7 @@ Unless you know what you're doing, it is recommended that you choose the default
                 disabled_buttons = [3]
                 if magisk_version != magisk_app_version:
                     print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Magisk Version is different than Magisk Manager version")
-                    puml("#orange:WARNING: Magisk Version is different than Magisk Manager version;\n")
+                    puml(":WARNING: Magisk Version is different than Magisk Manager version;<<#orange>>\n")
                     if m_version < m_app_version:
                         method = 2  # app
         elif m_app_version > 1:
@@ -4973,12 +4973,12 @@ Unless you know what you're doing, it is recommended that you take the default s
         patched_img = patch_apatch_script("manual", kernel_patch_version or "")
     else:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unexpected patch method.")
-        puml("#red:Unexpected patch method;\nnote right:Abort\n}\n", True)
+        puml(":Unexpected patch method;<<#red>>\nnote right:Abort\n}\n", True)
         print("Aborting ...\n")
         return
     if patched_img == -1:
         print("Aborting ...\n")
-        puml("#red:Failed to patch\n}\n", True)
+        puml(":Failed to patch\n}\n;<<#red>>", True)
         return
 
     # -------------------------------
@@ -4994,7 +4994,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     res, patched_file = device.check_file(f"{self.config.phone_path}/{patched_img}")
     if res != 1:
         print("Aborting ...\n")
-        puml(f"#red:Failed to find {patch_name} on the phone;\n}}\n")
+        puml(f":Failed to find {patch_name} on the phone;<<#red>>\n}}\n")
         return
 
     # Transfer back patched.img
@@ -5003,7 +5003,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     res = device.pull_file(patched_file, f"\"{patched_img_file}\"")
     if res != 0:
         print("Aborting ...\n")
-        puml(f"#red:Failed to pull {patched_file} from the phone;\n}}\n")
+        puml(f":Failed to pull {patched_file} from the phone;<<#red>>\n}}\n")
         return
 
     # get the checksum of the *_patched.img
@@ -5020,7 +5020,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     # check to make sure the patch sha1 is not the same as the source (stock) sha1
     if checksum == boot_sha1_long:
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Patching failed, {patched_file} SHA1 is the same as the stock SHA1")
-        puml(f"#red:Patching failed;\nnote right:{patched_file} SHA1 is the same as the stock SHA1\n}}\n", True)
+        puml(f":Patching failed;<<#red>>\nnote right:{patched_file} SHA1 is the same as the stock SHA1\n}}\n", True)
         print("Aborting ...\n")
         return
 
@@ -5043,7 +5043,7 @@ Unless you know what you're doing, it is recommended that you take the default s
             magisk_backups = device.magisk_backups
             if magisk_backups and boot_sha1_long in magisk_backups:
                 print("✅ Good: Magisk has made a backup")
-                puml("#lightgreen:Magisk Backup: Success;\n")
+                puml(":Magisk Backup: Success;<<#lightgreen>>\n")
             else:
                 print(f"Magisk has NOT made a backup of the source {boot_file_name}")
                 do_manual_backup = True
@@ -5070,7 +5070,7 @@ Unless you know what you're doing, it is recommended that you take the default s
                         magisk_backups = device.magisk_backups
                         if magisk_backups and boot_sha1_long in magisk_backups:
                             print("✅ Good: Magisk has made a backup")
-                            puml("#lightgreen:Magisk Backup: Success;\n")
+                            puml(":Magisk Backup: Success;<<#lightgreen>>\n")
                         else:
                             print("It looks like backup was not made.")
 
@@ -5090,7 +5090,7 @@ Unless you know what you're doing, it is recommended that you take the default s
                 print(f"        {padded_patched_img} extracted sha1: {patched_sha1}")
                 print(f"        {padded_boot_file_name}           sha1: {boot_sha1_long}")
                 print("This could be normal due to compression\nChecking match confidence level.")
-                puml(f"#cyan:SHA1 mismatch;\n")
+                puml(f":SHA1 mismatch;<<#cyan>>\n")
                 puml(f"note right\n")
                 puml(f"{padded_patched_img} extracted sha1: {patched_sha1}\n")
                 puml(f"{padded_boot_file_name}           sha1: {boot_sha1_long}\n")
@@ -5102,7 +5102,7 @@ Unless you know what you're doing, it is recommended that you take the default s
                 if confidence is None or confidence < 0.5:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Something is wrong with the patched file SHA1, we got a low match confidence.\n")
                     print("Please compare the two sha1 strings and decide for yourself if this is acceptable to use.")
-                    puml(f"#red:ERROR: Something is wrong with the patched file\nSHA1: {patched_sha1}\nExpected SHA1: {boot_sha1};\n", True)
+                    puml(f":ERROR: Something is wrong with the patched file\nSHA1: {patched_sha1}\nExpected SHA1: {boot_sha1};<<#red>>\n", True)
                     #return
                 else:
                     print("Acceptable!")
@@ -5113,7 +5113,7 @@ Unless you know what you're doing, it is recommended that you take the default s
             print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} NOTICE: The patched image file does not contain source boot's SHA1")
             print("                            This is normal for older devices, but newer devices should have it.")
             print("                            If you have a newer device, please double check if everything is ok.\n ")
-            puml("#orange:The patched image file does not contain source boot's SHA1;\n")
+            puml(":The patched image file does not contain source boot's SHA1;<<#orange>>\n")
             puml(f"note right\nThis is normal for older devices, but newer devices should have it.\nend note\n")
 
     if patch_flavor == "Custom":
@@ -5197,7 +5197,7 @@ Unless you know what you're doing, it is recommended that you take the default s
             shutil.copy(os.path.join(tmp_dir_full, 'boot.tar'), os.path.join(package_dir_full, 'boot.tar'), follow_symlinks=True)
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not create boot.tar file")
-            puml("#red:ERROR: Could not create boot.tar;\n")
+            puml(":ERROR: Could not create boot.tar;<<#red>>\n")
 
     end = time.time()
     if patch_flavor == "Magisk":
@@ -5217,7 +5217,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     print(f"Patched File:     {patched_img}")
     print(f"Patch time:       {math.ceil(end - start)} seconds")
     print("------------------------------------------------------------------------------\n")
-    puml(f"#cee7ee:End {custom_text}Patching;\n", True)
+    puml(f":End {custom_text}Patching;<<#cee7ee>>\n", True)
     puml(f"note right:Patch time: {math.ceil(end - start)} seconds\n")
     puml("}\n")
 
@@ -5227,7 +5227,7 @@ Unless you know what you're doing, it is recommended that you take the default s
 #                               Function live_flash_boot_phone
 # ============================================================================
 def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
-    puml(f"#cyan:{option} Boot;\n", True)
+    puml(f":{option} Boot;<<#cyan>>\n", True)
     puml(f"partition \"**{option} Boot**\"")
     puml(" {\n")
 
@@ -5239,13 +5239,13 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
     if not get_adb():
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.")
-        puml("#red:Valid Android Platform Tools is not selected;\n}\n")
+        puml(":Valid Android Platform Tools is not selected;<<#red>>\n}\n")
         return -1
 
     device = get_phone(True)
     if not device:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid device.")
-        puml("#red:Valid device is not selected;\n}\n")
+        puml(":Valid device is not selected;<<#red>>\n}\n")
         return -1
 
     boot = get_boot()
@@ -5280,7 +5280,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             message += _("Click OK to accept and continue.\n")
             message += _("or Hit CANCEL to abort.")
             print(f"\n*** Dialog ***\n{message_en}\n______________\n")
-            puml("#orange:WARNING;\n", True)
+            puml(":WARNING;<<#orange>>\n", True)
             puml(f"note right\n{message_en}\nend note\n")
             dlg = wx.MessageDialog(None, message, title, wx.CANCEL | wx.OK | wx.ICON_EXCLAMATION)
             result = dlg.ShowModal()
@@ -5289,18 +5289,18 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 puml(":User Pressed OK to continue;\n")
             else:
                 print("User pressed cancel.")
-                puml("#pink:User Pressed Cancel to abort;\n}\n")
+                puml(":User Pressed Cancel to abort;<<#pink>>\n}\n")
                 print("Aborting ...\n")
                 return -1
     else:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to access boot object, aborting ...\n")
-        puml("#red:Unable to access boot object\n}\n")
+        puml(":Unable to access boot object\n}\n;<<#red>>")
         return -1
 
     # Make sure boot exists
     if not boot.boot_path:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to get boot.img path, aborting ...\n")
-        puml("#red:Unable to get boot image path;\n}\n")
+        puml(":Unable to get boot image path;<<#red>>\n}\n")
         return -1
 
     boot_dir = os.path.dirname(boot.boot_path)
@@ -5489,7 +5489,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result -1]}")
     if result == 2:
         print("Aborting ...\n")
-        puml("#pink:User Pressed Cancel to abort;\n}\n")
+        puml(":User Pressed Cancel to abort;<<#pink>>\n}\n")
         return -1
     print(f"dialog values: {dialog_values}")
 
@@ -5498,7 +5498,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to detect the device.")
         print("You can try scanning for devices and selecting your device (it should be in bootloader mode).")
         print(f"and then press the same {option} button again.")
-        puml("#red:Valid device is not detected;\n")
+        puml(":Valid device is not detected;<<#red>>\n")
         puml(f"note right\nYou can try scanning for devices and selecting your device (it should be in bootloader mode).\nand then press the same {option} button again.\nend note\n")
         puml("}\n")
         self.clear_device_selection()
@@ -5931,12 +5931,12 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             if res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
                 print("Aborting ...\n")
-                puml("#red:Could not set the permissions on flash script;\n}\n")
+                puml(":Could not set the permissions on flash script;<<#red>>\n}\n")
                 return -1
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
             print("Aborting ...\n")
-            puml("#red:Could not set the permissions on flash script;\n}\n")
+            puml(":Could not set the permissions on flash script;<<#red>>\n}\n")
             return -1
     else:
         data = data_win
@@ -5995,7 +5995,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         # continue flashing
     elif result == 2: # Edit
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
-        puml("#pink:User Pressed Edit Script;\n")
+        puml(":User Pressed Edit Script;<<#pink>>\n")
         dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600)
         dlg.CenterOnParent()
         result = dlg.ShowModal()
@@ -6017,7 +6017,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     elif result == 3: # Cancel
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
         print("Aborting ...\n")
-        puml("#pink:User Pressed Cancel;\n}\n")
+        puml(":User Pressed Cancel;<<#pink>>\n}\n")
         return -1
 
     # reboot to bootloader if needed
@@ -6050,7 +6050,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             if res == -1:
                 # Device is not detected
                 print("Aborting ...\n")
-                puml("#red:Device is not detected;\n}\n")
+                puml(":Device is not detected;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Device is not detected."))
                 return -1
             elif res == 0:
@@ -6081,7 +6081,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
                 if result != 1:
                     print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
                     print("Aborting ...\n")
-                    puml("#red:Bootloader is locked, can't flash;\n}\n")
+                    puml(":Bootloader is locked, can't flash;<<#red>>\n}\n")
                     return -1
                 else:
                     print("❌ Bootloader is locked, but user chose to proceed ...")
@@ -6108,13 +6108,13 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
             if res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash boot script.")
                 print("Aborting ...\n")
-                puml("#red:Encountered an error while running flash script.;\n}\n")
+                puml(":Encountered an error while running flash script.;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Encountered an error while running the flash boot script."))
                 return -1
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash boot script.")
             print("Aborting ...\n")
-            puml("#red:Encountered an error while running flash script.;\n}\n")
+            puml(":Encountered an error while running flash script.;<<#red>>\n}\n")
             self.toast(_("Flash action"), _("❌ Encountered an error while running the flash boot script."))
             return -1
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done flash boot script execution!")
@@ -6136,9 +6136,9 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     else:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Device: {device.id} not in bootloader mode.")
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Aborting ...\n")
-        puml("#red:Device is not in bootloader mode;\n}\n")
+        puml(":Device is not in bootloader mode;<<#red>>\n}\n")
 
-    puml(f"#cee7ee:End {option} Boot;\n", True)
+    puml(f":End {option} Boot;<<#cee7ee>>\n", True)
     if done_flashing:
         puml(f"note right:Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds\n")
     puml("}\n")
@@ -6159,7 +6159,7 @@ def flash_phone(self):
         # 4 Run the script
         # 5 Finish up Do the additional checks and flashing / rebooting
 
-        puml("#cyan:Flash Firmware;\n", True)
+        puml(":Flash Firmware;<<#cyan>>\n", True)
         puml("partition \"**Flash Firmware**\" {\n")
         temp_dir = None
 
@@ -6169,7 +6169,7 @@ def flash_phone(self):
         # check for platform tools
         if not get_adb():
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android Platform Tools must be set.\n")
-            puml("#red:Android Platform Tools is not set;\n}\n")
+            puml(":Android Platform Tools is not set;<<#red>>\n}\n")
             self.toast(_("Flash action"), _("❌ Android Platform Tools is not set."))
             return -1
 
@@ -6177,7 +6177,7 @@ def flash_phone(self):
         device = get_phone(True)
         if not device:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a valid adb device.")
-            puml("#red:Valid device is not selected;\n}\n")
+            puml(":Valid device is not selected;<<#red>>\n}\n")
             self.toast(_("Flash action"), _("❌ Valid device is not selected."))
             return -1
         device_id = device.id
@@ -6188,7 +6188,7 @@ def flash_phone(self):
             boot = get_boot()
             if not boot:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select boot file.")
-                puml("#red:boot is not selected;\n}\n")
+                puml(":boot is not selected;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ boot is not selected."))
                 return -1
 
@@ -6224,12 +6224,12 @@ def flash_phone(self):
                     message += _("See Menu item: Dev Tools | AVB Prepare Downgrade Patch for further details.\n\n")
                     message += _("If you still want to proceed, Click YES to accept and continue. or NO to Abort.\n")
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: {message_en}")
-                    puml("#red:You can only sideload OTA that is equal or higher than the currently installed version.;\n}\n")
+                    puml(":You can only sideload OTA that is equal or higher than the currently installed version.;<<#red>>\n}\n")
                     dlg = wx.MessageDialog(None, message, _("Confirm"),wx.YES_NO | wx.ICON_EXCLAMATION)
                     result = dlg.ShowModal()
                     if result != wx.ID_YES:
                         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled patching.")
-                        puml("#pink:User cancelled patching;\n}\n")
+                        puml(":User cancelled patching;<<#pink>>\n}\n")
                         return -1
                     else:
                         print("User accepted to proceed.")
@@ -6244,7 +6244,7 @@ def flash_phone(self):
             result = dlg.ShowModal()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
-                puml("#pink:User cancelled flashing;\n}\n")
+                puml(":User cancelled flashing;<<#pink>>\n}\n")
                 return -1
             self.toast(_("Flash action"), _("✅ Wipe Data is accepted."))
             wipe_flag = True
@@ -6256,7 +6256,7 @@ def flash_phone(self):
             result = dlg.ShowModal()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
-                puml("#pink:User cancelled flashing;\n}\n")
+                puml(":User cancelled flashing;<<#pink>>\n}\n")
                 return -1
             self.toast(_("Flash action"), _("✅ Wipe is accepted."))
             wipe_flag = True
@@ -6268,7 +6268,7 @@ def flash_phone(self):
             result = dlg.ShowModal()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
-                puml("#pink:User cancelled flashing;\n}\n")
+                puml(":User cancelled flashing;<<#pink>>\n}\n")
                 return -1
             self.toast(_("Flash action"), _("✅ Force flag is accepted."))
         # confirm for both slots flash
@@ -6279,7 +6279,7 @@ def flash_phone(self):
             result = dlg.ShowModal()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled flashing.")
-                puml("#pink:User cancelled flashing;\n}\n")
+                puml(":User cancelled flashing;<<#pink>>\n}\n")
                 return -1
             self.toast(_("Flash action"), _("✅ Flash to both slots is accepted."))
 
@@ -6298,7 +6298,7 @@ def flash_phone(self):
             if self.config.check_for_disk_space and (get_free_space() < 5 or get_free_space(get_config_path()) < 5):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Please check available disk space, you do not have safe levels of available storage to flash without risk.")
                 print("Aborting ...\n")
-                puml("#red:Not enough disk space;\n}\n")
+                puml(":Not enough disk space;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Not enough disk space."))
                 return -1
 
@@ -6306,7 +6306,7 @@ def flash_phone(self):
             package_sig = get_firmware_id()
             if not package_sig:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: You must first select a OTA or factory firmware file.")
-                puml("#red:Factory OTA or firmware is not selected;\n}\n")
+                puml(":Factory OTA or firmware is not selected;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Full OTA or factory image must be selected."))
                 return -1
 
@@ -6354,7 +6354,7 @@ def flash_phone(self):
                 else:
                     print("User pressed cancel.")
                     print("Aborting ...\n")
-                    puml("#pink:User Pressed Cancel to abort;\n}\n")
+                    puml(":User Pressed Cancel to abort;<<#pink>>\n}\n")
                     return -1
 
             package_dir_full = os.path.join(factory_images, package_sig)
@@ -6381,7 +6381,7 @@ def flash_phone(self):
                 else:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: downgrade_boot.img is not found.")
                     print("Aborting ...\n")
-                    puml("#red:downgrade_boot.img is not found;\n}\n")
+                    puml(":downgrade_boot.img is not found;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ downgrade_boot.img is not found."))
                     return -1
 
@@ -6394,7 +6394,7 @@ def flash_phone(self):
                     else:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to replace boot.img in {zip_image_path}")
                         print("Aborting ...\n")
-                        puml("#red:Unable to replace boot.img in image.zip;\n}\n")
+                        puml(":Unable to replace boot.img in image.zip;<<#red>>\n}\n")
                         self.toast(_("Flash action"), _("❌ Unable to replace boot.img in image.zip."))
                         return -1
 
@@ -6523,7 +6523,7 @@ def flash_phone(self):
                         msg  = "\nLive Boot to:           "
                         if has_init_boot(device.hardware):
                             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Live booting Pixel 7 or newer are not supported.")
-                            puml("#orange:Live booting Pixel 7 or newer are not supported;\n}\n")
+                            puml(":Live booting Pixel 7 or newer are not supported;<<#orange>>\n}\n")
                             self.toast(_("Flash action"), _("⚠️ Live booting Pixel 7 or newer devices is not supported."))
                             # return -1
                     else:
@@ -6540,7 +6540,7 @@ def flash_phone(self):
                 message += f"{msg}{get_image_path()}\n\n"
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No image file is selected.")
-                puml("#red:Image file is not selected;\n}\n")
+                puml(":Image file is not selected;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Image file is not selected."))
                 return -1
 
@@ -6554,7 +6554,7 @@ def flash_phone(self):
             if not boot.boot_path or not os.path.exists(boot.boot_path):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: boot file: {boot.boot_path} is not found.")
                 print("Aborting ...\n")
-                puml("#red:boot file is not found;\n}\n")
+                puml(":boot file is not found;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Boot file is not found."))
                 return -1
             else:
@@ -6567,7 +6567,7 @@ def flash_phone(self):
             if not os.path.exists(pf):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} boot file: {pf} is not found.")
                 print("Aborting ...\n")
-                puml("#red:boot file is not found;\n}\n")
+                puml(":boot file is not found;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Boot file is not found."))
                 return -1
 
@@ -6576,7 +6576,7 @@ def flash_phone(self):
                 if not os.path.exists(self.config.custom_rom_path):
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: ROM file: {self.config.custom_rom_path} is not found.")
                     print("Aborting ...\n")
-                    puml("#red:ROM file is not found;\n}\n")
+                    puml(":ROM file is not found;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ ROM file is not found."))
                     return -1
                 else:
@@ -6591,14 +6591,14 @@ def flash_phone(self):
                 if not os.path.exists(rom):
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ROM file: {rom} is not found.")
                     print("Aborting ...\n")
-                    puml("#red:ROM file is not found;\n}\n")
+                    puml(":ROM file is not found;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ ROM file is not found."))
                     return -1
 
             # Make sure Phone model matches firmware model
             if device.true_mode in ['adb', 'f.b'] and ((get_firmware_model() is None or get_firmware_model() == '') or not (len(device.hardware) >= 3 and device.hardware in get_firmware_model())):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Android device model {device.hardware} does not match firmware Model {get_firmware_model()}")
-                puml(f"#orange:Hardware does not match firmware;\n")
+                puml(f":Hardware does not match firmware;<<#orange>>\n")
                 puml(f"note right\nAndroid device model {device.hardware}\nfirmware Model {get_firmware_model()}\nend note\n")
 
                 title = _("Device / Firmware Mismatch")
@@ -6628,7 +6628,7 @@ def flash_phone(self):
                 else:
                     print("User pressed cancel.")
                     print("Aborting ...\n")
-                    puml("#pink:User Pressed Cancel to abort;\n}\n")
+                    puml(":User Pressed Cancel to abort;<<#pink>>\n}\n")
                     return -1
 
             # ----------
@@ -6689,7 +6689,7 @@ def flash_phone(self):
                         warn = True
                     if warn:
                         print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Wipe is required.")
-                        puml("#red:Error WARNING, wipe is required;\n")
+                        puml(":Error WARNING, wipe is required;<<#red>>\n")
                         # dialog to accept / abort
                         title = "Wipe is required."
                         buttons_text = ["Continue Flashing (I know what I'm doing)", "Cancel (Recommended)"]
@@ -6746,12 +6746,12 @@ def flash_phone(self):
                 flash_all_win32 = process_flash_all_file(os.path.join(package_dir_full, "flash-all.bat"))
                 if (flash_all_win32 == 'ERROR'):
                     print("Make sure you have a supported firmware file.\nAborting ...\n")
-                    puml("#red:Error processing flash_all.bat file;\n}\n")
+                    puml(":Error processing flash_all.bat file;<<#red>>\n}\n")
                     return -1
                 flash_all_linux = process_flash_all_file(os.path.join(package_dir_full, "flash-all.sh"))
                 if (flash_all_linux == 'ERROR'):
                     print("Aborting ...\n")
-                    puml("#red:Error processing flash_all.sh file;\n}\n")
+                    puml(":Error processing flash_all.sh file;<<#red>>\n}\n")
                     return -1
                 assert isinstance(flash_all_win32, list) and isinstance(flash_all_linux, list)
                 s1 = ''
@@ -6765,7 +6765,7 @@ def flash_phone(self):
                 # check to see if we have consistent linux / windows files
                 if s1 != s2:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Found inconsistency between flash-all.bat and flash-all.sh files.")
-                    puml("#yellow:Found an inconsistency between bat and sh files;\n")
+                    puml(":Found an inconsistency between bat and sh files;<<#yellow>>\n")
                     debug(f"bat file:\n{s1}")
                     debug(f"\nsh file\n{s2}\n")
 
@@ -6887,7 +6887,7 @@ def flash_phone(self):
             endFlash = time.time()
             print(f"Flashing elapsed time: {math.ceil(endFlash - startFlash)} seconds")
             print("------------------------------------------------------------------------------\n")
-            puml("#cee7ee:End Flashing;\n", True)
+            puml(":End Flashing;<<#cee7ee>>\n", True)
             puml(f"note right:Flash time: {math.ceil(endFlash - startFlash)} seconds;\n")
             self.toast(_("Flash action"), _("✅ Flashing elapsed time: %s seconds") % (math.ceil(endFlash - startFlash)))
             puml("}\n")
@@ -6924,7 +6924,7 @@ def flash_phone(self):
             if device is None:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Can't reboot to bootloader because the device not detected.")
                 print("Aborting ...\n")
-                puml("#red:Can't reboot to bootloader because the device not detected;\n}\n")
+                puml(":Can't reboot to bootloader because the device not detected;<<#red>>\n}\n")
                 return -1
             # reboot to bootloader if flashing is necessary
             if self.config.disable_verity or self.config.disable_verification or self.config.flash_mode == 'customFlash' or (boot and not boot.is_stock_boot):
@@ -6933,7 +6933,7 @@ def flash_phone(self):
                 if res == -1:
                     # Device is not detected
                     print("Aborting ...\n")
-                    puml("#red:Device is not detected;\n}\n")
+                    puml(":Device is not detected;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ Device is not detected."))
                     return -1
                 elif res == 0:
@@ -6943,7 +6943,7 @@ def flash_phone(self):
                     if result != wx.ID_YES:
                         print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
                         print("Aborting ...\n")
-                        puml("#red:Bootloader is locked, can't flash;\n}\n")
+                        puml(":Bootloader is locked, can't flash;<<#red>>\n}\n")
                         return -1
                     else:
                         print("❌ Bootloader is locked, but user chose to proceed ...")
@@ -6955,7 +6955,7 @@ def flash_phone(self):
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to bootloader")
                     self.clear_device_selection()
                     print("Aborting ...\n")
-                    puml("#red:Encountered an error while rebooting to bootloader;\n}\n")
+                    puml(":Encountered an error while rebooting to bootloader;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ Encountered an error while rebooting to bootloader."))
                     bootloader_issue_message()
                     refresh_and_done()
@@ -6983,12 +6983,12 @@ def flash_phone(self):
                 if res.returncode != 0:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
                     print("Aborting ...\n")
-                    puml("#red:Could not set the permissions on flash script;\n}\n")
+                    puml(":Could not set the permissions on flash script;<<#red>>\n}\n")
                     return -1
             else:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set the permissions on {flash_pf_file_linux}")
                 print("Aborting ...\n")
-                puml("#red:Could not set the permissions on flash script;\n}\n")
+                puml(":Could not set the permissions on flash script;<<#red>>\n}\n")
                 return -1
         else:
             flash_pf_file = flash_pf_file_win
@@ -7053,7 +7053,7 @@ def flash_phone(self):
             # continue flashing
         elif result == 2: # Edit
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
-            puml("#pink:User Pressed Edit Script;\n")
+            puml(":User Pressed Edit Script;<<#pink>>\n")
             dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600)
             dlg.CenterOnParent()
             result = dlg.ShowModal()
@@ -7075,7 +7075,7 @@ def flash_phone(self):
         elif result == 3: # Cancel
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Cancel.")
             print("Aborting ...\n")
-            puml("#pink:User Pressed Cancel;\n}\n")
+            puml(":User Pressed Cancel;<<#pink>>\n}\n")
             return -1
 
         # -------------------------------------------------------------------------
@@ -7111,7 +7111,7 @@ def flash_phone(self):
             if res == -1:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to sideload")
                 print("Aborting ...\n")
-                puml("#red:Encountered an error while rebooting to sideload;\n}\n")
+                puml(":Encountered an error while rebooting to sideload;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Encountered an error while rebooting to sideload."))
                 refresh_and_done()
                 return -1
@@ -7123,7 +7123,7 @@ def flash_phone(self):
             if res == -1:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while rebooting to fastbootd")
                 print("Aborting ...\n")
-                puml("#red:Encountered an error while rebooting to fastbootd;\n}\n")
+                puml(":Encountered an error while rebooting to fastbootd;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Encountered an error while rebooting to fastbootd."))
                 refresh_and_done()
                 return -1
@@ -7152,13 +7152,13 @@ def flash_phone(self):
             if res.returncode != 0:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
                 print("Aborting ...\n")
-                puml("#red:Encountered an error while running flash script.;\n}\n")
+                puml(":Encountered an error while running flash script.;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Encountered an error while running the flash script."))
                 return -1
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while running flash script.")
             print("Aborting ...\n")
-            puml("#red:Encountered an error while running flash script.;\n}\n")
+            puml(":Encountered an error while running flash script.;<<#red>>\n}\n")
             self.toast(_("Flash action"), _("❌ Encountered an error while running the flash script."))
             return -1
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} Done flash script execution!")
@@ -7178,7 +7178,7 @@ def flash_phone(self):
                 if res == -1:
                     # Device is not detected
                     print("Aborting ...\n")
-                    puml("#red:Device is not detected;\n}\n")
+                    puml(":Device is not detected;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ Device is not detected."))
                     return -1
                 elif res == 0:
@@ -7209,7 +7209,7 @@ def flash_phone(self):
                     if result != 1:
                         print(f"\nℹ️ {datetime.now():%Y-%m-%d %H:%M:%S} User chose not to proceed.")
                         print("Aborting ...\n")
-                        puml("#red:Bootloader is locked, can't flash;\n}\n")
+                        puml(":Bootloader is locked, can't flash;<<#red>>\n}\n")
                         return -1
                     else:
                         print("❌ Bootloader is locked, but user chose to proceed ...")
@@ -7244,7 +7244,7 @@ def flash_phone(self):
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while flashing the patch.")
                     print(f"theCmd: {theCmd}")
                     print("Aborting ...")
-                    puml("#red:Encountered an error while flashing the patch.;\n}\n")
+                    puml(":Encountered an error while flashing the patch.;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ Encountered an error while flashing the patch."))
                     print("Aborting ...\n")
                     return -1
@@ -7272,7 +7272,7 @@ def flash_phone(self):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: vbmeta flashing did not return the expected result.")
                 print(f"theCmd: {theCmd}")
                 print("Aborting ...")
-                puml("#red:vbmeta flashing did not return the expected result.;\n}\n")
+                puml(":vbmeta flashing did not return the expected result.;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ vbmeta flashing did not return the expected result."))
                 print("Aborting ...\n")
                 return -1
@@ -7293,7 +7293,7 @@ def flash_phone(self):
                 if slot_after_flash == "UNKNOWN" or slot_after_flash == slot_before_flash:
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: It appears that OTA flashing did not properly switch slots.")
                     print("Aborting ...")
-                    puml("#red:It appears that OTA flashing did not properly switch slots.;\n}\n")
+                    puml(":It appears that OTA flashing did not properly switch slots.;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("❌ It appears that OTA flashing did not properly switch slots."))
                     print("Aborting ...\n")
                     return -1
@@ -7339,7 +7339,7 @@ def flash_phone(self):
                     # TODO: Improve the message, we don't need to suggest flashing when doing OTA, depending on the options selected, the suggestions vary.
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Your device is not found in bootloader mode.\nIf your device is actually in bootloader mode,\nhit the scan button and see if PixelFlasher finds it.\nIf it does, you can hit the Flash button again,\notherwise there seems to be a connection issue (USB drivers, cable, PC port ...)\n")
                     print("Aborting ...\n")
-                    puml("#red:Device not found after rebooting to bootloader;\n}\n")
+                    puml(":Device not found after rebooting to bootloader;<<#red>>\n}\n")
                     self.toast(_("Flash action"), _("⚠️ Device is not found after rebooting to bootloader."))
                     print("Aborting ...\n")
                     return -1

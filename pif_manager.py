@@ -1267,7 +1267,7 @@ class PifManager(wx.Dialog):
                 if res != 0:
                     print(f"File: {file_path} not found.")
                     self.active_pif_stc.SetValue("")
-                    # puml("#red:Failed to pull pif.prop from the phone;\n}\n")
+                    # puml(":Failed to pull pif.prop from the phone;<<#red>>\n}\n")
                     self._on_spin('stop')
                     return
             else:
@@ -1578,7 +1578,7 @@ class PifManager(wx.Dialog):
             res = device.push_file(pif_prop, filepath, True)
             if res != 0:
                 print("Aborting ...\n")
-                # puml("#red:Failed to push pif.json from the phone;\n}\n")
+                # puml(":Failed to push pif.json from the phone;<<#red>>\n}\n")
                 self._on_spin('stop')
                 return -1
 

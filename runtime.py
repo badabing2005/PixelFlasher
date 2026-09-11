@@ -2058,7 +2058,6 @@ def check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=False, is
                 extra = io.BytesIO(zip_file.read(extra_len))
                 while True:
                     header_data = extra.read(4)
-
                     if len(header_data) < 4:
                         raise Exception("Incomplete extra block header.")
 
@@ -2071,6 +2070,9 @@ def check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=False, is
                             raise Exception("Unexpected data size.")
 
                         block_data = extra.read(data_size)
+                        if len(block_data) != data_size:
+                            raise Exception("Incomplete extra block data.")
+
                         (
                             uncompressed_size,
                             compressed_size,

@@ -51,6 +51,7 @@ import re
 import shutil
 import signal
 import sqlite3 as sl
+import struct
 import subprocess
 import sys
 import random
@@ -2018,6 +2019,91 @@ def check_zip_contains_file(zip_file_path, file_to_check, low_mem, nested=False,
 
 
 # ============================================================================
+#                               Function check_zip_contains_file_fast_inner
+# ============================================================================
+def check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=False, is_recursive=False):
+    # https://docs.fileformat.com/compression/zip/#local-file-header
+    while True:
+        header = zip_file.read(4)
+        if header == b"PK\x01\x02":
+            break  # end of files
+
+        if header != b"PK\x03\x04":
+            raise Exception("Unexpected outer file header.")
+
+        header_data = zip_file.read(26)
+        if len(header_data) < 26:
+            raise Exception("Incomplete outer file header.")
+
+        (
+            minimum_version,
+            flags,
+            compression_method,
+            modified_time,
+            modified_date,
+            crc32,
+            compressed_size,
+            uncompressed_size,
+            name_len,
+            extra_len,
+        ) = struct.unpack("<HHHHHIIIHH", header_data)
+
+        name = zip_file.read(name_len).decode("utf-8", errors="ignore")
+        if name.endswith(f'/{file_to_check}') or name == file_to_check:
+            if not is_recursive:
+                debug(f"Found: {name}\n")
+            return name
+        else:
+            if compressed_size == 0xFFFFFFFF:
+                extra = io.BytesIO(zip_file.read(extra_len))
+                while True:
+                    header_data = extra.read(4)
+
+                    if len(header_data) < 4:
+                        raise Exception("Incomplete extra block header.")
+
+                    (
+                        header_id,
+                        data_size,
+                    ) = struct.unpack("<HH", header_data)
+                    if header_id == 0x0001:  # ZIP64
+                        if data_size != 16:
+                            raise Exception("Unexpected data size.")
+
+                        block_data = extra.read(data_size)
+                        (
+                            uncompressed_size,
+                            compressed_size,
+                        ) = struct.unpack("<QQ", block_data)
+                    else:
+                        extra.seek(data_size, os.SEEK_CUR)  # skip block data
+
+                    if extra.tell() == extra_len:
+                        break
+
+                if compressed_size == 0xFFFFFFFF:
+                    raise Exception("Failed to read ZIP64 header.")
+            else:
+                zip_file.seek(extra_len, os.SEEK_CUR)  # skip extra
+
+            if nested and name.endswith('.zip'):
+                # TODO: Add support for deflate?
+                if compression_method != 0:
+                    raise Exception("Unexpected image compression")
+
+                debug(f"Entering nested zip: {name}")
+                compressed_offset = zip_file.tell()
+                nested_file_path = check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=True, is_recursive=True)
+                if nested_file_path:
+                    if not is_recursive:
+                        debug(f"Found: {name}/{nested_file_path}\n")
+                    return f'{name}/{nested_file_path}'
+                zip_file.seek(compressed_size - (zip_file.tell() - compressed_offset), os.SEEK_CUR)  # skip compressed remainder
+            else:
+                zip_file.seek(compressed_size, os.SEEK_CUR)  # skip compressed
+
+
+# ============================================================================
 #                               Function check_zip_contains_file_fast
 # ============================================================================
 def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_recursive=False):
@@ -2040,23 +2126,8 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
             debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested}")
             wx.Yield()
         try:
-            with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
-                for name in zip_file.namelist():
-                    if name.endswith(f'/{file_to_check}') or name == file_to_check:
-                        if not is_recursive:
-                            debug(f"Found: {name}\n")
-                        return name
-                    elif nested and name.endswith('.zip'):
-                        debug(f"Entering nested zip: {name}")
-                        with zip_file.open(name, 'r') as nested_zip_file:
-                            nested_zip_data = nested_zip_file.read()
-                        with io.BytesIO(nested_zip_data) as nested_zip_stream:
-                            with zipfile.ZipFile(nested_zip_stream, 'r') as nested_zip:
-                                nested_file_path = check_zip_contains_file_fast(nested_zip_stream, file_to_check, nested=True, is_recursive=True)
-                                if nested_file_path:
-                                    if not is_recursive:
-                                        debug(f"Found: {name}/{nested_file_path}\n")
-                                    return f'{name}/{nested_file_path}'
+            with open(zip_file_path, 'rb') as zip_file:
+                return check_zip_contains_file_fast_inner(zip_file, file_to_check, nested, is_recursive)
         except zipfile.BadZipFile:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {zip_file_path} is not a zip file or is corrupt, skipping this file ...")
             return ''

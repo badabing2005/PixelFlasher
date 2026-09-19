@@ -387,7 +387,15 @@ def flush_output():
         wx.YieldIfNeeded()
     if _console_widget:
         sys.stdout.flush()
-        wx.CallAfter(_console_widget.Update)
+        def _safe_update(widget):
+            try:
+                if widget:
+                    widget.Update()
+            except Exception:
+                # Widget may have been destroyed; ignore update errors
+                pass
+
+        wx.CallAfter(_safe_update, _console_widget)
         if get_window_shown():
             wx.YieldIfNeeded()
 
@@ -7923,7 +7931,15 @@ def check_kb(filename, force_fresh=False):
 
         # Parse keybox XML
         try:
-            tree = ET.parse(filename)
+            cleaned_path = filename
+            cleanup_result = remove_xml_comments(filename, input_type='file')
+            if isinstance(cleanup_result, tuple):
+                cleaned_path, cleanup_target = cleanup_result
+                if cleanup_target:
+                    cleaned_path = cleanup_target
+            else:
+                cleaned_path = cleanup_result or filename
+            tree = ET.parse(cleaned_path)
             root = tree.getroot()
         except Exception as e:
             print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not parse keybox XML {filename}")
@@ -7958,6 +7974,7 @@ def check_kb(filename, force_fresh=False):
 
         k = 1
         keybox_data_collection = {}
+        RKP_Keybox = False
         for keybox in keyboxes:
             wx.Yield()
             device_id = keybox.get('DeviceID')
@@ -7978,6 +7995,7 @@ def check_kb(filename, force_fresh=False):
             rsa_chain = 'valid'
             for key_element in keybox.findall('Key'):
                 wx.Yield()
+                RKP_Keybox = False
                 algorithm = key_element.get('algorithm')
                 if not algorithm:
                     print("  ❌ ERROR: Key element missing algorithm attribute")
@@ -8101,6 +8119,11 @@ def check_kb(filename, force_fresh=False):
 
                         if issuer_sn in ['f92009e853b6b045']:
                             is_google_signed = True
+
+                        if cert_sn_text in ['84a9d0297b0eb58ae7ff0e80de760605']:
+                            is_google_signed = True
+                            required_algorithms = {'ecdsa'}
+                            RKP_Keybox = True
 
                         if expiry and expiry < datetime.now(timezone.utc):
                             is_expired = True
@@ -8301,6 +8324,9 @@ def check_kb(filename, force_fresh=False):
             if missing_algorithms:
                 print(f"\n❌ Missing required algorithm chains: {', '.join(missing_algorithms)}")
                 results.append('missing_algorithms')
+
+            if RKP_Keybox:
+                print(f"\n✅ Keybox {filename} is RKP keybox")
 
             if config.kb_index:
                 # Update kb_index, use ECDSA serial number as the key.
@@ -8548,24 +8574,23 @@ def format_dn(dn):
     sn = ''
     try:
         formatted = []
-        # Split the DN string by commas not preceded by a backslash (escape character)
         parts = re.split(r'(?<!\\),', dn)
         for part in parts:
-            # Replace escaped commas with actual commas
             part = part.replace("\\,", ",")
-            if part.startswith("2.5.4.5="):
-                sn = part.split("=")[1]
+            key, _, value = part.partition("=")
+            if not _:
+                continue
+
+            key = key.strip().lower()
+            if key in ("2.5.4.5", "serialnumber"):
+                sn = value.strip()
                 formatted.insert(0, sn)
             else:
-                formatted.append(part.split("=")[1])
+                formatted.append(value.strip())
         if formatted:
             return ", ".join(formatted), sn
-        else:
-            return "UNKNOWN", sn
-    except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in format_dn function")
-        print(e)
-        traceback.print_exc()
+        return "UNKNOWN", sn
+    except Exception:
         return "UNKNOWN", sn
 
 
@@ -10821,6 +10846,60 @@ def check_pixel_spl_compatibility(firmware_model, boot_spl, device_build):
             return -1
 
     return 0
+
+
+# ============================================================================
+#                               remove_xml_comments
+# ============================================================================
+def remove_xml_comments(source: str, input_type: str = 'content', output_path: Optional[str] = None, encoding: str = 'utf-8') -> str | tuple[str, str] | None:
+    """Remove XML comments and the blank lines left behind by the cleanup.
+
+    For file input, a new file is created only when cleanup changes the content.
+    The saved file is named with a .cleaned_up suffix before the original extension,
+    in the same directory as the source file.
+
+    Args:
+        source: XML string content or a filesystem path.
+        input_type: 'content' or 'file'.
+        output_path: Optional file path to write cleaned XML when input_type is 'content'.
+        encoding: Text encoding used when reading/writing files.
+
+    Returns:
+        The cleaned XML content when input_type is 'content'.
+        For file input, a tuple of (original_or_cleaned_path, cleaned_path_or_empty_string).
+    """
+    if input_type not in ('content', 'file'):
+        raise ValueError("input_type must be 'content' or 'file'")
+
+    def _clean(xml_text: str) -> str:
+        xml_text = re.sub(r'<!--.*?-->', '', xml_text, flags=re.DOTALL)
+        xml_text = re.sub(r'\n\s*\n', '\n', xml_text)
+        return xml_text.strip()
+
+    if input_type == 'file':
+        file_path = source
+        with open(file_path, 'r', encoding=encoding, errors='replace') as fin:
+            original = fin.read()
+        cleaned = _clean(original)
+
+        if cleaned == original.strip():
+            return file_path, ''
+
+        directory, filename = os.path.split(file_path)
+        base_name, extension = os.path.splitext(filename)
+        target_path = os.path.join(directory, f"{base_name}.cleaned_up{extension}")
+
+        with open(target_path, 'w', encoding=encoding, newline='') as fout:
+            fout.write(cleaned)
+
+        print(f"File cleaned up: {target_path}")
+        return target_path, target_path
+
+    cleaned = _clean(source)
+    if output_path:
+        with open(output_path, 'w', encoding=encoding, newline='') as fout:
+            fout.write(cleaned)
+    return cleaned
 
 
 # ============================================================================

@@ -2412,6 +2412,10 @@ class PixelFlasher(wx.Frame):
     #                  _on_close
     # -----------------------------------------------
     def _on_close(self, event):
+        try:
+            set_console_widget(None)
+        except Exception:
+            pass
         self.config.pos_x, self.config.pos_y = self.GetPosition()
         self.config.save(get_config_file_path())
         puml(":Exit PixelFlasher;<<#palegreen>>\nend\n@enduml\n")

@@ -204,6 +204,7 @@ command_lines = [
     "-a -F -i -n open-url-24 images/open-url-24.png images.py",
     "-a -F -i -n logcat-24 images/logcat-24.png images.py",
     "-a -F -i -n bootloader-versions-24 images/bootloader-versions-24.png images.py",
+    "-a -F -i -n compile-for-speed-24 images/compile-for-speed-24.png images.py",
 ]
 
 if __name__ == "__main__":

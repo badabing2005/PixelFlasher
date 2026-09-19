@@ -582,7 +582,9 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def setup_syntax_highlighting(self, stc_ctrl, format_type=None):
         if format_type is None:
-            format_type = getattr(self, 'pif_format', 'json')
+            # Treat explicit None as "no-op": do not change the control's lexer
+            # or styles. Some callers rely on None being preserved.
+            return
 
         # Set font for all styles
         font = wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
@@ -631,6 +633,8 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     def update_syntax_highlighting(self):
         if hasattr(self, 'active_pif_stc') and hasattr(self, 'pif_format'):
+            # Pass through the attribute value; if it's None, the setup function
+            # will treat None as a no-op (do not change highlighting).
             self.setup_syntax_highlighting(self.active_pif_stc, self.pif_format)
             # Force refresh of highlighting
             self.active_pif_stc.Refresh()
@@ -1739,23 +1743,22 @@ class PifManager(wx.Dialog):
             elif canary_pif == -1:
                 self.console_stc.SetValue('Error fetching canary data.')
             else:
-                # Expected successful return is a string (file contents) or
-                # structured dict when using the CLI helper. If the user
-                # requested JSON output, try converting safely.
-                if self.pif_format == 'json':
-                    try:
-                        # P2J expects a prop string; ensure we only pass strings
-                        if isinstance(canary_pif, (dict, list)):
-                            # Already structured — pretty-print JSON
-                            self.console_stc.SetValue(json.dumps(canary_pif, indent=4))
-                        else:
-                            self.console_stc.SetValue(self.P2J(str(canary_pif)))
-                    except Exception:
-                        traceback.print_exc()
-                        self.console_stc.SetValue(str(canary_pif))
-                else:
-                    # Default: show raw value
-                    self.console_stc.SetValue(str(canary_pif))
+                old_format = self.pif_format
+                # Apply prop highlighting only to the console so the
+                # console content is readable regardless of the saved
+                # `pif_format` for the active pif control.
+                self.pif_format = 'prop'
+                if hasattr(self, 'console_stc'):
+                    self.setup_syntax_highlighting(self.console_stc, 'prop')
+                    self.console_stc.Refresh()
+                self.console_stc.SetValue(str(canary_pif))
+                # Restore the stored format, but do not clobber the
+                # console highlighting; update only the active pif control
+                # to the restored format.
+                self.pif_format = old_format
+                if hasattr(self, 'active_pif_stc'):
+                    self.setup_syntax_highlighting(self.active_pif_stc, self.pif_format)
+                    self.active_pif_stc.Refresh()
         except Exception:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onGetCanaryPif function")
             traceback.print_exc()
@@ -2824,7 +2827,22 @@ class PifManager(wx.Dialog):
                 else:
                     json_string = console_data
 
-            json_dict = json5.loads(json_string or '')
+            # Try to parse the JSON5/string. If parsing fails and the
+            # original console data looks like properties, try converting
+            # from prop -> json using `P2J` and parse again (silent fallback).
+            try:
+                json_dict = json5.loads(json_string or '')
+            except Exception:
+                json_dict = None
+                if console_data:
+                    try:
+                        converted = self.P2J(console_data)
+                        json_dict = json5.loads(converted or '')
+                    except Exception:
+                        # Give up gracefully and continue with empty dict
+                        json_dict = {}
+                else:
+                    json_dict = {}
             keys = ['FIRST_API_LEVEL', 'DEVICE_INITIAL_SDK_INT', '*api_level', 'ro.product.first_api_level']
             first_api = get_first_match(json_dict, keys)
             json_string = json.dumps(json_dict, indent=4, sort_keys=self.sort_keys)

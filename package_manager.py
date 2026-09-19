@@ -1018,6 +1018,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.popupPermissions = wx.NewIdRef()
             self.popupKill = wx.NewIdRef()
             self.popupClearData = wx.NewIdRef()
+            self.popupCompileForSpeed = wx.NewIdRef()
             self.popupRefresh = wx.NewIdRef()
             self.popupCheckAllBoxes = wx.NewIdRef()
             self.popupUnCheckAllBoxes = wx.NewIdRef()
@@ -1034,6 +1035,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
             self.Bind(wx.EVT_MENU, self.OnPopupPermissions, id=self.popupPermissions)
             self.Bind(wx.EVT_MENU, self.OnPopupKill, id=self.popupKill)
             self.Bind(wx.EVT_MENU, self.OnPopupClearData, id=self.popupClearData)
+            self.Bind(wx.EVT_MENU, self.OnPopupCompileForSpeed, id=self.popupCompileForSpeed)
             self.Bind(wx.EVT_MENU, self.OnPopupRefresh, id=self.popupRefresh)
             self.Bind(wx.EVT_MENU, self.OnCheckAllBoxes, id=self.popupCheckAllBoxes)
             self.Bind(wx.EVT_MENU, self.OnUnCheckAllBoxes, id=self.popupUnCheckAllBoxes)
@@ -1050,6 +1052,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         PermissionsItem = menu.Append(self.popupPermissions, _("View Application Permissions"))
         killItem = menu.Append(self.popupKill, _("Kill Application"))
         clearItem = menu.Append(self.popupClearData, _("Clear Application Data"))
+        compileForSpeedItem = menu.Append(self.popupCompileForSpeed, _("Compile for Speed"))
         # Add a separator
         menu.AppendSeparator()
         refreshItem = menu.Append(self.popupRefresh, _("Refresh"))
@@ -1071,6 +1074,7 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
         PermissionsItem.SetBitmap(images.permissions_24.GetBitmap())
         killItem.SetBitmap(images.kill_24.GetBitmap())
         clearItem.SetBitmap(images.clear_24.GetBitmap())
+        compileForSpeedItem.SetBitmap(images.compile_for_speed_24.GetBitmap())
         refreshItem.SetBitmap(images.scan_24.GetBitmap())
         checkItem.SetBitmap(images.check_24.GetBitmap())
         unCheckItem.SetBitmap(images.uncheck_24.GetBitmap())
@@ -1187,6 +1191,14 @@ class PackageManager(wx.Dialog, listmix.ColumnSorterMixin):
     def OnPopupClearData(self, event):
         self._on_spin('start')
         self.ApplySingleAction(self.currentItem, 'clear-data')
+        self._on_spin('stop')
+
+    # -----------------------------------------------
+    #                  OnPopupCompileForSpeed
+    # -----------------------------------------------
+    def OnPopupCompileForSpeed(self, event):
+        self._on_spin('start')
+        self.ApplySingleAction(self.currentItem, 'compile-for-speed')
         self._on_spin('stop')
 
     # -----------------------------------------------

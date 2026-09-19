@@ -5226,7 +5226,7 @@ add_hosts_module
     #                               method perform_package_action
     # ----------------------------------------------------------------------------
     def perform_package_action(self, pkg, action, isSystem=False, url=None):
-        # possible actions 'uninstall', 'disable', 'enable', 'launch', 'launch-am', 'launch-am-main', 'kill', killall', 'clear-data', 'clear-cache', 'add-to-denylist', 'rm-from-denylist', 'optimize', 'reset-optimize', 'open-url'
+        # possible actions 'uninstall', 'disable', 'enable', 'launch', 'launch-am', 'launch-am-main', 'kill', killall', 'clear-data', 'clear-cache', 'add-to-denylist', 'rm-from-denylist', 'optimize', 'reset-optimize', 'open-url', 'compile-for-speed'
         if self.true_mode != 'adb':
             return
         if action in ['add-to-denylist', 'rm-from-denylist'] and get_magisk_package() == MAGISK_DELTA_PKG_NAME:
@@ -5273,6 +5273,8 @@ add_hosts_module
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell cmd {pkg} compile --reset -a"
             elif action == 'open-url' and url:
                 theCmd = f"\"{get_adb()}\" -s {self.id} shell am start -a android.intent.action.VIEW -d '{url}'"
+            elif action == 'compile-for-speed':
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell pm compile -m speed -f {pkg}"
 
             return run_shell2(theCmd)
         except Exception as e:

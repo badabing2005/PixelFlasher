@@ -714,20 +714,24 @@ def process_file(self, file_type):
             package_sig = get_firmware_id()
             package_dir_full = os.path.join(factory_images, package_sig or '')
             wx.Yield()
-            found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
+            archive_file_requests = [
+                {'file_to_check': 'flash-all.bat', 'nested': False, 'is_recursive': False},
+                {'file_to_check': 'flash-all.sh', 'nested': False, 'is_recursive': False},
+                {'file_to_check': 'boot.img', 'nested': True, 'is_recursive': False},
+                {'file_to_check': 'init_boot.img', 'nested': True, 'is_recursive': False},
+                {'file_to_check': 'vbmeta.img', 'nested': True, 'is_recursive': False},
+                {'file_to_check': 'vendor_boot.img', 'nested': True, 'is_recursive': False},
+                {'file_to_check': 'vendor_kernel_boot.img', 'nested': True, 'is_recursive': False},
+            ]
+            archive_results = check_archive_contains_files(archive_file_path=file_to_process, file_requests=archive_file_requests)
             wx.Yield()
-            found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
-            wx.Yield()
-            found_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="boot.img", nested=True)
-            wx.Yield()
-            found_init_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="init_boot.img", nested=True)
-            wx.Yield()
-            found_vbmeta_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vbmeta.img", nested=True)
-            wx.Yield()
-            found_vendor_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_boot.img", nested=True)
-            wx.Yield()
-            found_vendor_kernel_boot_img = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="vendor_kernel_boot.img", nested=True)
-            wx.Yield()
+            found_flash_all_bat = archive_results.get('flash-all.bat', '')
+            found_flash_all_sh = archive_results.get('flash-all.sh', '')
+            found_boot_img = archive_results.get('boot.img', '')
+            found_init_boot_img = archive_results.get('init_boot.img', '')
+            found_vbmeta_img = archive_results.get('vbmeta.img', '')
+            found_vendor_boot_img = archive_results.get('vendor_boot.img', '')
+            found_vendor_kernel_boot_img = archive_results.get('vendor_kernel_boot.img', '')
             found_boot_img_lz4 = ''
             set_firmware_has_init_boot(False)
             set_ota(self, False)

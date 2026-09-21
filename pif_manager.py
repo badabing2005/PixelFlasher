@@ -37,6 +37,7 @@ import wx
 import wx.stc as stc
 from wx import adv as wx_adv
 import traceback
+import threading
 import images as images
 import json
 import json5
@@ -2466,7 +2467,7 @@ class PifManager(wx.Dialog):
             return 999
 
     # -----------------------------------------------
-    #                  onProcessBuildProps
+    #            onProcessBuildProps
     # -----------------------------------------------
     def onProcessBuildProps(self, e):
         # sourcery skip: dict-assign-update-to-union
@@ -2494,12 +2495,78 @@ class PifManager(wx.Dialog):
             self._on_spin('stop')
 
     # -----------------------------------------------
+    #        _get_prop_processing_state
+    # -----------------------------------------------
+    def _get_prop_processing_state(self):
+        return {
+            'add_missing_keys': self.add_missing_keys_checkbox.IsChecked() if hasattr(self, 'add_missing_keys_checkbox') else False,
+            'pif_flavor': getattr(self, 'pif_flavor', 'playintegrityfork_9999999'),
+            'first_api': getattr(self, 'first_api', None),
+            'keep_unknown': getattr(self, 'keep_unknown', False),
+            'auto_update_pif': self.auto_update_pif_checkbox.IsChecked() if hasattr(self, 'auto_update_pif_checkbox') else False,
+            'auto_run_migrate': self.auto_run_migrate_checkbox.IsChecked() if hasattr(self, 'auto_run_migrate_checkbox') else False,
+            'auto_check_pi': self.auto_check_pi_checkbox.IsChecked() if hasattr(self, 'auto_check_pi_checkbox') else False,
+        }
+
+    # -----------------------------------------------
+    #        _apply_processed_props_result
+    # -----------------------------------------------
+    def _apply_processed_props_result(self, donor_json_string, processing_state=None):
+        try:
+            if self.pif_format == 'prop':
+                self.console_stc.SetValue(self.J2P(donor_json_string))
+            else:
+                old_format = self.pif_format
+                # Apply json highlighting only to the console so the
+                # console content is readable regardless of the saved
+                # `pif_format` for the active pif control.
+                self.pif_format = 'json'
+                if hasattr(self, 'console_stc'):
+                    self.setup_syntax_highlighting(self.console_stc, 'json')
+                    self.console_stc.Refresh()
+                self.console_stc.SetValue(str(donor_json_string))
+                # Restore the stored format, but do not clobber the
+                # console highlighting; update only the active pif control
+                # to the restored format.
+                self.pif_format = old_format
+                if hasattr(self, 'active_pif_stc'):
+                    self.setup_syntax_highlighting(self.active_pif_stc, self.pif_format)
+                    self.active_pif_stc.Refresh()
+
+            # print(donor_json_string)
+
+            if processing_state is None:
+                processing_state = self._get_prop_processing_state()
+
+            # Auto Update print
+            if processing_state.get('auto_update_pif') and self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
+                self.active_pif_stc.SetValue(self.console_stc.GetValue())
+                self.UpdatePifJson(None)
+
+            # Auto run migrate if enabled
+            if processing_state.get('auto_run_migrate') and self.auto_run_migrate_checkbox.IsEnabled() and self.auto_run_migrate_checkbox.IsChecked():
+                print("Auto Migrating ...")
+                self.runMigrate()
+
+            # Auto test Play Integrity
+            if processing_state.get('auto_update_pif') and self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
+                if processing_state.get('auto_check_pi') and self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
+                    print("Auto Testing Play Integrity ...")
+                    self.onPlayIntegrityCheck(None)
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception while applying processed props result")
+            traceback.print_exc()
+
+    # -----------------------------------------------
     #                  process_props
     # -----------------------------------------------
-    def process_props(self, prop_files):
+    def process_props(self, prop_files, processing_state=None):
         # sourcery skip: dict-assign-update-to-union
         pathname = ''
         try:
+            if processing_state is None:
+                processing_state = self._get_prop_processing_state()
+
             processed_dict = {}
             for pathname in reversed(prop_files):
                 with open(pathname, 'r', encoding='ISO-8859-1', errors="replace") as f:
@@ -2528,28 +2595,14 @@ class PifManager(wx.Dialog):
                 with open(processed_dict_file, 'w') as f:
                     json.dump(processed_dict, f, indent=4)
 
-            donor_json_string = process_dict(the_dict=processed_dict, add_missing_keys=self.add_missing_keys_checkbox.IsChecked(), pif_flavor=self.pif_flavor, set_first_api=self.first_api, keep_all=self.keep_unknown)
-            if self.pif_format == 'prop':
-                self.console_stc.SetValue(self.J2P(donor_json_string))
-            else:
-                self.console_stc.SetValue(donor_json_string)
-            # print(donor_json_string)
-
-            # Auto Update print
-            if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
-                self.active_pif_stc.SetValue(self.console_stc.GetValue())
-                self.UpdatePifJson(None)
-
-            # Auto run migrate if enabled
-            if self.auto_run_migrate_checkbox.IsEnabled() and self.auto_run_migrate_checkbox.IsChecked():
-                print("Auto Migrating ...")
-                self.runMigrate()
-
-            # Auto test Play Integrity
-            if self.auto_update_pif_checkbox.IsEnabled() and self.auto_update_pif_checkbox.IsChecked():
-                if self.auto_check_pi_checkbox.IsEnabled() and self.auto_check_pi_checkbox.IsChecked():
-                    print("Auto Testing Play Integrity ...")
-                    self.onPlayIntegrityCheck(None)
+            donor_json_string = process_dict(
+                the_dict=processed_dict,
+                add_missing_keys=processing_state.get('add_missing_keys', False),
+                pif_flavor=processing_state.get('pif_flavor', 'playintegrityfork_9999999'),
+                set_first_api=processing_state.get('first_api', None),
+                keep_all=processing_state.get('keep_unknown', False)
+            )
+            wx.CallAfter(self._apply_processed_props_result, donor_json_string, processing_state)
 
         except Exception:
             print(f"Cannot process file: '{pathname}'.")
@@ -2558,27 +2611,43 @@ class PifManager(wx.Dialog):
     # -----------------------------------------------
     #                  onProcessImage
     # -----------------------------------------------
+    def _log_image_process_duration(self, start):
+        end = time.time()
+        print(f"Total Process Image time: {math.ceil(end - start)} seconds")
+
+    def _process_image_worker(self, file_path, start):
+        try:
+            processing_state = self._get_prop_processing_state()
+            props_dir = get_pif_from_image(file_path)
+            if props_dir:
+                prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
+                self.process_props(prop_files, processing_state=processing_state)
+            else:
+                wx.CallAfter(self.console_stc.SetValue, _("Image format not supported"))
+                wx.CallAfter(self.console_stc.Refresh)
+                wx.CallAfter(self.console_stc.Update)
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in _process_image_worker")
+            traceback.print_exc()
+        finally:
+            wx.CallAfter(self._on_spin, 'stop')
+            wx.CallAfter(self._log_image_process_duration, start)
+
     def onProcessImage(self, e):
+        start = time.time()
         try:
             file_dialog = wx.FileDialog(self, _("Select a Device Image"), wildcard="Device image files (*.img;*.zip)|*.img;*.zip")
             if file_dialog.ShowModal() == wx.ID_OK:
                 file_path = file_dialog.GetPath()
+                file_dialog.Destroy()
                 self._on_spin('start')
                 wx.CallAfter(self.console_stc.SetValue, _("Processing %s ...\nPlease be patient this could take some time ...") % file_path)
-                props_dir = get_pif_from_image(file_path)
-                # prop_files = get files from the props_dir (single level) and store them in a list
-                if props_dir:
-                    prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
-                    self.process_props(prop_files)
-                else:
-                    wx.CallAfter(self.console_stc.SetValue, _("Image format not supported"))
-                    self.console_stc.Refresh()
-                    self.console_stc.Update()
+                worker = threading.Thread(target=self._process_image_worker, args=(file_path, start), daemon=True)
+                worker.start()
         except Exception:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in onProcessImage function")
             traceback.print_exc()
-        finally:
-            self._on_spin('stop')
+            wx.CallAfter(self._log_image_process_duration, start)
 
     # -----------------------------------------------
     #                  onProcessBulkProps

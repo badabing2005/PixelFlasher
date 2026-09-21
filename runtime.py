@@ -47,6 +47,7 @@ import logging
 import math
 import ntpath
 import os
+import platform
 import re
 import shutil
 import signal
@@ -93,6 +94,7 @@ from payload_dumper import extract_payload
 from ksu_asset_selector import show_ksu_asset_selector
 import cProfile, pstats, io
 import avbtool
+import struct
 
 app_language = 'en'  # Default language is English
 _verbose = False
@@ -2016,9 +2018,36 @@ def replace_file_in_zip_with_7zip(zip_path, file_to_replace, new_file_path):
 
 
 # ============================================================================
+#                          Function _normalize_archive_file_requests
+# ============================================================================
+def _normalize_archive_file_requests(file_requests):
+    if isinstance(file_requests, str):
+        file_requests = [file_requests]
+
+    normalized = []
+    for item in file_requests:
+        if isinstance(item, dict):
+            file_name = item.get('file_to_check') or item.get('file') or item.get('name')
+            if not file_name:
+                continue
+            normalized.append({
+                'file_to_check': file_name,
+                'nested': bool(item.get('nested', False)),
+                'is_recursive': bool(item.get('is_recursive', False)),
+            })
+        else:
+            normalized.append({
+                'file_to_check': item,
+                'nested': False,
+                'is_recursive': False,
+            })
+    return normalized
+
+
+# ============================================================================
 #                               Function check_archive_contains_file
 # ============================================================================
-def check_archive_contains_file(archive_file_path, file_to_check, nested=False, is_recursive=False):
+def check_archive_contains_file(archive_file_path, file_to_check, nested=False, is_recursive=False) -> str:
     try:
         debug(f"Looking for {file_to_check} in file {archive_file_path} with nested: {nested}")
         wx.Yield()
@@ -2037,22 +2066,400 @@ def check_archive_contains_file(archive_file_path, file_to_check, nested=False, 
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_archive_contains_file.")
         traceback.print_exc()
+        return ''
+
+
+# ============================================================================
+#                           Function check_archive_contains_files
+# ============================================================================
+def check_archive_contains_files(archive_file_path, file_requests) -> dict[str, str]:
+    requests = _normalize_archive_file_requests(file_requests)
+    if not requests:
+        return {}
+
+    try:
+        debug(f"Looking for {len(requests)} files in {archive_file_path}")
+        wx.Yield()
+
+        file_ext = os.path.splitext(archive_file_path)[1].lower()
+        if file_ext in ['.zip']:
+            return check_zip_contains_files(archive_file_path, requests)
+        elif file_ext in ['.img']:
+            results = {}
+            for request in requests:
+                request_name = request['file_to_check']
+                results[request_name] = check_img_contains_file(archive_file_path, request_name)
+            return results
+        elif file_ext in ['.tgz', '.gz', '.tar', '.md5']:
+            results = {}
+            for request in requests:
+                request_name = request['file_to_check']
+                results[request_name] = check_tar_contains_file(archive_file_path, request_name, request['nested'], request['is_recursive'])
+            return results
+        else:
+            debug("Unsupported file format.")
+            return {request['file_to_check']: '' for request in requests}
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_archive_contains_files.")
+        traceback.print_exc()
+        return {request['file_to_check']: '' for request in requests}
 
 
 # ============================================================================
 #                               Function check_zip_contains_file
 # ============================================================================
-def check_zip_contains_file(zip_file_path, file_to_check, low_mem, nested=False, is_recursive=False):
-    if low_mem:
-        return check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested, is_recursive)
-    else:
-        return check_zip_contains_file_fast(zip_file_path, file_to_check, nested, is_recursive)
+def check_zip_contains_file(zip_file_path, file_to_check, low_mem, nested=False, is_recursive=False) -> str:
+    # The stream-based fast path is the default and does not require the legacy
+    # low-memory fallback. Keep the parameter for API compatibility, but ignore it.
+    return check_zip_contains_file_fast(zip_file_path, file_to_check, nested, is_recursive)
+
+
+# ============================================================================
+#                           Function check_zip_contains_files
+# ============================================================================
+def check_zip_contains_files(zip_file_path, file_requests):
+    requests = _normalize_archive_file_requests(file_requests)
+    if not requests:
+        return {}
+
+    try:
+        # Keep the legacy low-memory mode as a compatibility fallback for now, but
+        # the default stream-based fast path is the only one used in production.
+        return check_zip_contains_files_fast(zip_file_path, requests)
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_zip_contains_files. Reason: {e}")
+        traceback.print_exc()
+        return {request['file_to_check']: '' for request in requests}
+
+
+# ============================================================================
+#                 Function check_zip_contains_files_fast_inner
+# ============================================================================
+def check_zip_contains_files_fast_inner(zip_file, file_requests, nested=False, is_recursive=False):
+    requests = _normalize_archive_file_requests(file_requests)
+    if not requests:
+        return {}
+
+    results = {request['file_to_check']: '' for request in requests}
+    pending = {request['file_to_check']: request for request in requests}
+
+    while True:
+        header = zip_file.read(4)
+        if header in (b'', b"PK\x01\x02", b"PK\x05\x06", b"PK\x06\x06"):
+            break
+        if header == b"PK\x07\x08":
+            # Data descriptor trailer. It is a trailing record for the previous entry,
+            # so we skip it without relying on the size variables from the current header.
+            zip_file.seek(12, os.SEEK_CUR)
+            continue
+        if header != b"PK\x03\x04":
+            raise Exception("Unexpected outer file header.")
+
+        header_data = zip_file.read(26)
+        if len(header_data) < 26:
+            raise Exception("Incomplete outer file header.")
+
+        (
+            minimum_version,
+            flags,
+            compression_method,
+            modified_time,
+            modified_date,
+            crc32,
+            compressed_size,
+            uncompressed_size,
+            name_len,
+            extra_len,
+        ) = struct.unpack("<HHHHHIIIHH", header_data)
+
+        name = zip_file.read(name_len).decode("utf-8", errors="ignore")
+
+        for target in list(pending):
+            if name.endswith(f'/{target}') or name == target:
+                if not is_recursive:
+                    debug(f"Found: {name}\n")
+                results[target] = name
+                del pending[target]
+
+        if not pending:
+            return results
+
+        if compressed_size == 0xFFFFFFFF:
+            extra = io.BytesIO(zip_file.read(extra_len))
+            while True:
+                header_data = extra.read(4)
+                if len(header_data) < 4:
+                    raise Exception("Incomplete extra block header.")
+
+                header_id, data_size = struct.unpack("<HH", header_data)
+                if header_id == 0x0001:
+                    if data_size != 16:
+                        raise Exception("Unexpected data size.")
+                    block_data = extra.read(data_size)
+                    if len(block_data) != data_size:
+                        raise Exception("Incomplete extra block data.")
+                    uncompressed_size, compressed_size = struct.unpack("<QQ", block_data)
+                else:
+                    extra.seek(data_size, os.SEEK_CUR)
+
+                if extra.tell() == extra_len:
+                    break
+
+            if compressed_size == 0xFFFFFFFF:
+                raise Exception("Failed to read ZIP64 header.")
+        else:
+            zip_file.seek(extra_len, os.SEEK_CUR)
+
+        if flags & 0x08:
+            descriptor_sig = zip_file.read(4)
+            if descriptor_sig == b"PK\x07\x08":
+                zip_file.seek(12 if (compressed_size < 0xFFFFFFFF and uncompressed_size < 0xFFFFFFFF) else 16, os.SEEK_CUR)
+            elif descriptor_sig:
+                zip_file.seek(-4, os.SEEK_CUR)
+
+        should_descend_nested = (nested or any(request.get('nested') for request in pending.values())) and name.endswith('.zip')
+        if should_descend_nested:
+            nested_pending = {target: request for target, request in pending.items() if request.get('nested')}
+            if nested_pending:
+                debug(f"Entering nested zip: {name}")
+                compressed_offset = zip_file.tell()
+                nested_results = check_zip_contains_files_fast_inner(zip_file, list(nested_pending.values()), nested=True, is_recursive=True)
+                for nested_target, nested_path in nested_results.items():
+                    if nested_path:
+                        if not is_recursive:
+                            debug(f"Found: {name}/{nested_path}\n")
+                        results[nested_target] = f'{name}/{nested_path}'
+                        if nested_target in pending:
+                            del pending[nested_target]
+                zip_file.seek(compressed_size - (zip_file.tell() - compressed_offset), os.SEEK_CUR)
+                if not pending:
+                    return results
+                continue
+
+        zip_file.seek(compressed_size, os.SEEK_CUR)
+
+    return results
+
+
+# ============================================================================
+#                       Function check_zip_contains_files_fast
+# ============================================================================
+def check_zip_contains_files_fast(zip_file_path, file_requests):
+    requests = _normalize_archive_file_requests(file_requests)
+    if not requests:
+        return {}
+
+    empty_results = {request['file_to_check']: '' for request in requests}
+
+    try:
+        with open(zip_file_path, 'rb') as zip_file:
+            return check_zip_contains_files_fast_inner(zip_file, requests, nested=False, is_recursive=False)
+    except Exception as e:
+        debug(f"Fast ZIP batch scan failed for {zip_file_path}: {e}. Falling back to zipfile API.")
+        try:
+            with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+                results = dict(empty_results)
+                for name in zip_file.namelist():
+                    for request in requests:
+                        target = request['file_to_check']
+                        if name.endswith(f'/{target}') or name == target:
+                            results[target] = name
+                            break
+                    if not any(value == '' for value in results.values()):
+                        break
+
+                for request in requests:
+                    target = request['file_to_check']
+                    if results[target]:
+                        continue
+                    if not request.get('nested'):
+                        continue
+                    temp_zip_path = ''
+                    for name in zip_file.namelist():
+                        if not name.endswith('.zip'):
+                            continue
+                        try:
+                            with zip_file.open(name, 'r') as nested_zip_file:
+                                with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
+                                    while True:
+                                        chunk = nested_zip_file.read(1024 * 1024)
+                                        if not chunk:
+                                            break
+                                        temp_zip_file.write(chunk)
+                                    temp_zip_path = temp_zip_file.name
+
+                            nested_file_path = check_zip_contains_file_fast(temp_zip_path, target, nested=True, is_recursive=True)
+                            if nested_file_path:
+                                results[target] = f'{name}/{nested_file_path}'
+                                break
+                        finally:
+                            try:
+                                if temp_zip_path:
+                                    os.remove(temp_zip_path)
+                            except Exception:
+                                pass
+                return results
+        except zipfile.BadZipFile:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {zip_file_path} is not a zip file or is corrupt, skipping this file ...")
+            return empty_results
+        except MemoryError:
+            print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Memory issue while scanning {zip_file_path} for multiple files.")
+            return empty_results
+
+
+# ============================================================================
+#                       Function check_zip_contains_files_lowmem
+# ============================================================================
+def check_zip_contains_files_lowmem(zip_file_path, file_requests):
+    requests = _normalize_archive_file_requests(file_requests)
+    if not requests:
+        return {}
+
+    results = {request['file_to_check']: '' for request in requests}
+
+    def scan_zip(current_zip_path, current_prefix='', remaining_requests=None):
+        if remaining_requests is None:
+            remaining_requests = list(requests)
+
+        try:
+            with zipfile.ZipFile(current_zip_path, 'r') as zip_file:
+                for name in zip_file.namelist():
+                    full_name = f"{current_prefix}/{name}" if current_prefix else name
+                    for request in list(remaining_requests):
+                        target = request['file_to_check']
+                        if os.path.basename(full_name) == target or name.endswith(f'/{target}') or name == target:
+                            if not request['is_recursive']:
+                                debug(f"Found: {full_name}")
+                            results[target] = full_name
+                            remaining_requests.remove(request)
+                    if not remaining_requests:
+                        return
+                    for request in list(remaining_requests):
+                        should_descend_nested = (request['nested'] or any(item.get('nested') for item in remaining_requests)) and name.endswith('.zip')
+                        if should_descend_nested:
+                            nested_zip_data = zip_file.read(name)
+                            with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
+                                temp_zip_file.write(nested_zip_data)
+                                temp_zip_path = temp_zip_file.name
+                            nested_results = scan_zip(temp_zip_path, full_name, [nested_request for nested_request in remaining_requests if nested_request['nested']])
+                            for nested_request in [nested_request for nested_request in remaining_requests if nested_request['nested']]:
+                                target = nested_request['file_to_check']
+                                if results.get(target):
+                                    remaining_requests[:] = [item for item in remaining_requests if item['file_to_check'] != target]
+                            os.remove(temp_zip_path)
+        except zipfile.BadZipFile:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {current_zip_path} is not a zip file or is corrupt, skipping this file ...")
+
+    scan_zip(zip_file_path)
+    return results
+
+
+# ============================================================================
+#                   Function check_zip_contains_file_fast_inner
+# ============================================================================
+def check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=False, is_recursive=False) -> str:
+    # https://docs.fileformat.com/compression/zip/#local-file-header
+    # This code is based on a pull request from @capntrips, all credit goes to him for the original implementation.
+    # https://github.com/badabing2005/PixelFlasher/pull/372
+    while True:
+        header = zip_file.read(4)
+        if header == b"PK\x01\x02":
+            break  # end of files
+
+        if header != b"PK\x03\x04":
+            raise Exception("Unexpected outer file header.")
+
+        header_data = zip_file.read(26)
+        if len(header_data) < 26:
+            raise Exception("Incomplete outer file header.")
+
+        (
+            minimum_version,
+            flags,
+            compression_method,
+            modified_time,
+            modified_date,
+            crc32,
+            compressed_size,
+            uncompressed_size,
+            name_len,
+            extra_len,
+        ) = struct.unpack("<HHHHHIIIHH", header_data)
+        # "<HHHHHIIIHH" - the format string:
+        # < - little-endian byte order (least significant byte first)
+        # H - unsigned short (2 bytes, 0 to 65535)
+        # I - unsigned int (4 bytes, 0 to 4,294,967,295)
+
+        name = zip_file.read(name_len).decode("utf-8", errors="ignore")
+        if name.endswith(f'/{file_to_check}') or name == file_to_check:
+            if not is_recursive:
+                debug(f"Found: {name}\n")
+            return name
+        else:
+            if compressed_size == 0xFFFFFFFF:
+                extra = io.BytesIO(zip_file.read(extra_len))
+                while True:
+                    header_data = extra.read(4)
+                    if len(header_data) < 4:
+                        raise Exception("Incomplete extra block header.")
+
+                    (
+                        header_id,
+                        data_size,
+                    ) = struct.unpack("<HH", header_data)
+                    if header_id == 0x0001:  # ZIP64
+                        if data_size != 16:
+                            raise Exception("Unexpected data size.")
+
+                        block_data = extra.read(data_size)
+                        if len(block_data) != data_size:
+                            raise Exception("Incomplete extra block data.")
+
+                        (
+                            uncompressed_size,
+                            compressed_size,
+                        ) = struct.unpack("<QQ", block_data)
+                    else:
+                        extra.seek(data_size, os.SEEK_CUR)  # skip block data
+
+                    if extra.tell() == extra_len:
+                        break
+
+                if compressed_size == 0xFFFFFFFF:
+                    raise Exception("Failed to read ZIP64 header.")
+            else:
+                zip_file.seek(extra_len, os.SEEK_CUR)  # skip extra
+
+            if nested and name.endswith('.zip'):
+                # TODO: Add support for deflate?
+                if compression_method != 0:
+                    raise Exception("Unexpected nested image compression")
+
+                debug(f"Entering nested zip: {name}")
+                compressed_offset = zip_file.tell()
+                nested_file_path = check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=True, is_recursive=True)
+                if nested_file_path:
+                    if not is_recursive:
+                        debug(f"Found: {name}/{nested_file_path}\n")
+                    return f'{name}/{nested_file_path}'
+                zip_file.seek(compressed_size - (zip_file.tell() - compressed_offset), os.SEEK_CUR)  # skip compressed remainder
+            else:
+                zip_file.seek(compressed_size, os.SEEK_CUR)  # skip compressed
+
+            if flags & 0x08:
+                descriptor_sig = zip_file.read(4)
+                if descriptor_sig == b"PK\x07\x08":
+                    zip_file.seek(12 if (compressed_size < 0xFFFFFFFF and uncompressed_size < 0xFFFFFFFF) else 16, os.SEEK_CUR)
+                elif descriptor_sig:
+                    zip_file.seek(-4, os.SEEK_CUR)
+
+    return ''
 
 
 # ============================================================================
 #                               Function check_zip_contains_file_fast
 # ============================================================================
-def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_recursive=False):
+def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_recursive=False) -> str:
     def show_low_memory_hint():
         if get_low_memory():
             return
@@ -2072,30 +2479,41 @@ def check_zip_contains_file_fast(zip_file_path, file_to_check, nested=False, is_
             debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested}")
             wx.Yield()
         try:
-            with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
-                for name in zip_file.namelist():
-                    if name.endswith(f'/{file_to_check}') or name == file_to_check:
-                        if not is_recursive:
-                            debug(f"Found: {name}\n")
-                        return name
-                    elif nested and name.endswith('.zip'):
-                        debug(f"Entering nested zip: {name}")
-                        with zip_file.open(name, 'r') as nested_zip_file:
-                            nested_zip_data = nested_zip_file.read()
-                        with io.BytesIO(nested_zip_data) as nested_zip_stream:
-                            with zipfile.ZipFile(nested_zip_stream, 'r') as nested_zip:
-                                nested_file_path = check_zip_contains_file_fast(nested_zip_stream, file_to_check, nested=True, is_recursive=True)
+            with open(zip_file_path, 'rb') as zip_file:
+                return check_zip_contains_file_fast_inner(zip_file, file_to_check, nested, is_recursive)
+        except Exception as e:
+            debug(f"Fast ZIP single-file scan failed for {zip_file_path}: {e}. Falling back to zipfile API.")
+            try:
+                with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+                    for name in zip_file.namelist():
+                        if name.endswith(f'/{file_to_check}') or name == file_to_check:
+                            return name
+                        if nested and name.endswith('.zip'):
+                            with zip_file.open(name, 'r') as nested_zip_file:
+                                with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
+                                    while True:
+                                        chunk = nested_zip_file.read(1024 * 1024)
+                                        if not chunk:
+                                            break
+                                        temp_zip_file.write(chunk)
+                                    temp_zip_path = temp_zip_file.name
+                            try:
+                                nested_file_path = check_zip_contains_file_fast(temp_zip_path, file_to_check, nested=True, is_recursive=True)
                                 if nested_file_path:
-                                    if not is_recursive:
-                                        debug(f"Found: {name}/{nested_file_path}\n")
                                     return f'{name}/{nested_file_path}'
-        except zipfile.BadZipFile:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {zip_file_path} is not a zip file or is corrupt, skipping this file ...")
-            return ''
-        except MemoryError:
-            show_low_memory_hint()
-            debug(f"file: {file_to_check} was NOT found in checked zip on stack due to memory constraints\n")
-            return ''
+                            finally:
+                                try:
+                                    os.remove(temp_zip_path)
+                                except Exception:
+                                    pass
+                    return ''
+            except zipfile.BadZipFile:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: File {zip_file_path} is not a zip file or is corrupt, skipping this file ...")
+                return ''
+            except MemoryError:
+                show_low_memory_hint()
+                debug(f"file: {file_to_check} was NOT found in checked zip on stack due to memory constraints\n")
+                return ''
         debug(f"file: {file_to_check} was NOT found in checked zip on stack\n")
         return ''
     except MemoryError:
@@ -2135,22 +2553,176 @@ def check_file_pattern_in_zip_file(zip_file_path, pattern, return_all_matches=Fa
 
 
 # ============================================================================
-#                               Function check_img_contains_file
+#                     Function get_erofs_extractor_path
 # ============================================================================
-def check_img_contains_file(img_file_path, file_to_check):
+def get_erofs_extractor_path() -> str:
+    bundle_dir = get_bundle_dir()
+    candidates = []
+
+    if sys.platform.startswith('win'):
+        names = [
+            'erofs-extract-windows-amd64.exe',
+            'erofs-extract.exe',
+            'erofs-extract',
+        ]
+    elif sys.platform == 'darwin':
+        arch = platform.machine().lower()
+        if arch in ('arm64', 'aarch64'):
+            names = [
+                'erofs-extract-macos-arm64',
+                'erofs-extract-macos-amd64',
+                'erofs-extract',
+            ]
+        else:
+            names = [
+                'erofs-extract-macos-amd64',
+                'erofs-extract-macos-arm64',
+                'erofs-extract',
+            ]
+    else:
+        names = [
+            'erofs-extract-linux-amd64',
+            'erofs-extract',
+        ]
+
+    for name in names:
+        candidates.append(os.path.join(bundle_dir, 'bin', name))
+        candidates.append(os.path.join(bundle_dir, name))
+        found = shutil.which(name)
+        if found:
+            candidates.append(found)
+
+    seen = set()
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        if os.path.exists(candidate):
+            return candidate
+
+    # Final fallback for PATH-only lookups if no bundled copy exists.
+    for name in names:
+        resolved = shutil.which(name)
+        if resolved:
+            return resolved
+
+    return ''
+
+
+# ============================================================================
+#                     Function is_erofs_image
+# ============================================================================
+def is_erofs_image(img_file_path) -> bool:
     try:
+        if not os.path.exists(img_file_path):
+            return False
+        with open(img_file_path, 'rb') as img_file:
+            img_file.seek(0x400)
+            magic = img_file.read(4)
+            if len(magic) < 4:
+                return False
+            return magic == struct.pack('<I', 0xE0F5E1E2)
+    except Exception:
+        return False
+
+
+# ============================================================================
+#                     Function check_erofs_contains_file
+# ============================================================================
+def check_erofs_contains_file(img_file_path, file_to_check) -> str:
+    try:
+        erofs_extract = get_erofs_extractor_path()
+        if not erofs_extract:
+            debug(f"EROFS extractor not found for {img_file_path}")
+            return ''
+
+        result = subprocess.run([erofs_extract, 'l', img_file_path, file_to_check], capture_output=True, text=True)
+        output = (result.stdout or '') + (result.stderr or '')
+        if not output:
+            return ''
+
+        for line in output.splitlines():
+            candidate = line.strip()
+            if not candidate:
+                continue
+
+            # erofs-extract can prefix entries with a timestamp, for example:
+            # "2026/09/20 08:39:42 system/build.prop"
+            candidate = re.sub(r'^\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}\s+', '', candidate)
+            candidate = candidate.strip()
+            candidate = candidate.replace('\\', '/')
+
+            if candidate.endswith(file_to_check):
+                debug(f"Found EROFS entry: {candidate}\n")
+                return candidate
+
+        if "not found" in output.lower() or "no such file" in output.lower() or 'not exist' in output.lower():
+            debug(f"file: {file_to_check} was NOT found in EROFS image\n")
+            return ''
+
+        if result.returncode != 0 and not output.strip():
+            return ''
+
+        return ''
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_erofs_contains_file. Reason: {e}")
+        traceback.print_exc()
+        return ''
+
+
+# ============================================================================
+#                               Function extract_file_from_archive
+# ============================================================================
+def extract_file_from_archive(archive_path, file_to_extract, output_dir=None) -> bool:
+    try:
+        output_dir = output_dir or os.path.dirname(archive_path) or os.getcwd()
+        archive_ext = os.path.splitext(archive_path)[1].lower()
+
+        if archive_ext == '.img' and is_erofs_image(archive_path):
+            erofs_extract = get_erofs_extractor_path()
+            if not erofs_extract:
+                debug(f"EROFS extractor not found for {archive_path}")
+                return False
+            result = subprocess.run([erofs_extract, 'x', archive_path, file_to_extract], cwd=output_dir, capture_output=True, text=True)
+            if result.returncode != 0:
+                debug(f"erofs-extract failed for {archive_path}: {result.stderr or result.stdout}")
+                return False
+            return True
+
         path_to_7z = get_path_to_7z()
         if not path_to_7z:
-            return []
+            return False
+
+        result = subprocess.run([path_to_7z, 'x', '-bd', '-y', f'-o{output_dir}', archive_path, file_to_extract], capture_output=True, text=True)
+        if result.returncode != 0:
+            debug(f"7z failed for {archive_path}: {result.stderr or result.stdout}")
+            return False
+        return True
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to extract {file_to_extract} from {archive_path}. Reason: {e}")
+        traceback.print_exc()
+        return False
+
+
+# ============================================================================
+#                               Function check_img_contains_file
+# ============================================================================
+def check_img_contains_file(img_file_path, file_to_check) -> str:
+    try:
+        if is_erofs_image(img_file_path):
+            return check_erofs_contains_file(img_file_path, file_to_check)
+
+        path_to_7z = get_path_to_7z()
+        if not path_to_7z:
+            return ''
         result = subprocess.run([path_to_7z, 'l', img_file_path], capture_output=True, text=True)
 
         if "Unexpected end of archive" in result.stderr:
             print(f"⚠️ Warning: Unexpected end of archive in {img_file_path}")
-            return []
+            return ''
 
         file_list = result.stdout.split('\n')
 
-        matches = []
         for line in file_list:
             columns = line.split()
             if len(columns) < 6:  # Skip lines with less than 6 columns
@@ -2158,23 +2730,20 @@ def check_img_contains_file(img_file_path, file_to_check):
             file_path = columns[5].replace('\\\\', '\\')
             if file_path.endswith(file_to_check):
                 debug(f"Found: {file_path}\n")
-                # matches.append(file_path)
                 return file_path
 
-        if not matches:
-            debug(f"file: {file_to_check} was NOT found\n")
-
-        return matches
+        debug(f"file: {file_to_check} was NOT found\n")
+        return ''
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to check_img_contains_file. Reason: {e}")
         traceback.print_exc()
-        return []
+        return ''
 
 
 # ============================================================================
 #                               Function check_zip_contains_file_lowmem
 # ============================================================================
-def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, is_recursive=False):
+def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, is_recursive=False) -> str:
     try:
         if not is_recursive:
             debug(f"Looking for {file_to_check} in zipfile {zip_file_path} with zip-nested: {nested} Low Memory version.")
@@ -2203,15 +2772,14 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
                             return full_name
                         elif nested and name.endswith('.zip'):
                             debug(f"Entering nested zip: {full_name}")
-                            with zip_file.open(name, 'r') as nested_zip_file:
-                                nested_zip_data = nested_zip_file.read()
-
                             with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
-                                temp_zip_file.write(nested_zip_data)
+                                with zip_file.open(name, 'r') as nested_zip_file:
+                                    while True:
+                                        chunk = nested_zip_file.read(1024 * 1024)
+                                        if not chunk:
+                                            break
+                                        temp_zip_file.write(chunk)
                                 temp_zip_path = temp_zip_file.name
-
-                            # Close the temporary zip file
-                            temp_zip_file.close()
 
                             stack.append((temp_zip_path, full_name))
                             temp_files.append(temp_zip_path)
@@ -2237,7 +2805,7 @@ def check_zip_contains_file_lowmem(zip_file_path, file_to_check, nested=False, i
 # ============================================================================
 #                               Function check_tar_contains_file
 # ============================================================================
-def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recursive=False):
+def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recursive=False) -> str:
     try:
         if not is_recursive:
             debug(f"Looking for {file_to_check} in tarfile {tar_file_path} with tar-nested: {nested}")
@@ -2252,28 +2820,41 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
                     nested_tar_file = tar_file.extractfile(member)
                     if nested_tar_file is None:
                         continue
-                    nested_tar_file_path = nested_tar_file.read()
-                    nested_file_path = check_tar_contains_file(nested_tar_file_path, file_to_check, nested=True, is_recursive=True)
+
+                    with tempfile.NamedTemporaryFile(delete=False) as temp_tar_file:
+                        while True:
+                            chunk = nested_tar_file.read(1024 * 1024)
+                            if not chunk:
+                                break
+                            temp_tar_file.write(chunk)
+                        temp_tar_path = temp_tar_file.name
+
+                    nested_file_path = check_tar_contains_file(temp_tar_path, file_to_check, nested=True, is_recursive=True)
                     if nested_file_path:
                         if not is_recursive:
                             debug(f"Found: {member.name}/{nested_file_path}\n")
+                        os.remove(temp_tar_path)
                         return f'{member.name}/{nested_file_path}'
+
+                    os.remove(temp_tar_path)
                 elif nested and member.name.endswith('.zip'):
                     nested_zip_file = tar_file.extractfile(member)
-                    nested_zip_data = b''
-                    if nested_zip_file:
-                        with nested_zip_file as nested_zip_file_inner:
-                            nested_zip_data = nested_zip_file_inner.read()
+                    if nested_zip_file is None:
+                        continue
 
-                    # Create a temporary file to write the nested zip data
                     with tempfile.NamedTemporaryFile(delete=False) as temp_zip_file:
-                        temp_zip_file.write(nested_zip_data)
+                        while True:
+                            chunk = nested_zip_file.read(1024 * 1024)
+                            if not chunk:
+                                break
+                            temp_zip_file.write(chunk)
                         temp_zip_path = temp_zip_file.name
 
-                    nested_file_path = check_zip_contains_file(temp_zip_path, file_to_check, get_low_memory(), nested=True, is_recursive=True)
+                    nested_file_path = check_zip_contains_file(temp_zip_path, file_to_check, False, nested=True, is_recursive=True)
                     if nested_file_path:
                         if not is_recursive:
                             debug(f"Found: {member.name}/{nested_file_path}\n")
+                        os.remove(temp_zip_path)
                         return f'{member.name}/{nested_file_path}'
 
                     # Clean up the temporary zip file
@@ -2283,6 +2864,7 @@ def check_tar_contains_file(tar_file_path, file_to_check, nested=False, is_recur
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while check_tar_contains_file.")
         traceback.print_exc()
+        return ''
 
 
 # ============================================================================
@@ -2567,6 +3149,7 @@ def sha256(fname) -> str:
         with open(fname, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_sha256.update(chunk)
+                # wx.Yield()  # Yield to the GUI to keep it responsive
         return hash_sha256.hexdigest()
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while computing sha256")
@@ -6755,89 +7338,59 @@ def get_pif_from_image(image_file):
     # Sub Function  process_system_vendor_product_images
     # ==================================================
     def process_system_vendor_product_images():
-        # process system.img
-        try:
-            img_archive = os.path.join(temp_dir_path, "system.img")
-            if os.path.exists(img_archive):
-                found_system_build_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                if isinstance(found_system_build_prop, str) and found_system_build_prop:
-                    print(f"Extracting build.prop from {img_archive} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_system_build_prop}"
-                    debug(theCmd)
-                    res = run_shell2(theCmd)
-                    if os.path.exists(os.path.join(props_path, found_system_build_prop)):
-                        os.rename(os.path.join(props_path, found_system_build_prop), os.path.join(props_path, "system-build.prop"))
-                else:
-                    print(f"build.prop not found in {img_archive}")
-        except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing system.img:")
-            traceback.print_exc()
+        image_targets = [
+            ("system.img", "system-build.prop"),
+            ("vendor.img", "vendor-build.prop"),
+            ("product.img", "product-build.prop"),
+        ]
+        for image_name, output_name in image_targets:
+            try:
+                img_archive = os.path.join(temp_dir_path, image_name)
+                if not os.path.exists(img_archive):
+                    continue
 
-        # process vendor.img
-        try:
-            img_archive = os.path.join(temp_dir_path, "vendor.img")
-            if os.path.exists(img_archive):
-                found_vendor_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                if isinstance(found_vendor_img_prop, str) and found_vendor_img_prop:
-                    print(f"Extracting build.prop from {img_archive} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_vendor_img_prop}"
-                    debug(theCmd)
-                    res = run_shell2(theCmd)
-                    if os.path.exists(os.path.join(props_path, found_vendor_img_prop)):
-                        os.rename(os.path.join(props_path, found_vendor_img_prop), os.path.join(props_path, "vendor-build.prop"))
-                else:
-                    print(f"build.prop not found in {img_archive}")
-        except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing vendor.img:")
-            traceback.print_exc()
+                found_build_prop = check_archive_contains_files(
+                    archive_file_path=img_archive,
+                    file_requests=[{'file_to_check': 'build.prop', 'nested': False, 'is_recursive': False}],
+                ).get('build.prop', '')
 
-        # process product.img
-        try:
-            img_archive = os.path.join(temp_dir_path, "product.img")
-            if os.path.exists(img_archive):
-                found_product_img_prop = check_archive_contains_file(archive_file_path=img_archive, file_to_check="build.prop", nested=False, is_recursive=False)
-                if isinstance(found_product_img_prop, str) and found_product_img_prop:
+                if isinstance(found_build_prop, str) and found_build_prop:
                     print(f"Extracting build.prop from {img_archive} ...")
-                    theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{props_path}\" \"{img_archive}\" {found_product_img_prop}"
-                    debug(theCmd)
-                    res = run_shell2(theCmd)
-                    if os.path.exists(os.path.join(props_path, found_product_img_prop)):
-                        os.rename(os.path.join(props_path, found_product_img_prop), os.path.join(props_path, "product-build.prop"))
+                    extracted = extract_file_from_archive(img_archive, found_build_prop, props_path)
+                    if extracted:
+                        extracted_path = os.path.join(props_path, os.path.basename(found_build_prop))
+                        if os.path.exists(extracted_path):
+                            os.rename(extracted_path, os.path.join(props_path, output_name))
+                    else:
+                        print(f"build.prop not found in {img_archive}")
                 else:
                     print(f"build.prop not found in {img_archive}")
-        except Exception as e:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing product.img:")
-            traceback.print_exc()
+            except Exception:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while processing {image_name}:")
+                traceback.print_exc()
 
     # ==================================================
     # Sub Function  check_for_system_vendor_product_imgs
     # ==================================================
     def check_for_system_vendor_product_imgs(filename):
         # check if image file is included and contains what we need
-        if os.path.exists(filename):
-            # extract system.img
-            found_system_img = check_archive_contains_file(archive_file_path=filename, file_to_check="system.img", nested=False, is_recursive=False)
-            if found_system_img:
-                print(f"Extracting system.img from {filename} ...")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{filename}\" system.img"
-                debug(theCmd)
-                res = run_shell2(theCmd)
+        if not os.path.exists(filename):
+            return
 
-            # extract vendor.img
-            found_vendor_img = check_archive_contains_file(archive_file_path=filename, file_to_check="vendor.img", nested=False, is_recursive=False)
-            if found_vendor_img:
-                print(f"Extracting system.img from {filename} ...")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{filename}\" vendor.img"
-                debug(theCmd)
-                res = run_shell2(theCmd)
+        file_requests = [
+            {'file_to_check': 'system.img', 'nested': False, 'is_recursive': False},
+            {'file_to_check': 'vendor.img', 'nested': False, 'is_recursive': False},
+            {'file_to_check': 'product.img', 'nested': False, 'is_recursive': False},
+        ]
+        found_images = check_archive_contains_files(archive_file_path=filename, file_requests=file_requests)
+        matching_images = [image_name for image_name in ['system.img', 'vendor.img', 'product.img'] if found_images.get(image_name)]
+        if not matching_images:
+            return
 
-            # extract product.img
-            found_product_img = check_archive_contains_file(archive_file_path=filename, file_to_check="product.img", nested=False, is_recursive=False)
-            if found_product_img:
-                print(f"Extracting system.img from {filename} ...")
-                theCmd = f"\"{path_to_7z}\" x -bd -y -o\"{temp_dir_path}\" \"{filename}\" product.img"
-                debug(theCmd)
-                res = run_shell2(theCmd)
+        print(f"Extracting {', '.join(matching_images)} from {filename} ...")
+        for image_name in matching_images:
+            if not extract_file_from_archive(filename, image_name, temp_dir_path):
+                print(f"Failed to extract {image_name} from {filename}")
 
     try:
         # .img file
@@ -6850,10 +7403,15 @@ def get_pif_from_image(image_file):
             process_system_vendor_product_images()
             return props_path
 
-        found_flash_all_sh = None
-        found_flash_all_bat = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.bat", nested=False)
-        if found_flash_all_bat:
-            found_flash_all_sh = check_archive_contains_file(archive_file_path=file_to_process, file_to_check="flash-all.sh", nested=False)
+        found_flash_all = check_archive_contains_files(
+            archive_file_path=file_to_process,
+            file_requests=[
+                {'file_to_check': 'flash-all.bat', 'nested': False, 'is_recursive': False},
+                {'file_to_check': 'flash-all.sh', 'nested': False, 'is_recursive': False},
+            ]
+        )
+        found_flash_all_bat = found_flash_all.get('flash-all.bat', '')
+        found_flash_all_sh = found_flash_all.get('flash-all.sh', '')
 
         if found_flash_all_bat and found_flash_all_sh:
             # -----------------------------
@@ -8179,9 +8737,14 @@ def check_kb(filename, force_fresh=False):
                         keybox_data_collection["rsa_chain"] = rsa_chain
 
                     # First is leaf, last is root
-                    leaf_cert = cert_chain[0]
-                    root_cert = cert_chain[-1]
-                    intermediate_certs = cert_chain[1:-1]
+                    leaf_cert = cert_chain[0] if cert_chain else None
+                    root_cert = cert_chain[-1] if cert_chain else None
+                    intermediate_certs = cert_chain[1:-1] if len(cert_chain) > 1 else []
+
+                    if leaf_cert is None or root_cert is None:
+                        print(f"  ❌ ERROR: Certificate chain is empty or incomplete for {algorithm}")
+                        results.append('invalid_chain')
+                        continue
 
                     # Verify the private key matches the leaf certificate's public key
                     if private_key_obj is not None and private_key_obj != "UNSUPPORTED_CURVE" and leaf_cert is not None:
@@ -8235,34 +8798,43 @@ def check_kb(filename, force_fresh=False):
                         next_cert = intermediate_certs[0] if intermediate_certs else root_cert
 
                         # Verify leaf cert is signed by next cert in chain
-                        public_key = next_cert.public_key()
-                        if isinstance(public_key, rsa.RSAPublicKey):
-                            try:
-                                public_key.verify(
-                                    current_cert.signature,
-                                    current_cert.tbs_certificate_bytes,
-                                    padding.PKCS1v15(),
-                                    current_cert.signature_hash_algorithm
-                                )
-                            except Exception as e:
-                                print(f"  ❌ ERROR: RSA Certificate chain validation failed for {algorithm}: {e}")
-                                results.append('invalid_chain')
-                        elif isinstance(public_key, ec.EllipticCurvePublicKey):
-                            try:
-                                public_key.verify(
-                                    current_cert.signature,
-                                    current_cert.tbs_certificate_bytes,
-                                    ec.ECDSA(current_cert.signature_hash_algorithm)
-                                )
-                            except Exception as e:
-                                print(f"  ❌ ERROR: ECDSA Certificate chain validation failed for {algorithm}: {e}")
-                                results.append('invalid_chain')
+                        if next_cert is None or current_cert is None:
+                            print(f"  ❌ ERROR: Missing certificate in chain validation for {algorithm}")
+                            results.append('invalid_chain')
+                        else:
+                            public_key = next_cert.public_key()
+                            if isinstance(public_key, rsa.RSAPublicKey):
+                                try:
+                                    public_key.verify(
+                                        current_cert.signature,
+                                        current_cert.tbs_certificate_bytes,
+                                        padding.PKCS1v15(),
+                                        current_cert.signature_hash_algorithm
+                                    )
+                                except Exception as e:
+                                    print(f"  ❌ ERROR: RSA Certificate chain validation failed for {algorithm}: {e}")
+                                    results.append('invalid_chain')
+                            elif isinstance(public_key, ec.EllipticCurvePublicKey):
+                                try:
+                                    public_key.verify(
+                                        current_cert.signature,
+                                        current_cert.tbs_certificate_bytes,
+                                        ec.ECDSA(current_cert.signature_hash_algorithm)
+                                    )
+                                except Exception as e:
+                                    print(f"  ❌ ERROR: ECDSA Certificate chain validation failed for {algorithm}: {e}")
+                                    results.append('invalid_chain')
 
                         # Verify the rest of the chain
                         for i in range(len(intermediate_certs)):
                             wx.Yield()
                             current_cert = intermediate_certs[i]
                             next_cert = intermediate_certs[i + 1] if i + 1 < len(intermediate_certs) else root_cert
+
+                            if current_cert is None or next_cert is None:
+                                print(f"  ❌ ERROR: Missing intermediate certificate in chain validation for {algorithm}")
+                                results.append('invalid_chain')
+                                continue
 
                             # Verify current_cert was signed by next_cert
                             public_key = next_cert.public_key()
@@ -8293,21 +8865,23 @@ def check_kb(filename, force_fresh=False):
                                 # raise ValueError("Unsupported public key type")
 
                         # Finally verify root signed the last intermediate (if any intermediates exist)
-                        if intermediate_certs:
-                            public_key = root_cert.public_key()
-                            if isinstance(public_key, rsa.RSAPublicKey):
-                                public_key.verify(
-                                    intermediate_certs[-1].signature,
-                                    intermediate_certs[-1].tbs_certificate_bytes,
-                                    padding.PKCS1v15(),
-                                    intermediate_certs[-1].signature_hash_algorithm
-                                )
-                            elif isinstance(public_key, ec.EllipticCurvePublicKey):
-                                public_key.verify(
-                                    intermediate_certs[-1].signature,
-                                    intermediate_certs[-1].tbs_certificate_bytes,
-                                    ec.ECDSA(intermediate_certs[-1].signature_hash_algorithm)
-                                )
+                        if intermediate_certs and root_cert is not None:
+                            last_intermediate = intermediate_certs[-1]
+                            if last_intermediate is not None:
+                                public_key = root_cert.public_key()
+                                if isinstance(public_key, rsa.RSAPublicKey):
+                                    public_key.verify(
+                                        last_intermediate.signature,
+                                        last_intermediate.tbs_certificate_bytes,
+                                        padding.PKCS1v15(),
+                                        last_intermediate.signature_hash_algorithm
+                                    )
+                                elif isinstance(public_key, ec.EllipticCurvePublicKey):
+                                    public_key.verify(
+                                        last_intermediate.signature,
+                                        last_intermediate.tbs_certificate_bytes,
+                                        ec.ECDSA(last_intermediate.signature_hash_algorithm)
+                                    )
 
                         print(f"  ✅ Certificate chain validation successful for {algorithm}")
 
@@ -8574,8 +9148,10 @@ def format_dn(dn):
     sn = ''
     try:
         formatted = []
+        # Split the DN string by commas not preceded by a backslash (escape character)
         parts = re.split(r'(?<!\\),', dn)
         for part in parts:
+            # Replace escaped commas with actual commas
             part = part.replace("\\,", ",")
             key, _, value = part.partition("=")
             if not _:

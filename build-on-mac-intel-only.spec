@@ -4,7 +4,7 @@ block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
             pathex=['.'],
-            binaries=[('bin/7zz', 'bin')],
+            binaries=[('bin/7zz', 'bin'), ('bin/erofs-extract-macos-amd64', 'bin')],
             datas=[
                 ("images/icon-64.png", "images"),
                 ("images/icon-dark-64.png", "images"),
@@ -59,6 +59,6 @@ exe = EXE(pyz,
           icon='images/icon-dark-256.icns')
 app = BUNDLE(exe,
              name='PixelFlasher.app',
-             version='9.2.1.0',
+             version='10.0.0.0',
              icon='./images/icon-dark-256.icns',
              bundle_identifier='com.badabing.pixelflasher')

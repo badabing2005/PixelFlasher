@@ -513,6 +513,8 @@ I strongly encourage all beginners to follow those guides rather than use this p
 - [osm0sis](https://github.com/osm0sis) for the creative and pioneer approach to beta pif print extraction, [banned kernel list](https://xdaforums.com/t/module-play-integrity-fix-safetynet-fix.4607985/page-518#post-89308909) and endless other contributions that are too many to enumerate.
 - [capntrips](https://github.com/capntrips) for code / tools and mentoring provided to create features like `Downgrade Patch` and `Cancel OTA Update`.
 - [Vagelis1608](https://github.com/Vagelis1608) for building [canary / beta factory image catalog](https://github.com/Vagelis1608/get_the_canary_miner/blob/stable/catalog.json) and graciously sharing.
+- [capntrips](https://github.com/capntrips) — Streaming utilities to locate and extract files from large images, improving image-processing throughput by approximately 20×.
+- [go-erofs](https://github.com/erofs/go-erofs) and [capntrips](https://github.com/capntrips) — Used by `erofs-builder` to build the EROFS extractor; see `erofs-builder/` for the builder source and follow the upstream projects' licenses.
 
 ## Troubleshooting
 

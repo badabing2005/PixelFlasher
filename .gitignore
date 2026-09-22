@@ -150,4 +150,6 @@ images/*.psd
 desktop.ini
 tools/
 data/
+tests/
+
 

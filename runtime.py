@@ -4587,6 +4587,9 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
     beta_type = "Beta"
     fingerprint = None
     security_patch = None
+    ota_data: BetaData | None = None
+    factory_data: BetaData | None = None
+    gsi_data: BetaData | None = None
     model_list = []
     product_list = []
     build_id = ''
@@ -4865,11 +4868,13 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                     debug(f"  Using last OTA device: {ota_data.__dict__['devices'][-1]['zip_filename']}")
                 # Grab fp and sp from selected OTA zip
                 fingerprint, security_patch, _expiry = url2fpsp(selected_url, "ota", state=state)
+                if not security_patch:
+                    security_patch = normalize_security_patch_level(ota_data.__dict__.get('security_patch_level'))
                 # Check if abort was triggered (but not if we got valid results - stop_event is set on success too)
                 if state and state.stop_event.is_set() and (not fingerprint or not security_patch):
                     debug("Processing aborted by user in OTA")
                     return -1
-                if fingerprint and security_patch:
+                if beta_data_is_usable(fingerprint, security_patch):
                     model_list = []
                     product_list = []
                     model_list, product_list = get_model_and_prod_list(ota_data)
@@ -4896,6 +4901,7 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                             device_model = zip_filename.split('-')[0]
                             device_model = device_model.lower().replace('_beta', '').replace('beta_', '')
                             print(f"  Selected: {selected_device['device']} - {selected_device['zip_filename']}")
+                            print(f"  Selected image url: {selected_url}")
                         else:
                             print("Selection cancelled.")
                             return "Selection cancelled."
@@ -4914,11 +4920,13 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                     debug(f"  Using last Factory device: {factory_data.__dict__['devices'][-1]['zip_filename']}")
                 # Grab fp and sp from selected Factory zip
                 fingerprint, security_patch, _expiry = url2fpsp(selected_url, "factory", state=state)
+                if not security_patch:
+                    security_patch = normalize_security_patch_level(factory_data.__dict__.get('security_patch_level'))
                 # Check if abort was triggered (but not if we got valid results - stop_event is set on success too)
                 if state and state.stop_event.is_set() and (not fingerprint or not security_patch):
                     debug("Processing aborted by user in Factory")
                     return -1
-                if fingerprint and security_patch:
+                if beta_data_is_usable(fingerprint, security_patch):
                     model_list = []
                     product_list = []
                     model_list, product_list = get_model_and_prod_list(factory_data)
@@ -4983,26 +4991,37 @@ def get_beta_pif(device_model='random', force_version=None, state=None):
                         else:
                             AndroidCode = latest_version
                         fingerprint = f"google/gsi_gms_arm64/gsi_arm64:{AndroidCode}/{build_id}/{incremental}:user/release-keys"
-                    if fingerprint and security_patch:
+                    if beta_data_is_usable(fingerprint, security_patch):
                         break
 
     build_type = 'user'
     build_tags = 'release-keys'
-    if fingerprint and security_patch:
+    if not security_patch:
+        selected_data = None
+        if ota_data and isinstance(ota_data, BetaData):
+            selected_data = ota_data
+        elif factory_data and isinstance(factory_data, BetaData):
+            selected_data = factory_data
+        elif gsi_data and isinstance(gsi_data, BetaData):
+            selected_data = gsi_data
+        if selected_data:
+            security_patch = normalize_security_patch_level(selected_data.__dict__.get('security_patch_level'))
+    if beta_data_is_usable(fingerprint, security_patch):
         print(f"Security Patch:           {security_patch}")
         # Extract props from fingerprint
-        pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
-        match = re.search(pattern, fingerprint)
-        if match and match.lastindex == 8:
-            # product_brand = match[1]
-            # product_name = match[2]
-            # product_device = match[3]
-            latest_version = match[4]
-            build_id = match[5]
-            incremental = match[6]
-            if not canary_data:
-                build_type = match[7]
-                build_tags = match[8]
+        if fingerprint is not None:
+            pattern = r'([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)\/([^:]*):([^\/]*)\/([^\/]*)$'
+            match = re.search(pattern, fingerprint)
+            if match and match.lastindex == 8:
+                # product_brand = match[1]
+                # product_name = match[2]
+                # product_device = match[3]
+                latest_version = match[4]
+                build_id = match[5]
+                incremental = match[6]
+                if not canary_data:
+                    build_type = match[7]
+                    build_tags = match[8]
 
     def set_random_beta():
         list_count = len(model_list)
@@ -5162,17 +5181,22 @@ def get_beta_data(url) -> tuple[BetaData | None, bool | None]:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Build(s) not found in the data.")
                 return None, False
             else:
-                # we might get an output like this: 'BP31.250610.004\n      BP31.250610.004.A1 (Pixel 6, 6 Pro)'
-                # we need to extract the first build from it, but we also need to keep the other builds for later
-                # when we're extracting the devices, we need to match the build with the device.
-                builds = build.split('\n')
+                # We may see values like:
+                #  - "CP41.260828.004.A8 CP41.260828.005.A6"
+                #  - "BP31.250610.004\nBP31.250610.004.A1 (Pixel 6, 6 Pro)"
+                # Use the first valid build ID while preserving the rest for later matching.
+                builds = extract_builds_from_metadata(build)
+                if not builds:
+                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: No valid build IDs found in the metadata.")
+                    return None, False
+
                 if len(builds) > 1:
-                    print(f"ℹ️ Multiple Builds are found, selecting the first one: {builds[0].strip()}")
-                    build = builds[0].strip()  # Take the first build only
+                    print(f"ℹ️ Multiple Builds are found, selecting the first one: {builds[0]}")
+                    build = builds[0]
                     print(f"ℹ️ Selected Build:           {build}")
                 else:
-                    print(f"ℹ️ Single Build is found: {builds[0].strip()}")
-                    build = builds[0].strip()
+                    print(f"ℹ️ Single Build is found: {builds[0]}")
+                    build = builds[0]
             emulator_support = data.get('emulator_support')
             security_patch_level = data.get('security_patch_level')
             google_play_services = data.get('google_play_services')
@@ -5215,7 +5239,7 @@ def get_beta_data(url) -> tuple[BetaData | None, bool | None]:
             if not build:
                 # If we have no build info, we can't verify, but we shouldn't fail the whole process
                 pass
-            if build and build != "Unknown" and build.lower() not in zip_filename.lower():
+            if build and build != "Unknown" and not build_matches_filename(build, zip_filename):
                 print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Build '{build}' not found in zip filename '{zip_filename}' for device '{device}'")
                 error = True
 
@@ -5605,8 +5629,8 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, ove
             fp_pattern_complete = r"post-build=(.+?)(\s|$)"
             sp_pattern_complete = r"security-patch-level=(.+?)(\s|$)"
         elif image_type == 'factory':
-            fp_pattern_complete = r"com\.android\.build\.boot\.fingerprint(.+?)\x00"
-            sp_pattern_complete = r"com\.android\.build\.boot\.security_patch(.+?)\x00"
+            fp_pattern_complete = r"(?:com\.android\.build\.(?:boot|system)\.fingerprint|ro\.build\.fingerprint)\s*=\s*(.+?)(?:\x00|\r|\n|$)"
+            sp_pattern_complete = r"(?:com\.android\.build\.(?:boot|system)\.security_patch|ro\.build\.version\.security_patch)\s*=\s*(.+?)(?:\x00|\r|\n|$)"
         else:
             print(f"Unsupported image type: {image_type}")
             return None, None
@@ -5803,6 +5827,110 @@ def get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size=None, ove
             except Exception:
                 pass
         return None, None
+
+
+# ============================================================================
+#                Function extract_builds_from_metadata
+# ============================================================================
+def extract_builds_from_metadata(build_text):
+    if build_text is None:
+        return []
+
+    text = str(build_text).replace('\r', '\n').strip()
+    if not text:
+        return []
+
+    matches = []
+    for line in text.split('\n'):
+        stripped_line = re.sub(r'\s*\(.*?\)', '', line).strip()
+        if not stripped_line or stripped_line.lower() in {'build', 'builds'}:
+            continue
+
+        # The Android beta metadata can contain either:
+        #  - multiple build IDs on the same line: "CP41...A8 CP41...A6"
+        #  - concatenated build IDs with no separator: "CP41...A8CP41...A6"
+        #  - a final build entry with comments: "BP31...A1 (Pixel 6)"
+        chunks = re.split(r'(?<=[A-Za-z0-9])(?=[A-Z]{2}\d{2}\.)', stripped_line)
+        for chunk in chunks:
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            found = re.findall(r'[A-Z]{2}\d{2}\.\d{6}\.\d{3}(?:\.[A-Z0-9]+)*', chunk, flags=re.IGNORECASE)
+            if found:
+                matches.extend(found)
+                continue
+
+            sanitized = re.sub(r'[^A-Za-z0-9.]+', '', chunk)
+            if sanitized and sanitized.lower() not in {'build', 'builds'}:
+                matches.append(sanitized)
+
+    unique_matches = []
+    seen = set()
+    for match in matches:
+        normalized = match.strip()
+        lowered = normalized.lower()
+        if not normalized or lowered in seen:
+            continue
+        seen.add(lowered)
+        unique_matches.append(normalized)
+
+    return unique_matches
+
+
+# ============================================================================
+#                Function build_matches_filename
+# ============================================================================
+def build_matches_filename(build_text, zip_filename):
+    if not build_text or not zip_filename:
+        return False
+
+    zip_name = str(zip_filename).lower()
+    for build in extract_builds_from_metadata(build_text):
+        if build.lower() in zip_name:
+            return True
+    return False
+
+
+# ============================================================================
+#                Function normalize_security_patch_level
+# ============================================================================
+def normalize_security_patch_level(value):
+    if value is None:
+        return ""
+
+    text = str(value).strip()
+    if not text or text.lower() in {'unknown', 'n/a', 'none'}:
+        return ""
+
+    # Reject property-name strings like "com.android.build.system.security_patch"
+    # which are not valid patch dates and should not be used as a PIF field.
+    if '.security_patch' in text or '.build.' in text:
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', text):
+            return ""
+
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', text):
+        return text
+    if re.match(r'^\d{4}-\d{2}$', text):
+        return f"{text}-05"
+
+    try:
+        return datetime.strptime(text, '%B %Y').strftime('%Y-%m-05')
+    except ValueError:
+        pass
+
+    try:
+        return datetime.strptime(text, '%B %d, %Y').strftime('%Y-%m-%d')
+    except ValueError:
+        pass
+
+    return text if re.match(r'^\d{4}-\d{2}-\d{2}$', text) else ""
+
+
+# ============================================================================
+#                Function beta_data_is_usable
+# ============================================================================
+def beta_data_is_usable(fingerprint, security_patch):
+    return bool(fingerprint) and bool(str(security_patch or '').strip())
 
 
 # ============================================================================

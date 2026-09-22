@@ -2609,12 +2609,15 @@ class PifManager(wx.Dialog):
             traceback.print_exc()
 
     # -----------------------------------------------
-    #                  onProcessImage
+    #          _log_image_process_duration
     # -----------------------------------------------
     def _log_image_process_duration(self, start):
         end = time.time()
         print(f"Total Process Image time: {math.ceil(end - start)} seconds")
 
+    # -----------------------------------------------
+    #                  _process_image_worker
+    # -----------------------------------------------
     def _process_image_worker(self, file_path, start):
         try:
             processing_state = self._get_prop_processing_state()
@@ -2633,6 +2636,9 @@ class PifManager(wx.Dialog):
             wx.CallAfter(self._on_spin, 'stop')
             wx.CallAfter(self._log_image_process_duration, start)
 
+    # -----------------------------------------------
+    #                onProcessImage
+    # -----------------------------------------------
     def onProcessImage(self, e):
         start = time.time()
         try:

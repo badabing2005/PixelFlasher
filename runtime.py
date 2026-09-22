@@ -2184,7 +2184,7 @@ def check_zip_contains_files_fast_inner(zip_file, file_requests, nested=False, i
         if not pending:
             return results
 
-        if compressed_size == 0xFFFFFFFF:
+        if compressed_size == 0xFFFFFFFF or uncompressed_size == 0xFFFFFFFF:
             extra = io.BytesIO(zip_file.read(extra_len))
             while True:
                 header_data = extra.read(4)
@@ -2193,19 +2193,29 @@ def check_zip_contains_files_fast_inner(zip_file, file_requests, nested=False, i
 
                 header_id, data_size = struct.unpack("<HH", header_data)
                 if header_id == 0x0001:
-                    if data_size != 16:
-                        raise Exception("Unexpected data size.")
                     block_data = extra.read(data_size)
                     if len(block_data) != data_size:
                         raise Exception("Incomplete extra block data.")
-                    uncompressed_size, compressed_size = struct.unpack("<QQ", block_data)
+
+                    pos = 0
+                    if uncompressed_size == 0xFFFFFFFF:
+                        if pos + 8 > data_size:
+                            raise Exception("Incomplete ZIP64 uncompressed size.")
+                        uncompressed_size = struct.unpack_from("<Q", block_data, pos)[0]
+                        pos += 8
+                    if compressed_size == 0xFFFFFFFF:
+                        if pos + 8 > data_size:
+                            raise Exception("Incomplete ZIP64 compressed size.")
+                        compressed_size = struct.unpack_from("<Q", block_data, pos)[0]
+                        pos += 8
+                    break
                 else:
                     extra.seek(data_size, os.SEEK_CUR)
 
                 if extra.tell() == extra_len:
                     break
 
-            if compressed_size == 0xFFFFFFFF:
+            if compressed_size == 0xFFFFFFFF or uncompressed_size == 0xFFFFFFFF:
                 raise Exception("Failed to read ZIP64 header.")
         else:
             zip_file.seek(extra_len, os.SEEK_CUR)
@@ -2396,7 +2406,7 @@ def check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=False, is
                 debug(f"Found: {name}\n")
             return name
         else:
-            if compressed_size == 0xFFFFFFFF:
+            if compressed_size == 0xFFFFFFFF or uncompressed_size == 0xFFFFFFFF:
                 extra = io.BytesIO(zip_file.read(extra_len))
                 while True:
                     header_data = extra.read(4)
@@ -2408,24 +2418,29 @@ def check_zip_contains_file_fast_inner(zip_file, file_to_check, nested=False, is
                         data_size,
                     ) = struct.unpack("<HH", header_data)
                     if header_id == 0x0001:  # ZIP64
-                        if data_size != 16:
-                            raise Exception("Unexpected data size.")
-
                         block_data = extra.read(data_size)
                         if len(block_data) != data_size:
                             raise Exception("Incomplete extra block data.")
 
-                        (
-                            uncompressed_size,
-                            compressed_size,
-                        ) = struct.unpack("<QQ", block_data)
+                        pos = 0
+                        if uncompressed_size == 0xFFFFFFFF:
+                            if pos + 8 > data_size:
+                                raise Exception("Incomplete ZIP64 uncompressed size.")
+                            uncompressed_size = struct.unpack_from("<Q", block_data, pos)[0]
+                            pos += 8
+                        if compressed_size == 0xFFFFFFFF:
+                            if pos + 8 > data_size:
+                                raise Exception("Incomplete ZIP64 compressed size.")
+                            compressed_size = struct.unpack_from("<Q", block_data, pos)[0]
+                            pos += 8
+                        break
                     else:
                         extra.seek(data_size, os.SEEK_CUR)  # skip block data
 
                     if extra.tell() == extra_len:
                         break
 
-                if compressed_size == 0xFFFFFFFF:
+                if compressed_size == 0xFFFFFFFF or uncompressed_size == 0xFFFFFFFF:
                     raise Exception("Failed to read ZIP64 header.")
             else:
                 zip_file.seek(extra_len, os.SEEK_CUR)  # skip extra

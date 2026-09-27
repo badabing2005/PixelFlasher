@@ -107,11 +107,10 @@ jobs:
 
       - name: Install requirements (macOS universal build uses cryptography<49)
         run: |
-          # Create constraints file to pin cryptography<49 for universal2 compatibility
+          # Create modified requirements with cryptography<49 for universal2 compatibility
           # (Rust _rust.abi3.so in cryptography>=49 is single-arch only)
-          echo "cryptography>=48.0.0,<49.0.0" > constraints.txt
-          # Install with constraints to prevent upgrade to cryptography>=49
-          PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt -c constraints.txt
+          sed 's/cryptography>=49.0.0/cryptography>=48.0.0,<49.0.0/' requirements.txt > requirements-macos.txt
+          PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements-macos.txt
 
       - name: List modules and their versions
         run: python3.13 -m pip freeze

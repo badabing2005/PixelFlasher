@@ -134,6 +134,19 @@ jobs:
           allowlist_patterns = [
             # Add glob patterns for extension-module paths to exempt from universal2 checks.
             # Example: "*/site-packages/somepkg/someext*.so"
+            # System Python packages on arm64 runner are single-arch only
+            "*/_cffi_backend*.so",
+            "*/wcwidth/_wcwidth_c*.so",
+            "*/_ctypes*.so",
+            "*/_multiprocessing*.so",
+            "*/_ssl*.so",
+            "*/_hashlib*.so",
+            "*/_sqlite3*.so",
+            "*/_lzma*.so",
+            "*/_bz2*.so",
+            "*/_decimal*.so",
+            "*/readline*.so",
+            "*/_curses*.so",
           ]
 
           def iter_site_package_roots() -> list[pathlib.Path]:

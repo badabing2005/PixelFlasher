@@ -4,7 +4,7 @@ block_cipher = None
 
 a = Analysis(['PixelFlasher.py'],
             pathex=['.'],
-            binaries=[('bin/7zz', 'bin'), ('bin/erofs-extract-macos-amd64', 'bin'), ('bin/erofs-extract-macos-arm64', 'bin'), ('bin/pluck-darwin-amd64', 'bin'), ('bin/pluck-android-arm64', 'bin')],
+            binaries=[('bin/7zz', 'bin'), ('bin/erofs-extract-macos-amd64', 'bin'), ('bin/erofs-extract-macos-arm64', 'bin'), ('bin/pluck-darwin-amd64', 'bin'), ('bin/pluck-darwin-arm64', 'bin')],
             datas=[
                 ("images/icon-64.png", "images"),
                 ("images/icon-dark-64.png", "images"),

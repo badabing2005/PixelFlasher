@@ -455,21 +455,10 @@ class Config():
                         conf.pif['spoofVendingFinger'] = pif_data['spoofVendingFinger']
 
                 # read the scrcpy section
-                scrcpy_folder = ''
                 with contextlib.suppress(KeyError):
                     scrcpy_data = data['scrcpy']
                     with contextlib.suppress(KeyError):
-                        scrcpy_folder = scrcpy_data['folder']
-                    with contextlib.suppress(KeyError):
                         conf.scrcpy['path'] = scrcpy_data['path']
-                    with contextlib.suppress(KeyError):
-                        # handle legacy folder instead of path situation.
-                        if scrcpy_folder and not conf.scrcpy['path']:
-                            if sys.platform == "win32":
-                                conf.scrcpy['path'] = os.path.join(scrcpy_folder, 'scrcpy.exe')
-                            else:
-                                conf.scrcpy['path'] = os.path.join(scrcpy_folder, 'scrcpy')
-                            scrcpy_folder = ''
                     with contextlib.suppress(KeyError):
                         conf.scrcpy['flags'] = scrcpy_data['flags']
             else:

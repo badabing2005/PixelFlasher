@@ -76,7 +76,7 @@ class StringBlock:
             if (size % 4) != 0:
                 print("ooo")
 
-            for unused in range(0, size / 4):
+            for unused in range(0, size // 4):
                 self.m_styles.append(unpack('<i', buff.read(4))[0])
 
     def getRaw(self, idx):

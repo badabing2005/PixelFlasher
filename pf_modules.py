@@ -56,7 +56,6 @@ from constants import *
 from file_editor import FileEditor
 from magisk_downloads import MagiskDownloads
 from message_box_ex import MessageBoxEx
-from payload_dumper import extract_payload
 from phone import get_connected_devices, update_phones
 from runtime import *
 

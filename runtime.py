@@ -90,7 +90,6 @@ from packaging.version import parse
 from platformdirs import user_data_dir
 
 from constants import *
-from payload_dumper import extract_payload
 from ksu_asset_selector import show_ksu_asset_selector
 import cProfile, pstats, io
 import avbtool
@@ -2625,6 +2624,63 @@ def get_erofs_extractor_path() -> str:
 
 
 # ============================================================================
+#                     Function get_pluck_path
+# ============================================================================
+def get_pluck_path() -> str:
+    bundle_dir = get_bundle_dir()
+    candidates = []
+
+    if sys.platform.startswith('win'):
+        names = [
+            'pluck-windows-amd64.exe',
+            'pluck.exe',
+            'pluck',
+        ]
+    elif sys.platform == 'darwin':
+        arch = platform.machine().lower()
+        if arch in ('arm64', 'aarch64'):
+            names = [
+                'pluck-darwin-arm64',
+                'pluck-darwin-amd64',
+                'pluck',
+            ]
+        else:
+            names = [
+                'pluck-darwin-amd64',
+                'pluck-darwin-arm64',
+                'pluck',
+            ]
+    else:
+        names = [
+            'pluck-linux-amd64',
+            'pluck',
+        ]
+
+    for name in names:
+        candidates.append(os.path.join(bundle_dir, 'bin', name))
+        candidates.append(os.path.join(bundle_dir, name))
+        found = shutil.which(name)
+        if found:
+            candidates.append(found)
+
+    seen = set()
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        if os.path.exists(candidate):
+            return candidate
+
+    # Final fallback for PATH-only lookups if no bundled copy exists.
+    for name in names:
+        resolved = shutil.which(name)
+        if resolved:
+            return resolved
+
+    return ''
+
+
+# ============================================================================
 #                     Function is_erofs_image
 # ============================================================================
 def is_erofs_image(img_file_path) -> bool:
@@ -3847,21 +3903,22 @@ def get_gsi_data(force_version=None, latest_version_url=None) -> tuple[BetaData 
         model_list, product_list = parse_device_list_html(ul_content)
 
         # Find the anchor tag with the text 'corresponding Google Pixel builds'
-        release = soup.find('a', string=lambda x: x and 'corresponding Google Pixel builds' in x)
+        release = soup.find('a', string=lambda x: bool(x and 'corresponding Google Pixel builds' in x))
         if not release:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Release version not found")
             return None, False, None
 
-        href = release['href']
+        href = str(release.get('href', ''))
         release_version = ''
-        if len(href.split('/')) > 3:
-            release_version = href.split('/')[3]
+        href_parts = href.split('/')
+        if len(href_parts) > 3:
+            release_version = href_parts[3]
         else:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Release version not found in href")
             return None, False, None
         release_qpr = ''
-        if len(href.split('/')) > 4:
-            release_qpr = href.split('/')[4]
+        if len(href_parts) > 4:
+            release_qpr = href_parts[4]
             if release_qpr == 'get':
                 release_qpr = ''
         if release_version != str(force_version):
@@ -3970,8 +4027,9 @@ def get_gsi_data(force_version=None, latest_version_url=None) -> tuple[BetaData 
         # append the model_list and product_list to ret_obj
         ret_obj.model_list = model_list
         ret_obj.product_list = product_list
-        # append the release['href] to ret_obj
-        ret_obj.release_href = release['href']
+        # append the release href to ret_obj
+        release_href = release.get("href")
+        ret_obj.release_href = release_href if isinstance(release_href, str) else None
         return ret_obj, error, f"{release_version}/{release_qpr}" if release_qpr else release_version
 
     except Exception as e:
@@ -4047,13 +4105,13 @@ def get_telegram_factory_images(max_pages=3):
         new_images_count = 0
 
         # Start with the first page
-        current_url = base_url
+        current_url: str = base_url
         page_count = 0
 
         while page_count < max_pages:
             debug(f"Fetching page {page_count + 1} from Telegram channel...")
 
-            response = requests.get(current_url)
+            response = requests.get(str(current_url))
             if response.status_code != 200:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch URL: {current_url}")
                 break
@@ -4157,7 +4215,7 @@ def get_telegram_factory_images(max_pages=3):
             # Method 1: Look for "before" parameter in existing links
             before_links = soup.find_all('a', href=True)
             for link in before_links:
-                href = link['href']
+                href = str(link.get('href', ''))
                 if 'before=' in href and 'pixelfactoryimagestracker' in href:
                     next_page_url = href
                     if not next_page_url.startswith('http'):
@@ -4169,8 +4227,10 @@ def get_telegram_factory_images(max_pages=3):
                 oldest_message = message_containers[-1]
                 oldest_message_id = oldest_message.get('data-post')
                 if oldest_message_id:
-                    # Extract just the message number part
-                    message_num = oldest_message_id.split('/')[-1] if '/' in oldest_message_id else oldest_message_id
+                    # Extract just the message number part. The value may be a
+                    # BeautifulSoup AttributeValueList rather than a plain str.
+                    oldest_message_id_str = str(oldest_message_id)
+                    message_num = oldest_message_id_str.split('/')[-1] if '/' in oldest_message_id_str else oldest_message_id_str
                     next_page_url = f"{base_url}?before={message_num}"
 
             if not next_page_url:
@@ -4285,7 +4345,7 @@ def get_beta_factory_object(product, canary = True, active = True, latest = True
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Missing data-client-config attribute on flash.android.com body")
             return None
 
-        client_config = html.unescape(raw_client_config)
+        client_config = html.unescape(str(raw_client_config))
         key_match = re.search(r"\"(AIza[0-9A-Za-z\-_]+)\"", client_config)
         if not key_match:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unable to extract key from flash.android.com")
@@ -5244,11 +5304,15 @@ def get_beta_data(url) -> tuple[BetaData | None, bool | None]:
         error = False
         for row in rows:
             cols = row.find_all('td')
+            if len(cols) < 2:
+                continue
+
             device = cols[0].text.strip()
             button = cols[1].find('button')
-            category = button['data-category']
-            zip_filename = button.text.strip()
-            hashcode = cols[1].find('code').text.strip()
+            category = button.get('data-category') if button is not None else 'Unknown'
+            zip_filename = button.get_text(strip=True) if button is not None else cols[1].text.strip()
+            hashcode_element = cols[1].find('code')
+            hashcode = hashcode_element.text.strip() if hashcode_element is not None else ''
 
             # Check if the build is present in the zip_filename, if not print a warning
             if not build:
@@ -5259,7 +5323,7 @@ def get_beta_data(url) -> tuple[BetaData | None, bool | None]:
                 error = True
 
             # check if the first 8 characters of the hashcode is not in the zip_filename, if not print a warning
-            if hashcode[:8].lower() not in zip_filename.lower():
+            if hashcode and hashcode[:8].lower() not in zip_filename.lower():
                 print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Hashcode '{hashcode[:8]}' not found in zip filename '{zip_filename}' for device '{device}'")
                 error = True
 
@@ -5312,7 +5376,10 @@ def get_latest_android_version(force_version=None):
         span = link.find('span', class_='devsite-nav-text')
         if span and span.get_text(strip=True) == 'Android Beta':
             beta_href = link.get('href')
+            if isinstance(beta_href, (list, tuple)):
+                beta_href = beta_href[0] if beta_href else ''
             if beta_href:
+                beta_href = str(beta_href)
                 # Convert relative URL to absolute if needed
                 if beta_href.startswith('/'):
                     full_url = f"https://developer.android.com{beta_href}"
@@ -5330,7 +5397,10 @@ def get_latest_android_version(force_version=None):
 
         # Look for version links
         href = link.get('href')
+        if isinstance(href, (list, tuple)):
+            href = href[0] if href else ''
         if href:
+            href = str(href)
             # Check if it matches the pattern and log details
             if 'about/versions' in href and re.search(r'about/versions/(\d+)', href):
                 match = re.search(r'about/versions/(\d+)', href)
@@ -5385,8 +5455,9 @@ def get_latest_android_version(force_version=None):
                 for link in v_soup.find_all('a'):
                     href = link.get('href')
                     if href:
+                        href_str = href if isinstance(href, str) else str(href)
                         # Check for qpr pattern: .../versions/{version}/qpr(\d+)
-                        match = re.search(rf'about/versions/{version}/qpr(\d+)', href)
+                        match = re.search(rf'about/versions/{version}/qpr(\d+)', href_str)
                         if match:
                             qpr_num = int(match.group(1))
                             if qpr_num > max_qpr:
@@ -5550,6 +5621,103 @@ def get_fp_sp_from_ota_http_range(url, state=None, chunk_size=8*1024*1024, overl
 
 
 # ============================================================================
+#                Function parse_fp_sp_from_plucked_factory_output
+# ============================================================================
+def parse_fp_sp_from_plucked_factory_output(output: str) -> tuple[str | None, str | None]:
+    if not output:
+        return None, None
+
+    props: dict[str, str] = {}
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        key = key.strip()
+        value = value.strip().strip('"')
+        if key and value:
+            props[key] = value
+
+    priority = [
+        ('com.android.build.system.fingerprint', 'com.android.build.system.security_patch'),
+        ('com.android.build.product.fingerprint', 'com.android.build.product.security_patch'),
+        ('com.android.build.system_ext.fingerprint', 'com.android.build.system_ext.security_patch'),
+    ]
+
+    for fp_key, sp_key in priority:
+        fingerprint = props.get(fp_key, '').strip()
+        security_patch = props.get(sp_key, '').strip()
+        if fingerprint and security_patch:
+            debug(f"Found factory fingerprint/security_patch from {fp_key}")
+            return fingerprint, security_patch
+
+    for key in props:
+        if key.endswith('.fingerprint'):
+            fingerprint = props[key].strip()
+            if not fingerprint:
+                continue
+            base_key = key.removesuffix('.fingerprint')
+            security_patch = props.get(f'{base_key}.security_patch', '').strip()
+            if security_patch:
+                debug(f"Found factory fallback fingerprint/security_patch from {key}")
+                return fingerprint, security_patch
+
+    for key in props:
+        if key.endswith('.security_patch'):
+            security_patch = props[key].strip()
+            if not security_patch:
+                continue
+            base_key = key.removesuffix('.security_patch')
+            fingerprint = props.get(f'{base_key}.fingerprint', '').strip()
+            if fingerprint:
+                debug(f"Found factory fallback fingerprint/security_patch from {key}")
+                return fingerprint, security_patch
+
+    return None, None
+
+
+# ============================================================================
+#                Function pluck_fp_sp_from_factory_url
+# ============================================================================
+def pluck_fp_sp_from_factory_url(url) -> tuple[str | None, str | None]:
+    try:
+        pluck = get_pluck_path()
+        if not pluck:
+            debug(f"PixelPlucker binary not found for {url}")
+            return None, None
+
+        try:
+            result = subprocess.run([pluck, '--avb', url, 'vbmeta_system.img'], capture_output=True, text=True)
+        except OSError as os_error:
+            msg = str(os_error)
+            if 'virus' in msg.lower() or 'potentially unwanted software' in msg.lower() or 'winerror 225' in msg.lower():
+                debug(f"PixelPlucker launch was blocked by Windows security for {pluck}: {msg}")
+                return None, None
+            raise
+
+        output = (result.stdout or '') + (result.stderr or '')
+        if not output:
+            debug(f"PixelPlucker call did not return any output for {url}")
+            return None, None
+
+        fingerprint, security_patch = parse_fp_sp_from_plucked_factory_output(output)
+        if fingerprint and security_patch:
+            debug(f"Parsed factory fingerprint: {fingerprint}")
+            debug(f"Parsed factory security_patch: {security_patch}")
+            return fingerprint, security_patch
+
+        if result.returncode != 0:
+            debug(f"PixelPlucker returned {result.returncode} for {url} without usable fingerprint/security_patch data")
+
+        return None, None
+
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in pluck_fp_sp_from_factory_url function")
+        traceback.print_exc()
+        return None, None
+
+
+# ============================================================================
 #                               Function url2fpsp
 # ============================================================================
 def url2fpsp(url, image_type, override_size_limit=None, state=None) -> tuple[str | None, str | None, str | None]:
@@ -5569,7 +5737,10 @@ def url2fpsp(url, image_type, override_size_limit=None, state=None) -> tuple[str
             # For factory images, use streaming download
             elif image_type == 'factory':
                 chunk_size = override_size_limit if override_size_limit is not None else None
-                fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size, state=state)
+                fingerprint, security_patch = pluck_fp_sp_from_factory_url(url)
+                if not fingerprint or not security_patch:
+                    print(f"⚠️ Could not extract fingerprint/security_patch from factory image using PixelPlucker, falling back to incremental download method")
+                    fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size, state=state)
 
             elif image_type == 'gsi':
                 response = requests.head(url)
@@ -6197,8 +6368,17 @@ def get_google_images(save_to=None):
 
                 # Extract the device label from the text and strip "id", if it fails, skip it
                 try:
-                    device_label = device_element.get('data-text').strip('"').split('" for ')[1]
-                except Exception as e:
+                    data_text = device_element.get('data-text')
+                    if data_text is None:
+                        raise ValueError("missing data-text attribute")
+
+                    data_text = str(data_text).strip('"')
+                    parts = data_text.split('" for ')
+                    if len(parts) < 2:
+                        raise ValueError(f"unexpected device format: {data_text}")
+
+                    device_label = parts[1]
+                except Exception:
                     print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Skipping element [{device_id}] with unexpected device format: {device_element.get('data-text')}")
                     continue
 
@@ -6207,6 +6387,9 @@ def get_google_images(save_to=None):
 
                 # Find the <table> element following the <h2> for each device
                 table = device_element.find_next('table')
+                if table is None:
+                    print(f"⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: Skipping device [{device_id}] because no table was found for this section")
+                    continue
 
                 # Find all <tr> elements in the table
                 rows = table.find_all('tr')
@@ -6227,14 +6410,22 @@ def get_google_images(save_to=None):
                     sha256_checksum = ''
                     if image_type in ['ota', 'ota-watch'] or (marlin_flag and image_type == "factory"):
                         with contextlib.suppress(Exception):
-                            sha256_checksum = columns[2].text.strip()
+                            if len(columns) > 2:
+                                sha256_checksum = columns[2].text.strip()
                         with contextlib.suppress(Exception):
-                            download_url = columns[1].find('a')['href']
+                            if len(columns) > 1:
+                                link = columns[1].find('a')
+                                if link is not None and 'href' in link.attrs:
+                                    download_url = link['href']
                     elif image_type in ['factory', 'factory-watch']:
                         with contextlib.suppress(Exception):
-                            download_url = columns[2].find('a')['href']
+                            if len(columns) > 2:
+                                link = columns[2].find('a')
+                                if link is not None and 'href' in link.attrs:
+                                    download_url = link['href']
                         with contextlib.suppress(Exception):
-                            sha256_checksum = columns[3].text.strip()
+                            if len(columns) > 3:
+                                sha256_checksum = columns[3].text.strip()
 
                     date = ''
                     with contextlib.suppress(Exception):
@@ -7452,6 +7643,45 @@ def get_freeman_pif(abi_list=None):
 
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in get_freeman_pif function")
+        traceback.print_exc()
+
+
+# ============================================================================
+#                               Function extract_payload
+# ============================================================================
+def extract_payload(payload_file_path, out='output', diff=False, old='old', images=''):
+    try:
+        bundle_dir = get_bundle_dir()
+        exe = os.path.join(os.environ.get("VIRTUAL_ENV", f"{bundle_dir}\\venv"), "Scripts", "payload_dumper.exe")
+        debug(f"Using payload_dumper.exe at: {exe}")
+        if not os.path.exists(exe):
+            print(f"❌ ERROR: payload_dumper.exe not found at: {exe}")
+            raise FileNotFoundError("payload_dumper.exe not found")
+
+        cmd = [exe, payload_file_path, "--out", out]
+        if diff:
+            cmd += ["--diff", "--old", old]
+        if images:
+            cmd += ["--partitions", images]
+
+        debug(cmd)
+        res = run_shell(cmd)
+        if res and isinstance(res, subprocess.CompletedProcess):
+            debug(f"Return Code: {res.returncode}")
+            debug(f"Stdout: {res.stdout}")
+            debug(f"Stderr: {res.stderr}")
+            if res.returncode != 0:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {payload_file_path}")
+                puml(":ERROR: Could not extract image;<<#red>>\n")
+                print("Aborting ...\n")
+                return
+        else:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {payload_file_path}")
+            puml(":ERROR: Could not extract image;<<#red>>\n")
+            print("Aborting ...\n")
+            return
+    except Exception as e:
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_payload function")
         traceback.print_exc()
 
 
@@ -10341,7 +10571,7 @@ def update_kb_index_with_crl():
 def get_boot_image_info(boot_image_path) -> Any:
     try:
         tool = avbtool.AvbTool()
-        if not os.path.exists(boot_image_path):
+        if not os.path.isfile(boot_image_path):
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Boot image file not found: {boot_image_path}")
             return None
         info = tool.run(['avbtool.py','info_image', '--image', boot_image_path])

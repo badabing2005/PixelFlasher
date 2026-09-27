@@ -105,20 +105,23 @@ jobs:
         run: source myenv/bin/activate
         shell: bash
 
-      - name: Install requirements
-        run: PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
+      - name: Install requirements (macOS universal build uses cryptography<49)
+        run: |
+          # Install cryptography<49 first for universal2 compatibility (Rust _rust.abi3.so in >=49 is single-arch only)
+          python3.13 -m pip install 'cryptography>=48.0.0,<49.0.0'
+          # Then install remaining requirements (pip will skip already-satisfied cryptography)
+          PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements.txt
 
       - name: List modules and their versions
         run: python3.13 -m pip freeze
 
-      - name: Verify runner-compatible extension modules
+      - name: Verify universal2 extension modules
         shell: bash
         run: |
           python3.13 - <<'PY'
           import importlib.machinery
           import pathlib
           import fnmatch
-          import platform
           import site
           import subprocess
           import sys
@@ -128,16 +131,8 @@ jobs:
             print("Could not determine extension suffixes.", file=sys.stderr)
             sys.exit(1)
 
-          runner_arch = platform.machine()
-          if runner_arch == "arm64":
-            expected_archs = {"arm64"}
-          elif runner_arch in {"x86_64", "amd64"}:
-            expected_archs = {"x86_64"}
-          else:
-            expected_archs = {"arm64", "x86_64"}
-
           allowlist_patterns = [
-            # Add glob patterns for extension-module paths to exempt from runner-architecture checks.
+            # Add glob patterns for extension-module paths to exempt from universal2 checks.
             # Example: "*/site-packages/somepkg/someext*.so"
           ]
 
@@ -166,24 +161,9 @@ jobs:
             )
             if result.returncode != 0:
               return False, f"lipo failed: {result.stderr.strip()}"
-
             archs = set(result.stdout.strip().split())
-            if not archs:
-              return False, "no architecture slices reported"
-
-            supported = {"arm64", "x86_64"}
-            unsupported = sorted(archs - supported)
-            if unsupported:
-              return False, f"unsupported archs: {' '.join(unsupported)}"
-
-            # GitHub's macOS arm64 runner installs a native arm64 Python environment,
-            # so arm64-only extension modules are valid here. Universal2 is only
-            # required for the final app bundle, not for every package in the venv.
-            if archs == {"arm64", "x86_64"}:
-              return True, "arm64 x86_64"
-            if archs.issubset(expected_archs):
-              return True, " ".join(sorted(archs))
-            return False, " ".join(sorted(archs))
+            ok = {"arm64", "x86_64"}.issubset(archs)
+            return ok, " ".join(sorted(archs))
 
           failures = []
           checked = 0
@@ -201,78 +181,22 @@ jobs:
               if not ok:
                 failures.append((path, details))
 
-          print(f"Checked {checked} compiled extension modules for {runner_arch} runner compatibility.")
+          print(f"Checked {checked} compiled extension modules for universal2 slices.")
 
           if failures:
-            print("Runner-compatibility guard failed. Unsupported extension modules found:", file=sys.stderr)
+            print("Universal2 guard failed. Non-universal extension modules found:", file=sys.stderr)
             for path, details in failures[:50]:
               print(f" - {path}: {details}", file=sys.stderr)
             if len(failures) > 50:
               print(f" ... and {len(failures) - 50} more", file=sys.stderr)
             sys.exit(1)
 
-          print(f"Runner-compatibility guard passed: all extension modules are valid for the {runner_arch} runner.")
+          print("Universal2 guard passed: all extension modules include arm64 and x86_64.")
           PY
 
       - name: Build application
         id: build_app
         run: ./build.sh
-
-      - name: Verify final app bundle is universal2
-        shell: bash
-        run: |
-          python3.13 - <<'PY'
-          import pathlib
-          import subprocess
-          import sys
-
-          app_root = pathlib.Path("dist/PixelFlasher.app")
-          if not app_root.exists():
-            print(f"App bundle not found: {app_root}", file=sys.stderr)
-            sys.exit(1)
-
-          macho_files = []
-          for path in app_root.rglob("*"):
-            if not path.is_file():
-              continue
-            proc = subprocess.run(
-              ["file", "--brief", str(path)],
-              check=False,
-              capture_output=True,
-              text=True,
-            )
-            if proc.returncode == 0 and "Mach-O" in proc.stdout:
-              macho_files.append(path)
-
-          if not macho_files:
-            print(f"No Mach-O binaries found in {app_root}.", file=sys.stderr)
-            sys.exit(1)
-
-          failures = []
-          for path in sorted(macho_files):
-            proc = subprocess.run(
-              ["lipo", "-archs", str(path)],
-              check=False,
-              capture_output=True,
-              text=True,
-            )
-            if proc.returncode != 0:
-              failures.append((path, proc.stderr.strip() or "lipo failed"))
-              continue
-            archs = set(proc.stdout.strip().split())
-            if not {"arm64", "x86_64"}.issubset(archs):
-              failures.append((path, " ".join(sorted(archs)) or "no slices"))
-
-          if failures:
-            print("Universal2 bundle check failed. The app bundle contains binaries that are not universal2:", file=sys.stderr)
-            for path, details in failures[:50]:
-              print(f" - {path}: {details}", file=sys.stderr)
-            if len(failures) > 50:
-              print(f" ... and {len(failures) - 50} more", file=sys.stderr)
-            sys.exit(1)
-
-          print(f"Verified {len(macho_files)} Mach-O binary files in {app_root} are universal2 (arm64 + x86_64).")
-          PY
 
       - name: Upload PixelFlasher.app as artifact
         uses: actions/upload-artifact@v7

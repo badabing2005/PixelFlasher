@@ -7650,39 +7650,74 @@ def get_freeman_pif(abi_list=None):
 #                               Function extract_payload
 # ============================================================================
 def extract_payload(payload_file_path, out='output', diff=False, old='old', images=''):
+    enlighten = None
+    original_get_manager = None
+    null_stream = None
+
     try:
-        bundle_dir = get_bundle_dir()
-        exe = os.path.join(os.environ.get("VIRTUAL_ENV", f"{bundle_dir}\\venv"), "Scripts", "payload_dumper.exe")
-        debug(f"Using payload_dumper.exe at: {exe}")
-        if not os.path.exists(exe):
-            print(f"❌ ERROR: payload_dumper.exe not found at: {exe}")
-            raise FileNotFoundError("payload_dumper.exe not found")
+        import enlighten
 
-        cmd = [exe, payload_file_path, "--out", out]
-        if diff:
-            cmd += ["--diff", "--old", old]
-        if images:
-            cmd += ["--partitions", images]
+        # In PyInstaller GUI mode (console=False), sys.stdout/stderr are None
+        # blessed/enlighten need a valid stream with fileno()
+        # Create a dummy stream that has a valid fileno()
+        class NullStream:
+            def __init__(self):
+                self._fd = os.open(os.devnull, os.O_WRONLY)
+            def write(self, data):
+                if isinstance(data, str):
+                    data = data.encode('utf-8', errors='ignore')
+                os.write(self._fd, data)
+                return len(data)
+            def flush(self):
+                pass
+            def fileno(self):
+                return self._fd
+            def close(self):
+                if self._fd >= 0:
+                    os.close(self._fd)
+                    self._fd = -1
 
-        debug(cmd)
-        res = run_shell(cmd)
-        if res and isinstance(res, subprocess.CompletedProcess):
-            debug(f"Return Code: {res.returncode}")
-            debug(f"Stdout: {res.stdout}")
-            debug(f"Stderr: {res.stderr}")
-            if res.returncode != 0:
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {payload_file_path}")
-                puml(":ERROR: Could not extract image;<<#red>>\n")
-                print("Aborting ...\n")
-                return
-        else:
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract from {payload_file_path}")
-            puml(":ERROR: Could not extract image;<<#red>>\n")
-            print("Aborting ...\n")
-            return
+        # Suppress enlighten progress bars by redirecting to null stream
+        # Must be done BEFORE importing payload_dumper.dumper because
+        # Dumper.__init__ calls get_manager() at class initialization time
+        null_stream = NullStream()
+        original_get_manager = enlighten.get_manager
+
+        def get_manager_no_output(*args, **kwargs):
+            kwargs['stream'] = null_stream
+            return original_get_manager(*args, **kwargs)
+
+        enlighten.get_manager = get_manager_no_output
+
+        # Now import payload_dumper - the monkey-patch is in place
+        import payload_dumper.dumper as payload_dumper_main
+
+        debug(f"Extracting payload: {payload_file_path} -> {out}")
+        with open(payload_file_path, 'rb') as f:
+            dumper = payload_dumper_main.Dumper(
+                payloadfile=f,
+                out=out,
+                diff=diff,
+                old=old,
+                images=images,
+                workers=max(1, os.cpu_count() or 1)
+            )
+            dumper.run()
+        debug("Payload extraction completed successfully")
+        return 0
     except Exception as e:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in extract_payload function")
         traceback.print_exc()
+        return -1
+    finally:
+        # Restore original get_manager
+        try:
+            if enlighten is not None and original_get_manager is not None:
+                enlighten.get_manager = original_get_manager
+            if null_stream is not None:
+                null_stream.close()
+        except:
+            pass
 
 
 # ============================================================================

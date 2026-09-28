@@ -1005,7 +1005,13 @@ def process_file(self, file_type):
                 if self.config.extra_img_extracts:
                     print("Option to copy extra img files is enabled.")
                     wx.Yield()
-                    extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
+                    res = extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
+                    if res != 0:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
+                        puml(":ERROR: Could not extract payload.bin;<<#red>>\n")
+                        print("Aborting ...\n")
+                        self.toast(_("Process action"), _("❌ Could not extract payload.bin."))
+                        return
                     wx.Yield()
                     if os.path.exists(os.path.join(package_dir_full, 'dtbo.img')):
                         dtbo_img_file = os.path.join(package_dir_full, 'dtbo.img')

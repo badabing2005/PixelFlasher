@@ -24,7 +24,7 @@ a = Analysis(['PixelFlasher.py'],
                 ('testkey_rsa4096.pem', '.'),
                 ('locale', 'locale')
              ],
-             hiddenimports=['_cffi_backend'],
+             hiddenimports=['_cffi_backend', 'payload_dumper', 'payload_dumper.dumper', 'payload_dumper.update_metadata_pb2'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[

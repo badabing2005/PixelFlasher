@@ -5644,10 +5644,15 @@ def parse_fp_sp_from_plucked_factory_output(output: str) -> tuple[str | None, st
         ('com.android.build.system_ext.fingerprint', 'com.android.build.system_ext.security_patch'),
     ]
 
+    exclude_values = ['generic', 'mainline', 'unknown']
+
     for fp_key, sp_key in priority:
         fingerprint = props.get(fp_key, '').strip()
         security_patch = props.get(sp_key, '').strip()
         if fingerprint and security_patch:
+            if any(excl in fingerprint.lower() for excl in exclude_values):
+                debug(f"Skipping fingerprint from {fp_key} (contains excluded value)")
+                continue
             debug(f"Found factory fingerprint/security_patch from {fp_key}")
             return fingerprint, security_patch
 
@@ -5655,6 +5660,9 @@ def parse_fp_sp_from_plucked_factory_output(output: str) -> tuple[str | None, st
         if key.endswith('.fingerprint'):
             fingerprint = props[key].strip()
             if not fingerprint:
+                continue
+            if any(excl in fingerprint.lower() for excl in exclude_values):
+                debug(f"Skipping fingerprint from {key} (contains excluded value)")
                 continue
             base_key = key.removesuffix('.fingerprint')
             security_patch = props.get(f'{base_key}.security_patch', '').strip()
@@ -5670,6 +5678,9 @@ def parse_fp_sp_from_plucked_factory_output(output: str) -> tuple[str | None, st
             base_key = key.removesuffix('.security_patch')
             fingerprint = props.get(f'{base_key}.fingerprint', '').strip()
             if fingerprint:
+                if any(excl in fingerprint.lower() for excl in exclude_values):
+                    debug(f"Skipping fingerprint from {base_key}.fingerprint (contains excluded value)")
+                    continue
                 debug(f"Found factory fallback fingerprint/security_patch from {key}")
                 return fingerprint, security_patch
 
@@ -5677,44 +5688,57 @@ def parse_fp_sp_from_plucked_factory_output(output: str) -> tuple[str | None, st
 
 
 # ============================================================================
-#                Function pluck_fp_sp_from_factory_url
+#                Function pluck_fp_sp_from_factory
 # ============================================================================
-def pluck_fp_sp_from_factory_url(url) -> tuple[str | None, str | None]:
+def pluck_fp_sp_from_factory(source) -> tuple[str | None, str | None]:
+    """
+    Extract fingerprint and security patch from a factory image (URL or local file) using PixelPlucker.
+
+    Args:
+        source: URL or local file path to the factory image
+
+    Returns:
+        Tuple of (fingerprint, security_patch) or (None, None) on failure
+    """
     try:
         pluck = get_pluck_path()
         if not pluck:
-            debug(f"PixelPlucker binary not found for {url}")
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: PixelPlucker binary not found for {source}")
             return None, None
 
         try:
-            result = subprocess.run([pluck, '--avb', url, 'vbmeta_system.img'], capture_output=True, text=True)
+            result = subprocess.run([pluck, '--avb', source, 'vbmeta_system.img'], capture_output=True, text=True)
         except OSError as os_error:
             msg = str(os_error)
             if 'virus' in msg.lower() or 'potentially unwanted software' in msg.lower() or 'winerror 225' in msg.lower():
-                debug(f"PixelPlucker launch was blocked by Windows security for {pluck}: {msg}")
+                print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: PixelPlucker launch was blocked by Windows security for {pluck}: {msg}")
                 return None, None
             raise
 
         output = (result.stdout or '') + (result.stderr or '')
         if not output:
-            debug(f"PixelPlucker call did not return any output for {url}")
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: PixelPlucker call did not return any output for {source}")
             return None, None
 
         fingerprint, security_patch = parse_fp_sp_from_plucked_factory_output(output)
         if fingerprint and security_patch:
-            debug(f"Parsed factory fingerprint: {fingerprint}")
-            debug(f"Parsed factory security_patch: {security_patch}")
+            print(f"✅ {datetime.now():%Y-%m-%d %H:%M:%S} SUCCESS: Parsed factory fingerprint: {fingerprint}")
+            print(f"✅ {datetime.now():%Y-%m-%d %H:%M:%S} SUCCESS: Parsed factory security_patch: {security_patch}")
             return fingerprint, security_patch
 
         if result.returncode != 0:
-            debug(f"PixelPlucker returned {result.returncode} for {url} without usable fingerprint/security_patch data")
+            print(f"❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: PixelPlucker returned {result.returncode} for {source} without usable fingerprint/security_patch data")
 
         return None, None
 
     except Exception as e:
-        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in pluck_fp_sp_from_factory_url function")
+        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error in pluck_fp_sp_from_factory function")
         traceback.print_exc()
         return None, None
+
+
+# Alias for backward compatibility
+# pluck_fp_sp_from_factory_url = pluck_fp_sp_from_factory
 
 
 # ============================================================================
@@ -5737,7 +5761,7 @@ def url2fpsp(url, image_type, override_size_limit=None, state=None) -> tuple[str
             # For factory images, use streaming download
             elif image_type == 'factory':
                 chunk_size = override_size_limit if override_size_limit is not None else None
-                fingerprint, security_patch = pluck_fp_sp_from_factory_url(url)
+                fingerprint, security_patch = pluck_fp_sp_from_factory(url)
                 if not fingerprint or not security_patch:
                     print(f"⚠️ Could not extract fingerprint/security_patch from factory image using PixelPlucker, falling back to incremental download method")
                     fingerprint, security_patch = get_fp_sp_from_incremental_remote_file(url, image_type, chunk_size, state=state)

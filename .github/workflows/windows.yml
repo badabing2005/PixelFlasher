@@ -39,9 +39,17 @@ on:
       tags:
         description: 'Build tags'
 
+permissions:
+  contents: read
+
 jobs:
   build_windows:
     runs-on: windows-latest
+
+    permissions:
+      id-token: write
+      attestations: write
+      contents: write
 
     steps:
       - name: Checkout code
@@ -100,6 +108,11 @@ jobs:
 
       - name: List contents of dist directory again
         run: ls dist
+
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/PixelFlasher.exe
 
       # Upload artifacts Windows
       - name: Upload Windows Artifact

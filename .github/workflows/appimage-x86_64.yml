@@ -39,10 +39,18 @@ on:
       tags:
         description: 'Build tags'
 
+permissions:
+  contents: read
+
 jobs:
   build_appimage:
     # Use Ubuntu 22.04 but build with Python 3.13 for modulegraph2 support
     runs-on: ubuntu-22.04
+
+    permissions:
+      id-token: write
+      attestations: write
+      contents: write
 
     steps:
       - name: Checkout code
@@ -181,6 +189,11 @@ jobs:
           cat PixelFlasher-x86_64.AppImage.sha256
           ls -la
         shell: bash
+
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/PixelFlasher-x86_64.AppImage
 
       # Upload artifacts
       - name: Upload AppImage Artifact

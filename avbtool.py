@@ -104,7 +104,7 @@ class Algorithm(object):
   """
 
   def __init__(self, algorithm_type, hash_name, hash_num_bytes,
-               signature_num_bytes, public_key_num_bytes, padding):
+              signature_num_bytes, public_key_num_bytes, padding):
     self.algorithm_type = algorithm_type
     self.hash_name = hash_name
     self.hash_num_bytes = hash_num_bytes
@@ -244,8 +244,8 @@ def get_release_string():
   """Calculates the release string to use in the VBMeta struct."""
   # Keep in sync with libavb/avb_version.c:avb_version_string().
   return 'avbtool {}.{}.{}'.format(AVB_VERSION_MAJOR,
-                                   AVB_VERSION_MINOR,
-                                   AVB_VERSION_SUB)
+                                  AVB_VERSION_MINOR,
+                                  AVB_VERSION_SUB)
 
 
 def round_to_multiple(number, size):
@@ -504,7 +504,7 @@ class RSAPublicKey(object):
     return bytes(ret)
 
   def sign(self, algorithm_name, data_to_sign, signing_helper=None,
-           signing_helper_with_files=None):
+          signing_helper_with_files=None):
     """Sign given data using |signing_helper| or openssl.
 
     openssl is used if neither the parameters signing_helper nor
@@ -526,13 +526,13 @@ class RSAPublicKey(object):
     algorithm = ALGORITHMS.get(algorithm_name)
     if not algorithm:
       raise AvbError('Algorithm with name {} is not supported.'
-                     .format(algorithm_name))
+                    .format(algorithm_name))
 
     if self.num_bits != (algorithm.signature_num_bytes * 8):
       raise AvbError('Key size of key ({} bits) does not match key size '
-                     '({} bits) of given algorithm {}.'
+                    '({} bits) of given algorithm {}.'
                      .format(self.num_bits, algorithm.signature_num_bytes * 8,
-                             algorithm_name))
+                            algorithm_name))
 
     # Hashes the data.
     hasher = hashlib.new(algorithm.hash_name)
@@ -560,6 +560,11 @@ class RSAPublicKey(object):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
+        (pout, perr) = p.communicate(padding_and_hash)
+        retcode = p.wait()
+        if retcode != 0:
+          raise AvbError('Error signing: {}'.format(perr))
+        signature = pout
       else:
       #   args = ['openssl', 'rsautl', '-sign', '-inkey', self.key_path, '-raw']
       #   if key_password := getattr(self, 'key_password', None):
@@ -580,9 +585,9 @@ class RSAPublicKey(object):
           key_data = key_file.read()
           key = rsa.PrivateKey.load_pkcs1(key_data)
         # Perform the raw RSA operation.
-        signature = rsa.transform.bytes2int(padding_and_hash)
-        signature = rsa.core.decrypt_int(signature, key.d, key.n)
-        signature = rsa.transform.int2bytes(signature)
+        signature = rsa.transform.bytes2int(padding_and_hash)  # type: ignore[attr-defined]
+        signature = rsa.core.decrypt_int(signature, key.d, key.n)  # type: ignore[attr-defined]
+        signature = rsa.transform.int2bytes(signature)  # type: ignore[attr-defined]
         return signature
 
     if len(signature) != algorithm.signature_num_bytes:
@@ -708,7 +713,7 @@ def verify_vbmeta_signature(vbmeta_header, vbmeta_blob):
               '[rsapubkey]\n'
               'n=INTEGER:{}\n'
               'e=INTEGER:{}\n').format(hex(modulus).rstrip('L'),
-                                       hex(exponent).rstrip('L'))
+                                      hex(exponent).rstrip('L'))
 
   with tempfile.NamedTemporaryFile() as asn1_tmpfile:
     asn1_tmpfile.write(asn1_str.encode('ascii'))
@@ -717,14 +722,14 @@ def verify_vbmeta_signature(vbmeta_header, vbmeta_blob):
     with tempfile.NamedTemporaryFile() as der_tmpfile:
       p = subprocess.Popen(
           ['openssl', 'asn1parse', '-genconf', asn1_tmpfile.name, '-out',
-           der_tmpfile.name, '-noout'])
+          der_tmpfile.name, '-noout'])
       retcode = p.wait()
       if retcode != 0:
         raise AvbError('Error generating DER file')
 
       p = subprocess.Popen(
           ['openssl', 'rsautl', '-verify', '-pubin', '-inkey', der_tmpfile.name,
-           '-keyform', 'DER', '-raw'],
+          '-keyform', 'DER', '-raw'],
           stdin=subprocess.PIPE,
           stdout=subprocess.PIPE,
           stderr=subprocess.PIPE)
@@ -742,7 +747,7 @@ def create_avb_hashtree_hasher(algorithm, salt):
   """Create the hasher for AVB hashtree based on the input algorithm."""
 
   if algorithm.lower() == 'blake2b-256':
-    return hashlib.new('blake2b', salt, digest_size=32)
+    return hashlib.blake2b(salt, digest_size=32)  # type: ignore[call-arg]
 
   return hashlib.new(algorithm, salt)
 
@@ -1297,11 +1302,11 @@ class AvbDescriptor(object):
     else:
       o.write('      Data: {} bytes\n'.format(len(data)))
 
-  def encode(self):
+  def encode(self) -> bytes:
     """Serializes the descriptor.
 
     Returns:
-      A bytearray() with the descriptor data.
+      The descriptor data as bytes.
     """
     data = self.data if self.data is not None else b''
     num_bytes_following = len(data)
@@ -1310,10 +1315,10 @@ class AvbDescriptor(object):
     desc = struct.pack(self.FORMAT_STRING, self.tag, nbf_with_padding)
     padding = struct.pack(str(padding_size) + 'x')
     ret = desc + data + padding
-    return bytearray(ret)
+    return ret
 
   def verify(self, image_dir, image_ext, expected_chain_partitions_map,
-             image_containing_descriptor, accept_zeroed_hashtree):
+            image_containing_descriptor, accept_zeroed_hashtree)  -> bool:
     """Verifies contents of the descriptor - used in verify_image sub-command.
 
     Arguments:
@@ -1401,7 +1406,7 @@ class AvbPropertyDescriptor(AvbDescriptor):
     else:
       o.write('    Prop: {} -> ({} bytes)\n'.format(self.key, len(self.value)))
 
-  def encode(self):
+  def encode(self) -> bytes:
     """Serializes the descriptor.
 
     Returns:
@@ -1569,7 +1574,7 @@ class AvbHashtreeDescriptor(AvbDescriptor):
     o.write('      Root Digest:           {}\n'.format(self.root_digest.hex()))
     o.write('      Flags:                 {}\n'.format(self.flags))
 
-  def encode(self):
+  def encode(self) -> bytes:
     """Serializes the descriptor.
 
     Returns:
@@ -1740,7 +1745,7 @@ class AvbHashDescriptor(AvbDescriptor):
     o.write('      Digest:                {}\n'.format(self.digest.hex()))
     o.write('      Flags:                 {}\n'.format(self.flags))
 
-  def encode(self):
+  def encode(self) -> bytes:
     """Serializes the descriptor.
 
     Returns:
@@ -1749,13 +1754,13 @@ class AvbHashDescriptor(AvbDescriptor):
     hash_algorithm_encoded = self.hash_algorithm.encode('ascii')
     partition_name_encoded = self.partition_name.encode('utf-8')
     num_bytes_following = (self.SIZE + len(partition_name_encoded) +
-                           len(self.salt) + len(self.digest) - 16)
+                          len(self.salt) + len(self.digest) - 16)
     nbf_with_padding = round_to_multiple(num_bytes_following, 8)
     padding_size = nbf_with_padding - num_bytes_following
     desc = struct.pack(self.FORMAT_STRING, self.TAG, nbf_with_padding,
-                       self.image_size, hash_algorithm_encoded,
-                       len(partition_name_encoded), len(self.salt),
-                       len(self.digest), self.flags, self.RESERVED * b'\0')
+                      self.image_size, hash_algorithm_encoded,
+                      len(partition_name_encoded), len(self.salt),
+                      len(self.digest), self.flags, self.RESERVED * b'\0')
     ret = (desc + partition_name_encoded + self.salt + self.digest +
            padding_size * b'\0')
     return ret
@@ -1858,7 +1863,7 @@ class AvbKernelCmdlineDescriptor(AvbDescriptor):
     o.write('      Flags:                 {}\n'.format(self.flags))
     o.write('      Kernel Cmdline:        \'{}\'\n'.format(self.kernel_cmdline))
 
-  def encode(self):
+  def encode(self) -> bytes:
     """Serializes the descriptor.
 
     Returns:
@@ -1969,7 +1974,7 @@ class AvbChainPartitionDescriptor(AvbDescriptor):
     o.write('      Public key (sha1):       {}\n'.format(pubkey_digest))
     o.write('      Flags:                   {}\n'.format(self.flags))
 
-  def encode(self):
+  def encode(self) -> bytes:
     """Serializes the descriptor.
 
     Returns:
@@ -4243,7 +4248,7 @@ def generate_fec_data(image_filename, num_roots, attempt=1):
            fec_tmpfile.name],
           stderr=open(os.devnull, 'wb'))
     except subprocess.CalledProcessError as e:
-      if attempt < 3 and e.returncode == -signal.SIGKILL:
+      if attempt < 3 and e.returncode == -getattr(signal, 'SIGKILL', 9):
         seconds = random.randrange(30, 120)
         print('avbtool: fec died, retrying in', seconds, 'seconds')
         time.sleep(seconds)
@@ -4283,6 +4288,7 @@ def generate_hash_tree(image, image_size, block_size, hash_alg_name, salt,
   hash_src_offset = 0
   hash_src_size = image_size
   level_num = 0
+  level_output = b''
 
   # If there is only one block, returns the top-level hash directly.
   if hash_src_size == block_size:

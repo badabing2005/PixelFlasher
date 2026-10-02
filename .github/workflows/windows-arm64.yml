@@ -39,9 +39,17 @@ on:
       tags:
         description: 'Build tags'
 
+permissions:
+  contents: read
+
 jobs:
   build_windows_arm64:
     runs-on: windows-latest
+
+    permissions:
+      id-token: write
+      attestations: write
+      contents: write
 
     steps:
       - name: Checkout code
@@ -138,6 +146,14 @@ jobs:
         run: |
           Get-FileHash "dist/PixelFlasher-arm64.exe" -Algorithm SHA256 | Select-Object -ExpandProperty Hash > dist/PixelFlasher-arm64.exe.sha256
           Get-Content dist/PixelFlasher-arm64.exe.sha256
+
+      - name: List contents of dist directory again
+        run: ls dist
+
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/PixelFlasher-arm64.exe
 
       - name: Upload ARM64 Artifacts
         uses: actions/upload-artifact@v7

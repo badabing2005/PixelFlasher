@@ -38,11 +38,14 @@ import wx.stc as stc
 from wx import adv as wx_adv
 import traceback
 import threading
+import subprocess
 import images as images
 import json
 import json5
 import re
+import contextlib
 from datetime import datetime
+from runtime import get_pluck_path
 from runtime import *
 from file_editor import FileEditor
 from i18n import _
@@ -2621,14 +2624,27 @@ class PifManager(wx.Dialog):
     def _process_image_worker(self, file_path, start):
         try:
             processing_state = self._get_prop_processing_state()
-            props_dir = get_pif_from_image(file_path)
-            if props_dir:
-                prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
-                self.process_props(prop_files, processing_state=processing_state)
+            factory_option = getattr(self, '_factory_image_option', 3)
+
+            if factory_option == 1:
+                # Option 1: Pluck Fingerprint and Security Patch from vbmeta_system (Fastest)
+                print(f"Processing factory image with option 1 (Fastest) for file: {file_path}")
+                self._process_factory_image_option1(file_path, processing_state)
+            elif factory_option == 2:
+                # Option 2: Pluck Fingerprint and Security Patch from system/vendor/product (Normal speed)
+                print(f"Processing factory image with option 2 (Normal speed) for file: {file_path}")
+                self._process_factory_image_option2(file_path, processing_state)
             else:
-                wx.CallAfter(self.console_stc.SetValue, _("Image format not supported"))
-                wx.CallAfter(self.console_stc.Refresh)
-                wx.CallAfter(self.console_stc.Update)
+                # Option 3: Extract build.prop from system/vendor/product and process those (Slowest)
+                print(f"Processing factory image with option 3 (Slowest) for file: {file_path}")
+                props_dir = get_pif_from_image(file_path)
+                if props_dir:
+                    prop_files = [os.path.join(props_dir, f) for f in os.listdir(props_dir) if os.path.isfile(os.path.join(props_dir, f))]
+                    self.process_props(prop_files, processing_state=processing_state)
+                else:
+                    wx.CallAfter(self.console_stc.SetValue, _("Image format not supported"))
+                    wx.CallAfter(self.console_stc.Refresh)
+                    wx.CallAfter(self.console_stc.Update)
         except Exception:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in _process_image_worker")
             traceback.print_exc()
@@ -2637,15 +2653,266 @@ class PifManager(wx.Dialog):
             wx.CallAfter(self._log_image_process_duration, start)
 
     # -----------------------------------------------
+    #          _process_factory_image_option1
+    # -----------------------------------------------
+    def _process_factory_image_option1(self, file_path, processing_state):
+        # Option 1: Use PixelPlucker to extract fingerprint and security patch from local factory image
+        try:
+            wx.CallAfter(self.console_stc.SetValue, _("Extracting fingerprint and security patch from factory image using PixelPlucker...\nPlease wait..."))
+
+            fingerprint, security_patch = pluck_fp_sp_from_factory(file_path)
+
+            if fingerprint and security_patch:
+                wx.CallAfter(self.console_stc.SetValue, f"Fingerprint: {fingerprint}\nSecurity Patch: {security_patch}")
+                print(f"Factory fingerprint: {fingerprint}")
+                print(f"Security patch: {security_patch}")
+
+                # Create a pif_data dict similar to process_factory_image_selection
+                pattern = r'([^\/]*)\/([^\/]*)\/([^:]*)[:]([^\/]*)\/([^\/]*)\/([^:]*)[:]([^\/]*)\/([^\/]*)$'
+                match = re.search(pattern, fingerprint)
+                if match and match.lastindex == 8:
+                    product = match[2]
+                    device = match[3]
+                    latest_version = match[4]
+                    build_id = match[5]
+                    incremental = match[6]
+                    build_type = match[7]
+                    build_tags = match[8]
+                    device_data = get_android_devices()
+                    model = None
+                    with contextlib.suppress(Exception):
+                        model = device_data[device]['device']
+                        if model.startswith("Google "):
+                            model = model[7:]
+                    pif_data = {
+                        "MANUFACTURER": "Google",
+                        "MODEL": model,
+                        "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
+                        "PRODUCT": product,
+                        "DEVICE": device,
+                        "SECURITY_PATCH": security_patch,
+                        "DEVICE_INITIAL_SDK_INT": "32"
+                    }
+                    json_string = json.dumps(pif_data, indent=4) + "\n"
+                    if self.pif_format == 'prop':
+                        wx.CallAfter(self.console_stc.SetValue, self.J2P(json_string))
+                        wx.CallAfter(print, f"{self.J2P(json_string)}")
+                    else:
+                        wx.CallAfter(self.console_stc.SetValue, json_string)
+                        wx.CallAfter(print, f"{json_string}")
+
+                    # Apply auto-update logic
+                    self._apply_processed_props_result(json_string, processing_state)
+                else:
+                    wx.CallAfter(self.console_stc.SetValue, _("Failed to parse fingerprint from factory image"))
+                    wx.CallAfter(print, _("Failed to parse fingerprint from factory image"))
+            else:
+                wx.CallAfter(self.console_stc.SetValue, _("Failed to extract fingerprint and security patch from factory image"))
+                wx.CallAfter(print, _("Failed to extract fingerprint and security patch from factory image"))
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in _process_factory_image_option1")
+            traceback.print_exc()
+            wx.CallAfter(self.console_stc.SetValue, _("Error processing factory image"))
+
+    # -----------------------------------------------
+    #          _process_factory_image_option2
+    # -----------------------------------------------
+    def _process_factory_image_option2(self, file_path, processing_state):
+        # Option 2: Use PixelPlucker to extract fingerprint and security patch from system/vendor/product partitions
+        try:
+            wx.CallAfter(self.console_stc.SetValue, _("Extracting fingerprint and security patch from system/vendor/product partitions using PixelPlucker...\nPlease wait..."))
+
+            pluck = get_pluck_path()
+            if not pluck:
+                wx.CallAfter(self.console_stc.SetValue, _("PixelPlucker binary not found"))
+                return
+
+            # Partitions to process with their corresponding partition names in the factory image
+            partitions = [
+                ('system.img', 'system'),
+                ('vendor.img', 'vendor'),
+                ('product.img', 'product'),
+            ]
+
+            results = {}  # partition -> {fingerprint, security_patch}
+
+            for img_name, partition_name in partitions:
+                wx.CallAfter(self.console_stc.SetValue, f"Processing {partition_name} partition...")
+
+                # Use pluck --avb on the factory image with partition name to get AVB properties
+                try:
+                    result = subprocess.run([pluck, '--avb', file_path, img_name], capture_output=True, text=True)
+                    output = (result.stdout or '') + (result.stderr or '')
+
+                    if output:
+                        # Parse the output to get fingerprint and security_patch
+                        # Format: com.android.build.<partition>.fingerprint=...
+                        #         com.android.build.<partition>.security_patch=...
+                        props = {}
+                        for line in output.splitlines():
+                            line = line.strip()
+                            if '=' in line and not line.startswith('#'):
+                                key, value = line.split('=', 1)
+                                props[key.strip()] = value.strip().strip('"')
+
+                        # Extract fingerprint and security_patch using partition-specific keys
+                        fp_key = f'com.android.build.{partition_name}.fingerprint'
+                        sp_key = f'com.android.build.{partition_name}.security_patch'
+
+                        fingerprint = props.get(fp_key, '').strip()
+                        security_patch = props.get(sp_key, '').strip()
+
+                        # Exclude generic/mainline/unknown
+                        exclude_values = ['generic', 'mainline', 'unknown']
+                        if fingerprint and not any(excl in fingerprint.lower() for excl in exclude_values):
+                            results[partition_name] = {
+                                'fingerprint': fingerprint,
+                                'security_patch': security_patch
+                            }
+                            print(f"Partition {partition_name}: fp={fingerprint}, sp={security_patch}")
+                        elif security_patch and not any(excl in security_patch.lower() for excl in exclude_values):
+                            # If only security_patch is valid, store it
+                            if partition_name not in results:
+                                results[partition_name] = {'fingerprint': None, 'security_patch': None}
+                            results[partition_name]['security_patch'] = security_patch
+                            print(f"Partition {partition_name}: fp={fingerprint}, sp={security_patch}")
+                except Exception as e:
+                    debug(f"Error processing {partition_name}: {e}")
+                    continue
+
+            # Select best fingerprint and security_patch using priority order
+            # Priority: system > product > vendor (based on fp_keys order)
+            # But skip generic/mainline/unknown values
+            final_fingerprint = None
+            final_security_patch = None
+
+            # For fingerprint: system > product > vendor (based on process_dict priority)
+            for partition in ['system', 'product', 'vendor']:
+                if partition in results and results[partition].get('fingerprint'):
+                    final_fingerprint = results[partition]['fingerprint']
+                    break
+
+            # For security_patch: system > vendor (based on process_dict priority)
+            for partition in ['system', 'vendor']:
+                if partition in results and results[partition].get('security_patch'):
+                    final_security_patch = results[partition]['security_patch']
+                    break
+
+            if final_fingerprint and final_security_patch:
+                # Build pif_data similar to option 1
+                pattern = r'([^\/]*)\/([^\/]*)\/([^:]*)[:]([^\/]*)\/([^\/]*)\/([^:]*)[:]([^\/]*)\/([^\/]*)$'
+                match = re.search(pattern, final_fingerprint)
+                if match and match.lastindex == 8:
+                    product = match[2]
+                    device = match[3]
+                    latest_version = match[4]
+                    build_id = match[5]
+                    incremental = match[6]
+                    build_type = match[7]
+                    build_tags = match[8]
+                    device_data = get_android_devices()
+                    model = None
+                    with contextlib.suppress(Exception):
+                        model = device_data[device]['device']
+                        if model.startswith("Google "):
+                            model = model[7:]
+                    pif_data = {
+                        "MANUFACTURER": "Google",
+                        "MODEL": model,
+                        "FINGERPRINT": f"google/{product}/{device}:{latest_version}/{build_id}/{incremental}:{build_type}/{build_tags}",
+                        "PRODUCT": product,
+                        "DEVICE": device,
+                        "SECURITY_PATCH": final_security_patch,
+                        "DEVICE_INITIAL_SDK_INT": "32"
+                    }
+                    json_string = json.dumps(pif_data, indent=4) + "\n"
+                    if self.pif_format == 'prop':
+                        wx.CallAfter(self.console_stc.SetValue, self.J2P(json_string))
+                        wx.CallAfter(print, f"{self.J2P(json_string)}")
+                    else:
+                        wx.CallAfter(self.console_stc.SetValue, json_string)
+                        wx.CallAfter(print, f"{json_string}")
+
+                    # Apply auto-update logic
+                    self._apply_processed_props_result(json_string, processing_state)
+                else:
+                    wx.CallAfter(self.console_stc.SetValue, _("Failed to parse fingerprint from partitions"))
+                    wx.CallAfter(print, _("Failed to parse fingerprint from partitions"))
+            else:
+                msg = _("Failed to extract fingerprint and security patch from partitions")
+                if results:
+                    msg += "\n\nExtracted data:\n"
+                    for p, d in results.items():
+                        msg += f"  {p}: fp={d.get('fingerprint', 'N/A')}, sp={d.get('security_patch', 'N/A')}\n"
+                wx.CallAfter(self.console_stc.SetValue, msg)
+                wx.CallAfter(print, msg)
+
+        except Exception:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception in _process_factory_image_option2")
+            traceback.print_exc()
+            wx.CallAfter(self.console_stc.SetValue, _("Error processing factory image"))
+
+    # -----------------------------------------------
+    #                is_pixel_factory_image
+    # -----------------------------------------------
+    def is_pixel_factory_image(self, file_path):
+        # Check if the selected file is a Pixel Factory image by looking for flash-all.bat and flash-all.sh
+        try:
+            found_flash_all = check_archive_contains_files(
+                archive_file_path=file_path,
+                file_requests=[
+                    {'file_to_check': 'flash-all.bat', 'nested': False, 'is_recursive': False},
+                    {'file_to_check': 'flash-all.sh', 'nested': False, 'is_recursive': False},
+                ]
+            )
+            found_flash_all_bat = found_flash_all.get('flash-all.bat', '')
+            found_flash_all_sh = found_flash_all.get('flash-all.sh', '')
+            return bool(found_flash_all_bat and found_flash_all_sh)
+        except Exception:
+            return False
+
+    # -----------------------------------------------
     #                onProcessImage
     # -----------------------------------------------
     def onProcessImage(self, e):
         start = time.time()
         try:
+            print(f"\n{datetime.now():%Y-%m-%d %H:%M:%S} User pressed Process Image in PIF Manager\n")
             file_dialog = wx.FileDialog(self, _("Select a Device Image"), wildcard="Device image files (*.img;*.zip)|*.img;*.zip")
             if file_dialog.ShowModal() == wx.ID_OK:
                 file_path = file_dialog.GetPath()
                 file_dialog.Destroy()
+
+                print(f"Selected file: {file_path}")
+                # Check if it's a Pixel Factory image
+                if self.is_pixel_factory_image(file_path):
+                    print(f"Pixel Factory image detected, prompting user for processing options...")
+                    # Show dialog with 3 options for Pixel Factory images
+                    dialog = MessageBoxEx(
+                        self,
+                        title=_("Pixel Factory Image Detected"),
+                        message=_("You selected a Pixel Factory image. How would you like to process it?"),
+                        button_texts=[_("Option 1"), _("Option 2"), _("Option 3"), _("Cancel")],
+                        radio_labels=[
+                            _("Option 1: Pluck Fingerprint and Security Patch from vbmeta_system (Fastest)"),
+                            _("Option 2: Pluck Fingerprint and Security Patch from system/vendor/product (Normal speed)"),
+                            _("Option 3: Extract build.prop from system/vendor/product and process those (Slowest)")
+                        ],
+                        default_button=1,
+                        vertical_radios=True,
+                        size=(600, 400)
+                    )
+                    result = dialog.ShowModal()
+                    dialog.Destroy()
+
+                    print(f"User selected option: {result}")
+                    if result == wx.ID_CANCEL or result == 4:
+                        return
+                    # Store the selected option for use in _process_image_worker
+                    self._factory_image_option = result
+                else:
+                    self._factory_image_option = 3
+
                 self._on_spin('start')
                 wx.CallAfter(self.console_stc.SetValue, _("Processing %s ...\nPlease be patient this could take some time ...") % file_path)
                 worker = threading.Thread(target=self._process_image_worker, args=(file_path, start), daemon=True)

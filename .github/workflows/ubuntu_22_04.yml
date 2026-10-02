@@ -39,9 +39,17 @@ on:
       tags:
         description: 'Build tags'
 
+permissions:
+  contents: read
+
 jobs:
   build_ubuntu_22_04:
     runs-on: ubuntu-22.04
+
+    permissions:
+      id-token: write
+      attestations: write
+      contents: write
 
     steps:
       - name: Checkout code
@@ -94,6 +102,11 @@ jobs:
           cat dist/PixelFlasher_Ubuntu_22_04.sha256
           ls dist
         shell: bash
+
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/PixelFlasher_Ubuntu_22_04
 
       # Upload artifacts Ubuntu 22.04
       - name: Upload Ubuntu 22.04 Artifact

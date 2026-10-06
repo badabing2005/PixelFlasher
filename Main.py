@@ -3313,6 +3313,12 @@ class PixelFlasher(wx.Frame):
                     if is_bootloader_version_older(actual_bootloader_version, min_safe_version):
                         message += _("      ⚠️ WARNING: Bootloader version %s is older than the minimum ARB safe version %s\n") % (d_bootloader_version, min_safe_version)
                         self.toast(_("WARNING! ARB Affected"), _("⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s") % (d_bootloader_version, min_safe_version))
+            if device.rooted:
+                abl_a, abl_b = device.get_bootloader_versions()
+                if abl_a:
+                    message += f"    Device Bootloader abl_a Version: {abl_a}\n"
+                if abl_b:
+                    message += f"    Device Bootloader abl_b Version: {abl_b}\n"
 
         wx.Yield()
         if device.true_mode == 'adb':

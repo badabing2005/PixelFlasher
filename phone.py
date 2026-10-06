@@ -35,6 +35,7 @@
 
 import contextlib
 import re
+import shlex
 import subprocess
 import time
 import traceback
@@ -300,6 +301,41 @@ class Device():
             traceback.print_exc()
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get battery details.")
             puml(":ERROR: Could not get battery details;<<#red>>\n", True)
+            return '', ''
+
+    # ----------------------------------------------------------------------------
+    #                               method get_bootloader_versions
+    # ----------------------------------------------------------------------------
+    def get_bootloader_versions(self):
+        if self.true_mode != 'adb' or self.rooted is False:
+            return
+        try:
+            adb_path = get_adb()
+            if not adb_path:
+                return '', ''
+
+            # res, unused = self.check_file('/dev/block/bootdevice/by-name', True, False)
+            # if res == 1:
+            #     command = "strings /dev/block/bootdevice/by-name/abl_a | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'; strings /dev/block/by-name/abl_b | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'"
+            # else:
+            #     command = "strings /dev/block/by-name/abl_a | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'; strings /dev/block/by-name/abl_b | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'"
+            command = "strings /dev/block/by-name/abl_a | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'; strings /dev/block/by-name/abl_b | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'"
+            adb_command = f"su -c {shlex.quote(command)}"
+            res = subprocess.run(
+                [adb_path, "-s", self.id, "shell", adb_command],
+                capture_output=True,
+                encoding='ISO-8859-1',
+                errors='replace',
+                env=get_env_variables(),
+            )
+            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
+                return res.stdout.splitlines()[0].strip(), res.stdout.splitlines()[1].strip()
+            else:
+                return '', ''
+        except Exception as e:
+            traceback.print_exc()
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get bootloader versions.")
+            puml(":ERROR: Could not get bootloader versions;<<#red>>\n", True)
             return '', ''
 
     # ----------------------------------------------------------------------------

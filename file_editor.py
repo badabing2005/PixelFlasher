@@ -45,10 +45,11 @@ from i18n import _
 #                               Class FileEditor
 # ============================================================================
 class FileEditor(wx.Dialog):
-    def __init__(self, parent, file_path, language='batch', width=1500, height=600):
+    def __init__(self, parent, file_path, language='batch', width=1500, height=600, encoding='ISO-8859-1'):
         super().__init__(parent=parent, title="File Editor", style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER, size=(width, height))
 
         self.file_path = file_path
+        self.encoding = encoding
         self.language = language
         self.width = width
         self.height = height
@@ -166,7 +167,7 @@ class FileEditor(wx.Dialog):
         self.text_ctrl.SetIndent(4)
 
     def load_file(self):
-        with open(self.file_path, 'r', encoding='ISO-8859-1', errors="replace") as f:
+        with open(self.file_path, 'r', encoding=self.encoding, errors="replace") as f:
             contents = f.read()
             self.text_ctrl.SetValue(contents)
 
@@ -177,7 +178,7 @@ class FileEditor(wx.Dialog):
         open_terminal(self.Parent, self.file_path, True)
 
     def on_save(self, event):
-        with open(self.file_path, 'w', encoding='ISO-8859-1', errors="replace", newline='\n') as f:
+        with open(self.file_path, 'w', encoding=self.encoding, errors="replace", newline='\n') as f:
             f.write(self.text_ctrl.GetValue())
         self.EndModal(wx.ID_OK)
 

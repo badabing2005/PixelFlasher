@@ -5550,8 +5550,8 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     data_linux = ''
 
     # create flash-boot.bat/sh based on the live / flash options.
-    f_win = open(flash_pf_file_win.strip(), "w", encoding="ISO-8859-1", errors="replace")
-    f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
+    f_win = open(flash_pf_file_win.strip(), "w", encoding=get_batch_file_encoding(cp), errors="replace")
+    f_linux = open(flash_pf_file_linux.strip(), "w", encoding="utf-8", errors="replace")
     data_win = first_line_win
     data_linux = first_line_linux
     data_win += version_sig_win
@@ -5930,6 +5930,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     if sys.platform != "win32":
         data = data_linux
         flash_pf_file = flash_pf_file_linux
+        script_encoding = "utf-8"
         theCmd = f"chmod 755 \"{flash_pf_file_linux}\""
         debug(theCmd)
         res = run_shell(theCmd)
@@ -5950,6 +5951,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     else:
         data = data_win
         flash_pf_file = flash_pf_file_win
+        script_encoding = get_batch_file_encoding(cp)
 
     title = f"{option} Boot - Confirm Flash"
     message = "\nNote: Pressing OK button will invoke a script that will utilize\n"
@@ -6005,13 +6007,13 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     elif result == 2: # Edit
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
         puml(":User Pressed Edit Script;<<#pink>>\n")
-        dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600)
+        dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600, encoding=script_encoding)
         dlg.CenterOnParent()
         result = dlg.ShowModal()
         dlg.Destroy()
         if result == wx.ID_OK:
             # get the contents of modified flash_pf_file
-            with open(flash_pf_file, 'r', encoding='ISO-8859-1', errors="replace") as f:
+            with open(flash_pf_file, 'r', encoding=script_encoding, errors="replace") as f:
                 contents = f.read()
             print(f"\nflash_boot file has been modified!")
             print(f"The modified script content that will be executed:")
@@ -6500,8 +6502,8 @@ def flash_phone(self):
             if image_mode and get_image_path():
                 title = "Advanced Flash Options"
                 # create flash-pf.bat based on the custom options.
-                f_win = open(flash_pf_file_win.strip(), "w", encoding="ISO-8859-1", errors="replace")
-                f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
+                f_win = open(flash_pf_file_win.strip(), "w", encoding=get_batch_file_encoding(cp), errors="replace")
+                f_linux = open(flash_pf_file_linux.strip(), "w", encoding="utf-8", errors="replace")
                 data_win = first_line_win
                 data_linux = first_line_linux
                 data_win += r'PATH=%PATH%;"%SYSTEMROOT%\System32"' + "\n\n"
@@ -6871,11 +6873,11 @@ def flash_phone(self):
                             data_linux += data_tmp
 
             if sys.platform == "win32":
-                fin = open(flash_pf_file_win, "wt", encoding="ISO-8859-1", errors="replace")
+                fin = open(flash_pf_file_win, "wt", encoding=get_batch_file_encoding(cp), errors="replace")
                 fin.write(data_win)
                 fin.close()
             else:
-                fin = open(flash_pf_file_linux, "wt", encoding="ISO-8859-1", errors="replace")
+                fin = open(flash_pf_file_linux, "wt", encoding="utf-8", errors="replace")
                 fin.write(data_linux)
                 fin.close()
 
@@ -6981,6 +6983,7 @@ def flash_phone(self):
         # make the sh script executable
         if sys.platform != "win32":
             flash_pf_file = flash_pf_file_linux
+            script_encoding = "utf-8"
             data = data_linux
             theCmd = f"chmod 755 \"{flash_pf_file_linux}\""
             debug(theCmd)
@@ -7001,6 +7004,7 @@ def flash_phone(self):
                 return -1
         else:
             flash_pf_file = flash_pf_file_win
+            script_encoding = get_batch_file_encoding(cp)
             data = data_win
 
         message += "\nNote: Pressing OK button will invoke a script that will utilize\n"
@@ -7063,13 +7067,13 @@ def flash_phone(self):
         elif result == 2: # Edit
             print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed Edit Script.")
             puml(":User Pressed Edit Script;<<#pink>>\n")
-            dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600)
+            dlg = FileEditor(self, flash_pf_file, "batch", width=1500, height=600, encoding=script_encoding)
             dlg.CenterOnParent()
             result = dlg.ShowModal()
             dlg.Destroy()
             if result == wx.ID_OK:
                 # get the contents of modified flash_pf_file
-                with open(flash_pf_file, 'r', encoding='ISO-8859-1', errors="replace") as f:
+                with open(flash_pf_file, 'r', encoding=script_encoding, errors="replace") as f:
                     contents = f.read()
                 print(f"\nflash_pf file has been modified!")
                 print(f"The modified script content that will be executed:")

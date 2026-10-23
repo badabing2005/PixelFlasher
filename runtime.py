@@ -35,6 +35,7 @@
 
 import apk
 import binascii
+import codecs
 import contextlib
 import chardet
 import fnmatch
@@ -801,6 +802,25 @@ def get_system_codepage() -> int | None:
 def set_system_codepage(value) -> None:
     global _system_code_page
     _system_code_page = value
+
+
+# ============================================================================
+#                               Function get_batch_file_encoding
+# ============================================================================
+def get_batch_file_encoding(codepage=None) -> str:
+    # cmd.exe decodes each line of a batch file with the active code page, which the
+    # generated scripts set with `chcp` when a code page is given. Writing the file in
+    # that same encoding keeps non-ASCII paths (e.g. "Téléchargements") intact.
+    # Shell scripts (Linux / macOS) are always written as UTF-8.
+    cp = codepage or get_system_codepage()
+    if cp:
+        if str(cp) == "65001":
+            return "utf-8"
+        try:
+            return codecs.lookup(f"cp{cp}").name
+        except LookupError:
+            pass
+    return "ISO-8859-1"
 
 
 # ============================================================================

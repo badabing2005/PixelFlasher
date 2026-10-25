@@ -45,6 +45,7 @@ import sys
 import tempfile
 import time
 import traceback
+import zipfile
 from datetime import datetime
 
 import wx
@@ -6295,14 +6296,6 @@ def flash_phone(self):
         if self.config.advanced_options and self.config.flash_mode == 'customFlash':
             package_dir_full = os.path.join(config_path, 'tmp')
         else:
-            # check for free space >= 5G
-            if self.config.check_for_disk_space and (get_free_space() < 5 or get_free_space(get_config_path()) < 5):
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Please check available disk space, you do not have safe levels of available storage to flash without risk.")
-                print("Aborting ...\n")
-                puml(":Not enough disk space;<<#red>>\n}\n")
-                self.toast(_("Flash action"), _("❌ Not enough disk space."))
-                return -1
-
             # check for package selection
             package_sig = get_firmware_id()
             if not package_sig:
@@ -6310,6 +6303,55 @@ def flash_phone(self):
                 puml(":Factory OTA or firmware is not selected;<<#red>>\n}\n")
                 self.toast(_("Flash action"), _("❌ Full OTA or factory image must be selected."))
                 return -1
+
+            if self.config.check_for_disk_space and not self.config.firmware_is_ota:
+                image_zip_path = os.path.join(factory_images, package_sig, f"image-{package_sig}.zip")
+                try:
+                    with zipfile.ZipFile(image_zip_path) as image_zip:
+                        image_size = sum(item.file_size for item in image_zip.infolist())
+
+                    required_space = image_size * 1.05
+                    space_locations = [
+                        (tempfile.gettempdir(), shutil.disk_usage(tempfile.gettempdir()).free),
+                        (config_path, shutil.disk_usage(config_path).free),
+                    ]
+                    low_space_locations = [
+                        path for path, free_space in space_locations
+                        if free_space * 0.8 < required_space
+                    ]
+                    if low_space_locations:
+                        image_size_gb = image_size / (1024 ** 3)
+                        required_space_gb = required_space / (1024 ** 3)
+                        locations = "\n".join(
+                            f"- {path}: {shutil.disk_usage(path).free / (1024 ** 3):.2f} GB available"
+                            for path in low_space_locations
+                        )
+                        message = _(
+                            "The selected factory image contains %(image_size).2f GB of image data and may need "
+                            "%(required_space).2f GB of temporary space, including 5%% headroom.\n"
+                            "Only 80%% of available disk space is counted to account for user quotas.\n\n"
+                            "Insufficient space may cause the flash to fail and leave the device partially updated.\n\n"
+                            "Continue anyway?"
+                        ) % {
+                            'image_size': image_size_gb,
+                            'required_space': required_space_gb,
+                        }
+                        message += f"\n\n{locations}"
+                        print(f"\n⚠️ {datetime.now():%Y-%m-%d %H:%M:%S} WARNING: {message}")
+                        puml(":Insufficient disk space for factory image;<<#orange>>\n")
+                        dlg = wx.MessageDialog(
+                            None, message, _("Low disk space"),
+                            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+                        )
+                        result = dlg.ShowModal()
+                        if result != wx.ID_YES:
+                            print("User aborted due to low disk space.\n")
+                            puml(":User aborted due to low disk space;<<#pink>>\n}\n")
+                            return -1
+                        print("User chose to continue despite low disk space.")
+                        puml(":User chose to continue despite low disk space;<<#orange>>\n")
+                except (OSError, zipfile.BadZipFile) as e:
+                    debug(f"Unable to estimate factory image temporary space from {image_zip_path}: {e}")
 
             # check for bootloader rollback protection issue on 'raven', 'oriole', 'bluejay'
             if (

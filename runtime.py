@@ -35,6 +35,7 @@
 
 import apk
 import binascii
+import codecs
 import contextlib
 import chardet
 import fnmatch
@@ -3257,6 +3258,59 @@ def create_boot_tar(dir, source='boot.img', dest='boot.tar'):
         traceback.print_exc()
     finally:
         os.chdir(original_dir)
+
+
+# ============================================================================
+#                               Function get_batch_code_page
+# ============================================================================
+def get_batch_code_page(config=None) -> str:
+    if config and getattr(config, 'force_codepage', False):
+        code_page = getattr(config, 'custom_codepage', None)
+        if code_page is not None and str(code_page).strip():
+            return str(int(code_page))
+    return str(get_system_codepage() or 65001)
+
+
+# ============================================================================
+#                               Function get_batch_encoding
+# ============================================================================
+def get_batch_encoding(code_page='65001') -> str:
+    encoding = 'utf-8' if str(code_page) == '65001' else f'cp{code_page}'
+    return codecs.lookup(encoding).name
+
+
+# ============================================================================
+#                               Function open_batch_file
+# ============================================================================
+def open_batch_file(file_path, code_page='65001', mode='w'):
+    return open(file_path, mode, encoding=get_batch_encoding(code_page), errors='strict')
+
+
+# ============================================================================
+#                               Function register_batch_path
+# ============================================================================
+def register_batch_path(path, environment, variable_name):
+    environment[variable_name] = os.fspath(path)
+    return f'%{variable_name}%'
+
+
+# ============================================================================
+#                               Function escape_batch_comment
+# ============================================================================
+def escape_batch_comment(value):
+    return str(value).encode('ascii', errors='backslashreplace').decode('ascii')
+
+
+# ============================================================================
+#                               Function get_batch_file_encoding
+# ============================================================================
+def get_batch_file_encoding(file_path) -> str:
+    with open(file_path, 'rb') as batch_file:
+        header = batch_file.read(512)
+    match = re.search(rb'(?im)^\s*::\s*PixelFlasher encoding:\s*([\w-]+)', header)
+    if match:
+        return codecs.lookup(match.group(1).decode('ascii')).name
+    return 'ISO-8859-1'
 
 
 # ============================================================================
@@ -11249,8 +11303,8 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
 
     elif channel == 'KernelSU-Next':
         try:
-            # https://github.com/rifsxd/KernelSU-Next/releases
-            release = get_gh_release_object(user='rifsxd', repo='KernelSU-Next', include_prerelease=False, latest_any=False)
+            # https://github.com/KernelSU-Next/KernelSU-Next/releases
+            release = get_gh_release_object(user='KernelSU-Next', repo='KernelSU-Next', include_prerelease=False, latest_any=False)
             if release:
                 release_version = release['tag_name']
                 release_notes = release['body']
@@ -11949,14 +12003,19 @@ def run_shell(cmd, timeout=None, encoding='ISO-8859-1'):
 #                               Function run_shell2
 # ============================================================================
 # This one pipes the stdout and stderr to Console text widget in realtime,
-def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='utf-8', chcp=None):
+def run_shell2(cmd, timeout=None, detached=False, directory=None, encoding='utf-8', chcp=None, extra_env=None):
     try:
         flush_output()
 
         env = get_env_variables()
         env["PYTHONIOENCODING"] = encoding
+        if extra_env:
+            env.update(extra_env)
         if chcp is not None:
-            env["CHCP"] = chcp
+            code_page = str(int(chcp))
+            env["CHCP"] = code_page
+            if sys.platform == "win32":
+                cmd = f"chcp {code_page} >nul && {cmd}"
 
         if directory is None:
             proc = subprocess.Popen(

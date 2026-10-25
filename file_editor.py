@@ -166,7 +166,11 @@ class FileEditor(wx.Dialog):
         self.text_ctrl.SetIndent(4)
 
     def load_file(self):
-        with open(self.file_path, 'r', encoding='ISO-8859-1', errors="replace") as f:
+        if self.file_path.lower().endswith('.bat'):
+            encoding = get_batch_file_encoding(self.file_path)
+        else:
+            encoding = 'ISO-8859-1'
+        with open(self.file_path, 'r', encoding=encoding, errors="strict") as f:
             contents = f.read()
             self.text_ctrl.SetValue(contents)
 
@@ -177,7 +181,11 @@ class FileEditor(wx.Dialog):
         open_terminal(self.Parent, self.file_path, True)
 
     def on_save(self, event):
-        with open(self.file_path, 'w', encoding='ISO-8859-1', errors="replace", newline='\n') as f:
+        if self.file_path.lower().endswith('.bat'):
+            encoding = get_batch_file_encoding(self.file_path)
+        else:
+            encoding = 'ISO-8859-1'
+        with open(self.file_path, 'w', encoding=encoding, errors="strict", newline='\n') as f:
             f.write(self.text_ctrl.GetValue())
         self.EndModal(wx.ID_OK)
 

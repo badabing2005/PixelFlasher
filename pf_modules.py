@@ -2446,7 +2446,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         config_path = get_config_path()
 
         if app_type == 'KernelSU-Next':
-            repo_user = 'rifsxd'
+            repo_user = 'KernelSU-Next'
             repo_name = 'KernelSU-Next'
             pattern = r'^KernelSU_Next(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_next_path  # type: ignore[union-attr]
@@ -4448,7 +4448,7 @@ Unless you know what you're doing, it is recommended that you choose the default
             chosen_kernel='KernelSU'
         elif res['button'] == 2:
             # KernelSU-Next
-            user='rifsxd'
+            user='KernelSU-Next'
             repo='KernelSU-Next'
             custom_kernel=None
             chosen_kernel='KernelSU-Next'
@@ -5520,19 +5520,11 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
 
     flash_pf_file_win = os.path.join(tmp_dir, "flash-boot.bat")
     flash_pf_file_linux = os.path.join(tmp_dir, "flash-boot.sh")
-    cp = None
-    if self.config.force_codepage:
-        cp = str(self.config.custom_codepage)
-        if cp == '':
-            cp = None
-    else:
-        # don't use system codepage, use UTF-8 if not set
-        # cp = get_system_codepage()
-        cp = "65001"
+    cp = get_batch_code_page(self.config)
     if cp:
-        first_line_win = f"\nchcp {cp}\n@ECHO OFF\n"
+        first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\nchcp {cp}\n@ECHO OFF\n"
     else:
-        first_line_win = f"@ECHO OFF\n"
+        first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\n@ECHO OFF\n"
     first_line_linux = "#!/bin/sh\n"
 
     version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
@@ -5550,7 +5542,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     data_linux = ''
 
     # create flash-boot.bat/sh based on the live / flash options.
-    f_win = open(flash_pf_file_win.strip(), "w", encoding="ISO-8859-1", errors="replace")
+    f_win = open_batch_file(flash_pf_file_win.strip(), cp)
     f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
     data_win = first_line_win
     data_linux = first_line_linux
@@ -6109,7 +6101,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         theCmd = flash_pf_file
         theCmd = f"\"{theCmd}\""
         debug(theCmd)
-        res = run_shell2(theCmd, chcp=cp)
+        res = run_shell2(theCmd, encoding=get_batch_encoding(cp), chcp=cp)
         if res and isinstance(res, subprocess.CompletedProcess):
             debug(f"Return Code: {res.returncode}")
             debug(f"Stdout: {res.stdout}")
@@ -6458,26 +6450,18 @@ def flash_phone(self):
 
         flash_pf_file_win = os.path.join(package_dir_full, "flash-pf.bat")
         flash_pf_file_linux = os.path.join(package_dir_full, "flash-pf.sh")
-        cp = None
-        if self.config.force_codepage:
-            cp = str(self.config.custom_codepage)
-            if cp == '':
-                cp = None
-        else:
-            # don't use system codepage, use UTF-8 if not set
-            # cp = get_system_codepage()
-            cp = "65001"
+        cp = get_batch_code_page(self.config)
         if cp:
-            first_line_win = f"\nchcp {cp}\n@ECHO OFF\n"
+            first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\nchcp {cp}\n@ECHO OFF\n"
         else:
-            first_line_win = f"@ECHO OFF\n"
+            first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\n@ECHO OFF\n"
         first_line_linux = "#!/bin/sh\n"
         if self.config.advanced_options and self.config.flash_mode == 'customFlash':
-            version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
+            version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {escape_batch_comment(package_dir_full)}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
             version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
         else:
             assert boot is not None
-            version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {package_dir_full}\n:: pf_boot.img: {boot.boot_path}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
+            version_sig_win = f":: This is a generated file by PixelFlasher v{VERSION}\n:: cd {escape_batch_comment(package_dir_full)}\n:: pf_boot.img: {escape_batch_comment(boot.boot_path)}\n:: Android Platform Tools Version: {get_sdk_version()}\n:: Device is rooted: {device.rooted}\n\n"
             version_sig_linux = f"# This is a generated file by PixelFlasher v{VERSION}\n# cd {package_dir_full}\n# pf_boot.img: {boot.boot_path}\n# Android Platform Tools Version: {get_sdk_version()}\n\n"
 
         # delete previous flash-pf.bat file if it exists
@@ -6490,6 +6474,7 @@ def flash_phone(self):
 
         data_win = ''
         data_linux = ''
+        batch_environment = {}
 
         #-------------------------------
         # if we are in custom Flash mode
@@ -6500,7 +6485,7 @@ def flash_phone(self):
             if image_mode and get_image_path():
                 title = "Advanced Flash Options"
                 # create flash-pf.bat based on the custom options.
-                f_win = open(flash_pf_file_win.strip(), "w", encoding="ISO-8859-1", errors="replace")
+                f_win = open_batch_file(flash_pf_file_win.strip(), cp)
                 f_linux = open(flash_pf_file_linux.strip(), "w", encoding="ISO-8859-1", errors="replace")
                 data_win = first_line_win
                 data_linux = first_line_linux
@@ -6508,7 +6493,10 @@ def flash_phone(self):
                 # Sideload
                 if image_mode == 'SIDELOAD':
                     msg  = "\nADB Sideload:           "
-                    data_win += f"call \"{get_adb()}\" -s {device_id} sideload \"{get_image_path()}\"\n"
+                    batch_environment = {}
+                    batch_adb = register_batch_path(get_adb(), batch_environment, "PF_ADB_PATH")
+                    batch_image = register_batch_path(get_image_path(), batch_environment, "PF_IMAGE_PATH")
+                    data_win += f"\"{batch_adb}\" -s {device_id} sideload \"{batch_image}\"\n"
                     data_win += "if errorlevel 1 (\n"
                     data_win += "    echo Error: The sideload command encountered an error, aborting ...\n"
                     data_win += "    echo You should manually reboot to system if necessary.\n"
@@ -6646,19 +6634,21 @@ def flash_phone(self):
             if self.config.flash_mode == 'OTA':
                 assert boot is not None
                 indent = "    "
-                data_win = "@echo off\n"
-                data_win += "setlocal enabledelayedexpansion\n"
+                batch_environment = {}
+                batch_adb = register_batch_path(get_adb(), batch_environment, "PF_ADB_PATH")
+                batch_firmware = register_batch_path(self.config.firmware_path, batch_environment, "PF_FIRMWARE_PATH")
+                data_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\n@echo off\n"
                 data_win += f"chcp {cp}\n"
                 data_win += f":: This is a generated file by PixelFlasher v{VERSION}\n"
-                data_win += f":: cd {package_dir_full}\n"
-                data_win += f":: pf_boot.img: {boot.boot_path}\n"
+                data_win += f":: cd {escape_batch_comment(package_dir_full)}\n"
+                data_win += f":: pf_boot.img: {escape_batch_comment(boot.boot_path)}\n"
                 data_win += f":: Android Platform Tools Version: {get_sdk_version()}\n"
                 data_win += f":: Device is rooted: {device.rooted}\n\n"
                 data_win += f"set \"ACTIVE_SLOT={device.active_slot}\"\n"
                 data_win += f"set \"INACTIVE_SLOT={device.inactive_slot}\"\n"
                 data_win += "echo Current active slot is:   [%ACTIVE_SLOT%]\n"
                 data_win += "echo Current inactive slot is: [%INACTIVE_SLOT%]\n"
-                data_win += f"call \"{get_adb()}\" -s {device_id} sideload \"{self.config.firmware_path}\"\n"
+                data_win += f"\"{batch_adb}\" -s {device_id} sideload \"{batch_firmware}\"\n"
                 data_win += "if errorlevel 1 (\n"
                 data_win += "    echo Error: The sideload command encountered an error, aborting ...\n"
                 data_win += "    echo You should manually reboot to system if necessary.\n"
@@ -6871,7 +6861,7 @@ def flash_phone(self):
                             data_linux += data_tmp
 
             if sys.platform == "win32":
-                fin = open(flash_pf_file_win, "wt", encoding="ISO-8859-1", errors="replace")
+                fin = open_batch_file(flash_pf_file_win, cp, "wt")
                 fin.write(data_win)
                 fin.close()
             else:
@@ -7153,7 +7143,7 @@ def flash_phone(self):
         os.chdir(package_dir_full)
         theCmd = f"\"{theCmd}\""
         debug(theCmd)
-        res = run_shell2(theCmd, chcp=cp)
+        res = run_shell2(theCmd, encoding=get_batch_encoding(cp), chcp=cp, extra_env=batch_environment)
         if res and isinstance(res, subprocess.CompletedProcess):
             debug(f"Return Code: {res.returncode}")
             debug(f"Stdout: {res.stdout}")

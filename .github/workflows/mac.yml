@@ -109,8 +109,8 @@ jobs:
         run: python3.13 -m venv myenv
         shell: bash
 
-      - name: Activate virtual environment
-        run: source myenv/bin/activate
+      - name: Add virtual environment to PATH
+        run: echo "$PWD/myenv/bin" >> "$GITHUB_PATH"
         shell: bash
 
       - name: Install requirements (macOS universal build uses cryptography<49)
@@ -118,15 +118,15 @@ jobs:
           # Create modified requirements with cryptography<49 for universal2 compatibility
           # (Rust _rust.abi3.so in cryptography>=49 is single-arch only)
           sed 's/cryptography>=49.0.0/cryptography>=48.0.0,<49.0.0/' requirements.txt > requirements-macos.txt
-          PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" python3.13 -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements-macos.txt
+          PYLZ4_USE_SYSTEM_LZ4="False" ARCHFLAGS="-arch x86_64 -arch arm64" myenv/bin/python -m pip install --no-binary 'bsdiff4,psutil,PyYAML,MarkupSafe,cffi,lz4' -r requirements-macos.txt
 
       - name: List modules and their versions
-        run: python3.13 -m pip freeze
+        run: myenv/bin/python -m pip freeze
 
       - name: Verify universal2 extension modules
         shell: bash
         run: |
-          python3.13 - <<'PY'
+          myenv/bin/python - <<'PY'
           import importlib.machinery
           import pathlib
           import fnmatch

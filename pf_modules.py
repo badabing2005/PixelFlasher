@@ -5523,7 +5523,7 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
     flash_pf_file_linux = os.path.join(tmp_dir, "flash-boot.sh")
     cp = get_batch_code_page(self.config)
     if cp:
-        first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\nchcp {cp}\n@ECHO OFF\n"
+        first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\nchcp {cp} >nul\n@ECHO OFF\n"
     else:
         first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\n@ECHO OFF\n"
     first_line_linux = "#!/bin/sh\n"
@@ -6494,7 +6494,7 @@ def flash_phone(self):
         flash_pf_file_linux = os.path.join(package_dir_full, "flash-pf.sh")
         cp = get_batch_code_page(self.config)
         if cp:
-            first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\nchcp {cp}\n@ECHO OFF\n"
+            first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\nchcp {cp} >nul\n@ECHO OFF\n"
         else:
             first_line_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\n@ECHO OFF\n"
         first_line_linux = "#!/bin/sh\n"
@@ -6680,7 +6680,7 @@ def flash_phone(self):
                 batch_adb = register_batch_path(get_adb(), batch_environment, "PF_ADB_PATH")
                 batch_firmware = register_batch_path(self.config.firmware_path, batch_environment, "PF_FIRMWARE_PATH")
                 data_win = f":: PixelFlasher encoding: {get_batch_encoding(cp)}\n@echo off\n"
-                data_win += f"chcp {cp}\n"
+                data_win += f"chcp {cp} >nul\n"
                 data_win += f":: This is a generated file by PixelFlasher v{VERSION}\n"
                 data_win += f":: cd {escape_batch_comment(package_dir_full)}\n"
                 data_win += f":: pf_boot.img: {escape_batch_comment(boot.boot_path)}\n"
@@ -7185,7 +7185,8 @@ def flash_phone(self):
         os.chdir(package_dir_full)
         theCmd = f"\"{theCmd}\""
         debug(theCmd)
-        res = run_shell2(theCmd, encoding=get_batch_encoding(cp), chcp=cp, extra_env=batch_environment)
+        output_encoding = 'utf-8' if batch_environment else get_batch_encoding(cp)
+        res = run_shell2(theCmd, encoding=output_encoding, chcp=cp, extra_env=batch_environment)
         if res and isinstance(res, subprocess.CompletedProcess):
             debug(f"Return Code: {res.returncode}")
             debug(f"Stdout: {res.stdout}")

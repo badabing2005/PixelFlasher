@@ -2567,6 +2567,38 @@ add_hosts_module
             return -1
 
     # ----------------------------------------------------------------------------
+    #                               Method push_pluck
+    # ----------------------------------------------------------------------------
+    def push_pluck(self, file_path = "/data/local/tmp/pluck-android-arm64") -> int:
+        """Method pushes pluck binary to the device.
+
+        Args:
+            file_path:      Full file path on the device (Default: /data/local/tmp/pluck-android-arm64)
+
+        Returns:
+            0               On Success.
+            -1              if an exception is raised.
+        """
+        try:
+            # Transfer extraction script to the phone
+            path_to_pluck = os.path.join(get_bundle_dir(),'bin', "pluck-android-arm64")
+            res = self.push_file(f"{path_to_pluck}", f"{file_path}")
+            if res != 0:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not push {file_path}")
+                return -1
+            # set the permissions.
+            res = self.set_file_permissions(f"{file_path}", "755")
+            if res != 0:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not set permission on {file_path}")
+                return -1
+            return 0
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while pushing pluck.")
+            puml(":Encountered an error while pushing pluck;<<#red>>\n")
+            traceback.print_exc()
+            return -1
+
+    # ----------------------------------------------------------------------------
     #                               Method push_avbctl
     # ----------------------------------------------------------------------------
     def push_avbctl(self, file_path = "/data/local/tmp/avbctl") -> int:

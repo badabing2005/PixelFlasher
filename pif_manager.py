@@ -2739,9 +2739,9 @@ class PifManager(wx.Dialog):
             for img_name, partition_name in partitions:
                 wx.CallAfter(self.console_stc.SetValue, f"Processing {partition_name} partition...")
 
-                # Use pluck --avb on the factory image with partition name to get AVB properties
+                # Use pluck passthrough-factory on the factory image with partition name to get AVB properties
                 try:
-                    result = subprocess.run([pluck, '--avb', file_path, img_name], capture_output=True, text=True)
+                    result = subprocess.run([pluck, 'passthrough-factory', file_path, img_name, 'list-avb-props'], capture_output=True, text=True)
                     output = (result.stdout or '') + (result.stderr or '')
 
                     if output:

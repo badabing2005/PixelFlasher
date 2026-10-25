@@ -5707,7 +5707,7 @@ def pluck_fp_sp_from_factory(source) -> tuple[str | None, str | None]:
             return None, None
 
         try:
-            result = subprocess.run([pluck, '--avb', source, 'vbmeta_system.img'], capture_output=True, text=True)
+            result = subprocess.run([pluck, 'passthrough-factory', source, 'vbmeta_system.img', 'list-avb-props'], capture_output=True, text=True)
         except OSError as os_error:
             msg = str(os_error)
             if 'virus' in msg.lower() or 'potentially unwanted software' in msg.lower() or 'winerror 225' in msg.lower():

@@ -39,6 +39,7 @@ import webbrowser
 import sys
 from runtime import *
 from constants import *
+from config import DEFAULT_ROOTING_APP_PACKAGES
 from i18n import _
 
 
@@ -75,27 +76,32 @@ class AdvancedSettings(wx.Dialog):
         fgs1 = wx.FlexGridSizer(cols=2, vgap=5, hgap=10)
         # this makes the second column expandable (index starts at 0)
         fgs1.AddGrowableCol(1, 1)
-        # this makes the height expandable
-        fgs1.AddGrowableRow(0, 1)
 
-        # Magisk Package name
-        package_name_label = wx.StaticText(parent=scrolled_panel, label=_("Magisk Package Name"))
-        self.package_name = wx.TextCtrl(parent=scrolled_panel, id=-1, size=(-1, -1))
-        self.package_name.SetToolTip(_("If you have hidden Magisk,\nset this to the hidden package name."))
-        self.reset_magisk_pkg = wx.BitmapButton(parent=scrolled_panel, id=wx.ID_ANY, bitmap=wx.NullBitmap, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
-        self.reset_magisk_pkg.SetBitmap(images.scan_24.GetBitmap())
-        self.reset_magisk_pkg.SetToolTip(_("Resets package name to default: %s") % MAGISK_PKG_NAME)
-        package_name_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        package_name_sizer.Add(self.package_name, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
-        package_name_sizer.Add(self.reset_magisk_pkg, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
-
-        # Spoofed apps package names
-        self.spoofed_apps_label = wx.StaticText(parent=scrolled_panel, id=wx.ID_ANY, label=_("Spoofed Apps Package Names"))
-        self.spoofed_apps_label.SetToolTip(_("The listed package names are spoofed apps that PixelFlasher will look for."))
-        self.spoofed_apps = wx.SearchCtrl(scrolled_panel, style=wx.TE_LEFT)
-        self.spoofed_apps.ShowCancelButton(True)
-        self.spoofed_apps.SetDescriptiveText(_("Example: xz.jft.fn, otgs.werg.dflkjh"))
-        self.spoofed_apps.ShowSearchButton(False)
+        self.rooting_app_package_names = {
+            'magisk': _("Magisk Package Name"),
+            'kernelsu': _("KernelSU Package Name"),
+            'ksu_next': _("KernelSU-Next Package Name"),
+            'sukisu': _("SukiSU Package Name"),
+            'wild_ksu': _("Wild_KSU Package Name"),
+            'apatch': _("APatch Package Name"),
+            'apatch_next': _("APatch Next Package Name")
+        }
+        self.rooting_app_package_controls = {}
+        self.rooting_app_package_labels = {}
+        self.rooting_app_package_sizers = {}
+        for package_key, package_label in self.rooting_app_package_names.items():
+            label = wx.StaticText(parent=scrolled_panel, label=package_label)
+            package_control = wx.TextCtrl(parent=scrolled_panel, id=wx.ID_ANY, size=(-1, -1))
+            package_control.SetToolTip(_("Set the package name used to detect this rooting app."))
+            reset_button = wx.BitmapButton(parent=scrolled_panel, id=wx.ID_ANY, bitmap=images.scan_24.GetBitmap(), pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.BU_AUTODRAW)
+            reset_button.SetToolTip(_("Reset package name to default: %s") % DEFAULT_ROOTING_APP_PACKAGES[package_key])
+            reset_button.Bind(wx.EVT_BUTTON, lambda event, key=package_key, control=package_control: control.SetValue(DEFAULT_ROOTING_APP_PACKAGES[key]))
+            package_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+            package_sizer.Add(package_control, proportion=1, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL, border=0)
+            package_sizer.Add(reset_button, proportion=0, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=5)
+            self.rooting_app_package_controls[package_key] = package_control
+            self.rooting_app_package_labels[package_key] = label
+            self.rooting_app_package_sizers[package_key] = package_sizer
 
         # only add if we're on linux
         file_explorer_label = None
@@ -105,7 +111,7 @@ class AdvancedSettings(wx.Dialog):
         if sys.platform.startswith("linux"):
             # Linux File Explorer
             file_explorer_label = wx.StaticText(scrolled_panel, label=_("Linux File Explorer:"))
-            file_explorer_label.SetSize(self.package_name.GetSize())
+            file_explorer_label.SetSize(self.rooting_app_package_controls['magisk'].GetSize())
             self.file_explorer = wx.TextCtrl(scrolled_panel, -1, size=(300, -1))
             self.file_explorer.SetToolTip(_("Set full path to File Explorer.\nDefault: Nautilus"))
             file_explorer_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
@@ -114,7 +120,7 @@ class AdvancedSettings(wx.Dialog):
 
             # Linux Shell
             shell_label = wx.StaticText(parent=scrolled_panel, label=_("Linux Shell:"))
-            shell_label.SetSize(self.package_name.GetSize())
+            shell_label.SetSize(self.rooting_app_package_controls['magisk'].GetSize())
             self.shell = wx.TextCtrl(parent=scrolled_panel, id=wx.ID_ANY, size=(300, -1))
             self.shell.SetToolTip(_("Set full path to Linux Shell.\nDefault: gnome-terminal"))
             shell_sizer = wx.BoxSizer(orient=wx.HORIZONTAL)
@@ -268,8 +274,8 @@ class AdvancedSettings(wx.Dialog):
 
         # Set Widget values from config
         self.advanced_options_checkbox.SetValue(self.Parent.config.advanced_options)
-        self.package_name.SetValue(self.Parent.config.magisk)
-        self.spoofed_apps.SetValue(self.Parent.config.spoofed_apps)
+        for package_key, package_control in self.rooting_app_package_controls.items():
+            package_control.SetValue(self.Parent.config.rooting_app_packages.get(package_key, DEFAULT_ROOTING_APP_PACKAGES[package_key]))
         self.patch_methods_checkbox.SetValue(self.Parent.config.offer_patch_methods)
         self.recovery_patch_checkbox.SetValue(self.Parent.config.show_recovery_patching_option)
         self.keep_temp_files_checkbox.SetValue(self.Parent.config.keep_patch_temporary_files)
@@ -304,18 +310,11 @@ class AdvancedSettings(wx.Dialog):
             self.file_explorer.SetValue(self.Parent.config.linux_file_explorer)
             self.shell.SetValue(self.Parent.config.linux_shell)
 
+        package_options_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        for checkbox in (self.patch_methods_checkbox, self.recovery_patch_checkbox, self.keep_temp_files_checkbox):
+            package_options_sizer.Add(checkbox, proportion=1, flag=wx.EXPAND)
+
         # add the widgets to the grid in two columns, first fix size, the second expandable.
-        fgs1.Add(package_name_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        fgs1.Add(package_name_sizer, 0, wx.EXPAND)
-
-        fgs1.Add(self.spoofed_apps_label, 0, wx.ALIGN_CENTER_VERTICAL)
-        fgs1.Add(self.spoofed_apps, 1, wx.EXPAND)
-
-        fgs1.Add(self.patch_methods_checkbox, 0, wx.EXPAND)
-        fgs1.Add(self.recovery_patch_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-        fgs1.Add(self.keep_temp_files_checkbox, 0, wx.EXPAND)
-
         if sys.platform.startswith("linux"):
             # only add if we're on linux
             fgs1.Add(file_explorer_label, 0, wx.EXPAND)
@@ -324,46 +323,23 @@ class AdvancedSettings(wx.Dialog):
             fgs1.Add(shell_sizer, 1, wx.EXPAND)
 
         fgs1.Add(self.use_busybox_shell_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.low_mem_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.extra_img_extracts_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.show_notifications_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.create_boot_tar_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.check_for_update_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.check_for_disk_space_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.check_for_bootloader_unlocked_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.check_for_firmware_hash_validity_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.keep_temporary_support_files_checkbox, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.check_module_updates, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.show_custom_rom_options, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.sanitize_support_files, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
-
         fgs1.Add(self.kb_index_cb, 0, wx.EXPAND)
-        fgs1.Add((0, 0))
+
+        for package_key in self.rooting_app_package_controls:
+            fgs1.Add(self.rooting_app_package_labels[package_key], 0, wx.ALIGN_CENTER_VERTICAL)
+            fgs1.Add(self.rooting_app_package_sizers[package_key], 0, wx.EXPAND)
 
         fgs1.Add(self.force_codepage_checkbox, 0, wx.EXPAND)
         fgs1.Add(self.code_page, 1, wx.EXPAND)
@@ -380,6 +356,10 @@ class AdvancedSettings(wx.Dialog):
         fgs1.Add(self.use_custom_font_checkbox, 0, wx.EXPAND)
         fgs1.Add(fonts_sizer, 1, wx.EXPAND)
 
+        fgs1.Add((0, 0))
+        fgs1.Add((0, 0))
+        fgs1.AddGrowableRow(fgs1.GetRows() - 1, 1)
+        middle_sizer.Add(package_options_sizer, proportion=0, flag=wx.EXPAND|wx.BOTTOM, border=5)
         middle_sizer.Add(fgs1, proportion=1, flag=wx.EXPAND)
         middle_sizer.Add(scrcpy_outer_sizer, proportion=0, flag=wx.EXPAND, border=5)
         scrolled_panel.SetSizer(middle_sizer)
@@ -415,7 +395,7 @@ class AdvancedSettings(wx.Dialog):
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
         self.font.Bind(wx.EVT_LISTBOX, self._onFontSelect)
         self.font_size.Bind(wx.EVT_SPINCTRL, self._onFontSelect)
-        self.reset_magisk_pkg.Bind(wx.EVT_BUTTON, self._onResetMagiskPkg)
+        self.scrcpy_link.Bind(wx.EVT_BUTTON, self._open_scrcpy_link)
         self.patch_methods_checkbox.Bind(wx.EVT_CHECKBOX, self._on_offer_patch_methods)
         self.use_custom_font_checkbox.Bind(wx.EVT_CHECKBOX, self._on_use_custom_fontface)
         self.Bind(wx.EVT_INIT_DIALOG, self.on_init_dialog)
@@ -495,10 +475,6 @@ class AdvancedSettings(wx.Dialog):
             sys.stdout.write(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening skd link\n")
             traceback.print_exc()
 
-    def _onResetMagiskPkg(self, e):
-        self.package_name.SetValue(MAGISK_PKG_NAME)
-
-
     def _onCancel(self, e):
         self.EndModal(wx.ID_CANCEL)
 
@@ -512,13 +488,6 @@ class AdvancedSettings(wx.Dialog):
             if self.patch_methods_checkbox.GetValue() != self.Parent.config.offer_patch_methods:
                 sys.stdout.write(f"Setting Offer Patch Methods to: {self.patch_methods_checkbox.GetValue()}\n")
             self.Parent.config.offer_patch_methods = self.patch_methods_checkbox.GetValue()
-
-            value = self.spoofed_apps.GetValue()
-            if value is None:
-                value = ''
-            if value != self.Parent.config.spoofed_apps:
-                sys.stdout.write(f"Setting Spoofed Apps to: {value}\n")
-                self.Parent.config.spoofed_apps = value
 
             if self.recovery_patch_checkbox.GetValue() != self.Parent.config.show_recovery_patching_option:
                 sys.stdout.write(f"Setting Patching Recovery Partition to: {self.recovery_patch_checkbox.GetValue()}\n")
@@ -585,12 +554,12 @@ class AdvancedSettings(wx.Dialog):
                 sys.stdout.write(f"Setting Keybox Indexing options to: {self.kb_index_cb.GetValue()}\n")
             self.Parent.config.kb_index = self.kb_index_cb.GetValue()
 
-            if self.package_name.GetValue():
-                with contextlib.suppress(Exception):
-                    if self.package_name.GetValue() != self.Parent.config.magisk:
-                        sys.stdout.write(f"Setting Magisk Package Name to: {self.package_name.GetValue()}\n")
-                        set_magisk_package(self.package_name.GetValue())
-                        self.Parent.config.magisk = self.package_name.GetValue()
+            for package_key, package_control in self.rooting_app_package_controls.items():
+                package_name = package_control.GetValue().strip()
+                if package_name and package_name != self.Parent.config.rooting_app_packages.get(package_key):
+                    sys.stdout.write(f"Setting {self.rooting_app_package_names[package_key]} to: {package_name}\n")
+                    self.Parent.config.rooting_app_packages[package_key] = package_name
+            set_rooting_app_packages(self.Parent.config.rooting_app_packages)
 
             if sys.platform.startswith("linux"):
                 with contextlib.suppress(Exception):

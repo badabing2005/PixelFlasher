@@ -832,8 +832,7 @@ class PixelFlasher(wx.Frame):
             # clear file_path
             file_path = None
 
-            # load Magisk Package Name
-            set_magisk_package(self.config.magisk)
+            set_rooting_app_packages(self.config.rooting_app_packages)
 
             # load the low_mem settings
             set_low_memory(self.config.low_mem)
@@ -3384,7 +3383,7 @@ class PixelFlasher(wx.Frame):
                 if m_app_version:
                     message += f"    Magisk Manager Version:          {m_app_version}\n"
                     # message += f"    Magisk Path:                     {device.magisk_path}\n"
-                    message += f"      Checked for Package:           {self.config.magisk}\n"
+                    message += f"      Checked for Package:           {get_rooting_app_package('magisk')}\n"
                 k_app_version = device.ksu_app_version
                 wx.Yield()
                 if k_app_version:

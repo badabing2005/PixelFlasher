@@ -369,11 +369,6 @@ class MagiskModules(wx.Dialog):
                 if module.id == "hosts" and module.name == "Systemless Hosts":
                     self.systemless_hosts_button.Enable(False)
 
-                # disable denylist if Magisk is delta
-                if get_magisk_package() == MAGISK_DELTA_PKG_NAME:
-                    self.enable_denylist_button.Enable(False)
-                    self.disable_denylist_button.Enable(False)
-
                 # disable button if self.device is not rooted.
                 if not self.device.rooted:
                     self.install_module_button.Enable(False)

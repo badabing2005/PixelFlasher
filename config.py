@@ -41,6 +41,16 @@ import sys
 from datetime import datetime
 from constants import *
 
+DEFAULT_ROOTING_APP_PACKAGES = {
+    'magisk': 'com.topjohnwu.magisk',
+    'kernelsu': 'me.weishu.kernelsu',
+    'ksu_next': 'com.rifsxd.ksunext',
+    'sukisu': 'com.sukisu.ultra',
+    'wild_ksu': 'com.twj.wksu',
+    'apatch': 'me.bmax.apatch',
+    'apatch_next': 'me.garfieldhan.apatch.next'
+}
+
 # ============================================================================
 #                               Class Config
 # ============================================================================
@@ -52,7 +62,7 @@ class Config():
         self.platform_tools_path = None
         self.device = None
         self.phone_path = '/storage/emulated/0/Download'
-        self.magisk = MAGISK_PKG_NAME
+        self.rooting_app_packages = dict(DEFAULT_ROOTING_APP_PACKAGES)
         self.width = MAIN_WIDTH
         self.height = MAIN_HEIGHT
         self.magisk_width = MAGISK_WIDTH
@@ -122,7 +132,6 @@ class Config():
         self.keep_patch_temporary_files = False
         self.kb_index = False
         self.unmarked_entries_path = None
-        self.spoofed_apps = ''
         self.force_ksud_mount_selection = False
         self.pif_chunk_size = 8*1024*1024  # 8MB default
         self.pif_chunk_overlap = 200        # 200 bytes default
@@ -214,8 +223,14 @@ class Config():
                     conf.flash_mode = data['mode']
                 with contextlib.suppress(KeyError):
                     conf.phone_path = data['phone_path']
-                with contextlib.suppress(KeyError):
-                    conf.magisk = data['magisk']
+                legacy_magisk_package = data.get('magisk')
+                package_data = data.get('rooting_app_packages', {})
+                if isinstance(package_data, dict):
+                    for package_key, package_name in package_data.items():
+                        if package_key in conf.rooting_app_packages and isinstance(package_name, str):
+                            conf.rooting_app_packages[package_key] = package_name
+                if isinstance(legacy_magisk_package, str) and legacy_magisk_package:
+                    conf.rooting_app_packages['magisk'] = legacy_magisk_package
                 with contextlib.suppress(KeyError):
                     conf.width = data['width']
                 with contextlib.suppress(KeyError):
@@ -346,8 +361,6 @@ class Config():
                     conf.unmarked_entries_path = data['unmarked_entries_path']
                 with contextlib.suppress(KeyError):
                     conf.ksu_asset_selection_mode = data['ksu_asset_selection_mode']
-                with contextlib.suppress(KeyError):
-                    conf.spoofed_apps = data['spoofed_apps']
                 with contextlib.suppress(KeyError):
                     conf.force_ksud_mount_selection = data['force_ksud_mount_selection']
                 with contextlib.suppress(KeyError):
@@ -483,7 +496,7 @@ class Config():
             'platform_tools_path': self.platform_tools_path,
             'mode': self.flash_mode,
             'phone_path': self.phone_path,
-            'magisk': self.magisk,
+            'rooting_app_packages': self.rooting_app_packages,
             'first_run_date': self.first_run_date,
             'last_run_date': f"{datetime.now():%Y-%m-%d %H:%M:%S}",
             'width': self.width,
@@ -552,7 +565,6 @@ class Config():
             'kb_index': self.kb_index,
             'unmarked_entries_path': self.unmarked_entries_path,
             'ksu_asset_selection_mode': self.ksu_asset_selection_mode,
-            'spoofed_apps': self.spoofed_apps,
             'force_ksud_mount_selection': self.force_ksud_mount_selection,
             'pif_chunk_size': self.pif_chunk_size,
             'pif_chunk_overlap': self.pif_chunk_overlap,

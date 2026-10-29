@@ -1851,7 +1851,7 @@ def drive_magisk(self, boot_file_name):
     # device.stop_magisk()
 
     # # Launch Magisk
-    # device.perform_package_action(get_magisk_package(), 'launch', False)
+    # device.perform_package_action(get_rooting_app_package('magisk'), 'launch', False)
 
     # res = device.ui_action(f"{self.config.phone_path}/view1.xml", os.path.join(config_path, 'tmp', 'view1.xml'), "Install")
     # if res == -1:
@@ -1869,7 +1869,7 @@ def drive_magisk(self, boot_file_name):
     # if res == -1:
     #     return -1
 
-    # res = device.ui_action(f"{self.config.phone_path}/view5.xml", os.path.join(config_path, 'tmp', 'view5.xml'), "{MAGISK_PKG_NAME}:id/action_save")
+    # res = device.ui_action(f"{self.config.phone_path}/view5.xml", os.path.join(config_path, 'tmp', 'view5.xml'), f"{get_rooting_app_package('magisk')}:id/action_save")
     # if res == -1:
     #     return -1
 
@@ -2123,14 +2123,14 @@ def drive_magisk(self, boot_file_name):
     #     return -1
 
     # # get view5 bounds / click coordinates (Save button)
-    # coords = get_ui_coordinates(view5, f"{MAGISK_PKG_NAME}:id/action_save")
+    # coords = get_ui_coordinates(view5, f"{get_rooting_app_package('magisk')}:id/action_save")
 
     # # Check for Display being locked again
     # if not device.is_display_unlocked():
     #     print("ERROR: The device display is Locked!\nAborting ...\n")
     #     return -1
 
-    # # Click on coordinates of `{MAGISK_PKG_NAME}:id/action_save`
+    # # Click on coordinates of the configured Magisk app's save action
     # # For Pixel 6 this would be: adb shell input tap 1010 198
     # theCmd = f"\"{get_adb()}\" -s {device.id} shell input tap {coords}"
     # debug(theCmd)
@@ -2216,7 +2216,7 @@ def manual_magisk(self, boot_file_name):
         device.stop_magisk()
 
         # Launch Magisk
-        device.perform_package_action(self.config.magisk, 'launch', False)
+        device.perform_package_action(get_rooting_app_package('magisk'), 'launch', False)
 
         # Message Dialog Here to Patch Manually
         title = _("Manual Patching")
@@ -2452,42 +2452,44 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             pattern = r'^KernelSU_Next(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_next_path  # type: ignore[union-attr]
             app_name = "KernelSU-Next"
-            package_name = KSU_NEXT_PKG_NAME
+            package_key = 'ksu_next'
         elif app_type == 'APatch':
             repo_user = 'bmax121'
             repo_name = 'APatch'
             pattern = r'^APatch_.*\.apk$'
             path_getter = lambda: device.apatch_path  # type: ignore[union-attr]
             app_name = "APatch"
-            package_name = APATCH_PKG_NAME
+            package_key = 'apatch'
         elif app_type == 'SukiSU':
             repo_user = 'SukiSU-Ultra'
             repo_name = 'SukiSU-Ultra'
             pattern = r'^SukiSU_(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.sukisu_path  # type: ignore[union-attr]
             app_name = "SukiSU"
-            package_name = SUKISU_PKG_NAME
+            package_key = 'sukisu'
         elif app_type == 'Wild_KSU':
             repo_user = 'WildKernels'
             repo_name = 'Wild_KSU'
             pattern = r'^Wild_KSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.wild_ksu_path  # type: ignore[union-attr]
             app_name = "Wild_KSU"
-            package_name = WILD_KSU_PKG_NAME
+            package_key = 'wild_ksu'
         elif app_type == "KernelSU-Legacy":
             repo_user = 'rsuntk'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_path  # type: ignore[union-attr]
             app_name = "KernelSU"
-            package_name = KERNEL_SU_PKG_NAME
+            package_key = 'kernelsu'
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
             pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
             path_getter = lambda: device.ksu_path  # type: ignore[union-attr]
             app_name = "KernelSU"
-            package_name = KERNEL_SU_PKG_NAME
+            package_key = 'kernelsu'
+
+        package_name = get_rooting_app_package(package_key)
 
         # Check if app is already installed
         app_path = path_getter()
@@ -2495,75 +2497,16 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             version, version_code = device.get_app_version(package_name)
             return True, app_path, None, version, version_code
 
-        # App not installed, let's check if the user has configured spoofed apps
-        spoofed_apps_list = []
-        if self.config.spoofed_apps:
-            # We need appt2 to get the package names
-            try:
-                debug("Pushing aapt2 to device...")
-                res = device.push_aapt2()
-                if res == 0:
-                    debug("aapt2 pushed successfully")
-                else:
-                    print("❌ Failed to push aapt2")
-            except Exception as e:
-                traceback.print_exc()
-                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: pushing aapt2")
-
-            package_names = [pkg.strip() for pkg in self.config.spoofed_apps.split(',') if pkg.strip()]
-            for package_name in package_names:
-                app_info = device.get_package_info(package_name)
-                if app_info is not None and app_info:
-                    app_label, icon = device.get_package_label(package_name, app_info.get('sourceDir', None))
-
-                    spoofed_apps_list.append({
-                        'name': app_label,
-                        'path': app_info.get('sourceDir', ''),
-                        'package': package_name,
-                        'installed': True
-                    })
-                else:
-                    # Package not installed, but add to the list as disabled option
-                    spoofed_apps_list.append({
-                        'name': 'Missing App',
-                        'path': '',
-                        'package': package_name,
-                        'installed': False
-                    })
-
-        # Present dialog for app selection
+        # Ask how to provide the app when the configured package is not installed.
         title = f"Select {app_name} Application"
-        message = f"**{app_name} does not appear to be installed with the official package name.**<br/>\n\n"
-        message += f"You can choose to create a patch by pressing the button:<br/><br/>\n\n"
-        message += f"- **Use the selected option:** Selecting an installed spoofed app.<br/>\n"
-        message += f"  _If you have configured spoofed app package names in PixelFlasher settings._<br/>\n"
-        message += f"- **Install latest:** Let PixelFlasher install the official {app_name} from the web.<br/>\n"
-        message += f"- **Manual:** Provide your own {app_name} APK file manually.<br/>\n\n"
+        message = f"**{app_name} ({package_name}) is not installed.**<br/>\n\n"
+        message += f"Install the latest {app_name} release or select an APK manually."
 
         button_texts = [
-            _("Use the selected option"),
             _("Install latest"),
             _("Manual, let me provide my own apk"),
             _("Cancel")
         ]
-
-        radio_labels = []
-        disable_radios = []
-        disable_buttons = [1]
-        for i, app_info in enumerate(spoofed_apps_list):
-            if app_info['installed']:
-                radio_labels.append(f"{app_info['name']} ({app_info['package']}) - Installed")
-                disable_buttons = []
-            else:
-                radio_labels.append(f"{app_info['name']} ({app_info['package']}) - Not Installed")
-                disable_radios.append(i + 1)
-
-        # Find first installed spoofed app as default selection (might not be the best match)
-        radio_initial_value = 0
-        for i, app_info in enumerate(spoofed_apps_list):
-            if app_info['installed']:
-                radio_initial_value = i
-                break
 
         clean_message = message.replace("<br/>", "")
         print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
@@ -2575,7 +2518,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             message=message,
             button_texts=button_texts,
             default_button=1,
-            disable_buttons=disable_buttons,
+            disable_buttons=None,
             is_md=True,
             size=[800, 300],
             checkbox_labels=None,
@@ -2585,34 +2528,19 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             checkbox_labels2=None,
             checkbox_initial_values2=None,
             disable_checkboxes2=None,
-            radio_labels=radio_labels,
-            radio_initial_value=radio_initial_value,
-            disable_radios=disable_radios,
+            radio_labels=None,
+            radio_initial_value=None,
+            disable_radios=None,
             vertical_radios=True
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
-        dialog_values = get_all_dialog_values(dlg)
-        selected_radio_index = dialog_values.get('radio')
         dlg.Destroy()
 
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result - 1]}")
 
-        # Use the selected spoofed app
-        if result == 1:
-            if selected_radio_index is not None and selected_radio_index < len(spoofed_apps_list):
-                selected_app = spoofed_apps_list[selected_radio_index]
-                if selected_app['installed']:
-                    print(f"Using spoofed app: {selected_app['name']} [{selected_app['package']}]")
-                    version, version_code = device.get_app_version(selected_app['package'])
-                    return True, selected_app['path'], None, version, version_code
-                else:
-                    return False, None, f"Selected app {selected_app['name']} is not installed", None, None
-            else:
-                return False, None, "Invalid selection", None, None
-
         # Install latest official app
-        elif result == 2:
+        if result == 1:
             print(f"Getting the latest {app_name} to install ...")
             try:
                 release = get_gh_release_object(user=repo_user, repo=repo_name, include_prerelease=False)
@@ -2639,7 +2567,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 return False, None, f"Exception during {app_name} installation: {str(e)}", None, None
 
         # Manual APK selection
-        elif result == 3:
+        elif result == 2:
             with wx.FileDialog(self, f"Select {app_name} Application", '', '', wildcard="APK files (*.apk)|*.apk", style=wx.FD_OPEN) as fileDialog:
                 if fileDialog.ShowModal() == wx.ID_CANCEL:
                     print("User cancelled APK selection.")
@@ -2647,44 +2575,24 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 selected_apk = fileDialog.GetPath()
                 print(f"User selected APK: {selected_apk}")
                 try:
+                    package_name = get_apk_package_name(selected_apk)
+                    if not package_name:
+                        return False, None, "Could not determine package name from APK", None, None
+
                     res = device.install_apk(selected_apk)
                     if res != 0:
                         return False, None, f"Failed to install {app_name}", None, None
 
-                    # Extract the binary xml AndroidManifest from the selected APK
-                    tmp_AndroidManifest = os.path.join(config_path, 'tmp', 'AndroidManifest.xml')
-                    if os.path.exists(tmp_AndroidManifest):
-                        os.remove(tmp_AndroidManifest)
-                    with zipfile.ZipFile(selected_apk, 'r') as zip_ref:
-                        zip_ref.extract('AndroidManifest.xml', os.path.join(config_path, 'tmp'))
-                    if os.path.exists(tmp_AndroidManifest):
-                        axml2xml(tmp_AndroidManifest, tmp_AndroidManifest + '.xml.txt')
-                        # parse the xml to get the package name
-                        tree = ET.parse(tmp_AndroidManifest + '.xml.txt')
-                        root = tree.getroot()
-                        package_name = root.attrib.get('package', '')
-                        if package_name:
-                            # Check if installation was successful
-                            app_info = device.get_package_info(package_name)
-                            app_path = app_info.get('sourceDir', '')
-                            if not app_path:
-                                return False, None, f"Failed to find {app_name} after installation", None, None
-                            # Update spoofed apps list in config
-                            spoofed_apps = self.config.spoofed_apps.split(',') if self.config.spoofed_apps else []
-                            if package_name not in [pkg.strip() for pkg in spoofed_apps]:
-                                spoofed_apps.append(package_name)
-                                self.config.spoofed_apps = ','.join(spoofed_apps)
-                                self.config.save(get_config_file_path())
-                            version, version_code = device.get_app_version(package_name)
-                            return True, app_path, None, version, version_code
-                        else:
-                            return False, None, "Could not determine package name from APK", None, None
-                    else:
-                        # Push APK to phone
-                        res = device.push_file(selected_apk, "/data/local/tmp/user_provided_app.apk")
-                        if res != 0:
-                            return False, None, "Failed to transfer user-provided APK to phone", None, None
-                        return True, "/data/local/tmp/user_provided_app.apk", None, None, None
+                    app_info = device.get_package_info(package_name)
+                    app_path = app_info.get('sourceDir', '') if app_info else ''
+                    if not app_path:
+                        return False, None, f"Failed to find {app_name} after installation", None, None
+
+                    self.config.rooting_app_packages[package_key] = package_name
+                    set_rooting_app_packages(self.config.rooting_app_packages)
+                    self.config.save(get_config_file_path())
+                    version, version_code = device.get_app_version(package_name)
+                    return True, app_path, None, version, version_code
 
                 except Exception as e:
                     return False, None, f"Exception during {app_name} installation: {str(e)}", None, None
@@ -3283,6 +3191,12 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "    echo \"Copying [$FILE] to [$NEWNAME]\"\n"
             data += "    cp $FILE $NEWNAME\n"
             data += "done\n"
+            data += "if [[ ! -f ksud ]]; then\n"
+            data += "    KSUD_SOURCE=$(ls -S ../lib/$ARCH/lib*.so 2>/dev/null | head -n 1)\n"
+            data += "    if [[ -z \"$KSUD_SOURCE\" ]]; then echo 'ERROR: No native libraries found in the selected app'; exit 1; fi\n"
+            data += "    echo \"Copying [$KSUD_SOURCE] to [ksud]\"\n"
+            data += "    cp \"$KSUD_SOURCE\" ksud\n"
+            data += "fi\n"
             data += "chmod 755 *\n"
             data += f"PATCHING_{VERSION_VAR}=$(/data/local/tmp/pf/assets/{ksud_mount} -V)\n"
             data += f"echo \"PATCHING_{VERSION_VAR}: $PATCHING_{VERSION_VAR}\"\n"
@@ -3691,7 +3605,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         puml(":Magisk not found;<<#orange>>\n")
         # Message to Launch Manually and Patch
         title = _("Magisk Manager is not detected.")
-        message_en =  f"WARNING: Magisk Manager [{self.config.magisk}] is not found on the phone\n\n"
+        message_en =  f"WARNING: Magisk Manager [{get_rooting_app_package('magisk')}] is not found on the phone\n\n"
         message_en += "This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n"
         message_en += "If it is installed and hidden, then you should abort and then unhide it.\n"
         message_en += "If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n"
@@ -3701,7 +3615,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         message_en += "You will be given a choice of Magisk Version to install.\n\n"
         message_en += "Click OK to continue with Magisk installation.\n"
         message_en += "or Hit CANCEL to abort."
-        message =  _("WARNING: Magisk Manager [%s] is not found on the phone\n\n") % self.config.magisk
+        message =  _("WARNING: Magisk Manager [%s] is not found on the phone\n\n") % get_rooting_app_package('magisk')
         message += _("This could be either because it is hidden, not installed or things changed outside of PixelFlasher\n\n")
         message += _("If it is installed and hidden, then you should abort and then unhide it.\n")
         message += _("If things were changed outside of PixelFlasher, then refresh the phone by using the Scan button.\n")
@@ -4784,7 +4698,7 @@ Unless you know what you're doing, it is recommended that you choose the default
         if is_rooted and magisk_version:
             method = 1  # rooted
             # disable app method if app is not found or is hidden.
-            if not magisk_app_version or ( self.config.magisk not in ['', MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME, KERNEL_SU_PKG_NAME, APATCH_PKG_NAME] ):
+            if not magisk_app_version:
                 disabled_buttons = [2, 3, 4]
             elif magisk_version and magisk_app_version:
                 disabled_buttons = [3]

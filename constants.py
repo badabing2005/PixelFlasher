@@ -55,15 +55,6 @@ PIF_JSON_PATH = '/data/adb/pif.json'
 XIAOMI_URL = "https://sourceforge.net/projects/xiaomi-eu-multilang-miui-roms/rss?path=/xiaomi.eu/Xiaomi.eu-app"
 FREEMANURL = "https://codeload.github.com/TheFreeman193/PIFS/zip/refs/heads/main"
 SCRCPYURL = "https://github.com/Genymobile/scrcpy/releases/latest"
-MAGISK_PKG_NAME = 'com.topjohnwu.magisk'
-MAGISK_ALPHA_PKG_NAME = 'io.github.vvb2060.magisk'
-MAGISK_DELTA_PKG_NAME = 'io.github.huskydg.magisk'
-KERNEL_SU_PKG_NAME = 'me.weishu.kernelsu'
-KSU_NEXT_PKG_NAME = 'com.rifsxd.ksunext'
-SUKISU_PKG_NAME = 'com.sukisu.ultra'
-WILD_KSU_PKG_NAME = 'com.twj.wksu'
-APATCH_PKG_NAME = 'me.bmax.apatch'
-APATCH_NEXT_PKG_NAME = 'me.garfieldhan.apatch.next'
 ZYGISK_NEXT_UPDATE_URL = 'https://api.nullptr.icu/android/zygisk-next/static/update.json'
 REZYGISK_UPDATE_URL = 'https://raw.githubusercontent.com/ThePedroo/RemoteFiles/refs/heads/main/ReZygisk/update.json'
 NEOZYGISK_UPDATE_URL = 'https://raw.githubusercontent.com/JingMatrix/NeoZygisk/master/module/zygisk.json'

@@ -124,7 +124,7 @@ _boot = None
 _system_code_page = None
 # _codepage_setting = False
 # _codepage_value = ''
-_magisk_package = ''
+_rooting_app_packages = {}
 # _file_explorer = ''
 _linux_shell = ''
 _patched_with = ''
@@ -789,7 +789,7 @@ def get_phone(make_sure_connected=False) -> Any | None:
 
 
 # ============================================================================
-#                               Function get_system_codepage
+#                      Function get_system_codepage
 # ============================================================================
 def get_system_codepage() -> int | None:
     global _system_code_page
@@ -797,7 +797,7 @@ def get_system_codepage() -> int | None:
 
 
 # ============================================================================
-#                               Function set_system_codepage
+#                     Function set_system_codepage
 # ============================================================================
 def set_system_codepage(value) -> None:
     global _system_code_page
@@ -805,19 +805,35 @@ def set_system_codepage(value) -> None:
 
 
 # ============================================================================
-#                               Function get_magisk_package
+#                    Function get_rooting_app_package
 # ============================================================================
-def get_magisk_package() -> str:
-    global _magisk_package
-    return _magisk_package
+def get_rooting_app_package(package_key) -> str:
+    return _rooting_app_packages.get(package_key, '')
 
 
 # ============================================================================
-#                               Function set_magisk_package
+#                     Function set_rooting_app_packages
 # ============================================================================
-def set_magisk_package(value) -> None:
-    global _magisk_package
-    _magisk_package = value
+def set_rooting_app_packages(packages) -> None:
+    global _rooting_app_packages, _rooting_app_apks
+    _rooting_app_packages = dict(packages or {})
+    _rooting_app_apks = None
+
+
+# ============================================================================
+#                     Function get_rooting_app_package_key
+# ============================================================================
+def get_rooting_app_package_key(channel):
+    if channel.startswith('Magisk'):
+        return 'magisk'
+    return {
+        'KernelSU': 'kernelsu',
+        'KernelSU-Next': 'ksu_next',
+        'SukiSU': 'sukisu',
+        'Wild_KSU': 'wild_ksu',
+        'APatch': 'apatch',
+        'APatch Next': 'apatch_next'
+    }.get(channel)
 
 
 # ============================================================================
@@ -7565,6 +7581,22 @@ def axml2xml(inputfile, outputfile=None):
 
 
 # ============================================================================
+#                               Function get_apk_package_name
+# ============================================================================
+def get_apk_package_name(apk_path):
+    try:
+        with zipfile.ZipFile(apk_path, "r") as archive:
+            manifest = archive.read("AndroidManifest.xml")
+        manifest_xml = apk.AXMLPrinter(manifest).get_xml_obj()
+        if manifest_xml is None:
+            return None
+        return ET.fromstring(manifest_xml.toxml()).attrib.get("package")
+    except Exception:
+        traceback.print_exc()
+        return None
+
+
+# ============================================================================
 #                               Function xiaomi_xml_to_json
 # ============================================================================
 def xiaomi_xml_to_json(decoded_xml, json_path=None):
@@ -11176,7 +11208,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
             setattr(ma, 'versionCode', latest_release['version'])
             setattr(ma, 'link', latest_release['download_url'])
             setattr(ma, 'note_link', "note_link")
-            setattr(ma, 'package', latest_release['bundle_identifier'])
+            setattr(ma, 'package', get_rooting_app_package('magisk'))
             setattr(ma, 'release_notes', latest_release['release_notes'])
             return ma
         except Exception as e:
@@ -11218,7 +11250,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
                 setattr(ma, 'versionCode', release_versionCode)
                 setattr(ma, 'link', release_url)
                 setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', MAGISK_PKG_NAME)
+                setattr(ma, 'package', get_rooting_app_package('magisk'))
                 setattr(ma, 'release_notes', release_notes)
                 return ma
             else:
@@ -11254,7 +11286,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
                 setattr(ma, 'versionCode', release_versionCode)
                 setattr(ma, 'link', release_url)
                 setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', MAGISK_PKG_NAME)
+                setattr(ma, 'package', get_rooting_app_package('magisk'))
                 setattr(ma, 'release_notes', release_notes)
                 return ma
             else:
@@ -11290,7 +11322,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
                 setattr(ma, 'versionCode', release_versionCode)
                 setattr(ma, 'link', release_url)
                 setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', KERNEL_SU_PKG_NAME)
+                setattr(ma, 'package', get_rooting_app_package('kernelsu'))
                 setattr(ma, 'release_notes', release_notes)
                 return ma
             else:
@@ -11326,7 +11358,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
                 setattr(ma, 'versionCode', release_versionCode)
                 setattr(ma, 'link', release_url)
                 setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', KSU_NEXT_PKG_NAME)
+                setattr(ma, 'package', get_rooting_app_package('ksu_next'))
                 setattr(ma, 'release_notes', release_notes)
                 return ma
             else:
@@ -11362,7 +11394,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
                 setattr(ma, 'versionCode', release_versionCode)
                 setattr(ma, 'link', release_url)
                 setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', SUKISU_PKG_NAME)
+                setattr(ma, 'package', get_rooting_app_package('sukisu'))
                 setattr(ma, 'release_notes', release_notes)
                 return ma
             else:
@@ -11398,7 +11430,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
                 setattr(ma, 'versionCode', release_versionCode)
                 setattr(ma, 'link', release_url)
                 setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', WILD_KSU_PKG_NAME)
+                setattr(ma, 'package', get_rooting_app_package('wild_ksu'))
                 setattr(ma, 'release_notes', release_notes)
                 return ma
             else:
@@ -11434,7 +11466,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
                 setattr(ma, 'versionCode', release_versionCode)
                 setattr(ma, 'link', release_url)
                 setattr(ma, 'note_link', "note_link")
-                setattr(ma, 'package', APATCH_PKG_NAME)
+                setattr(ma, 'package', get_rooting_app_package('apatch'))
                 setattr(ma, 'release_notes', release_notes)
                 return ma
             else:
@@ -11464,7 +11496,7 @@ def get_rooting_app_details(channel) -> MagiskApk | None:
         setattr(ma, 'versionCode', "25203")
         setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_25203/app-release.apk")
         setattr(ma, 'note_link', "note_link")
-        setattr(ma, 'package', MAGISK_PKG_NAME)
+        setattr(ma, 'package', get_rooting_app_package('magisk'))
         release_notes = """
 ## 2022.10.03 Special Magisk v25.2 Build\n\n
 This is a special Magisk build by XDA Member [gecowa6967](https://xdaforums.com/m/gecowa6967.11238881/)\n\n
@@ -11495,7 +11527,7 @@ If your are bootlooping due to bad modules, and if you load stock boot image, it
         setattr(ma, 'versionCode', "26401")
         setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_26401/app-release.apk")
         setattr(ma, 'note_link', "note_link")
-        setattr(ma, 'package', MAGISK_PKG_NAME)
+        setattr(ma, 'package', get_rooting_app_package('magisk'))
         release_notes = """
 ## 2023.11.12 Special Magisk v26.4 Build\n\n
 This is a special Magisk build\n\n
@@ -11512,7 +11544,7 @@ This is a special Magisk build\n\n
         setattr(ma, 'versionCode', "27001")
         setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_27001/app-release.apk")
         setattr(ma, 'note_link', "note_link")
-        setattr(ma, 'package', MAGISK_PKG_NAME)
+        setattr(ma, 'package', get_rooting_app_package('magisk'))
         release_notes = """
 ## 2024.02.12 Special Magisk v27.0 Build\n\n
 This is a special Magisk build\n\n
@@ -11529,7 +11561,7 @@ This is a special Magisk build\n\n
         setattr(ma, 'versionCode', "30600")
         setattr(ma, 'link', "https://github.com/badabing2005/Magisk/releases/download/versionCode_30600/app-release.apk")
         setattr(ma, 'note_link', "note_link")
-        setattr(ma, 'package', MAGISK_PKG_NAME)
+        setattr(ma, 'package', get_rooting_app_package('magisk'))
         release_notes = """
 ## 2025.12.05 Special Magisk v30.6 Build\n\n
 This is a special Magisk build\n\n
@@ -11562,9 +11594,9 @@ This is a special Magisk build\n\n
         setattr(ma, 'link', data['magisk']['link'])
         note_link = data['magisk']['note']
         setattr(ma, 'note_link', note_link)
-        setattr(ma, 'package', MAGISK_PKG_NAME)
+        setattr(ma, 'package', get_rooting_app_package('magisk'))
         if channel in ['Magisk Delta Canary', 'Magisk Delta Debug', 'KitsuneMagisk Fork']:
-            setattr(ma, 'package', MAGISK_DELTA_PKG_NAME)
+            setattr(ma, 'package', get_rooting_app_package('magisk'))
         # Get the note contents
         headers = {}
         with contextlib.suppress(Exception):

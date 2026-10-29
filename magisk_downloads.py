@@ -406,11 +406,23 @@ class MagiskDownloads(wx.Dialog):
             download_file(self.url, filename)
             config_path = get_config_path()
             app = os.path.join(config_path, 'tmp', filename)
-            device.install_apk(app, fastboot_included = True)
-            # Fresh install of Magisk, reset the package name to default value
-            if self.package in [MAGISK_PKG_NAME, MAGISK_ALPHA_PKG_NAME, MAGISK_DELTA_PKG_NAME]:
-                set_magisk_package(self.package)
-                self.Parent.config.magisk = self.package
+            package_name = get_apk_package_name(app)
+            if not package_name:
+                print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not determine package name from {app}")
+                self._on_spin('stop')
+                return
+            if device.install_apk(app, fastboot_included = True) != 0:
+                self._on_spin('stop')
+                return
+
+            self.package = package_name
+            self.list.SetItem(self.currentItem, 4, package_name)
+            print(f"Installed rooting app package name from manifest: {package_name}")
+            package_key = get_rooting_app_package_key(self.channel or '')
+            if package_key:
+                self.Parent.config.rooting_app_packages[package_key] = package_name
+                set_rooting_app_packages(self.Parent.config.rooting_app_packages)
+            self.Parent.config.save(get_config_file_path())
             print('')
             self._on_spin('stop')
             self.EndModal(wx.ID_OK)

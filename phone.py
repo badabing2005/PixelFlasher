@@ -798,7 +798,7 @@ class Device():
     @property
     def magisk_path(self):
         try:
-            magisk_path = get_magisk_package()
+            magisk_path = get_rooting_app_package('magisk')
             if self.true_mode == 'adb' and magisk_path is not None and magisk_path != '':
                 res = self.get_package_path(magisk_path, True)
                 if res != -1:
@@ -836,7 +836,7 @@ class Device():
     def ksu_path(self):
         try:
             if self.true_mode == 'adb':
-                res = self.get_package_path(KERNEL_SU_PKG_NAME, True)
+                res = self.get_package_path(get_rooting_app_package('kernelsu'), True)
                 if res != -1:
                     return res
                 self._rooted = None
@@ -856,7 +856,7 @@ class Device():
     def ksu_next_path(self):
         try:
             if self.true_mode == 'adb':
-                res = self.get_package_path(KSU_NEXT_PKG_NAME, True)
+                res = self.get_package_path(get_rooting_app_package('ksu_next'), True)
                 if res != -1:
                     return res
                 self._rooted = None
@@ -876,7 +876,7 @@ class Device():
     def sukisu_path(self):
         try:
             if self.true_mode == 'adb':
-                res = self.get_package_path(SUKISU_PKG_NAME, True)
+                res = self.get_package_path(get_rooting_app_package('sukisu'), True)
                 if res != -1:
                     return res
                 self._rooted = None
@@ -896,7 +896,7 @@ class Device():
     def wild_ksu_path(self):
         try:
             if self.true_mode == 'adb':
-                res = self.get_package_path(WILD_KSU_PKG_NAME, True)
+                res = self.get_package_path(get_rooting_app_package('wild_ksu'), True)
                 if res != -1:
                     return res
                 self._rooted = None
@@ -916,7 +916,7 @@ class Device():
     def apatch_path(self):
         try:
             if self.true_mode == 'adb':
-                res = self.get_package_path(APATCH_PKG_NAME, True)
+                res = self.get_package_path(get_rooting_app_package('apatch'), True)
                 if res != -1:
                     return res
                 self._rooted = None
@@ -1701,9 +1701,6 @@ add_hosts_module
         if self.true_mode != 'adb' or not self.rooted:
             return
         try:
-            if get_magisk_package() == MAGISK_DELTA_PKG_NAME:
-                print("Magisk denylist is currently not supported in PixelFlasher for Magisk Delta.")
-                return
             value = "1" if enable else "0"
             print(f"Updating Enforce denylist flag value to: {value}")
             puml(f":Updating Enforce denylist flag value to: {value};\n", True)
@@ -2881,8 +2878,8 @@ add_hosts_module
     # ----------------------------------------------------------------------------
     @property
     def magisk_app_version(self):
-        if self._magisk_app_version is None and self.true_mode == 'adb' and get_magisk_package():
-            self._magisk_app_version, self._magisk_app_version_code = self.get_app_version(get_magisk_package())
+        if self._magisk_app_version is None and self.true_mode == 'adb' and get_rooting_app_package('magisk'):
+            self._magisk_app_version, self._magisk_app_version_code = self.get_app_version(get_rooting_app_package('magisk'))
         return self._magisk_app_version
 
     # ----------------------------------------------------------------------------
@@ -2891,7 +2888,7 @@ add_hosts_module
     @property
     def ksu_app_version(self):
         if self._ksu_app_version is None and self.true_mode == 'adb':
-            self._ksu_app_version, self._ksu_app_version_code = self.get_app_version(KERNEL_SU_PKG_NAME)
+            self._ksu_app_version, self._ksu_app_version_code = self.get_app_version(get_rooting_app_package('kernelsu'))
         return self._ksu_app_version
 
     # ----------------------------------------------------------------------------
@@ -2900,7 +2897,7 @@ add_hosts_module
     @property
     def ksu_next_app_version(self):
         if self._ksu_next_app_version is None and self.true_mode == 'adb':
-            self._ksu_next_app_version, self._ksu_next_app_version_code = self.get_app_version(KSU_NEXT_PKG_NAME)
+            self._ksu_next_app_version, self._ksu_next_app_version_code = self.get_app_version(get_rooting_app_package('ksu_next'))
         return self._ksu_next_app_version
 
     # ----------------------------------------------------------------------------
@@ -2909,7 +2906,7 @@ add_hosts_module
     @property
     def sukisu_app_version(self):
         if self._sukisu_app_version is None and self.true_mode == 'adb':
-            self._sukisu_app_version, self._sukisu_app_version_code = self.get_app_version(SUKISU_PKG_NAME)
+            self._sukisu_app_version, self._sukisu_app_version_code = self.get_app_version(get_rooting_app_package('sukisu'))
         return self._sukisu_app_version
 
     # ----------------------------------------------------------------------------
@@ -2918,7 +2915,7 @@ add_hosts_module
     @property
     def wild_ksu_app_version(self):
         if self._wild_ksu_app_version is None and self.true_mode == 'adb':
-            self._wild_ksu_app_version, self._wild_ksu_app_version_code = self.get_app_version(WILD_KSU_PKG_NAME)
+            self._wild_ksu_app_version, self._wild_ksu_app_version_code = self.get_app_version(get_rooting_app_package('wild_ksu'))
         return self._wild_ksu_app_version
 
     # ----------------------------------------------------------------------------
@@ -2927,7 +2924,7 @@ add_hosts_module
     @property
     def apatch_app_version(self):
         if self._apatch_app_version is None and self.true_mode == 'adb':
-            self._apatch_app_version, self._apatch_app_version_code = self.get_app_version(APATCH_PKG_NAME)
+            self._apatch_app_version, self._apatch_app_version_code = self.get_app_version(get_rooting_app_package('apatch'))
         return self._apatch_app_version
 
     # ----------------------------------------------------------------------------
@@ -2936,7 +2933,7 @@ add_hosts_module
     @property
     def apatch_next_app_version(self):
         if self._apatch_next_app_version is None and self.true_mode == 'adb':
-            self._apatch_next_app_version, self._apatch_next_app_version_code = self.get_app_version(APATCH_NEXT_PKG_NAME)
+            self._apatch_next_app_version, self._apatch_next_app_version_code = self.get_app_version(get_rooting_app_package('apatch_next'))
         return self._apatch_next_app_version
 
     # ----------------------------------------------------------------------------
@@ -3192,7 +3189,7 @@ add_hosts_module
         try:
             print("Stopping Magisk ...")
             with contextlib.suppress(Exception):
-                self.perform_package_action(get_magisk_package(), 'kill')
+                self.perform_package_action(get_rooting_app_package('magisk'), 'kill')
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during stop_magisk")
             traceback.print_exc()
@@ -4523,9 +4520,6 @@ add_hosts_module
                 return []
             print("Getting Magisk denylist ...")
             puml(f":Magisk denylist;\n", True)
-            if get_magisk_package() == MAGISK_DELTA_PKG_NAME:
-                print("Magisk denylist is currently not supported in PixelFlasher for Magisk Delta.")
-                return []
             theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'magisk --denylist ls\'\""
             debug(theCmd)
             res = run_shell(theCmd)
@@ -5297,9 +5291,6 @@ add_hosts_module
         # possible actions 'uninstall', 'disable', 'enable', 'launch', 'launch-am', 'launch-am-main', 'kill', killall', 'clear-data', 'clear-cache', 'add-to-denylist', 'rm-from-denylist', 'optimize', 'reset-optimize', 'open-url', 'compile-for-speed'
         if self.true_mode != 'adb':
             return
-        if action in ['add-to-denylist', 'rm-from-denylist'] and get_magisk_package() == MAGISK_DELTA_PKG_NAME:
-                print("Magisk denylist is currently not supported in PixelFlasher for Magisk Delta.")
-                return
         try:
             theCmd = ''
             if action == 'uninstall':

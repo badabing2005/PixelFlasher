@@ -3868,7 +3868,7 @@ add_hosts_module
                 mode = self.mode
             if mode is not None:
                 self.get_bl_status()
-                return f"{self.root_symbol:<3}({mode:<3})   {self.id:<25}{self.hardware:<12}{self.build:<25}"
+                return f"{self.root_symbol:<3}({mode:<3})   {self.id:<25} {self.hardware:<12}{self.build:<25}"
             else:
                 return "ERROR"
         except Exception as e:

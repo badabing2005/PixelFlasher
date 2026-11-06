@@ -86,7 +86,7 @@ from pf_modules import (adb_kill_server, auto_resize_boot_list,
     check_platform_tools, flash_phone, live_flash_boot_phone,
     patch_boot_img, populate_boot_list, process_file, kb_stats_ui,
     select_firmware, set_flash_button_state, setup_for_downgrade,
-    get_all_dialog_values)
+    get_all_dialog_values, ensure_firmware_bootloader_metadata)
 from package_manager import PackageManager
 from partition_manager import PartitionManager
 from phone import get_connected_devices, update_phones
@@ -890,6 +890,14 @@ class PixelFlasher(wx.Frame):
                             puml(":Unable to match the checksum in the filename;<<#orange>>\n")
                             self.toast(_("Firmware SHA256"), _("⚠️ WARNING! SHA256 of the selected file does not match segments in the filename.\nPlease double check to make sure the checksum is good."))
                             set_firmware_hash_validity(False)
+                    package_sig = get_firmware_id()
+                    if package_sig:
+                        ensure_firmware_bootloader_metadata(
+                            self.config.firmware_path,
+                            package_sig,
+                            get_ota(),
+                            force_print=True,
+                        )
             except Exception as e:
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while extracting firmware info during initialization.")
                 traceback.print_exc()
@@ -1749,6 +1757,10 @@ class PixelFlasher(wx.Frame):
         self.pif_manager_menu = device_menu.Append(wx.ID_ANY, _("Pif Manager"), _("Pif Manager"))
         self.pif_manager_menu.SetBitmap(images.pif_24.GetBitmap())
         self.Bind(wx.EVT_MENU, self._on_pif_manager, self.pif_manager_menu)
+        # Check Device Keybox
+        self.check_device_keybox_menu = device_menu.Append(wx.ID_ANY, _("Check Device Keybox"), _("Check Device Keybox"))
+        self.check_device_keybox_menu.SetBitmap(images.cert_24.GetBitmap())
+        self.Bind(wx.EVT_MENU, self._on_check_device_keybox, self.check_device_keybox_menu)
         # SOS
         self.sos_menu = device_menu.Append(wx.ID_ANY, _("SOS"), _("Disable Magisk Modules"))
         self.sos_menu.SetBitmap(images.sos_24.GetBitmap())
@@ -3312,12 +3324,12 @@ class PixelFlasher(wx.Frame):
                     if is_bootloader_version_older(actual_bootloader_version, min_safe_version):
                         message += _("      ⚠️ WARNING: Bootloader version %s is older than the minimum ARB safe version %s\n") % (d_bootloader_version, min_safe_version)
                         self.toast(_("WARNING! ARB Affected"), _("⚠️ Bootloader version: %s is older than the minimum ARB safe version: %s") % (d_bootloader_version, min_safe_version))
-            if device.rooted:
-                abl_a, abl_b = device.get_bootloader_versions()
-                if abl_a:
-                    message += f"    Device Bootloader abl_a Version: {abl_a}\n"
-                if abl_b:
-                    message += f"    Device Bootloader abl_b Version: {abl_b}\n"
+            # if device.rooted:
+            #     abl_a, abl_b = device.get_bootloader_versions()
+            #     if abl_a:
+            #         message += f"    Device Bootloader abl_a Version: {abl_a}\n"
+            #     if abl_b:
+            #         message += f"    Device Bootloader abl_b Version: {abl_b}\n"
 
         wx.Yield()
         if device.true_mode == 'adb':
@@ -3378,6 +3390,8 @@ class PixelFlasher(wx.Frame):
                 message += f"    ro.vendor.product.cpu.abilist32: {device.get_prop('ro.vendor.product.cpu.abilist32')}\n"
                 message += f"    ro.boot.hw.soc.sec-ar:           {device.get_prop('ro.boot.hw.soc.sec-ar')}\n"
                 message += f"    ro.boot.hw.soc.nonsec-ar:        {device.get_prop('ro.boot.hw.soc.nonsec-ar')}\n"
+                message += f"    ro.soc.model:                    {device.get_prop('ro.soc.model')}\n"
+                message += f"    ro.board.platform:               {device.get_prop('ro.board.platform')}\n"
                 wx.Yield()
                 m_app_version = device.magisk_app_version
                 if m_app_version:
@@ -3454,6 +3468,31 @@ class PixelFlasher(wx.Frame):
             if "lsposed" in modules.lower():
                 message += "      LSPosed Modules:\n"
                 message += f"{device.lsposed_modules_summary}"
+            metadata = device.get_bootloader_metadata()
+            if metadata is None:
+                message += "    Bootloader metadata is unavailable for this device.\n"
+            else:
+                for group_name, group in (
+                    ('AVB properties', metadata.avb_props),
+                    ('Bootloader image AR', metadata.bootloader_image_ar),
+                    ('Bootloader versions', metadata.bootloader_versions),
+                ):
+                    message += f"    {group_name}:\n"
+                    if not group:
+                        message += "      (none)\n"
+                        continue
+                    for partition, values in group.items():
+                        message += f"      {partition}:\n"
+                        if isinstance(values, dict):
+                            if not values:
+                                message += "        (no values)\n"
+                            for key, value in values.items():
+                                message += f"        {key}={value}\n"
+                        else:
+                            message += f"        {values}\n"
+                message += "    Slot comparison:\n"
+                for name, result in metadata.slot_comparison.items():
+                    message += f"      {name:<22}: {result or 'Unavailable'}\n"
             message += "\n"
             message += f"{device.get_battery_details()}\n"
         else:
@@ -3983,6 +4022,7 @@ class PixelFlasher(wx.Frame):
                 self.data_adb_restore_menu:             ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
                 self.data_adb_clear_menu:               ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
                 self.start_shizuku_menu:                ['device_attached', 'device_mode_true_adb'],
+                self.check_device_keybox_menu:          ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
                 # self.pif_manager_menu:                  ['device_attached', 'device_mode_true_adb'],
                 self.reboot_safe_mode_menu:             ['device_attached', 'device_mode_adb', 'device_is_rooted', 'advanced_options'],
                 # self.verity_menu_item:                  ['device_attached', 'device_mode_true_adb', 'device_is_rooted'],
@@ -4466,10 +4506,32 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     #                  switch_slot_alert
     # -----------------------------------------------
-    def switch_slot_alert(self):
+    def switch_slot_alert(self, metadata=None):
         try:
-            dlg = wx.MessageDialog(None, _("Before switching slots, please make sure your device is not subject to ARB concerns.\nAre you sure want to continue?"), _('Switch Slot potential concern'),wx.YES_NO | wx.ICON_EXCLAMATION)
+            ar_mismatches = []
+            if metadata:
+                ar_mismatches = [
+                    name for name in ('sec_ar', 'nonsec_ar')
+                    if metadata.slot_comparison.get(name) == 'Different'
+                ]
+            if ar_mismatches:
+                mismatch_text = ', '.join(ar_mismatches)
+                message = _(
+                    "MAJOR WARNING: %(indexes)s differ between the current slots.\n\n"
+                    "Switching slots may cause serious boot or anti-rollback problems and could permanently brick the device.\n\n"
+                    "Continue regardless?"
+                ) % {'indexes': mismatch_text}
+                title = _('MAJOR WARNING: Slot anti-rollback mismatch')
+                style = wx.YES_NO | wx.NO_DEFAULT | wx.ICON_ERROR
+                print(f"\n🚨 MAJOR WARNING: Slot {mismatch_text} values differ. Switching slots may cause serious problems or permanently brick the device.")
+                puml(f":MAJOR WARNING: Slot {mismatch_text} mismatch may brick device;<<#red>>\n")
+            else:
+                message = _("Before switching slots, please make sure your device is not subject to ARB concerns.\nAre you sure want to continue?")
+                title = _('Switch Slot potential concern')
+                style = wx.YES_NO | wx.NO_DEFAULT | wx.ICON_EXCLAMATION
+            dlg = wx.MessageDialog(None, message, title, style)
             result = dlg.ShowModal()
+            dlg.Destroy()
             if result != wx.ID_YES:
                 print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User canceled Switch Slot operation")
                 return False
@@ -5573,12 +5635,12 @@ class PixelFlasher(wx.Frame):
                 print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Unknown slot, is your device dual slot?")
                 return
             print(f"User clicked on Switch Slot: Current Slot: [{device.active_slot}]")
-            to_continue = self.switch_slot_alert()
+            metadata = device.get_bootloader_metadata()
+            to_continue = self.switch_slot_alert(metadata)
             if not to_continue:
                 print("Aborting ...\n")
                 return
             self.vbmeta_alert(show_alert=True)
-            device.switch_slot()
             if device:
                 res = device.switch_slot()
                 if res == -1:
@@ -5697,7 +5759,7 @@ class PixelFlasher(wx.Frame):
     # -----------------------------------------------
     #                  _on_check_keybox
     # -----------------------------------------------
-    def _on_check_keybox(self, event):
+    def _on_check_keybox(self, event, selected_files=None):
         total_keyboxes = None
         result_categories = {}
         longest_desc = 0
@@ -5705,11 +5767,11 @@ class PixelFlasher(wx.Frame):
             # Select keybox files
             total_keyboxes = None
 
-            if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):
+            if selected_files is None and wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):
                 kb_stats_ui(self)
                 return
 
-            if wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_ALT):
+            if selected_files is None and wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_ALT):
                 target_path = ''
                 if self.config.unmarked_entries_path and os.path.exists(self.config.unmarked_entries_path):
                     target_path = self.config.unmarked_entries_path
@@ -5727,11 +5789,11 @@ class PixelFlasher(wx.Frame):
                 kb_add_missing_files(target_path=target_path, check_validity=True, dry_run=False, verbose=True)
                 return
 
-            if wx.GetKeyState(wx.WXK_CONTROL):
+            if selected_files is None and wx.GetKeyState(wx.WXK_CONTROL):
                 update_kb_index_with_crl()
                 return
 
-            if wx.GetKeyState(wx.WXK_SHIFT):
+            if selected_files is None and wx.GetKeyState(wx.WXK_SHIFT):
                 # Directory selection mode - get all xml files recursively
                 with wx.DirDialog(self, _("Select directory containing keybox files")) as dirDialog:
                     if dirDialog.ShowModal() == wx.ID_CANCEL:
@@ -5751,7 +5813,7 @@ class PixelFlasher(wx.Frame):
                     return
 
                 print(f"Found {len(selected_files)} XML files in directory: {selected_directory}")
-            else:
+            elif selected_files is None:
                 # Multi-File selection mode (default)
                 with wx.FileDialog(self, _("Select keybox to test"), '', '', wildcard="All files (*.xml)|*.xml", style=wx.FD_OPEN | wx.FD_MULTIPLE) as fileDialog:
                     if fileDialog.ShowModal() == wx.ID_CANCEL:
@@ -5823,6 +5885,28 @@ class PixelFlasher(wx.Frame):
                             print(f"    {keybox}")
 
                 print("\n")
+
+    # -----------------------------------------------
+    #                  _on_check_device_keybox
+    # -----------------------------------------------
+    def _on_check_device_keybox(self, event):
+        try:
+            device = get_phone()
+            if not device or not device.rooted or device.mode != 'adb':
+                print("Cannot check device keybox: a rooted device in ADB mode is required.")
+                return
+
+            keybox_path = os.path.join(get_config_path(), 'tmp', 'keybox.xml')
+            os.makedirs(os.path.dirname(keybox_path), exist_ok=True)
+            print(f"Pulling /data/adb/tricky_store/keybox.xml from the device to {keybox_path} ...")
+            if device.pull_file('/data/adb/tricky_store/keybox.xml', keybox_path, with_su=True) != 0:
+                print("Failed to pull /data/adb/tricky_store/keybox.xml from the device.")
+                return
+
+            self._on_check_keybox(None, [keybox_path])
+        except Exception as e:
+            print(f"Error checking device keybox: {e}")
+            traceback.print_exc()
 
     # -----------------------------------------------
     #                  _on_customize_my_tools
@@ -6227,7 +6311,8 @@ class PixelFlasher(wx.Frame):
             boot = get_boot()
             if boot:
                 config_path = get_config_path()
-                working_dir = os.path.join(config_path, 'factory_images', boot.package_sig if boot.package_sig else '')
+                package_sig = get_firmware_id() or boot.package_sig or ''
+                working_dir = os.path.join(config_path, 'factory_images', package_sig)
                 open_folder(self, working_dir, False)
         except Exception as e:
             print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while opening firmware folder")

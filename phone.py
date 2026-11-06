@@ -37,6 +37,7 @@ import contextlib
 import re
 import shlex
 import subprocess
+import tempfile
 import time
 import traceback
 import sqlite3
@@ -94,6 +95,56 @@ class Vbmeta():
         self.verity_b: bool | None = None
         self.verification_a: bool | None = None
         self.verification_b: bool | None = None
+
+
+# ============================================================================
+#                               Class BootloaderMetadata
+# ============================================================================
+class BootloaderMetadata:
+    def __init__(self):
+        self.avb_props = {}
+        self.bootloader_image_ar = {}
+        self.bootloader_versions = {}
+        self.slot_comparison: dict[str, str | None] = {
+            'boot': None,
+            'init_boot': None,
+            'vendor_boot': None,
+            'vendor_kernel_boot': None,
+            'bootloader_version': None,
+            'sec_ar': None,
+            'nonsec_ar': None,
+        }
+
+    @staticmethod
+    def _compare_slots(slot_a, slot_b) -> str | None:
+        if not slot_a or not slot_b:
+            return None
+        return 'Match' if slot_a == slot_b else 'Different'
+
+    def update_slot_comparison(self):
+        self.slot_comparison.update({
+            partition: self._compare_slots(
+                self.avb_props.get(f'{partition}_a'),
+                self.avb_props.get(f'{partition}_b'),
+            )
+            for partition in ('boot', 'init_boot', 'vendor_boot', 'vendor_kernel_boot')
+        })
+        self.slot_comparison['bootloader_version'] = self._compare_slots(
+            self.bootloader_versions.get('abl_a'),
+            self.bootloader_versions.get('abl_b'),
+        )
+        self.slot_comparison['nonsec_ar'] = self._compare_slots(
+            self.bootloader_image_ar.get('abl_a', {}).get('nonsec_ar'),
+            self.bootloader_image_ar.get('abl_b', {}).get('nonsec_ar'),
+        )
+
+        for stem in ('gsa_bl1', 'bl1'):
+            sec_ar_a = self.bootloader_image_ar.get(f'{stem}_a', {}).get('sec_ar')
+            sec_ar_b = self.bootloader_image_ar.get(f'{stem}_b', {}).get('sec_ar')
+            if sec_ar_a is not None and sec_ar_b is not None:
+                self.slot_comparison['sec_ar'] = self._compare_slots(sec_ar_a, sec_ar_b)
+                break
+
 
 # ============================================================================
 #                               Class Magisk
@@ -201,6 +252,7 @@ class Device():
         self._tmp_readable = None
         self._partitions = None
         self.bootdevice_string = None
+        self._bootloader_metadata = None
         # vbmeta details are lazy loaded
         self._vbmeta = None
 
@@ -307,36 +359,140 @@ class Device():
     #                               method get_bootloader_versions
     # ----------------------------------------------------------------------------
     def get_bootloader_versions(self):
-        if self.true_mode != 'adb' or self.rooted is False:
-            return
+        metadata = self.get_bootloader_metadata()
+        if metadata is None:
+            return '', ''
+        return (
+            metadata.bootloader_versions.get('abl_a', ''),
+            metadata.bootloader_versions.get('abl_b', ''),
+        )
+
+    # ----------------------------------------------------------------------------
+    #                               method get_bootloader_metadata
+    # ----------------------------------------------------------------------------
+    def get_bootloader_metadata(self):
+        cached_metadata = getattr(self, '_bootloader_metadata', None)
+        if cached_metadata is not None:
+            return cached_metadata
+        if self.true_mode != 'adb' or not self.rooted:
+            return None
+        if self.architecture not in ('arm64-v8a', 'aarch64'):
+            return None
+
+        partitions = self.get_partitions()
+        if partitions == -1 or not self.bootdevice_string:
+            return None
+
+        partitions = {partition.strip() for partition in partitions if partition.strip()}
+        avb_partitions = [
+            name for name in (
+                'boot_a', 'boot_b',
+                'init_boot_a', 'init_boot_b',
+                'vendor_boot_a', 'vendor_boot_b',
+                'vendor_kernel_boot_a', 'vendor_kernel_boot_b',
+            )
+            if name in partitions
+        ]
+        bootloader_partitions = [name for name in ('abl_a', 'abl_b') if name in partitions]
+        bootloader_partitions.extend(sorted(
+            name for name in partitions
+            if name.endswith(('bl1_a', 'bl1_b')) and name not in bootloader_partitions
+        ))
+
+        metadata = BootloaderMetadata()
+        pluck_path = '/data/local/tmp/pluck-android-arm64'
+        remote_script_path = '/data/local/tmp/pf_pluck_bootloader_metadata.sh'
+        local_script_path = ''
+        script_push_attempted = False
         try:
+            if self.push_pluck(pluck_path) != 0:
+                return metadata
+
+            script_lines = [
+                '#!/system/bin/sh',
+                f'PLUCK={shlex.quote(pluck_path)}',
+            ]
+            for partition in avb_partitions:
+                partition_path = f'{self.bootdevice_string}{partition}'
+                script_lines.extend((
+                    f"printf '%s\\n' {shlex.quote(f'__PF_AVB__|{partition}')}",
+                    f'"$PLUCK" list-avb-props {shlex.quote(partition_path)} 2>&1',
+                ))
+            for partition in bootloader_partitions:
+                partition_path = f'{self.bootdevice_string}{partition}'
+                script_lines.extend((
+                    f"printf '%s\\n' {shlex.quote(f'__PF_AR__|{partition}')}",
+                    f'"$PLUCK" list-bootloader-image-ar {shlex.quote(partition_path)} 2>&1',
+                ))
+            for partition in ('abl_a', 'abl_b'):
+                if partition in partitions:
+                    partition_path = f'{self.bootdevice_string}{partition}'
+                    script_lines.extend((
+                        f"printf '%s\\n' {shlex.quote(f'__PF_VERSION__|{partition}')}",
+                        f"strings {shlex.quote(partition_path)} | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'",
+                    ))
+
+            with tempfile.NamedTemporaryFile(
+                mode='w', encoding='utf-8', newline='\n', suffix='.sh', delete=False
+            ) as script_file:
+                local_script_path = script_file.name
+                script_file.write('\n'.join(script_lines) + '\n')
+
+            script_push_attempted = True
+            if self.push_file(local_script_path, remote_script_path) != 0:
+                return metadata
+
             adb_path = get_adb()
             if not adb_path:
-                return '', ''
-
-            # res, unused = self.check_file('/dev/block/bootdevice/by-name', True, False)
-            # if res == 1:
-            #     command = "strings /dev/block/bootdevice/by-name/abl_a | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'; strings /dev/block/by-name/abl_b | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'"
-            # else:
-            #     command = "strings /dev/block/by-name/abl_a | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'; strings /dev/block/by-name/abl_b | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'"
-            command = "strings /dev/block/by-name/abl_a | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'; strings /dev/block/by-name/abl_b | grep -E 'cloudripper-|slider-|bluejay-|ripcurrent-|akita-|ripcurrentpro-'"
-            adb_command = f"su -c {shlex.quote(command)}"
-            res = subprocess.run(
-                [adb_path, "-s", self.id, "shell", adb_command],
+                return metadata
+            result = subprocess.run(
+                [adb_path, '-s', self.id, 'shell', 'su', '-c', f'sh {remote_script_path}'],
                 capture_output=True,
                 encoding='ISO-8859-1',
                 errors='replace',
                 env=get_env_variables(),
             )
-            if res and isinstance(res, subprocess.CompletedProcess) and res.returncode == 0:
-                return res.stdout.splitlines()[0].strip(), res.stdout.splitlines()[1].strip()
-            else:
-                return '', ''
+
+            current_result = None
+            current_partition = None
+            for line in result.stdout.splitlines():
+                if line.startswith('__PF_AVB__|'):
+                    current_result = metadata.avb_props
+                    current_partition = line.split('|', 1)[1]
+                    current_result[current_partition] = {}
+                elif line.startswith('__PF_AR__|'):
+                    current_result = metadata.bootloader_image_ar
+                    current_partition = line.split('|', 1)[1]
+                    current_result[current_partition] = {}
+                elif line.startswith('__PF_VERSION__|'):
+                    current_result = metadata.bootloader_versions
+                    current_partition = line.split('|', 1)[1]
+                elif current_result is not None and current_partition:
+                    if '=' in line and current_result is not metadata.bootloader_versions:
+                        key, value = line.split('=', 1)
+                        current_result[current_partition][key] = value
+                    elif current_result is metadata.bootloader_versions and line.strip():
+                        current_result.setdefault(current_partition, line.strip())
+
+            metadata.update_slot_comparison()
+            if result.returncode != 0:
+                debug(f"Could not collect all bootloader metadata: {result.stderr}")
+            self._bootloader_metadata = metadata
+            return metadata
         except Exception as e:
             traceback.print_exc()
-            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get bootloader versions.")
-            puml(":ERROR: Could not get bootloader versions;<<#red>>\n", True)
-            return '', ''
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not get bootloader metadata.")
+            puml(":ERROR: Could not get bootloader metadata;<<#red>>\n", True)
+            return metadata
+        finally:
+            with contextlib.suppress(Exception):
+                self.delete(pluck_path, with_su=True)
+            if script_push_attempted:
+                with contextlib.suppress(Exception):
+                    self.delete(remote_script_path, with_su=True)
+            if local_script_path:
+                with contextlib.suppress(Exception):
+                    os.remove(local_script_path)
 
     # ----------------------------------------------------------------------------
     #                               method get_page_size
@@ -4902,7 +5058,17 @@ add_hosts_module
                     print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Module {dirname} does not have action script\nAborting ...\n")
                     puml(":Module does not have action script;<<#red>>\n}\n")
                     return -1
-                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c \'busybox sh -o standalone /data/adb/modules/{dirname}/action.sh\'\""
+                action_script = f"/data/adb/modules/{dirname}/action.sh"
+                shell_cmd = (
+                    f"if [ -x /system/bin/sh ]; then "
+                    f"/system/bin/sh {action_script}; "
+                    f"elif [ -x /data/adb/magisk/busybox ]; then "
+                    f"/data/adb/magisk/busybox sh -o standalone {action_script}; "
+                    f"elif command -v busybox >/dev/null 2>&1; then "
+                    f"busybox sh -o standalone {action_script}; "
+                    f"else sh {action_script}; fi"
+                )
+                theCmd = f"\"{get_adb()}\" -s {self.id} shell \"su -c '{shell_cmd}'\""
                 debug(theCmd)
                 res = run_shell(theCmd)
                 if res and isinstance(res, subprocess.CompletedProcess):

@@ -61,6 +61,9 @@ from phone import get_connected_devices, update_phones
 from runtime import *
 
 console_widget = None
+_bootloader_metadata_processed_this_session = set()
+_bootloader_metadata_printed_this_session = set()
+
 
 # ============================================================================
 #                               Class FlashFile
@@ -94,7 +97,7 @@ class FlashFile():
 
 
 # ============================================================================
-#                               Function check_platform_tools
+#                       Function check_platform_tools
 # ============================================================================
 def check_platform_tools(self):
     try:
@@ -143,6 +146,399 @@ def check_platform_tools(self):
         else:
             self.platform_tools_picker.SetPath('')
             return -1
+
+
+# ============================================================================
+#                   Function _confirm_slot_partition_mismatch
+# ============================================================================
+def _confirm_slot_partition_mismatch(device, partitions):
+    metadata = device.get_bootloader_metadata()
+    if metadata is None:
+        return True
+    mismatches = [
+        partition for partition in partitions
+        if metadata.slot_comparison.get(partition) == 'Different'
+    ]
+    if not mismatches:
+        return True
+
+    partition_text = ', '.join(mismatches)
+    message = _(
+        "The following partitions differ between slots: %(partitions)s.\n\n"
+        "Flashing these partitions to both slots may cause boot or compatibility problems.\n"
+        "Continue regardless?"
+    ) % {'partitions': partition_text}
+    print(f"⚠️ WARNING: Slot partition mismatch before flashing both slots: {partition_text}")
+    puml(f":Slot partition mismatch before flashing both slots: {partition_text};<<#orange>>\n")
+    dlg = wx.MessageDialog(
+        None, message, _('Slot mismatch warning'),
+        wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+    )
+    result = dlg.ShowModal()
+    dlg.Destroy()
+    if result != wx.ID_YES:
+        print("User aborted flashing both slots because slot partitions differ.")
+        puml(":User aborted flashing both slots due to slot mismatch;<<#pink>>\n}")
+        return False
+    print("User chose to continue despite slot partition mismatches.")
+    puml(":User chose to continue despite slot partition mismatches;<<#orange>>\n")
+    return True
+
+
+# ============================================================================
+#                   Function _get_security_patch_mismatches
+# ============================================================================
+def _get_security_patch_mismatches(metadata, source_security_patches, target_slots):
+    mismatches = []
+    for partition, source_patch in source_security_patches.items():
+        descriptor = f'com.android.build.{partition}.security_patch'
+        for slot in target_slots.get(partition, ()):
+            slot_props = metadata.avb_props.get(f'{partition}_{slot}', {})
+            device_patch = slot_props.get(descriptor)
+            if device_patch and source_patch != device_patch:
+                mismatches.append((partition, slot, source_patch, device_patch))
+    return mismatches
+
+
+# ============================================================================
+#                   Function _confirm_security_patch_mismatch
+# ============================================================================
+def _confirm_security_patch_mismatch(device, partition_images, target_slots):
+    if not partition_images or not target_slots:
+        return True
+    metadata = device.get_bootloader_metadata()
+    if metadata is None:
+        return True
+
+    source_security_patches = {}
+    for partition, image_path in partition_images.items():
+        if not image_path or not os.path.isfile(image_path):
+            continue
+        image_info = get_boot_image_info(image_path)
+        if isinstance(image_info, dict):
+            security_patch = image_info.get(
+                f'com.android.build.{partition}.security_patch'
+            )
+            if security_patch:
+                source_security_patches[partition] = security_patch
+
+    mismatches = _get_security_patch_mismatches(
+        metadata, source_security_patches, target_slots
+    )
+    if not mismatches:
+        return True
+
+    details = '\n'.join(
+        f"{partition}_{slot}: image {image_patch}, device {device_patch}"
+        for partition, slot, image_patch, device_patch in mismatches
+    )
+    message = _(
+        "The selected image security patch date does not match the target slot partition.\n\n"
+        "%(details)s\n\nContinue flashing anyway?"
+    ) % {'details': details}
+    print(f"⚠️ WARNING: Security patch date mismatch before flashing:\n{details}")
+    puml(":Security patch date mismatch before flashing;<<#orange>>\n")
+    dlg = wx.MessageDialog(
+        None, message, _('Security patch mismatch'),
+        wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
+    )
+    result = dlg.ShowModal()
+    dlg.Destroy()
+    if result != wx.ID_YES:
+        print("User aborted flashing because security patch dates differ.")
+        puml(":User aborted flashing due to security patch mismatch;<<#pink>>\n}")
+        return False
+    print("User chose to continue despite security patch date mismatches.")
+    puml(":User chose to continue despite security patch date mismatches;<<#orange>>\n")
+    return True
+
+
+# ============================================================================
+#                   Function _extract_known_partition_images_from_zip
+# ============================================================================
+def _extract_known_partition_images_from_zip(zip_path, output_dir):
+    partition_images = {}
+    try:
+        with zipfile.ZipFile(zip_path) as image_zip:
+            for partition in ('boot', 'init_boot', 'vendor_boot', 'vendor_kernel_boot'):
+                member = next(
+                    (
+                        item for item in image_zip.infolist()
+                        if os.path.basename(item.filename) == f'{partition}.img'
+                    ),
+                    None,
+                )
+                if member is None:
+                    continue
+                image_path = os.path.join(output_dir, f'{partition}.img')
+                with image_zip.open(member) as source, open(image_path, 'wb') as target:
+                    shutil.copyfileobj(source, target)
+                partition_images[partition] = image_path
+    except (OSError, zipfile.BadZipFile) as error:
+        debug(f"Unable to inspect partition images in {zip_path}: {error}")
+    return partition_images
+
+
+# ============================================================================
+#                    Function _report_bootloader_ar_values
+# ============================================================================
+def _report_bootloader_ar_values(image_values, compare_device=True, print_values=True):
+    if not image_values:
+        return
+    if print_values:
+        for image_name, values in image_values.items():
+            print(f"Bootloader AR values in {image_name}:")
+            for name in ('sec_ar', 'nonsec_ar'):
+                if name in values:
+                    print(f"    {name}: {values[name]}")
+
+    if not compare_device:
+        return
+
+    device = get_phone(True)
+    if not device:
+        return
+    metadata = device.get_bootloader_metadata()
+    if metadata is None:
+        return
+
+    current_values = {'sec_ar': [], 'nonsec_ar': []}
+    for partition_values in metadata.bootloader_image_ar.values():
+        for name in current_values:
+            value = partition_values.get(name)
+            if value is not None:
+                current_values[name].append(value)
+
+    implications = []
+    for image_name, values in image_values.items():
+        for name, image_value in values.items():
+            try:
+                try:
+                    parsed_image_value = int(image_value, 0)
+                except ValueError:
+                    parsed_image_value = int(image_value)
+                parsed_current_values = [
+                    int(value, 0) if not value.isdecimal() else int(value)
+                    for value in current_values[name]
+                ]
+            except (TypeError, ValueError):
+                continue
+            if parsed_current_values and parsed_image_value > max(parsed_current_values):
+                implications.append(
+                    f"{image_name}: {name} {image_value} > current {max(parsed_current_values)}"
+                )
+
+    if implications:
+        details = '\n'.join(implications)
+        message = _(
+            "The selected factory or OTA image has anti-rollback implications.\n\n%(details)s\n\n"
+            "Flashing may permanently prevent returning to firmware with lower rollback indexes."
+        ) % {'details': details}
+        print(f"⚠️ WARNING: Selected image has ARB implications.\n{details}")
+        puml(":Selected firmware has ARB implications;<<#orange>>\n")
+        dlg = wx.MessageDialog(None, message, _('Anti-rollback warning'), wx.OK | wx.ICON_WARNING)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+
+# ============================================================================
+#                Function _bootloader_metadata_cache_key
+# ============================================================================
+def _bootloader_metadata_cache_key(package_dir):
+    return os.path.normcase(os.path.abspath(package_dir))
+
+
+# ============================================================================
+#                    Function _print_bootloader_metadata
+# ============================================================================
+def _print_bootloader_metadata(metadata):
+    if metadata.get('bootloader_version'):
+        print(f"Bootloader version: {metadata['bootloader_version']}")
+    ar_values = metadata.get('ar', {})
+    if ar_values:
+        _report_bootloader_ar_values(
+            {'saved firmware metadata': ar_values},
+            compare_device=False,
+        )
+
+
+# ============================================================================
+#                 Function print_saved_bootloader_metadata
+# ============================================================================
+def print_saved_bootloader_metadata(package_dir, force=False):
+    metadata = load_bootloader_image_metadata(package_dir)
+    if not metadata:
+        return False
+    cache_key = _bootloader_metadata_cache_key(package_dir)
+    if force or cache_key not in _bootloader_metadata_printed_this_session:
+        _print_bootloader_metadata(metadata)
+        _bootloader_metadata_printed_this_session.add(cache_key)
+    return True
+
+
+# ============================================================================
+#                 Function _report_saved_bootloader_metadata
+# ============================================================================
+def _report_saved_bootloader_metadata(package_dir):
+    metadata = load_bootloader_image_metadata(package_dir)
+    if not metadata:
+        return False
+    print_saved_bootloader_metadata(package_dir)
+    ar_values = metadata.get('ar', {})
+    if ar_values:
+        _report_bootloader_ar_values(
+            {'saved firmware metadata': ar_values},
+            print_values=False,
+        )
+    return True
+
+
+# ============================================================================
+#                  Function _report_bootloader_image_ar
+# ============================================================================
+def _report_bootloader_image_ar(image_files):
+    image_values = {}
+    bootloader_version = ''
+    for image_path in image_files:
+        if os.path.basename(image_path) == 'abl.img':
+            bootloader_version = get_bootloader_version_from_image(image_path)
+            if bootloader_version:
+                print(f"Bootloader version: {bootloader_version}")
+        values = get_bootloader_image_ar(image_path)
+        if values:
+            image_values[os.path.basename(image_path)] = values
+    _report_bootloader_ar_values(image_values)
+    ar_values = {}
+    for image_name in ('gsa_bl1.img', 'bl1.img'):
+        value = image_values.get(image_name, {}).get('sec_ar')
+        if value is not None:
+            ar_values['sec_ar'] = value
+            break
+    nonsec_ar = image_values.get('abl.img', {}).get('nonsec_ar')
+    if nonsec_ar is not None:
+        ar_values['nonsec_ar'] = nonsec_ar
+    return {
+        'bootloader_version': bootloader_version,
+        'ar': ar_values,
+    }
+
+
+# ============================================================================
+#                   Function _report_factory_bootloader_ar
+# ============================================================================
+def _report_factory_bootloader_ar(factory_zip_path):
+    try:
+        with zipfile.ZipFile(factory_zip_path) as factory_zip:
+            bootloader_members = [
+                member for member in factory_zip.infolist()
+                if os.path.basename(member.filename).startswith('bootloader-')
+                and member.filename.endswith('.img')
+            ]
+            if not bootloader_members:
+                return {}
+            bootloader_version = ''
+            for member in bootloader_members:
+                filename = os.path.basename(member.filename)
+                version_match = re.match(r'^bootloader-[^-]+-(.+)\.img$', filename)
+                if version_match:
+                    bootloader_version = version_match.group(1)
+                    print(f"Bootloader version: {bootloader_version}")
+
+        partitions = get_factory_bootloader_partitions(factory_zip_path)
+        image_values = {}
+        secure_partition = next(
+            (partition for partition in ('gsa_bl1', 'bl1') if partition in partitions),
+            None,
+        )
+        if secure_partition:
+            values = get_factory_bootloader_ar(factory_zip_path, secure_partition)
+            if values:
+                image_values[f'bootloader {secure_partition}'] = values
+        if 'abl' in partitions:
+            values = get_factory_bootloader_ar(factory_zip_path, 'abl')
+            if values:
+                image_values['bootloader abl'] = values
+        _report_bootloader_ar_values(image_values)
+        return {
+            'bootloader_version': bootloader_version,
+            'ar': {
+                name: value
+                for values in image_values.values()
+                for name, value in values.items()
+            },
+        }
+    except (OSError, zipfile.BadZipFile) as error:
+        debug(f"Unable to read bootloader images from {factory_zip_path}: {error}")
+        return {}
+
+
+# ============================================================================
+#                Function _extract_ota_bootloader_metadata
+# ============================================================================
+def _extract_ota_bootloader_metadata(firmware_path):
+    path_to_7z = get_path_to_7z()
+    if not path_to_7z or not os.path.exists(firmware_path):
+        return {}
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = subprocess.run(
+                [path_to_7z, 'x', '-bd', '-y', f'-o{temp_dir}', firmware_path, 'payload.bin'],
+                capture_output=True,
+                encoding='ISO-8859-1',
+                errors='replace',
+                env=get_env_variables(),
+            )
+            payload_path = os.path.join(temp_dir, 'payload.bin')
+            if result.returncode != 0 or not os.path.exists(payload_path):
+                debug(f"Could not extract payload.bin for bootloader metadata: {result.stderr}")
+                return {}
+
+            partition_dir = os.path.join(temp_dir, 'partitions')
+            os.makedirs(partition_dir, exist_ok=True)
+            if extract_payload(
+                payload_path,
+                out=partition_dir,
+                diff=False,
+                old='old',
+                images='abl,gsa_bl1,bl1',
+            ) != 0:
+                return {}
+            image_paths = [
+                os.path.join(partition_dir, f'{partition}.img')
+                for partition in ('abl', 'gsa_bl1', 'bl1')
+                if os.path.exists(os.path.join(partition_dir, f'{partition}.img'))
+            ]
+            return _report_bootloader_image_ar(image_paths) if image_paths else {}
+    except Exception as error:
+        debug(f"Could not extract OTA bootloader metadata: {error}")
+        return {}
+
+
+# ============================================================================
+#                 Function ensure_firmware_bootloader_metadata
+# ============================================================================
+def ensure_firmware_bootloader_metadata(firmware_path, package_sig, is_ota, force_print=False):
+    if not firmware_path or not package_sig:
+        return False
+    package_dir = os.path.join(get_config_path(), 'factory_images', package_sig)
+    metadata = load_bootloader_image_metadata(package_dir)
+    if metadata:
+        if force_print:
+            print_saved_bootloader_metadata(package_dir, force=True)
+        return True
+
+    if is_ota:
+        metadata = _extract_ota_bootloader_metadata(firmware_path)
+    else:
+        metadata = _report_factory_bootloader_ar(firmware_path)
+    if not metadata or not (metadata.get('ar') or metadata.get('bootloader_version')):
+        return False
+    if not save_bootloader_image_metadata(package_dir, metadata):
+        return False
+
+    cache_key = _bootloader_metadata_cache_key(package_dir)
+    _bootloader_metadata_printed_this_session.add(cache_key)
+    return True
 
 
 # ============================================================================
@@ -643,6 +1039,14 @@ def select_firmware(self):
                     set_firmware_model(None)
                     set_firmware_id(filename)
             set_ota(self, self.config.firmware_is_ota)
+            package_sig = get_firmware_id()
+            if package_sig:
+                ensure_firmware_bootloader_metadata(
+                    self.config.firmware_path,
+                    package_sig,
+                    self.config.firmware_is_ota,
+                    force_print=True,
+                )
             if get_firmware_id():
                 set_flash_button_state(self)
             else:
@@ -769,6 +1173,15 @@ def process_file(self, file_type):
                     return
                 if os.path.exists(image_file_path):
                     print("Possibly the selected image is an official Pixel factory image.")
+                    bootloader_metadata = _report_factory_bootloader_ar(file_to_process)
+                    if bootloader_metadata:
+                        if save_bootloader_image_metadata(package_dir_full, bootloader_metadata):
+                            _bootloader_metadata_printed_this_session.add(
+                                _bootloader_metadata_cache_key(package_dir_full)
+                            )
+                            _bootloader_metadata_processed_this_session.add(
+                                _bootloader_metadata_cache_key(package_dir_full)
+                            )
                 else:
                     print("\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                     print(f"⚠️ WARNING: Possibly the selected image is a Non-official Pixel factory image.")
@@ -1006,7 +1419,7 @@ def process_file(self, file_type):
                 if self.config.extra_img_extracts:
                     print("Option to copy extra img files is enabled.")
                     wx.Yield()
-                    res = extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot')
+                    res = extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,dtbo,super_empty,vendor_boot,vendor_kernel_boot,abl,gsa_bl1,bl1')
                     if res != 0:
                         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Could not extract payload.bin.")
                         puml(":ERROR: Could not extract payload.bin;<<#red>>\n")
@@ -1033,8 +1446,23 @@ def process_file(self, file_type):
                 else:
                     print("Extracting files from payload.bin ...")
                     wx.Yield()
-                    extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,vendor_boot')
+                    extract_payload(payload_file_path, out=package_dir_full, diff=False, old='old', images='boot,vbmeta,init_boot,vendor_boot,abl,gsa_bl1,bl1')
                     wx.Yield()
+                bootloader_ar_images = [
+                    os.path.join(package_dir_full, f'{partition}.img')
+                    for partition in ('abl', 'gsa_bl1', 'bl1')
+                    if os.path.exists(os.path.join(package_dir_full, f'{partition}.img'))
+                ]
+                if bootloader_ar_images:
+                    bootloader_metadata = _report_bootloader_image_ar(bootloader_ar_images)
+                    if bootloader_metadata:
+                        if save_bootloader_image_metadata(package_dir_full, bootloader_metadata):
+                            _bootloader_metadata_printed_this_session.add(
+                                _bootloader_metadata_cache_key(package_dir_full)
+                            )
+                            _bootloader_metadata_processed_this_session.add(
+                                _bootloader_metadata_cache_key(package_dir_full)
+                            )
                 if os.path.exists(os.path.join(package_dir_full, 'boot.img')):
                     boot_img_file = os.path.join(package_dir_full, 'boot.img')
                     debug(f"Copying {boot_img_file}")
@@ -5429,6 +5857,60 @@ def live_flash_boot_phone(self, option):  # sourcery skip: de-morgan
         return -1
     device_id = device.id
 
+    if option == 'Flash' and selected_radio_index in (0, 1, 2):
+        boot_partitions = ('boot', 'init_boot', 'vendor_boot', 'vendor_kernel_boot')
+        partition_images = {
+            name: os.path.join(selected_dir, f'{name}.img')
+            for name in boot_partitions
+        }
+        if boot.is_patched == 1 and partition in partition_images:
+            partition_images[partition] = boot_img_path
+
+        selected_partitions = {
+            name for name, selected in zip(boot_partitions, checkbox_values or [])
+            if selected
+        }
+        partitions_to_check = {
+            name: partition_images[name] for name in selected_partitions
+        }
+        if checkbox_values2 and len(checkbox_values2) > 1 and checkbox_values2[1]:
+            companion_partitions = {
+                'boot': ('init_boot', 'vendor_boot', 'vendor_kernel_boot'),
+                'init_boot': ('boot', 'vendor_boot', 'vendor_kernel_boot'),
+                'vendor_boot': ('boot', 'init_boot'),
+                'vendor_kernel_boot': (),
+            }
+            for selected_partition in selected_partitions:
+                for companion in companion_partitions[selected_partition]:
+                    companion_path = os.path.join(selected_dir, f'{companion}.img')
+                    if os.path.exists(companion_path):
+                        partitions_to_check[companion] = companion_path
+
+        if selected_radio_index == 0:
+            selected_slots = (device.active_slot,) if device.active_slot in ('a', 'b') else ()
+        elif selected_radio_index == 1:
+            inactive_slot = device.inactive_slot
+            selected_slots = (inactive_slot,) if inactive_slot in ('a', 'b') else ()
+        else:
+            selected_slots = ('a', 'b')
+        target_slots = {name: selected_slots for name in partitions_to_check}
+        if not _confirm_security_patch_mismatch(device, partitions_to_check, target_slots):
+            return -1
+
+    if selected_radio_index == 2:
+        boot_partitions = ('boot', 'init_boot', 'vendor_boot', 'vendor_kernel_boot')
+        partitions_to_flash = {
+            partition for partition, selected in zip(boot_partitions, checkbox_values or [])
+            if selected
+        }
+        if checkbox_values2 and len(checkbox_values2) > 1 and checkbox_values2[1]:
+            partitions_to_flash.update(
+                partition for partition in boot_partitions
+                if os.path.exists(os.path.join(selected_dir, f'{partition}.img'))
+            )
+        if not _confirm_slot_partition_mismatch(device, partitions_to_flash):
+            return -1
+
     # build the script
     config_path = get_config_path()
     tmp_dir = os.path.join(config_path, 'tmp')
@@ -6315,6 +6797,10 @@ def flash_phone(self):
                     return -1
 
             package_dir_full = os.path.join(factory_images, package_sig)
+            metadata_cache_key = _bootloader_metadata_cache_key(package_dir_full)
+            if metadata_cache_key not in _bootloader_metadata_processed_this_session:
+                if _report_saved_bootloader_metadata(package_dir_full):
+                    _bootloader_metadata_processed_this_session.add(metadata_cache_key)
 
             # No Wipe downgrade
             if self.config.flash_mode != 'OTA' and self.downgrade:
@@ -6385,6 +6871,54 @@ def flash_phone(self):
             if self.config.flash_mode == 'OTA':
                 fastboot_options = sideload_options
             image_mode = get_image_mode()
+            if (
+                self.config.flash_mode == 'customFlash'
+                and image_mode != 'SIDELOAD'
+                and not (image_mode == 'boot' and self.live_boot_radio_button.Value)
+            ):
+                if self.config.flash_both_slots:
+                    selected_slots = ('a', 'b')
+                elif self.config.flash_to_inactive_slot:
+                    inactive_slot = device.inactive_slot
+                    selected_slots = (inactive_slot,) if inactive_slot in ('a', 'b') else ()
+                elif device.active_slot in ('a', 'b'):
+                    selected_slots = (device.active_slot,)
+                else:
+                    selected_slots = ()
+
+                if image_mode in ('boot', 'init_boot', 'vendor_boot', 'vendor_kernel_boot'):
+                    if not _confirm_security_patch_mismatch(
+                        device,
+                        {image_mode: get_image_path()},
+                        {image_mode: selected_slots},
+                    ):
+                        return -1
+                elif image_mode == 'image' and get_image_path():
+                    with tempfile.TemporaryDirectory() as image_temp_dir:
+                        partition_images = _extract_known_partition_images_from_zip(
+                            get_image_path(), image_temp_dir
+                        )
+                        target_slots = {
+                            partition: selected_slots for partition in partition_images
+                        }
+                        if not _confirm_security_patch_mismatch(
+                            device, partition_images, target_slots
+                        ):
+                            return -1
+            if (
+                self.config.flash_mode == 'customFlash'
+                and self.config.flash_both_slots
+                and image_mode != 'SIDELOAD'
+                and not (image_mode == 'boot' and self.live_boot_radio_button.Value)
+            ):
+                if image_mode == 'image':
+                    partitions_to_flash = ('boot', 'init_boot', 'vendor_boot', 'vendor_kernel_boot')
+                elif image_mode in ('boot', 'init_boot', 'vendor_boot', 'vendor_kernel_boot'):
+                    partitions_to_flash = (image_mode,)
+                else:
+                    partitions_to_flash = ()
+                if not _confirm_slot_partition_mismatch(device, partitions_to_flash):
+                    return -1
             if self.config.flash_mode == 'customFlash' and image_mode == 'SIDELOAD':
                 message += "   ATTENTION!           Flash Options Don\'t apply to Sideloading. (Except: No Reboot)\n"
                 message = f"Custom Flash Options:   {self.config.advanced_options}\n"

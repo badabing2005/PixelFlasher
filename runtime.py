@@ -585,6 +585,37 @@ def get_factory_images_dir() -> str:
 
 
 # ============================================================================
+#                   Function load_bootloader_image_metadata
+# ============================================================================
+def load_bootloader_image_metadata(package_dir: str) -> dict:
+    metadata_path = os.path.join(package_dir, 'bootloader_metadata.json')
+    try:
+        with open(metadata_path, 'r', encoding='utf-8') as metadata_file:
+            metadata = json.load(metadata_file)
+        if isinstance(metadata, dict) and isinstance(metadata.get('ar'), dict):
+            return metadata
+    except (OSError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+# ============================================================================
+#                  Function save_bootloader_image_metadata
+# ============================================================================
+def save_bootloader_image_metadata(package_dir: str, metadata: dict) -> bool:
+    if not metadata or not isinstance(metadata.get('ar'), dict):
+        return False
+    try:
+        os.makedirs(package_dir, exist_ok=True)
+        metadata_path = os.path.join(package_dir, 'bootloader_metadata.json')
+        with open(metadata_path, 'w', encoding='utf-8') as metadata_file:
+            json.dump(metadata, metadata_file, indent=2)
+        return True
+    except OSError:
+        return False
+
+
+# ============================================================================
 #                               Function get_pf_db
 # ============================================================================
 def get_pf_db() -> str:
@@ -2695,6 +2726,119 @@ def get_pluck_path() -> str:
             return resolved
 
     return ''
+
+
+# ============================================================================
+#                     Function get_bootloader_image_ar
+# ============================================================================
+def get_bootloader_image_ar(image_path):
+    pluck_path = get_pluck_path()
+    if not pluck_path or not os.path.exists(image_path):
+        return {}
+    try:
+        result = subprocess.run(
+            [pluck_path, 'list-bootloader-image-ar', image_path],
+            capture_output=True,
+            encoding='ISO-8859-1',
+            errors='replace',
+            env=get_env_variables(),
+        )
+        return _parse_bootloader_ar_output(result)
+    except Exception:
+        return {}
+
+
+# ============================================================================
+#                     Function get_bootloader_version_from_image
+# ============================================================================
+def get_bootloader_version_from_image(image_path):
+    codenames = {
+        str(device_data.get('bootloader_codename', '')).strip().rstrip('-')
+        for device_data in get_android_devices().values()
+        if isinstance(device_data, dict) and device_data.get('bootloader_codename')
+    }
+    prefixes = [f'{codename}-'.encode('utf-8') for codename in codenames]
+    if not prefixes:
+        return ''
+    try:
+        with open(image_path, 'rb') as image_file:
+            image_data = image_file.read()
+        matches = [
+            (start, prefix)
+            for prefix in prefixes
+            if (start := image_data.find(prefix)) != -1
+        ]
+        if not matches:
+            return ''
+        start, _ = min(matches, key=lambda match: (match[0], -len(match[1])))
+        end = image_data.find(b'\x00', start)
+        if end != -1:
+            return image_data[start:end].decode('utf-8', errors='replace')
+    except OSError:
+        pass
+    return ''
+
+
+# ============================================================================
+#                     Function get_factory_bootloader_ar
+# ============================================================================
+def get_factory_bootloader_ar(factory_path, partition):
+    pluck_path = get_pluck_path()
+    if not pluck_path or not os.path.exists(factory_path):
+        return {}
+    try:
+        result = subprocess.run(
+            [
+                pluck_path, 'passthrough-factory', factory_path,
+                'bootloader.img', 'list-bootloader-ar', partition,
+            ],
+            capture_output=True,
+            encoding='ISO-8859-1',
+            errors='replace',
+            env=get_env_variables(),
+        )
+        return _parse_bootloader_ar_output(result)
+    except Exception:
+        return {}
+
+
+# ============================================================================
+#                Function get_factory_bootloader_partitions
+# ============================================================================
+def get_factory_bootloader_partitions(factory_path):
+    pluck_path = get_pluck_path()
+    if not pluck_path or not os.path.exists(factory_path):
+        return set()
+    try:
+        result = subprocess.run(
+            [pluck_path, 'passthrough-factory', factory_path, 'bootloader.img', 'list-bootloader'],
+            capture_output=True,
+            encoding='ISO-8859-1',
+            errors='replace',
+            env=get_env_variables(),
+        )
+        output = f'{result.stdout}\n{result.stderr}'
+        return {
+            line.split(':', 1)[1].strip()
+            for line in output.splitlines()
+            if line.strip().startswith('name:')
+        }
+    except Exception:
+        return set()
+
+
+# ============================================================================
+#                  Function _parse_bootloader_ar_output
+# ============================================================================
+def _parse_bootloader_ar_output(result):
+    output = f'{result.stdout}\n{result.stderr}'
+    values = {}
+    for line in output.splitlines():
+        if '=' in line:
+            key, value = line.split('=', 1)
+            if key.strip() in ('sec_ar', 'nonsec_ar'):
+                values[key.strip()] = value.strip()
+    return values
 
 
 # ============================================================================
@@ -5428,6 +5572,11 @@ def get_beta_data(url) -> tuple[BetaData | None, bool | None]:
 # ============================================================================
 def get_latest_android_version(force_version=None):
     versions_url = "https://developer.android.com/about/versions"
+    forced_version_match = None
+    if force_version and not str(force_version).startswith('CANARY'):
+        forced_version_match = re.fullmatch(r'(\d+)(?:/qpr(\d+))?', str(force_version), re.IGNORECASE)
+    forced_version = int(forced_version_match.group(1)) if forced_version_match else None
+    forced_qpr = int(forced_version_match.group(2)) if forced_version_match and forced_version_match.group(2) else None
     response = request_with_fallback('GET', versions_url)
     if response == 'ERROR' or response.status_code != 200:
         print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Failed to fetch VERSIONS HTML")
@@ -5482,10 +5631,10 @@ def get_latest_android_version(force_version=None):
                         absolute_url = f"https://developer.android.com{href}"
                     debug(f"Found version link: {link_version}, full URL: {absolute_url}")
                     found_versions.append(link_version)
-                    if force_version and not str(force_version).startswith('CANARY'):
-                        if link_version == force_version:
+                    if forced_version is not None:
+                        if link_version == forced_version:
                             version = link_version
-                    else:
+                    elif not force_version or str(force_version).startswith('CANARY'):
                         if link_version > version:
                             version = link_version
 
@@ -5496,15 +5645,11 @@ def get_latest_android_version(force_version=None):
     debug(f"Beta links found: {beta_links}")
 
     # Determine best beta link
-    if force_version and not str(force_version).startswith('CANARY'):
+    if forced_version is not None:
         # Try to find beta link for forced version
-        try:
-            force_ver_int = int(force_version)
-            if force_ver_int in beta_links:
-                beta_link_url = beta_links[force_ver_int]
-        except ValueError:
-            pass
-    else:
+        if forced_version in beta_links:
+            beta_link_url = beta_links[forced_version]
+    elif not force_version or str(force_version).startswith('CANARY'):
         # Find highest version in beta_links
         if beta_links:
             max_ver = max(beta_links.keys())
@@ -5513,33 +5658,51 @@ def get_latest_android_version(force_version=None):
 
     # Check for QPR updates on the specific version page
     if version > 0:
-        version_page_url = f"https://developer.android.com/about/versions/{version}"
-        print(f"Checking for QPR updates on {version_page_url}...")
-        try:
-            v_response = request_with_fallback('GET', version_page_url)
-            if v_response != 'ERROR' and v_response.status_code == 200:
-                v_soup = BeautifulSoup(v_response.text, 'html.parser')
+        if forced_qpr is not None:
+            beta_link_url = f"https://developer.android.com/about/versions/{version}/qpr{forced_qpr}"
+        else:
+            version_page_url = f"https://developer.android.com/about/versions/{version}"
+            print(f"Checking for QPR updates on {version_page_url}...")
+            try:
+                v_response = request_with_fallback('GET', version_page_url)
                 max_qpr = 0
                 qpr_url = ""
+                if v_response != 'ERROR' and v_response.status_code == 200:
+                    v_soup = BeautifulSoup(v_response.text, 'html.parser')
 
-                for link in v_soup.find_all('a'):
-                    href = link.get('href')
-                    if href:
-                        href_str = href if isinstance(href, str) else str(href)
-                        # Check for qpr pattern: .../versions/{version}/qpr(\d+)
-                        match = re.search(rf'about/versions/{version}/qpr(\d+)', href_str)
-                        if match:
-                            qpr_num = int(match.group(1))
-                            if qpr_num > max_qpr:
-                                max_qpr = qpr_num
-                                # Construct base QPR url
-                                qpr_url = f"https://developer.android.com/about/versions/{version}/qpr{qpr_num}"
+                    for link in v_soup.find_all('a'):
+                        href = link.get('href')
+                        if href:
+                            href_str = href if isinstance(href, str) else str(href)
+                            match = re.search(rf'about/versions/{version}/qpr(\d+)', href_str)
+                            if match:
+                                qpr_num = int(match.group(1))
+                                if qpr_num > max_qpr:
+                                    max_qpr = qpr_num
+                                    qpr_url = f"https://developer.android.com/about/versions/{version}/qpr{qpr_num}"
+
+                next_qpr = max_qpr + 1
+                while True:
+                    candidate_url = f"https://developer.android.com/about/versions/{version}/qpr{next_qpr}"
+                    try:
+                        candidate_response = requests.get(candidate_url, timeout=15)
+                    except requests.RequestException:
+                        break
+                    if candidate_response.status_code != 200:
+                        break
+                    candidate_soup = BeautifulSoup(candidate_response.text, 'html.parser')
+                    page_title = candidate_soup.title.get_text(' ', strip=True) if candidate_soup.title else ''
+                    if not re.search(rf'\bQPR{next_qpr}\b', page_title, re.IGNORECASE):
+                        break
+                    max_qpr = next_qpr
+                    qpr_url = candidate_url
+                    next_qpr += 1
 
                 if max_qpr > 0:
                     print(f"Found newer QPR version:  QPR{max_qpr}")
                     beta_link_url = qpr_url
-        except Exception as e:
-            print(f"Failed to check for QPR updates: {e}")
+            except Exception as e:
+                print(f"Failed to check for QPR updates: {e}")
 
     # Resolve any redirects in the beta_link_url
     if beta_link_url and 'qpr' not in beta_link_url.lower():

@@ -81,7 +81,13 @@ jobs:
           # Use explicit site-packages path in venv
           $sitePackages = ".\myenv\Lib\site-packages"
           Write-Host "Site-packages: $sitePackages"
-          curl -L -o wxpython.whl "https://wxpython.org/Phoenix/snapshot-builds/wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
+          wheel = "wxpython-4.2.45988+6573a469-cp313-cp313-win_arm64.whl"
+          # Mirror first (fast); wxpython.org snapshot-builds is slow/unreliable
+          curl.exe -fsSL -o wxpython.whl --retry 10 --connect-timeout 30 `
+            "https://github.com/badabing2005/wxpython-wheels/releases/download/windows-arm64/$wheel" `
+            2> $null; if (-not (Test-Path wxpython.whl) -or ((Get-Item wxpython.whl).Length -lt 1MB)) {
+            curl.exe -fL -C - -o wxpython.whl --retry 30 --connect-timeout 30 "https://wxpython.org/Phoenix/snapshot-builds/$wheel"
+          }
           # Extract wheel directly to site-packages
           Expand-Archive -Path wxpython.whl -DestinationPath $sitePackages -Force
           & $venvPip install pillow numpy six

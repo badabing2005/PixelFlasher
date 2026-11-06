@@ -83,6 +83,34 @@ jobs:
           sudo apt-get install -y libnotify-dev
           sudo apt-get install -y libsm-dev
 
+      # Cache the wxPython wheel locally so slow downloads are needed less often.
+      - name: Restore wxPython wheel cache
+        uses: actions/cache@v4
+        with:
+          path: wheels
+          key: wxpython-wheels-ubuntu-22.04-cp313-4.2.2
+
+      # Prefer the mirror (fast); extras.wxpython.org is very slow and pip often
+      # times out against it. Mirror: badabing2005/wxpython-wheels, release ubuntu-22.04
+      # (kept in sync manually with the extras.wxpython.org directory).
+      - name: Download wxPython wheel into local cache
+        run: |
+          mkdir -p wheels
+          wheel=wxPython-4.2.2-cp313-cp313-linux_x86_64.whl
+          if [ ! -s "wheels/$wheel" ]; then
+            wget -c --tries=10 --timeout=30 -O "wheels/$wheel.part" \
+              https://github.com/badabing2005/wxpython-wheels/releases/download/ubuntu-22.04/$wheel \
+              && mv "wheels/$wheel.part" "wheels/$wheel" \
+              || { rm -f "wheels/$wheel.part"; echo "::warning::Mirror download failed, falling back to extras.wxpython.org"; }
+          fi
+          if [ ! -s "wheels/$wheel" ]; then
+            # wget resumes (-c) and retries far better than pip does
+            wget -c --tries=30 --timeout=30 -O "wheels/$wheel.part" \
+              https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/$wheel \
+              && mv "wheels/$wheel.part" "wheels/$wheel" \
+              || { rm -f "wheels/$wheel.part"; }
+          fi
+
       - name: Create virtual environment, install dependencies, and build
         run: |
           python3.13 -m venv myenv
@@ -90,8 +118,13 @@ jobs:
           python --version
           pip install -U pip
           pip install -U six wheel setuptools
-          # Try wxPython 4.2.2 wheel, then 4.2.1 wheel, finally fallback to source if both fail
+          # Try wxPython 4.2.2 from the wheel cache (no slow server lookups),
+          # then extras.wxpython.org, then newer mirror wheels, finally fall back to a source build
+          pip install --only-binary wxPython -U -f wheels wxPython==4.2.2 || \
           pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.2 || \
+          pip install --only-binary wxPython -U -f wheels wxPython || \
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.5 || \
+          pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.3 || \
           pip install --only-binary wxPython -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython==4.2.1 || \
           pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
           pip install -r requirements.txt

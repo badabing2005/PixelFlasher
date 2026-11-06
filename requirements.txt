@@ -20,12 +20,16 @@ payload_dumper>=0.3.0
 cryptography>=49.0.0
 rsa>=4.9
 polib>=1.1.1
-# # Use pre-built wheels for wxPython
+# On Linux, wxPython is not available as a wheel on PyPI (sdist only -> slow source
+# build), and extras.wxpython.org is slow/times out often. Recommended: download the
+# matching wheel once into ./wheels/ and the --find-links line below will use it
+# (no network needed afterwards), e.g.:
+#   wget -c https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04/wxpython-4.2.5-cp313-cp313-linux_x86_64.whl -P wheels/
 # --find-links https://wxpython.org/Phoenix/snapshot-builds/
 # --find-links https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04/
 # --find-links https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/
 # --find-links https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04/
+--find-links wheels
 enlighten>=1.14.1
-wxPython==4.2.2
-# # wxPython==4.2.1; platform_system == "Linux"
-# # wxPython>=4.2.1; platform_system != "Linux"
+wxPython==4.2.2; platform_system == "Windows" or platform_system == "Darwin"
+wxPython>=4.2.2; platform_system == "Linux"

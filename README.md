@@ -314,13 +314,25 @@ _See note below if building on MacOS._
   - On Linux / MacOS: `. venv/bin/activate`
 - Run `pip3 install -r requirements.txt`
 
-**A note on Linux:** As described on the [downloads section of `wxPython`](https://www.wxpython.org/pages/downloads/), wheels for Linux are complicated and may require you to run something like this to install `wxPython` correctly:
+**A note on Linux:** As described on the [downloads section of `wxPython`](https://www.wxpython.org/pages/downloads/), wheels for Linux are not published on PyPI, and `extras.wxpython.org` is slow and unreliable, so `pip` often times out against it (and a fallback would build wxPython from source, which takes a very long time). 
+
+The project CI uses a fast mirror of that server (clone of [badabing2005/wxpython-wheels](https://github.com/badabing2005/wxpython-wheels)) — create a local `wheels/` directory in the repository root, download the wheel for your Python version and Ubuntu release into it, and it will be picked up automatically by `pip` (the `--find-links wheels` line in `requirements.txt`):
+
+```bash
+mkdir -p wheels
+# Ubuntu 24.04 with Python 3.13 (adjust cp313 / ubuntu-22.04 / version as needed):
+wget -c --tries=30 --timeout=30 \
+  https://github.com/badabing2005/wxpython-wheels/releases/download/ubuntu-24.04/wxPython-4.2.2-cp313-cp313-linux_x86_64.whl \
+  -P wheels/
+
+pip3 install -r requirements.txt    # uses ./wheels, no slow server access
+```
+
+Alternatively, you can still download directly from `extras.wxpython.org` (`wget -c` handles the flaky server much better than `pip`, and skips pip's 15 s timeout + retry loops):
 
 ```bash
 # Assuming you are running it on Ubuntu 20.04 LTS with GTK3
-pip install -U \
-    -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 \
-    wxPython
+wget -c https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04/wxPython-<version>-cp<xx>-cp<xx>-linux_x86_64.whl -P wheels/
 ```
 
 If you're building on Fedora, take a look at [this](https://github.com/badabing2005/PixelFlasher/issues/262) (Credit to @xChAmeLIoNz).

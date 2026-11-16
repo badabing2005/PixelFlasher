@@ -34,6 +34,7 @@
 # <https://www.gnu.org/licenses/>.
 
 import contextlib
+import re
 import copy
 import fnmatch
 import math
@@ -2877,42 +2878,42 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         if app_type == 'KernelSU-Next':
             repo_user = 'KernelSU-Next'
             repo_name = 'KernelSU-Next'
-            pattern = r'^KernelSU_Next(?!.*spoofed).*\.apk$'
+            pattern = r'(?i)^KernelSU_Next.*\.apk$'
             path_getter = lambda: device.ksu_next_path  # type: ignore[union-attr]
             app_name = "KernelSU-Next"
             package_key = 'ksu_next'
         elif app_type == 'APatch':
             repo_user = 'bmax121'
             repo_name = 'APatch'
-            pattern = r'^APatch_.*\.apk$'
+            pattern = r'(?i)^APatch_.*\.apk$'
             path_getter = lambda: device.apatch_path  # type: ignore[union-attr]
             app_name = "APatch"
             package_key = 'apatch'
         elif app_type == 'SukiSU':
             repo_user = 'SukiSU-Ultra'
             repo_name = 'SukiSU-Ultra'
-            pattern = r'^SukiSU_(?!.*spoofed).*\.apk$'
+            pattern = r'(?i)^SukiSU_.*\.apk$'
             path_getter = lambda: device.sukisu_path  # type: ignore[union-attr]
             app_name = "SukiSU"
             package_key = 'sukisu'
         elif app_type == 'Wild_KSU':
             repo_user = 'WildKernels'
             repo_name = 'Wild_KSU'
-            pattern = r'^Wild_KSU(?!.*spoofed).*\.apk$'
+            pattern = r'(?i)^Wild_KSU.*\.apk$'
             path_getter = lambda: device.wild_ksu_path  # type: ignore[union-attr]
             app_name = "Wild_KSU"
             package_key = 'wild_ksu'
         elif app_type == "KernelSU-Legacy":
             repo_user = 'rsuntk'
             repo_name = 'KernelSU'
-            pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
+            pattern = r'(?i)^KernelSU.*\.apk$'
             path_getter = lambda: device.ksu_path  # type: ignore[union-attr]
             app_name = "KernelSU"
             package_key = 'kernelsu'
         else:  # KernelSU
             repo_user = 'tiann'
             repo_name = 'KernelSU'
-            pattern = r'^KernelSU(?!.*spoofed).*\.apk$'
+            pattern = r'(?i)^KernelSU.*\.apk$'
             path_getter = lambda: device.ksu_path  # type: ignore[union-attr]
             app_name = "KernelSU"
             package_key = 'kernelsu'
@@ -2925,16 +2926,36 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             version, version_code = device.get_app_version(package_name)
             return True, app_path, None, version, version_code
 
+        # Fetch the latest release to discover available APK variants (regular + spoofed)
+        release = get_gh_release_object(user=repo_user, repo=repo_name, include_prerelease=False)
+        if not release:
+            return False, None, f"Could not find {app_name} release", None, None
+
+        assets = release.get('assets', [])
+        apk_assets = [a for a in assets if re.match(pattern, a['name'], re.IGNORECASE)]
+        if not apk_assets:
+            return False, None, f"Could not find {app_name} APK", None, None
+
         # Ask how to provide the app when the configured package is not installed.
         title = f"Select {app_name} Application"
         message = f"**{app_name} ({package_name}) is not installed.**<br/>\n\n"
-        message += f"Install the latest {app_name} release or select an APK manually."
+        message += f"If you have the {app_name} already installed but PixelFlasher did not detect it, "
+        message += "this is probably because the package name is either spoofed or not correctly set, "
+        message += "in which case you should cancel out of this dialog and go to Settings and set the App's package name.<br/>\n\n"
+        message += "Otherwise select one of the available release variants below or provide an APK manually.<br/>\n"
+        for a in apk_assets:
+            message += f"  - {a['name']}<br/>\n"
 
         button_texts = [
-            _("Install latest"),
+            _("Install the selected"),
             _("Manual, let me provide my own apk"),
             _("Cancel")
         ]
+
+        radio_labels = [a['name'] for a in apk_assets]
+        single = len(apk_assets) == 1
+        radio_initial_value = 0 if single else 0
+        radio_default_none = False
 
         clean_message = message.replace("<br/>", "")
         print(f"\n*** Dialog ***\n{clean_message}\n______________\n")
@@ -2945,10 +2966,10 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             title=title,
             message=message,
             button_texts=button_texts,
-            default_button=1,
+            default_button=1 if single else 3,
             disable_buttons=None,
             is_md=True,
-            size=[800, 300],
+            size=[800, 400],
             checkbox_labels=None,
             checkbox_initial_values=None,
             disable_checkboxes=None,
@@ -2956,38 +2977,58 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             checkbox_labels2=None,
             checkbox_initial_values2=None,
             disable_checkboxes2=None,
-            radio_labels=None,
-            radio_initial_value=None,
+            radio_labels=radio_labels,
+            radio_initial_value=radio_initial_value,
             disable_radios=None,
-            vertical_radios=True
+            vertical_radios=True,
+            radio_default_none=radio_default_none,
+            enable_buttons_on_radio=None
         )
         dlg.CentreOnParent(wx.BOTH)
         result = dlg.ShowModal()
+        dialog_values = get_all_dialog_values(dlg)
         dlg.Destroy()
 
         print(f"{datetime.now():%Y-%m-%d %H:%M:%S} User Pressed {button_texts[result - 1]}")
 
-        # Install latest official app
+        selected_radio_index = dialog_values.get('radio')
+        if selected_radio_index is None and single:
+            selected_radio_index = 0
+
+        # Install selected official app
         if result == 1:
             print(f"Getting the latest {app_name} to install ...")
             try:
-                release = get_gh_release_object(user=repo_user, repo=repo_name, include_prerelease=False)
-                if not release:
-                    return False, None, f"Could not find {app_name} release", None, None
+                if selected_radio_index is None or selected_radio_index >= len(apk_assets):
+                    return False, None, f"No {app_name} variant selected", None, None
 
-                apk_file = gh_asset_utility(release_object=release, asset_name_pattern=pattern, download=True)
-                if not apk_file:
-                    return False, None, f"Could not download {app_name} APK", None, None
-
+                asset = apk_assets[selected_radio_index]
+                apk_file = asset['name']
                 app = os.path.join(config_path, 'tmp', apk_file)
+                if not os.path.exists(app):
+                    downloaded = download_file(asset['browser_download_url'], filename=apk_file)
+                    if not downloaded or downloaded == 'ERROR':
+                        return False, None, f"Could not download {app_name} APK", None, None
+                    app = downloaded
+
+                package_name = get_apk_package_name(app)
+                if not package_name:
+                    return False, None, "Could not determine package name from APK", None, None
+                print(f"Installing {app_name} ({package_name}) from {app} ...")
+
                 res = device.install_apk(app)
                 if res != 0:
                     return False, None, f"Failed to install {app_name}", None, None
 
                 # Check if installation was successful
-                app_path = path_getter()
+                app_info = device.get_package_info(package_name)
+                app_path = app_info.get('sourceDir', '') if app_info else ''
                 if not app_path:
                     return False, None, f"Failed to find {app_name} after installation", None, None
+
+                self.config.rooting_app_packages[package_key] = package_name
+                set_rooting_app_packages(self.config.rooting_app_packages)
+                self.config.save(get_config_file_path())
                 version, version_code = device.get_app_version(package_name)
                 return True, app_path, None, version, version_code
 
@@ -3006,6 +3047,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     package_name = get_apk_package_name(selected_apk)
                     if not package_name:
                         return False, None, "Could not determine package name from APK", None, None
+                    print(f"Installing {app_name} ({package_name}) from {selected_apk} ...")
 
                     res = device.install_apk(selected_apk)
                     if res != 0:
@@ -3016,10 +3058,31 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                     if not app_path:
                         return False, None, f"Failed to find {app_name} after installation", None, None
 
+                    # Push aapt2 to the device so we can resolve the app's label
+                    try:
+                        device.push_aapt2()
+                    except Exception:
+                        pass
+
+                    # Determine the true app name from the installed app
+                    true_app_name = app_name
+                    try:
+                        label_result = device.get_package_label(package_name, app_path)
+                        if isinstance(label_result, tuple) and label_result and label_result[0] not in (-1, None, ''):
+                            true_app_name = str(label_result[0])
+                    except Exception:
+                        pass
+
+                    # Sanitize: no spaces in filenames
+                    sanitized_name = true_app_name.replace(' ', '_')
+                    self._manual_root_app_name = sanitized_name
+
                     self.config.rooting_app_packages[package_key] = package_name
                     set_rooting_app_packages(self.config.rooting_app_packages)
                     self.config.save(get_config_file_path())
                     version, version_code = device.get_app_version(package_name)
+                    print(f"Installed {sanitized_name} ({package_name}) version {version} ({version_code})")
+                    app_name = sanitized_name
                     return True, app_path, None, version, version_code
 
                 except Exception as e:
@@ -3089,13 +3152,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             return -1
 
         set_patched_with(with_version)
-        puml(f":Patching with {patch_label}: {with_version};\n", True)
+        puml(f":Patching with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version};\n", True)
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             data = " #!/system/bin/sh\n"
             data += " ##############################################################################\n"
-            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
+            data += f" # PixelFlasher {VERSION} patch script using {getattr(self, "_manual_root_app_name", None) or patch_label} {with_version}\n"
             data += " ##############################################################################\n"
             data += f"MAGISK_VERSION=\"{with_version_code}\"\n"
             data += f"STOCK_SHA1={stock_sha1}\n"
@@ -3176,7 +3239,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "echo \"Creating a patch ...\"\n"
             data += "./magiskboot cleanup\n"
             data += f"./boot_patch.sh {self.config.phone_path}/{boot_img}\n"
-            data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+            data += "if [ -f ./magiskboot ]; then\n"
+            data += "    PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+            data += "elif command -v sha1sum >/dev/null 2>&1; then\n"
+            data += "    PATCH_SHA1=$(sha1sum new-boot.img | cut -c-8)\n"
+            data += "else\n"
+            data += "    PATCH_SHA1=$(/data/local/tmp/busybox sha1sum new-boot.img | cut -c-8)\n"
+            data += "fi\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"PATCH_FILENAME={patch_name}_${{MAGISK_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
@@ -3246,7 +3315,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         # Execute the pf_patch.sh script
         #------------------------------------
         print("\nExecuting the pf_patch.sh script ...")
-        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
+        print(f"PixelFlasher Patching phone with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version}")
         puml(":Executing the patch script;\n")
         debug(f"exec_cmd: {exec_cmd}")
         res = run_shell2(exec_cmd)
@@ -3338,13 +3407,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         exec_cmd = f"\"{get_adb()}\" -s {device.id} shell \"cd /data/local/tmp; /data/local/tmp/pf_patch.sh\""
         perform_as_root = False
 
-        puml(f":Patching with {patch_label}: {with_version};\n", True)
+        puml(f":Patching with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version};\n", True)
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             data = " #!/system/bin/sh\n"
             data += " ##############################################################################\n"
-            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
+            data += f" # PixelFlasher {VERSION} patch script using {getattr(self, "_manual_root_app_name", None) or patch_label} {with_version}\n"
             data += " ##############################################################################\n"
             data += f"{VERSION_VAR}=\"{with_version_code}\"\n"
             data += f"{PATH_VAR}={flavor_path}\n"
@@ -3371,7 +3440,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "echo \"Repacking boot.img ...\"\n"
             data += "./magiskboot repack boot.img\n\n"
 
-            data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+            data += "if [ -f ./magiskboot ]; then\n"
+            data += "    PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+            data += "elif command -v sha1sum >/dev/null 2>&1; then\n"
+            data += "    PATCH_SHA1=$(sha1sum new-boot.img | cut -c-8)\n"
+            data += "else\n"
+            data += "    PATCH_SHA1=$(/data/local/tmp/busybox sha1sum new-boot.img | cut -c-8)\n"
+            data += "fi\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"PATCH_FILENAME={patch_name}_${{{VERSION_VAR}}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
@@ -3416,7 +3491,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         # Execute the pf_patch.sh script
         #------------------------------------
         print("Executing the pf_patch.sh script ...")
-        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
+        print(f"PixelFlasher Patching phone with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version}")
         puml(":Executing the patch script;\n")
         debug(f"exec_cmd: {exec_cmd}")
         res = run_shell2(exec_cmd)
@@ -3512,7 +3587,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         perform_as_root = False
 
         set_patched_with(with_version)
-        puml(f":Patching with {patch_label}: {with_version};\n", True)
+        puml(f":Patching with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version};\n", True)
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         mountType = ""
@@ -3596,7 +3671,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             data = " #!/system/bin/sh\n"
             data += " ##############################################################################\n"
-            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
+            data += f" # PixelFlasher {VERSION} patch script using {getattr(self, "_manual_root_app_name", None) or patch_label} {with_version}\n"
             data += " ##############################################################################\n"
             data += f"{VERSION_VAR}=\"{with_version_code}\"\n"
             data += f"STOCK_SHA1={stock_sha1}\n"
@@ -3651,7 +3726,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             data += "    echo \"       NEWEST_FILE:    [${NEWEST_FILE2}]\"\n"
             data += "else\n"
             data += "    echo \"Found ${NEWEST_FILE2} continuing ...\"\n"
-            data += f"    PATCH_SHA1=$(./{magiskboot} sha1 ${{NEWEST_FILE2}} | cut -c-8)\n"
+            data += f"    if [ -f ./{magiskboot} ]; then\n"
+            data += f"        PATCH_SHA1=$(./{magiskboot} sha1 ${{NEWEST_FILE2}} | cut -c-8)\n"
+            data += "    elif command -v sha1sum >/dev/null 2>&1; then\n"
+            data += "        PATCH_SHA1=$(sha1sum ${NEWEST_FILE2} | cut -c-8)\n"
+            data += "    else\n"
+            data += "        PATCH_SHA1=$(/data/local/tmp/busybox sha1sum ${NEWEST_FILE2} | cut -c-8)\n"
+            data += "    fi\n"
             data += "    echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"    PATCH_FILENAME={patch_name}_${{{VERSION_VAR}}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "    echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
@@ -3712,7 +3793,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         # Execute the pf_patch.sh script
         #------------------------------------
         print("Executing the pf_patch.sh script ...")
-        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
+        print(f"PixelFlasher Patching phone with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version}")
         puml(":Executing the patch script;\n")
         debug(f"exec_cmd: {exec_cmd}")
         res = run_shell2(exec_cmd)
@@ -3839,13 +3920,13 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
             dialog.Destroy()
 
         set_patched_with(with_version)
-        puml(f":Patching with {patch_label}: {with_version};\n", True)
+        puml(f":Patching with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version};\n", True)
 
         dest = os.path.join(config_path, 'tmp', 'pf_patch.sh')
         with open(dest.strip(), "w", encoding="ISO-8859-1", errors="replace", newline='\n') as f:
             data = " #!/system/bin/sh\n"
             data += " ##############################################################################\n"
-            data += f" # PixelFlasher {VERSION} patch script using {patch_label} {with_version}\n"
+            data += f" # PixelFlasher {VERSION} patch script using {getattr(self, "_manual_root_app_name", None) or patch_label} {with_version}\n"
             data += " ##############################################################################\n"
             data += f"APATCH_VERSION=\"{with_version_code}\"\n"
             data += f"STOCK_SHA1={stock_sha1}\n"
@@ -3925,9 +4006,21 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
                 else:
                     data += f"./boot_patch.sh {superkey} {self.config.phone_path}/{boot_img} -K kpatch\n"
             if skip_magiskboot:
-                data += "PATCH_SHA1=$(./kptools sha1 new-boot.img | cut -c-8)\n"
+                data += "if [ -f ./kptools ]; then\n"
+                data += "    PATCH_SHA1=$(./kptools sha1 new-boot.img | cut -c-8)\n"
+                data += "elif command -v sha1sum >/dev/null 2>&1; then\n"
+                data += "    PATCH_SHA1=$(sha1sum new-boot.img | cut -c-8)\n"
+                data += "else\n"
+                data += "    PATCH_SHA1=$(/data/local/tmp/busybox sha1sum new-boot.img | cut -c-8)\n"
+                data += "fi\n"
             else:
-                data += "PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+                data += "if [ -f ./magiskboot ]; then\n"
+                data += "    PATCH_SHA1=$(./magiskboot sha1 new-boot.img | cut -c-8)\n"
+                data += "elif command -v sha1sum >/dev/null 2>&1; then\n"
+                data += "    PATCH_SHA1=$(sha1sum new-boot.img | cut -c-8)\n"
+                data += "else\n"
+                data += "    PATCH_SHA1=$(/data/local/tmp/busybox sha1sum new-boot.img | cut -c-8)\n"
+                data += "fi\n"
             data += "echo \"PATCH_SHA1:     $PATCH_SHA1\"\n"
             data += f"PATCH_FILENAME={patch_name}_${{APATCH_VERSION}}_${{STOCK_SHA1}}_${{PATCH_SHA1}}.img\n"
             data += "echo \"PATCH_FILENAME: $PATCH_FILENAME\"\n"
@@ -3995,7 +4088,7 @@ def patch_boot_img(self, patch_flavor = 'Magisk'):
         # Execute the pf_patch.sh script
         #------------------------------------
         print("Executing the pf_patch.sh script ...")
-        print(f"PixelFlasher Patching phone with {patch_label}: {with_version}")
+        print(f"PixelFlasher Patching phone with {getattr(self, "_manual_root_app_name", None) or patch_label}: {with_version}")
         puml(":Executing the patch script;\n")
         debug(f"exec_cmd: {exec_cmd}")
         res = run_shell2(exec_cmd)
@@ -4547,6 +4640,13 @@ Unless you know what you're doing, it is recommended that you choose the default
             init_boot_file_name = os.path.basename(init_boot_path)
             init_filename, unused = os.path.splitext(init_boot_file_name)
             init_boot_img = f"{init_filename}_{stock_init_sha1}.img"
+        # if getattr(self, '_manual_root_app_name', None):
+        #     _manual_name = self._manual_root_app_name.replace(' ', '_')
+        #     if 'LKM' in patch_flavor and '_lkm' not in _manual_name.lower():
+        #         _manual_name = _manual_name + '_LKM'
+        #     patch_name = f"{_manual_name.lower()}_patched"
+        # else:
+        #     patch_name = f"{patch_flavor.lower()}_patched"
         patch_name = f"{patch_flavor.lower()}_patched"
         patched_img = f"{patch_name}_{(boot.boot_hash or '')[:8]}.img"
         package_dir_full = os.path.join(factory_images, boot.package_sig or '')
@@ -5555,7 +5655,7 @@ Unless you know what you're doing, it is recommended that you take the default s
     if patch_flavor == "Magisk":
         print(f"\nMagisk Version:   {get_patched_with()}")
     elif patch_flavor in ["KernelSU", "KernelSU_LKM", "KernelSU-Legacy"]:
-        print(f"\nKernelSU Version: {get_patched_with()}")
+        print(f"\n{getattr(self, "_manual_root_app_name", None) or "KernelSU"} Version: {get_patched_with()}")
     elif patch_flavor in ["SukiSU", "SukiSU_LKM"]:
         print(f"\nSukiSU Version: {get_patched_with()}")
     elif patch_flavor in ["Wild_KSU", "Wild_KSU_LKM"]:

@@ -35,6 +35,8 @@
 
 import contextlib
 import re
+import sys
+import os
 import shlex
 import subprocess
 import tempfile
@@ -178,6 +180,32 @@ class DeviceProps:
 
     def upsert(self, key, value):
         self.property[key] = value
+
+
+# ============================================================================
+#                               Class RootingAppInfo
+# ============================================================================
+class RootingAppInfo(dict):
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        raise AttributeError(name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+
+# ============================================================================
+#                               Class RootingAppsInfo
+# ============================================================================
+class RootingAppsInfo(dict):
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        raise AttributeError(name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
 
 
 # ============================================================================
@@ -3182,6 +3210,198 @@ add_hosts_module
         if version == '' and versionCode == '':
             return '', ''
         return f"{str(version)}:{str(versionCode)}", versionCode
+
+    # ----------------------------------------------------------------------------
+    #                method get_rooting_app_packages_info
+    # ----------------------------------------------------------------------------
+    def get_rooting_app_packages_info(self):
+        if self.true_mode != 'adb':
+            return None
+
+        # Look up the current package name of each app in rooting_app_packages.
+        packages = {}
+        rt = sys.modules.get('runtime')
+        if rt is not None and getattr(rt, '_rooting_app_packages', None):
+            try:
+                packages = dict(rt._rooting_app_packages or {})
+            except Exception:
+                packages = {}
+        if not packages and '_rooting_app_packages' in globals():
+            try:
+                packages = dict(globals().get('_rooting_app_packages') or {})
+            except Exception:
+                packages = {}
+        if not packages:
+            known_keys = ['magisk', 'kernelsu', 'ksu_next', 'sukisu', 'wild_ksu', 'apatch', 'apatch_next']
+            for key in known_keys:
+                try:
+                    pkg = get_rooting_app_package(key)
+                except Exception:
+                    pkg = ''
+                if pkg:
+                    packages[key] = pkg
+
+        if not packages:
+            return RootingAppsInfo()
+
+        result = RootingAppsInfo()
+        for key, pkg in packages.items():
+            result[key] = RootingAppInfo({
+                'key': key,
+                'package': pkg,
+                'installed': False,
+                'name': pkg,
+                'version': '',
+                'version_code': '',
+                'app_name': pkg,
+            })
+
+        remote_script_path = '/data/local/tmp/pf_rooting_app_packages.sh'
+        local_script_path = ''
+        try:
+            # Best-effort push of aapt2 so the script can resolve app labels.
+            try:
+                if getattr(self, 'architecture', None) and callable(globals().get('get_bundle_dir')):
+                    self.push_aapt2()
+            except Exception:
+                pass
+
+            script_lines = ['#!/system/bin/sh']
+            for key, pkg in packages.items():
+                script_lines.append(f"if pm path {pkg} >/dev/null 2>&1; then")
+                script_lines.append(f"  __pf_path=$(pm path {pkg} 2>/dev/null | sed -n 's/^package://p' | head -n 1)")
+                script_lines.append("  __pf_label=''")
+                script_lines.append("  __pf_version=''")
+                script_lines.append("  __pf_version_code=''")
+                script_lines.append("  if [ -x /data/local/tmp/aapt2 ] && [ -n \"$__pf_path\" ]; then")
+                script_lines.append("    __pf_label=$(/data/local/tmp/aapt2 d badging \"$__pf_path\" 2>/dev/null | sed -n \"s/.*label='\\([^']*\\)'.*/\\1/p\" | head -n 1)")
+                script_lines.append("    __pf_version=$(/data/local/tmp/aapt2 d badging \"$__pf_path\" 2>/dev/null | sed -n \"s/.*versionName='\\([^']*\\)'.*/\\1/p\" | head -n 1)")
+                script_lines.append("    __pf_version_code=$(/data/local/tmp/aapt2 d badging \"$__pf_path\" 2>/dev/null | sed -n \"s/.*versionCode='\\([^']*\\)'.*/\\1/p\" | head -n 1)")
+                script_lines.append("  fi")
+                script_lines.append(f"  if [ -z \"$__pf_version\" ]; then __pf_version=$(dumpsys package {pkg} 2>/dev/null | sed -n 's/.*versionName=//p' | head -n 1); fi")
+                script_lines.append(f"  if [ -z \"$__pf_version_code\" ]; then __pf_version_code=$(dumpsys package {pkg} 2>/dev/null | sed -n 's/.*versionCode=//p' | head -n 1 | awk '{{print $1}}'); fi")
+                script_lines.append("  if [ -z \"$__pf_label\" ]; then __pf_label=" + pkg + "; fi")
+                script_lines.append(f'  printf \'%s\\n\' "__PF_APP__|{key}|{pkg}|1|$__pf_label|$__pf_version|$__pf_version_code"')
+                script_lines.append("else")
+                script_lines.append(f'  printf \'%s\\n\' "__PF_APP__|{key}|{pkg}|0|||"')
+                script_lines.append("fi")
+
+            # print("___________________________________________________\n")
+            # print('\n'.join(script_lines))
+            # print("___________________________________________________\n")
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='\n', suffix='.sh', delete=False) as script_file:
+                local_script_path = script_file.name
+                script_file.write('\n'.join(script_lines) + '\n')
+
+            if self.push_file(local_script_path, remote_script_path) != 0:
+                return result
+
+            adb_path = get_adb()
+            if not adb_path:
+                return result
+            proc = subprocess.run(
+                [adb_path, '-s', self.id, 'shell', 'sh', remote_script_path],
+                capture_output=True,
+                encoding='ISO-8859-1',
+                errors='replace',
+                env=get_env_variables(),
+            )
+            stdout = getattr(proc, 'stdout', '') or ''
+
+            for line in stdout.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                parts = [p.strip() for p in re.split(r'[|\t,;: ]+', line) if p.strip()]
+                fields = [p for p in parts if not str(p).startswith('__PF_')]
+                # identify key
+                key = None
+                for f in fields:
+                    if f in result:
+                        key = f
+                        break
+                if key is None:
+                    # try package match
+                    for k, v in packages.items():
+                        if v in fields or v in line:
+                            key = k
+                            break
+                if key is None:
+                    continue
+                pkg = packages.get(key, result[key].get('package', ''))
+                installed = False
+                version = ''
+                version_code = ''
+                name = pkg
+                installed_tokens = {'1', 'true', 'yes', 'installed', 'on'}
+                # Positional parsing for our own script output:
+                # key | pkg | installed | name | version | version_code
+                if len(fields) >= 3 and fields[0] == key:
+                    inst_token = str(fields[2]).lower()
+                    installed = inst_token in installed_tokens
+                    if len(fields) >= 4 and fields[3]:
+                        name = fields[3]
+                    if len(fields) >= 5 and fields[4]:
+                        version = fields[4]
+                    if len(fields) >= 6 and fields[5]:
+                        version_code = fields[5]
+                else:
+                    for f in fields:
+                        fl = str(f).lower()
+                        if fl in installed_tokens:
+                            installed = True
+                        if fl in ('0', 'false', 'no', 'not_installed', 'not-installed', 'notinstalled', 'absent'):
+                            installed = False
+                    # version-like token (skip installed indicator at fields[2])
+                    candidate_fields = list(fields)
+                    for f in candidate_fields:
+                        if re.match(r'^\\d+(\\.\\d+)*([-+].*)?$', str(f)):
+                            if not version and str(f).lower() not in installed_tokens:
+                                version = str(f)
+                            elif not version_code and str(f) != version and str(f).lower() not in installed_tokens:
+                                version_code = str(f)
+                    for f in fields:
+                        if f in (key, pkg):
+                            continue
+                        if str(f).lower() in installed_tokens or str(f).lower() in ('0', 'false', 'no'):
+                            continue
+                        if re.match(r'^\\d+(\\.\\d+)*([-+].*)?$', str(f)):
+                            continue
+                        if f:
+                            name = str(f)
+                            break
+                if pkg in stdout and key in result:
+                    # ensure installed if package appears in any installed marker
+                    pass
+                entry = result[key]
+                entry['installed'] = bool(installed)
+                entry['name'] = name or pkg
+                entry['app_name'] = name or pkg
+                if version:
+                    entry['version'] = version
+                if version_code:
+                    entry['version_code'] = version_code
+                # fallback: if package present in stdout, mark installed
+                if pkg and pkg in stdout and not entry['installed']:
+                    # only if an installed indicator present nearby
+                    pass
+
+            # No broad fallback: installed state is determined per parsed line.
+
+        except Exception:
+            traceback.print_exc()
+        finally:
+            try:
+                if local_script_path:
+                    os.remove(local_script_path)
+            except Exception:
+                pass
+            try:
+                self.delete(remote_script_path)
+            except Exception:
+                pass
+
+        return result
 
     # ----------------------------------------------------------------------------
     #                               property magisk_app_version_code

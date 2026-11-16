@@ -65,6 +65,8 @@ class MessageBoxEx(wx.Dialog):
             radio_initial_value=None,
             disable_radios=None,
             vertical_radios=False,
+            radio_default_none=False,
+            enable_buttons_on_radio=None,
             **kwargs
         ):
         wx.Dialog.__init__(self, *args, **kwargs)
@@ -80,6 +82,8 @@ class MessageBoxEx(wx.Dialog):
         self.radio_buttons = []
         self.radio_labels = radio_labels
         self.radio_initial_value = radio_initial_value
+        self.radio_default_none = radio_default_none
+        self.enable_buttons_on_radio = enable_buttons_on_radio
         if checkbox_initial_values is not None:
             self.checkbox_initial_values = checkbox_initial_values
         else:
@@ -215,10 +219,11 @@ class MessageBoxEx(wx.Dialog):
                 radio_button = wx.RadioButton(self, wx.ID_ANY, radio_label, wx.DefaultPosition, wx.DefaultSize, style)
                 if self.radio_initial_value is not None and self.radio_initial_value == i:
                     radio_button.SetValue(True)
-                elif self.radio_initial_value is None and i == 0:
+                elif self.radio_initial_value is None and i == 0 and not self.radio_default_none:
                     radio_button.SetValue(True)  # Default to first option
                 if disable_radios is not None and i + 1 in disable_radios:
                     radio_button.Enable(False)
+                radio_button.Bind(wx.EVT_RADIOBUTTON, self._onRadioChanged)
                 self.radio_buttons.append(radio_button)
                 radio_sizer.Add(radio_button, 0, wx.ALL, 5)
             vSizer.Add(radio_sizer, 0, wx.EXPAND | wx.ALL, 10)
@@ -241,9 +246,11 @@ class MessageBoxEx(wx.Dialog):
 
         vSizer.Add(buttons_sizer, 0, wx.EXPAND, 5)
 
-        self.SetSizer(vSizer)
-        self.Layout()
-        self.Centre(wx.BOTH)
+        # Apply initial disabled state for buttons gated on radio selection
+        if self.enable_buttons_on_radio is not None and self.radio_default_none:
+            for btn_idx in self.enable_buttons_on_radio:
+                if btn_idx - 1 < len(self.buttons):
+                    self.buttons[btn_idx - 1].Disable()
 
         # Autosize the dialog
         self.SetSizerAndFit(vSizer)
@@ -260,6 +267,13 @@ class MessageBoxEx(wx.Dialog):
         url = event.GetLinkInfo().GetHref()
         # wx.LaunchDefaultBrowser(url)
         webbrowser.open(url)
+
+    def _onRadioChanged(self, event):
+        if self.enable_buttons_on_radio is not None:
+            for btn_idx in self.enable_buttons_on_radio:
+                if btn_idx - 1 < len(self.buttons):
+                    self.buttons[btn_idx - 1].Enable(True)
+        event.Skip()
 
     def _emit_modal_result(self, button_value):
         self.return_value = {'button': button_value}

@@ -358,7 +358,8 @@ class AdvancedSettings(wx.Dialog):
 
         fgs1.Add((0, 0))
         fgs1.Add((0, 0))
-        fgs1.AddGrowableRow(fgs1.GetRows() - 1, 1)
+        last_row = (fgs1.GetItemCount() + fgs1.GetCols() - 1) // fgs1.GetCols() - 1
+        fgs1.AddGrowableRow(last_row, 1)
         middle_sizer.Add(package_options_sizer, proportion=0, flag=wx.EXPAND|wx.BOTTOM, border=5)
         middle_sizer.Add(fgs1, proportion=1, flag=wx.EXPAND)
         middle_sizer.Add(scrcpy_outer_sizer, proportion=0, flag=wx.EXPAND, border=5)

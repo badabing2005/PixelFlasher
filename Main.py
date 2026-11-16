@@ -3398,30 +3398,30 @@ class PixelFlasher(wx.Frame):
                     message += f"    Magisk Manager Version:          {m_app_version}\n"
                     # message += f"    Magisk Path:                     {device.magisk_path}\n"
                     message += f"      Checked for Package:           {get_rooting_app_package('magisk')}\n"
-                k_app_version = device.ksu_app_version
-                wx.Yield()
-                if k_app_version:
-                    message += f"    KernelSU App Version:            {k_app_version}\n"
-                s_app_version = device.sukisu_app_version
-                wx.Yield()
-                if s_app_version:
-                    message += f"    SukiSU App Version:              {s_app_version}\n"
-                w_app_version = device.wild_ksu_app_version
-                wx.Yield()
-                if w_app_version:
-                    message += f"    Wild_KSU App Version:            {w_app_version}\n"
-                k_next_app_version = device.ksu_next_app_version
-                wx.Yield()
-                if k_next_app_version:
-                    message += f"    KernelSU Next App Version:       {k_next_app_version}\n"
-                a_app_version = device.apatch_app_version
-                wx.Yield()
-                if a_app_version:
-                    message += f"    APatch App Version:              {a_app_version}\n"
-                a_next_app_version = device.apatch_next_app_version
-                wx.Yield()
-                if a_next_app_version:
-                    message += f"    APatch Next App Version:         {a_next_app_version}\n"
+                # k_app_version = device.ksu_app_version
+                # wx.Yield()
+                # if k_app_version:
+                #     message += f"    KernelSU App Version:            {k_app_version}\n"
+                # s_app_version = device.sukisu_app_version
+                # wx.Yield()
+                # if s_app_version:
+                #     message += f"    SukiSU App Version:              {s_app_version}\n"
+                # w_app_version = device.wild_ksu_app_version
+                # wx.Yield()
+                # if w_app_version:
+                #     message += f"    Wild_KSU App Version:            {w_app_version}\n"
+                # k_next_app_version = device.ksu_next_app_version
+                # wx.Yield()
+                # if k_next_app_version:
+                #     message += f"    KernelSU Next App Version:       {k_next_app_version}\n"
+                # a_app_version = device.apatch_app_version
+                # wx.Yield()
+                # if a_app_version:
+                #     message += f"    APatch App Version:              {a_app_version}\n"
+                # a_next_app_version = device.apatch_next_app_version
+                # wx.Yield()
+                # if a_next_app_version:
+                #     message += f"    APatch Next App Version:         {a_next_app_version}\n"
         elif device.mode == 'f.b':
             wx.Yield()
             message += f"    Device Unlocked:                 {device.unlocked}\n"
@@ -3493,8 +3493,24 @@ class PixelFlasher(wx.Frame):
                 message += "    Slot comparison:\n"
                 for name, result in metadata.slot_comparison.items():
                     message += f"      {name:<22}: {result or 'Unavailable'}\n"
-            message += "\n"
-            message += f"{device.get_battery_details()}\n"
+            # Check for rooting apps
+            result = device.get_rooting_app_packages_info()
+            message += "    Rooting app packages info:\n"
+            # debug(json.dumps(result, indent=2))
+            for _key, _info in (result or {}).items():
+                _name = _info.get('name') or _info.get('app_name') or _info.get('package', '')
+                if _info.get('installed'):
+                    _version_versionCode = f"{_info.get('version', '')}:{_info.get('versionCode', '')}"
+                    message += f"      {_key:<15} {_name:<20} {_version_versionCode:<16} [{_info.get('package', '')}]\n"
+                else:
+                    message += f"      {_key:<15} Not Installed                         [{_info.get('package', '')}]\n"
+            # message += "\n"
+            # Check for battery details
+            _battery_details = device.get_battery_details()
+            if _battery_details:
+                for _line in str(_battery_details).splitlines():
+                    message += f"    {_line}\n"
+                message += "\n"
         else:
             print('')
         print(message)

@@ -39,6 +39,7 @@ A Script To easily change the version number in all involved files.
 import fileinput
 import os
 import re
+import sys
 
 cwd = os.getcwd()
 file1 = os.path.join(cwd, 'build-on-mac.spec')
@@ -118,7 +119,11 @@ def set_values(file, search, replace):
 target_version = ''
 print("Getting current values ...")
 get_values(alist, False)
-target_version = input("\nEnter the new Version: ")
+if len(sys.argv) > 1:
+    target_version = sys.argv[1]
+    print(f"\nUsing version from command line: {target_version}")
+else:
+    target_version = input("\nEnter the new Version: ")
 target_comma_version = target_version.replace('.', ',')
 print(f"\nSetting Versions to: {target_version} ...")
 get_values(alist, True)

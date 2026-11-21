@@ -57,7 +57,7 @@ from message_box_ex import MessageBoxEx
 #                               Class PifModule
 # ============================================================================
 class PifModule:
-    def __init__(self, id, name, version, version_code, format, path, flavor):
+    def __init__(self, id, name, version, version_code, format, path, flavor, dirname='', has_action=False):
         self.id = id
         self.name = name
         self.version = version
@@ -65,6 +65,8 @@ class PifModule:
         self.format = format
         self.path = path
         self.flavor = flavor
+        self.dirname = dirname
+        self.has_action = has_action
 
 # ============================================================================
 #                               Class PifManager
@@ -296,6 +298,11 @@ class PifManager(wx.Dialog):
         self.edit_security_patch_button.Enable(False)
         self.edit_security_patch_button.Show(False)
 
+        # Run Module Action button
+        self.run_action_button = wx.Button(self, wx.ID_ANY, _("Run Module Action"), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.run_action_button.SetToolTip(_("Run Module Action"))
+        self.run_action_button.Enable(False)
+
         # Process build.prop button
         self.process_build_prop_button = wx.Button(self, wx.ID_ANY, _("Process build.prop(s)"), wx.DefaultPosition, wx.DefaultSize, 0)
         self.process_build_prop_button.SetToolTip(_("Process build.prop to extract a compatible print."))
@@ -372,6 +379,7 @@ class PifManager(wx.Dialog):
         self.push_kb_button.SetMinSize((button_width, -1))
         self.edit_ts_target_button.SetMinSize((button_width, -1))
         self.edit_security_patch_button.SetMinSize((button_width, -1))
+        self.run_action_button.SetMinSize((button_width, -1))
         self.process_build_prop_button.SetMinSize((button_width, -1))
         self.process_bulk_prop_button.SetMinSize((button_width, -1))
         self.process_img_button.SetMinSize((button_width, -1))
@@ -407,6 +415,7 @@ class PifManager(wx.Dialog):
         v_buttons_sizer.Add(self.push_kb_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         v_buttons_sizer.Add(self.edit_ts_target_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         v_buttons_sizer.Add(self.edit_security_patch_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
+        v_buttons_sizer.Add(self.run_action_button, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, 5)
         v_buttons_sizer.AddStretchSpacer()
         v_buttons_sizer.Add(self.process_build_prop_button, 0, wx.TOP | wx.RIGHT, 5)
         v_buttons_sizer.Add(self.process_bulk_prop_button, 0, wx.TOP | wx.RIGHT, 5)
@@ -520,6 +529,7 @@ class PifManager(wx.Dialog):
         self.push_kb_button.Bind(wx.EVT_BUTTON, self.onPushKeybox)
         self.edit_ts_target_button.Bind(wx.EVT_BUTTON, self.onEditTSTarget)
         self.edit_security_patch_button.Bind(wx.EVT_BUTTON, self.onEditTSSP)
+        self.run_action_button.Bind(wx.EVT_BUTTON, self.onRunModuleAction)
         #
         self.process_build_prop_button.Bind(wx.EVT_BUTTON, self.onProcessBuildProps)
         self.process_bulk_prop_button.Bind(wx.EVT_BUTTON, self.onProcessBulkProps)
@@ -734,6 +744,8 @@ class PifManager(wx.Dialog):
         self.edit_ts_target_button.Show(False)
         self.edit_security_patch_button.Enable(False)
         self.edit_security_patch_button.Show(False)
+        self.run_action_button.Enable(False)
+        self.run_action_button.SetToolTip(_("Run Module Action"))
         self.auto_update_pif_checkbox.Enable(False)
         self.auto_check_pi_checkbox.Enable(False)
         self.auto_run_migrate_checkbox.Enable(False)
@@ -751,32 +763,34 @@ class PifManager(wx.Dialog):
         found_pif_module = False
         if modules:
             for module in modules:
-                if module.state == 'enabled' and ((module.id == "playintegrityfix" and "Play Integrity" in module.name) or module.id == "tricky_store" or module.id == "targetedfix"):
+                if module.state == 'enabled' and ((module.id in ["playintegrityfix", "playintegrityfork"] and "Play Integrity" in module.name) or module.id == "tricky_store" or module.id == "targetedfix"):
                     self.pif_format = None
                     self.pif_path = None
-                    # playintegrityfix
-                    if module.id == "playintegrityfix":
+                    # playintegrityfix / playintegrityfork
+                    if module.id in ["playintegrityfix", "playintegrityfork"]:
                         self.pif_format = 'json'
                         if "Play Integrity Fork" in module.name:
-                            self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                            res, unused = device.check_file('/data/adb/modules/playintegrityfork', True, False)
+                            pif_module_path = '/data/adb/modules/playintegrityfork' if res == 1 else '/data/adb/modules/playintegrityfix'
+                            self.pif_path = f'{pif_module_path}/custom.pif.json'
                             if int(module.versionCode) > 4000:
                                 print("Advanced props support enabled.")
-                                res, unused = device.check_file('/data/adb/modules/playintegrityfix/example.pif.prop', True)
+                                res, unused = device.check_file(f'{pif_module_path}/example.pif.prop', True)
                                 if res == 1:
-                                    res, unused = device.check_file('/data/adb/modules/playintegrityfix/custom.pif.prop', True)
+                                    res, unused = device.check_file(f'{pif_module_path}/custom.pif.prop', True)
                                     if res == 1:
                                         self.pif_format = 'prop'
-                                        self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.prop'
+                                        self.pif_path = f'{pif_module_path}/custom.pif.prop'
                                         print("ℹ️ custom.pif.prop detected, switching to prop format.")
                                     elif res == 0:
-                                        res, unused = device.check_file('/data/adb/modules/playintegrityfix/custom.pif.json', True)
+                                        res, unused = device.check_file(f'{pif_module_path}/custom.pif.json', True)
                                         if res == 1:
                                             self.pif_format = 'json'
-                                            self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                                            self.pif_path = f'{pif_module_path}/custom.pif.json'
                                             print("ℹ️ custom.pif.json detected, switching to json format.")
                                         else:
                                             self.pif_format = 'prop'
-                                            self.pif_path = '/data/adb/modules/playintegrityfix/custom.pif.prop'
+                                            self.pif_path = f'{pif_module_path}/custom.pif.prop'
                                             print("⚠️ custom.pif.prop and custom.pif.json not found, defaulting to prop format.")
                         else:
                             if module.version in ["PROPS-v2.1", "PROPS-v2.0"]:
@@ -816,7 +830,9 @@ class PifManager(wx.Dialog):
 
                     flavor = module.name.replace(" ", "").lower()
                     self.pif_flavor = f"{flavor}_{module.versionCode}"
-                    self.pif_modules.append(PifModule(id=module.id, name=module.name, version=module.version, version_code=module.versionCode, format=self.pif_format, path=self.pif_path, flavor=self.pif_flavor))
+                    has_action = str(getattr(module, 'hasAction', False)).lower() == 'true'
+                    if module.id != "tricky_store":
+                        self.pif_modules.append(PifModule(id=module.id, name=module.name, version=module.version, version_code=module.versionCode, format=self.pif_format, path=self.pif_path, flavor=self.pif_flavor, dirname=getattr(module, 'dirname', module.id), has_action=has_action))
                     found_pif_module = True
                     self.create_pif_button.Enable(True)
                     self.push_pif_button.Enable(True)
@@ -907,7 +923,11 @@ class PifManager(wx.Dialog):
             self.pif_format = selected_module.format
             self.pif_path = selected_module.path
             self.pif_flavor = selected_module.flavor
+            self.run_action_button.SetToolTip(_("Run %s Action") % selected_module.name)
+            self.run_action_button.Enable(bool(selected_module.has_action))
         else:
+            self.run_action_button.SetToolTip(_("Run Module Action"))
+            self.run_action_button.Enable(False)
             return
 
         if selected_module.id == "tricky_store":
@@ -997,7 +1017,7 @@ class PifManager(wx.Dialog):
             local_target_file = os.path.join(config_path, 'tmp', 'tf_target.txt')
 
             if not self._tf_targets_loaded:
-                res, unused = device.check_file(self.tf_target_path, True)
+                res, unused = device.check_file(self.tf_target_path, True, False)
                 if res == 1:
                     self.tf_target_exists = True
 
@@ -1690,7 +1710,7 @@ class PifManager(wx.Dialog):
                 device_model = device.hardware
             buttons_text = [_("Canary Device"), "Canary Emulator", "Beta Device", _("Cancel")]
             radio_labels = ["Stable Channel (Recommended)", "Main Channel"]
-            radio_initial_value = 0 if get_config().canary_miner_channel == 'stable' else 1
+            radio_initial_value = 1 if get_config().canary_miner_channel == 'stable' else 1
             dlg = MessageBoxEx(
                 parent=self,
                 title=_('Canary Miner Selection'),
@@ -3392,7 +3412,9 @@ class PifManager(wx.Dialog):
             if not device or not device.rooted:
                 return
             if device:
-                exec_cmd = "/data/adb/modules/playintegrityfix/migrate.sh -f"
+                res, unused = device.check_file('/data/adb/modules/playintegrityfork/migrate.sh', True, False)
+                migrate_path = '/data/adb/modules/playintegrityfork/migrate.sh' if res == 1 else '/data/adb/modules/playintegrityfix/migrate.sh'
+                exec_cmd = f"{migrate_path} -f"
                 debug(f"exec_cmd: {exec_cmd}")
                 res = device.exec_cmd(exec_cmd, True)
                 if res:
@@ -3536,6 +3558,34 @@ class PifManager(wx.Dialog):
         print("==============================================================================")
         self.edit_file("/data/adb/tricky_store/security_patch.txt")
         event.Skip()
+
+    # -----------------------------------------------
+    #                  onRunModuleAction
+    # -----------------------------------------------
+    def onRunModuleAction(self, e):
+        # run the action.sh script
+        try:
+            device = get_phone(True)
+            if not device:
+                return
+            if not device.rooted:
+                return
+            self._on_spin('start')
+            dirname = getattr(self.current_pif_module, 'dirname', '') if self.current_pif_module else ''
+            res = device.magisk_run_module_action(dirname)
+            if getattr(self.current_pif_module, 'id', '') == "targetedfix":
+                self._tf_targets_loaded = False
+                targets = self.load_tf_targets()
+                if targets and len(targets) > 0:
+                    self.tf_targets_combo.SetSelection(0)
+                    self.onTFTargetSelectionComboBox(None)
+            elif self.pif_path:
+                self.LoadPif(self.pif_path)
+        except Exception as e:
+            print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Exception during Magisk modules run action.")
+            traceback.print_exc()
+        finally:
+            self._on_spin('stop')
 
     # -----------------------------------------------
     #                  edit_local_file

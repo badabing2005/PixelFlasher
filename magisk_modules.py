@@ -355,9 +355,11 @@ class MagiskModules(wx.Dialog):
                     index = self.list.InsertItem(i, module.id)
 
                 # disable pif button if it is already installed.
-                if module.id == "playintegrityfix" and "Play Integrity" in module.name:
+                if module.id in ["playintegrityfix", "playintegrityfork"] and "Play Integrity" in module.name:
                     if module.name == "Play Integrity Fork":
-                        self.pif_json_path = '/data/adb/modules/playintegrityfix/custom.pif.json'
+                        res, unused = self.device.check_file('/data/adb/modules/playintegrityfork', True, False)
+                        pif_module_path = '/data/adb/modules/playintegrityfork' if res == 1 else '/data/adb/modules/playintegrityfix'
+                        self.pif_json_path = f'{pif_module_path}/custom.pif.json'
                     elif module.name == "tricky_store":
                         self.pif_json_path = '/data/adb/tricky_store/spoof_build_vars'
                     elif module.name != "Play Integrity NEXT":

@@ -2976,11 +2976,14 @@ class PixelFlasher(wx.Frame):
                         print(f"Result: {res}")
                         set_verbose(current_debug)
 
+                res, unused = device.check_file('/data/adb/modules/playintegrityfork', True, False)
+                pif_module_path = '/data/adb/modules/playintegrityfork' if res == 1 else '/data/adb/modules/playintegrityfix'
+
                 # PlayIntegrity Fork - custom.pif.json
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.json ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.json", True, False)
+                res = device.file_content(f"{pif_module_path}/custom.pif.json", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2988,7 +2991,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.prop ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.pif.prop", True, False)
+                res = device.file_content(f"{pif_module_path}/custom.pif.prop", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -2996,7 +2999,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace.list", True, False)
+                res = device.file_content(f"{pif_module_path}/custom.app_replace.list", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -3004,7 +3007,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace_list.txt ...")
                 print("==============================================================================")
-                res = device.file_content("/data/adb/modules/playintegrityfix/custom.app_replace_list.txt", True, False)
+                res = device.file_content(f"{pif_module_path}/custom.app_replace_list.txt", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 
@@ -3012,7 +3015,7 @@ class PixelFlasher(wx.Frame):
                 print("\n==============================================================================")
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.app_replace.list ...")
                 print("==============================================================================")
-                res, unused = device.check_file('/data/adb/modules/playintegrityfix/scripts-only-mode', True, False)
+                res, unused = device.check_file(f'{pif_module_path}/scripts-only-mode', True, False)
                 if res == 1:
                     print("scripts-only-mode is enabled")
                 else:

@@ -2361,6 +2361,7 @@ add_hosts_module
         Args:
             file_path:  Full file path
             with_su:    Perform the action as root (Default: False)
+            verbose:    Print debug messages (Default: True)
 
         Returns:
             1,  matches       if file is found.

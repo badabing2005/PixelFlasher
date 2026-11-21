@@ -8983,7 +8983,7 @@ def extract_magiskboot(apk_path, architecture, output_path):
 # ============================================================================
 #                               Function request_with_fallback
 # ============================================================================
-def request_with_fallback(method, url, headers=None, data=None, stream=False, nocache=False):
+def request_with_fallback(method, url, headers=None, data=None, stream=False, nocache=False, timeout=(10, 60)):
     response = 'ERROR'
     # Initialize headers if None
     headers = headers or {}
@@ -8998,7 +8998,7 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False, no
     try:
         if check_internet():
             with requests.Session() as session:
-                response = session.request(method, url, headers=headers, data=data, stream=stream)
+                response = session.request(method, url, headers=headers, data=data, stream=stream, timeout=timeout)
                 response.raise_for_status()
     except requests.exceptions.SSLError:
         print(f"⚠️ WARNING! Encountered SSL certification error while connecting to: {url}")
@@ -9006,7 +9006,7 @@ def request_with_fallback(method, url, headers=None, data=None, stream=False, no
         print("For security, you should double check and make sure your system or communication is not compromised.")
         if check_internet():
             with requests.Session() as session:
-                response = session.request(method, url, headers=headers, data=data, verify=False, stream=stream)
+                response = session.request(method, url, headers=headers, data=data, verify=False, stream=stream, timeout=timeout)
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
     except requests.exceptions.Timeout:

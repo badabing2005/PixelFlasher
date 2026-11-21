@@ -81,6 +81,7 @@ class Config():
         self.fastboot_force = False
         self.advanced_options = False
         self.update_check = True
+        self.update_skip_version = ''
         self.version = VERSION
         self.flash_both_slots = False
         self.flash_to_inactive_slot = False
@@ -263,6 +264,8 @@ class Config():
                     conf.advanced_options = data['advanced_options']
                 with contextlib.suppress(KeyError):
                     conf.update_check = data['update_check']
+                with contextlib.suppress(KeyError):
+                    conf.update_skip_version = data['update_skip_version']
                 with contextlib.suppress(KeyError):
                     conf.version = data['version']
                 with contextlib.suppress(KeyError):
@@ -515,6 +518,7 @@ class Config():
             'no_reboot': self.no_reboot,
             'advanced_options': self.advanced_options,
             'update_check': self.update_check,
+            'update_skip_version': self.update_skip_version,
             'version': VERSION,
             'flash_both_slots': self.flash_both_slots,
             'flash_to_inactive_slot': self.flash_to_inactive_slot,

@@ -82,6 +82,7 @@ from magisk_downloads import MagiskDownloads
 from magisk_modules import MagiskModules
 from pif_manager import PifManager
 from message_box_ex import MessageBoxEx
+import self_update
 from pf_modules import (adb_kill_server, auto_resize_boot_list,
     check_platform_tools, flash_phone, live_flash_boot_phone,
     patch_boot_img, populate_boot_list, process_file, kb_stats_ui,
@@ -692,6 +693,8 @@ class PixelFlasher(wx.Frame):
         self.tools = []
         set_config(self.config)
         init_db()
+        # Remove leftover swap files from a previous in-app update attempt
+        self_update.cleanup_stale_updates()
         wx.Frame.__init__(self, parent, -1, title, size=(self.config.width, self.config.height),
             style=wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE | wx.SYSTEM_MENU | wx.CLOSE_BOX)
 
@@ -1004,21 +1007,27 @@ class PixelFlasher(wx.Frame):
                 traceback.print_exc()
 
             # check version if we are running the latest
+            skipped_version = getattr(self.config, 'update_skip_version', '') or ''
             if self.config.update_check:
                 l_version = check_latest_version()
-                if not l_version:
-                    return
-                try:
-                    if parse(VERSION) < parse(l_version):
-                        print(f"\nA newer PixelFlasher v{l_version} can be downloaded from:")
-                        print("https://github.com/badabing2005/PixelFlasher/releases/latest")
-                        from About import AboutDlg
-                        about = AboutDlg(self)
-                        about.ShowModal()
-                        about.Destroy()
-                except Exception as e:
-                    print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for updates")
-                    traceback.print_exc()
+                if l_version:
+                    try:
+                        if parse(VERSION) < parse(l_version) and skipped_version != l_version:
+                            print(f"\nA newer PixelFlasher v{l_version} can be downloaded from:")
+                            print("https://github.com/badabing2005/PixelFlasher/releases/latest")
+                            from About import AboutDlg
+                            about = AboutDlg(self)
+                            about.ShowModal()
+                            about.Destroy()
+                            if getattr(self, '_pf_restart_pending', False):
+                                try:
+                                    wx.GetApp().ExitMainLoop()
+                                except Exception:
+                                    pass
+                                return
+                    except Exception as e:
+                        print(f"\n❌ {datetime.now():%Y-%m-%d %H:%M:%S} ERROR: Encountered an error while checking for updates")
+                        traceback.print_exc()
             end = time.time()
             print(f"Total Load time: {math.ceil(end - start)} seconds")
 
@@ -2239,6 +2248,11 @@ class PixelFlasher(wx.Frame):
         about = AboutDlg(self)
         about.ShowModal()
         about.Destroy()
+        if getattr(self, '_pf_restart_pending', False):
+            try:
+                wx.GetApp().ExitMainLoop()
+            except Exception:
+                pass
 
     # -----------------------------------------------
     #                  _on_advanced_config
@@ -7362,6 +7376,10 @@ class MySplashScreen(adv.SplashScreen):
 
     def _show_main(self):
         frame = PixelFlasher(None, "PixelFlasher")
+        if getattr(frame, '_pf_restart_pending', False):
+            with contextlib.suppress(Exception):
+                self.Hide()
+            return
         frame.Show()
         with contextlib.suppress(Exception):
             self.Hide()

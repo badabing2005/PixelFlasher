@@ -2757,6 +2757,10 @@ class PixelFlasher(wx.Frame):
         message += "	- `/data/adb/tricky_store/target.txt`\n"
         message += "	- `/data/adb/tricky_store/security_patch.txt`\n"
         message += "	- `/data/adb/tricky_store/tee_status`\n"
+        message += _("- TEESim (if available):\n")
+        message += "	- `/data/adb/teesim/config.json`\n"
+        message += "	- `/data/adb/teesim/overrides.json`\n"
+        message += "	- `/data/adb/teesim/harvested.json`\n"
         message += _("- PlayIntegrity Fork (if available):\n")
         message += "	- `/data/adb/modules/playintegrityfix/custom.pif.json`\n"
         message += "	- `/data/adb/modules/playintegrityfix/custom.pif.prop`\n"
@@ -2984,6 +2988,30 @@ class PixelFlasher(wx.Frame):
                 print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking PlayIntegrity Fork custom.pif.json ...")
                 print("==============================================================================")
                 res = device.file_content(f"{pif_module_path}/custom.pif.json", True, False)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # TEESIM - config.json
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking TEESIM  config.json ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/teesim/config.json", True, False)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # TEESIM - harvested.json
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking TEESIM  harvested.json ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/teesim/harvested.json", True, False)
+                if res != -1:
+                    print(f"--------------------\n{res}\n--------------------")
+
+                # TEESIM - overrides.json
+                print("\n==============================================================================")
+                print(f" 🔍 {datetime.now():%Y-%m-%d %H:%M:%S} Checking TEESIM  overrides.json ...")
+                print("==============================================================================")
+                res = device.file_content("/data/adb/teesim/overrides.json", True, False)
                 if res != -1:
                     print(f"--------------------\n{res}\n--------------------")
 

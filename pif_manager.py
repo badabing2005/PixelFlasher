@@ -2912,7 +2912,7 @@ class PifManager(wx.Dialog):
                         self,
                         title=_("Pixel Factory Image Detected"),
                         message=_("You selected a Pixel Factory image. How would you like to process it?"),
-                        button_texts=[_("Option 1"), _("Option 2"), _("Option 3"), _("Cancel")],
+                        button_texts=[_("OK"), _("Cancel")],
                         radio_labels=[
                             _("Option 1: Pluck Fingerprint and Security Patch from vbmeta_system (Fastest)"),
                             _("Option 2: Pluck Fingerprint and Security Patch from system/vendor/product (Normal speed)"),
@@ -2923,16 +2923,23 @@ class PifManager(wx.Dialog):
                         size=(600, 400)
                     )
                     result = dialog.ShowModal()
+                    return_value = dialog.return_value
                     dialog.Destroy()
 
-                    print(f"User selected option: {result}")
-                    if result == wx.ID_CANCEL or result == 4:
+                    if result != 1:
+                        print("User cancelled Pixel Factory image processing.")
                         return
+
+                    selected_option = 1
+                    if isinstance(return_value, dict):
+                        selected_option = return_value.get('radio', 0) + 1
+                    print(f"User selected option: {selected_option}")
                     # Store the selected option for use in _process_image_worker
-                    self._factory_image_option = result
+                    self._factory_image_option = selected_option
                 else:
                     self._factory_image_option = 3
 
+                start = time.time()
                 self._on_spin('start')
                 wx.CallAfter(self.console_stc.SetValue, _("Processing %s ...\nPlease be patient this could take some time ...") % file_path)
                 worker = threading.Thread(target=self._process_image_worker, args=(file_path, start), daemon=True)
